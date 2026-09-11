@@ -1,7 +1,6 @@
 //! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
 
 use derive_more::Constructor;
-use futures::TryFutureExt;
 use http_utils::reqwest::HttpClient;
 use indexmap::IndexSet;
 use serde::Deserialize;
@@ -233,9 +232,10 @@ impl OidcProviderMetadata {
     /// [https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig] and
     /// [https://www.rfc-editor.org/info/rfc8414/#section-5].
     pub fn legacy_well_known_url(issuer: &IssuerIdentifier) -> Url {
-        let url = issuer.as_base_url().as_ref();
-        url.join(&format!(".well-known/{}.json", Self::PATH))
-            .expect("both paths are already safe url encoded")
+        issuer
+            .as_issuer_url()
+            .join_issuer_url(&format!(".well-known/{}", Self::PATH))
+            .into_url()
     }
 }
 
@@ -250,16 +250,19 @@ impl WellKnownMetadata for OidcProviderMetadata {
     ///
     /// See [https://www.rfc-editor.org/info/rfc8414/#section-5].
     async fn fetch_well_known_json(client: &HttpClient, issuer: &IssuerIdentifier) -> Result<Self, WellKnownError> {
-        Self::fetch_well_known_json_from(client, Self::well_known_url(issuer), issuer)
-            .or_else(|error| {
+        match Self::fetch_well_known_json_from(client, Self::well_known_url(issuer), issuer).await {
+            // Only fall back to the legacy location if the standard location could not be fetched, any other error
+            // means the metadata was served but is not acceptable, which should be reported to the caller.
+            Err(error @ WellKnownError::Http(_)) => {
                 tracing::debug!(
                     "Failed fetching .well-known configuration: {}. Trying fallback...",
                     error
                 );
 
-                Self::fetch_well_known_json_from(client, Self::legacy_well_known_url(issuer), issuer)
-            })
-            .await
+                Self::fetch_well_known_json_from(client, Self::legacy_well_known_url(issuer), issuer).await
+            }
+            result => result,
+        }
     }
 }
 
@@ -274,10 +277,13 @@ pub mod tests {
     use http_utils::reqwest::HttpClient;
     use httpmock::Method::GET;
     use httpmock::MockServer;
+    use rstest::rstest;
     use serde_json::json;
+    use url::Url;
 
     use super::AuthorizationServerMetadata;
     use crate::issuer_identifier::IssuerIdentifier;
+    use crate::metadata::oauth_metadata::OidcProviderMetadata;
     use crate::metadata::well_known::WellKnownMetadata;
 
     #[tokio::test]
@@ -309,5 +315,100 @@ pub mod tests {
 
         assert_eq!(metadata.issuer, issuer_identifier);
         mock.assert_async().await;
+    }
+
+    #[rstest]
+    #[case("http://example.com", "http://example.com/.well-known/openid-configuration".parse().unwrap())]
+    #[case("http://example.com/", "http://example.com/.well-known/openid-configuration".parse().unwrap())]
+    #[case(
+        "http://example.com/my-realm",
+        "http://example.com/my-realm/.well-known/openid-configuration".parse().unwrap()
+    )]
+    #[case(
+        "http://example.com/my-realm/",
+        "http://example.com/my-realm/.well-known/openid-configuration".parse().unwrap()
+    )]
+    #[case(
+        "http://example.com/realms/my-realm",
+        "http://example.com/realms/my-realm/.well-known/openid-configuration".parse().unwrap()
+    )]
+    #[case(
+        "http://example.com/realms/my-realm/",
+        "http://example.com/realms/my-realm/.well-known/openid-configuration".parse().unwrap()
+    )]
+    fn test_legacy_openid_url(#[case] issuer_identifier: &str, #[case] expected: Url) {
+        let issuer: IssuerIdentifier = issuer_identifier.parse().unwrap();
+        let url = OidcProviderMetadata::legacy_well_known_url(&issuer);
+        assert_eq!(url, expected);
+    }
+
+    #[tokio::test]
+    async fn test_openid_configuration_without_fallback() {
+        let server = MockServer::start_async().await;
+        let issuer_identifier = server.url("/my-issuer").parse::<IssuerIdentifier>().unwrap();
+
+        let mock_standard = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/.well-known/openid-configuration/my-issuer");
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!({
+                        "issuer": server.url("/my-issuer"),
+                        "authorization_endpoint": server.url("/my-issuer/oauth2/authorize"),
+                        "token_endpoint": server.url("/my-issuer/oauth2/token"),
+                        "jwks_uri": server.url("/.well-known/jwks.json"),
+                        "response_types_supported": ["code", "id_token", "token id_token"],
+                        "scopes_supported": ["openid"],
+                    }));
+            })
+            .await;
+
+        let client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let metadata = OidcProviderMetadata::fetch_well_known_json(&client, &issuer_identifier)
+            .await
+            .unwrap();
+
+        assert_eq!(metadata.issuer_identifier(), &issuer_identifier);
+        mock_standard.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn test_openid_configuration_with_fallback() {
+        let server = MockServer::start_async().await;
+        let issuer_identifier = server.url("/my-issuer").parse::<IssuerIdentifier>().unwrap();
+
+        let mock_standard = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/.well-known/openid-configuration/my-issuer");
+                then.status(404)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!({}));
+            })
+            .await;
+
+        let mock_legacy = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/my-issuer/.well-known/openid-configuration");
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!({
+                        "issuer": server.url("/my-issuer"),
+                        "authorization_endpoint": server.url("/my-issuer/oauth2/authorize"),
+                        "token_endpoint": server.url("/my-issuer/oauth2/token"),
+                        "jwks_uri": server.url("/.well-known/jwks.json"),
+                        "response_types_supported": ["code", "id_token", "token id_token"],
+                        "scopes_supported": ["openid"],
+                    }));
+            })
+            .await;
+
+        let client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let metadata = OidcProviderMetadata::fetch_well_known_json(&client, &issuer_identifier)
+            .await
+            .unwrap();
+
+        assert_eq!(metadata.issuer_identifier(), &issuer_identifier);
+        mock_standard.assert_async().await;
+        mock_legacy.assert_async().await;
     }
 }
