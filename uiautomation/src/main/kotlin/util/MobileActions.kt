@@ -519,9 +519,9 @@ open class MobileActions {
         }
     }
 
-    fun elementContainingTextVisible(partialText: String): Boolean {
+    fun elementContainingTextVisible(partialText: String, timeoutInSeconds: Long = 5): Boolean {
         return try {
-            findElementByPartialText(partialText).isDisplayed
+            findElementByPartialText(partialText, timeoutInSeconds).isDisplayed
         } catch (e: Exception) {
             println("Element not found or error occurred: ${e.message}")
             false

@@ -50,6 +50,7 @@ pub struct DisclosedDocument {
 #[derive(Debug, Clone)]
 pub struct IssuerSignedVerificationResult {
     pub mso: MobileSecurityObject,
+    pub issuer_uri: HttpsUri,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub ca_common_name: String,
 }
@@ -261,14 +262,14 @@ impl IssuerSigned {
             .map_err(|error| VerificationError::UnexpectedCACommonNameCount(error.into_iter().len()))?;
 
         let san_dns_name_or_uris = signing_cert.san_dns_name_or_uris()?;
-        match mso.issuer_uri {
-            Some(ref uri) if san_dns_name_or_uris.as_ref().contains(uri) => {}
-            Some(uri) => return Err(VerificationError::IssuerUriNotFoundInSan(uri, san_dns_name_or_uris).into()),
-            None => return Err(VerificationError::MissingIssuerUri.into()),
+        let issuer_uri = mso.issuer_uri.clone().ok_or(VerificationError::MissingIssuerUri)?;
+        if !san_dns_name_or_uris.as_ref().contains(&issuer_uri) {
+            return Err(VerificationError::IssuerUriNotFoundInSan(issuer_uri, san_dns_name_or_uris).into());
         }
 
         let result = IssuerSignedVerificationResult {
             mso,
+            issuer_uri,
             attributes,
             ca_common_name: ca_common_name.to_string(),
         };
@@ -333,6 +334,7 @@ impl Document {
         debug!("verify issuer_signed");
         let IssuerSignedVerificationResult {
             mso,
+            issuer_uri,
             attributes,
             ca_common_name,
         } = self
@@ -402,8 +404,7 @@ impl Document {
         let disclosed_document = DisclosedDocument {
             doc_type: mso.doc_type,
             attributes,
-            // The presence of the `issuer_uri` is guaranteed by `IssuerSigned::verify()`.
-            issuer_uri: mso.issuer_uri.unwrap(),
+            issuer_uri,
             attestation_qualification,
             ca: ca_common_name,
             validity_info: mso.validity_info,

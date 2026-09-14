@@ -69,6 +69,7 @@ use wallet_account::messages::instructions::InstructionResult;
 use wallet_account::messages::instructions::InstructionResultClaims;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
+use wallet_configuration::wallet_config::CertificatePublicKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::HistoryError;
@@ -324,7 +325,13 @@ pub fn create_wallet_configuration() -> WalletConfiguration {
 
     let mut config = test_wallet_config();
 
-    config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
+    config.account_server.certificate_public_keys = HashMap::from([(
+        keys.certificate_signing_key.kid().to_owned(),
+        CertificatePublicKey {
+            key: (*keys.certificate_signing_key.verifying_key()).into(),
+            created_at: Utc::now().into(),
+        },
+    )]);
     config.account_server.instruction_result_public_keys = HashMap::from([(
         keys.instruction_result_signing_key.kid().to_owned(),
         DerVerifyingKey::from(*keys.instruction_result_signing_key.verifying_key()),
