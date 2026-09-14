@@ -203,26 +203,29 @@ impl WalletClients<MockAccountProviderClient, MockIssuanceDiscovery, MockDisclos
 }
 
 #[cfg(feature = "test")]
-impl<APC>
+impl<APC, C>
     WalletClients<
         APC,
         HttpIssuanceDiscovery<MockCrlFetcher>,
-        VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher>,
+        VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher, C>,
         HttpStatusListClient,
     >
 where
     APC: Default,
+    C: StatusListClient,
 {
-    pub fn new_with_mock_crl_verifier(
+    pub fn new_with_mock_crl_verifier_and_registration_certificate_status_list_client(
         crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+        registration_certificate_status_list_client: C,
     ) -> Result<Self, reqwest::Error> {
         let credential_issuer_discovery =
             HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_verifier.clone());
+        let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
         let disclosure_client = VpDisclosureClient::new(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
             crl_verifier.clone(),
+            registration_certificate_status_list_client,
         );
-        let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
         Ok(Self {
             account_provider_client: APC::default(),
@@ -251,12 +254,13 @@ where
         let crl_verifier = CertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build()?);
         let credential_issuer_discovery =
             HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_verifier.clone());
+        // Note that HTTP is explicitly allowed for the retrieval of status lists.
+        let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
         let disclosure_client = VpDisclosureClient::new(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
             crl_verifier.clone(),
+            status_list_client.clone(),
         );
-        // Note that HTTP is explicitly allowed for the retrieval of status lists.
-        let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
         let clients = Self {
             account_provider_client: APC::default(),

@@ -82,6 +82,7 @@ error_ttl_in_sec = 0
 #   should contain a string identifying the private key in the HSM
 # * private_key: Base64 encoded DER format private key, or string
 # * certificate: Base64 encoded DER format certificate
+# * registration_certificate: Base64url encoded WRPRC in JWT or CWT format
 #
 
 # DCQL query credentials are associated with a [disclosure_settings.some_name],
@@ -133,6 +134,7 @@ error_ttl_in_sec = 0
 private_key_type = "hsm"
 private_key = "some_private_key"
 certificate = "MIJ..."
+registration_certificate = "ZXlK..."
 
 # Example university_mdoc associated dcql_query.credentials
 [[disclosure_settings.university_mdoc.dcql_query.credentials]]

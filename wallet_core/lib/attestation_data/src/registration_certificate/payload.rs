@@ -3,10 +3,13 @@ use chrono::Utc;
 use dcql::ClaimsQuery;
 use dcql::CredentialQueryFormat;
 use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
 use super::status::RegistrationCertificateStatus;
+use super::validation::RegistrationCertificateValidationError;
+use super::validation::SubjectType;
 
 #[derive(Deserialize)]
 pub struct MultiLanguageString {
@@ -16,10 +19,11 @@ pub struct MultiLanguageString {
 
 pub type MultiLanguageStringSet = VecNonEmpty<MultiLanguageString>;
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Credential {
     #[serde(flatten)]
     pub format: CredentialQueryFormat,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub claim: Option<Vec<ClaimsQuery>>,
 }
 
@@ -38,9 +42,10 @@ pub struct Intermediary {
     pub sname: Option<String>,
 }
 
+/// Wire representation; deserialize into [`ParsedRegistrationCertificate`] before using the payload.
 #[derive(Deserialize)]
 pub struct UncheckedRegistrationCertificate {
-    /// Optional at parse time because the informative Annex C example omits it. Validation always requires it.
+    /// Optional in this wire representation because Annex C omits it; constructing a parsed payload requires it.
     pub id: Option<String>,
     pub name: Option<String>,
     pub sub: String,
@@ -74,6 +79,41 @@ impl jwt::JwtTyp for UncheckedRegistrationCertificate {
     const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
 }
 
+/// A payload whose intrinsic field and cross-field rules have been checked during parsing.
+///
+/// This does not establish signature trust, WRPAC binding, current validity, revocation status, or query authorization.
+/// The payload is read-only so those intrinsic guarantees cannot be invalidated after construction.
+#[derive(Deserialize)]
+#[serde(try_from = "UncheckedRegistrationCertificate")]
+pub struct ParsedRegistrationCertificate {
+    payload: UncheckedRegistrationCertificate,
+    subject_type: SubjectType,
+}
+
+impl TryFrom<UncheckedRegistrationCertificate> for ParsedRegistrationCertificate {
+    type Error = RegistrationCertificateValidationError;
+
+    fn try_from(payload: UncheckedRegistrationCertificate) -> Result<Self, Self::Error> {
+        let subject_type = payload.parse_structure()?;
+
+        Ok(Self { payload, subject_type })
+    }
+}
+
+impl ParsedRegistrationCertificate {
+    pub fn payload(&self) -> &UncheckedRegistrationCertificate {
+        &self.payload
+    }
+
+    pub(super) fn subject_type(&self) -> SubjectType {
+        self.subject_type
+    }
+}
+
+impl jwt::JwtTyp for ParsedRegistrationCertificate {
+    const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -84,12 +124,39 @@ mod tests {
     use serde_json::json;
 
     use super::super::RegistrationCertificateValidationError;
-    use super::super::test::ANNEX_C_EXAMPLE;
-    use super::super::test::legal_person_access_certificate_subject;
+    use super::super::mock::ANNEX_C_EXAMPLE;
     use super::super::test::valid_payload_json;
-    use super::super::test::validation_time;
+    use super::super::validation::SERVICE_PROVIDER_ENTITLEMENT;
     use super::Credential;
+    use super::ParsedRegistrationCertificate;
     use super::UncheckedRegistrationCertificate;
+
+    #[test]
+    fn deserialize_valid_payload() {
+        let certificate: ParsedRegistrationCertificate = serde_json::from_value(valid_payload_json()).unwrap();
+
+        assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+    }
+
+    #[rstest]
+    #[case::missing_id("id", json!(null), RegistrationCertificateValidationError::MissingId)]
+    #[case::invalid_country("country", json!("N"), RegistrationCertificateValidationError::InvalidCountry)]
+    #[case::ambiguous_subject("sub_gn", json!("Jane"), RegistrationCertificateValidationError::AmbiguousSubjectType)]
+    #[case::missing_credentials("credentials", json!(null), RegistrationCertificateValidationError::MissingServiceProviderCredentials)]
+    #[case::missing_purpose("purpose", json!(null), RegistrationCertificateValidationError::MissingServiceProviderPurpose)]
+    fn reject_intrinsically_invalid_payload_during_deserialization(
+        #[case] field: &str,
+        #[case] value: Value,
+        #[case] expected_error: RegistrationCertificateValidationError,
+    ) {
+        let mut json = valid_payload_json();
+        json["entitlements"] = json!([SERVICE_PROVIDER_ENTITLEMENT]);
+        json[field] = value;
+
+        let error = serde_json::from_value::<ParsedRegistrationCertificate>(json).unwrap_err();
+
+        assert_eq!(error.to_string(), expected_error.to_string());
+    }
 
     #[test]
     fn parse_annex_c_example_and_reject_its_missing_normative_id() {
@@ -110,14 +177,14 @@ mod tests {
             Some("Intermediary Services Ltd.")
         );
         assert_matches!(
-            payload.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::MissingId)
         );
 
         let mut payload_with_id: UncheckedRegistrationCertificate = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
         payload_with_id.id = Some("wrprc-example-1".to_string());
         assert_matches!(
-            payload_with_id.validate_structure(&legal_person_access_certificate_subject(), validation_time()),
+            ParsedRegistrationCertificate::try_from(payload_with_id),
             Err(RegistrationCertificateValidationError::InvalidStatusWireFormat)
         );
     }
@@ -187,6 +254,10 @@ mod tests {
 
     #[test]
     fn registration_certificate_payload_types_use_jades_type() {
+        assert_eq!(
+            <ParsedRegistrationCertificate as jwt::JwtTyp>::TYP,
+            jwt::jades_b_b::JADES_B_B_JWT_TYP
+        );
         assert_eq!(
             <UncheckedRegistrationCertificate as jwt::JwtTyp>::TYP,
             jwt::jades_b_b::JADES_B_B_JWT_TYP

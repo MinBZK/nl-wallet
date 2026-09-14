@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
@@ -26,15 +27,17 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCaseData;
 use ring::hmac;
 use serde::Deserialize;
+use serde_with::TryFromIntoRef;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeyVariant;
-use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::verify_key_pairs;
+use server_utils::settings::VerifierUseCase;
+use server_utils::settings::VerifierUseCasesValidationError;
+use server_utils::settings::validate_verifier_use_cases;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
@@ -79,12 +82,17 @@ pub struct UseCasesSettings(HashMap<String, UseCaseSettings>);
 #[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
 pub struct EphemeralIdSecret(Vec<u8>);
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct UseCaseSettings {
     #[serde(default)]
     pub session_type_return_url: SessionTypeReturnUrl,
     #[serde(flatten)]
     pub key_pair: KeyPair,
+
+    /// Base64url-encoded Wallet Relying Party Registration Certificate (WRPRC).
+    #[serde_as(as = "TryFromIntoRef<String>")]
+    pub registration_certificate: RegistrationCertificateEnvelope,
 
     pub dcql_query: Option<Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
@@ -122,7 +130,11 @@ impl UseCasesSettings {
 impl UseCaseSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<RpInitiatedUseCase<PrivateKeyVariant>, anyhow::Error> {
         let use_case = RpInitiatedUseCase::new(
-            UseCaseData::new(self.key_pair.parse(hsm).await?, self.session_type_return_url),
+            UseCaseData::new(
+                self.key_pair.parse(hsm).await?,
+                self.session_type_return_url,
+                self.registration_certificate,
+            ),
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
             self.disclosure_base_deep_link,
@@ -140,7 +152,7 @@ impl From<&EphemeralIdSecret> for hmac::Key {
 }
 
 impl ServerSettings for VerifierSettings {
-    type ValidationError = CertificateVerificationError;
+    type ValidationError = VerifierUseCasesValidationError;
 
     fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let default_store_timeouts = SessionStoreTimeouts::default();
@@ -192,21 +204,27 @@ impl ServerSettings for VerifierSettings {
         Ok(config)
     }
 
-    fn validate(&self) -> Result<(), CertificateVerificationError> {
+    fn validate(&self) -> Result<(), VerifierUseCasesValidationError> {
         tracing::debug!("verifying verifier.usecases certificates");
 
-        let time = TimeGenerator;
-
-        let key_pairs: Vec<(&str, &KeyPair)> = self
+        let use_cases = self
             .usecases
             .as_ref()
             .iter()
-            .map(|(use_case_id, usecase)| (use_case_id.as_ref(), &usecase.key_pair))
-            .collect();
+            .map(|(use_case_id, use_case)| VerifierUseCase {
+                id: use_case_id,
+                key_pair: &use_case.key_pair,
+                registration_certificate: &use_case.registration_certificate,
+                dcql_query: use_case.dcql_query.as_ref(),
+            })
+            .collect::<Vec<_>>();
 
-        verify_key_pairs(&key_pairs, &self.server_settings.wrpac_trust_anchors, None, &time)?;
-
-        Ok(())
+        validate_verifier_use_cases(
+            &use_cases,
+            &self.server_settings.wrpac_trust_anchors,
+            &self.server_settings.wrprc_trust_anchors,
+            &TimeGenerator,
+        )
     }
 
     fn server_settings(&self) -> &Settings {

@@ -10,6 +10,11 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "registration_certificate"
+path = "tests/registration_certificate.rs"
+required-features = ["mock"]
+
 [features]
 examples = ["attestation_types/test_pid_constants"]
 example_credential_payloads = ["attestation_types/mock", "attestation_types/test_pid_constants", "dep:rand_core"]
@@ -17,9 +22,11 @@ generate = ["crypto/generate", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
 mock = [
     "attestation_types/test_pid_constants",
     "crypto/mock",
+    "dep:futures",
     "dep:rand_core",
     "derive_more/into",
     "example_credential_payloads",
+    "generate",
     "mdoc/test",
 ]
 test_credential = ["dep:futures", "mock", "sd_jwt_vc_metadata/example_constructors", "utils/mock_time"]

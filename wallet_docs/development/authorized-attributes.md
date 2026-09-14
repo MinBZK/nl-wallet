@@ -8,12 +8,69 @@ Registration Certificate.
 
 ## How authorized attributes are specified
 
-TODO PVW-5866 Update for Registration Certificates
+The `credentials` field contains an array of credential authorizations. Each
+entry authorizes one credential format and identifies the credential type in
+its `meta` field. Its optional `claim` field lists the claim paths that the
+relying party may request. Note that the registration certificate uses the
+singular name `claim`, while a DCQL query uses `claims`.
 
+For example, the following entries authorize the `given_name` and
+`family_name` claims from the Dutch PID in both mdoc and SD-JWT form:
+
+```json
+{
+  "credentials": [
+    {
+      "format": "mso_mdoc",
+      "meta": { "doctype_value": "urn:eudi:pid:nl:1" },
+      "claim": [
+        { "path": ["urn:eudi:pid:nl:1", "given_name"] },
+        { "path": ["urn:eudi:pid:nl:1", "family_name"] }
+      ]
+    },
+    {
+      "format": "dc+sd-jwt",
+      "meta": { "vct_values": ["urn:eudi:pid:nl:1"] },
+      "claim": [
+        { "path": ["given_name"] },
+        { "path": ["family_name"] }
+      ]
+    }
+  ]
+}
+```
+
+For every credential query in an OpenID4VP request, the wallet requires one
+entry in the registration certificate that authorizes the complete credential
+query:
+
+- The `format` values must match.
+- An mdoc `doctype_value` must match exactly. Every SD-JWT `vct_values` value
+  in the query must occur in the registration certificate entry.
+- Every requested claim path must occur in that same entry. Authorizations from
+  multiple entries cannot be combined to cover one credential query.
+- A claim authorization can use `values` to restrict the values that may be
+  requested. In that case, the query must request a non-empty subset of those
+  values. Without `values`, the claim authorization does not restrict values.
+
+The wallet rejects the complete disclosure request when any credential query
+falls outside these authorizations.
 
 ### Support for both SD-JWT- and mdoc-style authorized attributes
 
-TODO PVW-5866 Update for Registration Certificates
+An mdoc and an SD-JWT representation of the same credential require separate
+entries in the registration certificate. Their claim paths use different
+conventions and are matched exactly; the wallet does not translate between
+them during authorization.
+
+An mdoc claim path starts with its namespace followed by the element
+identifier, for example `["urn:eudi:pid:nl:1", "given_name"]`. Elements in a
+separate namespace use that namespace instead, for example
+`["urn:eudi:pid:nl:1.address", "street_address"]`.
+
+An SD-JWT claim path follows the nesting of the JSON claims. A top-level path
+is written as `["given_name"]`, while a nested path is written as
+`["address", "street_address"]`.
 
 ### A note about extended VCTs
 

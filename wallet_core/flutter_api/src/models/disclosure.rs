@@ -124,7 +124,7 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
     fn from(proposal: DisclosureProposalPresentation) -> Self {
         StartDisclosureResult::Request {
             relying_party: proposal.organization.into(),
-            // TODO PVW-5866 Replace with fields from registration certificate
+            // TODO (PVW-6111): Replace with fields from registration certificate
             policy: RequestPolicy {
                 data_storage_duration_in_minutes: Some(525600),
                 data_shared_with_third_parties: false,
@@ -138,7 +138,7 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
                 .collect(),
             shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
             session_type: proposal.session_type.into(),
-            // TODO PVW-5866 Replace with fields from registration certificate
+            // TODO (PVW-6111): Replace with fields from registration certificate
             request_purpose: vec![
                 LocalizedString {
                     language: "en".into(),
@@ -149,7 +149,7 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
                     value: "Onthullen".into(),
                 },
             ],
-            // TODO PVW-5866 Replace with fields from registration certificate
+            // TODO (PVW-6111): Replace with fields from registration certificate
             request_origin_base_url: "https://example.com".into(),
             request_type: proposal.disclosure_type.into(),
         }
@@ -174,7 +174,7 @@ impl From<AttributesNotAvailable> for StartDisclosureResult {
             missing_attributes,
             shared_data_with_relying_party_before: value.shared_data_with_relying_party_before,
             session_type: value.session_type.into(),
-            // TODO PVW-5866 Replace with fields from registration certificate
+            // TODO (PVW-6111): Replace with fields from registration certificate
             request_purpose: vec![
                 LocalizedString {
                     language: "en".into(),
