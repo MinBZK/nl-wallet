@@ -196,6 +196,15 @@
 <section id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
 <ul>
+<li><p>OpenID4VP disclosure use cases now require a Wallet Relying Party
+Registration Certificate (WRPRC). Configure each verification server and
+disclosure-based issuance server use case with a <code class="docutils literal notranslate"><span class="pre">registration_certificate</span></code>,
+configure <code class="docutils literal notranslate"><span class="pre">wrprc_trust_anchors</span></code>, and publish the referenced WRPRC status list
+before deploying wallet clients. The <code class="docutils literal notranslate"><span class="pre">static_server</span></code> configuration now also
+requires <code class="docutils literal notranslate"><span class="pre">wrprc_publish_dir</span></code>, which identifies the directory containing those
+status lists. The services reject missing or invalid certificates at startup,
+and the wallet rejects requests that are revoked or exceed the certificate’s
+authorization.</p></li>
 <li><p>The wallet now requires a usable Certificate Revocation List (CRL) for every
 Wallet Relying Party Access Certificate (WRPAC) used in signed OpenID4VP
 authorization requests, signed issuer metadata, and close-proximity reader

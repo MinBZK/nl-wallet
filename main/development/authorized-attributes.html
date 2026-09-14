@@ -201,10 +201,63 @@ in. They are used within the <code class="docutils literal notranslate"><span cl
 Registration Certificate.</p>
 <section id="how-authorized-attributes-are-specified">
 <h2>How authorized attributes are specified<a class="headerlink" href="#how-authorized-attributes-are-specified" title="Link to this heading"></a></h2>
-<p>TODO PVW-5866 Update for Registration Certificates</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">credentials</span></code> field contains an array of credential authorizations. Each
+entry authorizes one credential format and identifies the credential type in
+its <code class="docutils literal notranslate"><span class="pre">meta</span></code> field. Its optional <code class="docutils literal notranslate"><span class="pre">claim</span></code> field lists the claim paths that the
+relying party may request. Note that the registration certificate uses the
+singular name <code class="docutils literal notranslate"><span class="pre">claim</span></code>, while a DCQL query uses <code class="docutils literal notranslate"><span class="pre">claims</span></code>.</p>
+<p>For example, the following entries authorize the <code class="docutils literal notranslate"><span class="pre">given_name</span></code> and
+<code class="docutils literal notranslate"><span class="pre">family_name</span></code> claims from the Dutch PID in both mdoc and SD-JWT form:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;credentials&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;format&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mso_mdoc&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;meta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;doctype_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;claim&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;given_name&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;family_name&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;format&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dc+sd-jwt&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;meta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;vct_values&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;claim&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;given_name&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;family_name&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For every credential query in an OpenID4VP request, the wallet requires one
+entry in the registration certificate that authorizes the complete credential
+query:</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">format</span></code> values must match.</p></li>
+<li><p>An mdoc <code class="docutils literal notranslate"><span class="pre">doctype_value</span></code> must match exactly. Every SD-JWT <code class="docutils literal notranslate"><span class="pre">vct_values</span></code> value
+in the query must occur in the registration certificate entry.</p></li>
+<li><p>Every requested claim path must occur in that same entry. Authorizations from
+multiple entries cannot be combined to cover one credential query.</p></li>
+<li><p>A claim authorization can use <code class="docutils literal notranslate"><span class="pre">values</span></code> to restrict the values that may be
+requested. In that case, the query must request a non-empty subset of those
+values. Without <code class="docutils literal notranslate"><span class="pre">values</span></code>, the claim authorization does not restrict values.</p></li>
+</ul>
+<p>The wallet rejects the complete disclosure request when any credential query
+falls outside these authorizations.</p>
 <section id="support-for-both-sd-jwt-and-mdoc-style-authorized-attributes">
 <h3>Support for both SD-JWT- and mdoc-style authorized attributes<a class="headerlink" href="#support-for-both-sd-jwt-and-mdoc-style-authorized-attributes" title="Link to this heading"></a></h3>
-<p>TODO PVW-5866 Update for Registration Certificates</p>
+<p>An mdoc and an SD-JWT representation of the same credential require separate
+entries in the registration certificate. Their claim paths use different
+conventions and are matched exactly; the wallet does not translate between
+them during authorization.</p>
+<p>An mdoc claim path starts with its namespace followed by the element
+identifier, for example <code class="docutils literal notranslate"><span class="pre">[&quot;urn:eudi:pid:nl:1&quot;,</span> <span class="pre">&quot;given_name&quot;]</span></code>. Elements in a
+separate namespace use that namespace instead, for example
+<code class="docutils literal notranslate"><span class="pre">[&quot;urn:eudi:pid:nl:1.address&quot;,</span> <span class="pre">&quot;street_address&quot;]</span></code>.</p>
+<p>An SD-JWT claim path follows the nesting of the JSON claims. A top-level path
+is written as <code class="docutils literal notranslate"><span class="pre">[&quot;given_name&quot;]</span></code>, while a nested path is written as
+<code class="docutils literal notranslate"><span class="pre">[&quot;address&quot;,</span> <span class="pre">&quot;street_address&quot;]</span></code>.</p>
 </section>
 <section id="a-note-about-extended-vcts">
 <h3>A note about extended VCTs<a class="headerlink" href="#a-note-about-extended-vcts" title="Link to this heading"></a></h3>
