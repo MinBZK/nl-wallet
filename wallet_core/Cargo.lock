@@ -10054,7 +10054,6 @@ dependencies = [
  "wallet_migrations",
  "wscd",
  "zeroize",
- "zstd",
 ]
 
 [[package]]

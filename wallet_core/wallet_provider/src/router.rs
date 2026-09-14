@@ -28,7 +28,6 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
@@ -198,7 +197,6 @@ where
                     &format!("/instructions/{}", DeleteKeys::NAME),
                     post(handle_instruction::<DeleteKeys, _, _, _>),
                 )
-                .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))
                 .with_state(Arc::clone(&state)),
