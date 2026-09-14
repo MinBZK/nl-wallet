@@ -141,8 +141,8 @@ pub struct IssuerSettings {
     /// Type metadata is optional for mdocs.
     #[debug(skip)]
     #[serde(default)]
-    #[serde_as(as = "TryFromInto<Vec<String>>")]
-    pub type_metadata: TypeMetadataByVct,
+    #[serde_as(as = "Option<TryFromInto<Vec<String>>>")]
+    pub type_metadata: Option<TypeMetadataByVct>,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
     /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
@@ -312,8 +312,63 @@ pub enum CredentialConfigurationsSettingsError {
     #[error("could not compile SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadataChain(#[source] TypeMetadataDocumentsError),
 
+    #[error(
+        "both SD-JWT VC Type Metadata and Credential Metadata are configured for credential configuration \"{0}\", \
+         expected exactly one"
+    )]
+    DuplicateMetadata(CredentialConfigurationId),
+
+    #[error(
+        "neither SD-JWT VC Type Metadata nor Credential Metadata is configured for credential configuration \"{0}\""
+    )]
+    MissingMetadata(CredentialConfigurationId),
+
     #[error("could not initialize status: {0}")]
     StatusList(#[source] StatusListAttestationSettingsError),
+}
+
+/// Determine which metadata describes a single credential configuration, returning the SD-JWT VC Type Metadata if
+/// applicable. Every credential configuration has to be described by exactly one of the two.
+fn resolve_configured_metadata(
+    config_id: &CredentialConfigurationId,
+    credential_kind: &CredentialKind,
+    has_credential_metadata: bool,
+    metadata_by_vct: Option<&TypeMetadataByVct>,
+) -> Result<Option<TypeMetadataDocuments>, CredentialConfigurationsSettingsError> {
+    let CredentialKind {
+        format,
+        attestation_type,
+    } = credential_kind;
+
+    match format {
+        // An mdoc is always described by its Credential Metadata.
+        Format::MsoMdoc => {
+            if !has_credential_metadata {
+                return Err(CredentialConfigurationsSettingsError::MissingMetadata(
+                    config_id.clone(),
+                ));
+            }
+
+            Ok(None)
+        }
+        Format::SdJwt => {
+            let type_metadata = metadata_by_vct
+                .filter(|metadata| metadata.as_ref().contains_key(attestation_type.as_str()))
+                .map(|metadata| metadata.to_metadata_documents(attestation_type))
+                .transpose()
+                .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
+
+            match (&type_metadata, has_credential_metadata) {
+                (Some(_), true) => Err(CredentialConfigurationsSettingsError::DuplicateMetadata(
+                    config_id.clone(),
+                )),
+                (None, false) => Err(CredentialConfigurationsSettingsError::MissingMetadata(
+                    config_id.clone(),
+                )),
+                _ => Ok(type_metadata),
+            }
+        }
+    }
 }
 
 impl CredentialConfigurationsSettings {
@@ -323,7 +378,7 @@ impl CredentialConfigurationsSettings {
         public_url: BaseUrl,
         hsm: Option<Pkcs11Hsm>,
         status_list_settings: &StatusListsSettings,
-        metadata_by_vct: &TypeMetadataByVct,
+        metadata_by_vct: &Option<TypeMetadataByVct>,
     ) -> Result<
         HashMap<
             CredentialConfigurationId,
@@ -344,17 +399,14 @@ impl CredentialConfigurationsSettings {
                     (status_list_connection, public_url, hsm),
                     config_count,
                 ))
-                .map(|((config_id, settings), (status_list_connection, public_url, hsm))| {
-                    async move {
-                        // An mdoc is described by its CredentialMetadata, so no chain needs to be configured for it.
-                        let type_metadata = match settings.credential_kind.format {
-                            Format::SdJwt => Some(
-                                metadata_by_vct
-                                    .to_metadata_documents(&settings.credential_kind.attestation_type)
-                                    .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?,
-                            ),
-                            Format::MsoMdoc => None,
-                        };
+                .map(
+                    |((config_id, settings), (status_list_connection, public_url, hsm))| async move {
+                        let type_metadata = resolve_configured_metadata(
+                            &config_id,
+                            &settings.credential_kind,
+                            settings.credential_metadata.is_some(),
+                            metadata_by_vct.as_ref(),
+                        )?;
 
                         let key_pair = settings
                             .keypair
@@ -378,8 +430,8 @@ impl CredentialConfigurationsSettings {
                         };
 
                         Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
-                    }
-                }),
+                    },
+                ),
         )
         .await?
         .into_iter()
@@ -689,7 +741,10 @@ mod tests {
     use super::JsonFile;
     use super::StatusListAttestationSettings;
     use super::TypeMetadataByVct;
+    use crate::settings::CredentialConfigurationsSettingsError;
     use crate::settings::IssuerSettingsValidationError;
+    use crate::settings::TypeMetadataDocumentsError;
+    use crate::settings::resolve_configured_metadata;
 
     fn mock_settings(wrpac_ca: &Ca, issuer_ca: &Ca) -> IssuerSettings {
         let wrpac_keypair = wrpac_ca
@@ -736,7 +791,7 @@ mod tests {
                 registration_certificate.certificate.as_slice(),
             )
             .unwrap(),
-            type_metadata: TypeMetadataByVct(HashMap::from([{
+            type_metadata: Some(TypeMetadataByVct(HashMap::from([{
                 let metadata = UncheckedTypeMetadata::pid_example();
                 let vct = metadata.vct.clone();
                 let json = serde_json::to_vec(&metadata).unwrap();
@@ -747,7 +802,7 @@ mod tests {
                         json,
                     },
                 )
-            }])),
+            }]))),
             wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
             server_settings: Settings {
@@ -924,7 +979,7 @@ mod tests {
         let pid_metadata = TypeMetadata::pid_example().into_inner();
         let pid_metadata_json = serde_json::to_vec(&pid_metadata).unwrap();
 
-        settings.type_metadata = TypeMetadataByVct(HashMap::from([
+        settings.type_metadata = Some(TypeMetadataByVct(HashMap::from([
             (
                 no_registration_metadata.vct.clone(),
                 JsonFile {
@@ -939,7 +994,7 @@ mod tests {
                     json: pid_metadata_json,
                 },
             ),
-        ]));
+        ])));
 
         assert_matches!(
             settings.validate().expect_err("should fail"),
@@ -995,6 +1050,160 @@ mod tests {
                 if config_id.as_ref() == "pid_sdjwt" &&
                     attestation == "2.5.4.3=DAtDZXJ0IGlzc3Vlcg,2.5.4.6=DAJOTA,2.5.4.10=DBBDZXJ0IGlzc3VlciBCLlYu,1.3.6.1.1.15=DA5OVFJOTC05OTMzMzY3Mw".to_string().into() &&
                     status_list == "2.5.4.3=DAlkaWZmZXJlbnQ,2.5.4.6=DAJOTA,2.5.4.10=DA5kaWZmZXJlbnQgQi5WLg,1.3.6.1.1.15=DA5OVFJOTC0xOTU3MDE4Ng".to_string().into()
+        );
+    }
+
+    /// Build a [`TypeMetadataByVct`] containing exactly the given metadata documents.
+    fn type_metadata_by_vct(metadata: impl IntoIterator<Item = UncheckedTypeMetadata>) -> TypeMetadataByVct {
+        TypeMetadataByVct(
+            metadata
+                .into_iter()
+                .map(|metadata| {
+                    let vct = metadata.vct.clone();
+                    let json = serde_json::to_vec(&metadata).unwrap();
+
+                    (
+                        vct,
+                        JsonFile {
+                            contents: metadata,
+                            json,
+                        },
+                    )
+                })
+                .collect(),
+        )
+    }
+
+    fn sd_jwt_kind(vct: &str) -> CredentialKind {
+        CredentialKind::new(Format::SdJwt, vct.to_string())
+    }
+
+    #[test]
+    fn test_resolve_configured_metadata_mdoc_ignores_type_metadata() {
+        let metadata = type_metadata_by_vct([UncheckedTypeMetadata::empty_example_with_attestation_type(
+            "com.example.a",
+        )]);
+        let kind = CredentialKind::new(Format::MsoMdoc, "com.example.a".to_string());
+
+        let resolved = resolve_configured_metadata(&"cfg".to_string().into(), &kind, true, Some(&metadata))
+            .expect("an mdoc sharing its attestation type with an SD-JWT should resolve");
+
+        assert!(resolved.is_none());
+    }
+
+    #[test]
+    fn test_resolve_configured_metadata_mdoc_error_missing() {
+        let metadata = type_metadata_by_vct([UncheckedTypeMetadata::empty_example_with_attestation_type(
+            "com.example.a",
+        )]);
+        let kind = CredentialKind::new(Format::MsoMdoc, "com.example.a".to_string());
+
+        let Err(error) = resolve_configured_metadata(&"cfg".to_string().into(), &kind, false, Some(&metadata)) else {
+            panic!("an mdoc without Credential Metadata should not resolve")
+        };
+
+        assert_matches!(
+            error,
+            CredentialConfigurationsSettingsError::MissingMetadata(config_id) if config_id.as_ref() == "cfg"
+        );
+    }
+
+    #[test]
+    fn test_resolve_configured_metadata_is_per_credential_configuration() {
+        let metadata = type_metadata_by_vct([UncheckedTypeMetadata::empty_example_with_attestation_type(
+            "com.example.a",
+        )]);
+
+        let with_type_metadata = resolve_configured_metadata(
+            &"cfg_a".to_string().into(),
+            &sd_jwt_kind("com.example.a"),
+            false,
+            Some(&metadata),
+        )
+        .expect("a configuration with Type Metadata should resolve");
+        assert!(with_type_metadata.is_some());
+
+        let falls_back = resolve_configured_metadata(
+            &"cfg_b".to_string().into(),
+            &sd_jwt_kind("com.example.b"),
+            true,
+            Some(&metadata),
+        )
+        .expect("a configuration without Type Metadata should fall back to its Credential Metadata");
+        assert!(falls_back.is_none());
+    }
+
+    #[test]
+    fn test_resolve_configured_metadata_error_duplicate() {
+        let metadata = type_metadata_by_vct([UncheckedTypeMetadata::empty_example_with_attestation_type(
+            "com.example.a",
+        )]);
+
+        let Err(error) = resolve_configured_metadata(
+            &"cfg_a".to_string().into(),
+            &sd_jwt_kind("com.example.a"),
+            true,
+            Some(&metadata),
+        ) else {
+            panic!("configuring both kinds of metadata should not be allowed")
+        };
+
+        assert_matches!(
+            error,
+            CredentialConfigurationsSettingsError::DuplicateMetadata(config_id) if config_id.as_ref() == "cfg_a"
+        );
+    }
+
+    #[test]
+    fn test_resolve_configured_metadata_error_missing() {
+        let cases = [
+            None,
+            Some(type_metadata_by_vct([])),
+            Some(type_metadata_by_vct([
+                UncheckedTypeMetadata::empty_example_with_attestation_type("com.example.other"),
+            ])),
+        ];
+
+        for metadata in cases {
+            let Err(error) = resolve_configured_metadata(
+                &"cfg_a".to_string().into(),
+                &sd_jwt_kind("com.example.a"),
+                false,
+                metadata.as_ref(),
+            ) else {
+                panic!("configuring neither kind of metadata should not be allowed")
+            };
+
+            assert_matches!(
+                error,
+                CredentialConfigurationsSettingsError::MissingMetadata(config_id) if config_id.as_ref() == "cfg_a"
+            );
+        }
+    }
+
+    #[test]
+    fn test_resolve_configured_metadata_error_broken_chain() {
+        let mut json = serde_json::to_value(UncheckedTypeMetadata::empty_example_with_attestation_type(
+            "com.example.a",
+        ))
+        .unwrap();
+        json["extends"] = serde_json::json!("com.example.absent");
+        json["extends#integrity"] = serde_json::json!("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=");
+        let extending: UncheckedTypeMetadata = serde_json::from_value(json).unwrap();
+
+        let Err(error) = resolve_configured_metadata(
+            &"cfg_a".to_string().into(),
+            &sd_jwt_kind("com.example.a"),
+            false,
+            Some(&type_metadata_by_vct([extending])),
+        ) else {
+            panic!("a chain that extends an absent document should not resolve")
+        };
+
+        assert_matches!(
+            error,
+            CredentialConfigurationsSettingsError::TypeMetadataChain(TypeMetadataDocumentsError::MissingDocument(vct))
+                if vct == "com.example.absent"
         );
     }
 }
