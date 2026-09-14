@@ -345,28 +345,10 @@ impl OfferedCredentials {
         mut credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         authorization_details: IssuerAuthorizationDetails,
     ) -> Result<Self, WalletIssuanceError> {
-        // Each entry in `authorization_details` should have a unique Credential Configuration ID. However, this is not
-        // enforced by its deserialization. Rather than returning an error here, be lenient and collect all of the
-        // Credential Identifiers per Credential Configuration Identifer, combining Credential Identifiers from distinct
-        // `authorization_details` entries and removing duplicates.
-        let credential_ids_by_config_ids = authorization_details
-            .into_credential_ids_and_identifiers()
-            .into_iter()
-            .fold(
-                HashMap::<_, HashSet<_>>::new(),
-                |mut credential_ids_by_config_id, (config_id, credential_ids)| {
-                    credential_ids_by_config_id
-                        .entry(config_id)
-                        .or_default()
-                        .extend(credential_ids);
-
-                    credential_ids_by_config_id
-                },
-            );
-
         // Pair each Credential Configuration Identifier with a known Credential Configuration fetched from the Issuer
         // Metadata based on the Credential Offer. Return an error if any of the identifiers were not part of the offer.
-        let (offered_configs, unknown_config_ids): (HashMap<_, _>, Vec<_>) = credential_ids_by_config_ids
+        let (offered_configs, unknown_config_ids): (HashMap<_, _>, Vec<_>) = authorization_details
+            .into_credential_ids_by_config_ids()
             .into_iter()
             .partition_map(
                 |(config_id, credential_ids)| match credential_configurations.remove(&config_id) {
@@ -1655,55 +1637,6 @@ mod tests {
                 .unwrap()
                 .0
         );
-    }
-
-    #[rstest]
-    #[case::single_entry(TokenResponseFields::AuthorizationDetails(vec![
-        ("config_id", vec!["credential_id_1", "credential_id_2"]),
-    ]))]
-    #[case::double_entry(TokenResponseFields::AuthorizationDetails(vec![
-        ("config_id", vec!["credential_id_1"]),
-        ("config_id", vec!["credential_id_2"]),
-    ]))]
-    #[case::double_entry_duplicates(TokenResponseFields::AuthorizationDetails(vec![
-        ("config_id", vec!["credential_id_1", "credential_id_2"]),
-        ("config_id", vec!["credential_id_2"]),
-    ]))]
-    fn test_start_issuance_ok_authorization_details_multiple_credentials(
-        #[case] token_response_fields: TokenResponseFields,
-    ) {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
-        let session = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
-            IssuerMetadata::new_mock(
-                "https://example.com".parse().unwrap(),
-                vec![(
-                    CredentialConfigurationId::from("config_id".to_string()),
-                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
-                )],
-            ),
-            vec![
-                (
-                    "credential_id_1".to_string().into(),
-                    CredentialConfigurationId::from("config_id".to_string()),
-                    Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
-                ),
-                (
-                    "credential_id_2".to_string().into(),
-                    CredentialConfigurationId::from("config_id".to_string()),
-                    Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
-                ),
-            ],
-            TypeMetadata::pid_example(),
-            &token_response_fields,
-        )
-        .expect("starting issuance session should succeed");
-
-        assert_eq!(session.previews_with_metadata().count(), 2);
     }
 
     #[test]
