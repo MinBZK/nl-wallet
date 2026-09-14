@@ -1,5 +1,6 @@
 //! CBOR serialization: wrapper types that modify serialization and specialized (de)serialization implementations.
 use core::fmt::Debug;
+use std::any::type_name;
 use std::borrow::Cow;
 
 use base64::prelude::*;
@@ -43,6 +44,21 @@ pub fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, CborError> {
     let mut bts: Vec<u8> = Vec::new();
     ciborium::ser::into_writer(o, &mut bts)?;
     Ok(bts)
+}
+
+fn cbor_value_type(value: &Value) -> &'static str {
+    match value {
+        Value::Integer(_) => "integer",
+        Value::Bytes(_) => "byte string",
+        Value::Float(_) => "float",
+        Value::Text(_) => "text",
+        Value::Bool(_) => "boolean",
+        Value::Null => "null",
+        Value::Tag(_, _) => "tag",
+        Value::Array(_) => "array",
+        Value::Map(_) => "map",
+        _ => "unknown",
+    }
 }
 
 /// Wrapper for `T` that serializes as `#6.24(bstr .cbor T)`: a tagged CBOR byte sequence, in which the byte sequence
@@ -190,7 +206,11 @@ where
                 .map(|entry| &entry.1)
                 .collect::<Vec<&Value>>()
                 .serialize(serializer),
-            _ => Err(ser::Error::custom("CborSeq::serialize failed: not a map")),
+            unexpected_value => Err(ser::Error::custom(format!(
+                "CborSeq::serialize failed for {}: expected map, found {}",
+                type_name::<T>(),
+                cbor_value_type(&unexpected_value)
+            ))),
         }
     }
 }
@@ -241,7 +261,11 @@ where
                     .collect::<Result<_, S::Error>>()?,
             )
             .serialize(serializer),
-            _ => Err(ser::Error::custom("CborIntMap::serialize failed: not a map")),
+            unexpected_value => Err(ser::Error::custom(format!(
+                "CborIntMap::serialize failed for {}: expected map, found {}",
+                type_name::<T>(),
+                cbor_value_type(&unexpected_value)
+            ))),
         }
     }
 }
@@ -449,19 +473,32 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_cbor_seq_serialization_rejects_non_map() {
-        let error = cbor_serialize(&CborSeq("sample value")).unwrap_err();
+    #[rstest]
+    #[case::text(Text("sample value".to_string()), "text")]
+    #[case::array(Array(vec![Text("sample value".to_string())]), "array")]
+    fn test_cbor_serialization_rejects_non_map(#[case] value: Value, #[case] expected_cbor_type: &str) {
+        let results = [
+            ("CborSeq", type_name::<Value>(), cbor_serialize(&CborSeq(value.clone()))),
+            (
+                "CborIntMap",
+                type_name::<IndexedValue>(),
+                cbor_serialize(&CborIntMap(IndexedValue(value))),
+            ),
+        ];
 
-        assert_matches!(
-            error,
-            CborError::Serialization(ciborium::ser::Error::Value(message))
-                if message == "CborSeq::serialize failed: not a map"
-        );
+        for (wrapper, rust_type, result) in results {
+            let error = result.unwrap_err();
+            let expected_message =
+                format!("{wrapper}::serialize failed for {rust_type}: expected map, found {expected_cbor_type}");
+
+            assert_matches!(
+                error,
+                CborError::Serialization(ciborium::ser::Error::Value(message)) if message == expected_message
+            );
+        }
     }
 
     #[rstest]
-    #[case::non_map(Text("sample value".to_string()), "CborIntMap::serialize failed: not a map")]
     #[case::non_text_key(
         Map(vec![(Bytes(b"sample key".to_vec()), Text("sample value".to_string()))]),
         "CborIntMap::serialize failed: key was not text"
