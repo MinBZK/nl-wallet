@@ -14,8 +14,8 @@ class AttributeValueFormatter {
   static String formatWithLocale(Locale locale, AttributeValue attribute, {bool inline = false}) {
     final l10n = locale.l10n;
     return switch (attribute) {
-      StringValue() => attribute.value.isEmpty ? l10n.cardValueEmpty : attribute.value,
-      BooleanValue() => attribute.value ? l10n.cardValueTrue : l10n.cardValueFalse,
+      StringValue() => _formatStringValue(locale, attribute),
+      BooleanValue() => _formatBooleanValue(locale, attribute),
       NumberValue() => '${attribute.value}',
       DateValue() => _prettyPrintDateTime(locale, attribute.value),
       ArrayValue() => _formatArrayValue(locale, attribute, inline),
@@ -25,6 +25,12 @@ class AttributeValueFormatter {
       NullValue() => l10n.cardValueNull,
     };
   }
+
+  static String _formatStringValue(Locale locale, StringValue attribute) =>
+      attribute.value.isEmpty ? locale.l10n.cardValueEmpty : attribute.value;
+
+  static String _formatBooleanValue(Locale locale, BooleanValue attribute) =>
+      attribute.value ? locale.l10n.cardValueTrue : locale.l10n.cardValueFalse;
 
   static String _formatArrayValue(Locale locale, ArrayValue attribute, bool inline) {
     if (attribute.value.isEmpty) return locale.l10n.cardValueEmptyList;

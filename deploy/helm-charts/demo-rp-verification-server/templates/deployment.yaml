@@ -94,6 +94,11 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
                   key: certificate
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_mdoc__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: registration_certificate_mdoc
             - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_mdoc__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
@@ -106,6 +111,11 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
                   key: certificate
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_sd_jwt__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: registration_certificate_sd_jwt
             - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam_sd_jwt__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
@@ -118,6 +128,11 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike
                   key: certificate
+            - name: VERIFICATION_SERVER__USECASES__monkey_bike__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike
+                  key: registration_certificate
             - name: VERIFICATION_SERVER__USECASES__monkey_bike__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
@@ -130,6 +145,11 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-online-marketplace
                   key: certificate
+            - name: VERIFICATION_SERVER__USECASES__online_marketplace__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-online-marketplace
+                  key: registration_certificate
             - name: VERIFICATION_SERVER__USECASES__online_marketplace__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
@@ -142,6 +162,11 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
                   key: certificate
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_mdoc__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: registration_certificate_mdoc
             - name: VERIFICATION_SERVER__USECASES__xyz_bank_mdoc__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
@@ -154,6 +179,11 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
                   key: certificate
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: registration_certificate_sd_jwt
             - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
@@ -166,6 +196,11 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
                   key: certificate
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt_eu__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank
+                  key: registration_certificate_sd_jwt_eu
             - name: VERIFICATION_SERVER__USECASES__xyz_bank_sd_jwt_eu__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
@@ -178,6 +213,11 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-demo-rp-verification-server-verifier-usecases-job-finder
                   key: certificate
+            - name: VERIFICATION_SERVER__USECASES__job_finder__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-job-finder
+                  key: registration_certificate
             - name: VERIFICATION_SERVER__USECASES__job_finder__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:

@@ -482,7 +482,7 @@ impl IssuerSettings {
         verify_key_pairs(
             &key_pairs,
             trust_anchors,
-            Some(CertificateUsage::OAuthStatusSigning),
+            Some(CertificateUsage::StatusListSigning),
             &time,
         )?;
 
@@ -919,7 +919,7 @@ mod tests {
         let status_list_keypair = issuer_ca
             .generate_key_pair(
                 DistinguishedName::create_legal_person_mock("different"),
-                CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
+                CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
                 ["https://different.example.com/".parse::<SubjectAltNameUri>().unwrap()],
             )
             .expect("generate tsl cert failed");

@@ -134,21 +134,18 @@ class DataAttributeRow extends StatelessWidget {
   AttributedString _buildAttributedString(BuildContext context, AttributeValue attributeValue) =>
       attributeValue.prettyPrint(context, inline: true).toAttributedString(context);
 
-  TextStyle? _resolveSubtitleStyle(BuildContext context, AttributeValue attributeValue) {
-    switch (attributeValue) {
-      case ArrayValue():
-        return attributeValue.value.isEmpty ? context.textTheme.bodyLarge : null;
-      case NullValue():
-        return context.textTheme.bodyLarge;
-      case StringValue():
-        return attributeValue.value.isEmpty ? context.textTheme.bodyLarge : null;
-      case BooleanValue():
-      case NumberValue():
-      case DateValue():
-      case BytesValue():
-      case ImageValue():
-      case MapValue():
-        return null;
-    }
-  }
+  TextStyle? _resolveSubtitleStyle(BuildContext context, AttributeValue attributeValue) =>
+      _isEmpty(attributeValue) ? context.textTheme.bodyLarge : null;
+
+  bool _isEmpty(AttributeValue attributeValue) => switch (attributeValue) {
+    ArrayValue() => attributeValue.value.isEmpty,
+    NullValue() => true,
+    StringValue() => attributeValue.value.isEmpty,
+    BooleanValue() => false,
+    NumberValue() => false,
+    DateValue() => false,
+    BytesValue() => false,
+    ImageValue() => false,
+    MapValue() => false,
+  };
 }

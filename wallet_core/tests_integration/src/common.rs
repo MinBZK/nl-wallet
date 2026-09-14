@@ -17,6 +17,7 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
+use attestation_data::registration_certificate::mock::StaticStatusListClient;
 use attestation_types::credential_format::Format;
 use axum::Json;
 use axum::Router;
@@ -177,7 +178,7 @@ pub type WalletWithStorage = Wallet<
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpIssuanceDiscovery<MockCrlFetcher>,
-    VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher>,
+    VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher, StaticStatusListClient>,
 >;
 
 pub async fn setup_wallet_and_default_env(
@@ -618,7 +619,16 @@ where
     let crl = std::fs::read(static_settings.crl_file).unwrap();
     let crl_verifier =
         CertificateCrlVerifier::new_with_fetcher(MockCrlFetcher::new([(crl_distribution_point, crl)]), 1);
-    let wallet_clients = WalletClients::new_with_mock_crl_verifier(crl_verifier).unwrap();
+    let registration_certificate_status_list =
+        std::fs::read_to_string(static_settings.wrprc_publish_dir.as_ref().join("1.jwt"))
+            .unwrap()
+            .parse()
+            .unwrap();
+    let wallet_clients = WalletClients::new_with_mock_crl_verifier_and_registration_certificate_status_list_client(
+        crl_verifier,
+        StaticStatusListClient(registration_certificate_status_list),
+    )
+    .unwrap();
 
     Wallet::init_registration(
         storage_generator().await,

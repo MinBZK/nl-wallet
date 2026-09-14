@@ -63,13 +63,16 @@ integration_test = ["db_test", "allow_insecure_url", "test"]
 anyhow.workspace = true
 axum.workspace = true
 config = { workspace = true, features = ["toml"] }
+cose.path = "../../lib/cose"
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures.workspace = true
+jwt.path = "../../lib/jwt"
 nutype = { workspace = true, features = ["serde"] }
 ring.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "hex"] }
+thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 tracing.workspace = true
 
