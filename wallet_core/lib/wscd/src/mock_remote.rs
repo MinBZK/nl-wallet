@@ -27,10 +27,9 @@ use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::payload::jwt_proof::JwtProofClaims;
 use crate::payload::poa::Poa;
 
-/// A type that implements [`Wscd`] and can be used in tests. It has the option
-/// of returning `MockRemoteWscdError::Generating` when generating multiple
-/// keys and `MockRemoteWscdError::Signing` when signing multiple, influenced
-/// by boolean fields on the type.
+/// A type that implements both the [`DisclosureWscd`] and [`IssuanceWscd`] traits and can be used in tests. It has the
+/// option of returning `MockRemoteWscdError::Generating` when generating multiple keys and
+/// `MockRemoteWscdError::Signing` when signing multiple, influenced by boolean fields on the type.
 #[derive(Debug, AsRef)]
 pub struct MockRemoteWscd {
     pub disclosure: DisclosureMockRemoteWscd,
