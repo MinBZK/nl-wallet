@@ -517,13 +517,17 @@ mod tests {
             .expect("metadata configuration should exist");
 
         assert!(sd_jwt_config.credential_metadata.is_none());
-        assert_eq!(
-            sd_jwt_config
+        assert!(
+            sd_jwt_config.type_metadata_uri.is_some(),
+            "an SD-JWT described by Type Metadata should include the type_metadata_uri"
+        );
+
+        assert!(
+            metadata_configs
+                .get("degree_mso_mdoc")
+                .expect("metadata configuration should exist")
                 .type_metadata_uri
-                .as_ref()
-                .expect("SD-JWT type metadata URI should be present")
-                .to_string(),
-            "https://example.com/degree_dc+sd-jwt"
+                .is_none()
         );
 
         assert_matches!(
@@ -555,12 +559,10 @@ mod tests {
 
         assert_matches!(
             &sd_jwt_config.format,
-            CredentialFormat::SdJwt {
-                vct,
-                ..
-            } if vct == "com.example.degree"
+            CredentialFormat::SdJwt { vct, .. } if vct == "com.example.degree"
         );
         assert!(sd_jwt_config.credential_metadata.is_some());
+        assert!(sd_jwt_config.type_metadata_uri.is_none());
     }
 
     #[test]

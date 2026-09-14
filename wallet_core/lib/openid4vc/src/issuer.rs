@@ -1762,10 +1762,13 @@ mod tests {
     use crate::cleanup::start_cleanup_task;
     use crate::client_auth::ClientAttestationChallengeMechanism;
     use crate::credential::CredentialResponse;
+    use crate::credential_configurations::CredentialConfigurationFormat;
+    use crate::credential_configurations::SdJwtMetadata;
     use crate::errors::CredentialErrorCode;
     use crate::errors::CredentialPreviewErrorCode;
     use crate::errors::VciTokenErrorCode;
     use crate::issuable_document::IssuableDocument;
+    use crate::metadata::issuer_metadata::CredentialMetadata;
     use crate::nonce::response::NonceResponse;
     use crate::preview::CredentialPreviewResponse;
     use crate::server_state::MemorySessionStore;
@@ -1779,12 +1782,64 @@ mod tests {
     use crate::test::mock_type_metadata;
     use crate::test::setup_mock_issuer;
     use crate::test::setup_mock_issuer_attestation_types_and_metadata;
+    use crate::test::setup_mock_issuer_with_metadata;
     use crate::token::VciTokenRequest;
     use crate::token::VciTokenResponse;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
+
+    #[tokio::test]
+    async fn test_validate_issuable_documents_sd_jwt_described_by_credential_metadata() {
+        let attestation_type = MOCK_ATTESTATION_TYPES[0];
+        let claim_names = MOCK_ATTRS.map(|(name, _)| name);
+
+        let (issuer, _, _, _) = setup_mock_issuer_with_metadata(
+            "https://example.com/".parse().unwrap(),
+            vec![CredentialConfigurationFormat::SdJwt(
+                SdJwtMetadata::CredentialMetadata {
+                    vct: attestation_type.to_string(),
+                    credential_metadata: CredentialMetadata::new_example(&claim_names),
+                },
+            )],
+            Arc::new(MemorySessionStore::default()),
+        );
+
+        let document = mock_issuable_document_with_attrs(Format::SdJwt, attestation_type, &MOCK_ATTRS);
+
+        let validated = issuer
+            .validate_issuable_documents(vec_nonempty![document])
+            .expect("an SD-JWT described by Credential Metadata should validate against it");
+
+        assert_eq!(validated.len().get(), 1);
+    }
+
+    /// The Credential Metadata is actually applied, rather than validation being skipped for want of Type Metadata.
+    #[tokio::test]
+    async fn test_validate_issuable_documents_sd_jwt_credential_metadata_mismatch() {
+        let attestation_type = MOCK_ATTESTATION_TYPES[0];
+
+        let (issuer, _, _, _) = setup_mock_issuer_with_metadata(
+            "https://example.com/".parse().unwrap(),
+            vec![CredentialConfigurationFormat::SdJwt(
+                SdJwtMetadata::CredentialMetadata {
+                    vct: attestation_type.to_string(),
+                    credential_metadata: CredentialMetadata::new_example(&["first_name"]),
+                },
+            )],
+            Arc::new(MemorySessionStore::default()),
+        );
+
+        // The document also contains `family_name`, which the Credential Metadata does not describe.
+        let document = mock_issuable_document_with_attrs(Format::SdJwt, attestation_type, &MOCK_ATTRS);
+
+        let error = issuer
+            .validate_issuable_documents(vec_nonempty![document])
+            .expect_err("attributes not described by the Credential Metadata should not validate");
+
+        assert_matches!(error, IssuableDocumentError::AttributesError(_));
+    }
 
     #[tokio::test]
     async fn test_signed_metadata() {

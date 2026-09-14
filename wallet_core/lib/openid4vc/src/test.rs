@@ -284,11 +284,14 @@ where
         .map(|metadata| {
             let (attestation_type, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
 
-            (Format::SdJwt, attestation_type, metadata_documents)
+            CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(
+                CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
+                    .expect("example type metadata should verify"),
+            ))
         })
         .collect();
 
-    setup_mock_issuer_attestation_types_and_metadata(issuer_identifier, attestations, sessions)
+    setup_mock_issuer_with_metadata(issuer_identifier, attestations, sessions)
 }
 
 /// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
@@ -309,6 +312,47 @@ pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
+    let attestations = attestations
+        .into_iter()
+        .map(|(format, attestation_type, metadata_documents)| match format {
+            Format::MsoMdoc => {
+                let (normalized, _) = metadata_documents
+                    .clone()
+                    .into_normalized(&attestation_type)
+                    .expect("example type metadata should normalize");
+
+                CredentialConfigurationFormat::MsoMdoc {
+                    doc_type: attestation_type.clone(),
+                    credential_metadata: CredentialMetadata::new_mdoc_example_from_type_metadata(
+                        &attestation_type,
+                        &normalized,
+                    ),
+                }
+            }
+            Format::SdJwt => CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(
+                CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
+                    .expect("example type metadata should verify"),
+            )),
+        })
+        .collect();
+
+    setup_mock_issuer_with_metadata(issuer_identifier, attestations, sessions)
+}
+
+/// Create a mock [`Issuer`] whose credential configurations are described explicitly by the provided metadata.
+pub fn setup_mock_issuer_with_metadata<G>(
+    issuer_identifier: IssuerIdentifier,
+    attestations: Vec<CredentialConfigurationFormat>,
+    sessions: Arc<MemorySessionStore<IssuanceData, G>>,
+) -> (
+    MockIssuer<G>,
+    TrustAnchors,
+    KeyPair,
+    CertificateCrlVerifier<MockCrlFetcher>,
+)
+where
+    G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+{
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let metadata_keypair = ca.generate_wrpac_issuer_mock_with_crl().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
@@ -324,29 +368,8 @@ where
 
     let config_params = attestations
         .into_iter()
-        .map(|(format, attestation_type, metadata_documents)| {
-            let config_id = format!("{attestation_type}_{format}");
-
-            let format = match format {
-                Format::MsoMdoc => {
-                    let (normalized, _) = metadata_documents
-                        .clone()
-                        .into_normalized(&attestation_type)
-                        .expect("example type metadata should normalize");
-
-                    CredentialConfigurationFormat::MsoMdoc {
-                        doc_type: attestation_type.clone(),
-                        credential_metadata: CredentialMetadata::new_mdoc_example_from_type_metadata(
-                            &attestation_type,
-                            &normalized,
-                        ),
-                    }
-                }
-                Format::SdJwt => CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(
-                    CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
-                        .expect("example type metadata should verify"),
-                )),
-            };
+        .map(|format| {
+            let config_id = format!("{}_{}", format.attestation_type(), format.format());
 
             let status_list_uri_path = config_id.replace(':', "-");
             let status_list = MockObtainingStatusListService::new(
