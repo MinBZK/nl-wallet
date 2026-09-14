@@ -49,6 +49,11 @@ class IssuanceDataHelper {
 
     private fun jsonValueToString(value: Any): String {
         if (value === JSONObject.NULL) return l10n.getString("cardValueNull")
+        if (value is JSONObject) {
+            val inner = value.opt("value")
+                ?: throw Exception("Attribute object has no value: $value")
+            return jsonValueToString(inner)
+        }
         return value.toString()
     }
 }

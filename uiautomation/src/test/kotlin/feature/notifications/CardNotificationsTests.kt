@@ -81,6 +81,7 @@ class CardNotificationsTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
 
+        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.clickMenuButton()
         menuScreen.clickSettingsButton()
         settingsScreen.clickNotificationsButton()

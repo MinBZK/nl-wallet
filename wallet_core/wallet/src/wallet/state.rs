@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -294,9 +293,6 @@ where
         CR: Repository<Arc<WalletConfiguration>>,
         APC: AccountProviderClient,
     {
-        let instruction_result_public_key =
-            PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into();
-
         self.new_instruction_client(
             pin,
             attested_key,
@@ -305,7 +301,7 @@ where
                 registration_data.pin_salt,
                 registration_data.wallet_certificate,
                 config.account_server.http_config.clone(),
-                instruction_result_public_key,
+                config.account_server.instruction_result_public_keys.clone(),
             ),
         )
         .await

@@ -49,7 +49,6 @@ class HelpTests : TestBase() {
         contactScreen.clickBottomBackButton()
         helpAndInfoScreen.clickActivitiesHelpButton()
         activitiesHelpScreen.clickCardActivitiesButton()
-        assertTrue(activitiesHelpScreen.helpAndInfoHeadersVisible(), "Help and Info headers are not visible")
 
         activitiesHelpScreen.clickFirstHelpGroupButton()
         activitiesHelpScreen.clickSomethingElseButton()

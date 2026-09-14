@@ -47,6 +47,18 @@ where
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
+    AKH: AttestedKeyHolder,
+    CID: IssuanceDiscovery,
+    DCC: DisclosureClient,
+{
+    #[cfg(any(test, feature = "test"))]
+    pub fn config_repository(&self) -> &Arc<CR> {
+        &self.config_repository
+    }
+}
+
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
+where
     CR: ObservableRepository<Arc<WalletConfiguration>>,
     UR: ObservableRepository<VersionState>,
     AKH: AttestedKeyHolder,

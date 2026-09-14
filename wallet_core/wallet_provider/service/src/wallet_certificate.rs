@@ -23,7 +23,9 @@ use crate::account_server::AccountServerPinKeys;
 use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
 use crate::instructions::PinCheckOptions;
+use crate::keys::Kid;
 use crate::keys::WalletCertificateSigningKey;
+use crate::keys::pin_hmac_key_identifier;
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
@@ -63,16 +65,19 @@ async fn parse_claims_and_retrieve_wallet_user<T, R>(
     certificate_signing_pubkeys: &impl PublicKeyByKid,
     wallet_user_repository: &R,
     include_blocked: bool,
-) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
+) -> Result<(WalletUser, WalletCertificateClaims, Kid), WalletCertificateError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let (_, claims) = certificate
+    let (header, claims) = certificate
         .parse_and_verify_with_sub_by_kid(certificate_signing_pubkeys)
         .map_err(WalletCertificateError::Validation)?;
+
+    // this should never fail, as the `kid` is also used to verify the Wallet Certificate
+    let kid = Kid::try_from(header.kid).map_err(WalletCertificateError::InvalidKid)?;
 
     debug!("Starting database transaction");
 
@@ -96,7 +101,7 @@ where
         }
         QueryResult::Found(user_boxed) => {
             let user = *user_boxed;
-            Ok((user, claims))
+            Ok((user, claims, kid))
         }
     }
 }
@@ -118,6 +123,7 @@ pub enum PinKeyChecks {
 
 pub async fn verify_wallet_certificate_pin_public_key<H>(
     claims: WalletCertificateClaims,
+    certificate_kid: &Kid,
     pin_keys: &AccountServerPinKeys,
     pin_checks: PinKeyChecks,
     encrypted_pin_pubkey: Encrypted<VerifyingKey>,
@@ -134,8 +140,14 @@ where
 
     let pin_pubkey = Decrypter::decrypt(hsm, &pin_keys.encryption_key_identifier, encrypted_pin_pubkey).await?;
 
-    let pin_hash_verification =
-        verify_pin_pubkey(&pin_pubkey, claims.pin_pubkey_hash, &pin_keys.hmac_key_identifier, hsm).await;
+    // Use the HMAC key belonging to the same `kid` as the one that signed the wallet certificate
+    let pin_hash_verification = verify_pin_pubkey(
+        &pin_pubkey,
+        claims.pin_pubkey_hash,
+        &pin_hmac_key_identifier(certificate_kid),
+        hsm,
+    )
+    .await;
 
     debug!("Verifying the pin and hardware public keys matches those in the provided certificate");
 
@@ -167,7 +179,7 @@ where
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let (user, claims) = parse_and_verify_wallet_cert_using_hw_pubkey(
+    let (user, claims, kid) = parse_and_verify_wallet_cert_using_hw_pubkey(
         certificate,
         certificate_signing_pubkeys,
         pin_checks.allow_for_blocked_users,
@@ -179,6 +191,7 @@ where
 
     verify_wallet_certificate_pin_public_key(
         claims,
+        &kid,
         pin_keys,
         pin_checks.key_checks,
         pin_pubkey.clone(),
@@ -192,20 +205,21 @@ where
 /// - Verify the provided [`WalletCertificate`]
 /// - Retrieve the [`WalletUser`] from the DB using the `wallet_id` from the verified [`WalletCertificate`]
 /// - Check that the HW key in the [`WalletUser`] are present in the (verified) wallet certificate
-/// - Returns a tuple of the [`WalletUser`] and [`WalletCertificateClaims`].
+/// - Returns a tuple of the [`WalletUser`], [`WalletCertificateClaims`] and the [`Kid`] of the key that signed the
+///   wallet certificate.
 pub async fn parse_and_verify_wallet_cert_using_hw_pubkey<T, R>(
     certificate: &WalletCertificate,
     certificate_signing_pubkeys: &impl PublicKeyByKid,
     allow_for_blocked_users: bool,
     repositories: &R,
-) -> Result<(WalletUser, WalletCertificateClaims), WalletCertificateError>
+) -> Result<(WalletUser, WalletCertificateClaims, Kid), WalletCertificateError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     debug!("Parsing and verifying the provided certificate");
 
-    let (user, claims) = parse_claims_and_retrieve_wallet_user(
+    let (user, claims, kid) = parse_claims_and_retrieve_wallet_user(
         certificate,
         certificate_signing_pubkeys,
         repositories,
@@ -217,7 +231,7 @@ where
         return Err(WalletCertificateError::HwPubKeyMismatch);
     }
 
-    Ok((user, claims))
+    Ok((user, claims, kid))
 }
 
 async fn sign_pin_pubkey<H>(
