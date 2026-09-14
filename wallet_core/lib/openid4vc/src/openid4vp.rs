@@ -72,6 +72,7 @@ use serde_with::skip_serializing_none;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
+use tracing::error;
 use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -649,16 +650,28 @@ impl NormalizedVpAuthorizationRequest {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 expected: "vp_token",
-                found: serde_json::to_string(&vp_auth_request.oauth_request.response_type)
-                    .unwrap_or_else(|error| format!("<failed to serialize response_type: {error}>")),
+                found: serde_json::to_string(&vp_auth_request.oauth_request.response_type).unwrap_or_else(|error| {
+                    error!(
+                        field = "response_type",
+                        %error,
+                        "failed to serialize authorization request error detail"
+                    );
+                    format!("<failed to serialize response_type: {error}>")
+                }),
             });
         }
         if response_mode != ResponseMode::DirectPostJwt {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
-                found: serde_json::to_string(&response_mode)
-                    .unwrap_or_else(|error| format!("<failed to serialize response_mode: {error}>")),
+                found: serde_json::to_string(&response_mode).unwrap_or_else(|error| {
+                    error!(
+                        field = "response_mode",
+                        %error,
+                        "failed to serialize authorization request error detail"
+                    );
+                    format!("<failed to serialize response_mode: {error}>")
+                }),
             });
         }
         let jwks = &client_metadata.jwks.keys;
