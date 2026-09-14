@@ -630,6 +630,7 @@ impl RecoveryCodeConfig {
 pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityClient> {
     pub name: String,
     instruction_challenge_timeout: Duration,
+    wallet_certificate_validity: Duration,
     pub keys: AccountServerKeys,
     recovery_code_paths: RecoveryCodeConfig,
     pub apple_config: AppleAttestationConfiguration,
@@ -941,7 +942,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             wallet_id,
             hw_pubkey,
             &pin_pubkey,
+            self.wallet_certificate_validity,
             &user_state.wallet_user_hsm,
+            time,
         )
         .await?;
 
@@ -1258,7 +1261,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             wallet_user.wallet_id,
             wallet_user.hw_pubkey,
             &pin_pubkey,
+            self.wallet_certificate_validity,
             &user_state.wallet_user_hsm,
+            generators,
         )
         .await?;
 
@@ -1430,7 +1435,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             wallet_user.wallet_id,
             wallet_user.hw_pubkey,
             &pin_pubkey,
+            self.wallet_certificate_validity,
             &user_state.wallet_user_hsm,
+            generators,
         )
         .await?;
 
@@ -1909,6 +1916,7 @@ pub mod mock {
         AccountServer::new(
             "mock_account_server".into(),
             Duration::from_millis(15000),
+            Duration::from_secs(3600),
             AccountServerKeys {
                 current_certificate_signing_key: CurrentCertificateSigningKey {
                     kid: certificate_signing_kid,
@@ -2358,7 +2366,7 @@ mod tests {
                 certificate_signing_key,
                 registration_message,
                 &user_state,
-                &MockTimeGenerator::epoch(),
+                &MockTimeGenerator::default(),
             )
             .await
             .map(|(wallet_certificate, revocation_code)| {
@@ -3972,7 +3980,7 @@ mod tests {
                 &setup.signing_key,
                 registration_message,
                 &user_state,
-                &MockTimeGenerator::epoch(),
+                &MockTimeGenerator::default(),
             )
             .await
             .expect_err("register should fail due to wallet solution revoked");

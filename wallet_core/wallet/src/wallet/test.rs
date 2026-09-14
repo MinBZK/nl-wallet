@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -403,13 +404,15 @@ pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> 
 pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificateClaims {
     let wallet_id = wallet_id.unwrap_or_else(|| crypto::utils::random_string(32));
 
+    let iat = Utc::now();
     WalletCertificateClaims {
         wallet_id,
         hw_pubkey: DerVerifyingKey::from(hw_pubkey),
         pin_pubkey_hash: crypto::utils::random_bytes(32),
         version: 0,
         iss: "wallet_unit_test".to_string(),
-        iat: Utc::now(),
+        iat,
+        exp: iat + Duration::from_secs(3600),
     }
 }
 

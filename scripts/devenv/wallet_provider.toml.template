@@ -12,6 +12,9 @@ wia_wallet_version = "${WALLET_VERSION}"
 # Refresh delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
 
+# How long, in seconds, a Wallet Certificate is valid
+# wallet_certificate_validity_in_seconds = 7776000
+
 # Indicates if the revoke-solution API endpoint should be enabled
 revoke_solution_enabled = true
 

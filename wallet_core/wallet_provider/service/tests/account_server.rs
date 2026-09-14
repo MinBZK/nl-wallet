@@ -167,7 +167,7 @@ async fn do_registration(
             certificate_signing_key,
             registration_message,
             &user_state,
-            &MockTimeGenerator::epoch(),
+            &MockTimeGenerator::default(),
         )
         .await
         .expect("Could not process registration message at account server");

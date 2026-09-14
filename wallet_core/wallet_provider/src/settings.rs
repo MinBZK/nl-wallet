@@ -78,6 +78,11 @@ pub struct Settings {
     #[serde_as(as = "DurationMilliSeconds")]
     pub instruction_challenge_timeout: Duration,
 
+    /// How long a Wallet Certificate is valid
+    #[serde(rename = "wallet_certificate_validity_in_seconds")]
+    #[serde_as(as = "DurationSeconds<u64>")]
+    pub wallet_certificate_validity: Duration,
+
     /// Issuer trust anchors are used to validate the received PID SD JWT with Recovery Code disclosure
     pub pid_issuer_trust_anchors: TrustAnchors,
 
@@ -238,6 +243,7 @@ impl Settings {
             .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?
             .set_default("structured_logging", false)?
             .set_default("instruction_challenge_timeout_in_ms", 60_000)?
+            .set_default("wallet_certificate_validity_in_seconds", 90 * 24 * 60 * 60)? // 90 days
             .set_default("hsm.max_sessions", 10)?
             .set_default("hsm.max_session_lifetime_in_sec", 900)?
             .set_default("android.allow_sideloading", false)?
