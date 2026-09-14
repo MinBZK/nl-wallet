@@ -4,7 +4,6 @@ use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::validity::IssuanceValidity;
 use attestation_types::credential_format::Format;
-use attestation_types::qualification::AttestationQualification;
 use dcql::CredentialQueryIdentifier;
 use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
@@ -22,7 +21,6 @@ pub struct DemoDisclosedAttestation {
     pub attributes: Attributes,
     pub format: Format,
     pub issuer_uri: HttpsUri,
-    pub attestation_qualification: AttestationQualification,
 
     /// The issuer CA's common name
     pub ca: String,
@@ -50,7 +48,6 @@ impl From<DisclosedAttestation> for DemoDisclosedAttestation {
             attributes,
             format,
             issuer_uri: value.issuer_uri,
-            attestation_qualification: value.attestation_qualification,
             ca: value.ca,
             issuance_validity: value.issuance_validity,
         }
@@ -100,7 +97,6 @@ mod test {
                     .into(),
                 ),
                 issuer_uri: "https://issuer.example.com/".parse().unwrap(),
-                attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
                 issuance_validity: IssuanceValidity::new(
                     DateTime::UNIX_EPOCH,
@@ -124,7 +120,6 @@ mod test {
                     ]),
                 )])),
                 issuer_uri: "https://issuer.example.com/".parse().unwrap(),
-                attestation_qualification: AttestationQualification::default(),
                 ca: "ca.issuer.example.com".to_string(),
                 issuance_validity: IssuanceValidity::new(
                     DateTime::UNIX_EPOCH,
@@ -161,7 +156,6 @@ mod test {
             },
             "format": "dc+sd-jwt",
             "issuer_uri": "https://issuer.example.com/",
-            "attestation_qualification": "EAA",
             "ca": "ca.issuer.example.com",
             "issuance_validity": {
                 "signed": "1970-01-01T00:00:00Z",
@@ -191,7 +185,6 @@ mod test {
             },
             "format": "mso_mdoc",
             "issuer_uri": "https://issuer.example.com/",
-            "attestation_qualification": "EAA",
             "ca": "ca.issuer.example.com",
             "issuance_validity": {
                 "signed": "1970-01-01T00:00:00Z",

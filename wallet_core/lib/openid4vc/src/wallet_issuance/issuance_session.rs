@@ -1212,7 +1212,6 @@ mod tests {
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::qualification::AttestationQualification;
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
@@ -2855,29 +2854,6 @@ mod tests {
         // contained within the response should fail.
 
         preview.credential_payload.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
-
-        let error = credentials_test_into_issued_credential(
-            credentials,
-            vec_nonempty![("key_id".to_string(), holder_public_key)],
-            &type_metadata.normalized_metadata,
-            &preview,
-            &trust_anchor,
-        )
-        .expect_err("should not be able to convert CredentialResponse into credential");
-
-        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
-    }
-
-    #[rstest]
-    fn test_credential_response_into_mdoc_issued_attestation_qualification_mismatch_error(
-        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
-    ) {
-        let (credentials, mut preview, type_metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format);
-
-        // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
-        // within the response should fail.
-        preview.credential_payload.attestation_qualification = AttestationQualification::PubEAA;
 
         let error = credentials_test_into_issued_credential(
             credentials,

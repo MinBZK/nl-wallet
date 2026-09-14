@@ -557,7 +557,6 @@ impl PreparedCredential {
             now,
             valid_until,
             credential_config.issuer_uri.clone(),
-            credential_config.attestation_qualification,
         );
 
         let credential = Self {
