@@ -641,9 +641,9 @@ impl NormalizedVpAuthorizationRequest {
         let response_uri = vp_auth_request
             .response_uri
             .ok_or(AuthRequestValidationError::ExpectedFieldMissing("response_uri"))?;
-        let Some(client_metadata) = vp_auth_request.client_metadata else {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"));
-        };
+        let client_metadata = vp_auth_request
+            .client_metadata
+            .ok_or(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"))?;
 
         // Check that various enums have the expected values
         if vp_auth_request.oauth_request.response_type != HashSet::from([ResponseType::VpToken]) {
