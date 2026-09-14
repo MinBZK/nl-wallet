@@ -80,7 +80,7 @@ use utils::vec_nonempty;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
-use wscd::issuance::mock::MockRemoteWscd;
+use wscd::mock_remote::MockRemoteWscd;
 
 const USECASE_NAME: &str = "usecase";
 

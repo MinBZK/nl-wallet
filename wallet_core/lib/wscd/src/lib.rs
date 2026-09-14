@@ -1,4 +1,6 @@
 pub mod issuance;
+#[cfg(feature = "mock")]
+pub mod mock_remote;
 pub mod payload;
 pub mod wia;
 

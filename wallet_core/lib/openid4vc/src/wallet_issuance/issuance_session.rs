@@ -1269,7 +1269,7 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_nonempty;
-    use wscd::issuance::mock::MockRemoteWscd;
+    use wscd::mock_remote::MockRemoteWscd;
     use wscd::wia::mock::MockWiaClient;
 
     use super::*;

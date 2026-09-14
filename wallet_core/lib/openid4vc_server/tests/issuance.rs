@@ -93,7 +93,7 @@ use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
-use wscd::issuance::mock::MockRemoteWscd;
+use wscd::mock_remote::MockRemoteWscd;
 use wscd::payload::jwt_proof::JwtProofClaims;
 use wscd::payload::wia::WIA_HEADER_NAME;
 use wscd::payload::wia::WIA_POP_HEADER_NAME;

@@ -1738,8 +1738,8 @@ mod tests {
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::issuance::mock::MockRemoteWscd;
     use wscd::mock::MOCK_WALLET_CLIENT_ID;
+    use wscd::mock_remote::MockRemoteWscd;
     use wscd::payload::jwt_proof::JwtProofClaims;
     use wscd::wia::WiaClient;
     use wscd::wia::mock::MockWiaClient;

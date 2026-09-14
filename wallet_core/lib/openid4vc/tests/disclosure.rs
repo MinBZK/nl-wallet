@@ -108,7 +108,7 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
-use wscd::issuance::mock::MockRemoteWscd;
+use wscd::mock_remote::MockRemoteWscd;
 use wscd::payload::poa::JwtPoaInput;
 use wscd::payload::poa::Poa;
 

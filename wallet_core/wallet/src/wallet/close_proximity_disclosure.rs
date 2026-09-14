@@ -921,7 +921,7 @@ mod tests {
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::SignResult;
-    use wscd::issuance::mock::MockRemoteWscd;
+    use wscd::mock_remote::MockRemoteWscd;
     use wscd::mock::MOCK_WALLET_CLIENT_ID;
 
     use super::CloseProximityDisclosableAttestation;
