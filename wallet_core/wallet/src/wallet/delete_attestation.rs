@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use crypto::PublicKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -61,6 +60,9 @@ pub enum DeleteAttestationError {
     #[error("attestation not found")]
     #[category(critical)]
     AttestationNotFound,
+    #[error("no key identifiers found for attestation")]
+    #[category(critical)]
+    NoKeyIdentifiers,
     #[error("PID cannot be deleted")]
     #[category(critical)]
     CannotDeletePid,
@@ -121,8 +123,9 @@ where
             return Err(DeleteAttestationError::CannotDeletePid);
         }
 
-        // No attestation is ever stored without corresponding private keys.
-        let key_identifiers: VecNonEmpty<_> = key_identifiers.try_into().unwrap();
+        let key_identifiers: VecNonEmpty<_> = key_identifiers
+            .try_into()
+            .map_err(|_| DeleteAttestationError::NoKeyIdentifiers)?;
 
         let instruction_client = self
             .new_instruction_client(
@@ -133,7 +136,7 @@ where
                     registration_data.pin_salt.clone(),
                     registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
-                    PublicKey::from(*config.account_server.instruction_result_public_key.as_inner()).into(),
+                    config.account_server.instruction_result_public_keys.clone(),
                 ),
             )
             .await?;
@@ -314,6 +317,37 @@ mod tests {
             .expect_err("delete_attestation should have resulted in an error");
 
         assert_matches!(error, DeleteAttestationError::AttestationNotFound);
+    }
+
+    #[tokio::test]
+    async fn test_delete_attestation_error_no_key_identifiers() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let attestation_id = Uuid::new_v4();
+
+        wallet
+            .mut_storage()
+            .expect_fetch_credential_kind_and_key_identifiers_by_attestation_id()
+            .with(eq(attestation_id))
+            .once()
+            .return_once(|_| {
+                Ok(Some((
+                    CredentialKind::new(Format::SdJwt, "some_type".to_string()),
+                    vec![],
+                )))
+            });
+
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction::<DeleteKeys>()
+            .never();
+        wallet.mut_storage().expect_delete_attestation().never();
+
+        let error = wallet
+            .delete_attestation(PIN.clone(), attestation_id.to_string())
+            .await
+            .expect_err("delete_attestation should have resulted in an error");
+
+        assert_matches!(error, DeleteAttestationError::NoKeyIdentifiers);
     }
 
     #[tokio::test]
