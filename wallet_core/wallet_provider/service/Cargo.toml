@@ -50,6 +50,7 @@ mock = [
     "wallet_account/client",
     "wallet_provider_domain/mock",
     "wallet_provider_persistence/mock",
+    "wscd/mock",
 ]
 db_test = [
     "dep:db_test",
