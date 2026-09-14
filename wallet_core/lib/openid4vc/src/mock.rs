@@ -54,7 +54,7 @@ impl IssuerMetadata {
                         scope,
                         vec![ProofType::Jwt],
                         None,
-                        type_metadata_uri,
+                        Some(type_metadata_uri),
                     ),
                 };
 

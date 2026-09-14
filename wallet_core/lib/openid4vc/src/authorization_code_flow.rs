@@ -83,7 +83,7 @@ impl WalletAuthorizationContext {
             .scope
             .iter()
             .flat_map(|scope| credential_configs.get_by_scope(scope))
-            .map(|(_id, config)| config.credential_kind.clone())
+            .map(|(_id, config)| config.credential_kind())
             .collect::<HashSet<_>>();
 
         if credential_kinds.is_empty() {

@@ -147,12 +147,6 @@ pub enum IssuableDocumentError {
 
     #[error("attributes do not match metadata: {0}")]
     AttributesError(#[source] AttributesError),
-
-    #[error("no credential metadata for mdoc credential configuration: {0}")]
-    MissingCredentialMetadata(CredentialConfigurationId),
-
-    #[error("no type metadata for SD-JWT credential configuration: {0}")]
-    MissingTypeMetadata(CredentialConfigurationId),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -491,8 +485,7 @@ impl<K, L> IssuerData<K, L> {
             .get_by_configuration_id(config_id)
             .and_then(|config| {
                 // Do a sanity check to see if the credential configuration has changed since determining its id.
-                let credential_kind = &config.credential_kind;
-                (credential_kind.format == format && credential_kind.attestation_type == attestation_type)
+                (config.format.format() == format && config.format.attestation_type() == attestation_type)
                     .then_some(config)
             })
     }
@@ -613,7 +606,7 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
         self.issuer_data
             .credential_configs
             .get_by_configuration_id(id)
-            .and_then(|config| config.type_metadata.as_ref())
+            .and_then(|config| config.format.type_metadata())
             .map(|metadata| metadata.documents().clone().into())
     }
 }
@@ -688,7 +681,7 @@ where
                 data: registration_certificate,
             }]),
             credential_configurations_supported: credential_configs
-                .to_credential_configurations_supported(&type_metadata_base_url)?,
+                .to_credential_configurations_supported(&type_metadata_base_url),
         };
 
         let issuer_data = IssuerData::new(
@@ -765,29 +758,9 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
                     .get_by_credential_kind(&document.credential_kind)
                     .ok_or_else(|| IssuableDocumentError::CredentialTypeNotOffered(document.credential_kind.clone()))?;
 
-                match document.credential_kind {
-                    CredentialKind {
-                        format: Format::MsoMdoc,
-                        ..
-                    } => {
-                        let credential_metadata = credential_config.credential_metadata.as_ref().ok_or_else(|| {
-                            IssuableDocumentError::MissingCredentialMetadata(credential_config_id.clone())
-                        })?;
-
-                        document.validate_with_metadata(credential_metadata)
-                    }
-                    CredentialKind {
-                        format: Format::SdJwt, ..
-                    } => {
-                        let type_metadata = credential_config
-                            .type_metadata
-                            .as_ref()
-                            .ok_or_else(|| IssuableDocumentError::MissingTypeMetadata(credential_config_id.clone()))?;
-
-                        document.validate_with_metadata(type_metadata.normalized())
-                    }
-                }
-                .map_err(IssuableDocumentError::AttributesError)?;
+                document
+                    .validate_with_metadata(&credential_config.format)
+                    .map_err(IssuableDocumentError::AttributesError)?;
 
                 Ok((credential_config_id.clone(), document))
             })
@@ -1517,7 +1490,7 @@ impl Session<AccessTokenIssued> {
             credential.credential_payload.clone(),
             utc_now_truncated_to_days(),
             public_keys.nonempty_iter().collect(),
-            credential_config.type_metadata.as_ref(),
+            credential_config.format.type_metadata(),
             &credential_config.key_pair,
             &credential_config.status_list,
         )

@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use attestation_data::metadata::AttestationClaims;
+use attestation_data::metadata::ClaimConstraint;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::Days;
@@ -31,15 +33,6 @@ pub enum CredentialConfigurationsError {
     #[error("could not use credential configuration ID as scope: {0}")]
     Scope(#[source] ScopeInvalid),
 
-    #[error("could not parse SD-JWT VC Type Metadata chain: {0}")]
-    TypeMetadata(#[source] TypeMetadataChainError),
-
-    #[error("no credential metadata configured for mdoc credential configuration: {0}")]
-    MissingCredentialMetadata(CredentialConfigurationId),
-
-    #[error("no type metadata configured for SD-JWT credential configuration: {0}")]
-    MissingTypeMetadata(CredentialConfigurationId),
-
     #[error(
         "multiple credential configurations for the same combination of format and attestation type: {}",
         .0
@@ -50,93 +43,106 @@ pub enum CredentialConfigurationsError {
     DuplicateFormatAndAttestationType(HashMap<CredentialKind, HashSet<CredentialConfigurationId>>),
 }
 
-#[derive(Debug)]
-pub struct CredentialConfigurationParameters<K, L> {
-    pub credential_kind: CredentialKind,
-    #[debug(skip)]
-    pub key_pair: KeyPair<K>,
-    pub status_list: L,
-    pub valid_days: Days,
-    #[debug(skip)]
-    pub type_metadata: Option<TypeMetadataDocuments>,
-    pub credential_metadata: Option<CredentialMetadata>,
-}
-
-/// Static attestation data shared across all instances of an attestation type for a particular format. Parts of this
-/// configuration are represented in the `credential_configurations_supported` section of the issuer metadata.
+/// The format of a credential configuration and the metadata that describes it. An mdoc is only described by Credential
+/// Metadata, while an SD-JWT is described by either SD-JWT VC Type Metadata or Credential Metadata.
 ///
-/// When performing issuance, the issuer augments the [`CredentialConfiguration`] with an [`IssuableDocument`] to form
-/// the attestation.
-#[derive(Debug)]
-pub(crate) struct CredentialConfiguration<K, L> {
-    pub credential_kind: CredentialKind,
-    pub scope: Scope,
-    #[debug(skip)]
-    pub key_pair: KeyPair<K>,
-    pub status_list: L,
-    pub valid_days: Days,
-    pub type_metadata: Option<CredentialConfigurationTypeMetadata>,
-    pub credential_metadata: Option<CredentialMetadata>,
+/// The attestation type (`doc_type` for an mdoc, `vct` for an SD-JWT) is only stored where the metadata does not
+/// already contain it. Credential Metadata carries no identifier, so it is paired with a `doc_type` or `vct`. SD-JWT VC
+/// Type Metadata carries its own `vct`, so none is stored alongside it.
+#[derive(Debug, Clone)]
+pub enum CredentialConfigurationFormat {
+    MsoMdoc {
+        doc_type: String,
+        #[debug(skip)]
+        credential_metadata: CredentialMetadata,
+    },
+    SdJwt(SdJwtMetadata),
 }
 
-#[derive(Debug)]
-pub(crate) struct CredentialConfigurationTypeMetadata {
+/// The metadata that describes an SD-JWT credential configuration, which also determines its `vct`.
+#[derive(Debug, Clone)]
+pub enum SdJwtMetadata {
+    /// Described by SD-JWT VC Type Metadata, of which the leaf document determines the `vct`.
+    TypeMetadata(CredentialConfigurationTypeMetadata),
+    CredentialMetadata {
+        vct: String,
+        #[debug(skip)]
+        credential_metadata: CredentialMetadata,
+    },
+}
+
+impl AttestationClaims for SdJwtMetadata {
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
+        match self {
+            Self::TypeMetadata(metadata) => Either::Left(metadata.normalized.claim_constraints()),
+            Self::CredentialMetadata {
+                credential_metadata, ..
+            } => Either::Right(credential_metadata.claim_constraints()),
+        }
+    }
+}
+
+impl AttestationClaims for CredentialConfigurationFormat {
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
+        match self {
+            Self::MsoMdoc {
+                credential_metadata, ..
+            } => Either::Left(credential_metadata.claim_constraints()),
+            Self::SdJwt(metadata) => Either::Right(metadata.claim_constraints()),
+        }
+    }
+}
+
+impl CredentialConfigurationFormat {
+    /// The credential format that corresponds to this configuration.
+    pub fn format(&self) -> Format {
+        match self {
+            Self::MsoMdoc { .. } => Format::MsoMdoc,
+            Self::SdJwt(_) => Format::SdJwt,
+        }
+    }
+
+    /// The identifier that names the attestation in this configuration's format.
+    pub fn attestation_type(&self) -> &str {
+        match self {
+            Self::MsoMdoc { doc_type, .. } => doc_type,
+            Self::SdJwt(metadata) => metadata.vct(),
+        }
+    }
+
+    /// The SD-JWT VC Type Metadata, if this configuration is described by it.
+    pub fn type_metadata(&self) -> Option<&CredentialConfigurationTypeMetadata> {
+        match self {
+            Self::MsoMdoc { .. } | Self::SdJwt(SdJwtMetadata::CredentialMetadata { .. }) => None,
+            Self::SdJwt(SdJwtMetadata::TypeMetadata(type_metadata)) => Some(type_metadata),
+        }
+    }
+}
+
+impl SdJwtMetadata {
+    pub fn vct(&self) -> &str {
+        match self {
+            Self::TypeMetadata(type_metadata) => type_metadata.vct(),
+            Self::CredentialMetadata { vct, .. } => vct,
+        }
+    }
+}
+
+/// A verified chain of SD-JWT VC Type Metadata documents for a particular `vct`, as used by a credential configuration.
+#[derive(Debug, Clone)]
+pub struct CredentialConfigurationTypeMetadata {
     #[debug(skip)]
     documents: SortedTypeMetadataDocuments,
     first_document_integrity: Integrity,
     normalized: NormalizedTypeMetadata,
 }
 
-impl<K, L> CredentialConfiguration<K, L> {
-    /// Create a new [`CredentialConfiguration`] and decode and validate the type metadata documents.
-    fn try_new(
-        config_id: CredentialConfigurationId,
-        CredentialConfigurationParameters {
-            credential_kind,
-            key_pair,
-            status_list,
-            valid_days,
-            type_metadata,
-            credential_metadata,
-        }: CredentialConfigurationParameters<K, L>,
-    ) -> Result<Self, CredentialConfigurationsError> {
-        // Use the Credential Configuration ID as the scope value.
-        let scope = Scope::try_new(config_id.as_ref()).map_err(CredentialConfigurationsError::Scope)?;
-
-        let type_metadata = type_metadata
-            .map(|documents| CredentialConfigurationTypeMetadata::try_new(&credential_kind.attestation_type, documents))
-            .transpose()
-            .map_err(CredentialConfigurationsError::TypeMetadata)?;
-
-        match (credential_kind.format, &credential_metadata, &type_metadata) {
-            (Format::MsoMdoc, None, _) => {
-                return Err(CredentialConfigurationsError::MissingCredentialMetadata(config_id));
-            }
-            (Format::SdJwt, _, None) => {
-                return Err(CredentialConfigurationsError::MissingTypeMetadata(config_id));
-            }
-            _ => {}
-        }
-
-        let config = Self {
-            credential_kind,
-            scope,
-            status_list,
-            key_pair,
-            valid_days,
-            type_metadata,
-            credential_metadata,
-        };
-
-        Ok(config)
-    }
-}
-
 impl CredentialConfigurationTypeMetadata {
-    fn try_new(attestation_type: &str, documents: TypeMetadataDocuments) -> Result<Self, TypeMetadataChainError> {
+    /// Verify the chain of Type Metadata documents, of which the leaf document should have the provided `vct`.
+    pub fn try_new(vct: &str, documents: TypeMetadataDocuments) -> Result<Self, TypeMetadataChainError> {
         // Calculate and cache the integrity hash for the first metadata document in the chain.
         let first_document_integrity = Integrity::from(documents.as_ref().first().as_slice());
-        let (normalized, documents) = documents.into_normalized(attestation_type)?;
+        let (normalized, documents) = documents.into_normalized(vct)?;
 
         let metadata = Self {
             documents,
@@ -145,6 +151,10 @@ impl CredentialConfigurationTypeMetadata {
         };
 
         Ok(metadata)
+    }
+
+    pub fn vct(&self) -> &str {
+        self.normalized.vct()
     }
 
     pub fn documents(&self) -> &SortedTypeMetadataDocuments {
@@ -157,6 +167,60 @@ impl CredentialConfigurationTypeMetadata {
 
     pub fn normalized(&self) -> &NormalizedTypeMetadata {
         &self.normalized
+    }
+}
+
+#[derive(Debug)]
+pub struct CredentialConfigurationParameters<K, L> {
+    pub format: CredentialConfigurationFormat,
+    #[debug(skip)]
+    pub key_pair: KeyPair<K>,
+    pub status_list: L,
+    pub valid_days: Days,
+}
+
+/// Static attestation data shared across all instances of an attestation type for a particular format. Parts of this
+/// configuration are represented in the `credential_configurations_supported` section of the issuer metadata.
+///
+/// When performing issuance, the issuer augments the [`CredentialConfiguration`] with an [`IssuableDocument`] to form
+/// the attestation.
+#[derive(Debug)]
+pub(crate) struct CredentialConfiguration<K, L> {
+    pub scope: Scope,
+    #[debug(skip)]
+    pub key_pair: KeyPair<K>,
+    pub status_list: L,
+    pub valid_days: Days,
+    pub format: CredentialConfigurationFormat,
+}
+
+impl<K, L> CredentialConfiguration<K, L> {
+    fn try_new(
+        config_id: &CredentialConfigurationId,
+        CredentialConfigurationParameters {
+            format,
+            key_pair,
+            status_list,
+            valid_days,
+        }: CredentialConfigurationParameters<K, L>,
+    ) -> Result<Self, CredentialConfigurationsError> {
+        // Use the Credential Configuration ID as the scope value.
+        let scope = Scope::try_new(config_id.as_ref()).map_err(CredentialConfigurationsError::Scope)?;
+
+        let config = Self {
+            scope,
+            status_list,
+            key_pair,
+            valid_days,
+            format,
+        };
+
+        Ok(config)
+    }
+
+    /// The combination of the attestation type and the format it is expressed in.
+    pub(crate) fn credential_kind(&self) -> CredentialKind {
+        CredentialKind::new(self.format.format(), self.format.attestation_type().to_string())
     }
 }
 
@@ -180,12 +244,14 @@ impl<K, L> CredentialConfigurations<K, L> {
         let configs_by_id = config_params
             .into_iter()
             .map(|(config_id, params)| {
+                let credential_kind =
+                    CredentialKind::new(params.format.format(), params.format.attestation_type().to_string());
                 ids_by_credential_kind
-                    .entry(params.credential_kind.clone())
+                    .entry(credential_kind)
                     .or_default()
                     .push(config_id.clone());
 
-                let config = CredentialConfiguration::try_new(config_id.clone(), params)?;
+                let config = CredentialConfiguration::try_new(&config_id, params)?;
 
                 Ok((config_id, config))
             })
@@ -250,46 +316,49 @@ impl<K, L> CredentialConfigurations<K, L> {
     pub fn to_credential_configurations_supported(
         &self,
         type_metadata_base_url: &IssuerUrl,
-    ) -> Result<
-        HashMap<CredentialConfigurationId, issuer_metadata::CredentialConfiguration>,
-        CredentialConfigurationsError,
-    > {
-        let supported_configs_by_id = self
-            .configs_by_id
+    ) -> HashMap<CredentialConfigurationId, issuer_metadata::CredentialConfiguration> {
+        self.configs_by_id
             .iter()
             .map(|(config_id, config)| {
-                let attestation_type = config.credential_kind.attestation_type.clone();
                 let scope = config.scope.clone();
 
                 // TODO (PVW-5548): Add "attestation" proof type.
                 let proof_types = vec![ProofType::Jwt];
-                let credential_metadata = config.credential_metadata.clone();
-                let type_metadata_uri = type_metadata_base_url.join_config_id(config_id);
 
-                let credential_configuration = match config.credential_kind.format {
-                    // An mdoc is described by its Credential Metadata alone, so that is mandatory for it.
-                    Format::MsoMdoc => issuer_metadata::CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
-                        attestation_type,
-                        scope,
-                        proof_types,
-                        credential_metadata.ok_or_else(|| {
-                            CredentialConfigurationsError::MissingCredentialMetadata(config_id.clone())
-                        })?,
-                    ),
-                    Format::SdJwt => issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
-                        attestation_type,
-                        scope,
-                        proof_types,
+                let credential_configuration = match &config.format {
+                    CredentialConfigurationFormat::MsoMdoc {
+                        doc_type,
                         credential_metadata,
-                        type_metadata_uri,
+                    } => issuer_metadata::CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
+                        doc_type.clone(),
+                        scope,
+                        proof_types,
+                        credential_metadata.clone(),
+                    ),
+                    CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(type_metadata)) => {
+                        issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
+                            type_metadata.vct().to_string(),
+                            scope,
+                            proof_types,
+                            None,
+                            Some(type_metadata_base_url.join_config_id(config_id)),
+                        )
+                    }
+                    CredentialConfigurationFormat::SdJwt(SdJwtMetadata::CredentialMetadata {
+                        vct,
+                        credential_metadata,
+                    }) => issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
+                        vct.clone(),
+                        scope,
+                        proof_types,
+                        Some(credential_metadata.clone()),
+                        None,
                     ),
                 };
 
-                Ok((config_id.clone(), credential_configuration))
+                (config_id.clone(), credential_configuration)
             })
-            .collect::<Result<HashMap<_, _>, CredentialConfigurationsError>>()?;
-
-        Ok(supported_configs_by_id)
+            .collect::<HashMap<_, _>>()
     }
 }
 
@@ -306,17 +375,27 @@ mod tests {
     use chrono::Days;
     use crypto::server_keys::generate::Ca;
     use p256::ecdsa::SigningKey;
-    use rstest::rstest;
+    use sd_jwt_vc_metadata::TypeMetadataChainError;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use token_status_list::status_list_service::mock::MockStatusListService;
 
+    use super::CredentialConfigurationFormat;
     use super::CredentialConfigurationParameters;
+    use super::CredentialConfigurationTypeMetadata;
     use super::CredentialConfigurations;
     use super::CredentialConfigurationsError;
+    use super::SdJwtMetadata;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::CredentialFormat;
     use crate::metadata::issuer_metadata::CredentialMetadata;
     use crate::metadata::issuer_metadata::ProofType;
+
+    fn degree_type_metadata() -> CredentialConfigurationTypeMetadata {
+        let (_, degree_documents) = TypeMetadataDocuments::degree_example();
+
+        CredentialConfigurationTypeMetadata::try_new("com.example.degree", degree_documents)
+            .expect("example type metadata should verify")
+    }
 
     fn credential_configuration_parameters()
     -> HashMap<CredentialConfigurationId, CredentialConfigurationParameters<SigningKey, MockStatusListService>> {
@@ -328,23 +407,24 @@ mod tests {
                 let id = format!("degree_{format}").into();
 
                 let key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
-                let (_, degree_documents) = TypeMetadataDocuments::degree_example();
-                let type_metadata = matches!(format, Format::SdJwt).then_some(degree_documents);
-
-                let credential_metadata = matches!(format, Format::MsoMdoc).then(|| {
-                    CredentialMetadata::new_mdoc_example(
-                        "com.example.degree",
-                        &["university", "education", "graduation_date", "grade", "cum_laude"],
-                    )
-                });
+                let format = match format {
+                    Format::MsoMdoc => CredentialConfigurationFormat::MsoMdoc {
+                        doc_type: "com.example.degree".to_string(),
+                        credential_metadata: CredentialMetadata::new_mdoc_example(
+                            "com.example.degree",
+                            &["university", "education", "graduation_date", "grade", "cum_laude"],
+                        ),
+                    },
+                    Format::SdJwt => {
+                        CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(degree_type_metadata()))
+                    }
+                };
 
                 let params = CredentialConfigurationParameters {
-                    credential_kind: CredentialKind::new(format, "com.example.degree".to_string()),
-                    credential_metadata,
+                    format,
                     key_pair,
                     status_list: MockStatusListService::new(),
                     valid_days: Days::new(1),
-                    type_metadata,
                 };
 
                 (id, params)
@@ -362,41 +442,39 @@ mod tests {
         let config = configs
             .get_by_configuration_id(&"degree_mso_mdoc".to_string().into())
             .expect("configuration should exist");
-        assert_eq!(config.credential_kind.format, Format::MsoMdoc);
+        assert_matches!(config.format, CredentialConfigurationFormat::MsoMdoc { .. });
 
         let config = configs
             .get_by_configuration_id(&"degree_dc+sd-jwt".to_string().into())
             .expect("configuration should exist");
-        assert_eq!(config.credential_kind.format, Format::SdJwt);
+        assert_matches!(config.format, CredentialConfigurationFormat::SdJwt { .. });
 
         let (id, config) = configs
             .get_by_scope(&"degree_mso_mdoc".parse().unwrap())
             .expect("configuration should exist");
         assert_eq!(*id, "degree_mso_mdoc".to_string().into());
-        assert_eq!(config.credential_kind.format, Format::MsoMdoc);
+        assert_matches!(config.format, CredentialConfigurationFormat::MsoMdoc { .. });
 
         let (id, config) = configs
             .get_by_scope(&"degree_dc+sd-jwt".parse().unwrap())
             .expect("configuration should exist");
         assert_eq!(*id, "degree_dc+sd-jwt".to_string().into());
-        assert_eq!(config.credential_kind.format, Format::SdJwt);
+        assert_matches!(config.format, CredentialConfigurationFormat::SdJwt { .. });
 
         let (id, config) = configs
             .get_by_credential_kind(&CredentialKind::new(Format::MsoMdoc, "com.example.degree".to_string()))
             .expect("configuration should exist");
         assert_eq!(id.as_ref(), "degree_mso_mdoc");
-        assert_eq!(config.credential_kind.format, Format::MsoMdoc);
+        assert_matches!(config.format, CredentialConfigurationFormat::MsoMdoc { .. });
 
         let (id, config) = configs
             .get_by_credential_kind(&CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()))
             .expect("configuration should exist");
         assert_eq!(id.as_ref(), "degree_dc+sd-jwt");
-        assert_eq!(config.credential_kind.format, Format::SdJwt);
+        assert_matches!(config.format, CredentialConfigurationFormat::SdJwt { .. });
 
         let type_metadata_base_url = "https://example.com".parse().unwrap();
-        let metadata_configs = configs
-            .to_credential_configurations_supported(&type_metadata_base_url)
-            .expect("credential configurations should convert to issuer metadata");
+        let metadata_configs = configs.to_credential_configurations_supported(&type_metadata_base_url);
         assert_eq!(metadata_configs.len(), 2);
 
         assert_matches!(
@@ -447,6 +525,42 @@ mod tests {
                 .to_string(),
             "https://example.com/degree_dc+sd-jwt"
         );
+
+        assert_matches!(
+            &metadata_configs
+                .get("degree_mso_mdoc")
+                .expect("metadata configuration should exist")
+                .format,
+            CredentialFormat::MsoMdoc { .. }
+        );
+    }
+
+    #[test]
+    fn test_credential_configurations_sd_jwt_described_by_credential_metadata() {
+        let mut params = credential_configuration_parameters();
+        params.get_mut("degree_dc+sd-jwt").unwrap().format =
+            CredentialConfigurationFormat::SdJwt(SdJwtMetadata::CredentialMetadata {
+                vct: "com.example.degree".to_string(),
+                credential_metadata: CredentialMetadata::new_example(&["university", "education"]),
+            });
+
+        let configs = CredentialConfigurations::try_new(params)
+            .expect("an SD-JWT described by Credential Metadata should create credential configurations");
+
+        let metadata_configs = configs.to_credential_configurations_supported(&"https://example.com".parse().unwrap());
+
+        let sd_jwt_config = metadata_configs
+            .get("degree_dc+sd-jwt")
+            .expect("metadata configuration should exist");
+
+        assert_matches!(
+            &sd_jwt_config.format,
+            CredentialFormat::SdJwt {
+                vct,
+                ..
+            } if vct == "com.example.degree"
+        );
+        assert!(sd_jwt_config.credential_metadata.is_some());
     }
 
     #[test]
@@ -462,16 +576,20 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_configurations_try_new_error_type_metadata() {
-        let mut params = credential_configuration_parameters();
-        for params in params.values_mut() {
-            params.credential_kind.attestation_type = "foobar".to_string();
-        }
+    fn test_credential_configuration_type_metadata_try_new() {
+        let type_metadata = degree_type_metadata();
 
-        let error = CredentialConfigurations::try_new(params)
-            .expect_err("creating credential configurations from parameters should fail");
+        assert_eq!(type_metadata.vct(), "com.example.degree");
+    }
 
-        assert_matches!(error, CredentialConfigurationsError::TypeMetadata(_));
+    #[test]
+    fn test_credential_configuration_type_metadata_try_new_error_vct_not_found() {
+        let (_, degree_documents) = TypeMetadataDocuments::degree_example();
+
+        let error = CredentialConfigurationTypeMetadata::try_new("foobar", degree_documents)
+            .expect_err("verifying type metadata for another vct should fail");
+
+        assert_matches!(error, TypeMetadataChainError::VctNotFound(vct) if vct == "foobar");
     }
 
     #[test]
@@ -488,38 +606,11 @@ mod tests {
         assert_matches!(error, CredentialConfigurationsError::Scope(_));
     }
 
-    #[rstest]
-    #[case(Format::MsoMdoc, "degree_mso_mdoc")]
-    #[case(Format::SdJwt, "degree_dc+sd-jwt")]
-    fn test_credential_configurations_try_new_error_missing_metadata(#[case] format: Format, #[case] config_id: &str) {
-        let mut params = credential_configuration_parameters();
-        let config = params.get_mut(config_id).unwrap();
-        match format {
-            Format::MsoMdoc => config.credential_metadata = None,
-            Format::SdJwt => config.type_metadata = None,
-        }
-
-        let error = CredentialConfigurations::try_new(params)
-            .expect_err("creating credential configurations from parameters should fail");
-
-        match format {
-            Format::MsoMdoc => assert_matches!(
-                error,
-                CredentialConfigurationsError::MissingCredentialMetadata(id) if id == config_id.to_string().into()
-            ),
-            Format::SdJwt => assert_matches!(
-                error,
-                CredentialConfigurationsError::MissingTypeMetadata(id) if id == config_id.to_string().into()
-            ),
-        }
-    }
-
     #[test]
     fn test_credential_configurations_try_new_error_duplicate_credential_kind() {
         let mut params = credential_configuration_parameters();
         for params in params.values_mut() {
-            params.credential_kind.format = Format::SdJwt;
-            params.type_metadata = Some(TypeMetadataDocuments::degree_example().1);
+            params.format = CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(degree_type_metadata()));
         }
 
         let error = CredentialConfigurations::try_new(params)

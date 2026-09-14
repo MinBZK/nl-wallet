@@ -52,7 +52,10 @@ use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::authorizing_issuer::AuthorizingIssuer;
+use crate::credential_configurations::CredentialConfigurationFormat;
 use crate::credential_configurations::CredentialConfigurationParameters;
+use crate::credential_configurations::CredentialConfigurationTypeMetadata;
+use crate::credential_configurations::SdJwtMetadata;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
@@ -324,16 +327,26 @@ where
         .map(|(format, attestation_type, metadata_documents)| {
             let config_id = format!("{attestation_type}_{format}");
 
-            let credential_metadata = matches!(format, Format::MsoMdoc).then(|| {
-                let (normalized, _) = metadata_documents
-                    .clone()
-                    .into_normalized(&attestation_type)
-                    .expect("example type metadata should normalize");
+            let format = match format {
+                Format::MsoMdoc => {
+                    let (normalized, _) = metadata_documents
+                        .clone()
+                        .into_normalized(&attestation_type)
+                        .expect("example type metadata should normalize");
 
-                CredentialMetadata::new_mdoc_example_from_type_metadata(&attestation_type, &normalized)
-            });
-
-            let type_metadata = matches!(format, Format::SdJwt).then_some(metadata_documents);
+                    CredentialConfigurationFormat::MsoMdoc {
+                        doc_type: attestation_type.clone(),
+                        credential_metadata: CredentialMetadata::new_mdoc_example_from_type_metadata(
+                            &attestation_type,
+                            &normalized,
+                        ),
+                    }
+                }
+                Format::SdJwt => CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(
+                    CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
+                        .expect("example type metadata should verify"),
+                )),
+            };
 
             let status_list_uri_path = config_id.replace(':', "-");
             let status_list = MockObtainingStatusListService::new(
@@ -343,7 +356,7 @@ where
             );
 
             let params = CredentialConfigurationParameters {
-                credential_kind: CredentialKind::new(format, attestation_type),
+                format,
                 key_pair: KeyPair::new_from_signing_key(
                     issuance_keypair.private_key().clone(),
                     issuance_keypair.certificate().clone(),
@@ -351,8 +364,6 @@ where
                 .unwrap(),
                 valid_days: Days::new(365),
                 status_list,
-                type_metadata,
-                credential_metadata,
             };
 
             (config_id.into(), params)
