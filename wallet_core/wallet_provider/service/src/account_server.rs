@@ -86,6 +86,7 @@ use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResult;
 use wallet_account::messages::instructions::InstructionResultClaims;
+use wallet_account::messages::instructions::RefreshWalletCertificate;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::instructions::StartPinRecoveryResult;
 use wallet_account::messages::registration::Registration;
@@ -1086,7 +1087,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             return Err(InstructionError::WalletSolutionRevoked);
         }
 
-        let (wallet_user, instruction_payload) = self
+        let (wallet_user, instruction_payload, _) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
                 wallet_user.encrypted_pin_pubkey.clone()
             })
@@ -1211,7 +1212,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             return Err(InstructionError::WalletSolutionRevoked);
         }
 
-        let (wallet_user, instruction_payload) = self
+        let (wallet_user, instruction_payload, _) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
                 wallet_user.encrypted_pin_pubkey.clone()
             })
@@ -1274,6 +1275,55 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(result)
     }
 
+    // RefreshWalletCertificate instruction
+    //
+    // Similar to ChangePinStart and Register, however, no wallet_user state changes here: the PIN public key is
+    // unchanged, so the new certificate has identical claims to the old one, except `iat` and `exp` and (possibly)
+    // `kid`.
+    pub async fn handle_refresh_wallet_certificate_instruction<T, R, F, G, H, S>(
+        &self,
+        instruction: Instruction<RefreshWalletCertificate>,
+        signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
+        generators: &G,
+        pin_policy: &impl PinPolicyEvaluator,
+        user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
+    ) -> Result<InstructionResult<WalletCertificate>, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        F: WalletFlags,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+        H: Pkcs11Client
+            + Hsm<Error = HsmError>
+            + Decrypter<VerifyingKey, Error = HsmError>
+            + Encrypter<VerifyingKey, Error = HsmError>,
+    {
+        if user_state.flags.solution_is_revoked() {
+            return Err(InstructionError::WalletSolutionRevoked);
+        }
+
+        let (wallet_user, _, pin_pubkey) = self
+            .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
+                wallet_user.encrypted_pin_pubkey.clone()
+            })
+            .await?;
+
+        let wallet_certificate = new_wallet_certificate(
+            self.name.clone(),
+            &self.keys.current_certificate_signing_key.kid,
+            signing_keys.1,
+            wallet_user.wallet_id,
+            wallet_user.hw_pubkey,
+            &pin_pubkey,
+            self.wallet_certificate_validity,
+            &user_state.wallet_user_hsm,
+            generators,
+        )
+        .await?;
+
+        self.sign_instruction_result(signing_keys.0, wallet_certificate).await
+    }
+
     // Implements the logic behind the ChangePinRollback instruction.
     //
     // The ChangePinRollback instruction is handled here explicitly instead of relying on the generic instruction
@@ -1298,7 +1348,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             return Err(InstructionError::WalletSolutionRevoked);
         }
 
-        let (wallet_user, _) = self
+        let (wallet_user, _, _) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
                 wallet_user
                     .encrypted_previous_pin_pubkey
@@ -1366,7 +1416,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await?;
 
-        let (wallet_user, instruction_payload) = self
+        let (wallet_user, instruction_payload, _) = self
             .verify_and_extract_instruction(instruction, generators, &PinRecoveryPinPolicy, user_state, |_| {
                 WithKid {
                     value: encrypted_pin_pubkey.clone(),
@@ -1463,7 +1513,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         pin_policy: &impl PinPolicyEvaluator,
         user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
         pin_pubkey: P,
-    ) -> Result<(WalletUser, I), InstructionError>
+    ) -> Result<(WalletUser, I, VerifyingKey), InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -1485,7 +1535,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await?;
 
-        let instruction = self
+        let (instruction, pin_pubkey) = self
             .verify_pin_and_extract_instruction(
                 &wallet_user,
                 instruction,
@@ -1496,7 +1546,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             )
             .await?;
 
-        Ok((wallet_user, instruction))
+        Ok((wallet_user, instruction, pin_pubkey))
     }
 
     /// Verify the provided user's PIN and the provided instruction.
@@ -1510,7 +1560,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         pin_policy: &impl PinPolicyEvaluator,
         user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
-    ) -> Result<I, InstructionError>
+    ) -> Result<(I, VerifyingKey), InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -1562,7 +1612,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 .await;
 
             match verification_result {
-                Ok((challenge_response_payload, assertion_counter)) => {
+                Ok((challenge_response_payload, assertion_counter, pin_pubkey)) => {
                     debug!("Instruction successfully verified, validating instruction");
 
                     challenge_response_payload.payload.validate_instruction(wallet_user)?;
@@ -1583,7 +1633,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
                     try_join!(reset_pin_entries, instruction_counters)?;
 
-                    Ok(challenge_response_payload.payload)
+                    Ok((challenge_response_payload.payload, pin_pubkey))
                 }
                 Err(validation_error) => {
                     if matches!(validation_error, InstructionValidationError::VerificationFailed(_)) {
@@ -1681,7 +1731,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         time_generator: &impl Generator<DateTime<Utc>>,
         verifying_key_decrypter: &D,
-    ) -> Result<(ChallengeResponsePayload<I>, Option<AssertionCounter>), InstructionValidationError>
+    ) -> Result<(ChallengeResponsePayload<I>, Option<AssertionCounter>, VerifyingKey), InstructionValidationError>
     where
         I: InstructionAndResult,
         D: Decrypter<VerifyingKey, Error = HsmError>,
@@ -1720,7 +1770,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         }
         .map_err(InstructionValidationError::VerificationFailed)?;
 
-        Ok((parsed, assertion_counter))
+        Ok((parsed, assertion_counter, pin_pubkey))
     }
 
     /// Verify the provided hardware signed instruction for the specified user.

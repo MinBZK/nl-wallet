@@ -92,6 +92,17 @@ impl InstructionAndResult for CheckPin {
     type Result = ();
 }
 
+// RefreshWalletCertificate instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RefreshWalletCertificate;
+
+impl InstructionAndResult for RefreshWalletCertificate {
+    const NAME: &'static str = "refresh_wallet_certificate";
+
+    type Result = WalletCertificate;
+}
+
 // ChangePinStart instruction.
 
 #[serde_as]

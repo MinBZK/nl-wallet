@@ -55,6 +55,7 @@ use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::RefreshWalletCertificate;
 use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
@@ -171,6 +172,10 @@ where
                 .route(
                     &format!("/instructions/{}", ChangePinRollback::NAME),
                     post(change_pin_rollback),
+                )
+                .route(
+                    &format!("/instructions/{}", RefreshWalletCertificate::NAME),
+                    post(refresh_wallet_certificate),
                 )
                 .route(
                     &format!("/instructions/{}", StartPinRecovery::NAME),
@@ -399,6 +404,29 @@ async fn change_pin_start<GRC, PIC>(
         )
         .await
         .inspect_err(|error| warn!("handling ChangePinStart instruction failed: {}", error))?;
+
+    let body = InstructionResultMessage { result };
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn refresh_wallet_certificate<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<Instruction<RefreshWalletCertificate>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<WalletCertificate>>)> {
+    info!("Received RefreshWalletCertificate instruction");
+
+    let result = state
+        .account_server
+        .handle_refresh_wallet_certificate_instruction(
+            payload,
+            (&state.instruction_result_signing_key, &state.certificate_signing_key),
+            &UuidV4AndTimeGenerator,
+            &state.pin_policy,
+            &state.user_state,
+        )
+        .await
+        .inspect_err(|error| warn!("handling RefreshWalletCertificate instruction failed: {}", error))?;
 
     let body = InstructionResultMessage { result };
 

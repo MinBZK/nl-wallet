@@ -9,15 +9,19 @@ use base64::prelude::*;
 use chrono::Utc;
 use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
+use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use db_test::DbSetup;
+use hsm::model::TestHsm;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use itertools::Itertools;
 use jwt::KeyWithKid;
 use jwt::nonce::Nonce;
+use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::Generate;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use rstest::rstest;
@@ -32,6 +36,7 @@ use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::IssuanceKeySetRequest;
 use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PerformIssuance;
+use wallet_account::messages::instructions::RefreshWalletCertificate;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
@@ -64,6 +69,7 @@ use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::flags::mock::StubWalletFlags;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
+use wallet_provider_service::keys::pin_hmac_key_identifier;
 use wallet_provider_service::wallet_certificate;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 
@@ -453,6 +459,33 @@ async fn test_wia_status() {
     ));
 }
 
+struct SigningKeyWithKid<'a> {
+    kid: &'a Kid,
+    key: &'a SigningKey,
+}
+
+impl EcdsaKey for SigningKeyWithKid<'_> {
+    type Error = p256::ecdsa::Error;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        Ok(*self.key.verifying_key())
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        p256::ecdsa::signature::Signer::try_sign(self.key, msg)
+    }
+}
+
+impl SecureEcdsaKey for SigningKeyWithKid<'_> {}
+
+impl KeyWithKid for SigningKeyWithKid<'_> {
+    fn kid(&self) -> &str {
+        self.kid.as_ref()
+    }
+}
+
+impl WalletCertificateSigningKey for SigningKeyWithKid<'_> {}
+
 // Rollover the server's signing keys
 fn rollover_signing_keys(
     server: &mut MockAccountServer,
@@ -489,10 +522,19 @@ async fn test_certificate_signing_key_rollover() {
     .await;
 
     // The new current key that the WP is rolling over to
+    let new_current_signing_key = SigningKey::generate();
+    let new_current_kid = Kid::try_from("1").unwrap();
     let new_current_key = CurrentCertificateSigningKey {
-        kid: Kid::try_from("1").unwrap(),
-        public_key: PublicKey::from(*SigningKey::generate().verifying_key()),
+        kid: new_current_kid.clone(),
+        public_key: PublicKey::from(*new_current_signing_key.verifying_key()),
     };
+
+    // Generate HMAC key under the new kid
+    user_state
+        .wallet_user_hsm
+        .generate_generic_secret_key(&pin_hmac_key_identifier(&new_current_kid))
+        .await
+        .unwrap();
 
     let now = Utc::now();
 
@@ -534,11 +576,92 @@ async fn test_certificate_signing_key_rollover() {
         .await
         .expect("PIN public key hashed with the non-expired old kid's HMAC key should be accepted");
 
+    // Refresh the certificate while it is still signed with the old (but not yet expired) key. The resulting
+    // certificate should be reissued using the new current key.
+    let refresh_challenge = account_server
+        .instruction_challenge(
+            hw_privkey
+                .sign_instruction_challenge::<RefreshWalletCertificate>(
+                    cert_data.wallet_id.clone().into(),
+                    3,
+                    certificate.clone(),
+                )
+                .await,
+            &MockTimeGenerator::new(now),
+            &user_state,
+        )
+        .await
+        .expect("certificate with non-expired old kid should be accepted");
+
+    let refresh_instruction = hw_privkey
+        .sign_instruction(
+            RefreshWalletCertificate,
+            refresh_challenge,
+            4,
+            &pin_privkey,
+            certificate.clone(),
+        )
+        .await;
+
+    let new_current_signing_key_with_kid = SigningKeyWithKid {
+        kid: &new_current_kid,
+        key: &new_current_signing_key,
+    };
+    let refreshed_certificate_result = account_server
+        .handle_refresh_wallet_certificate_instruction(
+            refresh_instruction,
+            (&certificate_signing_key, &new_current_signing_key_with_kid),
+            &UuidV4AndTimeGenerator,
+            &TimeoutPinPolicy,
+            &user_state,
+        )
+        .await
+        .expect("refreshing the wallet certificate should succeed during the rollover window");
+
+    let refreshed_certificate = refreshed_certificate_result
+        .parse_and_verify_with_sub(&PublicKey::from(*certificate_signing_key.verifying_key()).into())
+        .expect("could not parse and verify instruction result")
+        .1
+        .result;
+
+    let (refreshed_header, _) = refreshed_certificate.dangerous_parse_unverified().unwrap();
+    assert_eq!(
+        refreshed_header.kid.as_str(),
+        new_current_kid.as_ref(),
+        "refreshed certificate should be signed with the new current key"
+    );
+
+    // The renewed certificate should be usable right away for subsequent instructions.
+    let challenge = account_server
+        .instruction_challenge(
+            hw_privkey
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 5, refreshed_certificate.clone())
+                .await,
+            &MockTimeGenerator::new(now),
+            &user_state,
+        )
+        .await
+        .expect("refreshed certificate should be accepted");
+
+    let instruction = hw_privkey
+        .sign_instruction(CheckPin, challenge, 6, &pin_privkey, refreshed_certificate.clone())
+        .await;
+    account_server
+        .handle_instruction(
+            instruction,
+            &certificate_signing_key,
+            &UuidV4AndTimeGenerator,
+            &TimeoutPinPolicy,
+            &user_state,
+        )
+        .await
+        .expect("PIN public key hashed with the refreshed certificate should be accepted");
+
     // Use a future time to test that the old kid is now expired
     account_server
         .instruction_challenge(
             hw_privkey
-                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 3, certificate.clone())
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 7, certificate.clone())
                 .await,
             &MockTimeGenerator::new(now + Duration::from_hours(2)),
             &user_state,
@@ -551,7 +674,7 @@ async fn test_certificate_signing_key_rollover() {
     account_server
         .instruction_challenge(
             hw_privkey
-                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 4, certificate)
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 8, certificate)
                 .await,
             &MockTimeGenerator::new(now),
             &user_state,
