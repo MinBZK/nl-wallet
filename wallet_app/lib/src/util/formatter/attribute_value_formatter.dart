@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 
-import '../../../l10n/generated/app_localizations.dart';
 import '../../domain/model/attribute/attribute.dart';
 import '../extension/build_context_extension.dart';
 import '../extension/locale_extension.dart';
@@ -46,22 +45,18 @@ class AttributeValueFormatter {
   // arrive untranslated. Note that this matches on the bare key, so any attestation holding a
   // 'country' entry gets this label. Drop it once the attestation metadata declares display labels
   // for the entries of a composite value (PVW-6241).
-  static String? formatMapKey(Locale locale, String key) {
-    final label = _mapKeyLabels[key];
-    return label == null ? key : label(locale.l10n);
-  }
-
-  static final Map<String, String? Function(AppLocalizations)> _mapKeyLabels = {
-    'issue_date': (l10n) => l10n.cardValueMapKeyIssueDate,
-    'expiry_date': (l10n) => l10n.cardValueMapKeyExpiryDate,
-    'vehicle_category_code': (l10n) => l10n.cardValueMapKeyVehicleCategoryCode,
-    'family_name': (l10n) => l10n.cardValueMapKeyFamilyName,
-    'given_name': (l10n) => l10n.cardValueMapKeyGivenName,
-    'full_address': (_) => null,
-    'address': (l10n) => l10n.cardValueMapKeyAddress,
-    'city': (l10n) => l10n.cardValueMapKeyCity,
-    'postal_code': (l10n) => l10n.cardValueMapKeyPostalCode,
-    'country': (l10n) => l10n.cardValueMapKeyCountry,
+  static String? formatMapKey(Locale locale, String key) => switch (key) {
+    'issue_date' => locale.l10n.cardValueMapKeyIssueDate,
+    'expiry_date' => locale.l10n.cardValueMapKeyExpiryDate,
+    'vehicle_category_code' => locale.l10n.cardValueMapKeyVehicleCategoryCode,
+    'family_name' => locale.l10n.cardValueMapKeyFamilyName,
+    'given_name' => locale.l10n.cardValueMapKeyGivenName,
+    'full_address' => null,
+    'address' => locale.l10n.cardValueMapKeyAddress,
+    'city' => locale.l10n.cardValueMapKeyCity,
+    'postal_code' => locale.l10n.cardValueMapKeyPostalCode,
+    'country' => locale.l10n.cardValueMapKeyCountry,
+    _ => key,
   };
 
   static String _formatMapValue(Locale locale, MapValue attribute, bool inline) {
