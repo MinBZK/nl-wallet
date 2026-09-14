@@ -464,7 +464,7 @@ where
                 let (key_identifiers, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
                     .wallet_user_hsm
                     .generate_wrapped_keys(
-                        &attestation_wrapping_key_identifier(&user_state.wrapping_kids.current),
+                        &attestation_wrapping_key_identifier(&user_state.attestation_wrapping_kids.current),
                         request.key_count.into(),
                     )
                     .await?
@@ -627,7 +627,7 @@ where
     HsmCredentialSigningKey {
         hsm: &user_state.wallet_user_hsm,
         wrapped_key,
-        wrapping_key_identifier: attestation_wrapping_key_identifier(&user_state.wrapping_kids.current),
+        wrapping_key_identifier: attestation_wrapping_key_identifier(&user_state.attestation_wrapping_kids.current),
     }
 }
 
@@ -745,7 +745,7 @@ impl HandleInstruction for Sign {
                 user_state
                     .wallet_user_hsm
                     .sign_wrapped(
-                        &attestation_wrapping_key_identifier(&user_state.wrapping_kids.current),
+                        &attestation_wrapping_key_identifier(&user_state.attestation_wrapping_kids.current),
                         wrapped_key,
                         data,
                     )

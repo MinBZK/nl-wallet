@@ -40,7 +40,8 @@ use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wia;
-use wallet_provider_service::account_server::CertificateSigningKeys;
+use wallet_provider_service::account_server::CurrentCertificateSigningKey;
+use wallet_provider_service::account_server::PreviousCertificateSigningKey;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
@@ -52,7 +53,6 @@ use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::flags::mock::StubWalletFlags;
 use wallet_provider_service::keys::Kid;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
-use wallet_provider_service::keys::pin_hmac_key_identifier;
 use wallet_provider_service::wallet_certificate;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 
@@ -346,14 +346,14 @@ async fn test_wia_status() {
     ));
 }
 
-// Rollover the server's signing key map and kid
+// Rollover the server's signing keys
 fn rollover_signing_keys(
     server: &mut MockAccountServer,
-    keys: HashMap<Kid, CertificateSigningKeys>,
-    current_kid: &Kid,
+    current: CurrentCertificateSigningKey,
+    previous: HashMap<Kid, PreviousCertificateSigningKey>,
 ) {
-    server.keys.wallet_certificate_signing_pubkeys = keys;
-    server.keys.pin_keys.hmac_key_identifier = pin_hmac_key_identifier(current_kid);
+    server.keys.current_certificate_signing_key = current;
+    server.keys.previous_certificate_signing_keys = previous;
 }
 
 /// Tests that a wallet certificate issued with a previous certificate signing key can still be
@@ -381,35 +381,25 @@ async fn test_certificate_signing_key_rollover() {
     )
     .await;
 
-    // The new current keys that the WP is rolling over to
-    let new_current_kid = Kid::try_from("1").unwrap();
-    let new_current_keys = (
-        new_current_kid.clone(),
-        CertificateSigningKeys {
-            exp: None,
-            certificate_public_key: PublicKey::from(*SigningKey::generate().verifying_key()),
-            pin_hmac_key_identifier: pin_hmac_key_identifier(&new_current_kid),
-        },
-    );
+    // The new current key that the WP is rolling over to
+    let new_current_key = CurrentCertificateSigningKey {
+        kid: Kid::try_from("1").unwrap(),
+        public_key: PublicKey::from(*SigningKey::generate().verifying_key()),
+    };
 
     let now = Utc::now();
 
     // Set up old key with an expiry in one hour
-    let old_pin_hmac_key_identifier = pin_hmac_key_identifier(&kid);
     rollover_signing_keys(
         &mut account_server,
-        HashMap::from([
-            new_current_keys.clone(),
-            (
-                kid,
-                CertificateSigningKeys {
-                    exp: Some(now + Duration::from_hours(1)),
-                    certificate_public_key: PublicKey::from(*certificate_signing_key.verifying_key()),
-                    pin_hmac_key_identifier: old_pin_hmac_key_identifier,
-                },
-            ),
-        ]),
-        &new_current_kid,
+        new_current_key.clone(),
+        HashMap::from([(
+            kid,
+            PreviousCertificateSigningKey {
+                certificate_public_key: PublicKey::from(*certificate_signing_key.verifying_key()),
+                exp: now + Duration::from_hours(1),
+            },
+        )]),
     );
     let challenge = account_server
         .instruction_challenge(
@@ -450,7 +440,7 @@ async fn test_certificate_signing_key_rollover() {
         .expect_err("certificate with expired old kid should be rejected");
 
     // Remove old kid from the key map
-    rollover_signing_keys(&mut account_server, HashMap::from([new_current_keys]), &new_current_kid);
+    rollover_signing_keys(&mut account_server, new_current_key, HashMap::new());
     account_server
         .instruction_challenge(
             hw_privkey

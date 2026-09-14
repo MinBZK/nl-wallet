@@ -19,11 +19,11 @@ use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
-use crate::account_server::AccountServerPinKeys;
 use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
 use crate::instructions::PinCheckOptions;
 use crate::keys::Kid;
+use crate::keys::KidPair;
 use crate::keys::WalletCertificateSigningKey;
 use crate::keys::pin_hmac_key_identifier;
 use crate::keys::pin_pubkey_encryption_key_identifier;
@@ -33,7 +33,7 @@ const WALLET_CERTIFICATE_VERSION: u32 = 0;
 #[expect(clippy::too_many_arguments, reason = "Constructor of WalletCertificate")]
 pub async fn new_wallet_certificate<H>(
     issuer: String,
-    pin_hmac_key_identifier: &str,
+    certificate_signing_kid: &Kid,
     wallet_certificate_signing_key: &impl WalletCertificateSigningKey,
     wallet_id: WalletId,
     wallet_hw_pubkey: VerifyingKey,
@@ -43,7 +43,12 @@ pub async fn new_wallet_certificate<H>(
 where
     H: Hsm<Error = HsmError>,
 {
-    let pin_pubkey_hash = sign_pin_pubkey(wallet_pin_pubkey, pin_hmac_key_identifier, hsm).await?;
+    let pin_pubkey_hash = sign_pin_pubkey(
+        wallet_pin_pubkey,
+        &pin_hmac_key_identifier(certificate_signing_kid),
+        hsm,
+    )
+    .await?;
 
     let cert = WalletCertificateClaims {
         wallet_id: wallet_id.into(),
@@ -125,7 +130,7 @@ pub enum PinKeyChecks {
 pub async fn verify_wallet_certificate_pin_public_key<H>(
     claims: WalletCertificateClaims,
     certificate_kid: &Kid,
-    pin_keys: &AccountServerPinKeys,
+    pin_pubkey_encryption_kids: &KidPair,
     pin_checks: PinKeyChecks,
     encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     hsm: &H,
@@ -141,7 +146,7 @@ where
 
     let pin_pubkey = Decrypter::decrypt(
         hsm,
-        &pin_pubkey_encryption_key_identifier(&pin_keys.encryption_kids.current),
+        &pin_pubkey_encryption_key_identifier(&pin_pubkey_encryption_kids.current),
         encrypted_pin_pubkey,
     )
     .await?;
@@ -172,7 +177,7 @@ where
 pub async fn verify_wallet_certificate<T, R, F, H, P, S>(
     certificate: &WalletCertificate,
     certificate_signing_pubkeys: &impl PublicKeyByKid,
-    pin_keys: &AccountServerPinKeys,
+    pin_pubkey_encryption_kids: &KidPair,
     pin_checks: PinCheckOptions,
     pin_pubkey: P,
     user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
@@ -198,7 +203,7 @@ where
     verify_wallet_certificate_pin_public_key(
         claims,
         &kid,
-        pin_keys,
+        pin_pubkey_encryption_kids,
         pin_checks.key_checks,
         pin_pubkey.clone(),
         &user_state.wallet_user_hsm,
@@ -368,7 +373,6 @@ mod tests {
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
-    use crate::account_server::AccountServerPinKeys;
     use crate::account_server::UserState;
     use crate::account_server::mock::user_state;
     use crate::flags::mock::StubWalletFlags;
@@ -442,7 +446,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
+            &mock::CERTIFICATE_KID,
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
@@ -460,12 +464,9 @@ mod tests {
                 setup.signing_key.kid().to_owned(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
-            &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
-                encryption_kids: KidPair {
-                    current: mock::ENCRYPTION_KID.clone(),
-                    previous: None,
-                },
+            &KidPair {
+                current: mock::ENCRYPTION_KID.clone(),
+                previous: None,
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
@@ -483,7 +484,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
+            &mock::CERTIFICATE_KID,
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
@@ -499,12 +500,9 @@ mod tests {
                 setup.signing_key.kid().to_owned(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
-            &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
-                encryption_kids: KidPair {
-                    current: mock::ENCRYPTION_KID.clone(),
-                    previous: None,
-                },
+            &KidPair {
+                current: mock::ENCRYPTION_KID.clone(),
+                previous: None,
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
@@ -526,7 +524,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
+            &mock::CERTIFICATE_KID,
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
@@ -556,12 +554,9 @@ mod tests {
                 setup.signing_key.kid().to_owned(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
-            &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
-                encryption_kids: KidPair {
-                    current: mock::ENCRYPTION_KID.clone(),
-                    previous: None,
-                },
+            &KidPair {
+                current: mock::ENCRYPTION_KID.clone(),
+                previous: None,
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
@@ -579,7 +574,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
+            &mock::CERTIFICATE_KID,
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
@@ -612,7 +607,7 @@ mod tests {
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            &pin_hmac_key_identifier(&mock::CERTIFICATE_KID),
+            &mock::CERTIFICATE_KID,
             &setup.signing_key,
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
