@@ -297,7 +297,7 @@ impl VcMessageClient for HttpVcMessageClient {
 }
 
 /// Internal helper type that represents the relevant information about the credentials that the issuer offered to the
-/// holder in the the Token Response. The [`CredentialConfiguration`]s are sourced from the Issuer Metadata.
+/// holder in the Token Response. The [`CredentialConfiguration`]s are sourced from the Issuer Metadata.
 #[derive(Debug)]
 enum OfferedCredentials {
     /// The result of a Token Response that did not contain `authorization_details`. Credentials may only be identified
