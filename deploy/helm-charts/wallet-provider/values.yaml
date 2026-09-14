@@ -84,10 +84,10 @@ extraPodLabels: {}
 resources:
   requests:
     cpu: "100m"
-    memory: "32Mi"
+    memory: "384Mi"
   limits:
     cpu: "400m"
-    memory: "64Mi"
+    memory: "768Mi"
 
 ## @section HTTP route parameters
 ## Parameters for the HTTPRoute configuration

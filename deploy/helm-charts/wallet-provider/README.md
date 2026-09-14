@@ -71,12 +71,12 @@
 
 ### Resource requests and limits
 
-| Name                        | Description    | Value  |
-| --------------------------- | -------------- | ------ |
-| `resources.requests.cpu`    | CPU request    | `100m` |
-| `resources.requests.memory` | Memory request | `32Mi` |
-| `resources.limits.cpu`      | CPU limit      | `400m` |
-| `resources.limits.memory`   | Memory limit   | `64Mi` |
+| Name                        | Description    | Value   |
+| --------------------------- | -------------- | ------- |
+| `resources.requests.cpu`    | CPU request    | `100m`  |
+| `resources.requests.memory` | Memory request | `384Mi` |
+| `resources.limits.cpu`      | CPU limit      | `400m`  |
+| `resources.limits.memory`   | Memory limit   | `768Mi` |
 
 ### HTTP route parameters
 
