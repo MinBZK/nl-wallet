@@ -1718,7 +1718,7 @@ mod tests {
                 vec![
                     (
                         CredentialConfigurationId::from("mdoc_config_id".to_string()),
-                        CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                        CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
                     ),
                     (
                         CredentialConfigurationId::from("sd_jwt_config_id".to_string()),
