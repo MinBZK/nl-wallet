@@ -366,10 +366,6 @@ pub struct CredentialConfiguration {
     /// Format-specific mechanisms, such as SD-JWT VC display metadata are always preferred by the Wallet over the
     /// information in this object, which serves as the default fallback.
     pub credential_metadata: Option<CredentialMetadata>,
-
-    /// URL to the SD-JWT VC Type Metadata document for this credential. This has precedence over the
-    /// `credential_metadata` field. The URI MUST start with the Credential Issuer's identifier.
-    pub type_metadata_uri: Option<IssuerUrl>,
 }
 
 impl CredentialConfiguration {
@@ -384,7 +380,6 @@ impl CredentialConfiguration {
             scope: Some(scope),
             cryptographic_binding: Some(CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types)),
             credential_metadata: Some(credential_metadata),
-            type_metadata_uri: None,
         }
     }
 
@@ -396,11 +391,10 @@ impl CredentialConfiguration {
         type_metadata_uri: Option<IssuerUrl>,
     ) -> Self {
         Self {
-            format: CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct),
+            format: CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct, type_metadata_uri),
             scope: Some(scope),
             cryptographic_binding: Some(CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types)),
             credential_metadata,
-            type_metadata_uri,
         }
     }
 }
@@ -435,6 +429,10 @@ pub enum CredentialFormat {
         /// `credential_signing_alg_values_supported` parameter are case sensitive strings and SHOULD be one of
         /// those JWS Algorithm Names defined in [IANA.JOSE].
         credential_signing_alg_values_supported: Option<VecNonEmpty<JwsAlgorithm>>,
+
+        /// URL to the SD-JWT VC Type Metadata document for this credential. The URI MUST start with the Credential
+        /// Issuer's identifier.
+        type_metadata_uri: Option<IssuerUrl>,
     },
 
     // Allow the issuer to announce formats that the wallet doesn't support.
@@ -479,10 +477,11 @@ impl CredentialFormat {
         }
     }
 
-    fn new_sd_jwt_ecdsa_p256_sha256(vct: String) -> Self {
+    fn new_sd_jwt_ecdsa_p256_sha256(vct: String, type_metadata_uri: Option<IssuerUrl>) -> Self {
         Self::SdJwt {
             vct,
             credential_signing_alg_values_supported: Some(vec_nonempty![JwsAlgorithm::ES256]),
+            type_metadata_uri,
         }
     }
 }
@@ -1249,7 +1248,8 @@ mod tests {
             &config.format,
             CredentialFormat::SdJwt {
                 vct,
-                credential_signing_alg_values_supported
+                credential_signing_alg_values_supported,
+                ..
             } if vct == "SD_JWT_VC_example_in_OpenID4VCI" &&
                 credential_signing_alg_values_supported
                 .as_ref()
@@ -1602,10 +1602,17 @@ mod tests {
         let credential_config = serde_json::from_value::<CredentialConfiguration>(example_json)
             .expect("deserializing CredentialConfiguration from example JSON should succeed");
 
-        assert_matches!(&credential_config.format, CredentialFormat::SdJwt { .. });
+        let CredentialFormat::SdJwt {
+            vct, type_metadata_uri, ..
+        } = &credential_config.format
+        else {
+            panic!("the example JSON should deserialize as an SD-JWT credential configuration")
+        };
+
+        assert_eq!(vct, "com.example");
         assert_eq!(
-            credential_config.type_metadata_uri,
-            Some("https://example.com/type_metadata".parse().unwrap())
+            type_metadata_uri.as_ref(),
+            Some(&"https://example.com/type_metadata".parse().unwrap())
         );
     }
 

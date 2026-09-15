@@ -1040,7 +1040,7 @@ mod test {
         };
 
         let error = credential_payload
-            .into_signed_sd_jwt(&metadata, &issuance_key)
+            .into_signed_sd_jwt(Some(&metadata), &issuance_key)
             .await
             .expect_err("signing a CredentialPayload without a status into an SD-JWT should fail");
 

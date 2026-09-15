@@ -1792,7 +1792,7 @@ mod tests {
         let attestation_type = MOCK_ATTESTATION_TYPES[0];
         let claim_names = MOCK_ATTRS.map(|(name, _)| name);
 
-        let (issuer, _, _, _) = setup_mock_issuer_with_metadata(
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
             "https://example.com/".parse().unwrap(),
             vec![CredentialConfigurationFormat::SdJwt(
                 SdJwtMetadata::CredentialMetadata {
@@ -1817,7 +1817,7 @@ mod tests {
     async fn test_validate_issuable_documents_sd_jwt_credential_metadata_mismatch() {
         let attestation_type = MOCK_ATTESTATION_TYPES[0];
 
-        let (issuer, _, _, _) = setup_mock_issuer_with_metadata(
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
             "https://example.com/".parse().unwrap(),
             vec![CredentialConfigurationFormat::SdJwt(
                 SdJwtMetadata::CredentialMetadata {

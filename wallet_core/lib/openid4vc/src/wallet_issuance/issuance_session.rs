@@ -83,6 +83,7 @@ use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::CredentialFormat;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::nonce::response::NonceResponse;
@@ -314,11 +315,15 @@ impl SupportedConfiguration {
     /// Returns `None` if the format of the [`CredentialConfiguration`] is not supported.
     fn try_new(config: CredentialConfiguration) -> Option<Self> {
         let credential_kind = config.format.credential_kind()?;
+        let type_metadata_uri = match config.format {
+            CredentialFormat::SdJwt { type_metadata_uri, .. } => type_metadata_uri,
+            CredentialFormat::MsoMdoc { .. } | CredentialFormat::Other { .. } => None,
+        };
 
         Some(Self {
             credential_kind,
             credential_metadata: config.credential_metadata,
-            type_metadata_uri: config.type_metadata_uri,
+            type_metadata_uri,
         })
     }
 }
@@ -748,8 +753,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     // Determine how each offered configuration's metadata is obtained. An SD-JWT that carries a `type_metadata_uri`
     // is described by the remotely fetched SD-JWT VC Type Metadata. Every other configuration is described by the
-    // Credential Metadata in the Credential Issuer metadata: an SD-JWT without a `type_metadata_uri` and mdocs. Any
-    // `type_metadata_uri` on an mdoc is ignored. Missing metadata is an error.
+    // Credential Metadata in the Credential Issuer metadata: an SD-JWT without a `type_metadata_uri` and mdocs. Missing
+    // metadata is an error.
     async fn fetch_metadata(
         credential_configurations: impl IntoIterator<Item = (&CredentialConfigurationId, &SupportedConfiguration)>,
         credential_issuer: &IssuerIdentifier,
@@ -2048,7 +2053,7 @@ mod tests {
             .credential_configurations_supported
             .values_mut()
             .for_each(|config| {
-                config.type_metadata_uri = None;
+                set_type_metadata_uri(config, None);
                 config.credential_metadata = None;
             });
 
@@ -2194,7 +2199,7 @@ mod tests {
             .credential_configurations_supported
             .values_mut()
             .for_each(|config| {
-                config.type_metadata_uri = None;
+                set_type_metadata_uri(config, None);
                 config.credential_metadata = Some(CredentialMetadata::new_example(&["family_name"]));
             });
 
@@ -2236,7 +2241,7 @@ mod tests {
         );
         let type_metadata_uri = IssuerUrl::try_new("https://metadata.example.com").unwrap();
         let mut config = issuer_metadata.credential_configurations_supported[&config_id].clone();
-        config.type_metadata_uri = Some(type_metadata_uri.clone());
+        set_type_metadata_uri(&mut config, Some(type_metadata_uri.clone()));
         let issuer_metadata = IssuerMetadata {
             credential_configurations_supported: [(config_id.clone(), config)].into(),
             ..issuer_metadata
@@ -2351,11 +2356,14 @@ mod tests {
             .get(&pid_config_id)
             .unwrap()
             .clone();
-        let expected_type_metadata_uri = address_credential_config.type_metadata_uri.clone().unwrap();
-        let CredentialFormat::SdJwt { vct, .. } = &mut address_credential_config.format else {
+        let CredentialFormat::SdJwt {
+            vct, type_metadata_uri, ..
+        } = &mut address_credential_config.format
+        else {
             unreachable!()
         };
         *vct = ADDRESS_ATTESTATION_TYPE.to_string();
+        let expected_type_metadata_uri = type_metadata_uri.clone().unwrap();
         issuer_metadata
             .credential_configurations_supported
             .insert(address_config_id.clone(), address_credential_config);
@@ -2656,6 +2664,15 @@ mod tests {
         .expect_err("starting issuance session should not succeed");
 
         assert_matches!(error, WalletIssuanceError::DifferentIssuers);
+    }
+
+    /// Replace the `type_metadata_uri` of an SD-JWT credential configuration.
+    fn set_type_metadata_uri(config: &mut CredentialConfiguration, uri: Option<IssuerUrl>) {
+        let CredentialFormat::SdJwt { type_metadata_uri, .. } = &mut config.format else {
+            panic!("credential configuration should be an SD-JWT")
+        };
+
+        *type_metadata_uri = uri;
     }
 
     /// Return a new session ready for `accept_issuance()`.

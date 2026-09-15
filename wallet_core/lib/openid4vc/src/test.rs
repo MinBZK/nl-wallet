@@ -349,6 +349,7 @@ pub fn setup_mock_issuer_with_metadata<G>(
     TrustAnchors,
     KeyPair,
     CertificateCrlVerifier<MockCrlFetcher>,
+    MockRegistrationCertificate,
 )
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
@@ -363,7 +364,7 @@ where
         metadata_keypair.certificate(),
         attestations
             .iter()
-            .map(|(format, attestation_type, _)| CredentialKind::new(*format, attestation_type.clone())),
+            .map(|format| CredentialKind::new(format.format(), format.attestation_type().to_string())),
     );
 
     let config_params = attestations

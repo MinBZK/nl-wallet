@@ -510,32 +510,20 @@ mod tests {
             .expect("metadata configuration should exist");
 
         assert!(mdoc_config.credential_metadata.is_some());
-        assert!(mdoc_config.type_metadata_uri.is_none());
+        assert_matches!(mdoc_config.format, CredentialFormat::MsoMdoc { .. });
 
         let sd_jwt_config = metadata_configs
             .get("degree_dc+sd-jwt")
             .expect("metadata configuration should exist");
 
         assert!(sd_jwt_config.credential_metadata.is_none());
-        assert!(
-            sd_jwt_config.type_metadata_uri.is_some(),
-            "an SD-JWT described by Type Metadata should include the type_metadata_uri"
-        );
-
-        assert!(
-            metadata_configs
-                .get("degree_mso_mdoc")
-                .expect("metadata configuration should exist")
-                .type_metadata_uri
-                .is_none()
-        );
-
         assert_matches!(
-            &metadata_configs
-                .get("degree_mso_mdoc")
-                .expect("metadata configuration should exist")
-                .format,
-            CredentialFormat::MsoMdoc { .. }
+            &sd_jwt_config.format,
+            CredentialFormat::SdJwt {
+                type_metadata_uri: Some(_),
+                ..
+            },
+            "an SD-JWT described by Type Metadata should contain type_metadata_uri"
         );
     }
 
@@ -559,10 +547,13 @@ mod tests {
 
         assert_matches!(
             &sd_jwt_config.format,
-            CredentialFormat::SdJwt { vct, .. } if vct == "com.example.degree"
+            CredentialFormat::SdJwt {
+                vct,
+                type_metadata_uri,
+                ..
+            } if vct == "com.example.degree" && type_metadata_uri.is_none()
         );
         assert!(sd_jwt_config.credential_metadata.is_some());
-        assert!(sd_jwt_config.type_metadata_uri.is_none());
     }
 
     #[test]
