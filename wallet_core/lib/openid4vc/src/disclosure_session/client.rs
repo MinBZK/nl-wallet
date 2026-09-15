@@ -290,7 +290,7 @@ mod tests {
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
+    use wscd::mock::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
 
     use super::super::DisclosableAttestations;

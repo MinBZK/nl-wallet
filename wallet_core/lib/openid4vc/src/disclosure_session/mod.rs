@@ -15,7 +15,7 @@ use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use url::Url;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::Poa;
+use wscd::payload::poa::Poa;
 
 pub use self::client::VpDisclosureClient;
 pub use self::error::DataDisclosed;

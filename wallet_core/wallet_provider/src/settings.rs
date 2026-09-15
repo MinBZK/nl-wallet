@@ -96,7 +96,7 @@ pub struct WiaSettings {
 
     pub wia_status_list: WiaStatusListsSettings,
     pub wia_wallet_name: String,
-    pub wia_wallet_link: Option<BaseUrl>,
+    pub wia_wallet_link: Option<Url>,
     pub wia_wallet_version: String,
     pub wia_wallet_solution_certification_information: String,
 }

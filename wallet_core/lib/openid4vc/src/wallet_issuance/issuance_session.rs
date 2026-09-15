@@ -20,9 +20,6 @@ use indexmap::IndexMap;
 use itertools::Either;
 use itertools::Itertools;
 use jwt::nonce::Nonce;
-use jwt::wia::WIA_HEADER_NAME;
-use jwt::wia::WIA_POP_HEADER_NAME;
-use jwt::wia::WiaDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
@@ -53,9 +50,12 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::wscd::IssuanceKeyresult;
-use wscd::wscd::IssuanceWscd;
-use wscd::wscd::WiaClient;
+use wscd::issuance::IssuanceKeyresult;
+use wscd::issuance::IssuanceWscd;
+use wscd::payload::wia::WIA_HEADER_NAME;
+use wscd::payload::wia::WIA_POP_HEADER_NAME;
+use wscd::payload::wia::WiaDisclosure;
+use wscd::wia::WiaClient;
 
 use super::IssuanceSession;
 use super::WalletIssuanceError;
@@ -1270,7 +1270,7 @@ mod tests {
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
-    use wscd::mock_remote::MockWiaClient;
+    use wscd::wia::mock::MockWiaClient;
 
     use super::*;
     use crate::authorization_details::AuthorizationDetails;

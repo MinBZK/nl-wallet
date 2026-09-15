@@ -15,7 +15,6 @@ use hsm::keys::HsmEcdsaKey;
 use hsm::model::Hsm;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
-use jwt::wia::WiaWalletInfo;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use status_lists::postgres::PostgresStatusListService;
@@ -51,6 +50,7 @@ use wallet_provider_service::keys::pin_hmac_key_identifier;
 use wallet_provider_service::pin_policy::PinPolicy;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 use wallet_provider_service::wia_issuer::WiaIssuer;
+use wscd::payload::wia::WiaWalletInfo;
 
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;

@@ -18,7 +18,7 @@ use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmptyUnique;
-use wscd::wscd::WiaClient;
+use wscd::wia::WiaClient;
 
 use super::AuthorizationSession;
 use super::IssuanceDiscovery;
@@ -672,7 +672,6 @@ mod test {
     use jwt::UnverifiedJwt;
     use jwt::error::JwtVerifyError;
     use jwt::error::JwtX5cVerifyError;
-    use jwt::wia::WIA_CLIENT_AUTH_METHOD;
     use oauth::issuer_identifier::IssuerIdentifier;
     use rstest::rstest;
     use sd_jwt_vc_metadata::TypeMetadata;
@@ -682,7 +681,8 @@ mod test {
     use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MockWiaClient;
+    use wscd::payload::wia::WIA_CLIENT_AUTH_METHOD;
+    use wscd::wia::mock::MockWiaClient;
 
     use super::CredentialSelection;
     use super::HttpIssuanceDiscovery;

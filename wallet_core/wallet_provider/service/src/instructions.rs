@@ -16,11 +16,6 @@ use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use itertools::Itertools;
 use jwt::SignedJwt;
-use jwt::UnverifiedJwt;
-use jwt::headers::HeaderWithJwk;
-use jwt::pop::JwtPopClaims;
-use jwt::wia::WiaDisclosure;
-use jwt::wia::WiaPopClaims;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -72,8 +67,12 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
-use wscd::Poa;
-use wscd::poa::POA_JWT_TYP;
+use wscd::payload::jwt_proof::JwtProof;
+use wscd::payload::jwt_proof::JwtProofClaims;
+use wscd::payload::poa::POA_JWT_TYP;
+use wscd::payload::poa::Poa;
+use wscd::payload::wia::WiaDisclosure;
+use wscd::payload::wia::WiaPopClaims;
 
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
@@ -456,7 +455,7 @@ where
                     .collect();
 
                 // The JWT claims to be signed in the PoPs.
-                let claims = JwtPopClaims::new(request.proof_nonce, NL_WALLET_CLIENT_ID.to_string(), aud, time);
+                let claims = JwtProofClaims::new(NL_WALLET_CLIENT_ID.to_string(), aud, request.proof_nonce, time);
 
                 let proofs = issuance_pops(&attestation_keys, &claims)
                     .await?
@@ -574,8 +573,8 @@ where
 
 async fn issuance_pops<H>(
     attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
-    claims: &JwtPopClaims,
-) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>, InstructionError>
+    claims: &JwtProofClaims,
+) -> Result<VecNonEmpty<JwtProof>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
@@ -742,10 +741,10 @@ impl HandleInstruction for Sign {
                 .map(|wrapped_key| attestation_key(wrapped_key, user_state))
                 .collect_vec();
             let keys = keys.iter().collect_vec().try_into().unwrap_or_else(|_| unreachable!()); // We know there are at least two keys
-            let claims = JwtPopClaims::new(
-                self.poa_nonce,
+            let claims = JwtProofClaims::new(
                 NL_WALLET_CLIENT_ID.to_string(),
                 self.poa_aud,
+                self.poa_nonce,
                 generators,
             );
             let poa = Poa::new(keys, claims).await?;
@@ -1480,11 +1479,7 @@ mod tests {
     use jwt::Algorithm;
     use jwt::JwtDecodingKey;
     use jwt::JwtValidation;
-    use jwt::UnverifiedJwt;
-    use jwt::headers::HeaderWithJwk;
     use jwt::nonce::Nonce;
-    use jwt::pop::JwtPopClaims;
-    use jwt::wia::WiaDisclosure;
     use mockall::predicate;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
@@ -1528,6 +1523,8 @@ mod tests {
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
+    use wscd::payload::jwt_proof::JwtProof;
+    use wscd::payload::wia::WiaDisclosure;
 
     use crate::account_server::InstructionValidationError;
     use crate::account_server::UserState;
@@ -2249,7 +2246,7 @@ mod tests {
         validation
     });
 
-    fn validate_issuance_pops<'a>(pops: impl IntoIterator<Item = &'a UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>) {
+    fn validate_issuance_pops<'a>(pops: impl IntoIterator<Item = &'a JwtProof>) {
         for pop in pops {
             pop.parse_and_verify_with_jwk(ISSUANCE_VALIDATION.to_owned()).unwrap();
         }

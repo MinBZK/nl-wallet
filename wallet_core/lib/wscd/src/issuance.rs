@@ -2,17 +2,15 @@ use std::error::Error;
 use std::num::NonZeroU8;
 
 use derive_more::Constructor;
-use jwt::UnverifiedJwt;
-use jwt::headers::HeaderWithJwk;
 use jwt::nonce::Nonce;
-use jwt::pop::JwtPopClaims;
-use jwt::wia::WiaDisclosure;
 use utils::vec_at_least::VecNonEmpty;
+
+use crate::payload::jwt_proof::JwtProof;
 
 #[derive(Debug, Constructor)]
 pub struct IssuanceKeyresult {
     pub key_identifier: String,
-    pub pop: UnverifiedJwt<JwtPopClaims, HeaderWithJwk>,
+    pub pop: JwtProof,
 }
 
 pub trait IssuanceWscd {
@@ -30,10 +28,4 @@ pub trait IssuanceWscd {
         aud: String,
         key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
     ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error>;
-}
-
-pub trait WiaClient {
-    type Error: Error + Send + Sync + 'static;
-
-    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error>;
 }

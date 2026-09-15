@@ -77,8 +77,8 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
-use wscd::Poa;
-use wscd::PoaVerificationError;
+use wscd::payload::poa::Poa;
+use wscd::payload::poa::PoaVerificationError;
 
 use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
@@ -1175,7 +1175,6 @@ mod tests {
     use jwt::SignedJwt;
     use jwt::error::JwtX5cVerifyError;
     use jwt::nonce::Nonce;
-    use jwt::pop::JwtPopClaims;
     use mdoc::DeviceResponse;
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
@@ -1195,9 +1194,10 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
-    use wscd::Poa;
     use wscd::mock_remote::MockRemoteWscd;
-    use wscd::poa::JwtPoaInput;
+    use wscd::payload::jwt_proof::JwtProofClaims;
+    use wscd::payload::poa::JwtPoaInput;
+    use wscd::payload::poa::Poa;
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;
@@ -2577,10 +2577,10 @@ mod tests {
         // Manually create a PoA accross the two holder keys.
         let poa = Poa::new(
             vec![&mdoc_holder_key, &sd_jwt_holder_key].try_into().unwrap(),
-            JwtPopClaims::new(
-                Some(auth_request.nonce.clone()),
+            JwtProofClaims::new(
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 auth_request.client_id.to_string(),
+                Some(auth_request.nonce.clone()),
                 &MockTimeGenerator::default(),
             ),
         )

@@ -32,8 +32,8 @@ use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use utils::vec_nonempty;
 use wallet::test::default_wallet_config;
-use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
-use wscd::mock_remote::MockWiaClient;
+use wscd::mock::MOCK_WALLET_CLIENT_ID;
+use wscd::wia::mock::MockWiaClient;
 
 /// Test the DigiD connector + BRP proxy integration as consumed by the pid_issuer.
 ///
