@@ -19,6 +19,7 @@ use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
 
+use crate::keys::Kid;
 use crate::model::QueryResult;
 
 pub type WalletUserQueryResult = QueryResult<WalletUser>;
@@ -26,7 +27,7 @@ pub type WalletUserQueryResult = QueryResult<WalletUser>;
 #[derive(Debug, Clone)]
 pub struct WithKid<T> {
     pub value: T,
-    pub kid: String,
+    pub kid: Kid,
 }
 
 #[derive(Debug)]
@@ -214,6 +215,7 @@ pub mod mock {
     use super::WalletUserAttestation;
     use super::WalletUserState;
     use super::WithKid;
+    use crate::keys::Kid;
     use crate::model::wallet_user::WalletId;
 
     pub fn wallet_user_1() -> WalletUser {
@@ -234,7 +236,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             .unwrap(),
             encrypted_pin_pubkey: WithKid {
                 value: Encrypted::new(random_bytes(32), InitializationVector(random_bytes(32))),
-                kid: "0".to_owned(),
+                kid: Kid::try_from("0".to_owned()).unwrap(),
             },
             encrypted_previous_pin_pubkey: None,
             unsuccessful_pin_entries: 0,

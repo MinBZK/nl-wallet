@@ -18,7 +18,7 @@ use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 use wallet_configuration::wallet_config::CertificatePublicKey;
 use wallet_provider::settings::Settings as WpSettings;
-use wallet_provider_service::keys::Kid;
+use wallet_provider_domain::keys::Kid;
 
 /// Sets up the shared test infrastructure for a key rollover test: a database, an HSM, a mock
 /// device, the update policy server (needed for the wallet to work) and the wallet provider

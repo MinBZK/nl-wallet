@@ -11,6 +11,7 @@ use hsm::model::encrypted::Encrypted;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use uuid::Uuid;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
@@ -240,7 +241,7 @@ async fn do_change_pin(
 
     let new_pin = WithKid {
         value: encrypted_pin_key("new_pin_1").await,
-        kid: "0".to_owned(),
+        kid: Kid::try_from("0".to_owned()).unwrap(),
     };
 
     wallet_provider_persistence::wallet_user::change_pin(&db, &wallet_id, new_pin.clone(), WalletUserState::Active)
@@ -258,7 +259,7 @@ async fn do_change_pin(
 
     assert_eq!(after.encrypted_pin_pubkey_sec1, new_pin.value.clone().data);
     assert_eq!(after.pin_pubkey_iv, new_pin.value.clone().iv.0);
-    assert_eq!(after.pin_pubkey_kid, new_pin.kid);
+    assert_eq!(&after.pin_pubkey_kid, new_pin.kid.as_ref());
 
     (db, wallet_user_id, wallet_id, new_pin, before, after)
 }
@@ -278,7 +279,7 @@ async fn test_change_pin_and_commit() {
     assert!(after_commit.previous_pin_pubkey_kid.is_none());
     assert_eq!(after_commit.encrypted_pin_pubkey_sec1, new_pin.value.clone().data);
     assert_eq!(after_commit.pin_pubkey_iv, new_pin.value.iv.0);
-    assert_eq!(after_commit.pin_pubkey_kid, new_pin.kid);
+    assert_eq!(after_commit.pin_pubkey_kid, new_pin.kid.into_inner());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

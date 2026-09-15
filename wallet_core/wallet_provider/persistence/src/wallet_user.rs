@@ -28,6 +28,7 @@ use sea_orm::sea_query::SelectStatement;
 use sea_orm::sea_query::SimpleExpr;
 use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
@@ -215,7 +216,7 @@ where
             .to_vec()),
         encrypted_pin_pubkey_sec1: Set(user.encrypted_pin_pubkey.value.data),
         pin_pubkey_iv: Set(user.encrypted_pin_pubkey.value.iv.0),
-        pin_pubkey_kid: Set(user.encrypted_pin_pubkey.kid),
+        pin_pubkey_kid: Set(user.encrypted_pin_pubkey.kid.into_inner()),
         encrypted_previous_pin_pubkey_sec1: Set(None),
         previous_pin_pubkey_iv: Set(None),
         previous_pin_pubkey_kid: Set(None),
@@ -342,7 +343,7 @@ where
             model.encrypted_pin_pubkey_sec1,
             InitializationVector(model.pin_pubkey_iv),
         ),
-        kid: model.pin_pubkey_kid,
+        kid: Kid::try_from(model.pin_pubkey_kid).map_err(PersistenceError::KidConversion)?,
     };
     let encrypted_previous_pin_pubkey = match (
         model.encrypted_previous_pin_pubkey_sec1,
@@ -351,7 +352,7 @@ where
     ) {
         (Some(sec1), Some(iv), Some(kid)) => Some(WithKid {
             value: Encrypted::new(sec1, InitializationVector(iv)),
-            kid,
+            kid: Kid::try_from(kid).map_err(PersistenceError::KidConversion)?,
         }),
         _ => None,
     };
@@ -634,7 +635,7 @@ where
         ),
         (
             wallet_user::Column::PinPubkeyKid,
-            Expr::value(new_encrypted_pin_pubkey.kid),
+            Expr::value(new_encrypted_pin_pubkey.kid.into_inner()),
         ),
         (wallet_user::Column::State, Expr::value(user_state.to_string())),
     ];

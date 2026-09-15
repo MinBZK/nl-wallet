@@ -94,6 +94,10 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 use wallet_account::signed::ChallengeResponsePayload;
 use wallet_account::signed::SequenceNumberComparison;
+use wallet_provider_domain::keys::Kid;
+use wallet_provider_domain::keys::KidError;
+use wallet_provider_domain::keys::KidPair;
+use wallet_provider_domain::keys::UnknownKid;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
@@ -129,9 +133,6 @@ use crate::instructions::PinChecks;
 use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
-use crate::keys::Kid;
-use crate::keys::KidError;
-use crate::keys::KidPair;
 use crate::keys::WalletCertificateSigningKey;
 use crate::keys::pin_pubkey_encryption_key_identifier;
 use crate::pin_policy::PinRecoveryPinPolicy;
@@ -196,6 +197,9 @@ pub enum WalletCertificateError {
 
     #[error("wallet certificate JWT signing error: {0}")]
     JwtSigning(#[source] JwtSignError),
+
+    #[error(transparent)]
+    UnknownKid(#[from] UnknownKid),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -367,6 +371,9 @@ pub enum InstructionError {
 
     #[error("unsupported holder public key: {0:?}")]
     UnsupportedHolderPublicKey(Box<PublicKey>),
+
+    #[error(transparent)]
+    UnknownKid(#[from] UnknownKid),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -415,6 +422,12 @@ pub enum InstructionValidationError {
 
     #[error("wallet requested creation of too many keys, requested {requested}, maximum: {maximum}")]
     TooManyKeysRequest { requested: usize, maximum: u16 },
+
+    #[error("invalid key identifier for stored ciphertext: {0}")]
+    InvalidKid(#[source] KidError),
+
+    #[error(transparent)]
+    UnknownKid(#[from] UnknownKid),
 }
 
 impl From<PinPolicyEvaluation> for InstructionError {
@@ -910,7 +923,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     hw_pubkey,
                     encrypted_pin_pubkey: WithKid {
                         value: encrypted_pin_pubkey,
-                        kid: self.keys.pin_pubkey_encryption_kids.current.as_ref().to_owned(),
+                        kid: self.keys.pin_pubkey_encryption_kids.current.clone(),
                     },
                     attestation_date_time: attestation_timestamp,
                     attestation,
@@ -1072,7 +1085,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
-                wallet_user.encrypted_pin_pubkey.value.clone()
+                wallet_user.encrypted_pin_pubkey.clone()
             })
             .await?;
 
@@ -1197,7 +1210,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
-                wallet_user.encrypted_pin_pubkey.value.clone()
+                wallet_user.encrypted_pin_pubkey.clone()
             })
             .await?;
 
@@ -1232,7 +1245,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 &wallet_user.wallet_id,
                 WithKid {
                     value: encrypted_pin_pubkey,
-                    kid: self.keys.pin_pubkey_encryption_kids.current.as_ref().to_owned(),
+                    kid: self.keys.pin_pubkey_encryption_kids.current.clone(),
                 },
                 WalletUserState::Active,
             )
@@ -1285,8 +1298,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 wallet_user
                     .encrypted_previous_pin_pubkey
                     .clone()
-                    .map(|encrypted| encrypted.value)
-                    .unwrap_or(wallet_user.encrypted_pin_pubkey.value.clone())
+                    .unwrap_or(wallet_user.encrypted_pin_pubkey.clone())
             })
             .await?;
 
@@ -1351,7 +1363,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, &PinRecoveryPinPolicy, user_state, |_| {
-                encrypted_pin_pubkey.clone()
+                WithKid {
+                    value: encrypted_pin_pubkey.clone(),
+                    kid: self.keys.pin_pubkey_encryption_kids.current.clone(),
+                }
             })
             .await?;
 
@@ -1368,7 +1383,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 &wallet_user.wallet_id,
                 WithKid {
                     value: encrypted_pin_pubkey,
-                    kid: self.keys.pin_pubkey_encryption_kids.current.as_ref().to_owned(),
+                    kid: self.keys.pin_pubkey_encryption_kids.current.clone(),
                 },
                 WalletUserState::RecoveringPin,
             )
@@ -1387,7 +1402,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                             wallet_user_key_id: generators.generate(),
                             key: WithKid {
                                 value: key.clone(),
-                                kid: user_state.attestation_wrapping_kids.current.as_ref().to_owned(),
+                                kid: user_state.attestation_wrapping_kids.current.clone(),
                             },
                             is_blocked: true,
                         })
@@ -1449,7 +1464,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         I: InstructionAndResult + ValidateInstruction + PinChecks,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
-        P: Fn(&WalletUser) -> Encrypted<VerifyingKey>,
+        P: Fn(&WalletUser) -> WithKid<Encrypted<VerifyingKey>>,
     {
         debug!("Verifying certificate and retrieving wallet user");
 
@@ -1485,7 +1500,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         wallet_user: &WalletUser,
         instruction: Instruction<I>,
         generators: &G,
-        pin_pubkey: Encrypted<VerifyingKey>,
+        pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         pin_policy: &impl PinPolicyEvaluator,
         user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<I, InstructionError>
@@ -1656,7 +1671,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         instruction: &Instruction<I>,
         wallet_user: &WalletUser,
-        pin_pubkey: Encrypted<VerifyingKey>,
+        pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         time_generator: &impl Generator<DateTime<Utc>>,
         verifying_key_decrypter: &D,
     ) -> Result<(ChallengeResponsePayload<I>, Option<AssertionCounter>), InstructionValidationError>
@@ -1666,11 +1681,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     {
         let challenge = Self::verify_instruction_challenge(wallet_user, time_generator)?;
 
+        self.keys.pin_pubkey_encryption_kids.validate(&pin_pubkey.kid)?;
+
         let pin_pubkey = verifying_key_decrypter
-            .decrypt(
-                &pin_pubkey_encryption_key_identifier(&self.keys.pin_pubkey_encryption_kids.current),
-                pin_pubkey,
-            )
+            .decrypt(&pin_pubkey_encryption_key_identifier(&pin_pubkey.kid), pin_pubkey.value)
             .await?;
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
@@ -1829,12 +1843,12 @@ pub mod mock {
     use token_status_list::status_list_service::mock::MockStatusListService;
     use token_status_list::status_list_service::mock::generate_status_claims;
     use utils::vec_nonempty;
+    use wallet_provider_domain::keys::Kid;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use super::mock_play_integrity::MockPlayIntegrityClient;
     use super::*;
     use crate::flags::mock::StubWalletFlags;
-    use crate::keys::Kid;
     use crate::wallet_certificate;
     use crate::wia_issuer::mock::MockWiaIssuer;
 
@@ -2154,6 +2168,8 @@ mod tests {
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
+    use wallet_provider_domain::keys::Kid;
+    use wallet_provider_domain::keys::KidPair;
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::TimeoutPinPolicy;
@@ -2190,8 +2206,6 @@ mod tests {
     use crate::flags::WalletFlags;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
-    use crate::keys::Kid;
-    use crate::keys::KidPair;
     use crate::keys::WalletCertificateSigningKey;
     use crate::keys::pin_pubkey_encryption_key_identifier;
     use crate::wallet_certificate;
@@ -2633,7 +2647,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
@@ -2864,7 +2878,7 @@ mod tests {
                 .verify_instruction(
                     &instruction,
                     &user,
-                    user.encrypted_pin_pubkey.value.clone(),
+                    user.encrypted_pin_pubkey.clone(),
                     &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
@@ -2949,7 +2963,7 @@ mod tests {
                 .verify_instruction(
                     &instruction,
                     &user,
-                    user.encrypted_pin_pubkey.value.clone(),
+                    user.encrypted_pin_pubkey.clone(),
                     &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
@@ -3024,7 +3038,7 @@ mod tests {
                 .verify_instruction(
                     &instruction,
                     &user,
-                    user.encrypted_pin_pubkey.value.clone(),
+                    user.encrypted_pin_pubkey.clone(),
                     &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
@@ -3262,7 +3276,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
@@ -3281,7 +3295,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
@@ -3680,7 +3694,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await

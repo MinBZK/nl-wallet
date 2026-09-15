@@ -254,7 +254,7 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key_identifiers: &[String],
-    ) -> Result<HashMap<String, WrappedKey>, PersistenceError> {
+    ) -> Result<HashMap<String, WithKid<WrappedKey>>, PersistenceError> {
         wallet_user_key::find_active_keys_by_identifiers(transaction, wallet_user_id, key_identifiers).await
     }
 
@@ -572,6 +572,7 @@ pub mod mock {
     use uuid::Uuid;
     use uuid::uuid;
     use wallet_account::messages::errors::RevocationReason;
+    use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::wallet_flag::WalletFlag;
     use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
@@ -722,7 +723,7 @@ pub mod mock {
                 transaction: &MockTransaction,
                 wallet_user_id: Uuid,
                 key_identifiers: &[String],
-            ) -> Result<HashMap<String, WrappedKey>, PersistenceError>;
+            ) -> Result<HashMap<String, WithKid<WrappedKey>>, PersistenceError>;
 
             async fn change_pin(
                 &self,
@@ -935,11 +936,11 @@ pub mod mock {
                 hw_pubkey: self.hw_pubkey,
                 encrypted_pin_pubkey: WithKid {
                     value: self.encrypted_pin_pubkey.clone(),
-                    kid: "0".to_owned(),
+                    kid: Kid::try_from("0".to_owned()).unwrap(),
                 },
                 encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.as_ref().map(|value| WithKid {
                     value: value.clone(),
-                    kid: "0".to_owned(),
+                    kid: Kid::try_from("0".to_owned()).unwrap(),
                 }),
                 unsuccessful_pin_entries: 0,
                 last_unsuccessful_pin_entry: None,
@@ -985,11 +986,11 @@ pub mod mock {
                 hw_pubkey: self.hw_pubkey,
                 encrypted_pin_pubkey: WithKid {
                     value: self.encrypted_pin_pubkey.clone(),
-                    kid: "0".to_owned(),
+                    kid: Kid::try_from("0".to_owned()).unwrap(),
                 },
                 encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.as_ref().map(|value| WithKid {
                     value: value.clone(),
-                    kid: "0".to_owned(),
+                    kid: Kid::try_from("0".to_owned()).unwrap(),
                 }),
                 unsuccessful_pin_entries: 0,
                 last_unsuccessful_pin_entry: None,
@@ -1122,7 +1123,7 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             key_identifiers: &[String],
-        ) -> Result<HashMap<String, WrappedKey>, PersistenceError> {
+        ) -> Result<HashMap<String, WithKid<WrappedKey>>, PersistenceError> {
             Ok(key_identifiers
                 .iter()
                 .map(|id| {
@@ -1130,7 +1131,10 @@ pub mod mock {
 
                     (
                         id.clone(),
-                        WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+                        WithKid {
+                            value: WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+                            kid: Kid::try_from("0".to_owned()).unwrap(),
+                        },
                     )
                 })
                 .collect())

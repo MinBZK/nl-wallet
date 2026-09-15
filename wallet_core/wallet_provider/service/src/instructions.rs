@@ -58,6 +58,7 @@ use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::transfer::TransferSessionState;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -80,7 +81,6 @@ use crate::account_server::InstructionValidationError;
 use crate::account_server::RecoveryCodeConfig;
 use crate::account_server::UserState;
 use crate::flags::WalletFlags;
-use crate::keys::Kid;
 use crate::keys::attestation_wrapping_key_identifier;
 use crate::revocation::system_revoke_wallets_by_recovery_code;
 use crate::wallet_certificate::PinKeyChecks;
@@ -475,7 +475,9 @@ where
 
                 let attestation_keys = wrapped_keys
                     .nonempty_iter()
-                    .map(|wrapped_key| attestation_key(wrapped_key, user_state))
+                    .map(|wrapped_key| {
+                        attestation_key(wrapped_key, &user_state.attestation_wrapping_kids.current, user_state)
+                    })
                     .collect();
 
                 // The JWT claims to be signed in the PoPs.
@@ -510,16 +512,16 @@ where
 fn create_issuance_keys(
     wrapped_keys: Vec<WrappedKey>,
     is_blocked: bool,
-    wrapping_kid: &Kid,
+    kid: &Kid,
     uuid_generator: &impl Generator<Uuid>,
 ) -> Vec<WalletUserKey> {
     wrapped_keys
         .into_iter()
-        .map(|key| WalletUserKey {
+        .map(|value| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
             key: WithKid {
-                value: key,
-                kid: wrapping_kid.as_ref().to_string(),
+                value,
+                kid: kid.clone(),
             },
             is_blocked,
         })
@@ -623,6 +625,7 @@ where
 
 fn attestation_key<'a, T, R, H>(
     wrapped_key: &'a WrappedKey,
+    kid: &Kid,
     user_state: &'a UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
 ) -> HsmCredentialSigningKey<'a, H>
 where
@@ -633,7 +636,7 @@ where
     HsmCredentialSigningKey {
         hsm: &user_state.wallet_user_hsm,
         wrapped_key,
-        wrapping_key_identifier: attestation_wrapping_key_identifier(&user_state.attestation_wrapping_kids.current),
+        wrapping_key_identifier: attestation_wrapping_key_identifier(kid),
     }
 }
 
@@ -753,11 +756,13 @@ impl HandleInstruction for Sign {
                     .cloned()
                     .ok_or(InstructionError::NonExistingKey(identifier.clone()))?;
 
+                user_state.attestation_wrapping_kids.validate(&wrapped_key.kid)?;
+
                 user_state
                     .wallet_user_hsm
                     .sign_wrapped(
-                        &attestation_wrapping_key_identifier(&user_state.attestation_wrapping_kids.current),
-                        wrapped_key,
+                        &attestation_wrapping_key_identifier(&wrapped_key.kid),
+                        wrapped_key.value,
                         data,
                     )
                     .await
@@ -770,12 +775,13 @@ impl HandleInstruction for Sign {
 
         // A PoA should be generated only if the unique keys, i.e. the keys referenced in the instruction
         // after deduplication, count two or more.
-        if let Result::<VecAtLeastTwoUnique<_>, _>::Ok(found_keys) = found_keys.values().collect_vec().try_into() {
+        if VecAtLeastTwoUnique::try_from(found_keys.values().map(|wrapped_key| &wrapped_key.value).collect_vec())
+            .is_ok()
+        {
             // We have to feed a Vec of references to `Poa::new()`, so we need to iterate twice to construct that.
             let keys = found_keys
-                .into_inner()
-                .iter()
-                .map(|wrapped_key| attestation_key(wrapped_key, user_state))
+                .values()
+                .map(|wrapped_key| attestation_key(&wrapped_key.value, &wrapped_key.kid, user_state))
                 .collect_vec();
             let keys = keys.iter().collect_vec().try_into().unwrap_or_else(|_| unreachable!()); // We know there are at least two keys
             let claims = JwtProofClaims::new(
@@ -1553,11 +1559,13 @@ mod tests {
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::transfer::TransferSessionState;
+    use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevocationRegistration;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
+    use wallet_provider_domain::model::wallet_user::WithKid;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wscd::payload::jwt_proof::JwtProof;
@@ -1573,7 +1581,6 @@ mod tests {
     use crate::instructions::InstructionError;
     use crate::instructions::ValidateInstruction;
     use crate::instructions::is_poa_message;
-    use crate::keys::Kid;
     use crate::wallet_certificate::mock::setup_hsm;
 
     pub async fn user_state<R>(
@@ -1687,17 +1694,26 @@ mod tests {
         wallet_user_repo
             .expect_find_active_keys_by_identifiers()
             .withf(|_, _, key_identifiers| key_identifiers.contains(&"key1".to_string()))
-            .return_once(move |_, _, _| {
-                Ok(HashMap::from([
-                    (
-                        "key1".to_string(),
-                        WrappedKey::new(signing_key_1_bytes, signing_key_1_public),
-                    ),
-                    (
-                        "key2".to_string(),
-                        WrappedKey::new(signing_key_2_bytes, signing_key_2_public),
-                    ),
-                ]))
+            .return_once({
+                let wrapping_kid = wrapping_kid.clone();
+                move |_, _, _| {
+                    Ok(HashMap::from([
+                        (
+                            "key1".to_owned(),
+                            WithKid {
+                                value: WrappedKey::new(signing_key_1_bytes, signing_key_1_public),
+                                kid: wrapping_kid.clone(),
+                            },
+                        ),
+                        (
+                            "key2".to_owned(),
+                            WithKid {
+                                value: WrappedKey::new(signing_key_2_bytes, signing_key_2_public),
+                                kid: wrapping_kid.clone(),
+                            },
+                        ),
+                    ]))
+                }
             });
 
         let result = instruction
@@ -1736,6 +1752,48 @@ mod tests {
                 poa_nonce.as_ref().unwrap(),
             )
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_reject_sign_with_unknown_wrapping_kid() {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let current_wrapping_kid = Kid::try_from("0").unwrap();
+        let stored_wrapping_kid = Kid::try_from("1").unwrap();
+
+        let instruction = Sign {
+            messages_with_identifiers: vec![(random_bytes(32), vec!["key1".to_owned()])],
+            poa_nonce: None,
+            poa_aud: "aud".to_owned(),
+        };
+        let signing_key = SigningKey::generate();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_active_keys_by_identifiers()
+            .return_once(move |_, _, _| {
+                Ok(HashMap::from([(
+                    "key1".to_owned(),
+                    WithKid {
+                        value: WrappedKey::new(signing_key.to_bytes().to_vec(), *signing_key.verifying_key()),
+                        kid: stored_wrapping_kid,
+                    },
+                )]))
+            });
+
+        let error = instruction
+            .handle(
+                &wallet_user,
+                &UuidV4AndTimeGenerator,
+                &user_state(wallet_user_repo, current_wrapping_kid).await,
+                &mock::RECOVERY_CODE_CONFIG,
+            )
+            .await
+            .unwrap_err();
+
+        assert!(matches!(error, InstructionError::UnknownKid(_)));
     }
 
     #[tokio::test]

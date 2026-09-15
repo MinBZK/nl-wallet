@@ -7,6 +7,7 @@ use hsm::model::wrapped_key::WrappedKey;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
 use uuid::Uuid;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
@@ -31,7 +32,7 @@ fn test_wallet_user_key() -> WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),
         key: WithKid {
             value: key,
-            kid: "0".to_owned(),
+            kid: Kid::try_from("0".to_owned()).unwrap(),
         },
         is_blocked: false,
     }
@@ -78,7 +79,7 @@ async fn test_create_keys() {
     persisted_keys.sort_by_key(|(key, _)| key.clone());
     let keys = persisted_keys
         .iter()
-        .map(|(_, key)| key.wrapped_private_key())
+        .map(|(_, key)| key.value.wrapped_private_key())
         .collect::<HashSet<_>>();
 
     let key1 = key1.key.value.wrapped_private_key();

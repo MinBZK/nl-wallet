@@ -20,6 +20,7 @@ use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
 use url::Url;
 use uuid::Uuid;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -99,7 +100,7 @@ where
             hw_pubkey: *SigningKey::generate().verifying_key(),
             encrypted_pin_pubkey: WithKid {
                 value: encrypted_pin_key("key1").await,
-                kid: "0".to_owned(),
+                kid: Kid::try_from("0".to_owned()).unwrap(),
             },
             attestation_date_time: Utc::now(),
             attestation,

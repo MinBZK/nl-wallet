@@ -40,9 +40,9 @@ use status_lists::settings::StatusListsSettings;
 use url::Url;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
+use wallet_provider_domain::keys::Kid;
+use wallet_provider_domain::keys::KidPair;
 use wallet_provider_persistence::database::ConnectionOptions;
-use wallet_provider_service::keys::Kid;
-use wallet_provider_service::keys::KidPair;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]

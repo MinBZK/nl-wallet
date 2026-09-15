@@ -11,10 +11,13 @@ use p256::pkcs8::EncodePublicKey;
 use tracing::debug;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
+use wallet_provider_domain::keys::Kid;
+use wallet_provider_domain::keys::KidPair;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -22,8 +25,6 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
 use crate::instructions::PinCheckOptions;
-use crate::keys::Kid;
-use crate::keys::KidPair;
 use crate::keys::WalletCertificateSigningKey;
 use crate::keys::pin_hmac_key_identifier;
 use crate::keys::pin_pubkey_encryption_key_identifier;
@@ -132,7 +133,7 @@ pub async fn verify_wallet_certificate_pin_public_key<H>(
     certificate_kid: &Kid,
     pin_pubkey_encryption_kids: &KidPair,
     pin_checks: PinKeyChecks,
-    encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
     hsm: &H,
 ) -> Result<(), WalletCertificateError>
 where
@@ -144,10 +145,12 @@ where
         return Ok(());
     }
 
+    pin_pubkey_encryption_kids.validate(&encrypted_pin_pubkey.kid)?;
+
     let pin_pubkey = Decrypter::decrypt(
         hsm,
-        &pin_pubkey_encryption_key_identifier(&pin_pubkey_encryption_kids.current),
-        encrypted_pin_pubkey,
+        &pin_pubkey_encryption_key_identifier(&encrypted_pin_pubkey.kid),
+        encrypted_pin_pubkey.value,
     )
     .await?;
 
@@ -181,12 +184,12 @@ pub async fn verify_wallet_certificate<T, R, F, H, P, S>(
     pin_checks: PinCheckOptions,
     pin_pubkey: P,
     user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
-) -> Result<(WalletUser, Encrypted<VerifyingKey>), WalletCertificateError>
+) -> Result<(WalletUser, WithKid<Encrypted<VerifyingKey>>), WalletCertificateError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
-    P: Fn(&WalletUser) -> Encrypted<VerifyingKey>,
+    P: Fn(&WalletUser) -> WithKid<Encrypted<VerifyingKey>>,
 {
     debug!("Parsing and verifying the provided certificate");
 
@@ -293,8 +296,8 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
+    use wallet_provider_domain::keys::Kid;
 
-    use crate::keys::Kid;
     use crate::keys::certificate_signing_key_identifier;
     use crate::keys::pin_hmac_key_identifier;
     use crate::keys::pin_pubkey_encryption_key_identifier;
@@ -370,6 +373,7 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
     use token_status_list::status_list_service::mock::MockStatusListService;
+    use wallet_provider_domain::keys::KidPair;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
@@ -377,7 +381,6 @@ mod tests {
     use crate::account_server::mock::user_state;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
-    use crate::keys::KidPair;
     use crate::keys::pin_hmac_key_identifier;
     use crate::keys::pin_pubkey_encryption_key_identifier;
     use crate::wallet_certificate::mock;
@@ -469,7 +472,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await
@@ -505,7 +508,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &init_user_state(
                 *SigningKey::generate().verifying_key(),
                 setup.encrypted_pin_pubkey,
@@ -559,7 +562,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
             &user_state,
         )
         .await

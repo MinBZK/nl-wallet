@@ -36,6 +36,7 @@ use utils::num::U31;
 use uuid::Uuid;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
@@ -58,7 +59,6 @@ use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock::user_state;
 use wallet_provider_service::flags::WalletFlags;
 use wallet_provider_service::flags::mock::StubWalletFlags;
-use wallet_provider_service::keys::Kid;
 use wallet_provider_service::revocation::RevocationError;
 use wallet_provider_service::revocation::revoke_solution;
 use wallet_provider_service::revocation::revoke_wallet_by_revocation_code;
@@ -282,7 +282,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
                     hw_pubkey: *SigningKey::generate().verifying_key(),
                     encrypted_pin_pubkey: WithKid {
                         value: encrypted_pin_key("key1").await,
-                        kid: "0".to_owned(),
+                        kid: Kid::try_from("0".to_owned()).unwrap(),
                     },
                     attestation_date_time: Utc::now(),
                     attestation: WalletUserAttestationCreate::Apple {

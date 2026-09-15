@@ -131,7 +131,7 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key_identifiers: &[String],
-    ) -> Result<HashMap<String, WrappedKey>>;
+    ) -> Result<HashMap<String, WithKid<WrappedKey>>>;
 
     async fn change_pin(
         &self,
@@ -435,7 +435,7 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             _key_identifiers: &[String],
-        ) -> Result<HashMap<String, WrappedKey>> {
+        ) -> Result<HashMap<String, WithKid<WrappedKey>>> {
             Ok(HashMap::new())
         }
 
