@@ -290,7 +290,7 @@ impl StoredAttestationCopy {
             StoredAttestation::MsoMdoc(mdoc) => attestation_presentation_from_issuer_signed(
                 mdoc.into_issuer_signed(),
                 self.attestation_id,
-                attestation_type.clone(),
+                attestation_type,
                 self.metadata,
                 issuer_registration.organization,
                 AttestationValidity {
@@ -302,7 +302,7 @@ impl StoredAttestationCopy {
             StoredAttestation::SdJwt(sd_jwt) => attestation_presentation_from_sd_jwt(
                 &sd_jwt,
                 self.attestation_id,
-                attestation_type.clone(),
+                attestation_type,
                 self.metadata,
                 issuer_registration.organization,
                 AttestationValidity {
@@ -370,7 +370,7 @@ impl DisclosableAttestation<WithKeyIdentifier<PartialAttestation>> {
             PartialAttestation::MsoMdoc(partial_mdoc) => attestation_presentation_from_issuer_signed(
                 partial_mdoc.issuer_signed().clone(),
                 attestation_id,
-                attestation_type.clone(),
+                attestation_type,
                 metadata,
                 issuer_registration.organization,
                 AttestationValidity {
@@ -382,7 +382,7 @@ impl DisclosableAttestation<WithKeyIdentifier<PartialAttestation>> {
             PartialAttestation::SdJwt(sd_jwt) => attestation_presentation_from_sd_jwt(
                 sd_jwt.as_ref().as_ref(),
                 attestation_id,
-                attestation_type.clone(),
+                attestation_type,
                 metadata,
                 issuer_registration.organization,
                 AttestationValidity {
