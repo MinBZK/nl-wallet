@@ -1575,7 +1575,7 @@ mod tests {
             panic!("an SD-JWT should be described by Type Metadata");
         };
         let sd_jwt = payload
-            .into_signed_sd_jwt(&type_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(Some(&type_metadata), &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -2355,7 +2355,7 @@ mod tests {
             panic!("an SD-JWT should be described by Type Metadata");
         };
         let sd_jwt = payload
-            .into_signed_sd_jwt(&type_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(Some(&type_metadata), &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();

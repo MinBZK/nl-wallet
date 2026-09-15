@@ -2930,7 +2930,7 @@ mod tests {
                     let sd_jwt_credentials = credential_payloads
                         .map(|credential_payload| {
                             let unverified_sd_jwt = credential_payload
-                                .into_signed_sd_jwt(&self.normalized_metadata, &self.issuer_key)
+                                .into_signed_sd_jwt(Some(&self.normalized_metadata), &self.issuer_key)
                                 .now_or_never()
                                 .unwrap()
                                 .unwrap()

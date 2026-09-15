@@ -528,7 +528,7 @@ mod tests {
     fn sd_jwt_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
         let (credential_payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
         let sd_jwt = credential_payload
-            .into_signed_sd_jwt(&NormalizedTypeMetadata::nl_pid_example(), issuer_keypair)
+            .into_signed_sd_jwt(Some(&NormalizedTypeMetadata::nl_pid_example()), issuer_keypair)
             .now_or_never()
             .unwrap()
             .unwrap();

@@ -1665,10 +1665,7 @@ impl Credentials {
                 Self::MsoMdoc(mdoc_credentials)
             }
             Format::SdJwt => {
-                // Guaranteed by `CredentialConfiguration::try_new()`, which requires Type Metadata for an SD-JWT.
-                let type_metadata = type_metadata
-                    .expect("SD-JWT credential configuration should have Type Metadata")
-                    .normalized();
+                let type_metadata = type_metadata.map(CredentialConfigurationTypeMetadata::normalized);
 
                 let sd_jwt_credentials = try_join_all(payloads.into_iter().map(|credential_payload| {
                     SdJwtCredential::from_credential_payload(credential_payload, key_pair, type_metadata)
@@ -1706,7 +1703,7 @@ impl SdJwtCredential {
     async fn from_credential_payload<K>(
         credential_payload: CredentialPayload,
         key_pair: &KeyPair<K>,
-        type_metadata: &NormalizedTypeMetadata,
+        type_metadata: Option<&NormalizedTypeMetadata>,
     ) -> Result<Self, CredentialPayloadIntoSignedSdJwtError>
     where
         K: EcdsaKey,

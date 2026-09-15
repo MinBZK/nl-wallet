@@ -288,9 +288,11 @@ impl CredentialPayload {
         })
     }
 
+    /// Sign this payload as an SD-JWT, concealing every claim that may be selectively disclosable according to the
+    /// Type Metadata. When Type Metadata is absent, all claims are assumed selectively disclosable.
     pub async fn into_signed_sd_jwt(
         self,
-        type_metadata: &NormalizedTypeMetadata,
+        type_metadata: Option<&NormalizedTypeMetadata>,
         issuer_keypair: &KeyPair<impl EcdsaKey>,
     ) -> Result<SignedSdJwt, CredentialPayloadIntoSignedSdJwtError> {
         if self.status.is_none() {
@@ -298,8 +300,8 @@ impl CredentialPayload {
         }
 
         let sd_by_claims = type_metadata
-            .claims()
-            .iter()
+            .into_iter()
+            .flat_map(|type_metadata| type_metadata.claims())
             .map(|claim| (&claim.path, claim.sd))
             .collect::<HashMap<_, _>>();
 
@@ -911,7 +913,7 @@ mod test {
         let (payload_preview, credential_payload, metadata, metadata_integrity, ca, issuance_key) = setup_into_signed();
 
         let signed_sd_jwt = credential_payload
-            .into_signed_sd_jwt(&metadata, &issuance_key)
+            .into_signed_sd_jwt(Some(&metadata), &issuance_key)
             .await
             .unwrap();
 
@@ -930,6 +932,27 @@ mod test {
         assert_eq!(claims.nbf, payload_preview.not_before);
         assert_eq!(claims.exp, payload_preview.expires);
         assert_eq!(claims.vct_integrity, Some(metadata_integrity));
+    }
+
+    #[tokio::test]
+    async fn test_into_signed_sd_jwt_without_type_metadata() {
+        let (_, credential_payload, _, _, ca, issuance_key) = setup_into_signed();
+
+        let claim_count = credential_payload
+            .previewable_payload
+            .attributes
+            .claim_paths(AttributesTraversalBehaviour::AllPaths)
+            .len();
+
+        let verified_sd_jwt = credential_payload
+            .into_signed_sd_jwt(None, &issuance_key)
+            .await
+            .expect("a credential without Type Metadata should sign")
+            .into_unverified()
+            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator)
+            .expect("the signed SD-JWT should be valid");
+
+        assert_eq!(verified_sd_jwt.disclosures().len(), claim_count);
     }
 
     /// The attributes of an mdoc are always exactly two levels deep: the namespace, then the element identifier.
@@ -1228,7 +1251,7 @@ mod test {
         );
 
         let sd_jwt = credential_payload
-            .into_signed_sd_jwt(&metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(Some(&metadata), &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();

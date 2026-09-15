@@ -288,14 +288,14 @@ pub fn create_example_pid_sd_jwt() -> (VerifiedSdJwt, NormalizedTypeMetadata) {
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
     let verified_sd_jwt =
-        verified_sd_jwt_from_credential_payload(credential_payload, &metadata, &ISSUER_KEY.issuance_key);
+        verified_sd_jwt_from_credential_payload(credential_payload, Some(&metadata), &ISSUER_KEY.issuance_key);
 
     (verified_sd_jwt, metadata)
 }
 
 pub fn verified_sd_jwt_from_credential_payload(
     credential_payload: CredentialPayload,
-    metadata: &NormalizedTypeMetadata,
+    metadata: Option<&NormalizedTypeMetadata>,
     issuer_keypair: &KeyPair,
 ) -> VerifiedSdJwt {
     let sd_jwt = credential_payload
@@ -838,19 +838,13 @@ fn example_stored_attestation_copy_with_issuer_keypair(
             mdoc_from_credential_payload(credential_payload.previewable_payload, issuer_keypair, holder_key),
         ),
         (Format::SdJwt, StoredAttestationMetadata::TypeMetadata(type_metadata)) => StoredAttestation::SdJwt(
-            verified_sd_jwt_from_credential_payload(credential_payload, type_metadata, issuer_keypair),
+            verified_sd_jwt_from_credential_payload(credential_payload, Some(type_metadata), issuer_keypair),
         ),
         (Format::MsoMdoc, StoredAttestationMetadata::TypeMetadata(_)) => {
             panic!("an mdoc is described by Credential Metadata, not Type Metadata")
         }
         (Format::SdJwt, StoredAttestationMetadata::CredentialMetadata(_)) => StoredAttestation::SdJwt(
-            // An SD-JWT described by Credential Metadata has no Type Metadata prescribing selective disclosure, so
-            // make every claim concealable.
-            verified_sd_jwt_from_credential_payload(
-                credential_payload,
-                &NormalizedTypeMetadata::empty_example(),
-                issuer_keypair,
-            ),
+            verified_sd_jwt_from_credential_payload(credential_payload, None, issuer_keypair),
         ),
     };
 

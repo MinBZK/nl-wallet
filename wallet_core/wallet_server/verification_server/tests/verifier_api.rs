@@ -869,7 +869,7 @@ fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Signed
     let (credential_payload, issuer_keypair, holder_privkey_identifier, metadata) =
         prepare_example_credential_payload(Format::SdJwt, issuer_ca, wscd);
     let sd_jwt = credential_payload
-        .into_signed_sd_jwt(&metadata, &issuer_keypair)
+        .into_signed_sd_jwt(Some(&metadata), &issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
