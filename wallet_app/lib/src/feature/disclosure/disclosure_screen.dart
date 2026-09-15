@@ -63,7 +63,7 @@ class DisclosureScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = context.watch<DisclosureBloc>().state.stepperProgress;
+    final state = context.watch<DisclosureBloc>().state;
     return ScrollOffsetProvider(
       debugLabel: 'disclosure',
       child: Scaffold(
@@ -72,14 +72,14 @@ class DisclosureScreen extends StatelessWidget {
           leading: _buildBackButton(context),
           automaticallyImplyLeading: false,
           actions: [
-            const HelpIconButton(),
+            if (_showHelpIcon(state)) const HelpIconButton(),
             CloseIconButton(
               onPressed: () => _stopDisclosure(context),
             ),
           ],
           fadeInTitleOnScroll: false /* Handled by _buildTitle */,
           title: _buildTitle(context),
-          progress: progress,
+          progress: state.stepperProgress,
         ),
         body: PopScope(
           canPop: false,
@@ -96,6 +96,15 @@ class DisclosureScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _showHelpIcon(DisclosureState state) {
+    return switch (state) {
+      DisclosureSuccess() => false,
+      DisclosureStopped() => false,
+      DisclosureMissingAttributes() => false,
+      _ => true,
+    };
   }
 
   Widget? _buildBackButton(BuildContext context) {

@@ -10,6 +10,7 @@ import 'package:wallet/src/domain/model/wallet_card_detail.dart';
 import 'package:wallet/src/feature/card/detail/argument/card_detail_screen_argument.dart';
 import 'package:wallet/src/feature/card/detail/bloc/card_detail_bloc.dart';
 import 'package:wallet/src/feature/card/detail/card_detail_screen.dart';
+import 'package:wallet/src/feature/common/widget/button/icon/help_icon_button.dart';
 import 'package:wallet/src/feature/common/widget/card/wallet_card_item.dart';
 import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
@@ -430,6 +431,47 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       final retryFinder = find.text(l10n.generalRetry);
       expect(retryFinder, findsOneWidget);
+    });
+
+    for (final status in const [CardStatusRevoked(), CardStatusCorrupted(), CardStatusUndetermined()]) {
+      testWidgets('ltc25 help button is shown for status $status', (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          CardDetailScreen(
+            cardTitle: WalletMockData.card.title.testValue,
+          ).withState<CardDetailBloc, CardDetailState>(
+            MockCardSummaryBloc(),
+            cardDetailLoadSuccessMock(status: status),
+          ),
+        );
+
+        expect(find.byType(HelpIconButton), findsOneWidget);
+      });
+    }
+
+    testWidgets('ltc25 help button is shown while loading a card with a status that needs help', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          CardDetailLoadInProgress(card: WalletMockData.cardWithStatus(const CardStatusRevoked())),
+        ),
+      );
+
+      expect(find.byType(HelpIconButton), findsOneWidget);
+    });
+
+    testWidgets('ltc25 help button is hidden for a valid card', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(status: const CardStatusValid(validUntil: null)),
+        ),
+      );
+
+      expect(find.byType(HelpIconButton), findsNothing);
     });
   });
 
