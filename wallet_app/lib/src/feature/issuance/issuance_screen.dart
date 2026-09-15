@@ -74,7 +74,7 @@ class IssuanceScreen extends StatelessWidget {
           leading: _buildBackButton(context),
           automaticallyImplyLeading: false,
           actions: [
-            const HelpIconButton(),
+            if (_showHelpIcon(context)) const HelpIconButton(),
             CloseIconButton(onPressed: () => _stopIssuance(context)).takeIf((_) => _showCloseIcon(context)),
           ].nonNullsList,
           title: _buildTitle(context),
@@ -97,6 +97,15 @@ class IssuanceScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _showHelpIcon(BuildContext context) {
+    final state = context.watch<IssuanceBloc>().state;
+    return switch (state) {
+      IssuanceMissingAttributes() => false,
+      IssuanceError(:final error) => error is! RelyingPartyError,
+      _ => true,
+    };
   }
 
   bool _showCloseIcon(BuildContext context) {

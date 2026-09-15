@@ -144,8 +144,16 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildAboutAction(BuildContext context, SetupSecurityState state) {
-    if (state is SetupSecurityCompleted) return const SizedBox.shrink();
-    return const InfoIconButton();
+    final showInfoIcon = switch (state) {
+      SetupSecuritySelectPinInProgress() => false,
+      SetupSecuritySelectPinFailed() => false,
+      SetupSecurityPinConfirmationInProgress() => false,
+      SetupSecurityPinConfirmationFailed() => false,
+      SetupSecurityConfigureBiometrics() => false,
+      SetupSecurityCompleted() => false,
+      _ => true,
+    };
+    return showInfoIcon ? const InfoIconButton() : const SizedBox.shrink();
   }
 
   Widget _buildSelectPinPage(BuildContext context, {required int enteredDigits}) {
