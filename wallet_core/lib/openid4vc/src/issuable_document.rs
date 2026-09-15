@@ -2,7 +2,7 @@ use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::metadata::AttestationMetadata;
+use attestation_types::metadata::AttestationClaims;
 use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
@@ -85,7 +85,7 @@ impl IssuableDocument {
         (self.id, payload)
     }
 
-    pub fn validate_with_metadata(&self, metadata: &impl AttestationMetadata) -> Result<(), AttributesError> {
+    pub fn validate_with_metadata(&self, metadata: &impl AttestationClaims) -> Result<(), AttributesError> {
         self.attributes.validate(metadata)
     }
 }

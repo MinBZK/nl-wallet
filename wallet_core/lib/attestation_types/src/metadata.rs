@@ -29,7 +29,7 @@ pub enum AttestationMetadataError {
 
 /// Implemented by every kind of metadata that allows both validating a received attestation against its metadata and
 /// converting it to a representation that can be shown to the user.
-pub trait AttestationMetadata {
+pub trait AttestationClaims {
     /// The paths of all claims that consist solely of `SelectByKey` components, as a path of `&str`. Claims with any
     /// other kind of path component are skipped, as those are not supported.
     fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>>;

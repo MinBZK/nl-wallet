@@ -8,7 +8,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::metadata::AttestationMetadata;
+use attestation_types::metadata::AttestationClaims;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
@@ -345,7 +345,7 @@ pub enum OfferedCredentialMetadata {
     CredentialMetadata(CredentialMetadata),
 }
 
-impl AttestationMetadata for OfferedCredentialMetadata {
+impl AttestationClaims for OfferedCredentialMetadata {
     fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
         match self {
             Self::TypeMetadata { normalized, .. } => Either::Left(normalized.claim_key_paths()),
@@ -1171,7 +1171,7 @@ impl Credentials {
         holder_pubkey: &PublicKey,
         credential_payload: CredentialPayload,
         credential_issuer_certificate: &BorrowingCertificate,
-        metadata: &impl AttestationMetadata,
+        metadata: &impl AttestationClaims,
     ) -> Result<(), WalletIssuanceError> {
         if credential_payload.confirmation_key.try_to_public_key()? != *holder_pubkey {
             return Err(WalletIssuanceError::PublicKeyMismatch);

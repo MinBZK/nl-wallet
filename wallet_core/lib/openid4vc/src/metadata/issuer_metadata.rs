@@ -10,7 +10,7 @@ use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::data_uri::DataUri;
 use attestation_types::image::Image;
-use attestation_types::metadata::AttestationMetadata;
+use attestation_types::metadata::AttestationClaims;
 use attestation_types::metadata::AttestationMetadataError;
 use attestation_types::metadata::BackgroundImageMetadata;
 use attestation_types::metadata::ClaimDescription;
@@ -619,7 +619,7 @@ pub struct CredentialMetadata {
 #[cfg(any(test, feature = "mock"))]
 mod example_constructors {
     use attestation_types::claim_path::ClaimPath;
-    use attestation_types::metadata::AttestationMetadata;
+    use attestation_types::metadata::AttestationClaims;
     use itertools::Itertools;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::vec_at_least::VecNonEmpty;
@@ -853,7 +853,7 @@ impl CredentialMetadata {
     }
 }
 
-impl AttestationMetadata for CredentialMetadata {
+impl AttestationClaims for CredentialMetadata {
     fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
         self.claim_descriptions().filter_map(|claim| {
             let path = claim
@@ -983,7 +983,7 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::attributes::AttributesError;
     use attestation_types::claim_path::ClaimPath;
-    use attestation_types::metadata::AttestationMetadata;
+    use attestation_types::metadata::AttestationClaims;
     use chrono::DateTime;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;

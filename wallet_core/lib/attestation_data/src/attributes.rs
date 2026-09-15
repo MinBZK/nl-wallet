@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::num::TryFromIntError;
 
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::metadata::AttestationMetadata;
+use attestation_types::metadata::AttestationClaims;
 use base64::prelude::*;
 use chrono::NaiveDate;
 use derive_more::AsRef;
@@ -285,7 +285,7 @@ impl Attributes {
         result
     }
 
-    pub fn validate(&self, metadata: &impl AttestationMetadata) -> Result<(), AttributesError> {
+    pub fn validate(&self, metadata: &impl AttestationClaims) -> Result<(), AttributesError> {
         let flattened_attributes = self.flattened();
         let claim_key_paths = metadata.claim_key_paths().collect_vec();
 
