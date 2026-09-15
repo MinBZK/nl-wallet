@@ -117,7 +117,6 @@ const INTERNAL_ATTRIBUTES: &[&str] = &[
     "iat",
     "sub",
     "status",
-    "attestation_qualification",
 ];
 
 impl UncheckedTypeMetadata {

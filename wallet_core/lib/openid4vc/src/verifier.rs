@@ -1572,7 +1572,6 @@ mod tests {
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::validity::IssuanceValidity;
-    use attestation_types::qualification::AttestationQualification;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
@@ -1938,7 +1937,6 @@ mod tests {
                 attestation_type: "attestation_type".to_string(),
                 attributes: DisclosedAttributes::MsoMdoc(Default::default()),
                 issuer_uri: "https://issuer.example.com".parse().unwrap(),
-                attestation_qualification: AttestationQualification::default(),
                 ca: "ca".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
                 revocation_status: Some(RevocationStatus::Valid),
