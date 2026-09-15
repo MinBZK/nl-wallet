@@ -81,7 +81,7 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
           onPressed: () => _handleBackPress(state, context),
         ).takeIf((_) => _canPop(state)),
         actions: [
-          const HelpIconButton(),
+          const HelpIconButton().takeIf((_) => _showHelpIcon(state)),
           CloseIconButton(onPressed: () => _stopRecoverPin(context)).takeIf(
             (_) => _canStop(state),
           ),
@@ -155,6 +155,20 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
       RecoverPinDigidFailure() => true,
       RecoverPinDigidLoginCancelled() => true,
       RecoverPinError() => true,
+    };
+  }
+
+  /// Determines if the "Help" button should be displayed in the AppBar.
+  ///
+  /// Returns:
+  ///   True if the "Help" button should be visible, false otherwise.
+  bool _showHelpIcon(RecoverPinState state) {
+    return switch (state) {
+      RecoverPinChooseNewPin() => false,
+      RecoverPinSelectPinFailed() => false,
+      RecoverPinConfirmNewPin() => false,
+      RecoverPinConfirmPinFailed() => false,
+      _ => true,
     };
   }
 

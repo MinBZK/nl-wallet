@@ -1,16 +1,25 @@
 use std::collections::HashSet;
+use std::num::NonZeroU32;
+use std::num::NonZeroU64;
+use std::time::Duration as StdDuration;
 
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::anyhow;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::registration_certificate::ParsedRegistrationCertificate;
+use attestation_data::x509::RelyingParty;
 use attestation_types::claim_path::ClaimPath;
+use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration;
 use chrono::Utc;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
 use clio::CachedInput;
+use cose::wrprc_cwt::SignedWrprcCwt;
+use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateConfiguration;
@@ -20,6 +29,8 @@ use crypto::x509::NO_SAN;
 use crypto::x509::SubjectAltNameUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use jwt::SignedJwt;
+use jwt::jades_b_b::JadesbbHeader;
 use mdoc::DataElements;
 use mdoc::DeviceRequest;
 use mdoc::ItemsRequest;
@@ -29,11 +40,19 @@ use mdoc::holder::disclosure::create_doc_request;
 use mdoc::utils::serialization::cbor_serialize;
 use rcgen::RevokedCertParams;
 use rcgen::SerialNumber;
+use serde::Serialize;
+use serde_json::Value;
 use time::OffsetDateTime;
+use token_status_list::status_list::StatusList as TokenStatusList;
+use token_status_list::status_list::StatusType;
+use token_status_list::status_list_token::StatusListToken;
 use url::Url;
 use utils::built_info::version_string;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_ca::next_crl_number;
+use wallet_ca::read_certificate;
+use wallet_ca::read_key_pair;
 use wallet_ca::read_public_key;
 use wallet_ca::read_self_signed_ca;
 use wallet_ca::write_certificate;
@@ -62,6 +81,36 @@ enum CertType {
     Wia,
     /// Wallet Relying Party Access Certificate (WRPAC)
     Wrpac,
+    /// Wallet Relying Party Registration Certificate (WRPRC) signing certificate
+    Wrprc,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum RegistrationCertificateFormat {
+    /// JAdES B-B JWT serialization
+    Jwt,
+    /// COSE-signed WRPRC CWT serialization
+    Cwt,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum StatusListEntry {
+    /// The referenced token is valid
+    Valid,
+    /// The referenced token is revoked
+    Revoked,
+    /// The referenced token is temporarily invalid
+    Suspended,
+}
+
+impl From<StatusListEntry> for StatusType {
+    fn from(value: StatusListEntry) -> Self {
+        match value {
+            StatusListEntry::Valid => StatusType::Valid,
+            StatusListEntry::Revoked => StatusType::Invalid,
+            StatusListEntry::Suspended => StatusType::Suspended,
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -78,7 +127,7 @@ enum Command {
         #[arg(short, long)]
         file_prefix: String,
         /// Duration for which the certificate will be valid
-        #[arg(short, long, default_value = "365")]
+        #[arg(short, long, default_value = "3650")]
         days: u32,
         /// Overwrite existing files
         #[arg(long, default_value = "false")]
@@ -192,6 +241,45 @@ enum Command {
         /// Overwrite existing files
         #[arg(long, default_value = "false")]
         force: bool,
+    },
+    /// Sign a WRPRC payload and print its unpadded base64url serialization
+    RegistrationCertificate {
+        /// Path to the WRPRC signing key file in PEM format
+        #[arg(long, value_parser)]
+        wrprc_key_file: CachedInput,
+        /// Path to the WRPRC signing certificate file in PEM format
+        #[arg(long, value_parser)]
+        wrprc_crt_file: CachedInput,
+        /// Path to the WRPAC whose subject must match the WRPRC payload in PEM format
+        #[arg(long, value_parser)]
+        wrpac_crt_file: CachedInput,
+        /// Path to the unsigned WRPRC payload in JSON format
+        #[arg(long, value_parser)]
+        payload_file: CachedInput,
+        /// WRPRC envelope format
+        #[arg(long, value_enum)]
+        format: RegistrationCertificateFormat,
+    },
+    /// Sign a Status List Token and print its compact JWT serialization
+    StatusList {
+        /// Path to the Token Status List signing key file in PEM format
+        #[arg(long, value_parser)]
+        tsl_key_file: CachedInput,
+        /// Path to the Token Status List signing certificate file in PEM format
+        #[arg(long, value_parser)]
+        tsl_crt_file: CachedInput,
+        /// Public URI from which this exact Status List Token will be served
+        #[arg(long)]
+        uri: Url,
+        /// Status of each referenced token, in index order
+        #[arg(long = "status", value_enum, required = true, num_args = 1..)]
+        statuses: Vec<StatusListEntry>,
+        /// Number of days after issuance at which the token expires; omit for no explicit expiration
+        #[arg(long)]
+        valid_for_days: Option<NonZeroU32>,
+        /// Maximum number of seconds for which a consumer should cache the token; omit to leave out the TTL claim
+        #[arg(long)]
+        ttl_seconds: Option<NonZeroU64>,
     },
     /// Generate a signed mdoc DeviceRequest for close-proximity disclosure
     ReaderDeviceRequest {
@@ -322,9 +410,9 @@ impl Command {
     ) -> Result<CertificateConfiguration> {
         let usage = match cert_type {
             CertType::Issuer => Some(CertificateUsage::Mdl),
-            CertType::Tsl => Some(CertificateUsage::OAuthStatusSigning),
+            CertType::Tsl => Some(CertificateUsage::StatusListSigning),
             CertType::Wia => Some(CertificateUsage::Wia),
-            CertType::Wrpac => None,
+            CertType::Wrpac | CertType::Wrprc => None,
         };
 
         let extension = issuer_auth_file
@@ -432,6 +520,80 @@ impl Command {
                 write_certificate(&certificate, &file_prefix, force)?;
                 Ok(())
             }
+            RegistrationCertificate {
+                wrprc_key_file,
+                wrprc_crt_file,
+                wrpac_crt_file,
+                payload_file,
+                format,
+            } => {
+                let signing_key_pair = read_key_pair(&wrprc_crt_file, &wrprc_key_file)?;
+                if signing_key_pair.certificate().x509_certificate().is_ca() {
+                    anyhow::bail!("WRPRC signing certificate must be an end-entity certificate");
+                }
+
+                let access_certificate = read_certificate(&wrpac_crt_file)?;
+                let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
+                let payload: Value = serde_json::from_reader(payload_file)?;
+                serde_json::from_value::<ParsedRegistrationCertificate>(payload.clone())?
+                    .validate_binding_and_time(&access_subject, Utc::now())?;
+
+                let runtime = tokio::runtime::Builder::new_current_thread().build()?;
+                let serialized = runtime.block_on(sign_registration_certificate(
+                    RegistrationCertificatePayload(payload),
+                    &signing_key_pair,
+                    format,
+                ))?;
+
+                println!("{}", BASE64_URL_SAFE_NO_PAD.encode(serialized));
+                Ok(())
+            }
+            StatusList {
+                tsl_key_file,
+                tsl_crt_file,
+                uri,
+                statuses,
+                valid_for_days,
+                ttl_seconds,
+            } => {
+                let signing_key_pair = read_key_pair(&tsl_crt_file, &tsl_key_file)?;
+                if signing_key_pair.certificate().x509_certificate().is_ca() {
+                    anyhow::bail!("status list signing certificate must be an end-entity certificate");
+                }
+                let usage = CertificateUsage::from_certificate(signing_key_pair.certificate().x509_certificate())
+                    .context("status list signing certificate must have Status List Signing usage")?;
+                if usage != CertificateUsage::StatusListSigning {
+                    anyhow::bail!("status list signing certificate must have Status List Signing usage");
+                }
+
+                let mut status_list = TokenStatusList::new(statuses.len());
+                for (index, status) in statuses.into_iter().enumerate() {
+                    let status = StatusType::from(status);
+                    if status != StatusType::Valid {
+                        status_list.insert(index, status);
+                    }
+                }
+
+                let expiration = valid_for_days
+                    .map(|days| {
+                        Utc::now()
+                            .checked_add_signed(Duration::days(i64::from(days.get())))
+                            .context("status list token validity overflows the supported date range")
+                    })
+                    .transpose()?;
+                let ttl = ttl_seconds.map(|seconds| StdDuration::from_secs(seconds.get()));
+
+                let runtime = tokio::runtime::Builder::new_current_thread().build()?;
+                let token = runtime.block_on(
+                    StatusListToken::builder(uri, status_list.pack())
+                        .exp(expiration)
+                        .ttl(ttl)
+                        .sign(&signing_key_pair),
+                )?;
+
+                println!("{}", token.as_ref().serialization());
+                Ok(())
+            }
             ReaderDeviceRequest {
                 ca_key_file,
                 ca_crt_file,
@@ -500,6 +662,38 @@ impl Command {
                 write_crl(&file_prefix, &crl, force)?;
                 Ok(())
             }
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(transparent)]
+struct RegistrationCertificatePayload(Value);
+
+impl jwt::JwtTyp for RegistrationCertificatePayload {
+    const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
+}
+
+async fn sign_registration_certificate(
+    payload: RegistrationCertificatePayload,
+    signing_key_pair: &KeyPair,
+    format: RegistrationCertificateFormat,
+) -> Result<Vec<u8>> {
+    match format {
+        RegistrationCertificateFormat::Jwt => {
+            Ok(
+                SignedJwt::<_, JadesbbHeader>::sign_with_iat(&payload, signing_key_pair, &TimeGenerator)
+                    .await?
+                    .to_string()
+                    .into_bytes(),
+            )
+        }
+        RegistrationCertificateFormat::Cwt => {
+            Ok(
+                SignedWrprcCwt::sign_with_certificate(&payload, signing_key_pair, &TimeGenerator)
+                    .await?
+                    .to_vec()?,
+            )
         }
     }
 }

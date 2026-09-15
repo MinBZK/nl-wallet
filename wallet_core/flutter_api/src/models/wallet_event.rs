@@ -72,7 +72,7 @@ impl From<wallet::WalletEvent> for WalletEvent {
                     id: id.to_string(),
                     date_time: timestamp.to_rfc3339(),
                     relying_party: (*organization).into(),
-                    // TODO PVW-5866 Replace with fields from registration certificate
+                    // TODO (PVW-6111): Replace with fields from registration certificate
                     purpose: vec![
                         LocalizedString {
                             language: "en".into(),
@@ -83,7 +83,7 @@ impl From<wallet::WalletEvent> for WalletEvent {
                             value: "Onthullen".into(),
                         },
                     ],
-                    // TODO PVW-5866 Replace with fields from registration certificate
+                    // TODO (PVW-6111): Replace with fields from registration certificate
                     request_policy: RequestPolicy {
                         data_storage_duration_in_minutes: Some(525600),
                         data_shared_with_third_parties: false,

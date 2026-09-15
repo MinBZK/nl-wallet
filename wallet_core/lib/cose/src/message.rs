@@ -88,7 +88,7 @@ impl Cose for CoseMac0 {
 }
 
 /// A COSE message coupled to the Rust type of its CBOR payload.
-#[derive(Debug, PartialEq, Eq, AsMut, AsRef)]
+#[derive(derive_more::Debug, PartialEq, Eq, AsMut, AsRef)]
 pub struct TypedCose<C, T>(
     #[as_mut]
     #[as_ref]

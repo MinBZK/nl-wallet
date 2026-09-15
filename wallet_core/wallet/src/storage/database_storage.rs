@@ -1106,7 +1106,7 @@ where
         Self::combine_events(issuance_events, disclosure_events, vec![])
     }
 
-    // TODO (PVW-5866): Use registration certificate to distinguish between natural person and legal person
+    // TODO (PVW-6111): Use registration certificate to distinguish between natural person and legal person
     async fn did_share_data_with_relying_party(&self, organization: &Organization) -> StorageResult<bool> {
         let select_statement = Query::select()
             .column((disclosure_event::Entity, disclosure_event::Column::Id))

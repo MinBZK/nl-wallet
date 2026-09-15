@@ -1,6 +1,5 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
 use coset::RegisteredLabelWithPrivate;
@@ -39,7 +38,6 @@ pub struct DisclosedDocument {
     pub doc_type: String,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub issuer_uri: HttpsUri,
-    pub attestation_qualification: AttestationQualification,
     pub ca: String,
     pub validity_info: ValidityInfo,
     pub revocation_status: Option<RevocationStatus>,
@@ -81,8 +79,6 @@ pub enum VerificationError {
     IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
     #[error("missing issuer URI")]
     MissingIssuerUri,
-    #[error("missing attestation qualification")]
-    MissingAttestationQualification,
     #[error("unsupported algorithm: {0:?}")]
     UnsupportedAlgorithm(RegisteredLabelWithPrivate<Algorithm>),
     #[error("missing algorithm")]
@@ -350,10 +346,6 @@ impl Document {
             .into());
         }
 
-        let attestation_qualification = mso
-            .attestation_qualification
-            .ok_or(VerificationError::MissingAttestationQualification)?;
-
         debug!("serializing session transcript");
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
         debug!("serializing device_authentication");
@@ -405,7 +397,6 @@ impl Document {
             doc_type: mso.doc_type,
             attributes,
             issuer_uri,
-            attestation_qualification,
             ca: ca_common_name,
             validity_info: mso.validity_info,
             revocation_status,

@@ -80,6 +80,7 @@ max_session_lifetime_in_sec = 900
 #   should contain a string identifying the private key in the HSM
 # * private_key: Base64 encoded DER format private key, or string
 # * certificate: Base64 encoded DER format certificate
+# * registration_certificate: Base64url encoded WRPRC in JWT or CWT format
 # * session_type_return_url: Can be `both` or `same_device` (default)
 # * accept_undetermined_revocation_status: boolean to indicate whether attestations having an undetermined revocation
 #   status are accepted. Defaults to false
@@ -90,6 +91,7 @@ max_session_lifetime_in_sec = 900
 private_key_type = "software"
 private_key = "MII..."
 certificate = "MII..."
+registration_certificate = "eyJ..."
 session_type_return_url = "both"
 accept_undetermined_revocation_status = false
 
@@ -98,5 +100,6 @@ accept_undetermined_revocation_status = false
 private_key_type = "hsm"
 private_key = "some_private_key"
 certificate = "MII..."
+registration_certificate = "2E2..."
 session_type_return_url = "same_device"
 accept_undetermined_revocation_status = true

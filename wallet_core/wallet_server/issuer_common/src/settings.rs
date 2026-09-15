@@ -6,7 +6,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CanonicalDistinguishedName;
@@ -175,9 +174,6 @@ pub struct CredentialConfigurationSettings {
     pub valid_days: u64,
 
     pub status_list: StatusListAttestationSettings,
-
-    #[serde(default)]
-    pub attestation_qualification: AttestationQualification,
 
     /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
     /// If the certificate contains exactly one SAN, then this may be left blank.
@@ -350,7 +346,6 @@ impl CredentialConfigurationsSettings {
                             status_list,
                             valid_days: Days::new(settings.valid_days),
                             issuer_uri,
-                            attestation_qualification: settings.attestation_qualification,
                             mdoc_namespace: settings.mdoc_namespace,
                             metadata_documents,
                         };
@@ -482,7 +477,7 @@ impl IssuerSettings {
         verify_key_pairs(
             &key_pairs,
             trust_anchors,
-            Some(CertificateUsage::OAuthStatusSigning),
+            Some(CertificateUsage::StatusListSigning),
             &time,
         )?;
 
@@ -666,7 +661,6 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
-    use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
     use crypto::trust_anchor::TrustAnchors;
@@ -728,7 +722,6 @@ mod tests {
                         keypair: status_list_keypair,
                         publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                     },
-                    attestation_qualification: AttestationQualification::PubEAA,
                     certificate_san: Some(ISSUANCE_CERT_SAN_URI.as_ref().to_string().parse().unwrap()),
                     mdoc_namespace: None,
                 },
@@ -842,7 +835,6 @@ mod tests {
                     keypair: status_list_keypair,
                     publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                 },
-                attestation_qualification: Default::default(),
                 certificate_san: None,
                 mdoc_namespace: None,
             },
@@ -919,7 +911,7 @@ mod tests {
         let status_list_keypair = issuer_ca
             .generate_key_pair(
                 DistinguishedName::create_legal_person_mock("different"),
-                CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
+                CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
                 ["https://different.example.com/".parse::<SubjectAltNameUri>().unwrap()],
             )
             .expect("generate tsl cert failed");

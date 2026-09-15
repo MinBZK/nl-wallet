@@ -4,6 +4,7 @@ crl_port = ${STATIC_SERVER_CRL_PORT}
 crl_file = "${STATIC_SERVER_DIR}/wrpac.crl.der"
 wallet_config_jwt = "${WALLET_CONFIG_JWT}"
 wua_publish_dir = "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
+wrprc_publish_dir = "${WALLET_CORE_DIR}/target/status-lists/wrprc"
 
 [tls_config]
 cert = "${STATIC_SERVER_CERT}"

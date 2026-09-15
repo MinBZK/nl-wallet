@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
@@ -55,10 +54,6 @@ pub enum PreviewableCredentialPayloadFromSdJwtError {
     #[error("error converting claims to attributes: {0}")]
     #[category(pd)]
     InvalidAttributes(#[source] AttributesError),
-
-    #[error("missing Attestation Qualification")]
-    #[category(critical)]
-    MissingAttestationQualification,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -70,10 +65,6 @@ pub enum PreviewableCredentialPayloadFromMdocError {
     #[error("mdoc is missing issuer URI")]
     #[category(critical)]
     MissingIssuerUri,
-
-    #[error("mdoc is missing attestation qualification")]
-    #[category(critical)]
-    MissingAttestationQualification,
 
     #[error("attributes error: {0}")]
     #[category(pd)]
@@ -104,8 +95,6 @@ pub struct PreviewableCredentialPayload {
     #[serde(rename = "nbf")]
     pub not_before: Option<DateTimeSeconds>,
 
-    pub attestation_qualification: AttestationQualification,
-
     #[serde(flatten)]
     pub attributes: Attributes,
 }
@@ -119,7 +108,6 @@ impl PreviewableCredentialPayload {
         // Compare all fields except `not_before`
         if self.attestation_type == existing.attestation_type
             && self.issuer == existing.issuer
-            && self.attestation_qualification == existing.attestation_qualification
             && self.attributes == existing.attributes
         {
             // - If `not_before` are equal as well, they definitely match
@@ -344,7 +332,6 @@ impl CredentialPayload {
             attributes,
             attestation_type,
             issuer,
-            attestation_qualification,
         } = previewable_payload;
 
         let validity = mdoc::ValidityInfo {
@@ -387,7 +374,6 @@ impl CredentialPayload {
             device_key_info: cose_pubkey.into(),
             validity_info: validity,
             issuer_uri: Some(issuer),
-            attestation_qualification: Some(attestation_qualification),
             status: Some(status),
             type_metadata_integrity: Some(vct_integrity),
         };
@@ -443,9 +429,6 @@ impl SplitCredential {
             issuer: claims.iss,
             expires: claims.exp,
             not_before: claims.nbf,
-            attestation_qualification: claims
-                .attestation_qualification
-                .ok_or(PreviewableCredentialPayloadFromSdJwtError::MissingAttestationQualification)?,
             attributes,
         };
 
@@ -484,9 +467,6 @@ impl SplitCredential {
                     .try_into()
                     .map_err(PreviewableCredentialPayloadFromMdocError::DateConversion)?,
             ),
-            attestation_qualification: mso
-                .attestation_qualification
-                .ok_or(PreviewableCredentialPayloadFromMdocError::MissingAttestationQualification)?,
             attributes: Attributes::from_mdoc_attributes(metadata, attributes)
                 .map_err(PreviewableCredentialPayloadFromMdocError::InvalidAttributes)?,
         };
@@ -520,7 +500,6 @@ impl TryFrom<CredentialPayload> for SdJwtVcClaims {
             exp: value.previewable_payload.expires,
             nbf: value.previewable_payload.not_before,
             cnf: value.confirmation_key,
-            attestation_qualification: Some(value.previewable_payload.attestation_qualification),
             status: Some(value.status),
             _sd_alg: None, // TODO this should be handled elsewhere (PVW-5121)
 
@@ -610,7 +589,6 @@ mod examples {
                 issuer,
                 expires: Some((time + Duration::days(365)).into()),
                 not_before: Some((time - Duration::days(1)).into()),
-                attestation_qualification: Default::default(),
                 attributes: Attributes::default(),
             }
         }
@@ -693,7 +671,6 @@ mod test {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::qualification::AttestationQualification;
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::PublicKey;
@@ -871,7 +848,6 @@ mod test {
                 issuer: "https://com.example.org/pid/issuer".parse().unwrap(),
                 expires: None,
                 not_before: None,
-                attestation_qualification: "QEAA".parse().unwrap(),
                 attributes: complex_attributes().into(),
             },
         };
@@ -887,7 +863,6 @@ mod test {
                     "uri": "https://example.com/statuslists/1"
                 }
             },
-            "attestation_qualification": "QEAA",
             "cnf": {
                 "jwk": confirmation_key
             },
@@ -1093,7 +1068,6 @@ mod test {
             issuer: "https://issuer.example.com".parse().unwrap(),
             expires: Some(Utc.with_ymd_and_hms(2000, 1, 1, 0, 1, 1).unwrap().into()),
             not_before: Some(Utc.with_ymd_and_hms(1969, 1, 1, 0, 1, 1).unwrap().into()),
-            attestation_qualification: AttestationQualification::PubEAA,
             attributes: IndexMap::from([(String::from("attr1"), Attribute::Text(String::from("val1")))]).into(),
         };
 
@@ -1105,10 +1079,6 @@ mod test {
 
         let mut existing = new.clone();
         existing.issuer = "https://other_issuer.example.com".parse().unwrap();
-        assert!(!new.matches_existing(&existing, &epoch_generator));
-
-        let mut existing = new.clone();
-        existing.attestation_qualification = AttestationQualification::QEAA;
         assert!(!new.matches_existing(&existing, &epoch_generator));
 
         let mut existing = new.clone();

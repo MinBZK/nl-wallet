@@ -1,21 +1,34 @@
+mod authorization;
+mod envelope;
 mod payload;
 mod status;
 mod validation;
 
+pub use authorization::RegistrationCertificateAuthorizationError;
+pub use envelope::RegistrationCertificateEnvelope;
+pub use envelope::RegistrationCertificateEnvelopeError;
+pub use envelope::RegistrationCertificateEnvelopeParseError;
+pub use envelope::RegistrationCertificateJwtParseError;
+pub use envelope::VerifiedRegistrationCertificateEnvelope;
+pub use envelope::verify_registration_certificate_envelope;
 pub use payload::Credential;
 pub use payload::Intermediary;
 pub use payload::MultiLanguageString;
 pub use payload::MultiLanguageStringSet;
+pub use payload::ParsedRegistrationCertificate;
 pub use payload::SupervisoryAuthority;
 pub use payload::UncheckedRegistrationCertificate;
 pub use status::RegistrationCertificateStatus;
 pub use status::RegistrationCertificateStatusValidationError;
 pub use status::StatusValidatedRegistrationCertificate;
+pub use validation::BoundRegistrationCertificate;
 pub use validation::CredentialSetValidationError;
 pub use validation::MultiLanguageStringSetValidationError;
 pub use validation::RegistrationCertificateValidationError;
-pub use validation::StructurallyValidatedRegistrationCertificate;
 pub use validation::SubjectType;
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock;
 
 #[cfg(test)]
 mod test {
@@ -28,17 +41,17 @@ mod test {
     use serde_json::Value;
     use serde_json::json;
 
+    use super::BoundRegistrationCertificate;
+    use super::ParsedRegistrationCertificate;
     use super::StatusValidatedRegistrationCertificate;
-    use super::StructurallyValidatedRegistrationCertificate;
     use super::UncheckedRegistrationCertificate;
+    use super::mock::ANNEX_C_EXAMPLE;
+    use super::mock::STATUS_LIST_URI;
     use crate::x509::RelyingParty;
 
-    pub(super) const ANNEX_C_EXAMPLE: &str = include_str!("../../examples/spec/registration_certificate_annex_c.json");
-    pub(super) const STATUS_LIST_URI: &str = "https://example.com/statuslists/1";
-
-    impl fmt::Debug for StructurallyValidatedRegistrationCertificate {
+    impl fmt::Debug for BoundRegistrationCertificate {
         fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-            formatter.write_str("StructurallyValidatedRegistrationCertificate")
+            formatter.write_str("BoundRegistrationCertificate")
         }
     }
 
@@ -46,6 +59,16 @@ mod test {
         fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
             formatter.write_str("StatusValidatedRegistrationCertificate")
         }
+    }
+
+    impl fmt::Debug for ParsedRegistrationCertificate {
+        fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("ParsedRegistrationCertificate")
+        }
+    }
+
+    pub(super) fn valid_parsed_payload() -> ParsedRegistrationCertificate {
+        serde_json::from_value(valid_payload_json()).unwrap()
     }
 
     pub(super) fn valid_payload_json() -> Value {

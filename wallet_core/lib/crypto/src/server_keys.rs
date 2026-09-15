@@ -489,7 +489,7 @@ pub mod generate {
             pub fn generate_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(
                     ISSUANCE_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
+                    CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
                     [ISSUANCE_CERT_SAN_URI.clone()],
                 )
             }
@@ -497,7 +497,7 @@ pub mod generate {
             pub fn generate_pid_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(
                     PID_ISSUER_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
+                    CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
                     [PID_ISSUER_CERT_SAN_URI.clone()],
                 )
             }

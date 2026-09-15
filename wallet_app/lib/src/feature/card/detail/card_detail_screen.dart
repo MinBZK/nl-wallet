@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/card/status/card_status.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/wallet_card_detail.dart';
@@ -69,7 +70,7 @@ class CardDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         title: TitleText(_getTitle(context)),
-        actions: const [HelpIconButton()],
+        actions: [if (_showHelpButton(context)) const HelpIconButton()],
       ),
       key: const Key('cardDetailScreen'),
       body: SafeArea(
@@ -105,6 +106,19 @@ class CardDetailScreen extends StatelessWidget {
     final state = context.watch<CardDetailBloc>().state;
     final title = tryCast<CardDetailLoadSuccess>(state)?.detail.card.title.l10nValue(context);
     return title ?? cardTitle ?? context.l10n.cardDetailScreenFallbackTitle;
+  }
+
+  /// The other statuses are self-explanatory, so help is only offered where the card can't be relied on.
+  bool _showHelpButton(BuildContext context) {
+    final card = switch (context.watch<CardDetailBloc>().state) {
+      CardDetailLoadInProgress(:final card) => card,
+      CardDetailLoadSuccess(:final detail) => detail.card,
+      CardDetailInitial() || CardDetailLoadFailure() => null,
+    };
+    return switch (card?.status) {
+      CardStatusCorrupted() || CardStatusRevoked() || CardStatusUndetermined() => true,
+      _ => false,
+    };
   }
 
   Widget _buildBody(BuildContext context, CardDetailState state) {

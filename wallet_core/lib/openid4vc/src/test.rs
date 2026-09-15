@@ -11,7 +11,6 @@ use attestation_data::x509::generate::mock::generate_issuer_mock_with_registrati
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Days;
@@ -324,7 +323,6 @@ where
                     .san_dns_name_or_uris()
                     .unwrap()
                     .into_first(),
-                attestation_qualification: AttestationQualification::default(),
                 mdoc_namespace: None,
                 metadata_documents,
             };
