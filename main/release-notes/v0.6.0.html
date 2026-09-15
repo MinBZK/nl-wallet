@@ -369,6 +369,9 @@ result signing key.</p></li>
 renamed to <code class="docutils literal notranslate"><span class="pre">certificate_public_keys</span></code> and changed to be a map from key
 identifier (kid) to <code class="docutils literal notranslate"><span class="pre">key,</span> <span class="pre">created_at</span></code>. This allows multiple wallet certificat
 signing keys to be present in the Wallet configuration during key rollover.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">attestation_qualification</span></code> field has been removed from credentials, which
+means it is also removed from the <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> response and from
+issuer credential configuration.</p></li>
 </ul>
 </section>
 <section id="new-features">

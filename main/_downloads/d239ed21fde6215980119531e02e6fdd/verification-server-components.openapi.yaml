@@ -171,13 +171,6 @@ components:
           type: string
           format: uri
           description: URI of the issuer
-        attestation_qualification:
-          type: string
-          enum:
-            - QEAA
-            - PuB-EAA
-            - EAA
-          description: Qualification level of the attestation
         ca:
           type: string
           description: Certificate authority
@@ -190,7 +183,6 @@ components:
         - attestation_type
         - attributes
         - issuer_uri
-        - attestation_qualification
         - ca
         - issuance_validity
 

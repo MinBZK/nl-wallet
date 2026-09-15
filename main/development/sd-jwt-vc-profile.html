@@ -337,7 +337,7 @@ following mime-types are supported: <code class="docutils literal notranslate"><
 <ul class="simple">
 <li><p>All leaf values in the credential MUST be selectable by a claim in the
 <code class="docutils literal notranslate"><span class="pre">claims</span></code> section (excluding reserved claims). Reserved claims: <code class="docutils literal notranslate"><span class="pre">vct</span></code>, <code class="docutils literal notranslate"><span class="pre">cnf</span></code>,
-<code class="docutils literal notranslate"><span class="pre">iss</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">iat</span></code>, <code class="docutils literal notranslate"><span class="pre">sub</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">attestation_qualification</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">iss</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">iat</span></code>, <code class="docutils literal notranslate"><span class="pre">sub</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code>.</p></li>
 <li><p>Any credential containing values that are not selectable by one of the
 <code class="docutils literal notranslate"><span class="pre">claims</span></code> will be rejected.</p></li>
 </ul>
@@ -454,7 +454,7 @@ its attributes and Localized field labels) to an end user.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">claims</span></code> MUST be present in offered <a class="reference internal" href="#type-metadata">Type Metadata</a></p></li>
 <li><p>All values in the credential MUST be referenced by a <code class="docutils literal notranslate"><span class="pre">claim</span></code> in the <code class="docutils literal notranslate"><span class="pre">claims</span></code>
 section (excluding reserved claims: <code class="docutils literal notranslate"><span class="pre">vct</span></code>, <code class="docutils literal notranslate"><span class="pre">cnf</span></code>, <code class="docutils literal notranslate"><span class="pre">iss</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">iat</span></code>, <code class="docutils literal notranslate"><span class="pre">sub</span></code>,
-<code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">attestation_qualification</span></code>). See
+<code class="docutils literal notranslate"><span class="pre">status</span></code>). See
 <a class="reference internal" href="#claims-metadata">Claims Metadata</a>.</p></li>
 <li><p>Data that is selected by claims must be renderable for the Wallet App. A
 <code class="docutils literal notranslate"><span class="pre">claim</span></code> path must select a type that can be rendered. See
