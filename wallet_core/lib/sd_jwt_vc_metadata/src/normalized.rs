@@ -4,8 +4,6 @@ use std::num::NonZeroUsize;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::metadata::AttestationMetadata;
-use attestation_types::metadata::AttestationMetadataError;
-use attestation_types::metadata::ClaimDescription;
 use attestation_types::metadata::ClaimDisplayMetadata;
 use attestation_types::metadata::DisplayMetadata;
 use itertools::Either;
@@ -75,24 +73,6 @@ impl AttestationMetadata for NormalizedTypeMetadata {
             .iter()
             .filter(|claim| claim.mandatory)
             .map(|claim| &claim.path)
-    }
-
-    /// Note that this conversion is infallible. It also always yields display metadata, as a type metadata chain is
-    /// validated to contain it when it is normalized.
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<DisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
-        let claims = self
-            .claims
-            .into_iter()
-            .map(|claim| ClaimDescription {
-                path: claim.path,
-                display: claim.display,
-                svg_id: claim.svg_id.map(String::from),
-            })
-            .collect();
-
-        Ok((self.display.into_inner(), claims))
     }
 }
 
@@ -188,6 +168,12 @@ impl NormalizedTypeMetadata {
 
     pub fn claims(&self) -> &[ClaimMetadata] {
         &self.claims
+    }
+
+    /// Consume this metadata and return its display properties and claims. Note that the display properties are
+    /// guaranteed to be present, as a type metadata chain is validated to contain them when it is normalized.
+    pub fn into_display_and_claims(self) -> (VecNonEmpty<DisplayMetadata>, Vec<ClaimMetadata>) {
+        (self.display, self.claims)
     }
 }
 

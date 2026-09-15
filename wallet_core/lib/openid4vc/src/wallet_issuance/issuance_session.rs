@@ -9,9 +9,6 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::metadata::AttestationMetadata;
-use attestation_types::metadata::AttestationMetadataError;
-use attestation_types::metadata::ClaimDescription;
-use attestation_types::metadata::DisplayMetadata;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
@@ -360,15 +357,6 @@ impl AttestationMetadata for OfferedCredentialMetadata {
         match self {
             Self::TypeMetadata { normalized, .. } => Either::Left(normalized.mandatory_claims()),
             Self::CredentialMetadata(metadata) => Either::Right(metadata.mandatory_claims()),
-        }
-    }
-
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<DisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
-        match self {
-            Self::TypeMetadata { normalized, .. } => normalized.into_presentation_components(),
-            Self::CredentialMetadata(metadata) => metadata.into_presentation_components(),
         }
     }
 }

@@ -625,12 +625,62 @@ mod example_constructors {
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
+    use super::BackgroundImage;
     use super::CredentialClaim;
     use super::CredentialDisplay;
     use super::CredentialMetadata;
+    use super::Logo;
     use super::NameLocale;
 
+    /// A single transparent pixel, as a PNG.
+    const PIXEL_PNG_DATA_URI: &str =
+        "data:image/png;base64,\
+         iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+    fn example_claim(keys: &[&str], mandatory: bool) -> CredentialClaim {
+        CredentialClaim {
+            path: keys
+                .iter()
+                .map(|key| ClaimPath::SelectByKey(String::from(*key)))
+                .collect_vec()
+                .try_into()
+                .expect("claim path should not be empty"),
+            mandatory,
+            display: Some(vec_nonempty![NameLocale {
+                name: Some(format!("label for {}", keys.join("."))),
+                locale: Some(String::from("en")),
+            }]),
+        }
+    }
+
     impl CredentialMetadata {
+        /// Example Credential Metadata that populates every display property, including images, so that it covers the
+        /// full conversion to presentation components.
+        pub fn new_full_example() -> Self {
+            Self {
+                display: Some(vec_nonempty![CredentialDisplay {
+                    name_locale: NameLocale {
+                        name: Some(String::from("Example credential")),
+                        locale: Some(String::from("en")),
+                    },
+                    logo: Some(Logo {
+                        uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
+                        alt_text: Some(String::from("a single pixel")),
+                    }),
+                    description: Some(String::from("An example")),
+                    background_color: Some(String::from("#FFFFFF")),
+                    background_image: Some(BackgroundImage {
+                        uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
+                    }),
+                    text_color: Some(String::from("#000000")),
+                }]),
+                claims: Some(vec_nonempty![
+                    example_claim(&["birth_date"], true),
+                    example_claim(&["place_of_birth", "locality"], false),
+                ]),
+            }
+        }
+
         /// Example mdoc Credential Metadata describing the same claims as `type_metadata`. This lets a test that
         /// covers both formats derive the mdoc metadata from the Type Metadata it already has, instead of maintaining a
         /// second list of claim names by hand.
@@ -821,31 +871,6 @@ impl AttestationMetadata for CredentialMetadata {
             .filter(|claim| claim.mandatory)
             .map(|claim| &claim.path)
     }
-
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<DisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
-        // Note that metadata without any display properties or claims is deliberately not an error here, but rather a
-        // UI concern.
-        let display = self
-            .display
-            .map(|display| {
-                display
-                    .into_inner()
-                    .into_iter()
-                    .map(DisplayMetadata::try_from)
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .transpose()?
-            .unwrap_or_default();
-
-        let claims = self
-            .claims
-            .map(|claims| claims.into_inner().into_iter().map(ClaimDescription::from).collect())
-            .unwrap_or_default();
-
-        Ok((display, claims))
-    }
 }
 
 impl TryFrom<CredentialDisplay> for DisplayMetadata {
@@ -958,11 +983,7 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::attributes::AttributesError;
     use attestation_types::claim_path::ClaimPath;
-    use attestation_types::image::Image;
     use attestation_types::metadata::AttestationMetadata;
-    use attestation_types::metadata::AttestationMetadataError;
-    use attestation_types::metadata::ClaimDisplayMetadata;
-    use attestation_types::metadata::RenderingMetadata;
     use chrono::DateTime;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
@@ -975,9 +996,7 @@ mod tests {
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
-    use super::BackgroundImage;
     use super::CoseAlgorithmIdentifier;
-    use super::CredentialClaim;
     use super::CredentialConfiguration;
     use super::CredentialDisplay;
     use super::CredentialFormat;
@@ -987,7 +1006,6 @@ mod tests {
     use super::JoinCredentialConfigurationId;
     use super::JwsAlgorithm;
     use super::KnownCoseAlgorithmIdentifier;
-    use super::Logo;
     use super::NameLocale;
     use super::SignedIssuerMetadataPayload;
     use crate::jwe::JweCompressionAlgorithm;
@@ -1625,11 +1643,6 @@ mod tests {
         );
     }
 
-    /// A single transparent pixel, as a PNG.
-    const PIXEL_PNG_DATA_URI: &str =
-        "data:image/png;base64,\
-         iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-
     fn key_path(keys: &[&str]) -> VecNonEmpty<ClaimPath> {
         keys.iter()
             .map(|key| ClaimPath::SelectByKey(String::from(*key)))
@@ -1638,45 +1651,9 @@ mod tests {
             .unwrap()
     }
 
-    fn claim(keys: &[&str], mandatory: bool) -> CredentialClaim {
-        CredentialClaim {
-            path: key_path(keys),
-            mandatory,
-            display: Some(vec_nonempty![NameLocale {
-                name: Some(format!("label for {}", keys.join("."))),
-                locale: Some(String::from("en")),
-            }]),
-        }
-    }
-
-    fn example_metadata() -> CredentialMetadata {
-        CredentialMetadata {
-            display: Some(vec_nonempty![CredentialDisplay {
-                name_locale: NameLocale {
-                    name: Some(String::from("Example credential")),
-                    locale: Some(String::from("en")),
-                },
-                logo: Some(Logo {
-                    uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
-                    alt_text: Some(String::from("a single pixel")),
-                }),
-                description: Some(String::from("An example")),
-                background_color: Some(String::from("#FFFFFF")),
-                background_image: Some(BackgroundImage {
-                    uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
-                }),
-                text_color: Some(String::from("#000000")),
-            }]),
-            claims: Some(vec_nonempty![
-                claim(&["birth_date"], true),
-                claim(&["place_of_birth", "locality"], false),
-            ]),
-        }
-    }
-
     #[test]
     fn test_credential_metadata_claim_paths() {
-        let metadata = example_metadata();
+        let metadata = CredentialMetadata::new_full_example();
 
         assert_eq!(
             metadata.claim_key_paths().collect::<Vec<_>>(),
@@ -1688,94 +1665,7 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_credential_metadata_presentation_components() {
-        let (display, claims) = example_metadata()
-            .into_presentation_components()
-            .expect("credential metadata should convert to presentation components");
-
-        let display = display.into_iter().next().expect("display should contain one entry");
-        assert_eq!(display.locale, "en");
-        assert_eq!(display.name, "Example credential");
-        assert_eq!(display.description.as_deref(), Some("An example"));
-        // The Credential Issuer metadata has no equivalent of a templated summary.
-        assert!(display.summary.is_none());
-
-        let rendering = display.rendering.expect("display should contain rendering metadata");
-        assert_matches!(
-            rendering,
-            RenderingMetadata::Simple {
-                logo: Some(logo),
-                background_image: Some(background_image),
-                background_color: Some(background_color),
-                text_color: Some(text_color),
-            } if matches!(logo.image, Image::Png(_))
-                && logo.alt_text.as_ref() == "a single pixel"
-                && matches!(background_image.image, Image::Png(_))
-                && background_color == "#FFFFFF"
-                && text_color == "#000000"
-        );
-
-        assert_eq!(
-            claims.iter().map(|claim| claim.path.clone()).collect::<Vec<_>>(),
-            vec![key_path(&["birth_date"]), key_path(&["place_of_birth", "locality"])]
-        );
-        assert_eq!(
-            claims.first().unwrap().display,
-            vec![ClaimDisplayMetadata {
-                locale: String::from("en"),
-                label: String::from("label for birth_date"),
-                description: None,
-            }]
-        );
-        // Only SD-JWT VC Type Metadata provides SVG template identifiers.
-        assert!(claims.iter().all(|claim| claim.svg_id.is_none()));
-    }
-
-    /// Metadata that describes no display properties is not an error, as it is up to the UI to decide what to render.
-    #[test]
-    fn test_credential_metadata_without_display() {
-        let metadata = CredentialMetadata {
-            display: None,
-            claims: Some(vec_nonempty![claim(&["birth_date"], false)]),
-        };
-
-        let (display, claims) = metadata
-            .into_presentation_components()
-            .expect("credential metadata without display should convert");
-
-        assert!(display.is_empty());
-        assert_eq!(claims.len(), 1);
-    }
-
-    #[test]
-    fn test_credential_metadata_presentation_components_error_external_logo() {
-        let metadata = CredentialMetadata {
-            display: Some(vec_nonempty![CredentialDisplay {
-                name_locale: NameLocale {
-                    name: Some(String::from("Example credential")),
-                    locale: Some(String::from("en")),
-                },
-                // Only images that are embedded in the URI are accepted.
-                logo: Some(Logo {
-                    uri: "https://example.com/logo.png".parse().unwrap(),
-                    alt_text: None,
-                }),
-                description: None,
-                background_color: None,
-                background_image: None,
-                text_color: None,
-            }]),
-            claims: None,
-        };
-
-        let error = metadata
-            .into_presentation_components()
-            .expect_err("credential metadata with an externally hosted logo should not convert");
-
-        assert_matches!(error, AttestationMetadataError::ImageDataUri(_));
-    }
-
+    /// Metadata that describes no claims cannot validate any attributes, regardless of its display properties.
     #[test]
     fn test_credential_metadata_without_claims() {
         let metadata = CredentialMetadata {
@@ -1795,22 +1685,6 @@ mod tests {
 
         assert_eq!(metadata.claim_key_paths().count(), 0);
 
-        let (display, claims) = metadata
-            .clone()
-            .into_presentation_components()
-            .expect("credential metadata without claims should convert");
-
-        // Rendering metadata is only present if any of its properties is.
-        assert!(
-            display
-                .into_iter()
-                .next()
-                .expect("display should contain one entry")
-                .rendering
-                .is_none()
-        );
-        assert!(claims.is_empty());
-
         let error = Attributes::example([(["birth_date"], Attribute::Text(String::from("1963-08-12")))])
             .validate(&metadata)
             .expect_err("attributes should not validate against metadata without claims");
@@ -1820,7 +1694,7 @@ mod tests {
 
     #[test]
     fn test_credential_metadata_validate_attributes() {
-        let metadata = example_metadata();
+        let metadata = CredentialMetadata::new_full_example();
 
         Attributes::example([
             (vec!["birth_date"], Attribute::Text(String::from("1963-08-12"))),

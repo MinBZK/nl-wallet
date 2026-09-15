@@ -36,11 +36,6 @@ pub trait AttestationMetadata {
 
     /// The paths of all claims the issuer is required to include in the attestation.
     fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>>;
-
-    /// Decompose this metadata into the parts needed to present the attestation to the user.
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<DisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError>;
 }
 
 /// The description of a single claim of an attestation, independent of the kind of metadata it was derived from.

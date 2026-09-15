@@ -5,13 +5,8 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::metadata::AttestationMetadata;
-use attestation_types::metadata::AttestationMetadataError;
-use attestation_types::metadata::ClaimDescription;
-use attestation_types::metadata::DisplayMetadata;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::KeyIdentifier;
-use itertools::Either;
 use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::MissingAttributesError;
@@ -28,6 +23,7 @@ use crate::AttestationIdentity;
 use crate::AttestationPresentation;
 use crate::attestation::AttestationPresentationConfig;
 use crate::attestation::AttestationValidity;
+use crate::attestation::metadata::AttestationDisplay;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PartialAttestationError {
@@ -61,31 +57,6 @@ pub enum StoredAttestation {
 pub enum StoredAttestationMetadata {
     TypeMetadata(NormalizedTypeMetadata),
     CredentialMetadata(CredentialMetadata),
-}
-
-impl AttestationMetadata for StoredAttestationMetadata {
-    fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
-        match self {
-            Self::TypeMetadata(metadata) => Either::Left(metadata.claim_key_paths()),
-            Self::CredentialMetadata(metadata) => Either::Right(metadata.claim_key_paths()),
-        }
-    }
-
-    fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
-        match self {
-            Self::TypeMetadata(metadata) => Either::Left(metadata.mandatory_claims()),
-            Self::CredentialMetadata(metadata) => Either::Right(metadata.mandatory_claims()),
-        }
-    }
-
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<DisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
-        match self {
-            Self::TypeMetadata(metadata) => metadata.into_presentation_components(),
-            Self::CredentialMetadata(metadata) => metadata.into_presentation_components(),
-        }
-    }
 }
 
 /// An instance of an attestation copy as it is contained in the wallet database, which contains both the column id for
@@ -126,7 +97,7 @@ fn attestation_presentation_from_issuer_signed(
     issuer_signed: IssuerSigned,
     attestation_id: Uuid,
     attestation_type: String,
-    metadata: impl AttestationMetadata,
+    metadata: impl AttestationDisplay,
     issuer_organization: Box<Organization>,
     validity: AttestationValidity,
     config: &impl AttestationPresentationConfig,
@@ -148,7 +119,7 @@ fn attestation_presentation_from_sd_jwt(
     sd_jwt: &VerifiedSdJwt,
     attestation_id: Uuid,
     attestation_type: String,
-    metadata: impl AttestationMetadata,
+    metadata: impl AttestationDisplay,
     issuer_organization: Box<Organization>,
     validity: AttestationValidity,
     config: &impl AttestationPresentationConfig,
@@ -496,10 +467,10 @@ mod tests {
     use super::PartialAttestation;
     use super::StoredAttestation;
     use super::StoredAttestationCopy;
-    use super::StoredAttestationMetadata;
     use super::WithKeyIdentifier;
     use crate::attestation::AttestationAttribute;
     use crate::config::test::test_wallet_config;
+    use crate::storage::StoredAttestationMetadata;
 
     static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);
 

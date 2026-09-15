@@ -4,7 +4,6 @@ use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::metadata::AttestationMetadata;
 use indexmap::IndexMap;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
@@ -18,13 +17,14 @@ use super::AttestationIdentity;
 use super::AttestationPresentation;
 use super::AttestationPresentationConfig;
 use super::AttestationValidity;
+use crate::attestation::metadata::AttestationDisplay;
 
 impl AttestationPresentation {
     #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(crate) fn create_from_mdoc(
         identity: AttestationIdentity,
         attestation_type: String,
-        metadata: impl AttestationMetadata,
+        metadata: impl AttestationDisplay,
         issuer_organization: Box<Organization>,
         validity: AttestationValidity,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
@@ -48,7 +48,7 @@ impl AttestationPresentation {
     pub(crate) fn create_from_sd_jwt_claims(
         identity: AttestationIdentity,
         attestation_type: String,
-        metadata: impl AttestationMetadata,
+        metadata: impl AttestationDisplay,
         issuer_organization: Box<Organization>,
         validity: AttestationValidity,
         sd_jwt_claims: ObjectClaims,
@@ -74,7 +74,7 @@ impl AttestationPresentation {
         identity: AttestationIdentity,
         format: Format,
         attestation_type: String,
-        metadata: impl AttestationMetadata,
+        metadata: impl AttestationDisplay,
         issuer: Box<Organization>,
         validity: AttestationValidity,
         nested_attributes: &Attributes,

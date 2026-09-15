@@ -1,4 +1,5 @@
 mod attribute;
+pub(crate) mod metadata;
 
 use std::collections::HashSet;
 
