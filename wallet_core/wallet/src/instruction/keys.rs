@@ -25,7 +25,7 @@ use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::registration::WalletCertificate;
-use wscd::issuance::IssuanceKeyresult;
+use wscd::issuance::IssuanceKeyResult;
 use wscd::issuance::IssuanceWscd;
 use wscd::payload::poa::Poa;
 use wscd::payload::wia::WiaDisclosure;
@@ -133,14 +133,14 @@ fn build_perform_issuance_instruction(
     PerformIssuance { aud, key_requests }
 }
 
-fn key_results_from_issuance_result(result: PerformIssuanceResult) -> VecNonEmpty<VecNonEmpty<IssuanceKeyresult>> {
+fn key_results_from_issuance_result(result: PerformIssuanceResult) -> VecNonEmpty<VecNonEmpty<IssuanceKeyResult>> {
     result
         .keys
         .into_nonempty_iter()
         .map(|proofs| {
             proofs
                 .into_nonempty_iter()
-                .map(|proof| IssuanceKeyresult::new(proof.key_identifier, proof.pop))
+                .map(|proof| IssuanceKeyResult::new(proof.key_identifier, proof.pop))
                 .collect()
         })
         .collect()
@@ -159,7 +159,7 @@ where
         &self,
         aud: String,
         key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error> {
+    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
         let issuance_result = self
             .instruction_client
             .send(build_perform_issuance_instruction(aud, key_counts_and_nonces))
@@ -243,7 +243,7 @@ where
         &self,
         aud: String,
         key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error> {
+    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
         let result = self
             .instruction_client
             .send(StartPinRecovery {

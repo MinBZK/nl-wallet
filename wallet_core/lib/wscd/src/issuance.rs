@@ -8,7 +8,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::payload::jwt_proof::JwtProof;
 
 #[derive(Debug, Constructor)]
-pub struct IssuanceKeyresult {
+pub struct IssuanceKeyResult {
     pub key_identifier: String,
     pub pop: JwtProof,
 }
@@ -27,5 +27,5 @@ pub trait IssuanceWscd {
         &self,
         aud: String,
         key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error>;
+    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error>;
 }

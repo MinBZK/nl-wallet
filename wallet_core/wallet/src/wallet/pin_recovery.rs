@@ -530,7 +530,7 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificate;
-    use wscd::issuance::IssuanceKeyresult;
+    use wscd::issuance::IssuanceKeyResult;
     use wscd::issuance::IssuanceWscd;
 
     use super::PinRecoveryError;
@@ -1059,7 +1059,7 @@ mod tests {
             &self,
             _aud: String,
             _key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error> {
+        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
             unimplemented!()
         }
     }

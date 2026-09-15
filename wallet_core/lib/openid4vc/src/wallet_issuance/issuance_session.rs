@@ -50,7 +50,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::issuance::IssuanceKeyresult;
+use wscd::issuance::IssuanceKeyResult;
 use wscd::issuance::IssuanceWscd;
 use wscd::payload::wia::WIA_HEADER_NAME;
 use wscd::payload::wia::WIA_POP_HEADER_NAME;
@@ -798,7 +798,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         &self,
         identifier: CredentialRequestIdentifier,
         credential_preview: &CredentialPreview,
-        keys: VecNonEmpty<IssuanceKeyresult>,
+        keys: VecNonEmpty<IssuanceKeyResult>,
         dpop_nonce: Option<DpopNonce>,
         trust_anchors: &TrustAnchors,
     ) -> Result<CredentialWithMetadata, WalletIssuanceError> {
@@ -807,7 +807,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         // copies.
         let (key_ids_and_public_keys, proofs): (VecNonEmpty<_>, _) = keys
             .into_nonempty_iter()
-            .map(|IssuanceKeyresult { key_identifier, pop }| {
+            .map(|IssuanceKeyResult { key_identifier, pop }| {
                 // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
                 let header = pop
                     .dangerous_parse_header_unverified()

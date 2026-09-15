@@ -21,7 +21,7 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::issuance::IssuanceKeyresult;
+use crate::issuance::IssuanceKeyResult;
 use crate::issuance::IssuanceWscd;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::payload::jwt_proof::JwtProofClaims;
@@ -118,7 +118,7 @@ impl IssuanceWscd for MockRemoteWscd {
         &self,
         aud: String,
         key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyresult>>, Self::Error> {
+    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
         let time = MockTimeGenerator::default();
         let mut signing_keys = self.disclosure.signing_keys.lock();
 
@@ -142,7 +142,7 @@ impl IssuanceWscd for MockRemoteWscd {
 
                         signing_keys.insert(identifier.clone(), key);
 
-                        IssuanceKeyresult::new(identifier, pop)
+                        IssuanceKeyResult::new(identifier, pop)
                     })
                     .collect()
             })
