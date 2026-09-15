@@ -116,7 +116,7 @@ Rendering using `svg_templates` is not supported.
 
 - All leaf values in the credential MUST be selectable by a claim in the
   `claims` section (excluding reserved claims). Reserved claims: `vct`, `cnf`,
-  `iss`, `exp`, `iat`, `sub`, `status`.
+  `exp`, `iat`, `sub`, `status`.
 - Any credential containing values that are not selectable by one of the
   `claims` will be rejected.
 
@@ -208,7 +208,7 @@ _Implication_
 - `display` metadata is required for both the Type and Claims metadata.
 - `claims` MUST be present in offered [Type Metadata](#type-metadata)
 - All values in the credential MUST be referenced by a `claim` in the `claims`
-  section (excluding reserved claims: `vct`, `cnf`, `iss`, `exp`, `iat`, `sub`,
+  section (excluding reserved claims: `vct`, `cnf`, `exp`, `iat`, `sub`,
   `status`). See
   [Claims Metadata](#claims-metadata).
 - Data that is selected by claims must be renderable for the Wallet App. A

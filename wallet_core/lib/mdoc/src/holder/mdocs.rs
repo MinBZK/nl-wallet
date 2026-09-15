@@ -98,7 +98,6 @@ mod test {
     use crypto::CredentialEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
-    use http_utils::urls::HttpsUri;
     use indexmap::IndexMap;
     use ssri::Integrity;
     use utils::generator::Generator;
@@ -121,10 +120,8 @@ mod test {
             Self { mso, issuer_signed }
         }
 
-        #[expect(clippy::too_many_arguments)]
         pub async fn new_unverified_from_data(
             doc_type: String,
-            issuer_uri: HttpsUri,
             name_spaces: IndexMap<String, Vec<Entry>>,
             metadata_integrity: Integrity,
             ca: &Ca,
@@ -152,7 +149,6 @@ mod test {
                     valid_until: (time + TimeDelta::days(365)).into(),
                     expected_update: None,
                 },
-                issuer_uri: Some(issuer_uri),
                 status: Some(StatusClaim::new_mock()),
                 type_metadata_integrity: Some(metadata_integrity),
             };
@@ -191,7 +187,6 @@ pub mod mock {
     use crypto::CredentialEcdsaKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
     use crypto::trust_anchor::TrustAnchors;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
@@ -246,7 +241,6 @@ pub mod mock {
 
             Self::new_unverified_from_data(
                 PID_ATTESTATION_TYPE.to_string(),
-                ISSUANCE_CERT_SAN_URI.clone().into(),
                 IndexMap::from_iter(vec![(
                     PID_ATTESTATION_TYPE.to_string(),
                     vec![

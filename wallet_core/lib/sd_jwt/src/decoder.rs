@@ -193,7 +193,6 @@ mod test {
     fn sd_alg() {
         let object = json!({
             "vct": "com.example.pid",
-            "iss": "https://issuer.url/",
             "iat": 1683000000,
             "id": "did:value",
             "claim1": [

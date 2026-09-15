@@ -553,11 +553,7 @@ impl PreparedCredential {
         let valid_until = now.add(credential_config.valid_days);
 
         let format = issuable_document.credential_kind.format;
-        let (id, credential_payload) = issuable_document.into_id_and_previewable_credential_payload(
-            now,
-            valid_until,
-            credential_config.issuer_uri.clone(),
-        );
+        let (id, credential_payload) = issuable_document.into_id_and_previewable_credential_payload(now, valid_until);
 
         let credential = Self {
             id,

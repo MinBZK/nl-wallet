@@ -15,7 +15,6 @@ use chrono::Utc;
 use ciborium::tag;
 use ciborium::value::Value;
 use crypto::utils::random_bytes;
-use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use nutype::nutype;
@@ -270,10 +269,6 @@ pub struct MobileSecurityObject {
     /// docType as used in Documents
     pub doc_type: DocType,
     pub validity_info: ValidityInfo,
-
-    /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate.
-    /// Optional because it is not in the spec.
-    pub issuer_uri: Option<HttpsUri>,
 
     /// Optional because it is not in the spec.
     pub status: Option<StatusClaim>,

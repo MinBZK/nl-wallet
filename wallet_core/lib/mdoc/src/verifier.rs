@@ -8,7 +8,6 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use crypto::x509::KeyIdentifier;
 use futures::future::try_join_all;
-use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::SecretKey;
@@ -37,7 +36,6 @@ use crate::utils::serialization::cbor_serialize;
 pub struct DisclosedDocument {
     pub doc_type: String,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
-    pub issuer_uri: HttpsUri,
     pub ca: String,
     pub validity_info: ValidityInfo,
     pub revocation_status: Option<RevocationStatus>,
@@ -48,7 +46,6 @@ pub struct DisclosedDocument {
 #[derive(Debug, Clone)]
 pub struct IssuerSignedVerificationResult {
     pub mso: MobileSecurityObject,
-    pub issuer_uri: HttpsUri,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub ca_common_name: String,
 }
@@ -75,10 +72,6 @@ pub enum VerificationError {
     Validity(#[from] ValidityError),
     #[error("unexpected amount of CA Common Names in issuer certificate: expected 1, found {0}")]
     UnexpectedCACommonNameCount(usize),
-    #[error("issuer URI {0} not found in SAN {1:?}")]
-    IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
-    #[error("missing issuer URI")]
-    MissingIssuerUri,
     #[error("unsupported algorithm: {0:?}")]
     UnsupportedAlgorithm(RegisteredLabelWithPrivate<Algorithm>),
     #[error("missing algorithm")]
@@ -257,15 +250,8 @@ impl IssuerSigned {
             .exactly_one()
             .map_err(|error| VerificationError::UnexpectedCACommonNameCount(error.into_iter().len()))?;
 
-        let san_dns_name_or_uris = signing_cert.san_dns_name_or_uris()?;
-        let issuer_uri = mso.issuer_uri.clone().ok_or(VerificationError::MissingIssuerUri)?;
-        if !san_dns_name_or_uris.as_ref().contains(&issuer_uri) {
-            return Err(VerificationError::IssuerUriNotFoundInSan(issuer_uri, san_dns_name_or_uris).into());
-        }
-
         let result = IssuerSignedVerificationResult {
             mso,
-            issuer_uri,
             attributes,
             ca_common_name: ca_common_name.to_string(),
         };
@@ -330,7 +316,6 @@ impl Document {
         debug!("verify issuer_signed");
         let IssuerSignedVerificationResult {
             mso,
-            issuer_uri,
             attributes,
             ca_common_name,
         } = self
@@ -396,7 +381,6 @@ impl Document {
         let disclosed_document = DisclosedDocument {
             doc_type: mso.doc_type,
             attributes,
-            issuer_uri,
             ca: ca_common_name,
             validity_info: mso.validity_info,
             revocation_status,

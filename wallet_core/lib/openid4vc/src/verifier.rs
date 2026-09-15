@@ -1936,7 +1936,6 @@ mod tests {
             attestations: vec_nonempty![DisclosedAttestation {
                 attestation_type: "attestation_type".to_string(),
                 attributes: DisclosedAttributes::MsoMdoc(Default::default()),
-                issuer_uri: "https://issuer.example.com".parse().unwrap(),
                 ca: "ca".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
                 revocation_status: Some(RevocationStatus::Valid),

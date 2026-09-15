@@ -11,7 +11,6 @@ use crypto::EcdsaKey;
 use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use error_category::ErrorCategory;
-use http_utils::urls::HttpsUri;
 use jwt::confirmation::ConfirmationClaim;
 use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_from_public_key;
@@ -62,10 +61,6 @@ pub enum PreviewableCredentialPayloadFromMdocError {
     #[category(critical)]
     DateConversion(#[source] chrono::ParseError),
 
-    #[error("mdoc is missing issuer URI")]
-    #[category(critical)]
-    MissingIssuerUri,
-
     #[error("attributes error: {0}")]
     #[category(pd)]
     InvalidAttributes(#[source] AttributesError),
@@ -86,9 +81,6 @@ pub struct PreviewableCredentialPayload {
     #[serde(rename = "vct")]
     pub attestation_type: String,
 
-    #[serde(rename = "iss")]
-    pub issuer: HttpsUri,
-
     #[serde(rename = "exp")]
     pub expires: Option<DateTimeSeconds>,
 
@@ -106,10 +98,7 @@ impl PreviewableCredentialPayload {
         time: &impl Generator<DateTime<Utc>>,
     ) -> bool {
         // Compare all fields except `not_before`
-        if self.attestation_type == existing.attestation_type
-            && self.issuer == existing.issuer
-            && self.attributes == existing.attributes
-        {
+        if self.attestation_type == existing.attestation_type && self.attributes == existing.attributes {
             // - If `not_before` are equal as well, they definitely match
             // - If not, it is only considered a match if `not_before` from the new preview (self) is in the past
             return self.not_before == existing.not_before
@@ -331,7 +320,6 @@ impl CredentialPayload {
             expires,
             attributes,
             attestation_type,
-            issuer,
         } = previewable_payload;
 
         let validity = mdoc::ValidityInfo {
@@ -373,7 +361,6 @@ impl CredentialPayload {
                 .map_err(CredentialPayloadIntoSignedMdocError::CborConversion)?,
             device_key_info: cose_pubkey.into(),
             validity_info: validity,
-            issuer_uri: Some(issuer),
             status: Some(status),
             type_metadata_integrity: Some(vct_integrity),
         };
@@ -426,7 +413,6 @@ impl SplitCredential {
 
         let previewable = PreviewableCredentialPayload {
             attestation_type: claims.vct,
-            issuer: claims.iss,
             expires: claims.exp,
             not_before: claims.nbf,
             attributes,
@@ -454,9 +440,6 @@ impl SplitCredential {
 
         let previewable = PreviewableCredentialPayload {
             attestation_type: mso.doc_type,
-            issuer: mso
-                .issuer_uri
-                .ok_or(PreviewableCredentialPayloadFromMdocError::MissingIssuerUri)?,
             expires: Some(
                 (&mso.validity_info.valid_until)
                     .try_into()
@@ -495,7 +478,6 @@ impl TryFrom<CredentialPayload> for SdJwtVcClaims {
         Ok(SdJwtVcClaims {
             vct: value.previewable_payload.attestation_type,
             vct_integrity: Some(value.vct_integrity),
-            iss: value.previewable_payload.issuer,
             iat: value.issued_at,
             exp: value.previewable_payload.expires,
             nbf: value.previewable_payload.not_before,
@@ -510,7 +492,6 @@ impl TryFrom<CredentialPayload> for SdJwtVcClaims {
 
 #[cfg(any(test, feature = "example_credential_payloads"))]
 mod examples {
-    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::DateTime;
     use chrono::Duration;
@@ -577,16 +558,8 @@ mod examples {
         pub fn example_empty(attestation_type: &str, time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             let time = time_generator.generate();
 
-            let issuer = match attestation_type {
-                PID_ATTESTATION_TYPE | ADDRESS_ATTESTATION_TYPE => "https://pid.example.com",
-                _ => "https://issuer.example.com",
-            }
-            .parse()
-            .unwrap();
-
             Self {
                 attestation_type: attestation_type.to_string(),
-                issuer,
                 expires: Some((time + Duration::days(365)).into()),
                 not_before: Some((time - Duration::days(1)).into()),
                 attributes: Attributes::default(),
@@ -845,7 +818,6 @@ mod test {
             status: StatusClaim::new_mock(),
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: String::from("com.example.pid"),
-                issuer: "https://com.example.org/pid/issuer".parse().unwrap(),
                 expires: None,
                 not_before: None,
                 attributes: complex_attributes().into(),
@@ -855,7 +827,6 @@ mod test {
         let expected_json = json!({
             "vct": "com.example.pid",
             "vct#integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
-            "iss": "https://com.example.org/pid/issuer",
             "iat": 61,
             "status": {
                 "status_list": {
@@ -1065,7 +1036,6 @@ mod test {
 
         let mut new = PreviewableCredentialPayload {
             attestation_type: String::from("att_type_1"),
-            issuer: "https://issuer.example.com".parse().unwrap(),
             expires: Some(Utc.with_ymd_and_hms(2000, 1, 1, 0, 1, 1).unwrap().into()),
             not_before: Some(Utc.with_ymd_and_hms(1969, 1, 1, 0, 1, 1).unwrap().into()),
             attributes: IndexMap::from([(String::from("attr1"), Attribute::Text(String::from("val1")))]).into(),
@@ -1075,10 +1045,6 @@ mod test {
         assert!(new.matches_existing(&existing, &epoch_generator));
 
         existing.attestation_type = String::from("att_type_2");
-        assert!(!new.matches_existing(&existing, &epoch_generator));
-
-        let mut existing = new.clone();
-        existing.issuer = "https://other_issuer.example.com".parse().unwrap();
         assert!(!new.matches_existing(&existing, &epoch_generator));
 
         let mut existing = new.clone();

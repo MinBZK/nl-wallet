@@ -204,7 +204,6 @@ mod tests {
             attestations: vec_nonempty![DisclosedAttestation {
                 attestation_type,
                 attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
-                issuer_uri: "https://example.com".parse().unwrap(),
                 ca: "ca".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
                 revocation_status: Some(RevocationStatus::Valid),
@@ -271,7 +270,6 @@ mod tests {
             .unwrap(),
             status_list,
             valid_days: Days::new(1),
-            issuer_uri: "https://example.com".parse().unwrap(),
             mdoc_namespace: None,
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };

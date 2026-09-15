@@ -9,7 +9,6 @@ use dcql::CredentialQueryIdentifier;
 use dcql::disclosure::DisclosedCredential;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::unique_id_vec::MayHaveUniqueId;
-use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use mdoc::DataElementIdentifier;
@@ -97,15 +96,13 @@ impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValu
     }
 }
 
-/// Attestation that was disclosed; consisting of attributes, validity information, issuer URI and the issuer CA's
-/// common name.
+/// Attestation that was disclosed; consisting of attributes, validity information and the issuer CA's common name.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct DisclosedAttestation {
     pub attestation_type: String,
     #[serde(flatten)]
     pub attributes: DisclosedAttributes,
-    pub issuer_uri: HttpsUri,
 
     /// The issuer CA's common name
     pub ca: String,
@@ -137,7 +134,6 @@ impl TryFrom<DisclosedDocument> for DisclosedAttestation {
         Ok(DisclosedAttestation {
             attestation_type: doc.doc_type,
             attributes: doc.attributes.try_into()?,
-            issuer_uri: doc.issuer_uri,
             ca: doc.ca,
             issuance_validity: (&doc.validity_info).try_into()?,
             revocation_status: doc.revocation_status,
@@ -178,7 +174,6 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
         Ok(DisclosedAttestation {
             attestation_type: claims.vct,
             attributes,
-            issuer_uri: claims.iss,
             ca,
             issuance_validity,
             revocation_status,
@@ -201,8 +196,8 @@ pub enum DisclosedAttestationError {
     #[error("missing issuer certificate in SD JWT")]
     MissingIssuerCertificate,
 
-    #[error("issuer common name in SD JWT issuer certificate is not a string")]
-    IssuerCommonNameNotAString(#[from] CertificateError),
+    #[error("error reading issuer certificate: {0}")]
+    Certificate(#[from] CertificateError),
 
     #[error("empty issuer common name in SD JWT issuer certificate")]
     EmptyIssuerCommonName,
@@ -342,7 +337,6 @@ mod test {
                         .map(|attribute| (attribute.to_string(), Attribute::Null))
                         .collect(),
                 )])),
-                issuer_uri: "https://example.com".parse().unwrap(),
                 ca: "Example CA".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
@@ -363,7 +357,6 @@ mod test {
                     ])
                     .into(),
                 ),
-                issuer_uri: "https://example.com".parse().unwrap(),
                 ca: "Example CA".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
@@ -433,7 +426,6 @@ mod test {
     #[case(json!([
         {
             "attestation_type": "com.example.pid",
-            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -452,7 +444,6 @@ mod test {
         },
         {
             "attestation_type": "com.example.address",
-            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -473,7 +464,6 @@ mod test {
     #[case(json!([
         {
             "attestation_type": "com.example.pid",
-            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -492,7 +482,6 @@ mod test {
         },
         {
             "attestation_type": "com.example.address",
-            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -517,7 +506,6 @@ mod test {
     #[case(json!([
         {
             "attestation_type": "com.example.pid",
-            "issuer_uri": "https://pid.example.com",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
