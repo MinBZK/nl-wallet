@@ -117,7 +117,7 @@ use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
-use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
+use wscd::mock::MOCK_WALLET_CLIENT_ID;
 
 use crate::logging::init_logging;
 use crate::utils::read_file;

@@ -1,4 +1,4 @@
-use std::num::NonZeroUsize;
+use std::num::NonZeroU8;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -9,11 +9,8 @@ use derive_more::Constructor;
 use jwt::JwtSub;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
-use jwt::headers::HeaderWithJwk;
 use jwt::headers::HeaderWithKid;
 use jwt::nonce::Nonce;
-use jwt::pop::JwtPopClaims;
-use jwt::wia::WiaDisclosure;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use semver::Version;
 use serde::Deserialize;
@@ -23,7 +20,9 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
-use wscd::Poa;
+use wscd::payload::jwt_proof::JwtProof;
+use wscd::payload::poa::Poa;
+use wscd::payload::wia::WiaDisclosure;
 
 use super::registration::WalletCertificate;
 use crate::messages::transfer::TransferSessionState;
@@ -160,19 +159,34 @@ impl InstructionAndResult for StartPinRecovery {
 
 // PerformIssuance instruction.
 
-#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuance {
-    pub key_count: NonZeroUsize,
     pub aud: String,
-    pub nonce: Option<Nonce>,
+    pub key_requests: VecNonEmpty<IssuanceKeySetRequest>,
 }
 
-#[serde_as]
+/// A request for the creation of a set of keys and for each key a proof that optionally contains a provided nonce, as
+/// part of the [`PerformIssuance`] instruction.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssuanceKeySetRequest {
+    pub key_count: NonZeroU8,
+    pub proof_nonce: Option<Nonce>,
+}
+
+/// The result of a [`PerformIssuance`] issuance instruction, which contains a 2-dimensional list of per-key results in
+/// the form [`IssuanceKeyResult`]. The outer list refers to the inciting instruction's [`IssuanceKeySetRequest`]s and
+/// the inner list refers to number of individual keys requested.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuanceResult {
-    pub key_identifiers: VecNonEmpty<String>,
-    pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
+    pub keys: VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>,
+}
+
+/// Part of [`PerformIssuanceResult`], reflects the result of the generation of a particular key, consisting of both the
+/// identifier for that key and a cryptographic proof, which contains the requested nonce, if provided.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssuanceKeyResult {
+    pub key_identifier: String,
+    pub pop: JwtProof,
 }
 
 impl InstructionAndResult for PerformIssuance {

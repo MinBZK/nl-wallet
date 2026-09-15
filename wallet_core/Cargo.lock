@@ -4498,7 +4498,6 @@ dependencies = [
  "thiserror 2.0.17",
  "tokio",
  "tokio-test",
- "tracing",
  "utils",
 ]
 
@@ -10206,7 +10205,6 @@ dependencies = [
  "hsm",
  "http",
  "http_utils",
- "jwt",
  "log",
  "metrics",
  "metrics-exporter-prometheus",
@@ -10241,6 +10239,7 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",
+ "wscd",
 ]
 
 [[package]]
@@ -11123,12 +11122,13 @@ dependencies = [
  "itertools 0.14.0",
  "jwt",
  "p256 0.14.0",
- "parking_lot",
  "rand_core 0.9.5",
  "rstest",
  "serde",
+ "serde_with",
  "thiserror 2.0.17",
- "tokio",
+ "tracing",
+ "url",
  "utils",
 ]
 

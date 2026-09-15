@@ -23,7 +23,7 @@ use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use jsonwebtoken::Algorithm;
+use jwt::Algorithm;
 #[cfg(any(test, feature = "examples"))]
 use jwt::JwtDecodingKey;
 use jwt::JwtTyp;

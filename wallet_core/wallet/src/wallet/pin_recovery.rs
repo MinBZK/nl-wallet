@@ -101,10 +101,6 @@ pub enum PinRecoveryError {
     #[category(critical)]
     NoPidPresent,
 
-    #[error("the issuer offered {0} previews for an SD-JWT PID credential, expected only 1")]
-    #[category(expected)]
-    MultiplePidCredentials(usize),
-
     #[error("recovery code error: {0}")]
     RecoveryCode(#[from] RecoveryCodeError),
 
@@ -263,20 +259,15 @@ where
 
         info!("successfully received token and previews from issuer");
 
-        // Because the `StartPinRecovery` instruction is sent inside the `perform_issuance()` implementation of
-        // `PinRecoveryRemoteEcdsaWscd` and `perform_isuance()` is called for each credential, it is essential that the
-        // issuer offers only one credential.
-        // TODO (PVW-6266): Remove this check when proof signing coalescing is implemented.
-        let previews_with_metadata = issuance_session.previews_with_metadata().collect_vec();
-        if previews_with_metadata.len() > 1 {
-            return Err(PinRecoveryError::MultiplePidCredentials(previews_with_metadata.len()));
-        }
-
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
         let pid_config = &config.pid_attributes;
         let pid_preview = Self::pid_preview(
-            previews_with_metadata.into_iter().map(|(preview, _)| preview),
+            issuance_session
+                .previews_with_metadata()
+                .collect_vec()
+                .into_iter()
+                .map(|(preview, _)| preview),
             pid_config,
         )?;
 
@@ -508,7 +499,6 @@ mod tests {
     use std::collections::HashSet;
     use std::convert::Infallible;
     use std::num::NonZeroU8;
-    use std::num::NonZeroUsize;
     use std::str::FromStr;
     use std::sync::Arc;
 
@@ -534,12 +524,14 @@ mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
     use uuid::Uuid;
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificate;
-    use wscd::wscd::IssuanceWscd;
+    use wscd::issuance::IssuanceKeyResult;
+    use wscd::issuance::IssuanceWscd;
 
     use super::PinRecoveryError;
     use super::PinRecoverySession;
@@ -1065,10 +1057,9 @@ mod tests {
 
         async fn perform_issuance(
             &self,
-            _count: NonZeroUsize,
             _aud: String,
-            _nonce: Option<Nonce>,
-        ) -> Result<wscd::wscd::IssuanceResult, Self::Error> {
+            _key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
+        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
             unimplemented!()
         }
     }

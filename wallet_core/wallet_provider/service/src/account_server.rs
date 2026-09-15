@@ -120,7 +120,7 @@ use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA512;
 use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
-use wscd::PoaError;
+use wscd::payload::poa::PoaSigning;
 
 use crate::flags::WalletFlags;
 use crate::instructions::HandleInstruction;
@@ -297,7 +297,7 @@ pub enum InstructionError {
     NonExistingKey(String),
 
     #[error("PoA construction error: {0}")]
-    Poa(#[from] PoaError),
+    Poa(#[from] PoaSigning),
 
     #[error("public key conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
@@ -409,6 +409,9 @@ pub enum InstructionValidationError {
 
     #[error("received instruction to sign a PoA with the Sign instruction")]
     PoaMessage,
+
+    #[error("wallet requested creation of too many keys, requested {requested}, maximum: {maximum}")]
+    TooManyKeysRequest { requested: usize, maximum: u16 },
 }
 
 impl From<PinPolicyEvaluation> for InstructionError {
@@ -2062,7 +2065,7 @@ pub mod mock {
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
-    use std::num::NonZeroUsize;
+    use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::sync::Mutex;
     use std::time::Duration;
@@ -2117,6 +2120,7 @@ mod tests {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::instructions::IssuanceKeySetRequest;
     use wallet_account::messages::instructions::IssueWia;
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
@@ -3597,9 +3601,11 @@ mod tests {
 
         let instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                key_count: NonZeroUsize::MIN,
                 aud: "aud".to_string(),
-                nonce: Some(Nonce::from("nonce".to_string())),
+                key_requests: vec_nonempty![IssuanceKeySetRequest {
+                    key_count: NonZeroU8::MIN,
+                    proof_nonce: Some(Nonce::from("nonce".to_string())),
+                }],
             },
             pin_pubkey: new_pin_pubkey.into(),
         };
@@ -3701,9 +3707,11 @@ mod tests {
 
         let pin_recovery_instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                key_count: NonZeroUsize::MIN,
                 aud: "aud".to_string(),
-                nonce: Some(Nonce::from("nonce".to_string())),
+                key_requests: vec_nonempty![IssuanceKeySetRequest {
+                    key_count: NonZeroU8::MIN,
+                    proof_nonce: Some(Nonce::from("nonce".to_string())),
+                }],
             },
             pin_pubkey: new_pin_pubkey.into(),
         };
@@ -4076,9 +4084,11 @@ mod tests {
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
         let instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                key_count: NonZeroUsize::MIN,
                 aud: "aud".to_string(),
-                nonce: Some(Nonce::from("nonce".to_string())),
+                key_requests: vec_nonempty![IssuanceKeySetRequest {
+                    key_count: NonZeroU8::MIN,
+                    proof_nonce: Some(Nonce::from("nonce".to_string())),
+                }],
             },
             pin_pubkey: new_pin_pubkey.into(),
         };
