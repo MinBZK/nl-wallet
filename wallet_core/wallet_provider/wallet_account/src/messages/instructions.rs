@@ -165,17 +165,24 @@ pub struct PerformIssuance {
     pub key_requests: VecNonEmpty<IssuanceKeySetRequest>,
 }
 
+/// A request for the creation of a set of keys and for each key a proof that optionally contains a provided nonce, as
+/// part of the [`PerformIssuance`] instruction.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IssuanceKeySetRequest {
     pub key_count: NonZeroU8,
     pub proof_nonce: Option<Nonce>,
 }
 
+/// The result of a [`PerformIssuance`] issuance instruction, which contains a 2-dimensional list of per-key results in
+/// the form [`IssuanceKeyResult`]. The outer list refers to the inciting instruction's [`IssuanceKeySetRequest`]s and
+/// the inner list refers to number of individual keys requested.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuanceResult {
     pub keys: VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>,
 }
 
+/// Part of [`PerformIssuanceResult`], reflects the result of the generation of a particular key, consisting of both the
+/// identifier for that key and a cryptographic proof, which contains the requested nonce, if provided.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IssuanceKeyResult {
     pub key_identifier: String,

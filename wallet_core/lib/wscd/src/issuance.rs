@@ -22,7 +22,7 @@ pub trait IssuanceWscd {
     ///
     /// The sets of keys require as input the number of keys requested and optionally take a nonce to be included in the
     /// generated PoPs. The output is a two-dimensional vector, in which the key identifiers and PoPs are grouped per
-    /// set.
+    /// set that was present in the inciting request.
     async fn perform_issuance(
         &self,
         aud: String,
