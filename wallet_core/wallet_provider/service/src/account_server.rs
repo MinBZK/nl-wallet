@@ -409,6 +409,9 @@ pub enum InstructionValidationError {
 
     #[error("received instruction to sign a PoA with the Sign instruction")]
     PoaMessage,
+
+    #[error("wallet requested creation of too many keys, requested {requested}, maximum: {maximum}")]
+    TooManyKeysRequest { requested: usize, maximum: u16 },
 }
 
 impl From<PinPolicyEvaluation> for InstructionError {

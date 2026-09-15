@@ -82,6 +82,9 @@ use crate::flags::WalletFlags;
 use crate::revocation::system_revoke_wallets_by_recovery_code;
 use crate::wallet_certificate::PinKeyChecks;
 
+/// A sane limit to the amount of keys that Wallet can request during issuance. 640 ought be enough for anybody.
+const MAX_KEY_REQUEST_COUNT: u16 = 640;
+
 fn default_validation(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     validate_wallet_user_not_revoked(wallet_user)?;
     validate_wallet_user_not_transferred(wallet_user)?;
@@ -434,6 +437,21 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
+    let total_key_count = instruction
+        .key_requests
+        .iter()
+        .map(|request| usize::from(request.key_count.get()))
+        .sum();
+
+    if total_key_count > MAX_KEY_REQUEST_COUNT.into() {
+        return Err(InstructionError::Validation(
+            InstructionValidationError::TooManyKeysRequest {
+                requested: total_key_count,
+                maximum: MAX_KEY_REQUEST_COUNT,
+            },
+        ));
+    }
+
     let request_count = instruction.key_requests.len();
 
     let (proofs, wrapped_keys): (Vec<_>, Vec<_>) = future::try_join_all(
@@ -2214,7 +2232,9 @@ mod tests {
         assert_matches!(err, InstructionValidationError::PoaMessage);
     }
 
-    async fn handle_issuance_instruction<R, I: HandleInstruction<Result = R>>(instruction: I) -> R {
+    async fn handle_issuance_instruction<R, I: HandleInstruction<Result = R>>(
+        instruction: I,
+    ) -> Result<R, InstructionError> {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -2236,7 +2256,6 @@ mod tests {
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
-            .unwrap()
     }
 
     static ISSUANCE_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
@@ -2295,7 +2314,8 @@ mod tests {
                 .try_into()
                 .unwrap(),
         })
-        .await;
+        .await
+        .expect("handling PerformIssuance instruction should succeed");
 
         validate_issuance_pops(
             result
@@ -2307,12 +2327,40 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn should_error_on_perform_issuance_too_many_keys() {
+        let key_counts = [100, 200, 200, 150, 50];
+        let error = handle_issuance_instruction(PerformIssuance {
+            aud: POP_AUD.to_string(),
+            key_requests: key_counts
+                .into_iter()
+                .map(|key_count| IssuanceKeySetRequest {
+                    key_count: key_count.try_into().unwrap(),
+                    proof_nonce: None,
+                })
+                .collect_vec()
+                .try_into()
+                .unwrap(),
+        })
+        .await
+        .expect_err("handling PerformIssuance instruction should fail");
+
+        assert_matches!(
+            error,
+            InstructionError::Validation(InstructionValidationError::TooManyKeysRequest {
+                requested: 700,
+                maximum: 640
+            })
+        );
+    }
+
+    #[tokio::test]
     async fn should_handle_issue_wia() {
         let result = handle_issuance_instruction(IssueWia {
             nonce: Some(Nonce::from(POP_NONCE.to_string())),
             aud: POP_AUD.to_string(),
         })
-        .await;
+        .await
+        .expect("handling IssueWia instruction should succeed");
 
         validate_wia_disclosure(&result.wia_disclosure);
     }
