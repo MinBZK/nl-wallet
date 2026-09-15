@@ -64,6 +64,7 @@ pub struct Settings {
     pub structured_logging: bool,
     pub capture_and_redirect_logging: Option<PathBuf>,
     pub max_transfer_upload_size_in_bytes: usize,
+    pub send_wallet_payload_concurrency_limit: usize,
     #[serde(rename = "flags_refresh_delay_in_seconds")]
     #[serde_as(as = "DurationSeconds<u64>")]
     pub flags_refresh_delay: Duration,
@@ -243,6 +244,7 @@ impl Settings {
             .set_default("android.credentials_file", "google-cloud-service-account.json")?
             .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
             .set_default("max_transfer_upload_size_in_bytes", 100_000_000)?
+            .set_default("send_wallet_payload_concurrency_limit", 2)?
             .set_default("flags_refresh_delay_in_seconds", 300)?
             .set_default("revoke_solution_enabled", false)?
             .set_default("admin_portal.keycloak_url", "https://localhost:11443")?

@@ -93,14 +93,6 @@ use crate::settings::AdminPortalSettings;
 /// be able to handle these errors appropriately.
 type Result<T> = StdResult<T, WalletProviderError>;
 
-/// `send_wallet_payload` buffers up to `max_transfer_upload_size_in_bytes` in memory before the wallet certificate is
-/// checked, so an unauthenticated caller could otherwise open enough concurrent requests to exceed the pod's memory
-/// limit regardless of that per-request cap.
-///
-/// This bounds worst-case concurrent memory use to roughly `SEND_WALLET_PAYLOAD_CONCURRENCY_LIMIT *
-/// max_transfer_upload_size_in_bytes`; the container memory limit must be sized to cover that.
-const SEND_WALLET_PAYLOAD_CONCURRENCY_LIMIT: usize = 2;
-
 #[derive(OpenApi)]
 #[openapi(info(title = "Wallet provider API"))]
 struct ApiDocs;
@@ -150,7 +142,16 @@ where
                     post(handle_hw_signed_instruction::<SendWalletPayload, _, _, _>)
                         .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes))
                         .layer(middleware::from_fn({
-                            let permits = Arc::new(Semaphore::new(SEND_WALLET_PAYLOAD_CONCURRENCY_LIMIT));
+                            // Bounds concurrent in-flight `SendWalletPayload`/`ReceiveWalletPayload` requests. Both
+                            // buffer up to `max_transfer_upload_size_in_bytes` in memory, so a caller could otherwise
+                            // open enough concurrent requests to exceed the pod's memory limit regardless of that
+                            // per-request cap.
+                            //
+                            // Sharing one semaphore between both routes bounds worst-case concurrent memory use to
+                            // roughly `wallet_transfer_concurrency_limit * max_transfer_upload_size_in_bytes` combined,
+                            // regardless of the send/receive mix; the container memory limit must be sized to cover
+                            // that.
+                            let permits = Arc::new(Semaphore::new(state.send_wallet_payload_concurrency_limit));
                             move |req: Request, next: Next| {
                                 let permits = Arc::clone(&permits);
                                 async move {
