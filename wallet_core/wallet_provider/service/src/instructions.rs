@@ -64,6 +64,7 @@ use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -79,6 +80,7 @@ use crate::account_server::InstructionValidationError;
 use crate::account_server::RecoveryCodeConfig;
 use crate::account_server::UserState;
 use crate::flags::WalletFlags;
+use crate::keys::Kid;
 use crate::keys::attestation_wrapping_key_identifier;
 use crate::revocation::system_revoke_wallets_by_recovery_code;
 use crate::wallet_certificate::PinKeyChecks;
@@ -508,13 +510,17 @@ where
 fn create_issuance_keys(
     wrapped_keys: Vec<WrappedKey>,
     is_blocked: bool,
+    wrapping_kid: &Kid,
     uuid_generator: &impl Generator<Uuid>,
 ) -> Vec<WalletUserKey> {
     wrapped_keys
         .into_iter()
         .map(|key| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
-            key,
+            key: WithKid {
+                value: key,
+                kid: wrapping_kid.as_ref().to_string(),
+            },
             is_blocked,
         })
         .collect()
@@ -649,7 +655,12 @@ impl HandleInstruction for PerformIssuance {
     {
         let (issuance_result, wrapped_keys) = perform_issuance(self, user_state, generators).await?;
 
-        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), false, generators);
+        let db_keys = create_issuance_keys(
+            wrapped_keys.into_inner(),
+            false,
+            &user_state.attestation_wrapping_kids.current,
+            generators,
+        );
 
         let tx = user_state.repositories.begin_transaction().await?;
         persist_keys(&tx, wallet_user, user_state, db_keys, generators).await?;

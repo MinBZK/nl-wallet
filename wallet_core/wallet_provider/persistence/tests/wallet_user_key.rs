@@ -10,6 +10,7 @@ use uuid::Uuid;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
 use wallet_provider_persistence::test::db_from_setup;
@@ -28,7 +29,10 @@ fn test_wallet_user_key() -> WalletUserKey {
     let key = WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key());
     WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),
-        key,
+        key: WithKid {
+            value: key,
+            kid: "0".to_owned(),
+        },
         is_blocked: false,
     }
 }
@@ -77,8 +81,8 @@ async fn test_create_keys() {
         .map(|(_, key)| key.wrapped_private_key())
         .collect::<HashSet<_>>();
 
-    let key1 = key1.key.wrapped_private_key();
-    let key2 = key2.key.wrapped_private_key();
+    let key1 = key1.key.value.wrapped_private_key();
+    let key2 = key2.key.value.wrapped_private_key();
     assert_eq!(HashSet::from_iter([key1, key2]), keys);
 }
 
@@ -241,7 +245,7 @@ async fn test_create_blocked_keys() {
     // Check whether both keys are blocked
     for key in [&key1, &key2] {
         assert!(
-            is_blocked_key(&db, wallet_user_id, *key.key.public_key())
+            is_blocked_key(&db, wallet_user_id, *key.key.value.public_key())
                 .await
                 .unwrap()
                 .unwrap(),
@@ -249,7 +253,7 @@ async fn test_create_blocked_keys() {
     }
 
     // Unblock keys
-    unblock_blocked_keys_in_same_batch(&db, wallet_user_id, *key1.key.public_key())
+    unblock_blocked_keys_in_same_batch(&db, wallet_user_id, *key1.key.value.public_key())
         .await
         .unwrap();
 
@@ -307,14 +311,14 @@ async fn test_delete_blocked_keys() {
     assert!(active_keys.is_empty());
 
     // Delete the blocked keys
-    delete_blocked_keys_in_same_batch(&db, wallet_user_id, *key1.key.public_key())
+    delete_blocked_keys_in_same_batch(&db, wallet_user_id, *key1.key.value.public_key())
         .await
         .unwrap();
 
     // Keys should no longer be found
     for key in [&key1, &key2] {
         assert!(
-            is_blocked_key(&db, wallet_user_id, *key.key.public_key())
+            is_blocked_key(&db, wallet_user_id, *key.key.value.public_key())
                 .await
                 .unwrap()
                 .is_none()
@@ -322,7 +326,7 @@ async fn test_delete_blocked_keys() {
     }
 
     // Try to unblock keys
-    unblock_blocked_keys_in_same_batch(&db, wallet_user_id, *key1.key.public_key())
+    unblock_blocked_keys_in_same_batch(&db, wallet_user_id, *key1.key.value.public_key())
         .await
         .unwrap();
 

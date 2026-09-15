@@ -25,6 +25,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletFlagRepository;
@@ -262,7 +263,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &WalletId,
-        new_encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+        new_encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         user_state: WalletUserState,
     ) -> Result<(), PersistenceError> {
         wallet_user::change_pin(transaction, wallet_id, new_encrypted_pin_pubkey, user_state).await
@@ -586,6 +587,7 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
+    use wallet_provider_domain::model::wallet_user::WithKid;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_1;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_with_id;
     use wallet_provider_domain::repository::MockTransaction;
@@ -726,7 +728,7 @@ pub mod mock {
                 &self,
                 transaction: &MockTransaction,
                 wallet_id: &WalletId,
-                encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+                encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
                 user_state: WalletUserState,
             ) -> Result<(), PersistenceError>;
 
@@ -931,8 +933,14 @@ pub mod mock {
                 id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 wallet_id: wallet_id.to_owned(),
                 hw_pubkey: self.hw_pubkey,
-                encrypted_pin_pubkey: self.encrypted_pin_pubkey.clone(),
-                encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.clone(),
+                encrypted_pin_pubkey: WithKid {
+                    value: self.encrypted_pin_pubkey.clone(),
+                    kid: "0".to_owned(),
+                },
+                encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.as_ref().map(|value| WithKid {
+                    value: value.clone(),
+                    kid: "0".to_owned(),
+                }),
                 unsuccessful_pin_entries: 0,
                 last_unsuccessful_pin_entry: None,
                 instruction_challenge: self.challenge.clone().map(|c| InstructionChallenge {
@@ -975,8 +983,14 @@ pub mod mock {
                 id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 wallet_id: WalletId::from("wallet-123".to_owned()),
                 hw_pubkey: self.hw_pubkey,
-                encrypted_pin_pubkey: self.encrypted_pin_pubkey.clone(),
-                encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.clone(),
+                encrypted_pin_pubkey: WithKid {
+                    value: self.encrypted_pin_pubkey.clone(),
+                    kid: "0".to_owned(),
+                },
+                encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.as_ref().map(|value| WithKid {
+                    value: value.clone(),
+                    kid: "0".to_owned(),
+                }),
                 unsuccessful_pin_entries: 0,
                 last_unsuccessful_pin_entry: None,
                 instruction_challenge: self.challenge.clone().map(|c| InstructionChallenge {
@@ -1126,7 +1140,7 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &WalletId,
-            _encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+            _encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
             _user_state: WalletUserState,
         ) -> Result<(), PersistenceError> {
             Ok(())

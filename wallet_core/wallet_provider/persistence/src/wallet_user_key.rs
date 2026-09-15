@@ -35,7 +35,7 @@ where
         .keys
         .into_iter()
         .map(|key_create| {
-            let key_identifier = verifying_key_sha256(key_create.key.public_key());
+            let key_identifier = verifying_key_sha256(key_create.key.value.public_key());
 
             Ok(wallet_user_key::ActiveModel {
                 id: Set(key_create.wallet_user_key_id),
@@ -44,12 +44,14 @@ where
                 identifier: Set(key_identifier),
                 public_key: Set(key_create
                     .key
+                    .value
                     .public_key()
                     .to_public_key_der()
                     .map_err(|error| PersistenceError::VerifyingKeyConversion(Box::new(error)))?
                     .into_vec()),
-                encrypted_private_key: Set(key_create.key.wrapped_private_key().to_vec()),
+                encrypted_private_key: Set(key_create.key.value.wrapped_private_key().to_vec()),
                 is_blocked: Set(key_create.is_blocked),
+                wrapping_kid: Set(key_create.key.kid),
             })
         })
         .collect::<Result<Vec<_>>>()?;

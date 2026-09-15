@@ -107,6 +107,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -907,7 +908,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 WalletUserCreate {
                     wallet_id: wallet_id.clone(),
                     hw_pubkey,
-                    encrypted_pin_pubkey,
+                    encrypted_pin_pubkey: WithKid {
+                        value: encrypted_pin_pubkey,
+                        kid: self.keys.pin_pubkey_encryption_kids.current.as_ref().to_owned(),
+                    },
                     attestation_date_time: attestation_timestamp,
                     attestation,
                     revocation_code_hmac,
@@ -1068,7 +1072,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
-                wallet_user.encrypted_pin_pubkey.clone()
+                wallet_user.encrypted_pin_pubkey.value.clone()
             })
             .await?;
 
@@ -1193,7 +1197,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, pin_policy, user_state, |wallet_user| {
-                wallet_user.encrypted_pin_pubkey.clone()
+                wallet_user.encrypted_pin_pubkey.value.clone()
             })
             .await?;
 
@@ -1226,7 +1230,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .change_pin(
                 &tx,
                 &wallet_user.wallet_id,
-                encrypted_pin_pubkey,
+                WithKid {
+                    value: encrypted_pin_pubkey,
+                    kid: self.keys.pin_pubkey_encryption_kids.current.as_ref().to_owned(),
+                },
                 WalletUserState::Active,
             )
             .await?;
@@ -1278,7 +1285,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 wallet_user
                     .encrypted_previous_pin_pubkey
                     .clone()
-                    .unwrap_or(wallet_user.encrypted_pin_pubkey.clone())
+                    .map(|encrypted| encrypted.value)
+                    .unwrap_or(wallet_user.encrypted_pin_pubkey.value.clone())
             })
             .await?;
 
@@ -1358,7 +1366,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .change_pin(
                 &tx,
                 &wallet_user.wallet_id,
-                encrypted_pin_pubkey,
+                WithKid {
+                    value: encrypted_pin_pubkey,
+                    kid: self.keys.pin_pubkey_encryption_kids.current.as_ref().to_owned(),
+                },
                 WalletUserState::RecoveringPin,
             )
             .await?;
@@ -1374,7 +1385,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                         .iter()
                         .map(|key| WalletUserKey {
                             wallet_user_key_id: generators.generate(),
-                            key: key.clone(),
+                            key: WithKid {
+                                value: key.clone(),
+                                kid: user_state.attestation_wrapping_kids.current.as_ref().to_owned(),
+                            },
                             is_blocked: true,
                         })
                         .collect(),
@@ -2619,7 +2633,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
             &user_state,
         )
         .await
@@ -2850,7 +2864,7 @@ mod tests {
                 .verify_instruction(
                     &instruction,
                     &user,
-                    user.encrypted_pin_pubkey.clone(),
+                    user.encrypted_pin_pubkey.value.clone(),
                     &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
@@ -2935,7 +2949,7 @@ mod tests {
                 .verify_instruction(
                     &instruction,
                     &user,
-                    user.encrypted_pin_pubkey.clone(),
+                    user.encrypted_pin_pubkey.value.clone(),
                     &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
@@ -3010,7 +3024,7 @@ mod tests {
                 .verify_instruction(
                     &instruction,
                     &user,
-                    user.encrypted_pin_pubkey.clone(),
+                    user.encrypted_pin_pubkey.value.clone(),
                     &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
@@ -3248,7 +3262,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
             &user_state,
         )
         .await
@@ -3267,7 +3281,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
             &user_state,
         )
         .await
@@ -3666,7 +3680,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
             &user_state,
         )
         .await

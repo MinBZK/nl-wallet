@@ -24,6 +24,7 @@ use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WithKid;
 
 use crate::PersistenceConnection;
 use crate::database::ConnectionOptions;
@@ -96,7 +97,10 @@ where
         WalletUserCreate {
             wallet_id,
             hw_pubkey: *SigningKey::generate().verifying_key(),
-            encrypted_pin_pubkey: encrypted_pin_key("key1").await,
+            encrypted_pin_pubkey: WithKid {
+                value: encrypted_pin_key("key1").await,
+                kid: "0".to_owned(),
+            },
             attestation_date_time: Utc::now(),
             attestation,
             revocation_code_hmac: random_bytes(32),

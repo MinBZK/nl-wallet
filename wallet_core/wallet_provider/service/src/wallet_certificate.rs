@@ -469,7 +469,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
             &user_state,
         )
         .await
@@ -505,7 +505,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
             &init_user_state(
                 *SigningKey::generate().verifying_key(),
                 setup.encrypted_pin_pubkey,
@@ -559,7 +559,7 @@ mod tests {
                 previous: None,
             },
             PinCheckOptions::default(),
-            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.value.clone(),
             &user_state,
         )
         .await
