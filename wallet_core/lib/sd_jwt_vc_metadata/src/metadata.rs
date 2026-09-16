@@ -284,9 +284,8 @@ pub struct LogoMetadata {
     #[serde_as(as = "TryFromInto<DataUri>")]
     pub image: Image,
 
-    /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
-    /// because of accessibility requirements.
-    pub alt_text: SpecOptional<String>,
+    /// Alternative text for the logo.
+    pub alt_text: Option<String>,
 }
 
 #[serde_as]
@@ -577,7 +576,7 @@ mod test {
             Some(RenderingMetadata::Simple {
                 logo: Some(LogoMetadata {
                     image: Image::Png(RED_DOT_BYTES.to_vec()),
-                    alt_text: "An example PNG logo".to_string().into(),
+                    alt_text: Some(String::from("An example PNG logo")),
                 }),
                 background_image: Some(BackgroundImageMetadata {
                     image: Image::Png(RED_DOT_BYTES.to_vec())

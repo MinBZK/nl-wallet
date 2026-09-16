@@ -179,9 +179,8 @@ pub struct Logo {
     #[serde_as(as = "TryFromInto<DataUri>")]
     pub image: Image,
 
-    /// Alternative text for the image. Although this is optional in both specifications, it is mandatory within the
-    /// context of the wallet app because of accessibility requirements, and is empty if the issuer did not provide it.
-    pub alt_text: String,
+    /// Alternative text for the image.
+    pub alt_text: Option<String>,
 }
 
 /// The background image of an attestation.
@@ -259,7 +258,7 @@ impl From<LogoMetadata> for Logo {
     fn from(value: LogoMetadata) -> Self {
         Self {
             image: value.image,
-            alt_text: value.alt_text.into_inner(),
+            alt_text: value.alt_text,
         }
     }
 }
@@ -341,7 +340,7 @@ impl TryFrom<CredentialLogo> for Logo {
     fn try_from(value: CredentialLogo) -> Result<Self, Self::Error> {
         let logo = Self {
             image: image_from_uri(&value.uri)?,
-            alt_text: value.alt_text.unwrap_or_default(),
+            alt_text: value.alt_text,
         };
 
         Ok(logo)
@@ -441,7 +440,7 @@ mod tests {
                 background_color: Some(background_color),
                 text_color: Some(text_color),
             } if matches!(logo.image, Image::Png(_))
-                && logo.alt_text == "a single pixel"
+                && logo.alt_text == Some(String::from("a single pixel"))
                 && matches!(background_image.image, Image::Png(_))
                 && background_color == "#FFFFFF"
                 && text_color == "#000000"

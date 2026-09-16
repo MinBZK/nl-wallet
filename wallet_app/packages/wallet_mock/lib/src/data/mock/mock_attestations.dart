@@ -181,12 +181,7 @@ List<DisplayMetadata> _buildDisplayMetaData({
       name: englishTitle,
       summary: englishSummary,
       rendering: RenderingMetadata.simple(
-        logo: logoAsset == null
-            ? null
-            : ImageWithMetadata(
-                image: Image.asset(path: logoAsset),
-                altText: '',
-              ),
+        logo: logoAsset == null ? null : ImageWithMetadata(image: Image.asset(path: logoAsset)),
         textColor: textColor,
         backgroundColor: bgColor,
       ),
@@ -196,12 +191,7 @@ List<DisplayMetadata> _buildDisplayMetaData({
       name: dutchTitle,
       summary: dutchSummary,
       rendering: RenderingMetadata.simple(
-        logo: logoAsset == null
-            ? null
-            : ImageWithMetadata(
-                image: Image.asset(path: logoAsset),
-                altText: '',
-              ),
+        logo: logoAsset == null ? null : ImageWithMetadata(image: Image.asset(path: logoAsset)),
         textColor: textColor,
         backgroundColor: bgColor,
       ),

@@ -1496,7 +1496,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void cst_api_fill_to_wire_image_with_metadata(ImageWithMetadata apiObj, wire_cst_image_with_metadata wireObj) {
     cst_api_fill_to_wire_image(apiObj.image, wireObj.image);
-    wireObj.alt_text = cst_encode_String(apiObj.altText);
+    wireObj.alt_text = cst_encode_opt_String(apiObj.altText);
   }
 
   @protected

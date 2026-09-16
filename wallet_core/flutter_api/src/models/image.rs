@@ -36,7 +36,7 @@ impl Image {
 
 pub struct ImageWithMetadata {
     pub image: Image,
-    pub alt_text: String,
+    pub alt_text: Option<String>,
 }
 
 #[frb(opaque)]
