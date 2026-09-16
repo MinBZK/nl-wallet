@@ -28,6 +28,14 @@ class IssuanceDataHelper {
         }
     }
 
+    fun getAttributeValues(issuerType: String, attribute: String): List<String> {
+        return candidateUseCaseKeys(issuerType).flatMap { key ->
+            val docs = useCases.optJSONObject(key)?.optJSONArray("data")
+                ?: return@flatMap emptyList()
+            collectAttributeValues(docs, attribute)
+        }
+    }
+
     private fun candidateUseCaseKeys(issuerType: String): List<String> =
         useCases.keys().asSequence()
             .filter { it == issuerType || it.startsWith("${issuerType}_") }
