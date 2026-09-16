@@ -185,8 +185,6 @@ fn deserialize_duration_days<'de, D: Deserializer<'de>>(deserializer: D) -> Resu
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
-            .set_default("attestation_wrapping_kid.current", "0")?
-            .set_default("pin_pubkey_encryption_kid.current", "0")?
             .set_default("revocation_code_key_identifier", "revocation_code_key")?
             .set_default("wia_status_list.list_size", 100_000)?
             .set_default("wia_status_list.create_threshold_ratio", 0.01)?
