@@ -9,7 +9,6 @@ use attestation_data::metadata::ClaimConstraint;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::data_uri::DataUri;
 use cose::CoseAlgorithmIdentifier;
 use cose::KnownCoseAlgorithmIdentifier;
 use derive_more::AsRef;
@@ -17,7 +16,6 @@ use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
 use http_utils::urls::BaseUrl;
-use itertools::Itertools;
 use jwk_simple::Algorithm;
 use jwk_simple::Key;
 use jwt::JwtTyp;
@@ -26,11 +24,6 @@ use oauth::issuer_identifier::IssuerUrl;
 use oauth::jose::JwsAlgorithm;
 use oauth::metadata::well_known::WellKnownMetadata;
 use oauth::scope::Scope;
-use sd_jwt_vc_metadata::BackgroundImageMetadata;
-use sd_jwt_vc_metadata::ClaimMetadata;
-use sd_jwt_vc_metadata::DisplayMetadata;
-use sd_jwt_vc_metadata::LogoMetadata;
-use sd_jwt_vc_metadata::RenderingMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::MapPreventDuplicates;
@@ -321,15 +314,6 @@ pub struct Logo {
 
     /// String value of the alternative text for the logo image.
     pub alt_text: Option<String>,
-}
-
-impl From<LogoMetadata> for Logo {
-    fn from(value: LogoMetadata) -> Self {
-        Self {
-            uri: Url::from(&DataUri::from(value.image)),
-            alt_text: Some(value.alt_text.into_inner()),
-        }
-    }
 }
 
 /// Metadata about a specific Credential.
@@ -760,32 +744,6 @@ pub struct CredentialDisplay {
     pub text_color: Option<String>,
 }
 
-impl From<DisplayMetadata> for CredentialDisplay {
-    fn from(value: DisplayMetadata) -> Self {
-        let (logo, background_image, background_color, text_color) = match value.rendering {
-            Some(RenderingMetadata::Simple {
-                logo,
-                background_image,
-                background_color,
-                text_color,
-            }) => (logo, background_image, background_color, text_color),
-            Some(RenderingMetadata::SvgTemplates) | None => (None, None, None, None),
-        };
-
-        Self {
-            name_locale: NameLocale {
-                name: Some(value.name),
-                locale: Some(value.locale),
-            },
-            logo: logo.map(Logo::from),
-            description: value.description,
-            background_color,
-            background_image: background_image.map(Into::into),
-            text_color,
-        }
-    }
-}
-
 /// Information about the background image of the Credential.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BackgroundImage {
@@ -793,14 +751,6 @@ pub struct BackgroundImage {
     /// Credential Issuer. The Wallet needs to determine the scheme, since the URI value could use the `https:` scheme,
     /// the `data:` scheme, etc.
     pub uri: Url,
-}
-
-impl From<BackgroundImageMetadata> for BackgroundImage {
-    fn from(value: BackgroundImageMetadata) -> Self {
-        Self {
-            uri: Url::from(&DataUri::from(value.image)),
-        }
-    }
 }
 
 const fn bool_value<const B: bool>() -> bool {
@@ -826,25 +776,6 @@ pub struct CredentialClaim {
     /// A non-empty array of objects, where each object contains display properties of a certain claim in the
     /// Credential for a certain language.
     pub display: Option<VecNonEmpty<NameLocale>>,
-}
-
-impl From<ClaimMetadata> for CredentialClaim {
-    fn from(value: ClaimMetadata) -> Self {
-        Self {
-            path: value.path,
-            mandatory: false,
-            display: value
-                .display
-                .into_iter()
-                .map(|display| NameLocale {
-                    name: Some(display.label),
-                    locale: Some(display.locale),
-                })
-                .collect_vec()
-                .try_into()
-                .ok(),
-        }
-    }
 }
 
 impl CredentialMetadata {
