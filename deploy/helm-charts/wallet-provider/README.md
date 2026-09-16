@@ -133,11 +133,15 @@
 
 ### Key identifiers
 
-| Name                                         | Description                                                                           | Value |
-| -------------------------------------------- | ------------------------------------------------------------------------------------- | ----- |
-| `keyIdentifiers.currentCertificateKid`       | The KID of the current certificate signing key and pin HMAC key combination           | `0`   |
-| `keyIdentifiers.previousCertificateKids`     | A map of previous KIDs with expiry dates to be used for wallet certificate validation | `{}`  |
-| `keyIdentifiers.currentInstructionResultKid` | The KID of the current instruction result signing key                                 | `0`   |
+| Name                                            | Description                                                                                                                       | Value |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `keyIdentifiers.currentCertificateKid`          | The KID of the current certificate signing key and pin HMAC key combination                                                       | `0`   |
+| `keyIdentifiers.previousCertificateKids`        | A map of previous KIDs with expiry dates to be used for wallet certificate validation                                             | `{}`  |
+| `keyIdentifiers.currentInstructionResultKid`    | The KID of the current instruction result signing key                                                                             | `0`   |
+| `keyIdentifiers.currentAttestationWrappingKid`  | The KID of the current attestation wrapping key                                                                                   | `0`   |
+| `keyIdentifiers.previousAttestationWrappingKid` | The KID of the previous attestation wrapping key, still accepted to unwrap already-stored attestation keys during a rollover      | `nil` |
+| `keyIdentifiers.currentPinPubkeyEncryptionKid`  | The KID of the current PIN public key encryption key                                                                              | `0`   |
+| `keyIdentifiers.previousPinPubkeyEncryptionKid` | The KID of the previous PIN public key encryption key, still accepted to decrypt already-stored PIN public keys during a rollover | `nil` |
 
 ### Android parameters
 
