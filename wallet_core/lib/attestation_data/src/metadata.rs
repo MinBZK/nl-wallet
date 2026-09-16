@@ -1,24 +1,7 @@
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::data_uri::DataUriError;
-use attestation_types::image::ImageError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-
-#[derive(Debug, thiserror::Error)]
-pub enum AttestationMetadataError {
-    #[error("display information is missing a name for locale {}", .0.as_deref().unwrap_or("<none>"))]
-    NoDisplayName(Option<String>),
-
-    #[error("display information is missing a locale")]
-    NoDisplayLocale,
-
-    #[error("could not read image as a data URI: {0}")]
-    ImageDataUri(#[source] DataUriError),
-
-    #[error("could not convert image: {0}")]
-    Image(#[source] ImageError),
-}
 
 /// Describes the constraints of a single attestation claim.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

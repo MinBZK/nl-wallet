@@ -6,21 +6,22 @@ use std::collections::HashSet;
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::Organization;
-use attestation_data::metadata::AttestationMetadataError;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
 use error_category::ErrorCategory;
-use sd_jwt_vc_metadata::ClaimDisplayMetadata;
-use sd_jwt_vc_metadata::DisplayMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
+
+use crate::attestation::metadata::AttestationDisplayMetadata;
+use crate::attestation::metadata::AttestationMetadataError;
+use crate::attestation::metadata::ClaimDisplay;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
@@ -75,7 +76,7 @@ pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub format: Format,
     pub attestation_type: String,
-    pub display_metadata: Vec<DisplayMetadata>,
+    pub display_metadata: Vec<AttestationDisplayMetadata>,
     pub issuer: Box<Organization>,
     pub validity: AttestationValidity,
     pub attributes: Vec<AttestationAttribute>,
@@ -91,7 +92,7 @@ pub enum AttestationIdentity {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationAttribute {
     pub key: VecNonEmpty<String>,
-    pub metadata: Vec<ClaimDisplayMetadata>,
+    pub metadata: Vec<ClaimDisplay>,
     pub value: Attribute,
     pub svg_id: Option<String>,
 }
@@ -165,11 +166,11 @@ pub mod mock {
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
 
+    use super::AttestationDisplayMetadata;
     use super::AttestationIdentity;
     use super::AttestationPresentation;
     use super::AttestationPresentationConfig;
     use super::AttestationValidity;
-    use super::DisplayMetadata;
 
     pub struct EmptyPresentationConfig;
 
@@ -186,7 +187,7 @@ pub mod mock {
                 identity: AttestationIdentity::Ephemeral,
                 format: Format::SdJwt,
                 attestation_type: "mock".to_string(),
-                display_metadata: vec![DisplayMetadata {
+                display_metadata: vec![AttestationDisplayMetadata {
                     locale: "nl".to_string(),
                     name: "mock".to_string(),
                     description: None,

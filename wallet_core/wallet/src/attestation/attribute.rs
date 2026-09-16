@@ -167,7 +167,6 @@ pub mod test {
     use mdoc::iso::mdocs::DataElementValue;
     use mdoc::iso::mdocs::Entry;
     use openid4vc::metadata::issuer_metadata::CredentialMetadata;
-    use sd_jwt_vc_metadata::ClaimDisplayMetadata;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use serde_json::json;
     use utils::vec_nonempty;
@@ -178,6 +177,7 @@ pub mod test {
     use super::super::AttestationPresentation;
     use super::super::mock::EmptyPresentationConfig;
     use crate::attestation::AttestationValidity;
+    use crate::attestation::metadata::ClaimDisplay;
     use crate::config::test::test_wallet_config;
 
     /// Credential Metadata for an mdoc: claim paths are namespaced, with the namespace matching the attestation
@@ -374,7 +374,7 @@ pub mod test {
             vec![
                 AttestationAttribute {
                     key: vec_nonempty!["name".to_string()],
-                    metadata: vec![ClaimDisplayMetadata {
+                    metadata: vec![ClaimDisplay {
                         locale: "en".to_string(),
                         label: "name".to_string(),
                         description: None
@@ -384,7 +384,7 @@ pub mod test {
                 },
                 AttestationAttribute {
                     key: vec_nonempty!["birth_date".to_string()],
-                    metadata: vec![ClaimDisplayMetadata {
+                    metadata: vec![ClaimDisplay {
                         locale: "en".to_string(),
                         label: "birth date".to_string(),
                         description: None
@@ -394,7 +394,7 @@ pub mod test {
                 },
                 AttestationAttribute {
                     key: vec_nonempty!["address".to_string(), "street".to_string()],
-                    metadata: vec![ClaimDisplayMetadata {
+                    metadata: vec![ClaimDisplay {
                         locale: "en".to_string(),
                         label: "address street".to_string(),
                         description: None
@@ -404,7 +404,7 @@ pub mod test {
                 },
                 AttestationAttribute {
                     key: vec_nonempty!["address".to_string(), "number".to_string()],
-                    metadata: vec![ClaimDisplayMetadata {
+                    metadata: vec![ClaimDisplay {
                         locale: "en".to_string(),
                         label: "address number".to_string(),
                         description: None

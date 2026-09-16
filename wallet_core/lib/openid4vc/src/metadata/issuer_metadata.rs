@@ -3,16 +3,13 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::ops::Not;
-use std::str::FromStr;
 
 use attestation_data::metadata::AttestationClaims;
-use attestation_data::metadata::AttestationMetadataError;
 use attestation_data::metadata::ClaimConstraint;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::data_uri::DataUri;
-use attestation_types::image::Image;
 use cose::CoseAlgorithmIdentifier;
 use cose::KnownCoseAlgorithmIdentifier;
 use derive_more::AsRef;
@@ -863,79 +860,6 @@ impl AttestationClaims for CredentialMetadata {
             mandatory: claim.mandatory,
         })
     }
-}
-
-impl TryFrom<CredentialDisplay> for DisplayMetadata {
-    type Error = AttestationMetadataError;
-
-    fn try_from(value: CredentialDisplay) -> Result<Self, Self::Error> {
-        let CredentialDisplay {
-            name_locale: NameLocale { name, locale },
-            logo,
-            description,
-            background_color,
-            background_image,
-            text_color,
-        } = value;
-
-        let locale = locale.ok_or(AttestationMetadataError::NoDisplayLocale)?;
-        let name = name.ok_or_else(|| AttestationMetadataError::NoDisplayName(Some(locale.clone())))?;
-
-        let logo = logo.map(LogoMetadata::try_from).transpose()?;
-        let background_image = background_image.map(BackgroundImageMetadata::try_from).transpose()?;
-
-        // Only include rendering information if any of its properties is actually present.
-        let rendering =
-            (logo.is_some() || background_image.is_some() || background_color.is_some() || text_color.is_some())
-                .then_some(RenderingMetadata::Simple {
-                    logo,
-                    background_image,
-                    background_color,
-                    text_color,
-                });
-
-        let display = Self {
-            locale,
-            name,
-            description,
-            summary: None,
-            rendering,
-        };
-
-        Ok(display)
-    }
-}
-
-impl TryFrom<Logo> for LogoMetadata {
-    type Error = AttestationMetadataError;
-
-    fn try_from(value: Logo) -> Result<Self, Self::Error> {
-        let logo = Self {
-            image: image_from_uri(&value.uri)?,
-            alt_text: value.alt_text.unwrap_or_default().into(),
-        };
-
-        Ok(logo)
-    }
-}
-
-impl TryFrom<BackgroundImage> for BackgroundImageMetadata {
-    type Error = AttestationMetadataError;
-
-    fn try_from(value: BackgroundImage) -> Result<Self, Self::Error> {
-        let background_image = Self {
-            image: image_from_uri(&value.uri)?,
-        };
-
-        Ok(background_image)
-    }
-}
-
-/// Decode an image that is embedded in a URI. Images hosted externally are rejected.
-fn image_from_uri(uri: &Url) -> Result<Image, AttestationMetadataError> {
-    let data_uri = DataUri::from_str(uri.as_str()).map_err(AttestationMetadataError::ImageDataUri)?;
-
-    Image::try_from(data_uri).map_err(AttestationMetadataError::Image)
 }
 
 #[cfg(test)]

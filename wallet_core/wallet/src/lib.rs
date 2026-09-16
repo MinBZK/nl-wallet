@@ -66,13 +66,14 @@ pub mod attestation_types {
     pub use attestation_types::image::Image;
 }
 
-// Note that the wallet currently presents attestations using the SD-JWT VC Type Metadata display types, regardless of
-// the kind of metadata the attestation was issued with. These are to be replaced by wallet specific display types.
-pub mod sd_jwt_vc_metadata {
-    pub use sd_jwt_vc_metadata::ClaimDisplayMetadata;
-    pub use sd_jwt_vc_metadata::DisplayMetadata;
-    pub use sd_jwt_vc_metadata::LogoMetadata;
-    pub use sd_jwt_vc_metadata::RenderingMetadata;
+/// How an attestation and its claims are displayed to the user, independent of the kind of metadata the attestation
+/// was issued with.
+pub mod display {
+    pub use crate::attestation::metadata::AttestationDisplayMetadata;
+    pub use crate::attestation::metadata::BackgroundImage;
+    pub use crate::attestation::metadata::ClaimDisplay;
+    pub use crate::attestation::metadata::Logo;
+    pub use crate::attestation::metadata::Rendering;
 }
 
 pub mod configuration {
