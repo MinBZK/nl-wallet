@@ -31,12 +31,6 @@ use crate::storage::StoredAttestationMetadata;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationMetadataError {
-    #[error("display information is missing a name for locale {}", .0.as_deref().unwrap_or("<none>"))]
-    NoDisplayName(Option<String>),
-
-    #[error("display information is missing a locale")]
-    NoDisplayLocale,
-
     #[error("could not read image as a data URI: {0}")]
     ImageDataUri(#[source] DataUriError),
 
@@ -62,7 +56,7 @@ impl AttestationDisplay for CredentialMetadata {
                 display
                     .into_inner()
                     .into_iter()
-                    .map(AttestationDisplayMetadata::try_from)
+                    .filter_map(|display| AttestationDisplayMetadata::from_credential_display(display).transpose())
                     .collect::<Result<Vec<_>, _>>()
             })
             .transpose()?
@@ -289,13 +283,13 @@ impl From<ClaimDisplayMetadata> for ClaimDisplay {
     }
 }
 
-// Conversions from Credential Issuer metadata, which are fallible because images are hosted externally and both the
-// name and the locale of a display entry are optional in the specification.
+// Conversions from Credential Issuer metadata, which are fallible because images can be hosted externally.
 
-impl TryFrom<CredentialDisplay> for AttestationDisplayMetadata {
-    type Error = AttestationMetadataError;
-
-    fn try_from(value: CredentialDisplay) -> Result<Self, Self::Error> {
+impl AttestationDisplayMetadata {
+    /// Convert a single Credential Issuer metadata display entry. Both the name and the locale are optional in the
+    /// specification, while the wallet requires them in order to present the attestation for that locale, so an entry
+    /// that is missing either of them yields `None` and is skipped.
+    fn from_credential_display(value: CredentialDisplay) -> Result<Option<Self>, AttestationMetadataError> {
         let CredentialDisplay {
             name_locale: NameLocale { name, locale },
             logo,
@@ -305,8 +299,9 @@ impl TryFrom<CredentialDisplay> for AttestationDisplayMetadata {
             text_color,
         } = value;
 
-        let locale = locale.ok_or(AttestationMetadataError::NoDisplayLocale)?;
-        let name = name.ok_or_else(|| AttestationMetadataError::NoDisplayName(Some(locale.clone())))?;
+        let (Some(locale), Some(name)) = (locale, name) else {
+            return Ok(None);
+        };
 
         let logo = logo.map(Logo::try_from).transpose()?;
         let background_image = background_image.map(BackgroundImage::try_from).transpose()?;
@@ -330,7 +325,7 @@ impl TryFrom<CredentialDisplay> for AttestationDisplayMetadata {
             rendering,
         };
 
-        Ok(display)
+        Ok(Some(display))
     }
 }
 
@@ -521,12 +516,13 @@ mod tests {
         assert_matches!(error, AttestationMetadataError::ImageDataUri(_));
     }
 
-    /// Both the name and the locale of a display entry are optional in the specification, while the wallet requires
-    /// them in order to present the attestation.
     #[test]
-    fn test_credential_metadata_presentation_components_error_incomplete_display() {
-        let display = |name_locale| CredentialDisplay {
-            name_locale,
+    fn test_credential_metadata_presentation_components_incomplete_display_is_skipped() {
+        let display = |name: Option<&str>, locale: Option<&str>| CredentialDisplay {
+            name_locale: NameLocale {
+                name: name.map(String::from),
+                locale: locale.map(String::from),
+            },
             logo: None,
             description: None,
             background_color: None,
@@ -534,29 +530,47 @@ mod tests {
             text_color: None,
         };
 
-        let error = CredentialMetadata {
-            display: Some(vec_nonempty![display(NameLocale {
-                name: Some(String::from("Example credential")),
-                locale: None,
-            })]),
+        let (display, _) = CredentialMetadata {
+            display: Some(vec_nonempty![
+                display(Some("Missing a locale"), None),
+                display(None, Some("nl")),
+                display(Some("Example credential"), Some("en")),
+            ]),
             claims: None,
         }
         .into_presentation_components()
-        .expect_err("credential metadata without a display locale should not convert");
+        .expect("credential metadata with incomplete display entries should convert");
 
-        assert_matches!(error, AttestationMetadataError::NoDisplayLocale);
+        // Only the entry that has both a name and a locale survives.
+        assert_eq!(
+            display
+                .iter()
+                .map(|display| (display.locale.as_str(), display.name.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("en", "Example credential")]
+        );
+    }
 
-        let error = CredentialMetadata {
-            display: Some(vec_nonempty![display(NameLocale {
-                name: None,
-                locale: Some(String::from("en")),
-            })]),
+    #[test]
+    fn test_credential_metadata_presentation_components_all_display_skipped() {
+        let (display, _) = CredentialMetadata {
+            display: Some(vec_nonempty![CredentialDisplay {
+                name_locale: NameLocale {
+                    name: None,
+                    locale: None,
+                },
+                logo: None,
+                description: None,
+                background_color: None,
+                background_image: None,
+                text_color: None,
+            }]),
             claims: None,
         }
         .into_presentation_components()
-        .expect_err("credential metadata without a display name should not convert");
+        .expect("credential metadata whose display entries are all skipped should convert");
 
-        assert_matches!(error, AttestationMetadataError::NoDisplayName(Some(locale)) if locale == "en");
+        assert!(display.is_empty());
     }
 
     #[test]
