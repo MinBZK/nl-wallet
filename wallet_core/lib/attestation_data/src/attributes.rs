@@ -3,6 +3,7 @@ use std::num::TryFromIntError;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::metadata::AttestationClaims;
+use attestation_types::metadata::ClaimConstraint;
 use base64::prelude::*;
 use chrono::NaiveDate;
 use derive_more::AsRef;
@@ -287,7 +288,13 @@ impl Attributes {
 
     pub fn validate(&self, metadata: &impl AttestationClaims) -> Result<(), AttributesError> {
         let flattened_attributes = self.flattened();
-        let claim_key_paths = metadata.claim_key_paths().collect_vec();
+        let claim_constraints = metadata.claim_constraints().collect_vec();
+
+        // Collect the key paths for all claims. Only SelectByKey claim paths are supported.
+        let claim_key_paths = claim_constraints
+            .iter()
+            .filter_map(ClaimConstraint::key_path)
+            .collect_vec();
 
         let attributes_without_claim = flattened_attributes
             .keys()
@@ -299,25 +306,17 @@ impl Attributes {
             return Err(AttributesError::AttributesWithoutClaim(attributes_without_claim));
         }
 
-        let missing_mandatory = metadata
-            .mandatory_claims()
-            .filter(|path| {
-                let has_claim = path
-                    .iter()
-                    .map(ClaimPath::try_key_path)
-                    .collect::<Option<Vec<_>>>()
-                    .map(|path| {
-                        // If a mandatory claim exists entirely of `SelectByKey` values, check that this path is present
-                        // in the attributes.
-                        let path = VecNonEmpty::try_from(path).expect("source of path is non-empty");
-                        flattened_attributes.contains_key(&path)
-                    })
-                    // Otherwise, we know that this claim is not present, as non-`SelecByKey` paths are not supported.
-                    .unwrap_or(false);
-
-                !has_claim
+        // Every mandatory claim has to be present in the attributes. A mandatory claim without a key path is by
+        // definition missing, as no attribute can match it.
+        let missing_mandatory = claim_constraints
+            .iter()
+            .filter(|claim| claim.mandatory)
+            .filter(|claim| {
+                !claim
+                    .key_path()
+                    .is_some_and(|path| flattened_attributes.contains_key(&path))
             })
-            .cloned()
+            .map(|claim| claim.path.clone())
             .collect_vec();
 
         if !missing_mandatory.is_empty() {

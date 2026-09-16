@@ -4,6 +4,7 @@ use std::num::NonZeroUsize;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::metadata::AttestationClaims;
+use attestation_types::metadata::ClaimConstraint;
 use attestation_types::metadata::ClaimDisplayMetadata;
 use attestation_types::metadata::DisplayMetadata;
 use itertools::Either;
@@ -56,23 +57,11 @@ pub struct NormalizedTypeMetadata {
 }
 
 impl AttestationClaims for NormalizedTypeMetadata {
-    fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
-        self.claims.iter().filter_map(|claim| {
-            let path = claim
-                .path
-                .iter()
-                .map(ClaimPath::try_key_path)
-                .collect::<Option<Vec<_>>>()?;
-
-            Some(path.try_into().expect("source of path is non-empty"))
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
+        self.claims.iter().map(|claim| ClaimConstraint {
+            path: &claim.path,
+            mandatory: claim.mandatory,
         })
-    }
-
-    fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
-        self.claims
-            .iter()
-            .filter(|claim| claim.mandatory)
-            .map(|claim| &claim.path)
     }
 }
 

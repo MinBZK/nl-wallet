@@ -4,6 +4,7 @@ use serde_with::TryFromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use utils::spec::SpecOptional;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::claim_path::ClaimPath;
@@ -27,15 +28,32 @@ pub enum AttestationMetadataError {
     Image(#[source] ImageError),
 }
 
-/// Implemented by every kind of metadata that allows both validating a received attestation against its metadata and
-/// converting it to a representation that can be shown to the user.
-pub trait AttestationClaims {
-    /// The paths of all claims that consist solely of `SelectByKey` components, as a path of `&str`. Claims with any
-    /// other kind of path component are skipped, as those are not supported.
-    fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>>;
+/// Describes the constraints of a single attestation claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClaimConstraint<'a> {
+    /// The path to the claim within the attestation.
+    pub path: &'a VecNonEmpty<ClaimPath>,
 
-    /// The paths of all claims the issuer is required to include in the attestation.
-    fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>>;
+    /// Whether the issuer is required to include this claim in the attestation.
+    pub mandatory: bool,
+}
+
+impl<'a> ClaimConstraint<'a> {
+    /// The `SelectByKey` path components of this claim as keys.
+    pub fn key_path(&self) -> Option<VecNonEmpty<&'a str>> {
+        self.path
+            .nonempty_iter()
+            .map(|path| path.try_key_path().ok_or(()))
+            .collect::<Result<VecNonEmpty<_>, _>>()
+            .ok()
+    }
+}
+
+/// Implemented by every kind of metadata that describes the claims an attestation may contain.
+pub trait AttestationClaims {
+    /// The claims this metadata describes, which together determine the attributes that an attestation is permitted
+    /// and required to contain.
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>>;
 }
 
 /// The description of a single claim of an attestation, independent of the kind of metadata it was derived from.

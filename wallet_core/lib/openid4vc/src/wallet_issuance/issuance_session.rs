@@ -9,6 +9,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::metadata::AttestationClaims;
+use attestation_types::metadata::ClaimConstraint;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
@@ -346,17 +347,10 @@ pub enum OfferedCredentialMetadata {
 }
 
 impl AttestationClaims for OfferedCredentialMetadata {
-    fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
         match self {
-            Self::TypeMetadata { normalized, .. } => Either::Left(normalized.claim_key_paths()),
-            Self::CredentialMetadata(metadata) => Either::Right(metadata.claim_key_paths()),
-        }
-    }
-
-    fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
-        match self {
-            Self::TypeMetadata { normalized, .. } => Either::Left(normalized.mandatory_claims()),
-            Self::CredentialMetadata(metadata) => Either::Right(metadata.mandatory_claims()),
+            Self::TypeMetadata { normalized, .. } => Either::Left(normalized.claim_constraints()),
+            Self::CredentialMetadata(metadata) => Either::Right(metadata.claim_constraints()),
         }
     }
 }

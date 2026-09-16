@@ -13,6 +13,7 @@ use attestation_types::image::Image;
 use attestation_types::metadata::AttestationClaims;
 use attestation_types::metadata::AttestationMetadataError;
 use attestation_types::metadata::BackgroundImageMetadata;
+use attestation_types::metadata::ClaimConstraint;
 use attestation_types::metadata::ClaimDescription;
 use attestation_types::metadata::ClaimDisplayMetadata;
 use attestation_types::metadata::DisplayMetadata;
@@ -685,7 +686,11 @@ mod example_constructors {
         /// covers both formats derive the mdoc metadata from the Type Metadata it already has, instead of maintaining a
         /// second list of claim names by hand.
         pub fn new_mdoc_example_from_type_metadata(name_space: &str, type_metadata: &NormalizedTypeMetadata) -> Self {
-            let claim_names = type_metadata.claim_key_paths().map(|path| *path.last()).collect_vec();
+            let claim_names = type_metadata
+                .claim_constraints()
+                .filter_map(|claim| claim.key_path())
+                .map(|path| *path.last())
+                .collect_vec();
 
             Self::new_mdoc_example(name_space, &claim_names)
         }
@@ -854,22 +859,11 @@ impl CredentialMetadata {
 }
 
 impl AttestationClaims for CredentialMetadata {
-    fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
-        self.claim_descriptions().filter_map(|claim| {
-            let path = claim
-                .path
-                .iter()
-                .map(ClaimPath::try_key_path)
-                .collect::<Option<Vec<_>>>()?;
-
-            Some(path.try_into().expect("source of path is non-empty"))
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
+        self.claim_descriptions().map(|claim| ClaimConstraint {
+            path: &claim.path,
+            mandatory: claim.mandatory,
         })
-    }
-
-    fn mandatory_claims(&self) -> impl Iterator<Item = &VecNonEmpty<ClaimPath>> {
-        self.claim_descriptions()
-            .filter(|claim| claim.mandatory)
-            .map(|claim| &claim.path)
     }
 }
 
@@ -984,6 +978,7 @@ mod tests {
     use attestation_data::attributes::AttributesError;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::metadata::AttestationClaims;
+    use attestation_types::metadata::ClaimConstraint;
     use chrono::DateTime;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
@@ -1652,16 +1647,23 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_metadata_claim_paths() {
+    fn test_credential_metadata_described_claims() {
         let metadata = CredentialMetadata::new_full_example();
+        let claims = metadata.claim_constraints().collect::<Vec<_>>();
 
         assert_eq!(
-            metadata.claim_key_paths().collect::<Vec<_>>(),
-            vec![vec_nonempty!["birth_date"], vec_nonempty!["place_of_birth", "locality"],]
+            claims
+                .iter()
+                .map(|claim| (claim.path.clone(), claim.mandatory))
+                .collect::<Vec<_>>(),
+            vec![
+                (key_path(&["birth_date"]), true),
+                (key_path(&["place_of_birth", "locality"]), false),
+            ]
         );
         assert_eq!(
-            metadata.mandatory_claims().cloned().collect::<Vec<_>>(),
-            vec![key_path(&["birth_date"])]
+            claims.iter().filter_map(ClaimConstraint::key_path).collect::<Vec<_>>(),
+            vec![vec_nonempty!["birth_date"], vec_nonempty!["place_of_birth", "locality"],]
         );
     }
 
@@ -1683,7 +1685,7 @@ mod tests {
             claims: None,
         };
 
-        assert_eq!(metadata.claim_key_paths().count(), 0);
+        assert_eq!(metadata.claim_constraints().count(), 0);
 
         let error = Attributes::example([(["birth_date"], Attribute::Text(String::from("1963-08-12")))])
             .validate(&metadata)
