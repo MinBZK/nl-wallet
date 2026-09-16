@@ -1,5 +1,5 @@
+use attestation_data::metadata::AttestationMetadataError;
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::metadata::AttestationMetadataError;
 use openid4vc::metadata::issuer_metadata::CredentialClaim;
 use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use openid4vc::metadata::issuer_metadata::NameLocale;

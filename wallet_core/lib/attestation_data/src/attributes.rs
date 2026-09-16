@@ -2,8 +2,6 @@ use std::collections::HashSet;
 use std::num::TryFromIntError;
 
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::metadata::AttestationClaims;
-use attestation_types::metadata::ClaimConstraint;
 use base64::prelude::*;
 use chrono::NaiveDate;
 use derive_more::AsRef;
@@ -25,6 +23,9 @@ use serde_with::base64::UrlSafe;
 use serde_with::formats::Unpadded;
 use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
+
+use crate::metadata::AttestationClaims;
+use crate::metadata::ClaimConstraint;
 
 #[serde_as]
 #[derive(Debug, Clone, Display, PartialEq, Eq, Serialize, Deserialize)]

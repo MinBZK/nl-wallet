@@ -3,7 +3,6 @@ pub mod credential_format;
 pub mod credential_kind;
 pub mod data_uri;
 pub mod image;
-pub mod metadata;
 #[cfg(feature = "test_pid_constants")]
 pub mod pid_constants;
 pub mod qualification;

@@ -5,14 +5,14 @@ use std::num::NonZeroU64;
 use std::ops::Not;
 use std::str::FromStr;
 
+use attestation_data::metadata::AttestationClaims;
+use attestation_data::metadata::AttestationMetadataError;
+use attestation_data::metadata::ClaimConstraint;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::data_uri::DataUri;
 use attestation_types::image::Image;
-use attestation_types::metadata::AttestationClaims;
-use attestation_types::metadata::AttestationMetadataError;
-use attestation_types::metadata::ClaimConstraint;
 use cose::CoseAlgorithmIdentifier;
 use cose::KnownCoseAlgorithmIdentifier;
 use derive_more::AsRef;
@@ -617,8 +617,8 @@ pub struct CredentialMetadata {
 
 #[cfg(any(test, feature = "mock"))]
 mod example_constructors {
+    use attestation_data::metadata::AttestationClaims;
     use attestation_types::claim_path::ClaimPath;
-    use attestation_types::metadata::AttestationClaims;
     use itertools::Itertools;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::vec_at_least::VecNonEmpty;
@@ -946,9 +946,9 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
     use attestation_data::attributes::AttributesError;
+    use attestation_data::metadata::AttestationClaims;
+    use attestation_data::metadata::ClaimConstraint;
     use attestation_types::claim_path::ClaimPath;
-    use attestation_types::metadata::AttestationClaims;
-    use attestation_types::metadata::ClaimConstraint;
     use chrono::DateTime;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;

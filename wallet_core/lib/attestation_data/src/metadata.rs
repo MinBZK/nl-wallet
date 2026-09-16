@@ -1,9 +1,9 @@
+use attestation_types::claim_path::ClaimPath;
+use attestation_types::data_uri::DataUriError;
+use attestation_types::image::ImageError;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-
-use crate::claim_path::ClaimPath;
-use crate::data_uri::DataUriError;
-use crate::image::ImageError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationMetadataError {
@@ -46,4 +46,13 @@ pub trait AttestationClaims {
     /// The claims this metadata describes, which together determine the attributes that an attestation is permitted
     /// and required to contain.
     fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>>;
+}
+
+impl AttestationClaims for NormalizedTypeMetadata {
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
+        self.claims().iter().map(|claim| ClaimConstraint {
+            path: &claim.path,
+            mandatory: claim.mandatory,
+        })
+    }
 }

@@ -3,8 +3,6 @@ use std::mem;
 use std::num::NonZeroUsize;
 
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::metadata::AttestationClaims;
-use attestation_types::metadata::ClaimConstraint;
 use itertools::Either;
 use itertools::Itertools;
 use utils::vec_at_least::VecNonEmpty;
@@ -54,15 +52,6 @@ pub struct NormalizedTypeMetadata {
     vcts: VecNonEmpty<String>,
     display: VecNonEmpty<DisplayMetadata>,
     claims: Vec<ClaimMetadata>,
-}
-
-impl AttestationClaims for NormalizedTypeMetadata {
-    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
-        self.claims.iter().map(|claim| ClaimConstraint {
-            path: &claim.path,
-            mandatory: claim.mandatory,
-        })
-    }
 }
 
 impl NormalizedTypeMetadata {

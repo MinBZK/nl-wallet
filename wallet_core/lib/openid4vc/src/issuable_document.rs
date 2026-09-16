@@ -1,8 +1,8 @@
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::metadata::AttestationClaims;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::metadata::AttestationClaims;
 use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
