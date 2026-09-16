@@ -241,7 +241,7 @@ async fn do_change_pin(
 
     let new_pin = WithKid {
         value: encrypted_pin_key("new_pin_1").await,
-        kid: Kid::try_from("0".to_owned()).unwrap(),
+        kid: Kid::try_from("0").unwrap(),
     };
 
     wallet_provider_persistence::wallet_user::change_pin(&db, &wallet_id, new_pin.clone(), WalletUserState::Active)

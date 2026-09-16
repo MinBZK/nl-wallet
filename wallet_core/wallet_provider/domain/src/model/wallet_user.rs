@@ -236,7 +236,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             .unwrap(),
             encrypted_pin_pubkey: WithKid {
                 value: Encrypted::new(random_bytes(32), InitializationVector(random_bytes(32))),
-                kid: Kid::try_from("0".to_owned()).unwrap(),
+                kid: Kid::try_from("0").unwrap(),
             },
             encrypted_previous_pin_pubkey: None,
             unsuccessful_pin_entries: 0,

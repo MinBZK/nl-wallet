@@ -936,11 +936,11 @@ pub mod mock {
                 hw_pubkey: self.hw_pubkey,
                 encrypted_pin_pubkey: WithKid {
                     value: self.encrypted_pin_pubkey.clone(),
-                    kid: Kid::try_from("0".to_owned()).unwrap(),
+                    kid: Kid::try_from("0").unwrap(),
                 },
                 encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.as_ref().map(|value| WithKid {
                     value: value.clone(),
-                    kid: Kid::try_from("0".to_owned()).unwrap(),
+                    kid: Kid::try_from("0").unwrap(),
                 }),
                 unsuccessful_pin_entries: 0,
                 last_unsuccessful_pin_entry: None,
@@ -986,11 +986,11 @@ pub mod mock {
                 hw_pubkey: self.hw_pubkey,
                 encrypted_pin_pubkey: WithKid {
                     value: self.encrypted_pin_pubkey.clone(),
-                    kid: Kid::try_from("0".to_owned()).unwrap(),
+                    kid: Kid::try_from("0").unwrap(),
                 },
                 encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.as_ref().map(|value| WithKid {
                     value: value.clone(),
-                    kid: Kid::try_from("0".to_owned()).unwrap(),
+                    kid: Kid::try_from("0").unwrap(),
                 }),
                 unsuccessful_pin_entries: 0,
                 last_unsuccessful_pin_entry: None,
@@ -1133,7 +1133,7 @@ pub mod mock {
                         id.clone(),
                         WithKid {
                             value: WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
-                            kid: Kid::try_from("0".to_owned()).unwrap(),
+                            kid: Kid::try_from("0").unwrap(),
                         },
                     )
                 })

@@ -32,7 +32,7 @@ fn test_wallet_user_key() -> WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),
         key: WithKid {
             value: key,
-            kid: Kid::try_from("0".to_owned()).unwrap(),
+            kid: Kid::try_from("0").unwrap(),
         },
         is_blocked: false,
     }

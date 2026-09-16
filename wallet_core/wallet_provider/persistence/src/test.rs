@@ -100,7 +100,7 @@ where
             hw_pubkey: *SigningKey::generate().verifying_key(),
             encrypted_pin_pubkey: WithKid {
                 value: encrypted_pin_key("key1").await,
-                kid: Kid::try_from("0".to_owned()).unwrap(),
+                kid: Kid::try_from("0").unwrap(),
             },
             attestation_date_time: Utc::now(),
             attestation,
