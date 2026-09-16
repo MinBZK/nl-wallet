@@ -1,9 +1,13 @@
+use attestation_types::claim_path::ClaimPath;
 use attestation_types::metadata::AttestationMetadataError;
-use attestation_types::metadata::ClaimDescription;
-use attestation_types::metadata::DisplayMetadata;
+use openid4vc::metadata::issuer_metadata::CredentialClaim;
 use openid4vc::metadata::issuer_metadata::CredentialMetadata;
+use openid4vc::metadata::issuer_metadata::NameLocale;
 use openid4vc::wallet_issuance::issuance_session::OfferedCredentialMetadata;
+use sd_jwt_vc_metadata::ClaimDisplayMetadata;
+use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::storage::StoredAttestationMetadata;
 
@@ -87,18 +91,58 @@ impl AttestationDisplay for OfferedCredentialMetadata {
     }
 }
 
+/// The description of a single claim of an attestation, independent of the kind of metadata it was derived from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClaimDescription {
+    /// The path to the claim within the attestation.
+    pub path: VecNonEmpty<ClaimPath>,
+
+    /// How the claim is displayed to the user, per locale.
+    pub display: Vec<ClaimDisplayMetadata>,
+
+    /// The identifier of the claim for reference in an SVG template, if any.
+    pub svg_id: Option<String>,
+}
+
+impl From<CredentialClaim> for ClaimDescription {
+    fn from(value: CredentialClaim) -> Self {
+        let display = value
+            .display
+            .map(|display| {
+                display
+                    .into_inner()
+                    .into_iter()
+                    // Both fields are optional in the specification, while the wallet requires them for display.
+                    .filter_map(|NameLocale { name, locale }| {
+                        Some(ClaimDisplayMetadata {
+                            locale: locale?,
+                            label: name?,
+                            description: None,
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        Self {
+            path: value.path,
+            display,
+            svg_id: None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::image::Image;
-    use attestation_types::metadata::ClaimDisplayMetadata;
-    use attestation_types::metadata::RenderingMetadata;
     use openid4vc::metadata::issuer_metadata::CredentialClaim;
     use openid4vc::metadata::issuer_metadata::CredentialDisplay;
     use openid4vc::metadata::issuer_metadata::Logo;
     use openid4vc::metadata::issuer_metadata::NameLocale;
+    use sd_jwt_vc_metadata::RenderingMetadata;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 

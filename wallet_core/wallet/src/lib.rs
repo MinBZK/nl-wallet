@@ -64,10 +64,15 @@ pub mod attestation_data {
 pub mod attestation_types {
     pub use attestation_types::credential_format::Format;
     pub use attestation_types::image::Image;
-    pub use attestation_types::metadata::ClaimDisplayMetadata;
-    pub use attestation_types::metadata::DisplayMetadata;
-    pub use attestation_types::metadata::LogoMetadata;
-    pub use attestation_types::metadata::RenderingMetadata;
+}
+
+// Note that the wallet currently presents attestations using the SD-JWT VC Type Metadata display types, regardless of
+// the kind of metadata the attestation was issued with. These are to be replaced by wallet specific display types.
+pub mod sd_jwt_vc_metadata {
+    pub use sd_jwt_vc_metadata::ClaimDisplayMetadata;
+    pub use sd_jwt_vc_metadata::DisplayMetadata;
+    pub use sd_jwt_vc_metadata::LogoMetadata;
+    pub use sd_jwt_vc_metadata::RenderingMetadata;
 }
 
 pub mod configuration {

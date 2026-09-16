@@ -12,13 +12,7 @@ use attestation_types::data_uri::DataUri;
 use attestation_types::image::Image;
 use attestation_types::metadata::AttestationClaims;
 use attestation_types::metadata::AttestationMetadataError;
-use attestation_types::metadata::BackgroundImageMetadata;
 use attestation_types::metadata::ClaimConstraint;
-use attestation_types::metadata::ClaimDescription;
-use attestation_types::metadata::ClaimDisplayMetadata;
-use attestation_types::metadata::DisplayMetadata;
-use attestation_types::metadata::LogoMetadata;
-use attestation_types::metadata::RenderingMetadata;
 use cose::CoseAlgorithmIdentifier;
 use cose::KnownCoseAlgorithmIdentifier;
 use derive_more::AsRef;
@@ -35,7 +29,11 @@ use oauth::issuer_identifier::IssuerUrl;
 use oauth::jose::JwsAlgorithm;
 use oauth::metadata::well_known::WellKnownMetadata;
 use oauth::scope::Scope;
+use sd_jwt_vc_metadata::BackgroundImageMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
+use sd_jwt_vc_metadata::DisplayMetadata;
+use sd_jwt_vc_metadata::LogoMetadata;
+use sd_jwt_vc_metadata::RenderingMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::MapPreventDuplicates;
@@ -938,34 +936,6 @@ fn image_from_uri(uri: &Url) -> Result<Image, AttestationMetadataError> {
     let data_uri = DataUri::from_str(uri.as_str()).map_err(AttestationMetadataError::ImageDataUri)?;
 
     Image::try_from(data_uri).map_err(AttestationMetadataError::Image)
-}
-
-impl From<CredentialClaim> for ClaimDescription {
-    fn from(value: CredentialClaim) -> Self {
-        let display = value
-            .display
-            .map(|display| {
-                display
-                    .into_inner()
-                    .into_iter()
-                    // Both fields are optional in the specification, while the wallet requires them for display.
-                    .filter_map(|NameLocale { name, locale }| {
-                        Some(ClaimDisplayMetadata {
-                            locale: locale?,
-                            label: name?,
-                            description: None,
-                        })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        Self {
-            path: value.path,
-            display,
-            svg_id: None,
-        }
-    }
 }
 
 #[cfg(test)]
