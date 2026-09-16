@@ -22,6 +22,8 @@ class DemoIndexWebPage : MobileActions() {
     private val jobFinderButtonLocator = By.xpath("//a[@id='job_finder']")
     private val loyaltyButtonLocator = By.xpath("//a[@id='loyalty']")
     private val museumMaandkaartButtonLocator = By.xpath("//a[@id='museum_maandkaart']")
+    private val drivingLicenseButtonLocator = By.id("mdl")
+    private val registrationCertificateButtonLocator = By.id("mvc")
 
 
     fun visible() = isWebElementVisible(findWebElement(headerTextLocator))
@@ -68,5 +70,15 @@ class DemoIndexWebPage : MobileActions() {
     fun clickMuseumMaandkaartButton() {
         scrollToWebElement(museumMaandkaartButtonLocator)
         clickWebElementWithMouseEvent(findWebElement(museumMaandkaartButtonLocator))
+    }
+
+    fun clickDrivingLicenseButton() {
+        scrollToWebElement(drivingLicenseButtonLocator)
+        clickWebElementWithMouseEvent(findWebElement(drivingLicenseButtonLocator))
+    }
+
+    fun clickRegistrationCertificateButton() {
+        scrollToWebElement(registrationCertificateButtonLocator)
+        clickWebElementWithMouseEvent(findWebElement(registrationCertificateButtonLocator))
     }
 }
