@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -9,7 +12,6 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use strum::EnumString;
 use utils::vec_at_least::IntoNonEmptyIterator;
-use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
@@ -39,7 +41,7 @@ pub struct CredentialId(String);
 ///
 /// - There is at least one entry.
 /// - All entries are of the `openid_credential` type.
-/// - All of the `credential_configuration_id` values of the `openid_credential` entries are unique.
+/// - All of the `credential_configuration_id` values within a `openid_credential` entry are unique.
 #[derive(Debug, Clone, AsRef, Into)]
 pub struct AuthorizationDetails<T>(VecNonEmpty<EntryContainer<T>>);
 
@@ -94,18 +96,18 @@ impl AuthorizationDetails<CredentialEntry> {
         )
     }
 
-    pub fn into_credential_ids_and_identifiers(
-        self,
-    ) -> VecNonEmpty<(CredentialConfigurationId, VecNonEmptyUnique<CredentialId>)> {
+    /// Convert the [`AuthorizationDetails`] as received over the network to a more useful type for processing, making
+    /// use of guarantees the type provides that all Credential Configuration Identifiers are unique and all Credential
+    /// Identifiers within each entry are unique.
+    pub fn into_credential_ids_by_config_ids(self) -> HashMap<CredentialConfigurationId, HashSet<CredentialId>> {
         let Self(entry_containers) = self;
 
         entry_containers
-            .into_nonempty_iter()
+            .into_iter()
             .map(|EntryContainer { entry, .. }| {
-                (
-                    entry.config_entry.credential_configuration_id,
-                    entry.credential_identifiers,
-                )
+                let credential_identifiers = entry.credential_identifiers.into_iter().collect();
+
+                (entry.config_entry.credential_configuration_id, credential_identifiers)
             })
             .collect()
     }
