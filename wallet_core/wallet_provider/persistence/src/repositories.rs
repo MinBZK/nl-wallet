@@ -324,6 +324,16 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn update_encrypted_pin_pubkey(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &WalletId,
+        encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::update_encrypted_pin_pubkey(transaction, wallet_id, encrypted_pin_pubkey).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn commit_pin_change(
         &self,
         transaction: &Self::TransactionType,
@@ -832,6 +842,13 @@ pub mod mock {
                 user_state: WalletUserState,
             ) -> Result<(), PersistenceError>;
 
+            async fn update_encrypted_pin_pubkey(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &WalletId,
+                encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
+            ) -> Result<(), PersistenceError>;
+
             async fn commit_pin_change(
                 &self,
                 transaction: &MockTransaction,
@@ -1245,6 +1262,15 @@ pub mod mock {
             _wallet_id: &WalletId,
             _encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
             _user_state: WalletUserState,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn update_encrypted_pin_pubkey(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &WalletId,
+            _encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

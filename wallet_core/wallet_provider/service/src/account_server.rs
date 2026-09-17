@@ -1277,9 +1277,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
     // RefreshWalletCertificate instruction
     //
-    // Similar to ChangePinStart and Register, however, no wallet_user state changes here: the PIN public key is
-    // unchanged, so the new certificate has identical claims to the old one, except `iat` and `exp` and (possibly)
-    // `kid`.
+    // Similar to ChangePinStart and Register. The new certificate has identical claims to the old one, except `iat`
+    // and `exp` and (if applicable) `kid`. If the `pin_pubkey_encryption` kid is updated, the stored encrypted PIN
+    // public key is also migrated.
     pub async fn handle_refresh_wallet_certificate_instruction<T, R, F, G, H, S>(
         &self,
         instruction: Instruction<RefreshWalletCertificate>,
@@ -1307,6 +1307,32 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 wallet_user.encrypted_pin_pubkey.clone()
             })
             .await?;
+
+        // If the `pin_pubkey_encryption` kid is updated, also migrate the stored encrypted PIN public key.
+        if wallet_user.encrypted_pin_pubkey.kid != self.keys.pin_pubkey_encryption_kids.current {
+            let encrypted_pin_pubkey = Encrypter::encrypt(
+                &user_state.wallet_user_hsm,
+                &pin_pubkey_encryption_key_identifier(&self.keys.pin_pubkey_encryption_kids.current),
+                pin_pubkey,
+            )
+            .await?;
+
+            let tx = user_state.repositories.begin_transaction().await?;
+
+            user_state
+                .repositories
+                .update_encrypted_pin_pubkey(
+                    &tx,
+                    &wallet_user.wallet_id,
+                    WithKid {
+                        value: encrypted_pin_pubkey,
+                        kid: self.keys.pin_pubkey_encryption_kids.current.clone(),
+                    },
+                )
+                .await?;
+
+            tx.commit().await?;
+        }
 
         let wallet_certificate = new_wallet_certificate(
             self.name.clone(),
