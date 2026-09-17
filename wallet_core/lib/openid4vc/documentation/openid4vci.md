@@ -60,18 +60,19 @@ The OpenID4VCI protocol has the following phases.
    Endpoint using an OAuth Token Request, receiving an OAuth Token Response
    containing the Access Token.
 5. If the Issuer Metadata contained a Nonce Endpoint, the Wallet calls this
-   endpoint for each credential it wishes to have issued. The Wallet will have
-   to sign this nonce with its attestation private keys (that is, the private
-   keys of which it wants the corresponding public keys to be put in the issued
+   endpoint in order to retrieve a fresh nonce. The Wallet will have to sign
+   this nonce with its attestation private keys (that is, the private keys of
+   which it wants the corresponding public keys to be put in the issued
    credentials).
-6. After creating PoPs (Proofs of Possessions) in the form of JWTs, which may
-   include the nonce retrieved in the previous step, the Wallet sends these to
-   an OpenID4VCI-specific Credential Endpoint. It calls the Credential Endpoint
-   once per credential it wishes to have issued, with each invocation resulting
-   in one or more copies of the same credential data, determined by the amount
-   of proofs the Wallet sends. This endpoint is an OAuth 2.0 Protected Resource,
-   i.e., requires the Access Token in the `Authorization` header. The issuer
-   verifies the PoP JWTs and responds with the issued credential copies.
+6. After creating PoPs (Proofs of Possessions) in the form of JWTs, which must
+   include the nonce retrieved in the previous step, if the issuer provides a
+   nonce endpoint. The Wallet sends these proofs to an OpenID4VCI-specific
+   Credential Endpoint. It calls the Credential Endpoint once per credential it
+   wishes to have issued, with each invocation resulting in one or more copies
+   of the same credential data, determined by the amount of proofs the Wallet
+   sends. This endpoint is an OAuth 2.0 Protected Resource, i.e., requires the
+   Access Token in the `Authorization` header. The issuer verifies the PoP JWTs
+   and responds with the issued credential copies.
 
 A sequence diagram of the pre-authorized code flow looks as follows. In this
 flow, the `code` is renamed to `pre-authorized_code` (but otherwise it functions
@@ -202,6 +203,15 @@ be found
 - This implementation is currently not compatible with potential other
   implementations that are unaware of (and thus do not implement) both the
   Credential Preview and Credential Metadata endpoints; this is left for later.
+- The OpenID4VCI specification states that it is up to the issuer to decide how
+  long a nonce provided at the Nonce Endpoint valid. It also specifies that the
+  security this nonce provides relies on its ephemeral nature. In order to
+  prevent against replay attacks, we have decided to implement these nonces in
+  such a way that they can only be used once by a wallet. In order to
+  accommodate this, the wallet retrieves a fresh nonce for every credential it
+  wants issued within an issuance session. Note that this behaviour on the
+  wallet's part is entirely within the bounds of the specification, should it
+  interact with issuers provided by third parties.
 - In the OAuth/OpenID(4VCI) protocols the Authorization and Token Requests that
   the client sends are not JSON-encoded but instead URL-encoded (as they are
   (sometimes) sent as the query parameter in the URL). In this implementation,
