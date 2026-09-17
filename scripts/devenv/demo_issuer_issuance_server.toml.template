@@ -40,6 +40,7 @@ max_session_lifetime_in_sec = 900
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_WRPAC}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_WRPAC}"
+registration_certificate = "${DEMO_ISSUER_REGISTRATION_CERTIFICATE_UNIVERSITY}"
 
 [[disclosure_settings.university_mdoc.dcql_query.credentials]]
 id = "bsn_mdoc"
@@ -53,10 +54,27 @@ claims = [
 base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university_mdoc/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
+[credential_configurations."com.example.degree_mdoc"]
+format = "mso_mdoc"
+attestation_type = "com.example.degree"
+valid_days = 365
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_ISSUER}"
+certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
+
+[credential_configurations."com.example.degree_mdoc".status_list]
+group_name = "com.example.degree_mdoc"
+context_path = "/tsl"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_TSL}"
+certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_TSL}"
+
 [disclosure_settings.university_sd_jwt]
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_WRPAC}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_WRPAC}"
+registration_certificate = "${DEMO_ISSUER_REGISTRATION_CERTIFICATE_UNIVERSITY}"
 
 [[disclosure_settings.university_sd_jwt.dcql_query.credentials]]
 id = "bsn_sd_jwt"
@@ -90,6 +108,7 @@ certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_TSL}"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_HOUSING_WRPAC}"
 certificate = "${DEMO_ISSUER_CRT_HOUSING_WRPAC}"
+registration_certificate = "${DEMO_ISSUER_REGISTRATION_CERTIFICATE_HOUSING}"
 
 [[disclosure_settings.housing.dcql_query.credentials]]
 id = "my_credential"

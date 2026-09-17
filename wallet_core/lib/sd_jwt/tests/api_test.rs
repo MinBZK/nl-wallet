@@ -62,6 +62,7 @@ fn complex_sd_jwt_vc() {
     let sd_jwt = VerifiedSdJwt::spec_sd_jwt_vc();
     let disclosed = sd_jwt.decoded_claims().unwrap();
     let expected = json!({
+        "iss": "https://issuer.example.com",
         "given_name": "Erika",
         "also_known_as": "Schwester Agnes",
         "family_name": "Mustermann",

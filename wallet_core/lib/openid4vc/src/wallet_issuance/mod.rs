@@ -39,8 +39,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::wscd::IssuanceWscd;
-use wscd::wscd::WiaClient;
+use wscd::issuance::IssuanceWscd;
+use wscd::wia::WiaClient;
 
 use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;

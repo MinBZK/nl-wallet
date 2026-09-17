@@ -45,6 +45,9 @@ pub enum StatusListVerificationError {
 type CachedResult = Result<StatusListClaims, StatusListVerificationError>;
 
 const ZERO_DURATION: Duration = Duration::from_secs(0);
+const DEFAULT_CACHE_CAPACITY: u64 = 100;
+const DEFAULT_CACHE_TTL: Duration = Duration::from_secs(180);
+const DEFAULT_CACHE_ERROR_TTL: Duration = Duration::from_secs(10);
 
 struct TokenExpiry<G> {
     /// TTL when Status List Token has no `ttl` specified
@@ -65,6 +68,19 @@ impl<C> RevocationVerifier<C>
 where
     C: StatusListClient,
 {
+    pub fn new_with_defaults<G>(client: Arc<C>, time_generator: G) -> Self
+    where
+        G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+    {
+        Self::new(
+            client,
+            DEFAULT_CACHE_CAPACITY,
+            DEFAULT_CACHE_TTL,
+            DEFAULT_CACHE_ERROR_TTL,
+            time_generator,
+        )
+    }
+
     pub fn new<G>(
         client: Arc<C>,
         cache_capacity: u64,

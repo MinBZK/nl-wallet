@@ -11,7 +11,7 @@ use x509_parser::extensions::ExtendedKeyUsage;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum CertificateUsage {
     Mdl,
-    OAuthStatusSigning,
+    StatusListSigning,
     Wia,
 }
 
@@ -52,7 +52,7 @@ impl CertificateUsage {
                 if key_usage_oid == EXTENDED_KEY_USAGE_MDL {
                     Some(Self::Mdl)
                 } else if key_usage_oid == EXTENDED_KEY_USAGE_TSL {
-                    Some(Self::OAuthStatusSigning)
+                    Some(Self::StatusListSigning)
                 } else if key_usage_oid == EXTENDED_KEY_USAGE_WIA {
                     Some(Self::Wia)
                 } else {
@@ -73,7 +73,7 @@ impl CertificateUsage {
     fn as_oid(self) -> &'static Oid<'static> {
         match self {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
-            CertificateUsage::OAuthStatusSigning => EXTENDED_KEY_USAGE_TSL,
+            CertificateUsage::StatusListSigning => EXTENDED_KEY_USAGE_TSL,
             CertificateUsage::Wia => EXTENDED_KEY_USAGE_WIA,
         }
     }
@@ -117,7 +117,7 @@ mod tests {
 
     #[rstest]
     fn certificate_usage_to_oid_from_extension(
-        #[values(CertificateUsage::Mdl, CertificateUsage::OAuthStatusSigning, CertificateUsage::Wia)]
+        #[values(CertificateUsage::Mdl, CertificateUsage::StatusListSigning, CertificateUsage::Wia)]
         cert_usage: CertificateUsage,
     ) {
         let oid_bytes = cert_usage.as_oid_bytes();
@@ -138,7 +138,7 @@ mod tests {
         let result = CertificateUsage::from_key_usage(&extended_key_usage);
         assert!(result.is_err());
         assert_matches!(result, Err(CertificateUsageError::MultipleUsages(a, b))
-            if a == CertificateUsage::Mdl && b == CertificateUsage::OAuthStatusSigning);
+            if a == CertificateUsage::Mdl && b == CertificateUsage::StatusListSigning);
     }
 
     #[test]

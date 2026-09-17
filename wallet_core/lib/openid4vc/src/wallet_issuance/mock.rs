@@ -5,12 +5,12 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::From;
 use jwt::nonce::Nonce;
-use jwt::wia::WiaDisclosure;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
-use wscd::mock_remote::MockWiaClient;
-use wscd::wscd::WiaClient;
+use wscd::payload::wia::WiaDisclosure;
+use wscd::wia::WiaClient;
+use wscd::wia::mock::MockWiaClient;
 
 use super::AuthorizationSession;
 use super::CredentialSelection;

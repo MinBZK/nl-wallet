@@ -149,7 +149,6 @@ mod test {
 
     fn object() -> Value {
         json!({
-            "iss": "https://issuer.example.com/",
             "iat": 1683000000,
             "id": "did:value",
             "claim1": {

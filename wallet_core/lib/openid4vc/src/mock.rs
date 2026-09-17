@@ -5,7 +5,7 @@ use attestation_types::credential_kind::CredentialKind;
 use dcql::disclosure::ExtendingVctRetriever;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::token::AuthorizationCode;
-pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
+pub use wscd::mock::MOCK_WALLET_CLIENT_ID;
 
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
 // Re-exported for convenience

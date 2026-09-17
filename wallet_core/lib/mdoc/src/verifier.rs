@@ -1,6 +1,5 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
 use coset::RegisteredLabelWithPrivate;
@@ -9,7 +8,6 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use crypto::x509::KeyIdentifier;
 use futures::future::try_join_all;
-use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::SecretKey;
@@ -38,8 +36,6 @@ use crate::utils::serialization::cbor_serialize;
 pub struct DisclosedDocument {
     pub doc_type: String,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
-    pub issuer_uri: HttpsUri,
-    pub attestation_qualification: AttestationQualification,
     pub ca: String,
     pub validity_info: ValidityInfo,
     pub revocation_status: Option<RevocationStatus>,
@@ -76,12 +72,6 @@ pub enum VerificationError {
     Validity(#[from] ValidityError),
     #[error("unexpected amount of CA Common Names in issuer certificate: expected 1, found {0}")]
     UnexpectedCACommonNameCount(usize),
-    #[error("issuer URI {0} not found in SAN {1:?}")]
-    IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
-    #[error("missing issuer URI")]
-    MissingIssuerUri,
-    #[error("missing attestation qualification")]
-    MissingAttestationQualification,
     #[error("unsupported algorithm: {0:?}")]
     UnsupportedAlgorithm(RegisteredLabelWithPrivate<Algorithm>),
     #[error("missing algorithm")]
@@ -260,13 +250,6 @@ impl IssuerSigned {
             .exactly_one()
             .map_err(|error| VerificationError::UnexpectedCACommonNameCount(error.into_iter().len()))?;
 
-        let san_dns_name_or_uris = signing_cert.san_dns_name_or_uris()?;
-        match mso.issuer_uri {
-            Some(ref uri) if san_dns_name_or_uris.as_ref().contains(uri) => {}
-            Some(uri) => return Err(VerificationError::IssuerUriNotFoundInSan(uri, san_dns_name_or_uris).into()),
-            None => return Err(VerificationError::MissingIssuerUri.into()),
-        }
-
         let result = IssuerSignedVerificationResult {
             mso,
             attributes,
@@ -348,10 +331,6 @@ impl Document {
             .into());
         }
 
-        let attestation_qualification = mso
-            .attestation_qualification
-            .ok_or(VerificationError::MissingAttestationQualification)?;
-
         debug!("serializing session transcript");
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
         debug!("serializing device_authentication");
@@ -402,9 +381,6 @@ impl Document {
         let disclosed_document = DisclosedDocument {
             doc_type: mso.doc_type,
             attributes,
-            // The presence of the `issuer_uri` is guaranteed by `IssuerSigned::verify()`.
-            issuer_uri: mso.issuer_uri.unwrap(),
-            attestation_qualification,
             ca: ca_common_name,
             validity_info: mso.validity_info,
             revocation_status,

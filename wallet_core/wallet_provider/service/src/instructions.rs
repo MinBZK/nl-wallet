@@ -16,11 +16,6 @@ use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use itertools::Itertools;
 use jwt::SignedJwt;
-use jwt::UnverifiedJwt;
-use jwt::headers::HeaderWithJwk;
-use jwt::pop::JwtPopClaims;
-use jwt::wia::WiaDisclosure;
-use jwt::wia::WiaPopClaims;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -49,6 +44,7 @@ use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_account::messages::instructions::GetTransferStatus;
+use wallet_account::messages::instructions::IssuanceKeyResult;
 use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::IssueWiaResult;
 use wallet_account::messages::instructions::PairTransfer;
@@ -71,8 +67,12 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
-use wscd::Poa;
-use wscd::poa::POA_JWT_TYP;
+use wscd::payload::jwt_proof::JwtProof;
+use wscd::payload::jwt_proof::JwtProofClaims;
+use wscd::payload::poa::POA_JWT_TYP;
+use wscd::payload::poa::Poa;
+use wscd::payload::wia::WiaDisclosure;
+use wscd::payload::wia::WiaPopClaims;
 
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
@@ -81,6 +81,9 @@ use crate::account_server::UserState;
 use crate::flags::WalletFlags;
 use crate::revocation::system_revoke_wallets_by_recovery_code;
 use crate::wallet_certificate::PinKeyChecks;
+
+/// A sane limit to the amount of keys that Wallet can request during issuance. 640 ought be enough for anybody.
+const MAX_KEY_REQUEST_COUNT: u16 = 640;
 
 fn default_validation(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     validate_wallet_user_not_revoked(wallet_user)?;
@@ -434,30 +437,66 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
-    let (key_ids, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
-        .wallet_user_hsm
-        .generate_wrapped_keys(&user_state.wrapping_key_identifier, instruction.key_count)
-        .await?
-        .into_nonempty_iter()
-        .unzip();
+    let total_key_count = instruction
+        .key_requests
+        .iter()
+        .map(|request| usize::from(request.key_count.get()))
+        .sum();
 
-    let attestation_keys = wrapped_keys
-        .nonempty_iter()
-        .map(|wrapped_key| attestation_key(wrapped_key, user_state))
-        .collect();
+    if total_key_count > MAX_KEY_REQUEST_COUNT.into() {
+        return Err(InstructionError::Validation(
+            InstructionValidationError::TooManyKeysRequest {
+                requested: total_key_count,
+                maximum: MAX_KEY_REQUEST_COUNT,
+            },
+        ));
+    }
 
-    // The JWT claims to be signed in the PoPs.
-    let claims = JwtPopClaims::new(
-        instruction.nonce,
-        NL_WALLET_CLIENT_ID.to_string(),
-        instruction.aud,
-        time,
-    );
+    let request_count = instruction.key_requests.len();
+
+    let (proofs, wrapped_keys): (Vec<_>, Vec<_>) = future::try_join_all(
+        instruction
+            .key_requests
+            .into_iter()
+            .zip(std::iter::repeat_n(instruction.aud, request_count.get()))
+            .map(async |(request, aud)| -> Result<_, InstructionError> {
+                let (key_identifiers, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
+                    .wallet_user_hsm
+                    .generate_wrapped_keys(&user_state.wrapping_key_identifier, request.key_count.into())
+                    .await?
+                    .into_nonempty_iter()
+                    .unzip();
+
+                let attestation_keys = wrapped_keys
+                    .nonempty_iter()
+                    .map(|wrapped_key| attestation_key(wrapped_key, user_state))
+                    .collect();
+
+                // The JWT claims to be signed in the PoPs.
+                let claims = JwtProofClaims::new(NL_WALLET_CLIENT_ID.to_string(), aud, request.proof_nonce, time);
+
+                let proofs = issuance_pops(&attestation_keys, &claims)
+                    .await?
+                    .into_nonempty_iter()
+                    .zip(key_identifiers)
+                    .map(|(pop, key_identifier)| IssuanceKeyResult { key_identifier, pop })
+                    .collect::<VecNonEmpty<_>>();
+
+                Ok((proofs, wrapped_keys))
+            }),
+    )
+    .await?
+    .into_iter()
+    .unzip();
 
     let issuance_result = PerformIssuanceResult {
-        key_identifiers: key_ids,
-        pops: issuance_pops(&attestation_keys, &claims).await?,
+        keys: proofs
+            .try_into()
+            .expect("the PerformIssuance instruction contains a non-zero amount of proof requests"),
     };
+    let wrapped_keys = wrapped_keys.into_iter().flatten().collect_vec().try_into().expect(
+        "the PerformIssuance instruction contains a non-zero amount of proof requests and the inner vec is non-empty",
+    );
 
     Ok((issuance_result, wrapped_keys))
 }
@@ -552,8 +591,8 @@ where
 
 async fn issuance_pops<H>(
     attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
-    claims: &JwtPopClaims,
-) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>, InstructionError>
+    claims: &JwtProofClaims,
+) -> Result<VecNonEmpty<JwtProof>, InstructionError>
 where
     H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
@@ -720,10 +759,10 @@ impl HandleInstruction for Sign {
                 .map(|wrapped_key| attestation_key(wrapped_key, user_state))
                 .collect_vec();
             let keys = keys.iter().collect_vec().try_into().unwrap_or_else(|_| unreachable!()); // We know there are at least two keys
-            let claims = JwtPopClaims::new(
-                self.poa_nonce,
+            let claims = JwtProofClaims::new(
                 NL_WALLET_CLIENT_ID.to_string(),
                 self.poa_aud,
+                self.poa_nonce,
                 generators,
             );
             let poa = Poa::new(keys, claims).await?;
@@ -1439,7 +1478,7 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
-    use std::num::NonZeroUsize;
+    use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::sync::LazyLock;
     use std::sync::Mutex;
@@ -1454,14 +1493,11 @@ mod tests {
     use hsm::model::mock::MockPkcs11Client;
     use hsm::model::wrapped_key::WrappedKey;
     use hsm::service::HsmError;
+    use itertools::Itertools;
     use jwt::Algorithm;
     use jwt::JwtDecodingKey;
     use jwt::JwtValidation;
-    use jwt::UnverifiedJwt;
-    use jwt::headers::HeaderWithJwk;
     use jwt::nonce::Nonce;
-    use jwt::pop::JwtPopClaims;
-    use jwt::wia::WiaDisclosure;
     use mockall::predicate;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
@@ -1488,6 +1524,7 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::GetTransferStatus;
+    use wallet_account::messages::instructions::IssuanceKeySetRequest;
     use wallet_account::messages::instructions::IssueWia;
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
@@ -1504,6 +1541,8 @@ mod tests {
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
+    use wscd::payload::jwt_proof::JwtProof;
+    use wscd::payload::wia::WiaDisclosure;
 
     use crate::account_server::InstructionValidationError;
     use crate::account_server::UserState;
@@ -2193,7 +2232,9 @@ mod tests {
         assert_matches!(err, InstructionValidationError::PoaMessage);
     }
 
-    async fn handle_issuance_instruction<R, I: HandleInstruction<Result = R>>(instruction: I) -> R {
+    async fn handle_issuance_instruction<R, I: HandleInstruction<Result = R>>(
+        instruction: I,
+    ) -> Result<R, InstructionError> {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -2215,7 +2256,6 @@ mod tests {
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
-            .unwrap()
     }
 
     static ISSUANCE_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
@@ -2225,35 +2265,32 @@ mod tests {
         validation
     });
 
-    fn validate_issuance(
-        pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
-        wia_with_disclosure: Option<&WiaDisclosure>,
-    ) {
-        pops.iter().for_each(|pop| {
+    fn validate_issuance_pops<'a>(pops: impl IntoIterator<Item = &'a JwtProof>) {
+        for pop in pops {
             pop.parse_and_verify_with_jwk(ISSUANCE_VALIDATION.to_owned()).unwrap();
-        });
-
-        if let Some(wia_with_disclosure) = wia_with_disclosure {
-            let wia_key = wia_with_disclosure
-                .wia()
-                .dangerous_parse_unverified()
-                .unwrap()
-                .1
-                .cnf
-                .try_to_public_key()
-                .unwrap();
-
-            wia_with_disclosure
-                .wia_pop()
-                .parse_and_verify(
-                    JwtDecodingKey::from(&wia_key),
-                    ISSUANCE_VALIDATION
-                        .to_owned()
-                        .try_into_validation()
-                        .expect("created with only ES256"),
-                )
-                .unwrap();
         }
+    }
+
+    fn validate_wia_disclosure(wia_disclosure: &WiaDisclosure) {
+        let wia_key = wia_disclosure
+            .wia()
+            .dangerous_parse_unverified()
+            .unwrap()
+            .1
+            .cnf
+            .try_to_public_key()
+            .unwrap();
+
+        wia_disclosure
+            .wia_pop()
+            .parse_and_verify(
+                JwtDecodingKey::from(&wia_key),
+                ISSUANCE_VALIDATION
+                    .to_owned()
+                    .try_into_validation()
+                    .expect("created with only ES256"),
+            )
+            .unwrap();
     }
 
     const POP_AUD: &str = "aud";
@@ -2261,17 +2298,59 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    #[case(1)]
-    #[case(2)]
-    async fn should_handle_perform_issuance(#[case] key_count: usize) {
+    #[case(vec![1])]
+    #[case(vec![1, 1, 1])]
+    #[case(vec![4, 1, 3, 5])]
+    async fn should_handle_perform_issuance(#[case] key_counts: Vec<u8>, #[values(false, true)] include_nonce: bool) {
         let result = handle_issuance_instruction(PerformIssuance {
-            key_count: key_count.try_into().unwrap(),
             aud: POP_AUD.to_string(),
-            nonce: Some(Nonce::from(POP_NONCE.to_string())),
+            key_requests: key_counts
+                .into_iter()
+                .map(|key_count| IssuanceKeySetRequest {
+                    key_count: key_count.try_into().unwrap(),
+                    proof_nonce: include_nonce.then(|| Nonce::from(POP_NONCE.to_string())),
+                })
+                .collect_vec()
+                .try_into()
+                .unwrap(),
         })
-        .await;
+        .await
+        .expect("handling PerformIssuance instruction should succeed");
 
-        validate_issuance(result.pops.as_slice(), None);
+        validate_issuance_pops(
+            result
+                .keys
+                .iter()
+                .flat_map(|proofs| proofs.iter())
+                .map(|proof| &proof.pop),
+        );
+    }
+
+    #[tokio::test]
+    async fn should_error_on_perform_issuance_too_many_keys() {
+        let key_counts = [100, 200, 200, 150, 50];
+        let error = handle_issuance_instruction(PerformIssuance {
+            aud: POP_AUD.to_string(),
+            key_requests: key_counts
+                .into_iter()
+                .map(|key_count| IssuanceKeySetRequest {
+                    key_count: key_count.try_into().unwrap(),
+                    proof_nonce: None,
+                })
+                .collect_vec()
+                .try_into()
+                .unwrap(),
+        })
+        .await
+        .expect_err("handling PerformIssuance instruction should fail");
+
+        assert_matches!(
+            error,
+            InstructionError::Validation(InstructionValidationError::TooManyKeysRequest {
+                requested: 700,
+                maximum: 640
+            })
+        );
     }
 
     #[tokio::test]
@@ -2280,9 +2359,10 @@ mod tests {
             nonce: Some(Nonce::from(POP_NONCE.to_string())),
             aud: POP_AUD.to_string(),
         })
-        .await;
+        .await
+        .expect("handling IssueWia instruction should succeed");
 
-        validate_issuance(&[], Some(&result.wia_disclosure));
+        validate_wia_disclosure(&result.wia_disclosure);
     }
 
     fn mock_change_pin_start_instruction() -> ChangePinStart {
@@ -2304,9 +2384,11 @@ mod tests {
 
     fn mock_issuance_instruction() -> PerformIssuance {
         PerformIssuance {
-            key_count: NonZeroUsize::MIN,
             aud: "aud".to_string(),
-            nonce: None,
+            key_requests: vec_nonempty![IssuanceKeySetRequest {
+                key_count: NonZeroU8::MIN,
+                proof_nonce: None
+            }],
         }
     }
 

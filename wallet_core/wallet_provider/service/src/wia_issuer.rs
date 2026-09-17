@@ -11,16 +11,16 @@ use hsm::keys::HsmEcdsaKey;
 use jwt::SignedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
-use jwt::wia::ClientStatus;
-use jwt::wia::WiaClaims;
-use jwt::wia::WiaDisclosure;
-use jwt::wia::WiaPopClaims;
-use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::Generate;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
+use wscd::payload::wia::ClientStatus;
+use wscd::payload::wia::WiaClaims;
+use wscd::payload::wia::WiaDisclosure;
+use wscd::payload::wia::WiaPopClaims;
+use wscd::payload::wia::WiaWalletInfo;
 
 // used as the identifier for a WIA specific token status list
 pub const WIA_ATTESTATION_TYPE_IDENTIFIER: &str = "wia";
@@ -116,8 +116,8 @@ where
 pub mod mock {
     use crypto::server_keys::generate::Ca;
     use crypto::x509::DistinguishedName;
-    use jwt::wia::WiaWalletInfo;
     use p256::ecdsa::SigningKey;
+    use wscd::payload::wia::WiaWalletInfo;
 
     use crate::wia_issuer::WiaIssuer;
 
@@ -146,11 +146,11 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateUsage;
-    use jwt::wia::WIA_JWT_VALIDATION;
-    use jwt::wia::WiaPopClaims;
-    use jwt::wia::WiaWalletInfo;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
+    use wscd::payload::wia::WIA_JWT_VALIDATION;
+    use wscd::payload::wia::WiaPopClaims;
+    use wscd::payload::wia::WiaWalletInfo;
 
     use super::WiaIssuer;
 

@@ -4,8 +4,6 @@ use http_utils::reqwest::HttpClient;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use jwt::nonce::Nonce;
-use jwt::wia::WIA_CLIENT_AUTH_METHOD;
-use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
 use oauth::jose::JwsAlgorithm;
 use oauth::metadata::oauth_metadata::AuthorizationServerMetadata;
 use oauth::metadata::oauth_metadata::ClientAttestationMetadataExtension;
@@ -13,6 +11,8 @@ use reqwest::Response;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
+use wscd::payload::wia::WIA_CLIENT_AUTH_METHOD;
+use wscd::payload::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ClientAttestationMetadataError {
@@ -183,10 +183,10 @@ mod tests {
 
     use http::Response as HttpResponse;
     use jwt::nonce::Nonce;
-    use jwt::wia::WIA_CLIENT_AUTH_METHOD;
-    use jwt::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
     use reqwest::Response;
     use url::Url;
+    use wscd::payload::wia::WIA_CLIENT_AUTH_METHOD;
+    use wscd::payload::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
 
     use super::AuthorizationServerMetadata;
     use super::ClientAttestationChallengeMechanism;

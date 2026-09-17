@@ -22,9 +22,6 @@ use indexmap::IndexMap;
 use itertools::Either;
 use itertools::Itertools;
 use jwt::nonce::Nonce;
-use jwt::wia::WIA_HEADER_NAME;
-use jwt::wia::WIA_POP_HEADER_NAME;
-use jwt::wia::WiaDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
@@ -55,9 +52,12 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::wscd::IssuanceResult;
-use wscd::wscd::IssuanceWscd;
-use wscd::wscd::WiaClient;
+use wscd::issuance::IssuanceKeyResult;
+use wscd::issuance::IssuanceWscd;
+use wscd::payload::wia::WIA_HEADER_NAME;
+use wscd::payload::wia::WIA_POP_HEADER_NAME;
+use wscd::payload::wia::WiaDisclosure;
+use wscd::wia::WiaClient;
 
 use super::IssuanceSession;
 use super::WalletIssuanceError;
@@ -365,6 +365,13 @@ enum OfferedCredentials {
 }
 
 impl OfferedCredentials {
+    pub fn credential_count(&self) -> usize {
+        match self {
+            Self::CredentialIds(previews_by_credential_id) => previews_by_credential_id.len(),
+            Self::CredentialConfigurationIds(previews_by_config_id) => previews_by_config_id.len(),
+        }
+    }
+
     pub fn credential_previews(&self) -> impl Iterator<Item = &CredentialPreview> {
         match self {
             Self::CredentialIds(previews_by_credential_id) => Either::Left(previews_by_credential_id.values()),
@@ -827,69 +834,34 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         Ok(offered_credentials)
     }
 
-    async fn fetch_credential<W>(
+    async fn fetch_credential(
         &self,
         identifier: CredentialRequestIdentifier,
         credential_preview: &CredentialPreview,
-        max_copy_count: NonZeroU8,
+        keys: VecNonEmpty<IssuanceKeyResult>,
+        dpop_nonce: Option<DpopNonce>,
         trust_anchors: &TrustAnchors,
-        wscd: &W,
-    ) -> Result<CredentialWithMetadata, WalletIssuanceError>
-    where
-        W: IssuanceWscd,
-    {
-        // Request as many copies as the Issuer Metadata will allow, capped by `max_copy_count`.
-        let copy_count = std::cmp::min(self.session_state.batch_size, max_copy_count).into();
-
-        // Fetch one nonce from the nonce endpoint, if defined in the issuer metadata. Use the DPoP nonce if it returns
-        // one.
-        let (proof_nonce, dpop_nonce) = match self.session_state.issuer_endpoints.nonce_endpoint.as_ref() {
-            None => (None, self.session_state.dpop_nonce.clone()),
-            Some(nonce_endpoint) => {
-                let (NonceResponse { c_nonce }, dpop_nonce) = self
-                    .message_client
-                    .request_nonce(nonce_endpoint.clone().into_url())
-                    .await?;
-
-                // If the nonce endpoint response included a "DPoP-Nonce" header, return that value as the DPoP nonce.
-                // Otherwise, use the value received in the Token Response, if any.
-                let dpop_nonce = dpop_nonce.or_else(|| self.session_state.dpop_nonce.clone());
-
-                (Some(c_nonce), dpop_nonce)
-            }
-        };
-
-        // Have the WSCD generate as many private keys and proofs as the number of credential copies.
-        let aud = self.session_state.credential_issuer.as_ref().to_string();
-        let IssuanceResult { key_identifiers, pops } = wscd
-            .perform_issuance(copy_count, aud, proof_nonce)
-            .await
-            .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
-
+    ) -> Result<CredentialWithMetadata, WalletIssuanceError> {
         // Extract pairs of key identifiers and public keys and proofs from the WSCD response. Note that the WSCD may
-        // have returned either fewer key identifiers or proofs than we requested, this iterator results in the
-        // minimum of that.
-        let key_ids_public_keys_and_proofs = key_identifiers
+        // have returned fewer proofs than we requested, which means the issuer will provide us with fewer credential
+        // copies.
+        let (key_ids_and_public_keys, proofs): (VecNonEmpty<_>, _) = keys
             .into_nonempty_iter()
-            .zip(pops)
-            .map(|(key_identifier, proof)| {
+            .map(|IssuanceKeyResult { key_identifier, pop }| {
                 // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
-                let header = proof
+                let header = pop
                     .dangerous_parse_header_unverified()
                     .map_err(WalletIssuanceError::JwtParse)?;
 
                 let public_key = header.public_key().map_err(WalletIssuanceError::JwkConversion)?;
 
-                Ok((key_identifier, public_key, proof))
+                Ok(((key_identifier, public_key), pop))
             })
-            .collect::<Result<VecNonEmpty<_>, WalletIssuanceError>>()?;
-
-        let (key_ids_and_public_keys, proofs): (VecNonEmpty<_>, _) = key_ids_public_keys_and_proofs
+            .collect::<Result<VecNonEmpty<_>, WalletIssuanceError>>()?
             .into_nonempty_iter()
-            .map(|(key_identifier, public_key, proof)| ((key_identifier, public_key), proof))
             .unzip();
 
-        // Send the proofs of posession to the issuer in a Credential Request to actually fetch the credential copies.
+        // Send the proofs of possession to the issuer in a Credential Request to actually fetch the credential copies.
         let url = self
             .session_state
             .issuer_endpoints
@@ -1004,13 +976,65 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     where
         W: IssuanceWscd,
     {
-        // Fetch a set of credential copies for each credential in parallel.
+        // Request as many copies as the Issuer Metadata will allow, capped by `max_copy_count`.
+        let copy_count = std::cmp::min(self.session_state.batch_size, max_copy_count);
+
+        // Determine the proof nonce and DPoP nonce for each credential. If the nonce endpoint is defined in the
+        // metadata, call it for each credential in parallel in order to retrieve a proof nonce to be used in the Proof
+        // of Possession of the holder key.
+        let credential_count = self.session_state.offered_credentials.credential_count();
+        let (proof_nonces, dpop_nonces): (Vec<_>, Vec<_>) =
+            try_join_all((0..credential_count).map(async |_| -> Result<_, WalletIssuanceError> {
+                let (proof_nonce, dpop_nonce) = match self.session_state.issuer_endpoints.nonce_endpoint.as_ref() {
+                    None => {
+                        // There is no nonce endpoint available, so use the DPoP nonce from the Token Response, if
+                        // provided.
+                        (None, self.session_state.dpop_nonce.clone())
+                    }
+                    Some(nonce_endpoint) => {
+                        let (NonceResponse { c_nonce }, dpop_nonce) = self
+                            .message_client
+                            .request_nonce(nonce_endpoint.clone().into_url())
+                            .await?;
+
+                        // If the nonce endpoint response included a "DPoP-Nonce" header, return that value as the DPoP
+                        // nonce. Otherwise, use the value received in the Token Response, if any.
+                        let dpop_nonce = dpop_nonce.or_else(|| self.session_state.dpop_nonce.clone());
+
+                        (Some(c_nonce), dpop_nonce)
+                    }
+                };
+
+                Ok((proof_nonce, dpop_nonce))
+            }))
+            .await?
+            .into_iter()
+            .unzip();
+
+        // Have the WSCD generate sets of as many private keys and proofs as the number of credential copies for each
+        // individual credential.
+        let aud = self.session_state.credential_issuer.as_ref().to_string();
+        let key_counts_and_nonces = proof_nonces
+            .into_iter()
+            .map(|proof_nonce| (copy_count, proof_nonce))
+            .collect_vec()
+            .try_into()
+            .expect("credential_count is non-zero, which guarantees that proof_nonces is non-empty");
+        let key_results = wscd
+            .perform_issuance(aud, key_counts_and_nonces)
+            .await
+            .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
+
+        // Fetch a set of credential copies for each credential in parallel, using the key identifiers / proofs and a
+        // possible DPoP nonce.
         let credentials = try_join_all(
             self.session_state
                 .offered_credentials
                 .to_request_identifiers_and_previews()
-                .map(|(identifier, preview)| {
-                    self.fetch_credential(identifier, preview, max_copy_count, trust_anchors, wscd)
+                .zip_eq(key_results)
+                .zip_eq(dpop_nonces)
+                .map(|(((identifier, preview), keys), dpop_nonce)| {
+                    self.fetch_credential(identifier, preview, keys, dpop_nonce, trust_anchors)
                 }),
         )
         .await?;
@@ -1281,7 +1305,6 @@ mod tests {
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::qualification::AttestationQualification;
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
@@ -1315,7 +1338,7 @@ mod tests {
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
-    use wscd::mock_remote::MockWiaClient;
+    use wscd::wia::mock::MockWiaClient;
 
     use super::*;
     use crate::authorization_details::AuthorizationDetails;
@@ -3068,29 +3091,6 @@ mod tests {
     }
 
     #[rstest]
-    fn test_credential_response_into_mdoc_issued_issuer_mismatch_error(
-        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
-    ) {
-        let (credentials, mut preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format);
-
-        // Converting a `CredentialResponse` into an `Mdoc` with a different `issuer_uri` in the preview than
-        // contained within the response should fail.
-        preview.credential_payload.issuer = "https://other-issuer.example.com".parse().unwrap();
-
-        let error = test_convert_credentials_into_issued_credential(
-            credentials,
-            vec_nonempty![("key_id".to_string(), holder_public_key)],
-            &metadata,
-            &preview,
-            &trust_anchor,
-        )
-        .expect_err("should not be able to convert CredentialResponse into Mdoc");
-
-        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
-    }
-
-    #[rstest]
     fn test_credential_response_into_mdoc_issued_doctype_mismatch_error(
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
     ) {
@@ -3124,29 +3124,6 @@ mod tests {
         // contained within the response should fail.
 
         preview.credential_payload.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
-
-        let error = test_convert_credentials_into_issued_credential(
-            credentials,
-            vec_nonempty![("key_id".to_string(), holder_public_key)],
-            &metadata,
-            &preview,
-            &trust_anchor,
-        )
-        .expect_err("should not be able to convert CredentialResponse into Mdoc");
-
-        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
-    }
-
-    #[rstest]
-    fn test_credential_response_into_mdoc_issued_attestation_qualification_mismatch_error(
-        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
-    ) {
-        let (credentials, mut preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format);
-
-        // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
-        // within the response should fail.
-        preview.credential_payload.attestation_qualification = AttestationQualification::PubEAA;
 
         let error = test_convert_credentials_into_issued_credential(
             credentials,

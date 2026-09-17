@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use axum::Router;
 use config::Config;
 use config::ConfigError;
@@ -24,17 +25,21 @@ use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::UseCaseData;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::verifier::VerifierFactory;
 use serde::Deserialize;
+use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::verify_key_pairs;
+use server_utils::settings::VerifierUseCase;
+use server_utils::settings::VerifierUseCasesValidationError;
+use server_utils::settings::validate_verifier_use_cases;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use server_utils::store::SessionStoreVariant;
 use token_status_list::verification::reqwest::HttpStatusListClient;
@@ -75,11 +80,18 @@ pub struct VerifierSettings {
     pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct AttestationSettings {
     #[serde(flatten)]
     #[debug(skip)]
     pub key_pair: KeyPair,
+
+    /// Base64url-encoded Wallet Relying Party Registration Certificate (WRPRC).
+    #[serde_as(as = "TryFromIntoRef<String>")]
+    #[debug(skip)]
+    pub registration_certificate: RegistrationCertificateEnvelope,
+
     pub dcql_query: Query,
 
     /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
@@ -104,7 +116,7 @@ impl IssuanceServerSettings {
 }
 
 impl ServerSettings for IssuanceServerSettings {
-    type ValidationError = IssuerSettingsValidationError;
+    type ValidationError = IssuanceServerSettingsValidationError;
 
     fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let default_store_timeouts = SessionStoreTimeouts::default();
@@ -162,10 +174,14 @@ impl ServerSettings for IssuanceServerSettings {
         Ok(config)
     }
 
-    fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
-        self.issuer_settings.validate()?;
+    fn validate(&self) -> Result<(), IssuanceServerSettingsValidationError> {
+        self.issuer_settings
+            .validate()
+            .map_err(IssuanceServerSettingsValidationError::Issuer)?;
 
-        self.verifier_settings.validate()?;
+        self.verifier_settings
+            .validate(&self.issuer_settings.server_settings.wrprc_trust_anchors)
+            .map_err(IssuanceServerSettingsValidationError::Verifier)?;
 
         Ok(())
     }
@@ -173,6 +189,15 @@ impl ServerSettings for IssuanceServerSettings {
     fn server_settings(&self) -> &Settings {
         &self.issuer_settings.server_settings
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum IssuanceServerSettingsValidationError {
+    #[error("{0}")]
+    Issuer(#[source] IssuerSettingsValidationError),
+
+    #[error("{0}")]
+    Verifier(#[source] VerifierUseCasesValidationError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -188,18 +213,24 @@ pub enum VerifierSettingsError {
 }
 
 impl VerifierSettings {
-    fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
-        let time = TimeGenerator;
-
-        let key_pairs: Vec<(&str, &KeyPair)> = self
+    fn validate(&self, wrprc_trust_anchors: &TrustAnchors) -> Result<(), VerifierUseCasesValidationError> {
+        let use_cases = self
             .disclosure_settings
             .iter()
-            .map(|(id, settings)| (id.as_ref(), &settings.key_pair))
-            .collect();
+            .map(|(use_case_id, settings)| VerifierUseCase {
+                id: use_case_id,
+                key_pair: &settings.key_pair,
+                registration_certificate: &settings.registration_certificate,
+                dcql_query: Some(&settings.dcql_query),
+            })
+            .collect::<Vec<_>>();
 
-        verify_key_pairs(&key_pairs, &self.wrpac_trust_anchors, None, &time)?;
-
-        Ok(())
+        validate_verifier_use_cases(
+            &use_cases,
+            &self.wrpac_trust_anchors,
+            wrprc_trust_anchors,
+            &TimeGenerator,
+        )
     }
 
     pub async fn into_disclosure_router(
@@ -225,8 +256,11 @@ impl VerifierSettings {
                         .map_err(VerifierSettingsError::PrivateKey)?;
 
                     let use_case = WalletInitiatedUseCase::new(
-                        key_pair,
-                        SessionTypeReturnUrl::Both,
+                        UseCaseData::new(
+                            key_pair,
+                            SessionTypeReturnUrl::Both,
+                            attestation.registration_certificate,
+                        ),
                         attestation.dcql_query.try_into().map_err(VerifierSettingsError::Dcql)?,
                         format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
                     );

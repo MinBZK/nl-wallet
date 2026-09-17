@@ -7,7 +7,6 @@
 use std::fmt::Debug;
 use std::result::Result;
 
-use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::ParseError;
@@ -16,7 +15,6 @@ use chrono::Utc;
 use ciborium::tag;
 use ciborium::value::Value;
 use crypto::utils::random_bytes;
-use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use nutype::nutype;
@@ -271,15 +269,8 @@ pub struct MobileSecurityObject {
     pub doc_type: DocType,
     pub validity_info: ValidityInfo,
 
-    /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate.
-    /// Optional because it is not in the spec.
-    pub issuer_uri: Option<HttpsUri>,
-
     /// Optional because it is not in the spec.
     pub status: Option<StatusClaim>,
-
-    /// Optional because it is not in the spec.
-    pub attestation_qualification: Option<AttestationQualification>,
 }
 
 /// Version of the [`MobileSecurityObject`] structure

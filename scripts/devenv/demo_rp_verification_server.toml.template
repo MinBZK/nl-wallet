@@ -30,42 +30,50 @@ max_session_lifetime_in_sec = 900
 certificate = "${DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MIJN_AMSTERDAM}"
 
 [usecases.mijn_amsterdam_sd_jwt]
 certificate = "${DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MIJN_AMSTERDAM}"
 
 [usecases.online_marketplace]
 certificate = "${DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
 private_key = "${DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_ONLINE_MARKETPLACE}"
 disclosure_base_deep_link = "eu-eaap://"
 
 [usecases.xyz_bank_mdoc]
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_XYZ_BANK}"
 
 [usecases.xyz_bank_sd_jwt]
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_XYZ_BANK}"
 
 [usecases.xyz_bank_sd_jwt_eu]
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_XYZ_BANK}"
 
 [usecases.monkey_bike]
 certificate = "${DEMO_RELYING_PARTY_CRT_MONKEY_BIKE}"
 private_key = "${DEMO_RELYING_PARTY_KEY_MONKEY_BIKE}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MONKEY_BIKE}"
 
 [usecases.job_finder]
 certificate = "${DEMO_RELYING_PARTY_CRT_JOB_FINDER}"
 private_key = "${DEMO_RELYING_PARTY_KEY_JOB_FINDER}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER}"
 
 # Integration test cases
 [usecases.xyz_bank_no_return_url]
@@ -74,9 +82,11 @@ return_url_template = "http://${SERVICES_HOST}:${VERIFICATION_SERVER_PORT}/discl
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_XYZ_BANK}"
 
 [usecases.xyz_bank_all_return_url]
 session_type_return_url = "both"
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_XYZ_BANK}"

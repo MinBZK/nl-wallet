@@ -66,7 +66,6 @@ trust_anchors = [""]
 format = "dc+sd-jwt"
 attestation_type = "com.example.pid"
 valid_days = 365
-attestation_qualification = "QEAA"   # QEAA, PuB-EAA or EAA (default)
 private_key_type = "hsm"
 private_key = "pid_issuer_key"       # label for the private key in the HSM
 certificate = "MIJ..."

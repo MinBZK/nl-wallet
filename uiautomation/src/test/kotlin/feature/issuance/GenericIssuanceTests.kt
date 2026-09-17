@@ -1,9 +1,12 @@
 package feature.issuance
 
+import helper.IssuanceDataHelper
+import helper.PortraitImageHelper
 import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -28,6 +31,7 @@ class GenericIssuanceTests : TestBase() {
     private lateinit var cardIssuanceScreen: CardIssuanceScreen
     private lateinit var pinScreen: PinScreen
     private lateinit var tasData: TasDataHelper
+    private lateinit var issuanceData: IssuanceDataHelper
     private lateinit var dashboardScreen: DashboardScreen
 
     fun setUp(testInfo: TestInfo) {
@@ -38,6 +42,7 @@ class GenericIssuanceTests : TestBase() {
         cardIssuanceScreen = CardIssuanceScreen()
         pinScreen = PinScreen()
         tasData = TasDataHelper()
+        issuanceData = IssuanceDataHelper()
         dashboardScreen = DashboardScreen()
     }
 
@@ -107,6 +112,72 @@ class GenericIssuanceTests : TestBase() {
         assertTrue(
             dashboardScreen.cardVisible(tasData.getMuseumMaandkaartDisplayName()),
             "Museum maandkaart card not visible on dashboard"
+        )
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("Pre-authorized code flow Driving License")
+    fun verifyDrivingLicenseIssuance(testInfo: TestInfo) {
+        setUp(testInfo)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickDrivingLicenseButton()
+        issuerWebPage.openSameDeviceWalletFlow()
+        issuerWebPage.acceptOpenWalletDialog()
+
+        cardIssuanceScreen.switchToNativeContext()
+        cardIssuanceScreen.viewDetailsOfCard(tasData.getDrivingLicenseDisplayName())
+        val portraitImage = cardIssuanceScreen.portraitImageElement()
+        assertTrue(
+            PortraitImageHelper().hasPortraitImage(portraitImage),
+            "Driving license portrait is not present"
+        )
+        assertAll(
+            { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDrivingLicenseClaimLabel("family_name")), "Label familiy name is not visible") },
+            { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDrivingLicenseClaimLabel("birth_date")), "Label birth date is not visible") },
+            { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("mdl", "family_name").first()), "Data familiy name is not visible") }
+        )
+        cardIssuanceScreen.clickBackButton()
+        cardIssuanceScreen.clickAddCardButton()
+        pinScreen.enterPin(DEFAULT_PIN)
+
+        cardIssuanceScreen.clickToDashboardButton()
+        dashboardScreen.scrollToEndOfScreen()
+        assertTrue(
+            dashboardScreen.cardVisible(tasData.getDrivingLicenseDisplayName()),
+            "Driving license card not visible on dashboard"
+        )
+    }
+
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("Pre-authorized code flow Registration Certificate")
+    fun verifyRegistrationCertificateIssuance(testInfo: TestInfo) {
+        setUp(testInfo)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
+        MenuScreen().clickBrowserTestButton()
+
+        indexWebPage.switchToWebViewContext()
+        indexWebPage.clickRegistrationCertificateButton()
+        issuerWebPage.openSameDeviceWalletFlow()
+        issuerWebPage.acceptOpenWalletDialog()
+
+        cardIssuanceScreen.switchToNativeContext()
+        cardIssuanceScreen.viewDetailsOfCard(tasData.getRegistrationCertificateDisplayName())
+        assertAll(
+            { assertTrue(cardIssuanceScreen.labelVisible(tasData.getRegistrationCertificateClaimLabel("registration_number")), "Label registration number is not visible") },
+            { assertTrue(cardIssuanceScreen.labelVisible(tasData.getRegistrationCertificateClaimLabel("issue_date")), "Label issue date is not visible") },
+        )
+        cardIssuanceScreen.clickBackButton()
+        cardIssuanceScreen.clickAddCardButton()
+        pinScreen.enterPin(DEFAULT_PIN)
+
+        cardIssuanceScreen.clickToDashboardButton()
+        dashboardScreen.scrollToEndOfScreen()
+        assertTrue(
+            dashboardScreen.cardVisible(tasData.getRegistrationCertificateDisplayName()),
+            "Registration certificate card not visible on dashboard"
         )
     }
 }

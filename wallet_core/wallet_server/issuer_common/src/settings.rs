@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CanonicalDistinguishedName;
@@ -22,7 +21,6 @@ use health_checkers::postgres::DatabaseChecker;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
-use http_utils::urls::HttpsUri;
 use itertools::Itertools;
 use oauth::issuer_identifier::IssuerIdentifier;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
@@ -178,13 +176,6 @@ pub struct CredentialConfigurationSettings {
 
     pub status_list: StatusListAttestationSettings,
 
-    #[serde(default)]
-    pub attestation_qualification: AttestationQualification,
-
-    /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
-    /// If the certificate contains exactly one SAN, then this may be left blank.
-    pub certificate_san: Option<HttpsUri>,
-
     /// Path to the JSON file with the Credential Metadata published for this credential configuration.
     #[debug(skip)]
     pub credential_metadata: Option<CredentialMetadataFile>,
@@ -298,9 +289,6 @@ impl TypeMetadataByVct {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsSettingsError {
-    #[error("invalid certificate: {0}")]
-    CertificateSanDns(#[source] CertificateError),
-
     #[error("invalid private key: {0}")]
     PrivateKey(#[source] PrivateKeySettingsError),
 
@@ -341,22 +329,6 @@ impl CredentialConfigurationsSettings {
                 ))
                 .map(|((config_id, settings), (status_list_connection, public_url, hsm))| {
                     async move {
-                        // Take the SAN from the settings if specified, or otherwise take the first SAN from the
-                        // certificate. NB: the settings validation function will have verified before
-                        // this that the certificate contains just one SAN.
-                        let issuer_uri = match settings.certificate_san {
-                            Some(san) => san,
-                            None => {
-                                let san_dns_name_or_uris = settings
-                                    .keypair
-                                    .certificate
-                                    .san_dns_name_or_uris()
-                                    .map_err(CredentialConfigurationsSettingsError::CertificateSanDns)?;
-
-                                san_dns_name_or_uris.first().clone()
-                            }
-                        };
-
                         // An mdoc is described by its CredentialMetadata, so no chain needs to be configured for it.
                         let type_metadata = match settings.credential_kind.format {
                             Format::SdJwt => Some(
@@ -384,8 +356,6 @@ impl CredentialConfigurationsSettings {
                             key_pair,
                             status_list,
                             valid_days: Days::new(settings.valid_days),
-                            issuer_uri,
-                            attestation_qualification: settings.attestation_qualification,
                             type_metadata,
                             credential_metadata: settings.credential_metadata.map(CredentialMetadata::from),
                         };
@@ -408,13 +378,6 @@ pub enum IssuerSettingsValidationError {
     Certificate(#[from] CertificateError),
     #[error("error verifying certificate: {0}")]
     CertificateVerification(#[from] CertificateVerificationError),
-    #[error("certificate for {config_id} missing SAN {san}")]
-    CertificateMissingSan {
-        config_id: CredentialConfigurationId,
-        san: HttpsUri,
-    },
-    #[error("multiple SANs in issuer certificate for {config_id}: which one to use was not specified")]
-    CertificateSanUnspecified { config_id: CredentialConfigurationId },
     #[error(
         "attestation and status list certificate subject are different {config_id}: `{attestation}` vs `{status_list}`"
     )]
@@ -471,31 +434,6 @@ impl IssuerSettings {
             &time,
         )?;
 
-        for (config_id, attestation) in self.credential_configurations.as_ref() {
-            if let Some(certificate_san) = attestation.certificate_san.as_ref() {
-                // If the certificate SAN to be used has been specified, then it has to be present in the certificate.
-                if !attestation
-                    .keypair
-                    .certificate
-                    .san_dns_name_or_uris()?
-                    .as_ref()
-                    .contains(certificate_san)
-                {
-                    return Err(IssuerSettingsValidationError::CertificateMissingSan {
-                        config_id: config_id.clone(),
-                        san: certificate_san.clone(),
-                    });
-                }
-            } else {
-                // If not, then there must be only one SAN in the certificate so there is no disambiguation.
-                if attestation.keypair.certificate.san_dns_name_or_uris()?.len().get() > 1 {
-                    return Err(IssuerSettingsValidationError::CertificateSanUnspecified {
-                        config_id: config_id.clone(),
-                    });
-                }
-            }
-        }
-
         let trust_anchors = &self.server_settings.issuer_trust_anchors;
 
         let key_pairs: Vec<(&str, &KeyPair)> = self
@@ -517,7 +455,7 @@ impl IssuerSettings {
         verify_key_pairs(
             &key_pairs,
             trust_anchors,
-            Some(CertificateUsage::OAuthStatusSigning),
+            Some(CertificateUsage::StatusListSigning),
             &time,
         )?;
 
@@ -701,16 +639,13 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
-    use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use crypto::x509::DistinguishedName;
     use crypto::x509::SubjectAltNameUri;
-    use http_utils::urls::HttpsUri;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -764,8 +699,6 @@ mod tests {
                         keypair: status_list_keypair,
                         publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                     },
-                    attestation_qualification: AttestationQualification::PubEAA,
-                    certificate_san: Some(ISSUANCE_CERT_SAN_URI.as_ref().to_string().parse().unwrap()),
                 },
             )])
             .into(),
@@ -878,8 +811,6 @@ mod tests {
                     keypair: status_list_keypair,
                     publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                 },
-                attestation_qualification: Default::default(),
-                certificate_san: None,
             },
         )])
         .into();
@@ -906,23 +837,6 @@ mod tests {
                 CertificateVerificationError::NoCertificateType(CertificateTypeError::IssuerRegistrationNotFound, key)
             ) if key == "no_registration_sdjwt"
         );
-    }
-
-    #[test]
-    fn test_wrong_san_field() {
-        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
-        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
-
-        let wrong_san: HttpsUri = "https://wrong.san.example.com".parse().unwrap();
-
-        let (typ, attestation_settings) = settings.credential_configurations.as_ref().iter().next().unwrap();
-        let mut attestation_settings = attestation_settings.clone();
-        attestation_settings.certificate_san = Some(wrong_san.clone());
-        settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
-
-        let error = settings.validate().expect_err("should fail");
-        assert_matches!(error, IssuerSettingsValidationError::CertificateMissingSan { san, .. } if san == wrong_san);
     }
 
     #[test]
@@ -954,7 +868,7 @@ mod tests {
         let status_list_keypair = issuer_ca
             .generate_key_pair(
                 DistinguishedName::create_legal_person_mock("different"),
-                CertificateConfiguration::with_usage(CertificateUsage::OAuthStatusSigning),
+                CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
                 ["https://different.example.com/".parse::<SubjectAltNameUri>().unwrap()],
             )
             .expect("generate tsl cert failed");

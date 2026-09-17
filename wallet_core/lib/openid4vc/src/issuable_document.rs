@@ -3,10 +3,8 @@ use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
-use http_utils::urls::HttpsUri;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
@@ -71,15 +69,11 @@ impl IssuableDocument {
         self,
         valid_from: DateTime<Utc>,
         valid_until: DateTime<Utc>,
-        issuer_uri: HttpsUri,
-        attestation_qualification: AttestationQualification,
     ) -> (Uuid, PreviewableCredentialPayload) {
         let payload = PreviewableCredentialPayload {
             attestation_type: self.credential_kind.attestation_type,
-            issuer: issuer_uri,
             expires: Some(valid_until.into()),
             not_before: Some(valid_from.into()),
-            attestation_qualification,
             attributes: self.attributes,
         };
         (self.id, payload)

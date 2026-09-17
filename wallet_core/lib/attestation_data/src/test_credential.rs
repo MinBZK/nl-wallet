@@ -171,9 +171,6 @@ impl TestCredentials {
                 credential.payload_preview.attestation_type
             );
 
-            // Verify the issuer.
-            assert_eq!(attestation.issuer_uri, credential.payload_preview.issuer);
-
             // Verify the actual attributes.
             credential.assert_matches_disclosed_attributes(&attestation.attributes, expected_format);
         }

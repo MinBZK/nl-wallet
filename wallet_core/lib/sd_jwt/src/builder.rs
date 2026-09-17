@@ -111,11 +111,9 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 ///     cnf: ConfirmationClaim::try_from_public_key(&PublicKey::from(*holder_key.verifying_key()))?,
 ///     vct: "urn:example:vct".into(),
 ///     vct_integrity: None,
-///     iss: "https://issuer.example.com".parse()?,
 ///     iat: DateTimeSeconds::from(Utc::now()),
 ///     exp: None,
 ///     nbf: None,
-///     attestation_qualification: None,
 ///     status: None,
 ///     claims: serde_json::from_value(serde_json::json!({
 ///         "name": "alice"
@@ -179,11 +177,9 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///     cnf: ConfirmationClaim::try_from_public_key(&PublicKey::from(*SigningKey::generate().verifying_key()))?,
     ///     vct: "com:example:vct".into(),
     ///     vct_integrity: None,
-    ///     iss: "https://issuer.example.com".parse()?  ,
     ///     iat: DateTimeSeconds::from(Utc::now()),
     ///     exp: None,
     ///     nbf: None,
-    ///     attestation_qualification: None,
     ///     status: None,
     ///     claims: serde_json::from_value(serde_json::json!({
     ///         "name": "alice",

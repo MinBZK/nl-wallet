@@ -85,7 +85,6 @@ mod test {
     use crypto::CredentialEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
-    use http_utils::urls::HttpsUri;
     use indexmap::IndexMap;
     use utils::generator::Generator;
 
@@ -109,7 +108,6 @@ mod test {
 
         pub async fn new_unverified_from_data(
             doc_type: String,
-            issuer_uri: HttpsUri,
             name_spaces: IndexMap<String, Vec<Entry>>,
             ca: &Ca,
             device_key: &impl CredentialEcdsaKey,
@@ -136,8 +134,6 @@ mod test {
                     valid_until: (time + TimeDelta::days(365)).into(),
                     expected_update: None,
                 },
-                issuer_uri: Some(issuer_uri),
-                attestation_qualification: Some(Default::default()),
                 status: Some(StatusClaim::new_mock()),
             };
 
@@ -175,7 +171,6 @@ pub mod mock {
     use crypto::CredentialEcdsaKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
     use crypto::trust_anchor::TrustAnchors;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
@@ -227,7 +222,6 @@ pub mod mock {
         ) -> Self {
             Self::new_unverified_from_data(
                 PID_ATTESTATION_TYPE.to_string(),
-                ISSUANCE_CERT_SAN_URI.clone().into(),
                 IndexMap::from_iter(vec![(
                     PID_ATTESTATION_TYPE.to_string(),
                     vec![

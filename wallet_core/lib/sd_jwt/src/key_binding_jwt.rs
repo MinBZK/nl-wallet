@@ -10,7 +10,7 @@ use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use derive_more::Display;
 use derive_more::FromStr;
-use jsonwebtoken::Algorithm;
+use jwt::Algorithm;
 use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
 use jwt::JwtValidation;
@@ -232,7 +232,6 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::Itertools;
-    use jsonwebtoken::Algorithm;
     use jwt::SignedJwt;
     use jwt::error::JwtVerifyError;
     use p256::ecdsa::SigningKey;

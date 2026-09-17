@@ -7,10 +7,10 @@ use chrono::Utc;
 use crypto::PublicKey;
 use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
-use jsonwebtoken::jwk::Jwk;
 use jwt::Header;
 use jwt::JwtTyp;
 use jwt::confirmation::ConfirmationClaim;
+use jwt::jwk::Jwk;
 use jwt::jwk::jwk_to_public_key;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
@@ -150,7 +150,6 @@ pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, D
         "HvrKX6fPV0v9K_yCVFBiLFHsMaxcD_114Em6VT8x1lg"
       ],
       "vct": "com.example.pid",
-      "iss": "https://issuer.example.com",
       "iat": 1683000000,
       "exp": 1883000000,
       "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",

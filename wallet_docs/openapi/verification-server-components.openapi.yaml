@@ -167,17 +167,6 @@ components:
         attributes:
           type: object
           description: Disclosed attributes (format depends on attestation type)
-        issuer_uri:
-          type: string
-          format: uri
-          description: URI of the issuer
-        attestation_qualification:
-          type: string
-          enum:
-            - QEAA
-            - PuB-EAA
-            - EAA
-          description: Qualification level of the attestation
         ca:
           type: string
           description: Certificate authority
@@ -189,8 +178,6 @@ components:
       required:
         - attestation_type
         - attributes
-        - issuer_uri
-        - attestation_qualification
         - ca
         - issuance_validity
 

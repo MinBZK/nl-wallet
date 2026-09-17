@@ -39,10 +39,6 @@ use crate::wallet::attestations::AttestationsError;
 use crate::wallet::notifications::DirectNotificationsCallback;
 use crate::wallet::notifications::emit_scheduled_notifications;
 
-const STATUS_LIST_TOKEN_CACHE_CAPACITY: u64 = 100;
-const STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL: Duration = Duration::from_secs(180);
-const STATUS_LIST_TOKEN_CACHE_ERROR_TTL: Duration = Duration::from_secs(10);
-
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum RevocationError {
@@ -174,13 +170,8 @@ where
         S: Storage,
         T: Generator<DateTime<Utc>> + Clone + Send + Sync + 'static,
     {
-        let revocation_verifier = RevocationVerifier::new(
-            Arc::clone(&ctx.status_list_client),
-            STATUS_LIST_TOKEN_CACHE_CAPACITY,
-            STATUS_LIST_TOKEN_CACHE_DEFAULT_TTL,
-            STATUS_LIST_TOKEN_CACHE_ERROR_TTL,
-            time_generator.clone(),
-        );
+        let revocation_verifier =
+            RevocationVerifier::new_with_defaults(Arc::clone(&ctx.status_list_client), time_generator.clone());
 
         // Fetch revocation info in one storage lock
         let revocation_info = ctx

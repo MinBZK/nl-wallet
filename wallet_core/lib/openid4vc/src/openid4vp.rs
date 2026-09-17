@@ -9,6 +9,7 @@ use std::time::Duration;
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
@@ -65,6 +66,7 @@ use serde_with::DeserializeAs;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeAs;
 use serde_with::SerializeDisplay;
+use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use token_status_list::verification::client::StatusListClient;
@@ -77,20 +79,23 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
-use wscd::Poa;
-use wscd::PoaVerificationError;
+use wscd::payload::poa::Poa;
+use wscd::payload::poa::PoaVerificationError;
 
 use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
 use crate::jwe::JweEncryptionAlgorithm;
+use crate::registration_certificate::RegistrationCertificateError;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(5);
 const SD_JWT_IAT_WINDOW: Duration = Duration::from_secs(15 * 60);
 
-const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
+pub(crate) const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
     &[EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm];
+
+pub const REGISTRATION_CERTIFICATE_FORMAT: &str = "registration_cert";
 
 /// OpenID4VP request uri.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -159,8 +164,32 @@ pub struct VpAuthorizationRequest {
 
     pub wallet_nonce: Option<String>,
 
+    /// Information about the verifier as specified by ETSI TS 119 472-2.
+    pub verifier_info: Option<VecNonEmpty<VerifierInfo>>,
+
     #[serde_as(as = "Option<Vec<JsonBase64>>")]
     pub transaction_data: Option<VecNonEmpty<serde_json::Map<String, serde_json::Value>>>,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "format")]
+pub enum VerifierInfo {
+    #[serde(rename = "registration_cert")]
+    RegistrationCertificate {
+        #[serde_as(as = "TryFromIntoRef<String>")]
+        data: RegistrationCertificateEnvelope,
+    },
+
+    // Allow the verifier to announce formats that the wallet does not support.
+    #[serde(other)]
+    Other,
+}
+
+impl VerifierInfo {
+    pub fn registration_certificate(data: RegistrationCertificateEnvelope) -> Self {
+        Self::RegistrationCertificate { data }
+    }
 }
 
 impl JwtTyp for VpAuthorizationRequest {
@@ -418,6 +447,9 @@ pub enum AuthRequestValidationError {
     },
     #[error("failed to verify Authorization Request JWT: {0}")]
     JwtVerification(#[from] JwtX5cVerifyError),
+    #[error("invalid registration certificate: {0}")]
+    #[category(critical)]
+    RegistrationCertificate(#[source] Box<RegistrationCertificateError>),
     #[error("mismatch in wallet nonce: did not receive nonce when one was expected, or vice versa")]
     #[category(critical)]
     WalletNonceMismatch,
@@ -431,7 +463,7 @@ static VP_AUTH_REQUEST_VALIDATION: LazyLock<JwtValidation> = LazyLock::new(|| {
 
 impl VpAuthorizationRequest {
     /// Construct and authenticate an Authorization Request, requiring a valid CRL for its WRPAC chain.
-    pub async fn try_new(
+    pub async fn authenticate_request(
         jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
         trust_anchors: &TrustAnchors,
         crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
@@ -449,13 +481,15 @@ impl VpAuthorizationRequest {
         Ok((auth_request, header.x5c.into_first()))
     }
 
-    /// Validate that an Authorization Request satisfies the following:
-    /// - the request contents are compliant with the OpenID4VP specification.
-    /// - the `client_id` uses the `x509_hash` scheme and matches the leaf X.509 certificate.
+    /// Normalize an Authorization Request into the representation used by the wallet.
     ///
-    /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
-    /// contains only the fields we need and use.
-    pub fn validate(
+    /// Checks the supported request fields, binds the `x509_hash` client ID to `rp_cert`, checks
+    /// the wallet nonce, and selects the response encryption key and algorithm.
+    ///
+    /// Call after [`Self::authenticate_request`], using the request and certificate it returns.
+    /// Registration-certificate trust, status, and DCQL authorization must still be checked using
+    /// [`crate::registration_certificate::validate_registration_certificate_and_query`].
+    pub fn normalize_request(
         self,
         rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
@@ -496,12 +530,17 @@ impl VpAuthorizationRequest {
     }
 }
 
-/// An OpenID4VP Authorization Request that has been validated to conform to the OpenID4VP specification:
-/// a subset of [`VpAuthorizationRequest`] that always contains fields we require, and no fields we don't.
+/// Internal Authorization Request representation shared by the wallet and verifier, with required
+/// fields represented directly and credential queries normalized.
 ///
-/// Note that this data type is internal to both the wallet and verifier, and not part of the OpenID4VP protocol,
-/// so it is never sent over the wire. It implements (De)serialize so that the verifier can persist it to
-/// the session store.
+/// The verifier constructs this from its own request data using [`Self::new_for_verifier`]. The wallet
+/// obtains it through [`VpAuthorizationRequest::normalize_request`] before completing its acceptance checks.
+/// This type does not establish request authentication or registration-certificate authorization.
+/// [`crate::disclosure_session::VpDisclosureClient`] completes the wallet's checks before returning a session.
+///
+/// This representation is not sent over the wire as an OpenID4VP message. It implements (De)serialize
+/// so that the verifier can persist it to the session store.
+#[serde_as]
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NormalizedVpAuthorizationRequest {
@@ -513,10 +552,13 @@ pub struct NormalizedVpAuthorizationRequest {
     pub client_metadata: VpClientMetadata,
     pub state: Option<String>,
     pub wallet_nonce: Option<String>,
+    #[serde_as(as = "TryFromIntoRef<String>")]
+    pub registration_certificate: RegistrationCertificateEnvelope,
 }
 
 impl NormalizedVpAuthorizationRequest {
-    /// Construct an Authorization Request to be sent by this verifier.
+    /// Construct the normalized Authorization Request retained by a verifier.
+    #[expect(clippy::too_many_arguments, reason = "constructor")]
     pub fn new_for_verifier(
         credential_requests: NormalizedCredentialRequests,
         client_id: ClientId,
@@ -524,6 +566,7 @@ impl NormalizedVpAuthorizationRequest {
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
         wallet_nonce: Option<String>,
+        registration_certificate: RegistrationCertificateEnvelope,
     ) -> Self {
         let jwk = encryption_pubkey.clone().into();
 
@@ -547,24 +590,20 @@ impl NormalizedVpAuthorizationRequest {
                         kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
                     }),
                 },
-                // HAIP requires verifiers to list both A128GCM and A256GCM in
-                // `encrypted_response_enc_values_supported`:
-                // https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5
-                // The JWE enc (encryption algorithm) header parameter (see Section 4.1.2 of [RFC7516]) values A128GCM
-                // and A256GCM (as defined in Section 5.3 of [RFC7518]) MUST be supported by Verifiers.
+                // HAIP requires verifiers to list both A128GCM and A256GCM.
                 encrypted_response_enc_values_supported: Some(
                     RESPONSE_ENCRYPTION_ALGORITHMS
                         .iter()
                         .copied()
                         .map(JweEncryptionAlgorithm::from)
-                        .collect_vec()
+                        .collect::<Vec<_>>()
                         .try_into()
-                        // The RESPONSE_ENCRYPTION_ALGORITHMS constant is guaranteed to contain more than one algorithm.
-                        .unwrap(),
+                        .expect("RESPONSE_ENCRYPTION_ALGORITHMS contains more than one algorithm"),
                 ),
             },
             state: None,
             wallet_nonce,
+            registration_certificate,
         }
     }
 
@@ -650,6 +689,29 @@ impl NormalizedVpAuthorizationRequest {
         let encryption_pubkey = jwe_public_keys.into_first();
 
         let client_id = vp_auth_request.oauth_request.client_id.as_str().into();
+        let mut registration_certificates = vp_auth_request
+            .verifier_info
+            .map(VecNonEmpty::into_inner)
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|info| match info {
+                VerifierInfo::RegistrationCertificate { data } => Some(data),
+                VerifierInfo::Other => None,
+            })
+            .collect_vec();
+        let registration_certificate = match registration_certificates.len() {
+            0 => {
+                return Err(AuthRequestValidationError::RegistrationCertificate(Box::new(
+                    RegistrationCertificateError::Missing,
+                )));
+            }
+            1 => registration_certificates.pop().unwrap(),
+            _ => {
+                return Err(AuthRequestValidationError::RegistrationCertificate(Box::new(
+                    RegistrationCertificateError::Multiple,
+                )));
+            }
+        };
 
         Ok(NormalizedVpAuthorizationRequest {
             client_id,
@@ -660,6 +722,7 @@ impl NormalizedVpAuthorizationRequest {
             client_metadata,
             state: vp_auth_request.oauth_request.state,
             wallet_nonce: vp_auth_request.wallet_nonce,
+            registration_certificate,
         })
     }
 
@@ -698,6 +761,9 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
             client_metadata: Some(value.client_metadata),
             response_uri: Some(value.response_uri),
             wallet_nonce: value.wallet_nonce,
+            verifier_info: Some(vec_nonempty![VerifierInfo::registration_certificate(
+                value.registration_certificate,
+            )]),
             transaction_data: None,
         }
     }
@@ -1113,33 +1179,6 @@ pub struct VpResponse {
     pub redirect_uri: Option<Url>,
 }
 
-#[cfg(any(test, feature = "test"))]
-pub mod test {
-    use super::*;
-
-    impl NormalizedVpAuthorizationRequest {
-        pub fn new_from_certificate(
-            credential_requests: NormalizedCredentialRequests,
-            rp_certificate: &BorrowingCertificate,
-            nonce: Nonce,
-            encryption_pubkey: JwePublicKey,
-            response_uri: BaseUrl,
-            wallet_nonce: Option<String>,
-        ) -> Self {
-            let client_id = ClientId::x509_hash_from_certificate(rp_certificate);
-
-            Self::new_for_verifier(
-                credential_requests,
-                client_id,
-                nonce,
-                encryption_pubkey,
-                response_uri,
-                wallet_nonce,
-            )
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -1149,6 +1188,9 @@ mod tests {
 
     use attestation_data::attributes::AttributesTraversalBehaviour;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_data::test_credential::nl_pid_address_minimal_address;
     use attestation_data::test_credential::nl_pid_credentials_full_name;
     use attestation_types::claim_path::ClaimPath;
@@ -1165,6 +1207,7 @@ mod tests {
     use crypto::x509::crl::CertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCrlFetcher;
     use dcql::CredentialQueryIdentifier;
+    use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
@@ -1175,7 +1218,6 @@ mod tests {
     use jwt::SignedJwt;
     use jwt::error::JwtX5cVerifyError;
     use jwt::nonce::Nonce;
-    use jwt::pop::JwtPopClaims;
     use mdoc::DeviceResponse;
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
@@ -1195,9 +1237,10 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
-    use wscd::Poa;
     use wscd::mock_remote::MockRemoteWscd;
-    use wscd::poa::JwtPoaInput;
+    use wscd::payload::jwt_proof::JwtProofClaims;
+    use wscd::payload::poa::JwtPoaInput;
+    use wscd::payload::poa::Poa;
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;
@@ -1205,7 +1248,10 @@ mod tests {
     use super::ClientIdScheme;
     use super::JsonBase64;
     use super::NormalizedVpAuthorizationRequest;
+    use super::REGISTRATION_CERTIFICATE_FORMAT;
+    use super::RegistrationCertificateError;
     use super::VerifiablePresentation;
+    use super::VerifierInfo;
     use super::VpAuthorizationRequest;
     use super::VpAuthorizationResponse;
     use super::VpRequestUri;
@@ -1226,6 +1272,24 @@ mod tests {
     );
 
     const EXAMPLE_X509_HASH_CLIENT_ID: &str = "x509_hash:ZXhhbXBsZS1jbGllbnQtaWQtaGFzaA";
+
+    #[derive(Clone, Copy)]
+    enum RegistrationCertificateFormat {
+        Jwt,
+        Cwt,
+    }
+
+    fn authorization_request_from_normalized(value: NormalizedVpAuthorizationRequest) -> VpAuthorizationRequest {
+        value.into()
+    }
+
+    fn with_mock_registration_certificate(mut auth_request: VpAuthorizationRequest) -> VpAuthorizationRequest {
+        let (_, _, _, normalized) = setup_mdoc();
+        auth_request.verifier_info = Some(vec_nonempty![VerifierInfo::registration_certificate(
+            normalized.registration_certificate,
+        )]);
+        auth_request
+    }
 
     #[test]
     fn test_normalized_vp_authorization_request_sha256_thumbprint_bytes() {
@@ -1333,13 +1397,18 @@ mod tests {
 
         let response_uri = "https://cert.rp.example.com/response_uri".parse().unwrap();
 
-        let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
+        let registration_certificate =
+            MockRegistrationCertificate::new(rp_keypair.certificate(), credential_requests.clone().into());
+        let registration_certificate =
+            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+        let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             credential_requests,
-            rp_keypair.certificate(),
+            ClientId::x509_hash_from_certificate(rp_keypair.certificate()),
             Nonce::from("nonce".to_string()),
             encryption_public_key,
             response_uri,
             None,
+            registration_certificate,
         );
 
         (ca, rp_keypair, encryption_secret_key, auth_request)
@@ -1400,15 +1469,15 @@ mod tests {
         auth_request.state = Some("authorization_state".to_string());
 
         let auth_request_jwt =
-            SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
+            SignedJwt::sign_with_certificate(&authorization_request_from_normalized(auth_request), &rp_keypair)
                 .await
                 .unwrap();
 
         let (auth_request, cert) =
-            VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &trust_anchor, &crl_verifier)
+            VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchor, &crl_verifier)
                 .await
                 .unwrap();
-        let (auth_request, _) = auth_request.validate(&cert, None).unwrap();
+        let (auth_request, _) = auth_request.normalize_request(&cert, None).unwrap();
         assert_eq!(auth_request.state.as_deref(), Some("authorization_state"));
     }
 
@@ -1417,12 +1486,13 @@ mod tests {
         let (ca, rp_keypair, _, auth_request) = setup_mdoc_without_crl_distribution_point();
         let trust_anchor = TrustAnchors::from(&ca);
         let auth_request_jwt =
-            SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
+            SignedJwt::sign_with_certificate(&authorization_request_from_normalized(auth_request), &rp_keypair)
                 .await
                 .unwrap();
 
         let verifier = CertificateCrlVerifier::<MockCrlFetcher>::default();
-        let result = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
+        let result =
+            VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
 
         assert_matches!(
             result,
@@ -1435,12 +1505,14 @@ mod tests {
     #[test]
     fn test_authorization_request_validate_unauthorized_x509_hash_client_id() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
         let expected_hash = ClientId::x509_hash_value(rp_keypair.certificate());
 
         auth_request.oauth_request.client_id = "x509_hash:wrong-hash".to_string();
 
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let err = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
         assert_matches!(
             err,
             AuthRequestValidationError::UnauthorizedClientIdHash { client_id, certificate_hash }
@@ -1451,11 +1523,13 @@ mod tests {
     #[test]
     fn test_authorization_request_validate_unsupported_client_id_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
         let certificate_hash = ClientId::x509_hash_value(rp_keypair.certificate());
         auth_request.oauth_request.client_id = format!("redirect_uri:{certificate_hash}");
 
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let err = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
         assert_matches!(
             err,
             AuthRequestValidationError::UnsupportedClientIdScheme {
@@ -1467,10 +1541,12 @@ mod tests {
     #[test]
     fn test_authorization_request_validate_unsupported_client_id_without_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
         auth_request.oauth_request.client_id = ClientId::x509_hash_value(rp_keypair.certificate());
 
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let err = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
         assert_matches!(err, AuthRequestValidationError::UnsupportedClientIdWithoutScheme);
     }
 
@@ -1522,7 +1598,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
     }
 
@@ -1571,7 +1647,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert_eq!(
@@ -1626,7 +1702,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert!(
@@ -1682,7 +1758,7 @@ mod tests {
     #[test]
     fn validate_should_return_selected_encryption_algorithm() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
         auth_request
             .client_metadata
             .as_mut()
@@ -1692,7 +1768,7 @@ mod tests {
             EncryptionAlgorithm::A256Gcm.into()
         ]);
 
-        let (_, encryption_algorithm) = auth_request.validate(rp_keypair.certificate(), None).unwrap();
+        let (_, encryption_algorithm) = auth_request.normalize_request(rp_keypair.certificate(), None).unwrap();
 
         assert_eq!(encryption_algorithm, EncryptionAlgorithm::A256Gcm);
     }
@@ -1742,7 +1818,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert_eq!(
@@ -1759,7 +1835,7 @@ mod tests {
     #[test]
     fn validate_should_error_when_no_supported_encryption_algorithm_is_advertised() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let mut auth_request = authorization_request_from_normalized(auth_request);
 
         let enc_values = vec_nonempty![JweEncryptionAlgorithm::Unknown("A512GCM".to_string())];
         auth_request
@@ -1768,7 +1844,9 @@ mod tests {
             .unwrap()
             .encrypted_response_enc_values_supported = Some(enc_values.clone());
 
-        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let error = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
         assert_matches!(
             error,
             AuthRequestValidationError::NoSupportedEncryptedResponseEnc(received_enc_values)
@@ -1880,7 +1958,7 @@ mod tests {
             }
         );
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let auth_request = with_mock_registration_certificate(serde_json::from_value(example_json).unwrap());
         let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert_eq!(normalized_request.encryption_pubkey.id(), Some("supported"));
@@ -2103,6 +2181,158 @@ mod tests {
         let json_array_error =
             serde_json::from_value::<TransactionDataEntries>(json!([encoded_json_array])).unwrap_err();
         assert!(json_array_error.to_string().contains("error parsing entry as JSON"));
+    }
+
+    #[rstest]
+    #[case::jwt(RegistrationCertificateFormat::Jwt)]
+    #[case::cwt(RegistrationCertificateFormat::Cwt)]
+    fn registration_certificate_verifier_info_should_roundtrip_exact_json(
+        #[case] format: RegistrationCertificateFormat,
+    ) {
+        let (_, access_key_pair, _, auth_request) = setup_mdoc();
+        let authority = MockRegistrationCertificateAuthority::new();
+        let query = Query::from(auth_request.credential_requests);
+        let certificate = match format {
+            RegistrationCertificateFormat::Jwt => authority.issue_jwt(access_key_pair.certificate(), query),
+            RegistrationCertificateFormat::Cwt => authority.issue_cwt(access_key_pair.certificate(), query),
+        };
+        let expected_json = json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate),
+        });
+        let envelope = RegistrationCertificateEnvelope::try_from(certificate.as_slice()).unwrap();
+
+        let json = serde_json::to_value(VerifierInfo::registration_certificate(envelope)).unwrap();
+        assert_eq!(json, expected_json);
+
+        let deserialized = serde_json::from_value::<VerifierInfo>(json).unwrap();
+        assert_eq!(serde_json::to_value(deserialized).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn registration_certificate_verifier_info_should_reject_malformed_base64() {
+        let error = serde_json::from_value::<VerifierInfo>(json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": "***",
+        }))
+        .unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("could not decode registration certificate as Base64")
+        );
+    }
+
+    #[rstest]
+    #[case::not_an_envelope(b"not a registration certificate", "expected 3, found 1")]
+    #[case::missing_jwt_part(b"header.payload", "expected 3, found 2")]
+    #[case::extra_jwt_part(b"header.payload.signature.extra", "expected 3, found 4")]
+    #[case::invalid_utf8(b"\xff", "not valid UTF-8")]
+    fn registration_certificate_verifier_info_should_report_both_parse_errors(
+        #[case] malformed_certificate: &[u8],
+        #[case] jwt_error: &str,
+    ) {
+        let invalid_envelope = BASE64_URL_SAFE_NO_PAD.encode(malformed_certificate);
+        let error = serde_json::from_value::<VerifierInfo>(json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": invalid_envelope,
+        }))
+        .unwrap_err();
+
+        let error = error.to_string();
+        assert!(error.contains("as JWT ("));
+        assert!(error.contains(jwt_error));
+        assert!(error.contains("or CWT ("));
+    }
+
+    #[test]
+    fn verifier_info_should_accept_unknown_format() {
+        let verifier_info = serde_json::from_value::<VerifierInfo>(json!({
+            "format": "other_format",
+            "data": { "future": "data" },
+        }))
+        .unwrap();
+
+        assert_matches!(verifier_info, VerifierInfo::Other);
+    }
+
+    #[test]
+    fn verifier_info_should_reject_malformed_registration_certificate_among_valid_entries() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let valid = serde_json::to_value(VerifierInfo::registration_certificate(
+            auth_request.registration_certificate,
+        ))
+        .unwrap();
+
+        serde_json::from_value::<Vec<VerifierInfo>>(json!([
+            { "format": REGISTRATION_CERTIFICATE_FORMAT, "data": "***" },
+            valid,
+        ]))
+        .unwrap_err();
+    }
+
+    #[test]
+    fn authorization_request_should_reject_missing_registration_certificate() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut auth_request = authorization_request_from_normalized(auth_request);
+        auth_request.verifier_info = None;
+
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthRequestValidationError::RegistrationCertificate(registration_error)
+                if matches!(registration_error.as_ref(), RegistrationCertificateError::Missing)
+        );
+    }
+
+    #[test]
+    fn authorization_request_should_reject_other_verifier_info_without_registration_certificate() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut auth_request = authorization_request_from_normalized(auth_request);
+        auth_request.verifier_info = Some(vec_nonempty![VerifierInfo::Other]);
+
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthRequestValidationError::RegistrationCertificate(registration_error)
+                if matches!(registration_error.as_ref(), RegistrationCertificateError::Missing)
+        );
+    }
+
+    #[test]
+    fn authorization_request_should_reject_multiple_registration_certificates() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let duplicate = auth_request.registration_certificate.clone();
+        let mut auth_request = authorization_request_from_normalized(auth_request);
+        auth_request
+            .verifier_info
+            .as_mut()
+            .unwrap()
+            .push(VerifierInfo::registration_certificate(duplicate));
+
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthRequestValidationError::RegistrationCertificate(registration_error)
+                if matches!(registration_error.as_ref(), RegistrationCertificateError::Multiple)
+        );
+    }
+
+    #[test]
+    fn authorization_request_should_accept_registration_certificate_among_other_verifier_info() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut auth_request = authorization_request_from_normalized(auth_request);
+        auth_request
+            .verifier_info
+            .as_mut()
+            .unwrap()
+            .insert(0, VerifierInfo::Other);
+
+        NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
     }
 
     #[test]
@@ -2577,10 +2807,10 @@ mod tests {
         // Manually create a PoA accross the two holder keys.
         let poa = Poa::new(
             vec![&mdoc_holder_key, &sd_jwt_holder_key].try_into().unwrap(),
-            JwtPopClaims::new(
-                Some(auth_request.nonce.clone()),
+            JwtProofClaims::new(
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 auth_request.client_id.to_string(),
+                Some(auth_request.nonce.clone()),
                 &MockTimeGenerator::default(),
             ),
         )

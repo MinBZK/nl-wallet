@@ -37,10 +37,6 @@ use jwt::error::JwtSignError;
 use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
-use jwt::wia::WIA_CLIENT_AUTH_METHOD;
-use jwt::wia::WiaClaims;
-use jwt::wia::WiaDisclosure;
-use jwt::wia::WiaError;
 use oauth::dpop::Dpop;
 use oauth::dpop::DpopError;
 use oauth::dpop::DpopNonce;
@@ -68,6 +64,10 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
+use wscd::payload::wia::WIA_CLIENT_AUTH_METHOD;
+use wscd::payload::wia::WiaClaims;
+use wscd::payload::wia::WiaDisclosure;
+use wscd::payload::wia::WiaVerificationError;
 
 use crate::authorization_details::AuthorizationDetails;
 use crate::authorization_details::CredentialId;
@@ -188,7 +188,7 @@ pub enum TokenRequestError {
     ClientIdMismatch { expected: String, actual: String },
 
     #[error("error verifying WIA and WIA PoP: {0}")]
-    Wia(#[source] WiaVerificationError),
+    Wia(#[source] WiaError),
 
     #[error("a Token Request containing authorization_details is not supported")]
     AuthorizationDetailsUnsupported,
@@ -221,9 +221,9 @@ pub enum TokenRequestError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum WiaVerificationError {
+pub enum WiaError {
     #[error("error verifying WIA: {0}")]
-    WiaVerification(#[source] WiaError),
+    Verification(#[source] WiaVerificationError),
 
     #[error("no challenge present in WIA PoP")]
     MissingChallenge,
@@ -512,7 +512,7 @@ impl<K, L> IssuerData<K, L> {
         &self,
         wia_disclosure: &WiaDisclosure,
         client_id: Option<&str>,
-    ) -> Result<(WiaClaims, Option<Nonce>), WiaError> {
+    ) -> Result<(WiaClaims, Option<Nonce>), WiaVerificationError> {
         // The RFC says we should use the Issuer Identifier of the Authorization for this (see
         // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-5.1-5.1.1.)
         // In this implementation, that coincides with the Issuer Identifier of the OpenID4VCI issuer.
@@ -559,12 +559,7 @@ impl PreparedCredential {
         let valid_until = now.add(credential_config.valid_days);
 
         let format = issuable_document.credential_kind.format;
-        let (id, credential_payload) = issuable_document.into_id_and_previewable_credential_payload(
-            now,
-            valid_until,
-            credential_config.issuer_uri.clone(),
-            credential_config.attestation_qualification,
-        );
+        let (id, credential_payload) = issuable_document.into_id_and_previewable_credential_payload(now, valid_until);
 
         let credential = Self {
             id,
@@ -1062,7 +1057,7 @@ where
         &self,
         wia_disclosure: &WiaDisclosure,
         client_id: Option<&str>,
-    ) -> Result<(), WiaVerificationError> {
+    ) -> Result<(), WiaError> {
         verify_wia_and_consume_nonce(&self.issuer_data, self.nonce_store.as_ref(), wia_disclosure, client_id)
             .await
             .map(|_| ())
@@ -1076,18 +1071,18 @@ async fn verify_wia_and_consume_nonce<K, L>(
     nonce_store: &impl NonceStore,
     wia_disclosure: &WiaDisclosure,
     client_id: Option<&str>,
-) -> Result<WiaClaims, WiaVerificationError> {
+) -> Result<WiaClaims, WiaError> {
     let (wia_claims, nonce) = issuer_data
         .verify_wia(wia_disclosure, client_id)
-        .map_err(WiaVerificationError::WiaVerification)?;
+        .map_err(WiaError::Verification)?;
 
     let nonce_status = nonce_store
-        .check_nonce_status_and_remove([nonce.as_ref().ok_or(WiaVerificationError::MissingChallenge)?])
+        .check_nonce_status_and_remove([nonce.as_ref().ok_or(WiaError::MissingChallenge)?])
         .await
-        .map_err(|error| WiaVerificationError::ChallengeStore(error.into()))?;
+        .map_err(|error| WiaError::ChallengeStore(error.into()))?;
 
     if !matches!(nonce_status, NonceStatus::AllValid) {
-        return Err(WiaVerificationError::InvalidChallenge);
+        return Err(WiaError::InvalidChallenge);
     }
 
     Ok(wia_claims)
@@ -1755,7 +1750,6 @@ mod tests {
     use derive_more::Debug;
     use futures::FutureExt;
     use jwt::jwk::jwk_to_public_key;
-    use jwt::pop::JwtPopClaims;
     use mdoc::verifier::IssuerSignedVerificationResult;
     use mdoc::verifier::ValidityRequirement;
     use oauth::dpop::Dpop;
@@ -1773,10 +1767,11 @@ mod tests {
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
+    use wscd::mock::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
-    use wscd::mock_remote::MockWiaClient;
-    use wscd::wscd::WiaClient;
+    use wscd::payload::jwt_proof::JwtProofClaims;
+    use wscd::wia::WiaClient;
+    use wscd::wia::mock::MockWiaClient;
 
     use super::*;
     use crate::cleanup::CLEANUP_INTERVAL;
@@ -2289,7 +2284,7 @@ mod tests {
             .process_token_request(token_request, dpop, wia)
             .await
             .unwrap_err();
-        assert_matches!(error, TokenRequestError::Wia(WiaVerificationError::MissingChallenge));
+        assert_matches!(error, TokenRequestError::Wia(WiaError::MissingChallenge));
     }
 
     #[tokio::test]
@@ -2307,7 +2302,7 @@ mod tests {
             .process_token_request(token_request, dpop, wia)
             .await
             .unwrap_err();
-        assert_matches!(error, TokenRequestError::Wia(WiaVerificationError::InvalidChallenge));
+        assert_matches!(error, TokenRequestError::Wia(WiaError::InvalidChallenge));
     }
 
     #[tokio::test]
@@ -2333,7 +2328,7 @@ mod tests {
             .process_token_request(token_request, dpop, wia)
             .await
             .unwrap_err();
-        assert_matches!(error, TokenRequestError::Wia(WiaVerificationError::InvalidChallenge));
+        assert_matches!(error, TokenRequestError::Wia(WiaError::InvalidChallenge));
     }
 
     #[tokio::test]
@@ -2457,10 +2452,10 @@ mod tests {
                     Some(issuer.generate_nonce().now_or_never().unwrap().unwrap())
                 };
 
-                let claims = JwtPopClaims::new(
-                    nonce,
+                let claims = JwtProofClaims::new(
                     MOCK_WALLET_CLIENT_ID.to_string(),
                     aud,
+                    nonce,
                     &MockTimeGenerator::default(),
                 );
 

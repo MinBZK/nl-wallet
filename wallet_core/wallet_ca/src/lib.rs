@@ -3,9 +3,13 @@ use std::path::Path;
 
 use anyhow::Result;
 use anyhow::anyhow;
+use anyhow::ensure;
 use clio::CachedInput;
+use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
+use crypto::x509::BorrowingCertificate;
 use p256::ecdsa::SigningKey;
+use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePrivateKey;
 use pem::EncodeConfig;
 use pem::LineEnding;
@@ -26,6 +30,20 @@ pub fn read_self_signed_ca(ca_crt_file: &CachedInput, ca_key_file: &CachedInput)
     let ca = Ca::from_der(certificate_der.contents(), signing_key_der.contents())?;
 
     Ok(ca)
+}
+
+pub fn read_certificate(certificate_file: &CachedInput) -> Result<BorrowingCertificate> {
+    Ok(BorrowingCertificate::from_pem(certificate_file.get_data())?)
+}
+
+pub fn read_key_pair(certificate_file: &CachedInput, key_file: &CachedInput) -> Result<KeyPair> {
+    let certificate = read_certificate(certificate_file)?;
+    let key_pem = Pem::try_from(key_file.get_data())?;
+    ensure!(key_pem.tag() == "PRIVATE KEY", "expected a PRIVATE KEY PEM block");
+
+    let private_key = SigningKey::from_pkcs8_der(key_pem.contents())?;
+
+    Ok(KeyPair::new_from_signing_key(private_key, certificate)?)
 }
 
 pub fn write_certificate(certificate: &impl AsRef<[u8]>, file_prefix: &str, force: bool) -> Result<()> {

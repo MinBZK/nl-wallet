@@ -31,27 +31,27 @@ class TasDataHelper {
         JSONObject(jsonContent)
     }
 
-    private val loyaltyTAS: JSONObject by lazy {
-        val jsonContent = File(getLoyaltyCardMetadataPath()).readText(Charsets.UTF_8)
-        JSONObject(jsonContent)
-    }
-
     private val museumMaandkaartTAS: JSONObject by lazy {
         val jsonContent = File(getMuseumMaandkaartCardMetadataPath()).readText(Charsets.UTF_8)
         JSONObject(jsonContent)
     }
 
-    private fun getExtendedPidCardMetadataPath() = getProjectFile("scripts/devenv/eudi_pid_nl_1.json")
+    private val drivingLicenseTAS: JSONObject by lazy {
+        val jsonContent = File(getDrivingLicenseMetadataPath()).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
 
-    private fun getBasePidCardMetadataPath() = getProjectFile("scripts/devenv/eudi_pid_1.json")
+    private val registrationCertificateTAS: JSONObject by lazy {
+        val jsonContent = File(getRegistrationCertificateMetadataPath()).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
 
-    private fun getDiplomaCardMetadataPath() = getProjectFile("scripts/devenv/com.example.degree.json")
+    private val loyaltyTAS: JSONObject by lazy {
+        val jsonContent = File(getLoyaltyCardMetadataPath()).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
 
-    private fun getInsuranceCardMetadataPath() = getProjectFile("scripts/devenv/com.example.insurance.json")
-
-    private fun getLoyaltyCardMetadataPath() = getProjectFile("scripts/devenv/com.example.jum.bonuskaart.json")
-
-    private fun getMuseumMaandkaartCardMetadataPath() = getProjectFile("scripts/devenv/com.example.museum_maandkaart.json")
+    // Pid functions
 
     fun getPidVCT(): String {
         val vct = extendedPidTAS.optString("vct")
@@ -67,6 +67,11 @@ class TasDataHelper {
         return findClaimLabel(extendedPidTAS, basePidTAS, pathValue = pathValue)
     }
 
+    private fun getExtendedPidCardMetadataPath() = getProjectFile("scripts/devenv/eudi_pid_nl_1.json")
+
+    private fun getBasePidCardMetadataPath() = getProjectFile("scripts/devenv/eudi_pid_1.json")
+
+    //Diploma functions
     fun getDiplomaVCT(): String {
         val vct = diplomaTAS.optString("vct")
         if (vct.isNullOrEmpty()) {
@@ -75,6 +80,15 @@ class TasDataHelper {
         return vct
     }
 
+    fun getDiplomaDisplayName() = findDisplayName(diplomaTAS)
+
+    fun getDiplomaClaimLabel(pathValue: String): String {
+        return findClaimLabel(diplomaTAS, pathValue = pathValue)
+    }
+
+    private fun getDiplomaCardMetadataPath() = getProjectFile("scripts/devenv/com.example.degree.json")
+
+    //Insurance functions
     fun getInsuranceVCT(): String {
         val vct = insuranceTAS.optString("vct")
         if (vct.isNullOrEmpty()) {
@@ -83,22 +97,47 @@ class TasDataHelper {
         return vct
     }
 
-    fun getDiplomaDisplayName() = findDisplayName(diplomaTAS)
-
     fun getInsuranceDisplayName() = findDisplayName(insuranceTAS)
-
-    fun getLoyaltyDisplayName() = findDisplayName(loyaltyTAS)
-
-    fun getMuseumMaandkaartDisplayName() = findDisplayName(museumMaandkaartTAS)
-
-    fun getDiplomaClaimLabel(pathValue: String): String {
-        return findClaimLabel(diplomaTAS, pathValue = pathValue)
-    }
 
     fun getInsuranceClaimLabel(pathValue: String): String {
         return findClaimLabel(insuranceTAS, pathValue = pathValue)
     }
 
+    private fun getInsuranceCardMetadataPath() = getProjectFile("scripts/devenv/com.example.insurance.json")
+
+    //Loyalty functions
+    fun getLoyaltyDisplayName() = findDisplayName(loyaltyTAS)
+
+    private fun getLoyaltyCardMetadataPath() = getProjectFile("scripts/devenv/com.example.jum.bonuskaart.json")
+
+    //Museum Maandkaart functions
+
+    fun getMuseumMaandkaartDisplayName() = findDisplayName(museumMaandkaartTAS)
+
+    private fun getMuseumMaandkaartCardMetadataPath() =
+        getProjectFile("scripts/devenv/com.example.museum_maandkaart.json")
+
+    //Driving License functions and values
+    fun getDrivingLicenseDisplayName() = findDisplayName(drivingLicenseTAS)
+
+    fun getDrivingLicenseClaimLabel(pathValue: String): String {
+        return findClaimLabel(drivingLicenseTAS, pathValue = pathValue)
+    }
+
+    private fun getDrivingLicenseMetadataPath() =
+        getProjectFile("scripts/devenv/org.iso.18013.5.1.mDL.json")
+
+    //Registration certificate functions
+    fun getRegistrationCertificateDisplayName() = findDisplayName(registrationCertificateTAS)
+
+    fun getRegistrationCertificateClaimLabel(pathValue: String): String {
+        return findClaimLabel(registrationCertificateTAS, pathValue = pathValue)
+    }
+
+    private fun getRegistrationCertificateMetadataPath() =
+        getProjectFile("scripts/devenv/org.iso.7367.2.1.mVC.json")
+
+    //Generic functions for handling TAS files, to be used for all cards.
     private fun findDisplayName(vararg tasFiles: JSONObject): String {
         for (tas in tasFiles) {
             val displayName = findDisplayNameInTAS(tas)
@@ -164,6 +203,7 @@ class TasDataHelper {
                         return display
                     }
                 }
+
                 Platform.IOS -> {
                     // The iOS locale capability uses an underscore for English (en_US) while TAS files use a hyphen.
                     if (display.optString("locale") == locale.replace("_", "-")) {

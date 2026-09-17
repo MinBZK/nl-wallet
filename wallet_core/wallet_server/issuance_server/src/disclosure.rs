@@ -167,7 +167,6 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
-    use attestation_types::qualification::AttestationQualification;
     use chrono::Days;
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
@@ -205,8 +204,6 @@ mod tests {
             attestations: vec_nonempty![DisclosedAttestation {
                 attestation_type,
                 attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
-                issuer_uri: "https://example.com".parse().unwrap(),
-                attestation_qualification: AttestationQualification::default(),
                 ca: "ca".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
                 revocation_status: Some(RevocationStatus::Valid),
@@ -274,8 +271,6 @@ mod tests {
             .unwrap(),
             status_list,
             valid_days: Days::new(1),
-            issuer_uri: "https://example.com".parse().unwrap(),
-            attestation_qualification: AttestationQualification::default(),
             type_metadata: Some(TypeMetadataDocuments::degree_example().1),
         };
 

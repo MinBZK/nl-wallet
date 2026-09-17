@@ -3,11 +3,9 @@ use std::collections::HashSet;
 
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
 use crypto::server_keys::KeyPair;
 use derive_more::Debug;
-use http_utils::urls::HttpsUri;
 use itertools::Either;
 use itertools::Itertools;
 use oauth::issuer_identifier::IssuerUrl;
@@ -59,8 +57,6 @@ pub struct CredentialConfigurationParameters<K, L> {
     pub key_pair: KeyPair<K>,
     pub status_list: L,
     pub valid_days: Days,
-    pub issuer_uri: HttpsUri,
-    pub attestation_qualification: AttestationQualification,
     #[debug(skip)]
     pub type_metadata: Option<TypeMetadataDocuments>,
     pub credential_metadata: Option<CredentialMetadata>,
@@ -79,8 +75,6 @@ pub(crate) struct CredentialConfiguration<K, L> {
     pub key_pair: KeyPair<K>,
     pub status_list: L,
     pub valid_days: Days,
-    pub issuer_uri: HttpsUri,
-    pub attestation_qualification: AttestationQualification,
     pub type_metadata: Option<CredentialConfigurationTypeMetadata>,
     pub credential_metadata: Option<CredentialMetadata>,
 }
@@ -102,8 +96,6 @@ impl<K, L> CredentialConfiguration<K, L> {
             key_pair,
             status_list,
             valid_days,
-            issuer_uri,
-            attestation_qualification,
             type_metadata,
             credential_metadata,
         }: CredentialConfigurationParameters<K, L>,
@@ -132,8 +124,6 @@ impl<K, L> CredentialConfiguration<K, L> {
             status_list,
             key_pair,
             valid_days,
-            issuer_uri,
-            attestation_qualification,
             type_metadata,
             credential_metadata,
         };
@@ -313,7 +303,6 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
-    use attestation_types::qualification::AttestationQualification;
     use chrono::Days;
     use crypto::server_keys::generate::Ca;
     use p256::ecdsa::SigningKey;
@@ -355,8 +344,6 @@ mod tests {
                     key_pair,
                     status_list: MockStatusListService::new(),
                     valid_days: Days::new(1),
-                    issuer_uri: "https://example.com".parse().unwrap(),
-                    attestation_qualification: AttestationQualification::default(),
                     type_metadata,
                 };
 

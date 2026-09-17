@@ -15,7 +15,7 @@ use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use url::Url;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::Poa;
+use wscd::payload::poa::Poa;
 
 pub use self::client::VpDisclosureClient;
 pub use self::error::DataDisclosed;
@@ -40,6 +40,13 @@ mod uri_source;
 #[cfg(feature = "mock")]
 pub mod mock;
 
+/// Trust anchors for authenticating the verifier and validating its registration certificate.
+#[derive(Debug)]
+pub struct DisclosureTrustAnchors<'a> {
+    pub wrpac: &'a TrustAnchors,
+    pub wrprc: &'a TrustAnchors,
+}
+
 pub trait DisclosureClient {
     type Session: DisclosureSession;
 
@@ -47,7 +54,7 @@ pub trait DisclosureClient {
         &self,
         request_uri_query: &str,
         uri_source: DisclosureUriSource,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: DisclosureTrustAnchors<'_>,
     ) -> Result<Self::Session, VpSessionError>;
 }
 

@@ -9,7 +9,6 @@ use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::Debug;
 use error_category::ErrorCategory;
-use http_utils::urls::HttpsUri;
 use oauth::token::AccessToken;
 use oauth::token::AuthorizationCode;
 use oauth::token::TokenRequest;
@@ -24,7 +23,6 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 use utils::generator::TimeGenerator;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization_details::CredentialId;
 use crate::authorization_details::IssuerAuthorizationDetails;
@@ -182,19 +180,6 @@ impl CredentialPreview {
         self.issuer_certificate
             .verify(Some(CertificateUsage::Mdl), &[], &TimeGenerator, trust_anchors)?;
 
-        // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
-        if !self
-            .issuer_certificate
-            .san_dns_name_or_uris()?
-            .as_ref()
-            .contains(&self.credential_payload.issuer)
-        {
-            return Err(CredentialPreviewError::IssuerUriNotFoundInSan(
-                self.credential_payload.issuer.clone(),
-                self.issuer_certificate.san_dns_name_or_uris()?,
-            ));
-        }
-
         Ok(())
     }
 
@@ -213,10 +198,6 @@ pub enum CredentialPreviewError {
     #[error("certificate type error: {0}")]
     #[category(defer)]
     CertificateType(#[from] CertificateTypeError),
-
-    #[error("issuer URI {0} not found in SAN {1:?}")]
-    #[category(pd)]
-    IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
 }
 
 #[cfg(test)]

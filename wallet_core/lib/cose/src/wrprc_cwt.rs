@@ -92,7 +92,7 @@ pub enum WrprcCwtError {
 /// Parsing validates the COSE structure and WRPRC CWT profile, but does not establish the authenticity of the header
 /// or payload. Use [`UnverifiedWrprcCwt::into_verified_against_trust_anchors`] before consuming either as trusted
 /// input.
-#[derive(Debug, PartialEq)]
+#[derive(derive_more::Debug, PartialEq)]
 pub struct UnverifiedWrprcCwt<T> {
     cose: TypedCose<CoseSign1, T>,
     unverified_header: WrprcCwtHeader,

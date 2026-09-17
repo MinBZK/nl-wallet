@@ -8,6 +8,7 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use chrono::DateTime;
 use chrono::SecondsFormat;
 use chrono::Utc;
@@ -483,16 +484,22 @@ pub struct UseCaseData<K> {
     pub key_pair: KeyPair<K>,
     pub client_id: ClientId,
     pub session_type_return_url: SessionTypeReturnUrl,
+    registration_certificate: RegistrationCertificateEnvelope,
 }
 
 impl<K> UseCaseData<K> {
-    pub fn new(key_pair: KeyPair<K>, session_type_return_url: SessionTypeReturnUrl) -> Self {
+    pub fn new(
+        key_pair: KeyPair<K>,
+        session_type_return_url: SessionTypeReturnUrl,
+        registration_certificate: RegistrationCertificateEnvelope,
+    ) -> Self {
         let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
         Self {
             key_pair,
             client_id,
             session_type_return_url,
+            registration_certificate,
         }
     }
 }
@@ -749,19 +756,12 @@ pub struct WalletInitiatedUseCases<K> {
 
 impl<K> WalletInitiatedUseCase<K> {
     pub fn new(
-        key_pair: KeyPair<K>,
-        session_type_return_url: SessionTypeReturnUrl,
+        data: UseCaseData<K>,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
     ) -> Self {
-        let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
-
         Self {
-            data: UseCaseData {
-                key_pair,
-                client_id,
-                session_type_return_url,
-            },
+            data,
             credential_requests,
             return_url_template,
         }
@@ -1358,6 +1358,7 @@ impl Session<Created> {
             encryption_public_key,
             response_uri,
             wallet_nonce,
+            usecase.registration_certificate.clone(),
         );
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
@@ -1568,8 +1569,9 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::validity::IssuanceValidity;
-    use attestation_types::qualification::AttestationQualification;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
@@ -1626,6 +1628,7 @@ mod tests {
     use super::WalletInitiatedUseCases;
     use super::must_use_return_url;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::openid4vp::VerifierInfo;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
@@ -1635,12 +1638,21 @@ mod tests {
 
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
-
     type TestVerifier<G> = Verifier<
         MemorySessionStore<DisclosureData, G>,
         RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData, G>>,
         StatusListClientStub<SigningKey>,
     >;
+
+    fn use_case_data(ca: &Ca, session_type_return_url: SessionTypeReturnUrl) -> UseCaseData<SigningKey> {
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+        let registration_certificate =
+            MockRegistrationCertificate::new(key_pair.certificate(), Query::new_mock_mdoc_pid_example());
+        let registration_certificate =
+            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+
+        UseCaseData::new(key_pair, session_type_return_url, registration_certificate)
+    }
 
     impl From<VpAuthorizationErrorCode> for RemoteAuthorizationErrorResponse<VpAuthorizationErrorCode> {
         fn from(error: VpAuthorizationErrorCode) -> Self {
@@ -1669,23 +1681,11 @@ mod tests {
         let use_cases = HashMap::from([
             (
                 DISCLOSURE_USECASE.to_string(),
-                RpInitiatedUseCase::new(
-                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url),
-                    None,
-                    None,
-                    None,
-                    false,
-                ),
+                RpInitiatedUseCase::new(use_case_data(&ca, session_type_return_url), None, None, None, false),
             ),
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
-                RpInitiatedUseCase::new(
-                    UseCaseData::new(ca.generate_wrpac_verifier_mock().unwrap(), session_type_return_url),
-                    None,
-                    None,
-                    None,
-                    false,
-                ),
+                RpInitiatedUseCase::new(use_case_data(&ca, session_type_return_url), None, None, None, false),
             ),
         ]);
 
@@ -1793,7 +1793,7 @@ mod tests {
         .await;
 
         // Getting the Authorization Request should succeed
-        verifier
+        let authorization_request = verifier
             .process_get_request(
                 session_token.as_ref(),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
@@ -1802,6 +1802,14 @@ mod tests {
             )
             .await
             .unwrap();
+
+        let (_, authorization_request) = authorization_request
+            .into_unverified()
+            .dangerous_parse_unverified()
+            .unwrap();
+        let verifier_info = authorization_request.verifier_info.unwrap();
+        assert_eq!(verifier_info.len().get(), 1);
+        assert_matches!(verifier_info.first(), VerifierInfo::RegistrationCertificate { .. });
 
         // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
         let end_session_message = WalletAuthResponse::Error(VpAuthorizationErrorCode::AccessDenied.into());
@@ -1928,8 +1936,6 @@ mod tests {
             attestations: vec_nonempty![DisclosedAttestation {
                 attestation_type: "attestation_type".to_string(),
                 attributes: DisclosedAttributes::MsoMdoc(Default::default()),
-                issuer_uri: "https://issuer.example.com".parse().unwrap(),
-                attestation_qualification: AttestationQualification::default(),
                 ca: "ca".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
                 revocation_status: Some(RevocationStatus::Valid),
@@ -2128,15 +2134,13 @@ mod tests {
         // Initialize server state
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
+        let mut use_case_data = use_case_data(&ca, SessionTypeReturnUrl::SameDevice);
+        use_case_data.client_id = "client_id".into();
 
         let use_cases = HashMap::from([(
             DISCLOSURE_USECASE.to_string(),
             WalletInitiatedUseCase {
-                data: UseCaseData {
-                    key_pair: ca.generate_wrpac_verifier_mock().unwrap(),
-                    session_type_return_url: SessionTypeReturnUrl::SameDevice,
-                    client_id: "client_id".into(),
-                },
+                data: use_case_data,
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
                 return_url_template: "https://example.com".parse().unwrap(),
             },

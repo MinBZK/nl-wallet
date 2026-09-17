@@ -29,6 +29,7 @@ use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureTrustAnchors;
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpSessionError;
@@ -599,7 +600,14 @@ where
         // Start the disclosure session based on the parsed disclosure URI.
         let session = self
             .disclosure_client
-            .start(disclosure_uri_query, source, wallet_config.wrpac_trust_anchors())
+            .start(
+                disclosure_uri_query,
+                source,
+                DisclosureTrustAnchors {
+                    wrpac: wallet_config.wrpac_trust_anchors(),
+                    wrprc: wallet_config.wrprc_trust_anchors(),
+                },
+            )
             .await?;
 
         let (candidate_attestations, shared_data_with_relying_party_before) = self
@@ -1158,7 +1166,9 @@ mod tests {
         disclosure_client
             .expect_start()
             .times(1)
-            .with(eq("foo=bar"), eq(DisclosureUriSource::QrCode), always())
+            .withf(|request_uri_query, uri_source, _trust_anchors| {
+                request_uri_query == "foo=bar" && *uri_source == DisclosureUriSource::QrCode
+            })
             .return_once(|_request_uri_query, _uri_source, _trust_anchors| Ok(disclosure_session));
 
         verifier_certificate
@@ -1741,11 +1751,13 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up `DisclosureSession` start to return the following error.
-        wallet.disclosure_client.expect_start().times(1).return_once(|_, _, _| {
-            Err(VpSessionError::Client(VpClientError::RequestUri(
-                serde::de::Error::custom("error"),
-            )))
-        });
+        wallet.disclosure_client.expect_start().times(1).return_once(
+            |_request_uri_query, _uri_source, _trust_anchors| {
+                Err(VpSessionError::Client(VpClientError::RequestUri(
+                    serde::de::Error::custom("error"),
+                )))
+            },
+        );
 
         // Starting disclosure which returns an error should forward that error.
         let error = wallet
@@ -1764,19 +1776,21 @@ mod tests {
 
         // Set up an `DisclosureClient` start to return the following error.
         let start_return_url = RETURN_URL.clone();
-        wallet.disclosure_client.expect_start().times(1).return_once(|_, _, _| {
-            Err(VpSessionError::Client(VpClientError::Request(
-                DisclosureErrorResponse {
-                    error_response: ErrorResponse {
-                        error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
-                        error_description: None,
-                        error_uri: None,
-                    },
-                    redirect_uri: Some(Box::new(start_return_url)),
-                }
-                .into(),
-            )))
-        });
+        wallet.disclosure_client.expect_start().times(1).return_once(
+            |_request_uri_query, _uri_source, _trust_anchors| {
+                Err(VpSessionError::Client(VpClientError::Request(
+                    DisclosureErrorResponse {
+                        error_response: ErrorResponse {
+                            error: RemoteErrorCode::Known(GetAuthRequestErrorCode::ServerError),
+                            error_description: None,
+                            error_uri: None,
+                        },
+                        redirect_uri: Some(Box::new(start_return_url)),
+                    }
+                    .into(),
+                )))
+            },
+        );
 
         // Starting disclosure where the verifier returns responds with a HTTP error body containing
         // a redirect URI should result in that URI being available on the returned error.

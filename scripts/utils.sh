@@ -528,6 +528,102 @@ function generate_demo_relying_party_key_pair {
         -out "${TARGET_DIR}/demo_relying_party/$1.key.der" -nocrypt
 }
 
+# Generate a WRPRC bound to a service provider's WRPAC.
+#
+# $1 - Short name of the service provider
+# $2 - Index in the WRPRC status list
+# $3 - WRPAC certificate file
+# $4 - Registration certificate credential sets file
+# $5 - Output file prefix
+function generate_registration_certificate {
+    local service_provider="$1"
+    local status_list_index="$2"
+    local wrpac_certificate_file="$3"
+    local credential_sets_file="$4"
+    local output_file_prefix="$5"
+    local subject
+
+    if [[ -z ${access_certificates[($service_provider,serial_number)]:-} ]]; then
+        subject=$(jq -n \
+            --arg sub "${access_certificates[($service_provider,oid)]}" \
+            --arg sub_ln "${access_certificates[($service_provider,legal_name)]}" \
+            '{ sub: $sub, sub_ln: $sub_ln }')
+    else
+        subject=$(jq -n \
+            --arg sub "${access_certificates[($service_provider,serial_number)]}" \
+            --arg sub_gn "${access_certificates[($service_provider,given_name)]}" \
+            --arg sub_fn "${access_certificates[($service_provider,surname)]}" \
+            '{ sub: $sub, sub_gn: $sub_gn, sub_fn: $sub_fn }')
+    fi
+
+    jq -n \
+        --arg service_provider "$service_provider" \
+        --arg name "${access_certificates[($service_provider,name)]}" \
+        --arg status_list_index "$status_list_index" \
+        --arg status_list_uri "${WRPRC_STATUS_LIST_URI}" \
+        --argjson iat "$(date +%s)" \
+        --argjson subject "$subject" \
+        --slurpfile credential_sets "$credential_sets_file" \
+        '$subject + {
+            id: ("demo-" + $service_provider),
+            name: $name,
+            country: "NL",
+            registry_uri: "https://register.example.com",
+            support_uri: "support@example.com",
+            srv_description: [[{
+                lang: "en",
+                value: ("Development disclosure service for " + $name)
+            }]],
+            supervisory_authority: {},
+            entitlements: ["https://uri.etsi.org/19475/Entitlement/Service_Provider"],
+            credentials: $credential_sets[0][$service_provider],
+            purpose: [{ lang: "en", value: "Testing wallet disclosure" }],
+            iat: $iat,
+            status: { idx: $status_list_index, uri: $status_list_uri },
+            policy_id: ["0.4.0.19475.3.1"],
+            certificate_policy: "https://register.example.com/certificate-policy"
+        }' > "$output_file_prefix.wrprc.json"
+
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca registration-certificate \
+        --wrprc-key-file "${TARGET_DIR}/wrprc_signer.key.pem" \
+        --wrprc-crt-file "${TARGET_DIR}/wrprc_signer.crt.pem" \
+        --wrpac-crt-file "$wrpac_certificate_file" \
+        --payload-file "$output_file_prefix.wrprc.json" \
+        --format cwt \
+        > "$output_file_prefix.wrprc"
+}
+
+# Generate a WRPRC bound to a demo relying party's WRPAC.
+#
+# $1 - Short name of the relying party
+# $2 - Index in the WRPRC status list
+function generate_demo_relying_party_registration_certificate {
+    local relying_party="$1"
+
+    generate_registration_certificate \
+        "$relying_party" \
+        "$2" \
+        "${TARGET_DIR}/demo_relying_party/$relying_party.crt.pem" \
+        "${DEVENV}/demo_rp_registration_certificate_credentials.json" \
+        "${TARGET_DIR}/demo_relying_party/$relying_party"
+}
+
+# Generate a WRPRC bound to a demo issuer's WRPAC.
+#
+# $1 - Short name of the issuer
+# $2 - Index in the WRPRC status list
+function generate_demo_issuer_registration_certificate {
+    local issuer="$1"
+
+    generate_registration_certificate \
+        "$issuer" \
+        "$2" \
+        "${TARGET_DIR}/demo_issuer/$issuer.wrpac.crt.pem" \
+        "${DEVENV}/demo_issuer_registration_certificate_credentials.json" \
+        "${TARGET_DIR}/demo_issuer/$issuer"
+}
+
 function encrypt_gba_v_responses {
     mkdir -p "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses"
     for file in "${GBA_HC_CONVERTER_DIR}"/resources/gba-v-responses/*; do

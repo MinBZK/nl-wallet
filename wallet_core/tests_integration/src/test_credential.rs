@@ -30,14 +30,11 @@ fn new_nl_pid<'a>(
     let (_, type_metadata_documents) = eudi_nl_pid_type_metadata_documents();
 
     TestCredential::new(
-        PreviewableCredentialPayload {
-            issuer: "https://pid.example.com".parse().unwrap(),
-            ..PreviewableCredentialPayload::example_with_attributes(
-                PID_ATTESTATION_TYPE,
-                mock_pid_example(),
-                &MockTimeGenerator::default(),
-            )
-        },
+        PreviewableCredentialPayload::example_with_attributes(
+            PID_ATTESTATION_TYPE,
+            mock_pid_example(),
+            &MockTimeGenerator::default(),
+        ),
         mock_pid_mdoc_example(),
         Some(type_metadata_documents),
         query_id.parse().unwrap(),

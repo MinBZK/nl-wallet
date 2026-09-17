@@ -24,6 +24,7 @@ pub struct Settings {
     #[serde(deserialize_with = "VerifiedJwt::dangerous_deserialize")] // we trust our own config file
     pub wallet_config_jwt: VerifiedJwt<WalletConfiguration>,
     pub wua_publish_dir: PublishDir,
+    pub wrprc_publish_dir: PublishDir,
 }
 
 impl Settings {
