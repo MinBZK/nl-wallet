@@ -41,14 +41,14 @@ Access Token.
 
 The OpenID4VCI protocol has the following phases.
 
-1. The issuer transmit a Credential Offer to the Wallet, e.g. in the form of a
+1. The issuer transmits a Credential Offer to the Wallet, e.g. in the form of a
    QR code, which contains Credential Configuration Identifiers for a set of
    offered credentials. This Credential Offer also determines which flow to use
    in step 3.
 2. Based on the issuer URL in this Credential Offer, the Wallet retrieves both
-   the the Issuer Metadata and Oauth 2.0 Authorization Server Metadata from the
+   the Issuer Metadata and Oauth 2.0 Authorization Server Metadata from the
    issuer, in order to determine the relevant HTTP endpoint paths and to obtain
-   details about of the offered credentials.
+   details about the offered credentials.
 3. The Wallet obtains an Authorization Code in one of the following two ways:
     1. Using the Authorization Code Flow defined in OpenID4VCI, by sending an
        Authorization Request to the Authorization Endpoint and receiving an
@@ -60,7 +60,7 @@ The OpenID4VCI protocol has the following phases.
    Endpoint using an OAuth Token Request, receiving an OAuth Token Response
    containing the Access Token.
 5. If the Issuer Metadata contained a Nonce Endpoint, the Wallet calls this
-   endpoint for each credentials it wishes to have issued. The Wallet will have
+   endpoint for each credential it wishes to have issued. The Wallet will have
    to sign this nonce with its attestation private keys (that is, the private
    keys of which it wants the corresponding public keys to be put in the issued
    credentials).
@@ -191,8 +191,8 @@ be found
       their consent. Only then does the Wallet app invoke the Credential
       Endpoint to obtain the attestations. (By contrast, normally in
       OAuth/OpenID(4VCI) the Authorization Code / Pre-Authorized Code itself
-      represents the user consent, so that the OAuth 2.0 Potected Resource would
-      be invoked immediately after receiving the Access Token.)
+      represents the user consent, so that the OAuth 2.0 Protected Resource
+      would be invoked immediately after receiving the Access Token.)
     - The user can choose to abort issuance, after which the Wallet App will not
       call the Credential Endpoint.
 - As OpenID4VCI does not contain a provision to distribute SD-JWT VC Type
@@ -200,7 +200,7 @@ be found
   Issuer anounces this endpoint in the Issuer Metadata and the Wallet App
   retrieves SD-JWT VC Type Metadata documents for all issued credentials.
 - This implementation is currently not compatible with potential other
-  implementations that are unaware of (and thus don not implement) both the
+  implementations that are unaware of (and thus do not implement) both the
   Credential Preview and Credential Metadata endpoints; this is left for later.
 - In the OAuth/OpenID(4VCI) protocols the Authorization and Token Requests that
   the client sends are not JSON-encoded but instead URL-encoded (as they are
