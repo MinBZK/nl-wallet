@@ -56,14 +56,14 @@ spec:
               mountPath: /pacf_issuance_server.toml
               subPath: pacf_issuance_server.toml
             - name: metadata
-              mountPath: /com.example.museum_maandkaart.json
-              subPath: com.example.museum_maandkaart.json
+              mountPath: /com.example.museum_maandkaart.mdoc.json
+              subPath: com.example.museum_maandkaart.mdoc.json
             - name: metadata
-              mountPath: /org.iso.18013.5.1.mDL.json
-              subPath: org.iso.18013.5.1.mDL.json
+              mountPath: /org.iso.18013.5.1.mDL.mdoc.json
+              subPath: org.iso.18013.5.1.mDL.mdoc.json
             - name: metadata
-              mountPath: /org.iso.7367.2.1.mVC.json
-              subPath: org.iso.7367.2.1.mVC.json
+              mountPath: /org.iso.7367.2.1.mVC.mdoc.json
+              subPath: org.iso.7367.2.1.mVC.mdoc.json
             - name: status-lists
               mountPath: /status-lists
           env:
@@ -73,8 +73,6 @@ spec:
               value: {{ include "common.urls.combineDomainAndContext" (list (first .Values.httpRoute.hostnames) .Values.httpRoute.contextPath) }}
             - name: PACF_ISSUANCE_SERVER__STRUCTURED_LOGGING
               value: "true"
-            - name: PACF_ISSUANCE_SERVER__TYPE_METADATA
-              value: "com.example.museum_maandkaart.json,org.iso.18013.5.1.mDL.json,org.iso.7367.2.1.mVC.json"
             - name: PACF_ISSUANCE_SERVER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
               valueFrom:
                 secretKeyRef:
