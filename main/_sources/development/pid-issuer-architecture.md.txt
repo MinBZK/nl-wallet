@@ -26,7 +26,6 @@ The `PID Issuer` process is assembled from three crates:
 
 - **`wallet_core/lib/openid4vc`** — protocol types and traits, with no HTTP or
   storage baked in. Relevant pieces:
-
     - `authorization::PushedAuthorizationRequest`,
       `authorization::PushedAuthorizationResponse`,
       `authorization::VciAuthorizationRequest` (with its `for_auth_code`
@@ -39,8 +38,8 @@ The `PID Issuer` process is assembled from three crates:
       loads the issuance session keyed by the code, verifies the wallet's PKCE
       according to the session's `Grant`, verifies the WIA presented alongside
       the request, and issues the access token. It does **no** upstream
-      interaction and knows nothing about DigiD or a BSN — by the time it
-      runs, the issuables are already in the session.
+      interaction and knows nothing about DigiD or a BSN — by the time it runs,
+      the issuables are already in the session.
     - `issuer::{AuthCodeIssued, Grant, IssuanceData}` — the issuance session
       data. `AuthCodeIssued` carries the `issuable_documents` plus a `Grant`:
       either `Grant::PreAuthorizedCode` (no PKCE) or
@@ -53,11 +52,11 @@ The `PID Issuer` process is assembled from three crates:
       `AuthorizationCodeFlow` impl. Serves `/par` and `/authorize`.
       `process_pushed_authorization_request` validates the `client_id` and
       verifies the WIA presented alongside the PAR — its `sub` must match the
-      request's `client_id` — before storing the request.
-      `AuthorizingIssuer` also exposes `complete_authorization`, which mints a
-      fresh issuer-side authorization code, writes the `AuthCodeIssued` session
-      (with `Grant::AuthorizationCode`), and builds the wallet-facing redirect
-      URL. Deployments doing only the pre-authorized grant never construct one.
+      request's `client_id` — before storing the request. `AuthorizingIssuer`
+      also exposes `complete_authorization`, which mints a fresh issuer-side
+      authorization code, writes the `AuthCodeIssued` session (with
+      `Grant::AuthorizationCode`), and builds the wallet-facing redirect URL.
+      Deployments doing only the pre-authorized grant never construct one.
     - `authorization_code_flow::{AuthorizationCodeFlow, AuthorizeOutcome}` — the
       trait abstracting a single OAuth authorization-code grant at `/authorize`.
       `authorize()` returns either `AuthorizeOutcome::RedirectTo(url)` (send the
@@ -73,16 +72,14 @@ The `PID Issuer` process is assembled from three crates:
 
 - **`wallet_core/lib/openid4vc_server`** — generic axum wiring for an OpenID4VCI
   issuer, knows nothing about DigiD or BRP. It exposes two routers:
-
     - `issuer::create_issuance_router` mounts the **Issuance Phase** handlers:
       `/.well-known/openid-credential-issuer`,
       `/.well-known/oauth-authorization-server`, `/issuance/token`,
-      `/issuance/nonce`, `/issuance/credential` (+ `batch_credential`, the
-      `delete` reject routes) and `/issuance/credential_preview` (an extension
-      we support on top of the spec). Backed by `IssuanceState { issuer }`. Both
-      flows mount this: the pre-authorized `issuance_server` mounts it
-      standalone, the auth-code `pid_issuer` mounts it alongside the
-      authorization router.
+      `/issuance/nonce`, `/issuance/credential` and
+      `/issuance/credential_preview` (an extension we support on top of the
+      spec). Backed by `IssuanceState { issuer }`. Both flows mount this: the
+      pre-authorized `issuance_server` mounts it standalone, the auth-code
+      `pid_issuer` mounts it alongside the authorization router.
     - `issuer::create_authorization_router` mounts the **Authorization Phase**
       handlers `/issuance/par` and `/issuance/authorize`. Backed by
       `AuthorizationState { authorizing_issuer }`. The `/authorize` handler just

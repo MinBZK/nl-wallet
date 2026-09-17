@@ -596,8 +596,8 @@ constructor and the <code class="docutils literal notranslate"><span class="pre"
 loads the issuance session keyed by the code, verifies the wallet’s PKCE
 according to the session’s <code class="docutils literal notranslate"><span class="pre">Grant</span></code>, verifies the WIA presented alongside
 the request, and issues the access token. It does <strong>no</strong> upstream
-interaction and knows nothing about DigiD or a BSN — by the time it
-runs, the issuables are already in the session.</p></li>
+interaction and knows nothing about DigiD or a BSN — by the time it runs,
+the issuables are already in the session.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">issuer::{AuthCodeIssued,</span> <span class="pre">Grant,</span> <span class="pre">IssuanceData}</span></code> — the issuance session
 data. <code class="docutils literal notranslate"><span class="pre">AuthCodeIssued</span></code> carries the <code class="docutils literal notranslate"><span class="pre">issuable_documents</span></code> plus a <code class="docutils literal notranslate"><span class="pre">Grant</span></code>:
 either <code class="docutils literal notranslate"><span class="pre">Grant::PreAuthorizedCode</span></code> (no PKCE) or
@@ -610,11 +610,11 @@ wrapper around an <code class="docutils literal notranslate"><span class="pre">I
 <code class="docutils literal notranslate"><span class="pre">AuthorizationCodeFlow</span></code> impl. Serves <code class="docutils literal notranslate"><span class="pre">/par</span></code> and <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>.
 <code class="docutils literal notranslate"><span class="pre">process_pushed_authorization_request</span></code> validates the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> and
 verifies the WIA presented alongside the PAR — its <code class="docutils literal notranslate"><span class="pre">sub</span></code> must match the
-request’s <code class="docutils literal notranslate"><span class="pre">client_id</span></code> — before storing the request.
-<code class="docutils literal notranslate"><span class="pre">AuthorizingIssuer</span></code> also exposes <code class="docutils literal notranslate"><span class="pre">complete_authorization</span></code>, which mints a
-fresh issuer-side authorization code, writes the <code class="docutils literal notranslate"><span class="pre">AuthCodeIssued</span></code> session
-(with <code class="docutils literal notranslate"><span class="pre">Grant::AuthorizationCode</span></code>), and builds the wallet-facing redirect
-URL. Deployments doing only the pre-authorized grant never construct one.</p></li>
+request’s <code class="docutils literal notranslate"><span class="pre">client_id</span></code> — before storing the request. <code class="docutils literal notranslate"><span class="pre">AuthorizingIssuer</span></code>
+also exposes <code class="docutils literal notranslate"><span class="pre">complete_authorization</span></code>, which mints a fresh issuer-side
+authorization code, writes the <code class="docutils literal notranslate"><span class="pre">AuthCodeIssued</span></code> session (with
+<code class="docutils literal notranslate"><span class="pre">Grant::AuthorizationCode</span></code>), and builds the wallet-facing redirect URL.
+Deployments doing only the pre-authorized grant never construct one.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">authorization_code_flow::{AuthorizationCodeFlow,</span> <span class="pre">AuthorizeOutcome}</span></code> — the
 trait abstracting a single OAuth authorization-code grant at <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>.
 <code class="docutils literal notranslate"><span class="pre">authorize()</span></code> returns either <code class="docutils literal notranslate"><span class="pre">AuthorizeOutcome::RedirectTo(url)</span></code> (send the
@@ -635,12 +635,11 @@ issuer, knows nothing about DigiD or BRP. It exposes two routers:</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">issuer::create_issuance_router</span></code> mounts the <strong>Issuance Phase</strong> handlers:
 <code class="docutils literal notranslate"><span class="pre">/.well-known/openid-credential-issuer</span></code>,
 <code class="docutils literal notranslate"><span class="pre">/.well-known/oauth-authorization-server</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/token</span></code>,
-<code class="docutils literal notranslate"><span class="pre">/issuance/nonce</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/credential</span></code> (+ <code class="docutils literal notranslate"><span class="pre">batch_credential</span></code>, the
-<code class="docutils literal notranslate"><span class="pre">delete</span></code> reject routes) and <code class="docutils literal notranslate"><span class="pre">/issuance/credential_preview</span></code> (an extension
-we support on top of the spec). Backed by <code class="docutils literal notranslate"><span class="pre">IssuanceState</span> <span class="pre">{</span> <span class="pre">issuer</span> <span class="pre">}</span></code>. Both
-flows mount this: the pre-authorized <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> mounts it
-standalone, the auth-code <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> mounts it alongside the
-authorization router.</p></li>
+<code class="docutils literal notranslate"><span class="pre">/issuance/nonce</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/credential</span></code> and
+<code class="docutils literal notranslate"><span class="pre">/issuance/credential_preview</span></code> (an extension we support on top of the
+spec). Backed by <code class="docutils literal notranslate"><span class="pre">IssuanceState</span> <span class="pre">{</span> <span class="pre">issuer</span> <span class="pre">}</span></code>. Both flows mount this: the
+pre-authorized <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> mounts it standalone, the auth-code
+<code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> mounts it alongside the authorization router.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">issuer::create_authorization_router</span></code> mounts the <strong>Authorization Phase</strong>
 handlers <code class="docutils literal notranslate"><span class="pre">/issuance/par</span></code> and <code class="docutils literal notranslate"><span class="pre">/issuance/authorize</span></code>. Backed by
 <code class="docutils literal notranslate"><span class="pre">AuthorizationState</span> <span class="pre">{</span> <span class="pre">authorizing_issuer</span> <span class="pre">}</span></code>. The <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> handler just
