@@ -243,10 +243,6 @@ struct Translations {
     intro: &'static str,
     // Overlay shown (via JS) once a card has been submitted.
     signing_in: &'static str,
-    // The "enter your own BSN" card, for BSNs not in the configured list.
-    custom_heading: &'static str,
-    custom_placeholder: &'static str,
-    custom_submit: &'static str,
 }
 
 fn translations(language: Language) -> Translations {
@@ -255,17 +251,11 @@ fn translations(language: Language) -> Translations {
             title: "Kies een test-identiteit",
             intro: "Selecteer een test-identiteit of voer zelf een BSN in.",
             signing_in: "Bezig met inloggen…",
-            custom_heading: "Eigen BSN",
-            custom_placeholder: "Voer een BSN in",
-            custom_submit: "Inloggen",
         },
         Language::En => Translations {
             title: "Choose a test identity",
             intro: "Select a test identity or enter a BSN yourself.",
             signing_in: "Signing in…",
-            custom_heading: "Custom BSN",
-            custom_placeholder: "Enter a BSN",
-            custom_submit: "Sign in",
         },
     }
 }
