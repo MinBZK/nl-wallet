@@ -1341,6 +1341,7 @@ fn create_attestation_copy_models(
         let (status_uri, status_index) = status
             .map(|status| match status {
                 StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                StatusClaim::IdentifierList(_) => (None, None), // TODO support identifier lists (PVW-6106)
             })
             .unwrap_or((None, None));
 

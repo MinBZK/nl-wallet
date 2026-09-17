@@ -712,6 +712,7 @@ dependencies = [
  "base64 0.22.1",
  "data-url 0.3.2",
  "derive_more",
+ "hex",
  "itertools 0.14.0",
  "rstest",
  "serde",

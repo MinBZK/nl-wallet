@@ -29,4 +29,5 @@ url = { workspace = true, features = ["serde"] }
 utils.path = "../utils"
 
 [dev-dependencies]
+hex.workspace = true
 rstest.workspace = true

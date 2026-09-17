@@ -722,6 +722,7 @@ async fn test_service_revoke_attestation_batches_concurrently() {
         claims_per_batch.into_iter().flat_map(|claims| {
             claims.into_iter().map(|claim| match claim {
                 StatusClaim::StatusList(list) => list.idx as usize,
+                StatusClaim::IdentifierList(_) => unimplemented!("identifier lists are not supported"),
             })
         }),
     )
