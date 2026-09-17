@@ -38,19 +38,25 @@ pub enum AttestationMetadataError {
     Image(#[source] ImageError),
 }
 
+/// The parts of an attestation's metadata that are needed to present it to the user.
+#[derive(Debug)]
+pub struct PresentationComponents {
+    /// How the attestation is displayed, per locale.
+    pub display_metadata: Vec<AttestationDisplayMetadata>,
+
+    /// The claims the attestation is described as containing.
+    pub claims: Vec<ClaimDescription>,
+}
+
 pub trait AttestationDisplay {
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<AttestationDisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError>;
+    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError>;
 }
 
 impl AttestationDisplay for CredentialMetadata {
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<AttestationDisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
+    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
         // Note that metadata without any display properties or claims is deliberately not an error here, but rather a
         // UI concern.
-        let display = self
+        let display_metadata = self
             .display
             .map(|display| {
                 display
@@ -67,33 +73,35 @@ impl AttestationDisplay for CredentialMetadata {
             .map(|claims| claims.into_inner().into_iter().map(ClaimDescription::from).collect())
             .unwrap_or_default();
 
-        Ok((display, claims))
+        Ok(PresentationComponents {
+            display_metadata,
+            claims,
+        })
     }
 }
 
 // Note that this conversion is infallible. It also always yields display metadata, as a type metadata chain is
 // validated to contain it when it is normalized.
 impl AttestationDisplay for NormalizedTypeMetadata {
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<AttestationDisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
+    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
         let (display, claims) = self.into_display_and_claims();
 
-        let display = display
+        let display_metadata = display
             .into_inner()
             .into_iter()
             .map(AttestationDisplayMetadata::from)
             .collect();
         let claims = claims.into_iter().map(ClaimDescription::from).collect();
 
-        Ok((display, claims))
+        Ok(PresentationComponents {
+            display_metadata,
+            claims,
+        })
     }
 }
 
 impl AttestationDisplay for StoredAttestationMetadata {
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<AttestationDisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
+    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
         match self {
             StoredAttestationMetadata::TypeMetadata(type_metadata) => type_metadata.into_presentation_components(),
             StoredAttestationMetadata::CredentialMetadata(credential_metadata) => {
@@ -104,9 +112,7 @@ impl AttestationDisplay for StoredAttestationMetadata {
 }
 
 impl AttestationDisplay for OfferedCredentialMetadata {
-    fn into_presentation_components(
-        self,
-    ) -> Result<(Vec<AttestationDisplayMetadata>, Vec<ClaimDescription>), AttestationMetadataError> {
+    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
         match self {
             OfferedCredentialMetadata::TypeMetadata { normalized, .. } => normalized.into_presentation_components(),
             OfferedCredentialMetadata::CredentialMetadata(credential_metadata) => {
@@ -415,7 +421,10 @@ mod tests {
 
     #[test]
     fn test_credential_metadata_presentation_components() {
-        let (display, claims) = CredentialMetadata::new_full_example()
+        let PresentationComponents {
+            display_metadata: display,
+            claims,
+        } = CredentialMetadata::new_full_example()
             .into_presentation_components()
             .expect("credential metadata should convert to presentation components");
 
@@ -460,7 +469,10 @@ mod tests {
     /// Type metadata always yields display properties, as a chain is validated to contain them when normalized.
     #[test]
     fn test_type_metadata_presentation_components() {
-        let (display, claims) = NormalizedTypeMetadata::nl_pid_example()
+        let PresentationComponents {
+            display_metadata: display,
+            claims,
+        } = NormalizedTypeMetadata::nl_pid_example()
             .into_presentation_components()
             .expect("type metadata should convert to presentation components");
 
@@ -480,7 +492,10 @@ mod tests {
             }]),
         };
 
-        let (display, claims) = metadata
+        let PresentationComponents {
+            display_metadata: display,
+            claims,
+        } = metadata
             .into_presentation_components()
             .expect("credential metadata without display should convert");
 
@@ -530,7 +545,10 @@ mod tests {
             text_color: None,
         };
 
-        let (display, _) = CredentialMetadata {
+        let PresentationComponents {
+            display_metadata: display,
+            ..
+        } = CredentialMetadata {
             display: Some(vec_nonempty![
                 display(Some("Missing a locale"), None),
                 display(None, Some("nl")),
@@ -553,7 +571,10 @@ mod tests {
 
     #[test]
     fn test_credential_metadata_presentation_components_all_display_skipped() {
-        let (display, _) = CredentialMetadata {
+        let PresentationComponents {
+            display_metadata: display,
+            ..
+        } = CredentialMetadata {
             display: Some(vec_nonempty![CredentialDisplay {
                 name_locale: NameLocale {
                     name: None,
@@ -590,7 +611,10 @@ mod tests {
             claims: None,
         };
 
-        let (display, claims) = metadata
+        let PresentationComponents {
+            display_metadata: display,
+            claims,
+        } = metadata
             .into_presentation_components()
             .expect("credential metadata without claims should convert");
 

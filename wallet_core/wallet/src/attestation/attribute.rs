@@ -18,6 +18,7 @@ use super::AttestationPresentation;
 use super::AttestationPresentationConfig;
 use super::AttestationValidity;
 use crate::attestation::metadata::AttestationDisplay;
+use crate::attestation::metadata::PresentationComponents;
 
 impl AttestationPresentation {
     #[expect(clippy::too_many_arguments, reason = "internal constructor")]
@@ -80,7 +81,10 @@ impl AttestationPresentation {
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
-        let (display_metadata, claims) = metadata
+        let PresentationComponents {
+            display_metadata,
+            claims,
+        } = metadata
             .into_presentation_components()
             .map_err(AttestationError::Metadata)?;
 
