@@ -204,8 +204,8 @@ be found
   implementations that are unaware of (and thus do not implement) both the
   Credential Preview and Credential Metadata endpoints; this is left for later.
 - The OpenID4VCI specification states that it is up to the issuer to decide how
-  long a nonce provided at the Nonce Endpoint valid. It also specifies that the
-  security this nonce provides relies on its ephemeral nature. In order to
+  long a nonce provided at the Nonce Endpoint is valid. It also specifies that
+  the security this nonce provides relies on its ephemeral nature. In order to
   prevent against replay attacks, we have decided to implement these nonces in
   such a way that they can only be used once by a wallet. In order to
   accommodate this, the wallet retrieves a fresh nonce for every credential it
