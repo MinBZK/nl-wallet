@@ -318,11 +318,6 @@ where
                 .unwrap(),
                 valid_days: Days::new(365),
                 status_list,
-                issuer_uri: issuance_keypair
-                    .certificate()
-                    .san_dns_name_or_uris()
-                    .unwrap()
-                    .into_first(),
                 mdoc_namespace: None,
                 metadata_documents,
             };

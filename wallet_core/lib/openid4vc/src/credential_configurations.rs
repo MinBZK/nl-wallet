@@ -6,7 +6,6 @@ use attestation_types::credential_kind::CredentialKind;
 use chrono::Days;
 use crypto::server_keys::KeyPair;
 use derive_more::Debug;
-use http_utils::urls::HttpsUri;
 use itertools::Either;
 use itertools::Itertools;
 use oauth::issuer_identifier::IssuerUrl;
@@ -54,7 +53,6 @@ pub struct CredentialConfigurationParameters<K, L> {
     pub key_pair: KeyPair<K>,
     pub status_list: L,
     pub valid_days: Days,
-    pub issuer_uri: HttpsUri,
     /// Overrides the root mdoc namespace used when issuing this attestation as `MsoMdoc`. This exists for attestation
     /// types whose mdoc namespace is mandated by an external specification and differs from their doctype, e.g. ISO
     /// 18013-5 mDL uses doctype `org.iso.18013.5.1.mDL` but namespace `org.iso.18013.5.1`. Must be `None` for `SdJwt`.
@@ -76,7 +74,6 @@ pub(crate) struct CredentialConfiguration<K, L> {
     pub key_pair: KeyPair<K>,
     pub status_list: L,
     pub valid_days: Days,
-    pub issuer_uri: HttpsUri,
     pub mdoc_namespace: Option<String>,
     pub metadata: CredentialConfigurationMetadata,
 }
@@ -98,7 +95,6 @@ impl<K, L> CredentialConfiguration<K, L> {
             key_pair,
             status_list,
             valid_days,
-            issuer_uri,
             mdoc_namespace,
             metadata_documents,
         }: CredentialConfigurationParameters<K, L>,
@@ -119,7 +115,6 @@ impl<K, L> CredentialConfiguration<K, L> {
             status_list,
             key_pair,
             valid_days,
-            issuer_uri,
             mdoc_namespace,
             metadata,
         };
@@ -324,7 +319,6 @@ mod tests {
                     key_pair,
                     status_list: MockStatusListService::new(),
                     valid_days: Days::new(1),
-                    issuer_uri: "https://example.com".parse().unwrap(),
                     mdoc_namespace: None,
                     metadata_documents,
                 };

@@ -13,7 +13,7 @@
 //!     - `_sd_alg`: the hash algorithm identifier (defaults to sha-256 if absent)
 //!     - `cnf`: the holder binding
 //!     - `vct`: the attestation type
-//!     - metadata (`iss`, `iat`, `exp`/`nbf`, etc.)
+//!     - metadata (`iat`, `exp`/`nbf`, etc.)
 //!     - `claims`: the selectively disclosable claim tree represented by `ClaimValue` and `ObjectClaims`.
 //!   - The hash algorithm is selected via `SdAlg`; implementations live behind the [`hasher::Hasher`] trait. Currently,
 //!     only `Sha256` is implemented via `Sha256Hasher`.
@@ -106,7 +106,6 @@
 //!     cnf: ConfirmationClaim::Jwk(jwk_from_public_key(&PublicKey::from(*holder_privkey.verifying_key()))?),
 //!     vct: "com:example:vct".into(),
 //!     vct_integrity: None,
-//!     iss: "https://issuer.example.com".parse()?,
 //!     iat: DateTimeSeconds::from(Utc::now()),
 //!     exp: None,
 //!     nbf: None,
@@ -198,7 +197,6 @@ mod tests {
     fn test_object() -> SdJwtVcClaims {
         let input_object = json!({
             "vct": "com:example:1",
-            "iss": "https://issuer.example.com/",
             "iat": 1683000000,
             "cnf": {
                 "jwk": {

@@ -12,10 +12,7 @@ impl IssuerSigned {
     pub async fn resign(&mut self, key: &KeyPair<impl EcdsaKey>) -> Result<()> {
         use crate::utils::cose::TypedCose;
 
-        let mut mso = self.issuer_auth.dangerous_parse_unverified()?.0;
-
-        // Update (fill) the issuer_uri to match the new key
-        mso.issuer_uri = Some(key.certificate().san_dns_name_or_uris()?.into_first());
+        let mso = self.issuer_auth.dangerous_parse_unverified()?.0;
 
         self.issuer_auth =
             TypedCose::sign(&mso.into(), self.issuer_auth.as_ref().unprotected.clone(), key, true).await?;

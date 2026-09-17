@@ -19,7 +19,6 @@ use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
-use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -255,8 +254,8 @@ impl From<VerifiedSdJwt> for UnverifiedSdJwt {
 
 /// SD-JWT VC claims type used by the builder and verifier.
 ///
-/// Holds VC metadata (`vct`, `iss`), validity information (`iat` and optionally `exp` and `nbf`), the holder binding
-/// (`cnf`), and the selectively-disclosable claims tree in `claims`.
+/// Holds VC type (`vct`), validity information (`iat` and optionally `exp` and `nbf`), the holder binding (`cnf`), and
+/// the selectively-disclosable claims tree in `claims`.
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-22.html#name-issuer-signed-jwt>
 #[skip_serializing_none]
@@ -272,8 +271,6 @@ pub struct SdJwtVcClaims {
     pub vct_integrity: Option<Integrity>,
 
     pub vct: String,
-
-    pub iss: HttpsUri,
 
     pub iat: DateTimeSeconds,
 
@@ -836,7 +833,6 @@ mod examples {
                 cnf: ConfirmationClaim::try_from_public_key(holder_pubkey).unwrap(),
                 vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
                 vct: PID_ATTESTATION_TYPE.to_owned(),
-                iss: "https://issuer.example.com".parse().unwrap(),
                 iat: time.generate().into(),
                 exp: Some((time.generate() + Days::new(365)).into()),
                 nbf: Some((std::cmp::max(time.generate() - Days::new(365), DateTime::UNIX_EPOCH)).into()),
@@ -862,7 +858,6 @@ mod examples {
                 cnf: ConfirmationClaim::Jwk(jwk_from_public_key(&PublicKey::from(*holder_public_key)).unwrap()),
                 vct_integrity: Some("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=".parse().unwrap()),
                 vct: PID_ATTESTATION_TYPE.to_owned(),
-                iss: "https://issuer.example.com".parse().unwrap(),
                 iat: time.generate().into(),
                 exp: None,
                 nbf: None,
@@ -882,7 +877,6 @@ mod test {
     use chrono::DateTime;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
-    use http_utils::urls::HttpsUri;
     use itertools::Itertools;
     use jsonwebtoken::errors::ErrorKind;
     use jsonwebtoken::jwk::AlgorithmParameters;
@@ -1516,7 +1510,6 @@ mod test {
     #[rstest]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "given_name": "Alice",
         "_sd": ["X9yH0Ajrdm1Oij4tWso9UzzKJvPoDxwmuEcO3XAdRC0"],
@@ -1531,7 +1524,6 @@ mod test {
     }), Ok(()))]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "_sd": [0],
         "cnf": {
@@ -1545,7 +1537,6 @@ mod test {
     }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "nested": {
             "_sd": [0]
@@ -1561,7 +1552,6 @@ mod test {
     }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "array": [{
             "_sd": [0]
@@ -1577,7 +1567,6 @@ mod test {
     }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "array": [{ "...": 0 }],
         "cnf": {
@@ -1591,7 +1580,6 @@ mod test {
     }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "...": "not_allowed",
         "cnf": {
@@ -1605,7 +1593,6 @@ mod test {
     }), Err("data did not match any variant of untagged enum ClaimValue".to_owned()))]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "nationalities":
         ["DE", {"...":"w0I8EKcdCtUPkGCNUrfwVp2xEgNjtoIDlOxc9-PlOhs"}, "US"],
@@ -1620,7 +1607,6 @@ mod test {
     }), Ok(()))]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "family_name": "Möbius",
         "nationalities": [
@@ -1649,7 +1635,6 @@ mod test {
             "gbOsI4Edq2x2Kw-w5wPEzakob9hV1cRD0ATN3oQL9JM",
             "jsu9yVulwQQlhFlM_3JlzMaSFzglhQG0DpfayQwLUK4"
         ],
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
         "sub": "user_42",
@@ -1673,7 +1658,6 @@ mod test {
     }), Ok(()))]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
         "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
@@ -1697,7 +1681,6 @@ mod test {
     }), Ok(()))]
     #[case(json!({
         "vct": "com:example:pid:1",
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
         "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c",
@@ -1727,7 +1710,6 @@ mod test {
             "IKbrYNn3vA7WEFrysvbdBJjDDU_EvQIr0W18vTRpUSg",
             "otkxuT14nBiwzNJ3MPaOitOl9pVnXOaEHal_xkyNfKI"
         ],
-        "iss": "https://issuer.example.com/",
         "iat": 1683000000,
         "exp": 1883000000,
         "verified_claims": {
@@ -1790,7 +1772,6 @@ mod test {
             "_sd": [
                 "CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI",
             ],
-            "iss": "https://issuer.example.com/",
             "vct": "com:example:pid:1",
             "iat": 1683000000,
             "exp": 1883000000,
@@ -1846,7 +1827,6 @@ mod test {
             }),
             _sd_alg: Some(SdAlg::Sha256),
             vct_integrity: None,
-            iss: "https://issuer.example.com/".parse::<HttpsUri>().unwrap(),
             iat: DateTimeSeconds::new(DateTime::from_timestamp(1683000000, 0).unwrap()),
             exp: DateTime::from_timestamp(1883000000, 0).map(DateTimeSeconds::new),
             nbf: None,
@@ -1953,7 +1933,6 @@ mod test {
         let (nested_array_claim_digest, nested_array_claim) = array_disclosure(json!("some_value"));
 
         let value = json!({
-            "iss": "https://issuer.example.com/",
             "iat": 1683000000,
             "_sd": [
                 &root_object_claim_digest,
@@ -2034,7 +2013,6 @@ mod test {
         );
 
         let value = json!({
-            "iss": "https://issuer.example.com/",
             "iat": 1683000000,
             "_sd": [
                 &root_object_claim_digest,
@@ -2065,7 +2043,6 @@ mod test {
         let (root_object_claim_digest, root_object_claim) = object_disclosure("root_object_claim", json!("some_value"));
 
         let value = json!({
-            "iss": "https://issuer.example.com/",
             "iat": 1683000000,
             "static_claim": "static",
         });
@@ -2082,7 +2059,6 @@ mod test {
         let (array_claim_digest, array_claim) = array_disclosure(json!("some_value"));
 
         let value = json!({
-            "iss": "https://issuer.example.com/",
             "iat": 1683000000,
             "_sd": [
                 &array_claim_digest,
@@ -2103,7 +2079,6 @@ mod test {
         let (object_claim_digest, object_claim) = object_disclosure("some_field", json!("some_value"));
 
         let value = json!({
-            "iss": "https://issuer.example.com/",
             "iat": 1683000000,
             "some_array": [
                 { "...": &object_claim_digest }
