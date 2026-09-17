@@ -115,7 +115,7 @@ impl AttestationPresentation {
                     key: claim_path,
                     metadata: claim.display,
                     value: value.to_owned(),
-                    svg_id: claim.svg_id,
+                    svg_id: claim.svg_id.map(Into::into),
                 })
             }
         }

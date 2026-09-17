@@ -19,6 +19,7 @@ use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::LogoMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
+use sd_jwt_vc_metadata::SvgId;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::TryFromInto;
@@ -204,7 +205,7 @@ pub struct ClaimDescription {
     pub display: Vec<ClaimDisplay>,
 
     /// The identifier of the claim for reference in an SVG template, if any.
-    pub svg_id: Option<String>,
+    pub svg_id: Option<SvgId>,
 }
 
 /// How a single claim of an attestation is displayed to the user for a single locale.
@@ -274,7 +275,7 @@ impl From<ClaimMetadata> for ClaimDescription {
         Self {
             path: value.path,
             display: value.display.into_iter().map(ClaimDisplay::from).collect(),
-            svg_id: value.svg_id.map(String::from),
+            svg_id: value.svg_id,
         }
     }
 }
