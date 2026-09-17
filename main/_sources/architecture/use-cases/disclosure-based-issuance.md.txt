@@ -62,7 +62,6 @@ Content-Length: 267
             "bsn": "999991772"
           }
         },
-        "issuer_uri": "https://issuer.example.com/",
         "ca": "ca.pid.example.com",
         "issuance_validity": {
           "signed": "2025-04-15T07:02:26Z",

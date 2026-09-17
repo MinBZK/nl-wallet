@@ -372,6 +372,11 @@ signing keys to be present in the Wallet configuration during key rollover.</p><
 <li><p>The <code class="docutils literal notranslate"><span class="pre">attestation_qualification</span></code> field has been removed from credentials, which
 means it is also removed from the <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> response and from
 issuer credential configuration.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">issuer_uri</span></code> field has been removed from the mdoc MSO and the <code class="docutils literal notranslate"><span class="pre">iss</span></code> claim
+has been removed from SD-JWT VC credentials and the <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code>
+response. Issuer authentication now relies solely on certificate chain
+verification against trust anchors. Consequently the <code class="docutils literal notranslate"><span class="pre">certificate_san</span></code> setting
+has been removed from the issuer configuration.</p></li>
 </ul>
 </section>
 <section id="new-features">

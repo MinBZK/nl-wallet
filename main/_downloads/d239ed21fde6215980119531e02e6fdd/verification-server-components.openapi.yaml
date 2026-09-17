@@ -167,10 +167,6 @@ components:
         attributes:
           type: object
           description: Disclosed attributes (format depends on attestation type)
-        issuer_uri:
-          type: string
-          format: uri
-          description: URI of the issuer
         ca:
           type: string
           description: Certificate authority
@@ -182,7 +178,6 @@ components:
       required:
         - attestation_type
         - attributes
-        - issuer_uri
         - ca
         - issuance_validity
 

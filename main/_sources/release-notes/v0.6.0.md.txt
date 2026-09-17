@@ -159,6 +159,11 @@
 - The `attestation_qualification` field has been removed from credentials, which
   means it is also removed from the `disclosed_attributes` response and from
   issuer credential configuration.
+- The `issuer_uri` field has been removed from the mdoc MSO and the `iss` claim
+  has been removed from SD-JWT VC credentials and the `disclosed_attributes`
+  response. Issuer authentication now relies solely on certificate chain
+  verification against trust anchors. Consequently the `certificate_san` setting
+  has been removed from the issuer configuration.
 
 [1]:
     https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p
