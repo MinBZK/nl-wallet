@@ -13,12 +13,11 @@ doctest = false
 [features]
 axum = ["dep:axum"]
 test = []
-mock = []
 
 [dependencies]
 base64.workspace = true
-chrono = { workspace = true, features = ["now", "serde"] }
-derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "display", "from", "into"] }
+chrono = { workspace = true, features = ["serde"] }
+derive_more = { workspace = true, features = ["as_ref", "display", "from", "into"] }
 ecdsa = { workspace = true, features = ["algorithm"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
@@ -30,14 +29,12 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
-tracing.workspace = true
 
 axum = { workspace = true, optional = true }
 
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
-http_utils.path = "../http_utils"
 utils.path = "../utils"
 
 [dev-dependencies]
@@ -52,6 +49,7 @@ tokio = { workspace = true, features = ["macros"] }
 tokio-test.workspace = true
 
 attestation_types = { path = "../attestation_types", features = ["mock"] }
+chrono = { workspace = true, features = ["now"] }
 crypto = { path = "../crypto", features = ["generate", "mock", "mock_secure_keys"] }
 http_utils = { path = "../http_utils", features = ["httpmock"] }
 utils = { path = "../utils", features = ["mock_time"] }

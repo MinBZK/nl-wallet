@@ -7,7 +7,6 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
@@ -24,7 +23,7 @@ use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use jsonwebtoken::Algorithm;
+use jwt::Algorithm;
 #[cfg(any(test, feature = "examples"))]
 use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
@@ -285,10 +284,6 @@ pub struct SdJwtVcClaims {
     // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
     // to parse.
     pub status: Option<StatusClaim>,
-
-    // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
-    // to parse.
-    pub attestation_qualification: Option<AttestationQualification>,
 
     // In practice this should always be a `ClaimValue::Object`, however `ClaimValue` is used here instead of
     // `ObjectClaims` to make is possible to call `ClaimValue::traverse_by_claim_paths` at this level and return `self`
@@ -820,7 +815,6 @@ where
 #[cfg(any(test, feature = "examples"))]
 mod examples {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::qualification::AttestationQualification;
     use attestation_types::status_claim::StatusClaim;
     use chrono::DateTime;
     use chrono::Days;
@@ -846,7 +840,6 @@ mod examples {
                 iat: time.generate().into(),
                 exp: Some((time.generate() + Days::new(365)).into()),
                 nbf: Some((std::cmp::max(time.generate() - Days::new(365), DateTime::UNIX_EPOCH)).into()),
-                attestation_qualification: Some(AttestationQualification::QEAA),
                 status: Some(StatusClaim::new_mock()),
                 claims: serde_json::from_value(json!({
                     "bsn": "999999999",
@@ -873,7 +866,6 @@ mod examples {
                 iat: time.generate().into(),
                 exp: None,
                 nbf: None,
-                attestation_qualification: Some(AttestationQualification::PubEAA),
                 status: Some(StatusClaim::new_mock()),
                 claims: serde_json::from_value(claims).unwrap(),
             }
@@ -1917,7 +1909,6 @@ mod test {
                     ),
                 ]),
             }),
-            attestation_qualification: None,
             status: None,
         };
         assert_eq!(parsed, expected);

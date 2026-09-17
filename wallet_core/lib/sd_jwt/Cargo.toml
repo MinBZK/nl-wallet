@@ -30,7 +30,6 @@ chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "display", "from_str"] }
 indexmap.workspace = true
 itertools.workspace = true
-jsonwebtoken.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256.workspace = true
 rand.workspace = true
@@ -58,6 +57,7 @@ attestation_types = { path = "../attestation_types", features = ["mock", "test_p
 chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from_str", "unwrap"] }
 futures.workspace = true
+jsonwebtoken.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }

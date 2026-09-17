@@ -19,7 +19,6 @@ use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_regist
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
@@ -992,13 +991,10 @@ fn check_example_disclosed_attributes(disclosed_attributes: &UniqueIdVec<Disclos
     let attestations = &disclosed_attributes.as_ref().iter().exactly_one().unwrap().attestations;
 
     itertools::assert_equal(
-        attestations.iter().map(|attestation| {
-            (
-                attestation.attestation_type.as_str(),
-                attestation.attestation_qualification,
-            )
-        }),
-        [(PID_ATTESTATION_TYPE, AttestationQualification::EAA)],
+        attestations
+            .iter()
+            .map(|attestation| attestation.attestation_type.as_str()),
+        [PID_ATTESTATION_TYPE],
     );
 
     let attributes = &attestations

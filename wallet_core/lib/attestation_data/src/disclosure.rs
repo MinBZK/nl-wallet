@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateError;
 use crypto::x509::KeyIdentifier;
 use dcql::CredentialQueryIdentifier;
@@ -107,7 +106,6 @@ pub struct DisclosedAttestation {
     #[serde(flatten)]
     pub attributes: DisclosedAttributes,
     pub issuer_uri: HttpsUri,
-    pub attestation_qualification: AttestationQualification,
 
     /// The issuer CA's common name
     pub ca: String,
@@ -140,7 +138,6 @@ impl TryFrom<DisclosedDocument> for DisclosedAttestation {
             attestation_type: doc.doc_type,
             attributes: doc.attributes.try_into()?,
             issuer_uri: doc.issuer_uri,
-            attestation_qualification: doc.attestation_qualification,
             ca: doc.ca,
             issuance_validity: (&doc.validity_info).try_into()?,
             revocation_status: doc.revocation_status,
@@ -172,11 +169,6 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
 
         let claims = sd_jwt_presentation.into_claims();
 
-        // Manually parse the attestation qualification from the SD-JWT claims.
-        let attestation_qualification = claims
-            .attestation_qualification
-            .ok_or(DisclosedAttestationError::MissingAttestationQualification)?;
-
         let issuance_validity = IssuanceValidity::new(
             claims.iat.into(),
             claims.nbf.map(Into::into),
@@ -187,7 +179,6 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             attestation_type: claims.vct,
             attributes,
             issuer_uri: claims.iss,
-            attestation_qualification,
             ca,
             issuance_validity,
             revocation_status,
@@ -203,9 +194,6 @@ pub enum DisclosedAttestationError {
 
     #[error("parse error while converting validity_info: {0}")]
     ParseError(#[from] chrono::ParseError),
-
-    #[error("missing attestation qualification in SD JWT")]
-    MissingAttestationQualification,
 
     #[error("error converting SD JWT to disclosed object: {0}")]
     DisclosedObjectConversion(#[from] sd_jwt::error::DecoderError),
@@ -324,7 +312,6 @@ impl<T: AttestationRequest> AttestationRequest for &T {
 mod test {
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
-    use attestation_types::qualification::AttestationQualification;
     use chrono::Utc;
     use dcql::disclosure::DisclosedCredential;
     use indexmap::IndexMap;
@@ -356,7 +343,6 @@ mod test {
                         .collect(),
                 )])),
                 issuer_uri: "https://example.com".parse().unwrap(),
-                attestation_qualification: AttestationQualification::default(),
                 ca: "Example CA".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
@@ -378,7 +364,6 @@ mod test {
                     .into(),
                 ),
                 issuer_uri: "https://example.com".parse().unwrap(),
-                attestation_qualification: AttestationQualification::default(),
                 ca: "Example CA".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
@@ -449,7 +434,6 @@ mod test {
         {
             "attestation_type": "com.example.pid",
             "issuer_uri": "https://pid.example.com",
-            "attestation_qualification": "EAA",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -469,7 +453,6 @@ mod test {
         {
             "attestation_type": "com.example.address",
             "issuer_uri": "https://pid.example.com",
-            "attestation_qualification": "EAA",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -491,7 +474,6 @@ mod test {
         {
             "attestation_type": "com.example.pid",
             "issuer_uri": "https://pid.example.com",
-            "attestation_qualification": "QEAA",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -511,7 +493,6 @@ mod test {
         {
             "attestation_type": "com.example.address",
             "issuer_uri": "https://pid.example.com",
-            "attestation_qualification": "PuB-EAA",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",
@@ -537,7 +518,6 @@ mod test {
         {
             "attestation_type": "com.example.pid",
             "issuer_uri": "https://pid.example.com",
-            "attestation_qualification": "EAA",
             "ca": "ca.example.com",
             "issuance_validity": {
                 "signed": "2014-11-28 12:00:09 UTC",

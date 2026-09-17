@@ -153,7 +153,6 @@ mod test {
                     expected_update: None,
                 },
                 issuer_uri: Some(issuer_uri),
-                attestation_qualification: Some(Default::default()),
                 status: Some(StatusClaim::new_mock()),
                 type_metadata_integrity: Some(metadata_integrity),
             };

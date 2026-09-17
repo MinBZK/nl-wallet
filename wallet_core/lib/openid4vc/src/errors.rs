@@ -6,7 +6,6 @@ use std::str::FromStr;
 use http::StatusCode;
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
-use jwt::wia::WiaError;
 use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::BodyOrRedirectErrorResponse;
 use oauth::errors::ErrorResponse;
@@ -18,6 +17,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
+use wscd::payload::wia::WiaVerificationError;
 
 use crate::authorization_code_flow::InvalidAuthorizationRequest;
 use crate::authorizing_issuer::AuthorizationRequestError;
@@ -28,7 +28,7 @@ use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
 use crate::issuer::TokenRequestError;
-use crate::issuer::WiaVerificationError;
+use crate::issuer::WiaError;
 use crate::verifier::CancelSessionError;
 use crate::verifier::DisclosedAttributesError;
 use crate::verifier::GetAuthRequestError;
@@ -227,13 +227,13 @@ impl ErrorWithCode for ParError {
         match self {
             Self::UnknownClient(_) => ParErrorCode::InvalidClient,
 
-            Self::Wia(WiaVerificationError::WiaVerification(WiaError::Expired)) => ParErrorCode::UseFreshAttestation,
+            Self::Wia(WiaError::Verification(WiaVerificationError::Expired)) => ParErrorCode::UseFreshAttestation,
 
-            Self::Wia(WiaVerificationError::ChallengeStore(_)) => ParErrorCode::ServerError,
+            Self::Wia(WiaError::ChallengeStore(_)) => ParErrorCode::ServerError,
 
-            Self::Wia(WiaVerificationError::InvalidChallenge)
-            | Self::Wia(WiaVerificationError::MissingChallenge)
-            | Self::Wia(WiaVerificationError::WiaVerification(_)) => ParErrorCode::InvalidClientAttestation,
+            Self::Wia(WiaError::InvalidChallenge)
+            | Self::Wia(WiaError::MissingChallenge)
+            | Self::Wia(WiaError::Verification(_)) => ParErrorCode::InvalidClientAttestation,
 
             Self::AuthorizationDetailsUnsupported | Self::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
 
@@ -265,15 +265,13 @@ impl ErrorWithCode for TokenRequestError {
 
             Self::UnexpectedGrantType { .. } => VciTokenErrorCode::UnsupportedGrantType,
 
-            Self::Wia(WiaVerificationError::WiaVerification(WiaError::Expired)) => {
-                VciTokenErrorCode::UseFreshAttestation
-            }
+            Self::Wia(WiaError::Verification(WiaVerificationError::Expired)) => VciTokenErrorCode::UseFreshAttestation,
 
-            Self::Wia(WiaVerificationError::ChallengeStore(_)) => VciTokenErrorCode::ServerError,
+            Self::Wia(WiaError::ChallengeStore(_)) => VciTokenErrorCode::ServerError,
 
-            Self::Wia(WiaVerificationError::InvalidChallenge)
-            | Self::Wia(WiaVerificationError::MissingChallenge)
-            | Self::Wia(WiaVerificationError::WiaVerification(_)) => VciTokenErrorCode::InvalidClientAttestation,
+            Self::Wia(WiaError::InvalidChallenge)
+            | Self::Wia(WiaError::MissingChallenge)
+            | Self::Wia(WiaError::Verification(_)) => VciTokenErrorCode::InvalidClientAttestation,
 
             Self::MissingCodeVerifier | Self::PkceVerificationFailed => VciTokenErrorCode::InvalidGrant,
 

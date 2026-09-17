@@ -24,9 +24,6 @@ use http_utils::server::TlsServerConfig;
 use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::VerifiedJwt;
-use jwt::pop::JwtPopClaims;
-use jwt::wia::WIA_HEADER_NAME;
-use jwt::wia::WIA_POP_HEADER_NAME;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;
@@ -97,8 +94,11 @@ use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::mock_remote::MockRemoteWscd;
-use wscd::mock_remote::MockWiaClient;
-use wscd::wscd::WiaClient;
+use wscd::payload::jwt_proof::JwtProofClaims;
+use wscd::payload::wia::WIA_HEADER_NAME;
+use wscd::payload::wia::WIA_POP_HEADER_NAME;
+use wscd::wia::WiaClient;
+use wscd::wia::mock::MockWiaClient;
 
 const REDIRECT_URI: &str = "https://wallet.example.com/callback";
 
@@ -1660,10 +1660,10 @@ async fn pre_authorized_code_flow_credential_request() {
         .into_iter()
         .next()
         .unwrap();
-    let proof_claims = JwtPopClaims::new(
-        Some(nonce_response.c_nonce),
+    let proof_claims = JwtProofClaims::new(
         MOCK_WALLET_CLIENT_ID.to_string(),
         issuer.issuer_identifier().as_ref().to_string(),
+        Some(nonce_response.c_nonce),
         &MockTimeGenerator::default(),
     );
     let proof = SignedJwt::sign_with_jwk(&proof_claims, &SigningKey::generate())
@@ -1726,10 +1726,10 @@ async fn pre_authorized_code_flow_credential_request() {
         .await
         .unwrap();
 
-    let proof_claims = JwtPopClaims::new(
-        Some(nonce_response.c_nonce),
+    let proof_claims = JwtProofClaims::new(
         MOCK_WALLET_CLIENT_ID.to_string(),
         issuer.issuer_identifier().as_ref().to_string(),
+        Some(nonce_response.c_nonce),
         &MockTimeGenerator::default(),
     );
     let proof = SignedJwt::sign_with_jwk(&proof_claims, &SigningKey::generate())

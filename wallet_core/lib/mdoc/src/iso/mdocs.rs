@@ -7,7 +7,6 @@
 use std::fmt::Debug;
 use std::result::Result;
 
-use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::ParseError;
@@ -278,9 +277,6 @@ pub struct MobileSecurityObject {
 
     /// Optional because it is not in the spec.
     pub status: Option<StatusClaim>,
-
-    /// Optional because it is not in the spec.
-    pub attestation_qualification: Option<AttestationQualification>,
 
     /// Optional because it is not in the spec.
     pub type_metadata_integrity: Option<Integrity>,
