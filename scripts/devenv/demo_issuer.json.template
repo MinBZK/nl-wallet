@@ -47,7 +47,7 @@
       "data": {
         "900253022": [
           {
-            "format": "mso_mdoc",
+            "format": "dc+sd-jwt",
             "attestation_type": "com.example.degree",
             "attributes": {
               "com.example.degree": {
@@ -65,7 +65,7 @@
         ],
         "999991772": [
           {
-            "format": "mso_mdoc",
+            "format": "dc+sd-jwt",
             "attestation_type": "com.example.degree",
             "attributes": {
               "com.example.degree": {
@@ -81,7 +81,7 @@
             }
           },
           {
-            "format": "mso_mdoc",
+            "format": "dc+sd-jwt",
             "attestation_type": "com.example.degree",
             "attributes": {
               "com.example.degree": {
@@ -99,7 +99,7 @@
         ],
         "999991905": [
           {
-            "format": "mso_mdoc",
+            "format": "dc+sd-jwt",
             "attestation_type": "com.example.degree",
             "attributes": {
               "com.example.degree": {

@@ -28,8 +28,8 @@ echo "0c4d965ea944b64b8fddaf7f27779ee3034e5693263786506ccd1c120f184e8c  /usr/loc
 chmod +x /usr/local/bin/yq
 
 # Minio
-# Download from: https://dl.min.io/client/mc/release/linux-amd64/
-wget --no-hsts -q -O /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2025-08-13T08-35-41Z
+# MinIO archived mc and dl.min.io no longer serves its binaries; the GitHub releases still do.
+wget --no-hsts -q -O /usr/local/bin/mc https://github.com/minio/mc/releases/download/RELEASE.2025-08-13T08-35-41Z/mc.linux-amd64.RELEASE.2025-08-13T08-35-41Z
 echo "01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891  /usr/local/bin/mc" | sha256sum -c
 chmod +x /usr/local/bin/mc
 

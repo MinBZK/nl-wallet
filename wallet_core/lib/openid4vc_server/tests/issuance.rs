@@ -1653,10 +1653,13 @@ async fn pre_authorized_code_flow_credential_request() {
     let credential_id = token_response
         .authorization_details
         .expect("TokenResponse should contain authorization_details")
-        .into_credential_ids_and_identifiers()
-        .into_first()
-        .1
-        .into_first();
+        .into_credential_ids_by_config_ids()
+        .into_values()
+        .next()
+        .unwrap()
+        .into_iter()
+        .next()
+        .unwrap();
     let proof_claims = JwtProofClaims::new(
         MOCK_WALLET_CLIENT_ID.to_string(),
         issuer.issuer_identifier().as_ref().to_string(),

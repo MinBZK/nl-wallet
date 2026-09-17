@@ -7,6 +7,7 @@ pub mod issuance_session;
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroU8;
 
@@ -166,9 +167,22 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     DpopNonce(#[source] DpopNonceInvalid),
 
-    #[error("unknown Credential Configuration ID(s) received in Token Response: {}", .0.iter().join(", "))]
-    #[category(critical)]
-    TokenResponseUnknownCredentialConfigIds(Vec<CredentialConfigurationId>),
+    #[error(
+        "unknown Credential Configuration ID(s) received in Token Response authorization_details: {}",
+        .0.iter().join(", ")
+    )]
+    #[category(pd)]
+    AuthorizationDetailsUnknownCredentialConfigIds(Vec<CredentialConfigurationId>),
+
+    #[error(
+        "duplicate Credential IDs for different Credential Configuration IDs received in Token Response \
+         authorization_details: {}",
+        .0.iter().map(|(credential_id, config_ids)| {
+            format!("{}: {}", credential_id, config_ids.iter().join(" & "))
+        }).join(", ")
+    )]
+    #[category(pd)]
+    AuthorizationDetailsDuplicateCredentialIds(HashMap<CredentialId, HashSet<CredentialConfigurationId>>),
 
     #[error("empty scope set received in Token Response")]
     #[category(critical)]
