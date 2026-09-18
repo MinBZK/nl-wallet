@@ -87,11 +87,7 @@ impl AttestationDisplay for NormalizedTypeMetadata {
     fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
         let (display, claims) = self.into_display_and_claims();
 
-        let display_metadata = display
-            .into_inner()
-            .into_iter()
-            .map(AttestationDisplayMetadata::from)
-            .collect();
+        let display_metadata = display.into_iter().map(AttestationDisplayMetadata::from).collect();
         let claims = claims.into_iter().map(ClaimDescription::from).collect();
 
         Ok(PresentationComponents {
