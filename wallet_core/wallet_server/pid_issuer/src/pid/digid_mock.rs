@@ -241,7 +241,7 @@ async fn mock_login_js() -> impl IntoResponse {
 struct Translations {
     logo_heading: &'static str,
     title: &'static str,
-    paragraphs: [&'static str; 4],
+    paragraphs: &'static [&'static str],
     list_heading: &'static str,
     // Overlay shown (via JS) once a card has been submitted.
     signing_in: &'static str,
@@ -252,7 +252,7 @@ fn translations(language: Language) -> Translations {
         Language::Nl => Translations {
             logo_heading: "Test-ID's",
             title: "Kies een test-ID",
-            paragraphs: [
+            paragraphs: &[
                 "Normaal gebruik je DigiD om te laten zien wie je bent. Daarna komen je eigen gegevens in NL Wallet.",
                 "Je gebruikt nu een versie van NL Wallet om uit te proberen. Daarom slaan we DigiD over.",
                 "Zo kun je NL Wallet uitproberen zonder je eigen gegevens te gebruiken.",
@@ -264,7 +264,7 @@ fn translations(language: Language) -> Translations {
         Language::En => Translations {
             logo_heading: "Test-IDs",
             title: "Choose a test ID",
-            paragraphs: [
+            paragraphs: &[
                 "Normally, you use DigiD to show who you are. Your own details are then added to NL Wallet.",
                 "You are now using a version of NL Wallet that you can try out. That is why we skip DigiD.",
                 "This lets you try NL Wallet without using your own details.",
