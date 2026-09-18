@@ -21,12 +21,22 @@
             {% endif %}
         </nav>
 
-        <header>
+        <header class="page-header">
+            <div class="logo-row">
+                <span class="digid-badge" aria-hidden="true">Digi<b>D</b></span>
+                <span class="logo-heading">{{ trans.logo_heading }}</span>
+            </div>
             <h1>{{ trans.title }}</h1>
-            <p class="intro">{{ trans.intro }}</p>
+            {% for paragraph in trans.paragraphs %}
+            <p class="body">{{ paragraph }}</p>
+            {% endfor %}
         </header>
 
-        <div class="grid">
+        <hr class="divider" />
+
+        <section class="items">
+            <h2 class="list-heading">{{ trans.list_heading }}</h2>
+            <div class="grid">
             {% for subject in subjects %}
             <form class="card" method="post" action="mock-login/select">
                 <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
@@ -37,7 +47,8 @@
                 </button>
             </form>
             {% endfor %}
-        </div>
+            </div>
+        </section>
 
         <div id="overlay" hidden>
             <span class="spinner"></span>

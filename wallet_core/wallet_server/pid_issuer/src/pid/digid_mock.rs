@@ -239,8 +239,10 @@ async fn mock_login_js() -> impl IntoResponse {
 }
 
 struct Translations {
+    logo_heading: &'static str,
     title: &'static str,
-    intro: &'static str,
+    paragraphs: [&'static str; 4],
+    list_heading: &'static str,
     // Overlay shown (via JS) once a card has been submitted.
     signing_in: &'static str,
 }
@@ -248,13 +250,27 @@ struct Translations {
 fn translations(language: Language) -> Translations {
     match language {
         Language::Nl => Translations {
-            title: "Kies een test-identiteit",
-            intro: "Selecteer een test-identiteit of voer zelf een BSN in.",
+            logo_heading: "Test-ID's",
+            title: "Kies een test-ID",
+            paragraphs: [
+                "Normaal gebruik je DigiD om te laten zien wie je bent. Daarna komen je eigen gegevens in NL Wallet.",
+                "Je gebruikt nu een versie van NL Wallet om uit te proberen. Daarom slaan we DigiD over.",
+                "Zo kun je NL Wallet uitproberen zonder je eigen gegevens te gebruiken.",
+                "De test-ID die je kiest bestaat alleen uit testgegevens en is niet van een echt persoon.",
+            ],
+            list_heading: "Kies een test-ID om verder te gaan.",
             signing_in: "Bezig met inloggen…",
         },
         Language::En => Translations {
-            title: "Choose a test identity",
-            intro: "Select a test identity or enter a BSN yourself.",
+            logo_heading: "Test-IDs",
+            title: "Choose a test ID",
+            paragraphs: [
+                "Normally, you use DigiD to show who you are. Your own details are then added to NL Wallet.",
+                "You are now using a version of NL Wallet that you can try out. That is why we skip DigiD.",
+                "This lets you try NL Wallet without using your own details.",
+                "The test ID you choose contains only test data and does not belong to a real person.",
+            ],
+            list_heading: "Choose a test ID to continue.",
             signing_in: "Signing in…",
         },
     }
