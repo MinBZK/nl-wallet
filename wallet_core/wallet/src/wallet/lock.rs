@@ -13,6 +13,9 @@ use tracing::info;
 use tracing::instrument;
 use tracing::warn;
 use update_policy_model::update_policy::VersionState;
+use utils::date_time_seconds::DateTimeSeconds;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::RefreshWalletCertificate;
 use wallet_account::messages::registration::WalletCertificate;
@@ -197,7 +200,11 @@ where
         self.check_result_for_wallet_revocation(remote_instruction.send(CheckPin).await)
             .await?;
 
-        if certificate_needs_refresh(&current_certificate, &config.account_server.certificate_public_keys) {
+        if certificate_needs_refresh(
+            &current_certificate,
+            &config.account_server.certificate_public_keys,
+            &TimeGenerator,
+        ) {
             self.refresh_wallet_certificate(&remote_instruction).await?;
         }
 
@@ -307,14 +314,17 @@ where
 fn certificate_needs_refresh(
     certificate: &WalletCertificate,
     certificate_public_keys: &HashMap<String, CertificatePublicKey>,
+    time: &impl Generator<DateTime<Utc>>,
 ) -> bool {
     let Ok((header, _)) = certificate.dangerous_parse_unverified() else {
         return false;
     };
 
+    let now = time.generate();
     let Some(newest_kid) = certificate_public_keys
         .iter()
-        .max_by_key(|(_, key)| -> DateTime<Utc> { key.created_at.into() })
+        .filter(|(_, key)| *key.used_from.as_ref() <= now)
+        .max_by_key(|(_, key)| -> DateTimeSeconds { key.used_from })
         .map(|(kid, _)| kid)
     else {
         return false;
@@ -538,11 +548,17 @@ mod tests {
         // Add a key to the configuration that is newer than the one the stored certificate is signed with, so that
         // unlocking should trigger a RefreshWalletCertificate instruction.
         let mut config = create_wallet_configuration();
+        config
+            .account_server
+            .certificate_public_keys
+            .get_mut(ACCOUNT_SERVER_KEYS.certificate_signing_key.kid())
+            .unwrap()
+            .used_from = (Utc::now() - Duration::from_secs(60)).into();
         config.account_server.certificate_public_keys.insert(
             "newer".to_owned(),
             CertificatePublicKey {
                 key: (*SigningKey::generate().verifying_key()).into(),
-                created_at: (Utc::now() + Duration::from_secs(3600)).into(),
+                used_from: (Utc::now() - Duration::from_secs(1)).into(),
             },
         );
 
@@ -964,39 +980,68 @@ mod tests {
         let current_kid = ACCOUNT_SERVER_KEYS.certificate_signing_key.kid().to_string();
         let current_public_key = CertificatePublicKey {
             key: (*ACCOUNT_SERVER_KEYS.certificate_signing_key.verifying_key()).into(),
-            created_at: Utc::now().into(),
+            used_from: (Utc::now() - Duration::from_secs(20)).into(),
         };
 
         // The certificate's kid is the only (and therefore newest) key: no refresh needed.
         assert!(!certificate_needs_refresh(
             &certificate,
             &HashMap::from([(current_kid.clone(), current_public_key.clone())]),
+            &TimeGenerator,
         ));
 
-        // A newer key than the certificate's kid is available: refresh needed.
+        // A newer key than the certificate's kid is already in use: refresh needed.
         let newer_public_key = CertificatePublicKey {
             key: (*SigningKey::generate().verifying_key()).into(),
-            created_at: (Utc::now() + chrono::TimeDelta::seconds(1)).into(),
+            used_from: (Utc::now() - Duration::from_secs(10)).into(),
         };
         assert!(certificate_needs_refresh(
             &certificate,
             &HashMap::from([
                 (current_kid.clone(), current_public_key.clone()),
-                ("newer".to_owned(), newer_public_key),
+                ("newer".to_owned(), newer_public_key.clone()),
             ]),
+            &TimeGenerator,
         ));
 
         // The certificate's kid is still the newest, even though an older key is also present: no refresh needed.
         let older_public_key = CertificatePublicKey {
             key: (*SigningKey::generate().verifying_key()).into(),
-            created_at: (Utc::now() - chrono::TimeDelta::seconds(1)).into(),
+            used_from: (Utc::now() - Duration::from_secs(30)).into(),
         };
         assert!(!certificate_needs_refresh(
             &certificate,
             &HashMap::from([
-                (current_kid, current_public_key),
+                (current_kid.clone(), current_public_key.clone()),
                 ("older".to_owned(), older_public_key)
             ]),
+            &TimeGenerator,
+        ));
+
+        // A newer key is present in the configuration, but the wallet provider is not using it yet (its
+        // `used_from` lies in the future): no refresh needed.
+        let future_public_key = CertificatePublicKey {
+            key: (*SigningKey::generate().verifying_key()).into(),
+            used_from: (Utc::now() + Duration::from_secs(3600)).into(),
+        };
+        assert!(!certificate_needs_refresh(
+            &certificate,
+            &HashMap::from([
+                (current_kid.clone(), current_public_key.clone()),
+                ("future".to_owned(), future_public_key.clone()),
+            ]),
+            &TimeGenerator,
+        ));
+
+        // The newer, already-in-use key is still preferred over one that isn't in use yet.
+        assert!(certificate_needs_refresh(
+            &certificate,
+            &HashMap::from([
+                (current_kid, current_public_key),
+                ("newer".to_owned(), newer_public_key),
+                ("future".to_owned(), future_public_key),
+            ]),
+            &TimeGenerator,
         ));
     }
 }

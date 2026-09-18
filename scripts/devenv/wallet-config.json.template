@@ -17,13 +17,14 @@
     "certificate_public_keys": {
       "${WP_CERTIFICATE_KID}": {
         "key": "${WP_CERTIFICATE_PUBLIC_KEY}",
-        "created_at": ${WP_CERTIFICATE_CREATED_AT}
+        "used_from": ${WP_CERTIFICATE_USED_FROM}
       }
     },
     "instruction_result_public_keys": {
       "${WP_INSTRUCTION_RESULT_KID}": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}"
     },
-    "wia_trust_anchors": ["${WIA_CA_CRT}"]
+    "wia_trust_anchors": ["${WIA_CA_CRT}"],
+    "certificate_refresh_threshold_in_seconds": 604800
   },
   "pid_attributes": {
     "mso_mdoc": {

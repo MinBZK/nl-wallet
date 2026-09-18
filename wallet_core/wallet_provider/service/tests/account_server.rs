@@ -635,7 +635,11 @@ async fn test_certificate_signing_key_rollover() {
     let challenge = account_server
         .instruction_challenge(
             hw_privkey
-                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 5, refreshed_certificate.clone())
+                .sign_instruction_challenge::<CheckPin>(
+                    cert_data.wallet_id.clone().into(),
+                    5,
+                    refreshed_certificate.clone(),
+                )
                 .await,
             &MockTimeGenerator::new(now),
             &user_state,

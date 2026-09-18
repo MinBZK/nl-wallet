@@ -342,7 +342,7 @@ mod test {
             certificate_signing_key.kid().to_owned(),
             CertificatePublicKey {
                 key: (*certificate_signing_key.verifying_key()).into(),
-                created_at: Utc::now().into(),
+                used_from: Utc::now().into(),
             },
         )]);
 
@@ -582,7 +582,7 @@ mod test {
             other_key.kid().to_owned(), // same kid, different key
             CertificatePublicKey {
                 key: (*other_key.verifying_key()).into(),
-                created_at: Utc::now().into(),
+                used_from: Utc::now().into(),
             },
         )]);
 

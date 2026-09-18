@@ -374,7 +374,7 @@ pub fn create_wallet_configuration() -> WalletConfiguration {
         keys.certificate_signing_key.kid().to_owned(),
         CertificatePublicKey {
             key: (*keys.certificate_signing_key.verifying_key()).into(),
-            created_at: Utc::now().into(),
+            used_from: Utc::now().into(),
         },
     )]);
     config.account_server.instruction_result_public_keys = HashMap::from([(

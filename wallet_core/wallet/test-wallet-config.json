@@ -17,7 +17,7 @@
     "certificate_public_keys": {
       "0": {
         "key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUNzPZL65uFHdgDTqP4drbIwWWbL5dgOqIHGyXjPY6DJ+xOqwS9EfM46CVTkwKPIv8Bxz2CeNHDIp1EqzNqjZsg==",
-        "created_at": 1789000000
+        "used_from": 1789000000
       }
     },
     "instruction_result_public_keys": {

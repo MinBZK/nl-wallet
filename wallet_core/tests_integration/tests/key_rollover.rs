@@ -200,7 +200,7 @@ async fn test_instruction_result_key_rollover() {
 fn certificate_public_key(key: DerVerifyingKey) -> CertificatePublicKey {
     CertificatePublicKey {
         key,
-        created_at: Utc::now().into(),
+        used_from: Utc::now().into(),
     }
 }
 
@@ -211,10 +211,8 @@ fn certificate_public_key(key: DerVerifyingKey) -> CertificatePublicKey {
 /// 2. The wallet provider rolls over to the new key.
 /// 3. The old key is removed from the wallet configuration, after when the rollover is complete.
 ///
-/// Unlike the instruction result signing key, the wallet certificate signing key is only used (and
-/// therefore only verified by the wallet) when a new wallet certificate is issued, i.e. during
-/// registration and PIN change. This test therefore drives the PIN change flow to completion at each
-/// stage, instead of merely unlocking the wallet.
+/// The wallet certificate signing key is verified by the wallet whenever a new wallet certificate is
+/// issued, i.e. during registration, PIN change and certificate refresh.
 ///
 /// The HSM must have both wallet certificate signing keys pre-provisioned:
 /// - `wallet_certificate_signing_0` (kid = "0") — the current key
