@@ -403,6 +403,7 @@ mod tests {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::image::Image;
+    use itertools::Itertools;
     use openid4vc::metadata::issuer_metadata::CredentialClaim;
     use openid4vc::metadata::issuer_metadata::CredentialDisplay;
     use openid4vc::metadata::issuer_metadata::Logo as CredentialLogo;
@@ -429,7 +430,10 @@ mod tests {
             .into_presentation_components()
             .expect("credential metadata should convert to presentation components");
 
-        let display = display.into_iter().next().expect("display should contain one entry");
+        let display = display
+            .into_iter()
+            .exactly_one()
+            .expect("display should contain one entry");
         assert_eq!(display.locale, "en");
         assert_eq!(display.name, "Example credential");
         assert_eq!(display.description.as_deref(), Some("An example"));
