@@ -293,7 +293,9 @@ async fn test_certificate_key_rollover() {
         .expect("stage 2: old key still accepted, new key not yet in use");
 
     // Failure: the wallet configuration claims kid = "1" is already in use, and kid = "0" has been removed, while the
-    // WP has not rolled over yet. Unlocking triggers a refresh attempt, but the wallet then rejects the result.
+    // WP has not rolled over yet. Unlocking triggers a refresh attempt, and the wallet rejects the result because of
+    // the mismatch between wallet config and WP config, but since the user's PIN was still correct, unlocking itself
+    // succeeds anyway. The certificate refresh is retried on the next unlock.
     wallet_config.account_server.certificate_public_keys = HashMap::from([(
         "1".to_string(),
         certificate_public_key(cert_pubkey_1.clone(), Utc::now() - Duration::from_secs(3600)),
@@ -301,10 +303,10 @@ async fn test_certificate_key_rollover() {
     config_repo.update_config(Arc::new(wallet_config.clone()));
 
     wallet.lock();
-    let error = wallet.unlock(pin.clone()).await.expect_err(
-        "refreshed certificate should be rejected because of a mismatch between wallet config and WP config",
-    );
-    assert!(matches!(error, WalletUnlockError::CertificateValidation(_)));
+    wallet
+        .unlock(pin.clone())
+        .await
+        .expect("unlocking should succeed despite the rejected certificate refresh");
 
     // Restore both keys before the WP itself rolls over
     wallet_config.account_server.certificate_public_keys = HashMap::from([

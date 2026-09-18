@@ -210,8 +210,18 @@ where
             config.account_server.certificate_refresh_threshold,
             &TimeGenerator,
         ) {
-            self.refresh_wallet_certificate(&remote_instruction, &config.account_server.certificate_public_keys)
-                .await?;
+            // A failure here should not prevent the user from unlocking with a correct PIN, unless it indicates that
+            // the account has been revoked.
+            match self
+                .refresh_wallet_certificate(&remote_instruction, &config.account_server.certificate_public_keys)
+                .await
+            {
+                Ok(()) => {}
+                Err(error @ WalletUnlockError::Instruction(InstructionError::AccountRevoked(_))) => {
+                    return Err(error);
+                }
+                Err(error) => warn!("Failed to refresh wallet certificate, will retry on next unlock: {error}"),
+            }
         }
 
         Ok(())
@@ -629,6 +639,62 @@ mod tests {
             .unwrap()
             .expect("registration data should be present in storage");
         assert_eq!(stored_registration_data.wallet_certificate, new_certificate);
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_wallet_lock_unlock_succeeds_when_certificate_refresh_failure(
+        #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
+    ) {
+        // Add a key to the configuration that is newer than the one the stored certificate is signed with, so that
+        // unlocking should trigger a RefreshWalletCertificate instruction.
+        let mut config = create_wallet_configuration();
+        config
+            .account_server
+            .certificate_public_keys
+            .get_mut(ACCOUNT_SERVER_KEYS.certificate_signing_key.kid())
+            .unwrap()
+            .used_from = (Utc::now() - Duration::from_secs(60)).into();
+        config.account_server.certificate_public_keys.insert(
+            "newer".to_owned(),
+            CertificatePublicKey {
+                key: (*SigningKey::generate().verifying_key()).into(),
+                used_from: (Utc::now() - Duration::from_secs(1)).into(),
+            },
+        );
+
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked_with_config(vendor, config).await;
+        wallet.lock();
+
+        let (_, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
+        let old_certificate = registration_data.wallet_certificate.clone();
+
+        let challenge = random_bytes(32);
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .times(2)
+            .returning(move |_, _| Ok(challenge.clone()));
+
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction()
+            .return_once(move |_, _: Instruction<CheckPin>| Ok(create_wp_result(())));
+
+        // The refresh attempt fails with a transient server error, unrelated to the correctness of the PIN.
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction()
+            .return_once(move |_, _: Instruction<RefreshWalletCertificate>| {
+                Err(AccountProviderResponseError::Account(AccountError::Unexpected, None).into())
+            });
+
+        // Unlocking should still succeed: the user provided a correct PIN, and the failed refresh attempt is
+        // simply retried on the next unlock.
+        wallet.unlock(PIN.clone()).await.expect("should unlock wallet");
+
+        let (_, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
+        assert_eq!(registration_data.wallet_certificate, old_certificate);
     }
 
     #[tokio::test]
