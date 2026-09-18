@@ -42,8 +42,21 @@
                 <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
                 <input type="hidden" name="bsn" value="{{ subject.bsn }}" />
                 <button type="submit">
-                    <span class="name">{{ subject.name }}</span>
-                    <span class="bsn">BSN {{ subject.bsn }}</span>
+                    <span class="card-text">
+                        <span class="name">{{ subject.name }}</span>
+                        <span class="bsn">BSN {{ subject.bsn }}</span>
+                    </span>
+                    <span class="card-arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                            <path
+                                d="M4 12h15M13 6l6 6-6 6"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </span>
                 </button>
             </form>
             {% endfor %}
