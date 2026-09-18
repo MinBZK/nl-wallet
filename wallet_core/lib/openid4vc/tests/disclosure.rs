@@ -23,6 +23,7 @@ use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
 use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
+use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -187,6 +188,7 @@ async fn disclosure_direct() {
         &TrustAnchors::from(&ca),
         &crl_verifier,
         &issuer_ca,
+        StatusClaim::new_mock(),
     )
     .await;
 
@@ -216,10 +218,11 @@ async fn disclosure_jwe(
     trust_anchors: &TrustAnchors,
     crl_verifier: &CertificateCrlVerifier<MockCrlFetcher>,
     issuer_ca: &Ca,
+    status: StatusClaim,
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::generate());
     let partial_mdocs = vec_nonempty![(
-        PartialMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key),
+        PartialMdoc::new_mock_with_ca_key_and_status(issuer_ca, &mdoc_key, status),
         mdoc_key.identifier.clone()
     )];
     let encryption_nonce = "encryption_nonce".to_string();

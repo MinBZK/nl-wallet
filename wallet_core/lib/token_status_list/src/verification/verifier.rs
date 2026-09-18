@@ -203,6 +203,8 @@ mod test {
     use std::time::Duration;
     use std::time::Instant;
 
+    use attestation_types::status_claim::IdentifierListInfo;
+    use attestation_types::status_claim::StatusClaim;
     use attestation_types::status_claim::StatusClaim::StatusList;
     use attestation_types::status_claim::StatusListClaim;
     use chrono::DateTime;
@@ -342,6 +344,22 @@ mod test {
             .now_or_never()
             .unwrap();
         assert_eq!(RevocationStatus::Corrupted, status);
+
+        // Undetermined when the status claim is an identifier list (PVW-6106)
+        let status = verifier
+            .verify(
+                &TrustAnchors::from(&ca),
+                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                StatusClaim::IdentifierList(IdentifierListInfo {
+                    id: hex::decode("cccc").unwrap(),
+                    uri: "https://example.com/identifierlists/1".parse().unwrap(),
+                    certificate: None,
+                }),
+                &MockTimeGenerator::default(),
+            )
+            .now_or_never()
+            .unwrap();
+        assert_eq!(RevocationStatus::Undetermined, status);
 
         // Undetermined when retrieving the status list fails
         let mut client = MockStatusListClient::new();

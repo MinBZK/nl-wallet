@@ -1496,11 +1496,13 @@ pub(crate) mod tests {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::status_claim::IdentifierListInfo;
     use chrono::Days;
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::PublicKey;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
@@ -2077,6 +2079,65 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations by types");
 
         assert!(fetched_unique.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_mdoc_storage_with_identifier_list_status() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let key = MockRemoteEcdsaKey::new("mdoc_key".to_owned(), SigningKey::generate());
+        let status = StatusClaim::IdentifierList(IdentifierListInfo {
+            id: hex::decode("cccc").unwrap(),
+            uri: "https://example.com/identifierlists/1".parse().unwrap(),
+            certificate: None,
+        });
+        let mdoc = Mdoc::new_mock_with_ca_key_and_status(&ca, &key, status).await;
+        let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
+        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed).unwrap();
+
+        storage
+            .insert_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        IssuedCredentialCopies::Mdoc(vec_nonempty![MdocCopy {
+                            key_identifier: "mdoc_key_id".to_owned(),
+                            mdoc: mdoc.clone(),
+                        }]),
+                        mdoc.doc_type().to_owned(),
+                        Some(
+                            (&mdoc.clone().into_components().0.validity_info.valid_until)
+                                .try_into()
+                                .unwrap(),
+                        ),
+                        Some(
+                            (&mdoc.clone().into_components().0.validity_info.valid_from)
+                                .try_into()
+                                .unwrap(),
+                        ),
+                        std::iter::empty::<String>(),
+                        IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
+                    ),
+                    AttestationPresentation::new_mock(),
+                )],
+            )
+            .await
+            .expect("could not insert attestation with an identifier list status");
+
+        let fetched_unique = storage
+            .fetch_unique_attestations()
+            .await
+            .expect("could not fetch unique attestations");
+        assert_eq!(fetched_unique.len(), 1);
+
+        let stored_copy = attestation_copy::Entity::find()
+            .one(storage.database().unwrap().connection())
+            .await
+            .unwrap()
+            .expect("attestation copy should have been stored");
+        assert_eq!(stored_copy.status_list_url, None);
+        assert_eq!(stored_copy.status_list_index, None);
     }
 
     #[tokio::test]

@@ -1337,6 +1337,7 @@ mod tests {
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::status_claim::IdentifierListInfo;
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
@@ -2471,7 +2472,7 @@ mod tests {
         /// The same attributes as `previewable_payload` (without mdoc namesapce) and matching
         /// `NormalizedTypeMetadata`.
         sd_jwt_previewable_payload: PreviewableCredentialPayload,
-        status: StatusClaim,
+        pub status: StatusClaim,
         normalized_metadata: NormalizedTypeMetadata,
         pub first_metadata_integrity_random: bool,
     }
@@ -2820,6 +2821,49 @@ mod tests {
 
             assert_eq!(copy_count, expected_copy_count);
         }
+    }
+
+    #[test]
+    fn test_accept_issuance_with_identifier_list_status() {
+        let (mut signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id".to_owned().into(), Format::MsoMdoc)]),
+            SdJwtMetadataUsage::CredentialMetadata,
+        );
+        let trust_anchors = signer.trust_anchors.clone();
+
+        let identifier_list_status = StatusClaim::IdentifierList(IdentifierListInfo {
+            id: hex::decode("cccc").unwrap(),
+            uri: "https://example.com/identifierlists/1".parse().unwrap(),
+            certificate: None,
+        });
+        signer.status = identifier_list_status.clone();
+
+        let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
+
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            move |_url, credential_request, _dpop_header, _access_token_header| {
+                let response = signer.response_from_request(credential_request);
+
+                Ok(response)
+            },
+        );
+
+        let credentials = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
+        }
+        .accept_issuance(NonZeroU8::MIN, &trust_anchors, &MockRemoteWscd::default())
+        .now_or_never()
+        .unwrap()
+        .expect("accepting issuance of an mdoc with an identifier list status should succeed");
+
+        let credential = credentials.into_iter().exactly_one().unwrap();
+        let IssuedCredentialCopies::Mdoc(mdoc_copies) = credential.copies else {
+            panic!("issued credential should be an mdoc");
+        };
+        let mdoc = mdoc_copies.into_first().mdoc;
+
+        assert_eq!(mdoc.into_components().0.status, Some(identifier_list_status));
     }
 
     #[test]

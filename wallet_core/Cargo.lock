@@ -9052,6 +9052,7 @@ dependencies = [
  "derive_more",
  "flate2",
  "futures",
+ "hex",
  "http",
  "jwt",
  "mockall",
