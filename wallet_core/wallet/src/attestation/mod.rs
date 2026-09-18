@@ -37,7 +37,7 @@ pub enum AttestationError {
     #[category(pd)]
     Attributes(#[from] AttributesError),
 
-    #[error("could not convert metadata for presentation: {0}")]
+    #[error("error validating metadata rules for display: {0}")]
     #[category(pd)]
     Metadata(#[source] AttestationMetadataError),
 }
