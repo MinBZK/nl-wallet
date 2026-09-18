@@ -813,7 +813,6 @@ mod tests {
     use oauth::issuer_identifier::IssuerUrl;
     use rstest::rstest;
     use serde_json::json;
-    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use super::CoseAlgorithmIdentifier;
@@ -1463,14 +1462,6 @@ mod tests {
         );
     }
 
-    fn key_path(keys: &[&str]) -> VecNonEmpty<ClaimPath> {
-        keys.iter()
-            .map(|key| ClaimPath::SelectByKey(String::from(*key)))
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap()
-    }
-
     #[test]
     fn test_credential_metadata_described_claims() {
         let metadata = CredentialMetadata::new_full_example();
@@ -1482,8 +1473,8 @@ mod tests {
                 .map(|claim| (claim.path.clone(), claim.mandatory))
                 .collect::<Vec<_>>(),
             vec![
-                (key_path(&["birth_date"]), true),
-                (key_path(&["place_of_birth", "locality"]), false),
+                (ClaimPath::select_by_keys(&["birth_date"]), true),
+                (ClaimPath::select_by_keys(&["place_of_birth", "locality"]), false),
             ]
         );
         assert_eq!(
@@ -1542,7 +1533,7 @@ mod tests {
 
         assert_matches!(
             error,
-            AttributesError::MissingMandatoryAttribute(paths) if paths == vec![key_path(&["birth_date"])]
+            AttributesError::MissingMandatoryAttribute(paths) if paths == vec![ClaimPath::select_by_keys(&["birth_date"])]
         );
     }
 

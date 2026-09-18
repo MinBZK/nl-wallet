@@ -404,18 +404,9 @@ mod tests {
     use openid4vc::metadata::issuer_metadata::CredentialDisplay;
     use openid4vc::metadata::issuer_metadata::Logo as CredentialLogo;
     use openid4vc::metadata::issuer_metadata::NameLocale;
-    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use super::*;
-
-    fn key_path(keys: &[&str]) -> VecNonEmpty<ClaimPath> {
-        keys.iter()
-            .map(|key| ClaimPath::SelectByKey(String::from(*key)))
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap()
-    }
 
     #[test]
     fn test_credential_metadata_presentation_components() {
@@ -453,7 +444,10 @@ mod tests {
 
         assert_eq!(
             claims.iter().map(|claim| claim.path.clone()).collect::<Vec<_>>(),
-            vec![key_path(&["birth_date"]), key_path(&["place_of_birth", "locality"])]
+            vec![
+                ClaimPath::select_by_keys(&["birth_date"]),
+                ClaimPath::select_by_keys(&["place_of_birth", "locality"])
+            ]
         );
         assert_eq!(
             claims.first().unwrap().display,
@@ -487,7 +481,7 @@ mod tests {
         let metadata = CredentialMetadata {
             display: None,
             claims: Some(vec_nonempty![CredentialClaim {
-                path: key_path(&["birth_date"]),
+                path: ClaimPath::select_by_keys(&["birth_date"]),
                 mandatory: false,
                 display: None,
             }]),
