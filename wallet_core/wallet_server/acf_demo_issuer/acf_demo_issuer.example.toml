@@ -85,6 +85,10 @@ attributes = { "com.example.insurance" = { type = "object", value = { product = 
 # * private_key: Base64 encoded DER format private key, or string
 # * certificate: Base64 encoded DER format certificate
 # * valid_days: How long are these attestations valid, in days
+# * credential_metadata: Path to a JSON file containing the Credential Metadata
+#   for this credential configuration. This is mandatory for "mso_mdoc". For
+#   "dc+sd-jwt" either provide this or SD-JWT VC Type Metadata through the
+#   top-level type_metadata setting, but not both.
 [credential_configurations."com.example.insurance"]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"

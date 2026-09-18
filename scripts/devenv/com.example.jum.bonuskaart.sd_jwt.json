@@ -18,7 +18,6 @@
   "claims": [
     {
       "path": [
-        "com.example.jum.bonuskaart",
         "branch"
       ],
       "display": [
@@ -34,7 +33,6 @@
     },
     {
       "path": [
-        "com.example.jum.bonuskaart",
         "loyalty_number"
       ],
       "mandatory": true,
