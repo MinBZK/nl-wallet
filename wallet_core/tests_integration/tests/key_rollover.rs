@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use chrono::Utc;
 use crypto::p256_der::DerVerifyingKey;
@@ -13,7 +14,6 @@ use serial_test::serial;
 use tests_integration::common::*;
 use utils::vec_at_least::VecNonEmpty;
 use wallet::Pin;
-use wallet::errors::ChangePinError;
 use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 use wallet_configuration::wallet_config::CertificatePublicKey;
@@ -197,17 +197,19 @@ async fn test_instruction_result_key_rollover() {
     ));
 }
 
-fn certificate_public_key(key: DerVerifyingKey) -> CertificatePublicKey {
+fn certificate_public_key(key: DerVerifyingKey, used_from: chrono::DateTime<Utc>) -> CertificatePublicKey {
     CertificatePublicKey {
         key,
-        used_from: Utc::now().into(),
+        used_from: used_from.into(),
     }
 }
 
-/// Tests the full wallet certificate signing key rollover lifecycle with a real wallet and WP.
+/// Tests the full wallet certificate signing key rollover lifecycle with a real wallet and WP, driven purely
+/// through unlocking the wallet (i.e. `CheckPin`, optionally followed by `RefreshWalletCertificate`).
 ///
 /// In practice, a rollover proceeds as follows:
-/// 1. A new key is added to the wallet app's configuration and distributed to wallets.
+/// 1. A new key is added to the wallet app's configuration, with a `used_from` matching the wallet provider's planned
+///    rollover moment, and distributed to wallets.
 /// 2. The wallet provider rolls over to the new key.
 /// 3. The old key is removed from the wallet configuration, after when the rollover is complete.
 ///
@@ -240,13 +242,16 @@ async fn test_certificate_key_rollover() {
     let (wp_port, wp_abort) =
         start_wallet_provider_with_abort_handle(wp_settings.clone(), hsm.clone(), wp_root_ca.clone()).await;
 
-    // Set up the wallet with the initial configuration and register it, so it holds a wallet
-    // certificate signed with kid = "0".
+    // Set up the wallet with the initial configuration and register it, so it holds a wallet certificate signed with
+    // kid = "0".
     let (config_server_config, mut wallet_config) = build_wallet_environment_with_certificate_public_keys(
         ups_port,
         ups_root_ca.clone(),
         wp_port,
-        HashMap::from([("0".to_string(), certificate_public_key(cert_pubkey_0.clone()))]),
+        HashMap::from([(
+            "0".to_string(),
+            certificate_public_key(cert_pubkey_0.clone(), Utc::now() - Duration::from_secs(3600)),
+        )]),
     )
     .await;
     let mut wallet = setup_in_memory_wallet(
@@ -256,120 +261,113 @@ async fn test_certificate_key_rollover() {
     )
     .await;
 
-    let pin_a: Pin = "112234".into();
-    wallet = do_wallet_registration(wallet, pin_a.clone()).await;
+    let pin: Pin = "112234".into();
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     let config_repo = Arc::clone(wallet.config_repository());
 
-    // Stage 1: Before rollover — WP uses old key, wallet has old config only. PIN change completes
-    // fully, so the stored wallet certificate remains signed with kid = "0".
-    wallet_config.account_server.certificate_public_keys =
-        HashMap::from([("0".to_string(), certificate_public_key(cert_pubkey_0.clone()))]);
-    config_repo.update_config(Arc::new(wallet_config.clone()));
-
-    let pin_b: Pin = "223345".into();
+    // Stage 1: Before rollover — WP uses old key, wallet has old config only. Unlocking via `CheckPin`
+    wallet.lock();
     wallet
-        .begin_change_pin(pin_a, pin_b.clone())
+        .unlock(pin.clone())
         .await
-        .expect("stage 1: old key accepted by wallet with old config");
-    wallet
-        .continue_change_pin(&pin_b)
-        .await
-        .expect("stage 1: PIN change should complete");
+        .expect("stage 1: old key accepted, no refresh needed");
 
     // Stage 2: New key added to wallet config, WP still uses old key.
     wallet_config.account_server.certificate_public_keys = HashMap::from([
-        ("0".to_string(), certificate_public_key(cert_pubkey_0.clone())),
-        ("1".to_string(), certificate_public_key(cert_pubkey_1.clone())),
+        (
+            "0".to_string(),
+            certificate_public_key(cert_pubkey_0.clone(), Utc::now() - Duration::from_secs(3600)),
+        ),
+        (
+            "1".to_string(),
+            certificate_public_key(cert_pubkey_1.clone(), Utc::now() + Duration::from_secs(3600)),
+        ),
     ]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
 
-    let pin_c: Pin = "334456".into();
+    wallet.lock();
     wallet
-        .begin_change_pin(pin_b, pin_c.clone())
+        .unlock(pin.clone())
         .await
-        .expect("stage 2: old key accepted by wallet with both keys configured");
-    wallet
-        .continue_change_pin(&pin_c)
-        .await
-        .expect("stage 2: PIN change should complete");
+        .expect("stage 2: old key still accepted, new key not yet in use");
 
-    // Failure: old key removed from wallet config before WP has rolled over (premature cleanup).
-    // The stored certificate is still signed with kid = "0", so it can no longer be validated.
-    wallet_config.account_server.certificate_public_keys =
-        HashMap::from([("1".to_string(), certificate_public_key(cert_pubkey_1.clone()))]);
+    // Failure: the wallet configuration claims kid = "1" is already in use, and kid = "0" has been removed, while the
+    // WP has not rolled over yet. Unlocking triggers a refresh attempt, but the wallet then rejects the result.
+    wallet_config.account_server.certificate_public_keys = HashMap::from([(
+        "1".to_string(),
+        certificate_public_key(cert_pubkey_1.clone(), Utc::now() - Duration::from_secs(3600)),
+    )]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
 
-    let pin_d: Pin = "445567".into();
-    let error = wallet
-        .begin_change_pin(pin_c.clone(), pin_d.clone())
-        .await
-        .expect_err("failure: stored certificate rejected by wallet configured with only the new key");
-    assert!(matches!(error, ChangePinError::CertificateValidation(_)));
+    wallet.lock();
+    let error = wallet.unlock(pin.clone()).await.expect_err(
+        "refreshed certificate should be rejected because of a mismatch between wallet config and WP config",
+    );
+    assert!(matches!(error, WalletUnlockError::CertificateValidation(_)));
 
     // Restore both keys before the WP itself rolls over
     wallet_config.account_server.certificate_public_keys = HashMap::from([
-        ("0".to_string(), certificate_public_key(cert_pubkey_0.clone())),
-        ("1".to_string(), certificate_public_key(cert_pubkey_1.clone())),
+        (
+            "0".to_string(),
+            certificate_public_key(cert_pubkey_0.clone(), Utc::now() - Duration::from_secs(3600)),
+        ),
+        (
+            "1".to_string(),
+            certificate_public_key(cert_pubkey_1.clone(), Utc::now() + Duration::from_secs(3600)),
+        ),
     ]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
 
-    // Roll over: stop the old WP and start a new one with kid = "1". The wallet is still holding a
-    // certificate signed with kid = "0" at this point, and will send it along with the instruction
-    // that starts the PIN change below (i.e. before it receives its new, kid = "1" signed,
-    // certificate). The new WP must therefore still accept kid = "0" via `previous_certificate_kids`.
+    // Roll over: stop the old WP and start a new one with kid = "1". The wallet is still holding a certificate signed
+    // with kid = "0" at this point, and will send it along with the `CheckPin` instruction below. The new WP must
+    // therefore still accept kid = "0" via `previous_certificate_kids`.
     drop(wp_abort);
     wp_settings.current_certificate_kid = Kid::try_new("1".to_owned()).unwrap();
     wp_settings.previous_certificate_kids = Some(HashMap::from([(
         Kid::try_new("0".to_owned()).unwrap(),
-        Utc::now() + chrono::Duration::hours(1),
+        Utc::now() + Duration::from_secs(3600),
     )]));
     let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca.clone()).await;
 
-    // Point the wallet at the new WP by updating the account server URL in the config
+    // Point the wallet at the new WP by updating the account server URL in the config, and mark kid = "1"
+    // as in use now that the WP has rolled over to it.
     wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
     )
     .unwrap();
+    wallet_config.account_server.certificate_public_keys = HashMap::from([
+        (
+            "0".to_string(),
+            certificate_public_key(cert_pubkey_0.clone(), Utc::now() - Duration::from_secs(3600)),
+        ),
+        (
+            "1".to_string(),
+            certificate_public_key(cert_pubkey_1.clone(), Utc::now() - Duration::from_secs(3500)),
+        ),
+    ]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
 
-    // Stage 3: WP rolled over to new key, wallet config has both keys. The stored certificate is
-    // still signed with kid = "0" (validated using the old key), while the new certificate that is
-    // issued during this PIN change is signed with kid = "1" (validated using the new key).
+    // Stage 3: WP rolled over to the new key, wallet config has both keys. Unlocking authenticates using the stored
+    // certificate (with kid = "0"), then refreshes the certificate to one signed with kid = "1"
+    wallet.lock();
     wallet
-        .begin_change_pin(pin_c, pin_d.clone())
+        .unlock(pin.clone())
         .await
-        .expect("stage 3: both old (stored certificate) and new (issued certificate) keys are needed");
-    wallet
-        .continue_change_pin(&pin_d)
-        .await
-        .expect("stage 3: PIN change should complete");
+        .expect("stage 3: certificate refreshed to the new key");
 
-    // Stage 4: Old key removed from wallet config, WP uses new key. The stored certificate is now
-    // signed with kid = "1", so only the new key is needed.
-    wallet_config.account_server.certificate_public_keys =
-        HashMap::from([("1".to_string(), certificate_public_key(cert_pubkey_1.clone()))]);
+    // Stage 4: old key removed from wallet config, WP uses new key. The stored certificate is already signed with kid =
+    // "1", so unlocking succeeds; no refresh is needed.
+    wallet_config.account_server.certificate_public_keys = HashMap::from([(
+        "1".to_string(),
+        certificate_public_key(cert_pubkey_1.clone(), Utc::now() - Duration::from_secs(3600)),
+    )]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
-    let pin_e: Pin = "556678".into();
-    wallet
-        .begin_change_pin(pin_d, pin_e.clone())
-        .await
-        .expect("stage 4: new key accepted by wallet with new config only");
-    wallet
-        .continue_change_pin(&pin_e)
-        .await
-        .expect("stage 4: PIN change should complete");
 
-    // Failure case: wallet has not yet fetched the updated config when WP rolls over, so the stored
-    // (kid = "1") wallet certificate cannot be validated.
-    wallet_config.account_server.certificate_public_keys =
-        HashMap::from([("0".to_string(), certificate_public_key(cert_pubkey_0))]);
-    config_repo.update_config(Arc::new(wallet_config));
-    let pin_f: Pin = "667789".into();
-    let error = wallet
-        .begin_change_pin(pin_e, pin_f)
+    wallet.lock();
+    wallet
+        .unlock(pin.clone())
         .await
-        .expect_err("failure: stored certificate rejected by wallet with stale config");
-    assert!(matches!(error, ChangePinError::CertificateValidation(_)));
+        .expect("stage 4: new key accepted, no refresh needed");
 }

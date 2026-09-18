@@ -7,6 +7,7 @@ use chrono::Utc;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -70,6 +71,8 @@ pub enum WalletUnlockError {
     ChangePin(#[from] ChangePinError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
+    #[error("could not validate refreshed wallet certificate received from Wallet Provider: {0}")]
+    CertificateValidation(#[source] JwtVerifyError),
 }
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
@@ -207,7 +210,8 @@ where
             config.account_server.certificate_refresh_threshold,
             &TimeGenerator,
         ) {
-            self.refresh_wallet_certificate(&remote_instruction).await?;
+            self.refresh_wallet_certificate(&remote_instruction, &config.account_server.certificate_public_keys)
+                .await?;
         }
 
         Ok(())
@@ -216,6 +220,7 @@ where
     async fn refresh_wallet_certificate(
         &mut self,
         remote_instruction: &InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>,
+        certificate_public_keys: &HashMap<String, CertificatePublicKey>,
     ) -> Result<(), WalletUnlockError>
     where
         UR: Repository<VersionState>,
@@ -227,6 +232,11 @@ where
         let new_certificate = self
             .check_result_for_wallet_revocation(remote_instruction.send(RefreshWalletCertificate).await)
             .await?;
+
+        // Verify that the refreshed certificate is signed by a key we trust.
+        new_certificate
+            .parse_and_verify_with_sub_by_kid(certificate_public_keys)
+            .map_err(WalletUnlockError::CertificateValidation)?;
 
         let WalletRegistration::Registered { data, .. } = &mut self.registration else {
             return Err(WalletUnlockError::NotRegistered);
