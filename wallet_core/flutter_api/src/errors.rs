@@ -241,7 +241,9 @@ impl FlutterApiErrorFields for WalletUnlockError {
             WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
             WalletUnlockError::ChangePin(e) => e.typ(),
             WalletUnlockError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
-            WalletUnlockError::UnlockMethodStorage(_) => FlutterApiErrorType::Generic,
+            WalletUnlockError::UnlockMethodStorage(_) | WalletUnlockError::CertificateStorage(_) => {
+                FlutterApiErrorType::Generic
+            }
         }
     }
 

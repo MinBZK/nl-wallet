@@ -1,5 +1,8 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
+use chrono::DateTime;
+use chrono::Utc;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -11,12 +14,17 @@ use tracing::instrument;
 use tracing::warn;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::RefreshWalletCertificate;
+use wallet_account::messages::registration::WalletCertificate;
+use wallet_configuration::wallet_config::CertificatePublicKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::Wallet;
+use super::WalletRegistration;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::ChangePinError;
 use crate::errors::StorageError;
+use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 pub use crate::lock::LockCallback;
@@ -52,6 +60,8 @@ pub enum WalletUnlockError {
     Instruction(#[from] InstructionError),
     #[error("could not write or read unlock method to or from database: {0}")]
     UnlockMethodStorage(#[source] StorageError),
+    #[error("could not persist refreshed wallet certificate to database: {0}")]
+    CertificateStorage(#[source] StorageError),
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
     #[error("error fetching update policy: {0}")]
@@ -166,6 +176,8 @@ where
             .as_key_and_registration_data()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
+        let current_certificate = registration_data.wallet_certificate.clone();
+
         let remote_instruction = self
             .new_instruction_client(
                 pin,
@@ -173,7 +185,7 @@ where
                 InstructionClientParameters::new(
                     registration_data.wallet_id.clone(),
                     registration_data.pin_salt.clone(),
-                    registration_data.wallet_certificate.clone(),
+                    current_certificate.clone(),
                     config.account_server.http_config.clone(),
                     config.account_server.instruction_result_public_keys.clone(),
                 ),
@@ -184,6 +196,40 @@ where
 
         self.check_result_for_wallet_revocation(remote_instruction.send(CheckPin).await)
             .await?;
+
+        if certificate_needs_refresh(&current_certificate, &config.account_server.certificate_public_keys) {
+            self.refresh_wallet_certificate(&remote_instruction).await?;
+        }
+
+        Ok(())
+    }
+
+    async fn refresh_wallet_certificate(
+        &mut self,
+        remote_instruction: &InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>,
+    ) -> Result<(), WalletUnlockError>
+    where
+        UR: Repository<VersionState>,
+        S: Storage,
+        APC: AccountProviderClient,
+    {
+        info!("Refreshing Wallet certificate");
+
+        let new_certificate = self
+            .check_result_for_wallet_revocation(remote_instruction.send(RefreshWalletCertificate).await)
+            .await?;
+
+        let WalletRegistration::Registered { data, .. } = &mut self.registration else {
+            return Err(WalletUnlockError::NotRegistered);
+        };
+        data.wallet_certificate = new_certificate;
+
+        self.storage
+            .write()
+            .await
+            .upsert_data(data)
+            .await
+            .map_err(WalletUnlockError::CertificateStorage)?;
 
         Ok(())
     }
@@ -258,15 +304,37 @@ where
     }
 }
 
+fn certificate_needs_refresh(
+    certificate: &WalletCertificate,
+    certificate_public_keys: &HashMap<String, CertificatePublicKey>,
+) -> bool {
+    let Ok((header, _)) = certificate.dangerous_parse_unverified() else {
+        return false;
+    };
+
+    let Some(newest_kid) = certificate_public_keys
+        .iter()
+        .max_by_key(|(_, key)| -> DateTime<Utc> { key.created_at.into() })
+        .map(|(kid, _)| kid)
+    else {
+        return false;
+    };
+
+    &header.kid != newest_kid
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
     use std::sync::Arc;
     use std::sync::LazyLock;
+    use std::time::Duration;
 
     use apple_app_attest::AssertionCounter;
     use chrono::Utc;
+    use crypto::utils::random_bytes;
     use http::StatusCode;
+    use jwt::KeyWithKid;
     use jwt::SignedJwt;
     use mockall::predicate::*;
     use p256::ecdsa::SigningKey;
@@ -282,19 +350,24 @@ mod tests {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::InstructionResultClaims;
+    use wallet_account::messages::instructions::RefreshWalletCertificate;
     use wallet_account::signed::SequenceNumberComparison;
 
     use super::super::WalletRegistration;
+    use super::super::test::ACCOUNT_SERVER_KEYS;
     use super::super::test::TestWalletInMemoryStorage;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
+    use super::super::test::create_wallet_configuration;
     use super::super::test::create_wp_result;
+    use super::super::test::valid_certificate;
     use super::*;
     use crate::account_provider::AccountProviderResponseError;
     use crate::pin::key::Pin;
     use crate::pin::key::PinKey;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
+    use crate::storage::RegistrationData;
     use crate::storage::StorageState;
 
     static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
@@ -455,6 +528,98 @@ mod tests {
 
         // Test that the callback was not called.
         assert_eq!(is_locked_vec.lock().len(), 3);
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_wallet_lock_unlock_refreshes_certificate(
+        #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
+    ) {
+        // Add a key to the configuration that is newer than the one the stored certificate is signed with, so that
+        // unlocking should trigger a RefreshWalletCertificate instruction.
+        let mut config = create_wallet_configuration();
+        config.account_server.certificate_public_keys.insert(
+            "newer".to_owned(),
+            CertificatePublicKey {
+                key: (*SigningKey::generate().verifying_key()).into(),
+                created_at: (Utc::now() + Duration::from_secs(3600)).into(),
+            },
+        );
+
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked_with_config(vendor, config).await;
+        wallet.lock();
+
+        let (attested_key, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
+        let old_certificate = registration_data.wallet_certificate.clone();
+        let wallet_id = registration_data.wallet_id.clone();
+        let hw_pubkey = match attested_key.as_ref() {
+            AttestedKey::Apple(key) => *key.verifying_key(),
+            AttestedKey::Google(key) => *key.verifying_key(),
+        };
+
+        let new_certificate = valid_certificate(Some(wallet_id), hw_pubkey);
+        let new_certificate_for_closure = new_certificate.clone();
+
+        let challenge = random_bytes(32);
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .times(2)
+            .returning(move |_, _| Ok(challenge.clone()));
+
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction()
+            .return_once(move |_, _: Instruction<CheckPin>| Ok(create_wp_result(())));
+
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction()
+            .return_once(move |_, _: Instruction<RefreshWalletCertificate>| {
+                Ok(create_wp_result(new_certificate_for_closure))
+            });
+
+        wallet.unlock(PIN.clone()).await.expect("should unlock wallet");
+
+        let (_, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
+        assert_ne!(registration_data.wallet_certificate, old_certificate);
+        assert_eq!(registration_data.wallet_certificate, new_certificate);
+
+        let stored_registration_data = wallet
+            .storage
+            .read()
+            .await
+            .fetch_data::<RegistrationData>()
+            .await
+            .unwrap()
+            .expect("registration data should be present in storage");
+        assert_eq!(stored_registration_data.wallet_certificate, new_certificate);
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_wallet_lock_unlock_does_not_refresh_certificate_without_a_newer_key(
+        #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
+    ) {
+        // The default test configuration only contains the key that the stored certificate is already signed
+        // with, so unlocking should not trigger a RefreshWalletCertificate instruction.
+        let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(vendor).await;
+        wallet.lock();
+
+        let challenge = crypto::utils::random_bytes(32);
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .times(1)
+            .returning(move |_, _| Ok(challenge.clone()));
+
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction()
+            .times(1)
+            .return_once(move |_, _: Instruction<CheckPin>| Ok(create_wp_result(())));
+
+        wallet.unlock(PIN.clone()).await.expect("should unlock wallet");
     }
 
     #[tokio::test]
@@ -790,5 +955,48 @@ mod tests {
                 can_register_new_account: true
             })
         );
+    }
+
+    #[test]
+    fn test_certificate_needs_refresh() {
+        let hw_pubkey = *SigningKey::generate().verifying_key();
+        let certificate = valid_certificate(None, hw_pubkey);
+        let current_kid = ACCOUNT_SERVER_KEYS.certificate_signing_key.kid().to_string();
+        let current_public_key = CertificatePublicKey {
+            key: (*ACCOUNT_SERVER_KEYS.certificate_signing_key.verifying_key()).into(),
+            created_at: Utc::now().into(),
+        };
+
+        // The certificate's kid is the only (and therefore newest) key: no refresh needed.
+        assert!(!certificate_needs_refresh(
+            &certificate,
+            &HashMap::from([(current_kid.clone(), current_public_key.clone())]),
+        ));
+
+        // A newer key than the certificate's kid is available: refresh needed.
+        let newer_public_key = CertificatePublicKey {
+            key: (*SigningKey::generate().verifying_key()).into(),
+            created_at: (Utc::now() + chrono::TimeDelta::seconds(1)).into(),
+        };
+        assert!(certificate_needs_refresh(
+            &certificate,
+            &HashMap::from([
+                (current_kid.clone(), current_public_key.clone()),
+                ("newer".to_owned(), newer_public_key),
+            ]),
+        ));
+
+        // The certificate's kid is still the newest, even though an older key is also present: no refresh needed.
+        let older_public_key = CertificatePublicKey {
+            key: (*SigningKey::generate().verifying_key()).into(),
+            created_at: (Utc::now() - chrono::TimeDelta::seconds(1)).into(),
+        };
+        assert!(!certificate_needs_refresh(
+            &certificate,
+            &HashMap::from([
+                (current_kid, current_public_key),
+                ("older".to_owned(), older_public_key)
+            ]),
+        ));
     }
 }

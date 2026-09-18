@@ -492,7 +492,15 @@ where
     }
 
     pub async fn new_registered_and_unlocked(vendor: WalletDeviceVendor) -> Self {
-        let mut wallet = Self::new_unregistered(vendor).await;
+        Self::new_registered_and_unlocked_with_config(vendor, create_wallet_configuration()).await
+    }
+
+    /// Creates a registered and unlocked `Wallet` with mock dependencies, holding the provided configuration.
+    pub async fn new_registered_and_unlocked_with_config(
+        vendor: WalletDeviceVendor,
+        config: WalletConfiguration,
+    ) -> Self {
+        let mut wallet = Self::new_unregistered_with_config(vendor, config).await;
 
         // Generate registration data.
         let (registration_data, attested_key) = wallet.registration_data();
