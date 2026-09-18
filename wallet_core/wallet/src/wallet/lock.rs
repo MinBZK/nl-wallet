@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -203,6 +204,7 @@ where
         if certificate_needs_refresh(
             &current_certificate,
             &config.account_server.certificate_public_keys,
+            config.account_server.certificate_refresh_threshold,
             &TimeGenerator,
         ) {
             self.refresh_wallet_certificate(&remote_instruction).await?;
@@ -314,13 +316,18 @@ where
 fn certificate_needs_refresh(
     certificate: &WalletCertificate,
     certificate_public_keys: &HashMap<String, CertificatePublicKey>,
+    refresh_threshold: Duration,
     time: &impl Generator<DateTime<Utc>>,
 ) -> bool {
-    let Ok((header, _)) = certificate.dangerous_parse_unverified() else {
+    let Ok((header, claims)) = certificate.dangerous_parse_unverified() else {
         return false;
     };
 
     let now = time.generate();
+    if claims.exp <= now + refresh_threshold {
+        return true;
+    }
+
     let Some(newest_kid) = certificate_public_keys
         .iter()
         .filter(|(_, key)| *key.used_from.as_ref() <= now)
@@ -343,6 +350,7 @@ mod tests {
     use apple_app_attest::AssertionCounter;
     use chrono::Utc;
     use crypto::utils::random_bytes;
+    use futures::future::FutureExt;
     use http::StatusCode;
     use jwt::KeyWithKid;
     use jwt::SignedJwt;
@@ -371,6 +379,7 @@ mod tests {
     use super::super::test::create_wallet_configuration;
     use super::super::test::create_wp_result;
     use super::super::test::valid_certificate;
+    use super::super::test::valid_certificate_claims;
     use super::*;
     use crate::account_provider::AccountProviderResponseError;
     use crate::pin::key::Pin;
@@ -987,6 +996,7 @@ mod tests {
         assert!(!certificate_needs_refresh(
             &certificate,
             &HashMap::from([(current_kid.clone(), current_public_key.clone())]),
+            Duration::from_secs(60),
             &TimeGenerator,
         ));
 
@@ -1001,6 +1011,7 @@ mod tests {
                 (current_kid.clone(), current_public_key.clone()),
                 ("newer".to_owned(), newer_public_key.clone()),
             ]),
+            Duration::from_secs(60),
             &TimeGenerator,
         ));
 
@@ -1015,6 +1026,7 @@ mod tests {
                 (current_kid.clone(), current_public_key.clone()),
                 ("older".to_owned(), older_public_key)
             ]),
+            Duration::from_secs(60),
             &TimeGenerator,
         ));
 
@@ -1030,6 +1042,7 @@ mod tests {
                 (current_kid.clone(), current_public_key.clone()),
                 ("future".to_owned(), future_public_key.clone()),
             ]),
+            Duration::from_secs(60),
             &TimeGenerator,
         ));
 
@@ -1041,6 +1054,43 @@ mod tests {
                 ("newer".to_owned(), newer_public_key),
                 ("future".to_owned(), future_public_key),
             ]),
+            Duration::from_secs(60),
+            &TimeGenerator,
+        ));
+    }
+
+    #[test]
+    fn test_certificate_needs_refresh_exp() {
+        let hw_pubkey = *SigningKey::generate().verifying_key();
+        let current_kid = ACCOUNT_SERVER_KEYS.certificate_signing_key.kid().to_string();
+        let current_public_key = CertificatePublicKey {
+            key: (*ACCOUNT_SERVER_KEYS.certificate_signing_key.verifying_key()).into(),
+            used_from: (Utc::now() - Duration::from_secs(20)).into(),
+        };
+        let certificate_public_keys = HashMap::from([(current_kid, current_public_key)]);
+
+        let mut claims = valid_certificate_claims(None, hw_pubkey);
+        claims.exp = Utc::now() + Duration::from_secs(30);
+        let certificate = SignedJwt::sign_with_sub_and_kid(claims, &ACCOUNT_SERVER_KEYS.certificate_signing_key)
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+            .into();
+
+        // The certificate's kid is up to date, but its `exp` lies within the refresh threshold: refresh needed.
+        assert!(certificate_needs_refresh(
+            &certificate,
+            &certificate_public_keys,
+            Duration::from_secs(60),
+            &TimeGenerator,
+        ));
+
+        // The certificate's kid is up to date and its `exp` lies outside the refresh threshold: no refresh
+        // needed.
+        assert!(!certificate_needs_refresh(
+            &certificate,
+            &certificate_public_keys,
+            Duration::from_secs(10),
             &TimeGenerator,
         ));
     }

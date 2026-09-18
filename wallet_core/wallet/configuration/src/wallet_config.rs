@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ops::Range;
+use std::time::Duration;
 
 use attestation_data::disclosure_type::DisclosureTypeConfig;
 use attestation_types::claim_path::ClaimPath;
@@ -18,6 +19,7 @@ use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DurationSeconds;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
@@ -109,6 +111,9 @@ pub struct AccountServerConfiguration {
     pub instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
     #[debug(skip)]
     pub wia_trust_anchors: TrustAnchors,
+    #[serde(rename = "certificate_refresh_threshold_in_seconds")]
+    #[serde_as(as = "DurationSeconds<u64>")]
+    pub certificate_refresh_threshold: Duration,
 }
 
 #[serde_as]
