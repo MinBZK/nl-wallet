@@ -40,6 +40,7 @@ pub use crate::wallet::HistoryError;
 pub use crate::wallet::IssuanceError;
 pub use crate::wallet::PinRecoveryError;
 pub use crate::wallet::RecoveryCodeError;
+pub use crate::wallet::RefreshCertificateError;
 pub use crate::wallet::ResetError;
 pub use crate::wallet::RevocationCodeError;
 pub use crate::wallet::TransferError;

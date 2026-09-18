@@ -67,6 +67,7 @@ pub use self::issuance::IssuanceStartResult;
 pub use self::issuance::PidIssuancePurpose;
 use self::issuance::WalletIssuanceSession;
 pub use self::lock::LockCallback;
+pub use self::lock::RefreshCertificateError;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
 pub use self::notifications::ScheduledNotificationsCallback;

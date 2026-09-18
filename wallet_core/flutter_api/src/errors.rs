@@ -22,6 +22,7 @@ use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
 use wallet::errors::PinRecoveryError;
 use wallet::errors::RecoveryCodeError;
+use wallet::errors::RefreshCertificateError;
 use wallet::errors::ResetError;
 use wallet::errors::RevocationCodeError;
 use wallet::errors::TransferError;
@@ -241,9 +242,8 @@ impl FlutterApiErrorFields for WalletUnlockError {
             WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
             WalletUnlockError::ChangePin(e) => e.typ(),
             WalletUnlockError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
-            WalletUnlockError::UnlockMethodStorage(_)
-            | WalletUnlockError::CertificateStorage(_)
-            | WalletUnlockError::CertificateValidation(_) => FlutterApiErrorType::Generic,
+            WalletUnlockError::RefreshCertificate(e) => e.typ(),
+            WalletUnlockError::UnlockMethodStorage(_) => FlutterApiErrorType::Generic,
         }
     }
 
@@ -252,6 +252,8 @@ impl FlutterApiErrorFields for WalletUnlockError {
             WalletUnlockError::Instruction(InstructionError::AccountRevoked(data)) => {
                 serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
             }
+            WalletUnlockError::ChangePin(e) => e.data(),
+            WalletUnlockError::RefreshCertificate(e) => e.data(),
             _ => serde_json::Value::Null,
         }
     }
@@ -720,6 +722,28 @@ impl FlutterApiErrorFields for ChangePinError {
     fn data(&self) -> serde_json::Value {
         match self {
             ChangePinError::Instruction(InstructionError::AccountRevoked(data)) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
+        }
+    }
+}
+
+impl FlutterApiErrorFields for RefreshCertificateError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            Self::NotRegistered => FlutterApiErrorType::WalletState,
+            Self::Instruction(e) => FlutterApiErrorType::from(e),
+            Self::CertificateValidation(_)
+            | Self::PublicKeyMismatch
+            | Self::WalletIdMismatch
+            | Self::CertificateStorage(_) => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            RefreshCertificateError::Instruction(InstructionError::AccountRevoked(data)) => {
                 serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
             }
             _ => serde_json::Value::Null,
