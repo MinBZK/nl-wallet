@@ -679,6 +679,7 @@ where
             credential_response_encryption: None,
             batch_credential_issuance,
             display: None,
+            issuer_info: None,
             credential_configurations_supported: credential_configs
                 .to_credential_configurations_supported(&type_metadata_base_url)?,
         };
