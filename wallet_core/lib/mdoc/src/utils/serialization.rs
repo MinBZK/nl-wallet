@@ -1,5 +1,6 @@
 //! CBOR serialization: wrapper types that modify serialization and specialized (de)serialization implementations.
 use core::fmt::Debug;
+use std::any::type_name;
 use std::borrow::Cow;
 
 use base64::prelude::*;
@@ -43,6 +44,21 @@ pub fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, CborError> {
     let mut bts: Vec<u8> = Vec::new();
     ciborium::ser::into_writer(o, &mut bts)?;
     Ok(bts)
+}
+
+fn cbor_value_type(value: &Value) -> &'static str {
+    match value {
+        Value::Integer(_) => "integer",
+        Value::Bytes(_) => "byte string",
+        Value::Float(_) => "float",
+        Value::Text(_) => "text",
+        Value::Bool(_) => "boolean",
+        Value::Null => "null",
+        Value::Tag(_, _) => "tag",
+        Value::Array(_) => "array",
+        Value::Map(_) => "map",
+        _ => "unknown",
+    }
 }
 
 /// Wrapper for `T` that serializes as `#6.24(bstr .cbor T)`: a tagged CBOR byte sequence, in which the byte sequence
@@ -190,7 +206,11 @@ where
                 .map(|entry| &entry.1)
                 .collect::<Vec<&Value>>()
                 .serialize(serializer),
-            e => panic!("struct serialization failed: {e:?}"),
+            unexpected_value => Err(ser::Error::custom(format!(
+                "CborSeq::serialize failed for {}: expected map, found {}",
+                type_name::<T>(),
+                cbor_value_type(&unexpected_value)
+            ))),
         }
     }
 }
@@ -230,15 +250,22 @@ where
                 map.iter()
                     .filter(|(_, val)| !val.is_null())
                     .map(|(key, val)| {
-                        (
-                            field_name_indices.get(key.as_text().unwrap()).unwrap().clone(),
-                            val.clone(),
-                        )
+                        let key = key
+                            .as_text()
+                            .ok_or_else(|| ser::Error::custom("CborIntMap::serialize failed: key was not text"))?;
+                        let index = field_name_indices
+                            .get(key)
+                            .ok_or_else(|| ser::Error::custom("CborIntMap::serialize failed: missing field index"))?;
+                        Ok((index.clone(), val.clone()))
                     })
-                    .collect(),
+                    .collect::<Result<_, S::Error>>()?,
             )
             .serialize(serializer),
-            e => panic!("struct serialization failed: {e:?}"),
+            unexpected_value => Err(ser::Error::custom(format!(
+                "CborIntMap::serialize failed for {}: expected map, found {}",
+                type_name::<T>(),
+                cbor_value_type(&unexpected_value)
+            ))),
         }
     }
 }
@@ -428,12 +455,76 @@ mod tests {
 
     use ciborium::value::Value::Array;
     use ciborium::value::Value::Bytes;
+    use ciborium::value::Value::Map;
     use ciborium::value::Value::Null;
     use ciborium::value::Value::Text;
     use hex_literal::hex;
+    use rstest::rstest;
 
     use super::*;
     use crate::examples::Example;
+
+    #[derive(Serialize, Deserialize)]
+    struct IndexedValue(Value);
+
+    impl CborIndexedFields for IndexedValue {
+        fn field_indices() -> &'static [(&'static str, u64)] {
+            &[("field", 0), ("optional", 1)]
+        }
+    }
+
+    #[rstest]
+    #[case::text(Text("sample value".to_string()), "text")]
+    #[case::array(Array(vec![Text("sample value".to_string())]), "array")]
+    fn test_cbor_serialization_rejects_non_map(#[case] value: Value, #[case] expected_cbor_type: &str) {
+        let results = [
+            ("CborSeq", type_name::<Value>(), cbor_serialize(&CborSeq(value.clone()))),
+            (
+                "CborIntMap",
+                type_name::<IndexedValue>(),
+                cbor_serialize(&CborIntMap(IndexedValue(value))),
+            ),
+        ];
+
+        for (wrapper, rust_type, result) in results {
+            let error = result.unwrap_err();
+            let expected_message =
+                format!("{wrapper}::serialize failed for {rust_type}: expected map, found {expected_cbor_type}");
+
+            assert_matches!(
+                error,
+                CborError::Serialization(ciborium::ser::Error::Value(message)) if message == expected_message
+            );
+        }
+    }
+
+    #[rstest]
+    #[case::non_text_key(
+        Map(vec![(Bytes(b"sample key".to_vec()), Text("sample value".to_string()))]),
+        "CborIntMap::serialize failed: key was not text"
+    )]
+    #[case::missing_field_index(
+        Map(vec![(Text("unknown field".to_string()), Text("sample value".to_string()))]),
+        "CborIntMap::serialize failed: missing field index"
+    )]
+    fn test_cbor_int_map_serialization_rejects_invalid_value(#[case] value: Value, #[case] expected_message: &str) {
+        let error = cbor_serialize(&CborIntMap(IndexedValue(value))).unwrap_err();
+
+        assert_matches!(
+            error,
+            CborError::Serialization(ciborium::ser::Error::Value(message)) if message == expected_message
+        );
+    }
+
+    #[test]
+    fn test_cbor_int_map_serialization_omits_null_fields() {
+        let value = CborIntMap(IndexedValue(Map(vec![
+            (Text("field".to_string()), Text("value".to_string())),
+            (Text("optional".to_string()), Null),
+        ])));
+
+        assert_eq!(cbor_serialize(&value).unwrap(), hex!("A1006576616C7565"));
+    }
 
     #[test]
     fn tagged_bytes() {
