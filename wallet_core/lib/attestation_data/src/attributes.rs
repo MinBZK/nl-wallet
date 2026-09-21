@@ -330,20 +330,6 @@ impl Attributes {
 
     /// Convert a map of namespaced entries (`Entry`) into attributes that are always exactly two levels deep: the
     /// mdoc namespace, then the element identifier within that namespace.
-    ///
-    /// If the `attributes` input parameter is as follows (denoted here in JSON):
-    /// ```json
-    /// {
-    ///     "com.example.pid": {
-    ///         "birthdate": "1963-08-12",
-    ///     },
-    ///     "com.example.pid.place_of_birth": {
-    ///         "locality": "The Hague",
-    ///     }
-    /// }
-    /// ```
-    ///
-    /// Then the output has exactly the same shape, with the values converted to [`Attribute`].
     pub fn from_mdoc_attributes(attributes: IndexMap<NameSpace, Vec<Entry>>) -> Result<Self, AttributesError> {
         let result = attributes
             .into_iter()
