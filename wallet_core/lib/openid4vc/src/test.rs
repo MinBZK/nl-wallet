@@ -121,17 +121,15 @@ pub fn mock_issuable_document_with_attrs(
     attestation_type: &str,
     attrs: &[(&str, &str)],
 ) -> IssuableDocument {
-    let flat_attrs = || {
-        IndexMap::from_iter(
-            attrs
-                .iter()
-                .map(|(key, val)| (key.to_string(), Attribute::Text(val.to_string()))),
-        )
-    };
+    let flat_attrs = IndexMap::from_iter(
+        attrs
+            .iter()
+            .map(|(key, val)| (key.to_string(), Attribute::Text(val.to_string()))),
+    );
 
     let attributes = match format {
-        Format::MsoMdoc => IndexMap::from([(attestation_type.to_string(), Attribute::Object(flat_attrs()))]),
-        Format::SdJwt => flat_attrs(),
+        Format::MsoMdoc => IndexMap::from([(attestation_type.to_string(), Attribute::Object(flat_attrs))]),
+        Format::SdJwt => flat_attrs,
     };
 
     IssuableDocument::try_new_with_random_id(
