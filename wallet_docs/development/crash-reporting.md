@@ -4,8 +4,8 @@ The mobile app uses Sentry for crash reporting, fatal exception capture, native
 crash diagnostics, Rust panic diagnostics, and a small curated breadcrumb trail.
 Selected non-production release builds can also opt into device logs and Sentry
 Logs for troubleshooting. The setup is intentionally split across Flutter,
-native Android/iOS, and Rust so each layer owns the failures it can diagnose best
-while using the same release, environment, and privacy rules.
+native Android/iOS, and Rust so each layer owns the failures it can diagnose
+best while using the same release, environment, and privacy rules.
 
 Sentry is enabled only when a non-empty `SENTRY_DSN` is provided. The configured
 environment labels events but does not decide whether logs are enabled. Builds
@@ -45,16 +45,16 @@ panic before the process exits.
 
 The same build inputs feed Flutter, native, and Rust:
 
-| Variable | Purpose |
-| --- | --- |
-| `SENTRY_DSN` | Enables Sentry and selects the Sentry project endpoint. |
-| `SENTRY_ENVIRONMENT` | Labels events with the build/runtime environment. |
-| `SENTRY_RELEASE` | Aligns Flutter, native, Rust, and uploaded debug files to one release. |
-| `ALLOW_RELEASE_LOGS` | Enables device logs and Sentry Logs in profile/release builds. |
-| `SENTRY_AUTH_TOKEN` | Enables release debug-symbol upload in CI/Fastlane. |
-| `SENTRY_ORG` | Sentry organization used by debug-symbol upload. |
-| `SENTRY_PROJECT` | Sentry project used by debug-symbol upload. |
-| `SENTRY_URL` | Sentry base URL used by debug-symbol upload. |
+| Variable             | Purpose                                                                |
+| -------------------- | ---------------------------------------------------------------------- |
+| `SENTRY_DSN`         | Enables Sentry and selects the Sentry project endpoint.                |
+| `SENTRY_ENVIRONMENT` | Labels events with the build/runtime environment.                      |
+| `SENTRY_RELEASE`     | Aligns Flutter, native, Rust, and uploaded debug files to one release. |
+| `ALLOW_RELEASE_LOGS` | Enables device logs and Sentry Logs in profile/release builds.         |
+| `SENTRY_AUTH_TOKEN`  | Enables release debug-symbol upload in CI/Fastlane.                    |
+| `SENTRY_ORG`         | Sentry organization used by debug-symbol upload.                       |
+| `SENTRY_PROJECT`     | Sentry project used by debug-symbol upload.                            |
+| `SENTRY_URL`         | Sentry base URL used by debug-symbol upload.                           |
 
 Fastlane computes `SENTRY_RELEASE` from the app identifier, version, and build
 number when no release is supplied explicitly. The computed release is passed to
@@ -69,8 +69,8 @@ before publishing.
 `ALLOW_RELEASE_LOGS` is a separate logging policy switch. Debug builds allow
 logs by default. Profile and release builds allow logs only when
 `ALLOW_RELEASE_LOGS=true`. CI defaults this flag to `false`; `ont` and `demo`
-release builds opt in explicitly, while production builds keep it `false`.
-Do not infer log allowance from `SENTRY_ENVIRONMENT`.
+release builds opt in explicitly, while production builds keep it `false`. Do
+not infer log allowance from `SENTRY_ENVIRONMENT`.
 
 ## Event Sources
 
@@ -98,10 +98,10 @@ Rust Sentry captures:
 - Categorized Rust errors emitted through `#[sentry_capture_error]`.
 - A Rust breadcrumb for non-expected categorized errors.
 
-Rust expected errors are dropped. Rust personal-data and uncategorized events are
-sent only after sensitive message values are removed. Rust unexpected events are
-sent scrubbed. Rust critical events keep their exception messages, but still use
-the shared request, user, and breadcrumb scrubbing rules.
+Rust expected errors are dropped. Rust personal-data and uncategorized events
+are sent only after sensitive message values are removed. Rust unexpected events
+are sent scrubbed. Rust critical events keep their exception messages, but still
+use the shared request, user, and breadcrumb scrubbing rules.
 
 ### Device Logs And Sentry Logs
 
@@ -155,20 +155,19 @@ minification/ProGuard change and is not part of the Sentry logging design.
 
 Rust non-panic diagnostics are sent through functions and implementations
 annotated with `#[sentry_capture_error]`. The annotation captures returned
-errors from the annotated scope and sends them through the Rust
-`ErrorCategory` policy. The error type must derive or implement
-`ErrorCategory`, and every variant or field must resolve to one of the Sentry
-categories.
+errors from the annotated scope and sends them through the Rust `ErrorCategory`
+policy. The error type must derive or implement `ErrorCategory`, and every
+variant or field must resolve to one of the Sentry categories.
 
 Rust error categories map to Sentry behavior as follows:
 
-| Category | Sentry behavior |
-| --- | --- |
-| `expected` | Drop the event. |
-| `critical` | Send the event with exception messages intact. |
-| `pd` | Send the event with sensitive exception messages removed. |
+| Category     | Sentry behavior                                                           |
+| ------------ | ------------------------------------------------------------------------- |
+| `expected`   | Drop the event.                                                           |
+| `critical`   | Send the event with exception messages intact.                            |
+| `pd`         | Send the event with sensitive exception messages removed.                 |
 | `unexpected` | Log locally and send the event with sensitive exception messages removed. |
-| `defer` | Resolve the category from the wrapped or nested error. |
+| `defer`      | Resolve the category from the wrapped or nested error.                    |
 
 The annotation is transitive across called functions: an unhandled categorized
 error returned through an annotated function is classified at that boundary. For
@@ -192,13 +191,13 @@ safe to copy between Flutter, native, and Rust Sentry scopes.
 
 Allowed breadcrumb shape:
 
-| Field | Allowed value |
-| --- | --- |
-| `category` | `wallet.flow` or `wallet.native` |
-| `message` | Lowercase dotted code, for example `issuance.start` or `rust.error.critical`. |
-| `data` | Removed before the breadcrumb is stored or sent. |
-| `level` | Forced to `info`. |
-| `type` | Forced to `default`. |
+| Field      | Allowed value                                                                 |
+| ---------- | ----------------------------------------------------------------------------- |
+| `category` | `wallet.flow` or `wallet.native`                                              |
+| `message`  | Lowercase dotted code, for example `issuance.start` or `rust.error.critical`. |
+| `data`     | Removed before the breadcrumb is stored or sent.                              |
+| `level`    | Forced to `info`.                                                             |
+| `type`     | Forced to `default`.                                                          |
 
 The message format is:
 
@@ -221,8 +220,8 @@ metadata. Add a breadcrumb only when it materially improves failure diagnosis.
 
 Flutter is the cross-layer breadcrumb bridge:
 
-- Flutter emits curated `wallet.flow` breadcrumbs around major wallet-core
-  calls and failure boundaries.
+- Flutter emits curated `wallet.flow` breadcrumbs around major wallet-core calls
+  and failure boundaries.
 - Rust emits curated `wallet.native` breadcrumbs for panic and categorized-error
   context.
 - Rust forwards its breadcrumb message to Flutter after wallet-core
