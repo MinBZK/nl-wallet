@@ -30,6 +30,7 @@ use server_utils::settings::SecretKey;
 use server_utils::store::StoreConnection;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
+use token_status_list::verification::reqwest::HttpStatusListClient;
 use utils::vec_nonempty;
 use wallet::test::default_wallet_config;
 use wscd::mock::MOCK_WALLET_CLIENT_ID;
@@ -128,7 +129,11 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let http_client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
     let crl_verifier =
         CertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build().unwrap());
-    let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client, crl_verifier);
+    let credential_issuer_discovery = HttpIssuanceDiscovery::new(
+        http_client,
+        crl_verifier,
+        HttpStatusListClient::new(default_reqwest_client_builder()).unwrap(),
+    );
 
     let credential_offer = create_pid_credential_offer(&issuer_url.public);
     let wia_client = MockWiaClient::new_with_wia_keypair(wia_keypair.clone());
@@ -139,6 +144,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
                 &CredentialSelection::All,
                 &wia_client,
                 wallet_config.wrpac_trust_anchors(),
+                wallet_config.wrprc_trust_anchors(),
             ),
             String::from(MOCK_WALLET_CLIENT_ID),
             redirect_uri,

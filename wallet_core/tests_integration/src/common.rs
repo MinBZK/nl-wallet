@@ -177,7 +177,7 @@ pub type WalletWithStorage = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpIssuanceDiscovery<MockCrlFetcher>,
+    HttpIssuanceDiscovery<MockCrlFetcher, StaticStatusListClient>,
     VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher, StaticStatusListClient>,
 >;
 

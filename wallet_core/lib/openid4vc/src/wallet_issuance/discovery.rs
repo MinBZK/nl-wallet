@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroU8;
+use std::sync::Arc;
 
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::crl::CertificateCrlVerifier;
@@ -14,6 +15,9 @@ use jwt::headers::HeaderWithX5c;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::metadata::well_known::WellKnownMetadata;
 use oauth::token::AuthorizationCode;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::reqwest::HttpStatusListClient;
+use token_status_list::verification::verifier::RevocationVerifier;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -45,23 +49,36 @@ use crate::wallet_issuance::CredentialSelection;
 
 const BATCH_SIZE_MAX: NonZeroU8 = NonZeroU8::MAX;
 
-pub struct HttpIssuanceDiscovery<F = HttpCrlFetcher> {
+pub struct HttpIssuanceDiscovery<F = HttpCrlFetcher, C = HttpStatusListClient> {
     http_client: HttpClient,
     crl_verifier: CertificateCrlVerifier<F>,
+    #[expect(
+        dead_code,
+        reason = "Used by the upcoming issuer registration certificate validation"
+    )]
+    registration_certificate_revocation_verifier: RevocationVerifier<C>,
 }
 
-impl<F> HttpIssuanceDiscovery<F> {
-    pub fn new(http_client: HttpClient, crl_verifier: CertificateCrlVerifier<F>) -> Self {
+impl<F, C> HttpIssuanceDiscovery<F, C>
+where
+    C: StatusListClient,
+{
+    pub fn new(http_client: HttpClient, crl_verifier: CertificateCrlVerifier<F>, status_list_client: C) -> Self {
         Self {
             http_client,
             crl_verifier,
+            registration_certificate_revocation_verifier: RevocationVerifier::new_with_defaults(
+                Arc::new(status_list_client),
+                TimeGenerator,
+            ),
         }
     }
 }
 
-impl<F> IssuanceDiscovery for HttpIssuanceDiscovery<F>
+impl<F, C> IssuanceDiscovery for HttpIssuanceDiscovery<F, C>
 where
     F: CrlFetcher,
+    C: StatusListClient,
 {
     type Authorization = HttpAuthorizationSession;
     type Issuance = HttpIssuanceSession;
@@ -81,6 +98,7 @@ where
             selection,
             wia_client,
             wrpac_trust_anchors,
+            wrprc_trust_anchors: _,
         } = common_parameters;
 
         let (credential_configurations, credential_issuer, issuer_endpoints, batch_size, flow) = self
@@ -152,6 +170,7 @@ where
             selection,
             wia_client,
             wrpac_trust_anchors,
+            wrprc_trust_anchors: _,
         } = common_parameters;
 
         let (credential_configurations, credential_identifier, issuer_endpoints, batch_size, flow) = self
@@ -196,6 +215,7 @@ where
             selection,
             wia_client,
             wrpac_trust_anchors,
+            wrprc_trust_anchors: _,
         } = common_parameters;
 
         let (credential_configurations, credential_identifier, issuer_endpoints, batch_size, flow) = self
@@ -391,9 +411,10 @@ impl CredentialOfferFlow {
     }
 }
 
-impl<F> HttpIssuanceDiscovery<F>
+impl<F, C> HttpIssuanceDiscovery<F, C>
 where
     F: CrlFetcher,
+    C: StatusListClient,
 {
     /// Parse a [`CredentialOffer`] from the URI or fetch it from a remote server, then convert it to a
     /// [`NormalizedCredentialOffer`].
@@ -677,6 +698,7 @@ mod test {
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use serde_json::json;
+    use token_status_list::verification::client::mock::MockStatusListClient;
     use url::Url;
     use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::mock::MockTimeGenerator;
@@ -722,10 +744,11 @@ mod test {
     static REDIRECT_URI: LazyLock<Url> = LazyLock::new(|| "https://wallet.example.com/callback".parse().unwrap());
     const AUTHORIZATION_ENDPOINT: &str = "https://auth.example.com/authorize";
 
-    fn mock_discovery() -> HttpIssuanceDiscovery<MockCrlFetcher> {
+    fn mock_discovery() -> HttpIssuanceDiscovery<MockCrlFetcher, MockStatusListClient> {
         HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockStatusListClient::default(),
         )
     }
 
@@ -1065,6 +1088,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            MockStatusListClient::default(),
         );
         let flow = discovery
             .start(
@@ -1073,6 +1097,7 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1108,6 +1133,7 @@ mod test {
                             &CredentialSelection::All,
                             &MockWiaClient::new(),
                             &wrpac_trust_anchors,
+                            &TrustAnchors::empty(),
                         ),
                         MOCK_WALLET_CLIENT_ID.to_string(),
                         REDIRECT_URI.clone(),
@@ -1123,6 +1149,7 @@ mod test {
                             &CredentialSelection::All,
                             &MockWiaClient::new(),
                             &wrpac_trust_anchors,
+                            &TrustAnchors::empty(),
                         ),
                         &issuer_trust_anchors,
                     )
@@ -1172,6 +1199,7 @@ mod test {
                             &CredentialSelection::All,
                             &MockWiaClient::new(),
                             &wrpac_trust_anchors,
+                            &TrustAnchors::empty(),
                         ),
                         &issuer_trust_anchors,
                     )
@@ -1186,6 +1214,7 @@ mod test {
                             &CredentialSelection::All,
                             &MockWiaClient::new(),
                             &wrpac_trust_anchors,
+                            &TrustAnchors::empty(),
                         ),
                         MOCK_WALLET_CLIENT_ID.to_string(),
                         REDIRECT_URI.clone(),
@@ -1227,6 +1256,7 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1248,6 +1278,7 @@ mod test {
                     &offer_url,
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
+                    &TrustAnchors::empty(),
                     &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
@@ -1275,6 +1306,7 @@ mod test {
                     &offer_url,
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
+                    &TrustAnchors::empty(),
                     &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
@@ -1318,6 +1350,7 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1358,6 +1391,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            MockStatusListClient::default(),
         );
 
         let result = discovery
@@ -1367,6 +1401,7 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1405,6 +1440,7 @@ mod test {
                     &offer_url,
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
+                    &TrustAnchors::empty(),
                     &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
@@ -1455,13 +1491,14 @@ mod test {
         } else {
             TrustAnchors::empty()
         };
-        let result = HttpIssuanceDiscovery::new(http_client, mock_crl_verifier)
+        let result = HttpIssuanceDiscovery::new(http_client, mock_crl_verifier, MockStatusListClient::default())
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1566,6 +1603,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            MockStatusListClient::default(),
         );
 
         let result = discovery
@@ -1575,6 +1613,7 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1612,6 +1651,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            MockStatusListClient::default(),
         );
 
         let result = discovery
@@ -1621,6 +1661,7 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1656,6 +1697,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            MockStatusListClient::default(),
         );
 
         let error = discovery
@@ -1665,6 +1707,7 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1694,6 +1737,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            MockStatusListClient::default(),
         );
         let _flow = discovery
             .start(
@@ -1702,6 +1746,7 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1727,6 +1772,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            MockStatusListClient::default(),
         );
 
         let requested_kinds = HashSet::from([
@@ -1740,6 +1786,7 @@ mod test {
                     &CredentialSelection::ByCredentialKind(requested_kinds.clone()),
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1767,6 +1814,7 @@ mod test {
                     &CredentialSelection::ByCredentialKind(requested_kinds),
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -1797,6 +1845,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            MockStatusListClient::default(),
         );
 
         let error = discovery
@@ -1806,6 +1855,7 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),

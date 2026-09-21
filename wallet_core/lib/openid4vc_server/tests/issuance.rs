@@ -88,6 +88,7 @@ use reqwest::StatusCode;
 use reqwest::redirect::Policy;
 use rstest::rstest;
 use sd_jwt_vc_metadata::TypeMetadata;
+use token_status_list::verification::client::mock::MockStatusListClient;
 use tokio::net::TcpListener;
 use url::Url;
 use utils::generator::TimeGenerator;
@@ -271,6 +272,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
             .into_certificate()]))
         .unwrap(),
         server.crl_verifier.clone(),
+        MockStatusListClient::default(),
     );
 
     // Start authorization code flow — fetches metadata and creates an auth session.
@@ -281,6 +283,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
                 &CredentialSelection::All,
                 &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
                 &server.trust_anchors,
+                &TrustAnchors::empty(),
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
@@ -433,6 +436,7 @@ async fn pre_authorized_code_flow(
     let discovery = HttpIssuanceDiscovery::new(
         HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
         crl_verifier,
+        MockStatusListClient::default(),
     );
 
     let flow = discovery
@@ -442,6 +446,7 @@ async fn pre_authorized_code_flow(
                 &CredentialSelection::All,
                 &MockWiaClient::new_with_wia_keypair(wia_keypair),
                 &trust_anchors,
+                &TrustAnchors::empty(),
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -490,6 +495,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     let discovery = HttpIssuanceDiscovery::new(
         HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
         crl_verifier,
+        MockStatusListClient::default(),
     );
 
     // The `client_id` that determines whether the issuer knows the wallet is the WIA's `sub`.
@@ -502,6 +508,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
                 &CredentialSelection::All,
                 &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
                 &trust_anchors,
+                &TrustAnchors::empty(),
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),

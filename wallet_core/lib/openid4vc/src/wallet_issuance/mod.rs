@@ -396,6 +396,7 @@ pub struct IssuanceDiscoveryParameters<'a, W> {
     pub selection: &'a CredentialSelection,
     pub wia_client: &'a W,
     pub wrpac_trust_anchors: &'a TrustAnchors,
+    pub wrprc_trust_anchors: &'a TrustAnchors,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

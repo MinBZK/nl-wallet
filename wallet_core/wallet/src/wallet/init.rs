@@ -206,20 +206,23 @@ impl WalletClients<MockAccountProviderClient, MockIssuanceDiscovery, MockDisclos
 impl<APC, C>
     WalletClients<
         APC,
-        HttpIssuanceDiscovery<MockCrlFetcher>,
+        HttpIssuanceDiscovery<MockCrlFetcher, C>,
         VpDisclosureClient<HttpVpMessageClient, MockCrlFetcher, C>,
         HttpStatusListClient,
     >
 where
     APC: Default,
-    C: StatusListClient,
+    C: StatusListClient + Clone,
 {
     pub fn new_with_mock_crl_verifier_and_registration_certificate_status_list_client(
         crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
         registration_certificate_status_list_client: C,
     ) -> Result<Self, reqwest::Error> {
-        let credential_issuer_discovery =
-            HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_verifier.clone());
+        let credential_issuer_discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(reqwest_client_builder())?,
+            crl_verifier.clone(),
+            registration_certificate_status_list_client.clone(),
+        );
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
         let disclosure_client = VpDisclosureClient::new(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
@@ -252,10 +255,13 @@ where
         // Note that HTTP is explicitly allowed for CRL distribution points. CRL integrity and issuer authenticity are
         // established by the CRL signature during certificate-chain verification.
         let crl_verifier = CertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build()?);
-        let credential_issuer_discovery =
-            HttpIssuanceDiscovery::new(HttpClient::try_new(reqwest_client_builder())?, crl_verifier.clone());
         // Note that HTTP is explicitly allowed for the retrieval of status lists.
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
+        let credential_issuer_discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(reqwest_client_builder())?,
+            crl_verifier.clone(),
+            status_list_client.clone(),
+        );
         let disclosure_client = VpDisclosureClient::new(
             HttpVpMessageClient::new(HttpClient::try_new(reqwest_client_builder())?),
             crl_verifier.clone(),
