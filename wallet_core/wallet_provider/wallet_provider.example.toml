@@ -45,13 +45,13 @@ wia_wallet_version = "1.0.0"
 
 # Identifier for the key used to wrap attestation private keys that will be persisted
 [attestation_wrapping_kid]
-current = "0"
-# previous = "1"
+current = "1"
+# previous = "0"
 
 # Identifier for the key used to encrypt the pin public key
 [pin_pubkey_encryption_kid]
-current = "0"
-# previous = "1"
+current = "1"
+# previous = "0"
 
 # Recovery code claim path for every attestation type
 [recovery_code_paths]
