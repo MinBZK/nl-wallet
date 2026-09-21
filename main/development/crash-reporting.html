@@ -198,8 +198,8 @@
 crash diagnostics, Rust panic diagnostics, and a small curated breadcrumb trail.
 Selected non-production release builds can also opt into device logs and Sentry
 Logs for troubleshooting. The setup is intentionally split across Flutter,
-native Android/iOS, and Rust so each layer owns the failures it can diagnose best
-while using the same release, environment, and privacy rules.</p>
+native Android/iOS, and Rust so each layer owns the failures it can diagnose
+best while using the same release, environment, and privacy rules.</p>
 <p>Sentry is enabled only when a non-empty <code class="docutils literal notranslate"><span class="pre">SENTRY_DSN</span></code> is provided. The configured
 environment labels events but does not decide whether logs are enabled. Builds
 without a DSN run without Sentry telemetry.</p>
@@ -279,8 +279,8 @@ before publishing.</p>
 <p><code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS</span></code> is a separate logging policy switch. Debug builds allow
 logs by default. Profile and release builds allow logs only when
 <code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS=true</span></code>. CI defaults this flag to <code class="docutils literal notranslate"><span class="pre">false</span></code>; <code class="docutils literal notranslate"><span class="pre">ont</span></code> and <code class="docutils literal notranslate"><span class="pre">demo</span></code>
-release builds opt in explicitly, while production builds keep it <code class="docutils literal notranslate"><span class="pre">false</span></code>.
-Do not infer log allowance from <code class="docutils literal notranslate"><span class="pre">SENTRY_ENVIRONMENT</span></code>.</p>
+release builds opt in explicitly, while production builds keep it <code class="docutils literal notranslate"><span class="pre">false</span></code>. Do
+not infer log allowance from <code class="docutils literal notranslate"><span class="pre">SENTRY_ENVIRONMENT</span></code>.</p>
 </section>
 <section id="event-sources">
 <h2>Event Sources<a class="headerlink" href="#event-sources" title="Link to this heading"></a></h2>
@@ -304,10 +304,10 @@ the app dSYM-based symbolication data for the final app binary.</p>
 <li><p>Categorized Rust errors emitted through <code class="docutils literal notranslate"><span class="pre">#[sentry_capture_error]</span></code>.</p></li>
 <li><p>A Rust breadcrumb for non-expected categorized errors.</p></li>
 </ul>
-<p>Rust expected errors are dropped. Rust personal-data and uncategorized events are
-sent only after sensitive message values are removed. Rust unexpected events are
-sent scrubbed. Rust critical events keep their exception messages, but still use
-the shared request, user, and breadcrumb scrubbing rules.</p>
+<p>Rust expected errors are dropped. Rust personal-data and uncategorized events
+are sent only after sensitive message values are removed. Rust unexpected events
+are sent scrubbed. Rust critical events keep their exception messages, but still
+use the shared request, user, and breadcrumb scrubbing rules.</p>
 <section id="device-logs-and-sentry-logs">
 <h3>Device Logs And Sentry Logs<a class="headerlink" href="#device-logs-and-sentry-logs" title="Link to this heading"></a></h3>
 <p>Device logs and Sentry Logs are diagnostics for debug and explicitly opted-in
@@ -357,10 +357,9 @@ minification/ProGuard change and is not part of the Sentry logging design.</p>
 <h3>Annotated Rust Errors<a class="headerlink" href="#annotated-rust-errors" title="Link to this heading"></a></h3>
 <p>Rust non-panic diagnostics are sent through functions and implementations
 annotated with <code class="docutils literal notranslate"><span class="pre">#[sentry_capture_error]</span></code>. The annotation captures returned
-errors from the annotated scope and sends them through the Rust
-<code class="docutils literal notranslate"><span class="pre">ErrorCategory</span></code> policy. The error type must derive or implement
-<code class="docutils literal notranslate"><span class="pre">ErrorCategory</span></code>, and every variant or field must resolve to one of the Sentry
-categories.</p>
+errors from the annotated scope and sends them through the Rust <code class="docutils literal notranslate"><span class="pre">ErrorCategory</span></code>
+policy. The error type must derive or implement <code class="docutils literal notranslate"><span class="pre">ErrorCategory</span></code>, and every
+variant or field must resolve to one of the Sentry categories.</p>
 <p>Rust error categories map to Sentry behavior as follows:</p>
 <table class="docutils align-default">
 <thead>
@@ -447,8 +446,8 @@ URLs, user identifiers, free text, PIN state, payload fragments, or arbitrary
 metadata. Add a breadcrumb only when it materially improves failure diagnosis.</p>
 <p>Flutter is the cross-layer breadcrumb bridge:</p>
 <ul class="simple">
-<li><p>Flutter emits curated <code class="docutils literal notranslate"><span class="pre">wallet.flow</span></code> breadcrumbs around major wallet-core
-calls and failure boundaries.</p></li>
+<li><p>Flutter emits curated <code class="docutils literal notranslate"><span class="pre">wallet.flow</span></code> breadcrumbs around major wallet-core calls
+and failure boundaries.</p></li>
 <li><p>Rust emits curated <code class="docutils literal notranslate"><span class="pre">wallet.native</span></code> breadcrumbs for panic and categorized-error
 context.</p></li>
 <li><p>Rust forwards its breadcrumb message to Flutter after wallet-core
