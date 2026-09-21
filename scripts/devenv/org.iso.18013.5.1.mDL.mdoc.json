@@ -25,14 +25,11 @@
   ],
   "claims": [
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "family_name"
-      ],
+      "path": ["org.iso.18013.5.1", "family_name"],
       "mandatory": true,
       "display": [
         {
-          "name": "Family name",
+          "name": "Last name",
           "locale": "en-US"
         },
         {
@@ -42,14 +39,11 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "given_name"
-      ],
+      "path": ["org.iso.18013.5.1", "given_name"],
       "mandatory": true,
       "display": [
         {
-          "name": "Given name",
+          "name": "Name",
           "locale": "en-US"
         },
         {
@@ -59,10 +53,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "birth_date"
-      ],
+      "path": ["org.iso.18013.5.1", "birth_date"],
       "mandatory": true,
       "display": [
         {
@@ -76,10 +67,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "issue_date"
-      ],
+      "path": ["org.iso.18013.5.1", "issue_date"],
       "mandatory": true,
       "display": [
         {
@@ -93,10 +81,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "expiry_date"
-      ],
+      "path": ["org.iso.18013.5.1", "expiry_date"],
       "mandatory": true,
       "display": [
         {
@@ -110,10 +95,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "issuing_country"
-      ],
+      "path": ["org.iso.18013.5.1", "issuing_country"],
       "mandatory": true,
       "display": [
         {
@@ -127,10 +109,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "issuing_authority"
-      ],
+      "path": ["org.iso.18013.5.1", "issuing_authority"],
       "mandatory": true,
       "display": [
         {
@@ -144,10 +123,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "document_number"
-      ],
+      "path": ["org.iso.18013.5.1", "document_number"],
       "mandatory": true,
       "display": [
         {
@@ -161,10 +137,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "portrait"
-      ],
+      "path": ["org.iso.18013.5.1", "portrait"],
       "mandatory": true,
       "display": [
         {
@@ -178,10 +151,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "driving_privileges"
-      ],
+      "path": ["org.iso.18013.5.1", "driving_privileges"],
       "mandatory": true,
       "display": [
         {
@@ -195,10 +165,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.18013.5.1",
-        "un_distinguishing_sign"
-      ],
+      "path": ["org.iso.18013.5.1", "un_distinguishing_sign"],
       "mandatory": true,
       "display": [
         {
