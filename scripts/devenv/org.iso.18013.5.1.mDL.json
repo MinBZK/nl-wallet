@@ -58,7 +58,7 @@
     {
       "path": ["given_name"],
       "display": [
-        { "locale": "nl-NL", "label": "Naam", "description": "Voornaam van de rijbewijshouder" },
+        { "locale": "nl-NL", "label": "Voornaam", "description": "Voornaam van de rijbewijshouder" },
         { "locale": "en-US", "label": "Name", "description": "Given name of the licence holder" }
       ],
       "sd": "always",
