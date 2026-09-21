@@ -60,6 +60,7 @@ use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::CredentialMetadata;
+use crate::registration_certificate::RegistrationCertificateError;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
 
@@ -269,6 +270,10 @@ pub enum WalletIssuanceError {
     #[error("could not verify Credential Issuer metadata: {0}")]
     #[category(expected)]
     CredentialIssuerMetadataVerify(#[source] JwtX5cVerifyError),
+
+    #[error("invalid issuer registration certificate: {0}")]
+    #[category(expected)]
+    IssuerRegistrationCertificate(#[source] RegistrationCertificateError),
 
     #[error(
         "authorization server specified in Credential Offer is not present in OAuth metadata: {} not in {}",

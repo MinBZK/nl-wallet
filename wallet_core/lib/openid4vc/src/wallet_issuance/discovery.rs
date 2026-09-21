@@ -41,9 +41,11 @@ use crate::credential_offer::Grants;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
+use crate::metadata::issuer_metadata::IssuerInfo;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
+use crate::registration_certificate::RegistrationCertificateError;
 use crate::token::VciTokenRequest;
 use crate::wallet_issuance::CredentialSelection;
 
@@ -483,6 +485,19 @@ where
             });
         }
 
+        let _registration_certificate = issuer_metadata
+            .issuer_info
+            .iter()
+            .flatten()
+            .filter_map(|info| match info {
+                IssuerInfo::RegistrationCertificate { data } => Some(data),
+                IssuerInfo::Other => None,
+            })
+            .at_most_one()
+            .map_err(|_| RegistrationCertificateError::Multiple)
+            .and_then(|certificate| certificate.ok_or(RegistrationCertificateError::Missing))
+            .map_err(WalletIssuanceError::IssuerRegistrationCertificate)?;
+
         let metadata_auth_servers = issuer_metadata.authorization_servers();
         let authorization_server = match credential_offer.authorization_server.as_ref() {
             Some(authorization_server) => {
@@ -671,6 +686,8 @@ mod test {
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
@@ -718,11 +735,13 @@ mod test {
     use crate::credential_offer::Grants;
     use crate::credential_offer::PreAuthTransactionCode;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
+    use crate::metadata::issuer_metadata::IssuerInfo;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
     use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
+    use crate::registration_certificate::RegistrationCertificateError;
     use crate::token::CredentialPreview;
     use crate::token::VciTokenResponse;
     use crate::wallet_issuance::AuthorizationSession;
@@ -843,7 +862,23 @@ mod test {
             issuer_metadata_json["nonce_endpoint"] = json!(server.url("/issuance/nonce"));
         }
 
-        let issuer_metadata = serde_json::from_value(issuer_metadata_json).unwrap();
+        let registration_certificate = MockRegistrationCertificate::new_issuer(
+            wrpac_keypair.certificate(),
+            [Format::MsoMdoc, Format::SdJwt]
+                .map(|format| CredentialKind::new(format, PID_ATTESTATION_TYPE.to_string())),
+        );
+        let mut issuer_metadata: IssuerMetadata = serde_json::from_value(issuer_metadata_json).unwrap();
+        let issuer_info = IssuerInfo::RegistrationCertificate {
+            data: RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
+        };
+        issuer_metadata.issuer_info = options
+            .has_other_issuer_info
+            .then_some(IssuerInfo::Other)
+            .into_iter()
+            .chain(std::iter::repeat_n(issuer_info, options.registration_certificate_count))
+            .collect_vec()
+            .try_into()
+            .ok();
         let signed_issuer_metadata_payload = to_signed_metadata(issuer_identifier.clone(), issuer_metadata);
         let signed_issuer_metadata = SignedJwt::sign_with_certificate(&signed_issuer_metadata_payload, &wrpac_keypair)
             .await
@@ -898,6 +933,8 @@ mod test {
         grant_types_supported: Option<&'a [&'a str]>,
         has_client_attestation_support: bool,
         with_crl: bool,
+        registration_certificate_count: usize,
+        has_other_issuer_info: bool,
     }
 
     impl Default for IssuerMetadataOptions<'static> {
@@ -908,6 +945,8 @@ mod test {
                 grant_types_supported: Some(DEFAULT_GRANT_TYPES_SUPPORTED),
                 has_client_attestation_support: true,
                 with_crl: true,
+                registration_certificate_count: 1,
+                has_other_issuer_info: false,
             }
         }
     }
@@ -1241,6 +1280,67 @@ mod test {
 
             // Check that the batch size from the Issuer Metadata was capped.
             assert_eq!(issuance_session.batch_size(), BATCH_SIZE_MAX);
+        }
+    }
+
+    #[rstest]
+    #[case::missing(0, false)]
+    #[case::other_only(0, true)]
+    #[case::multiple(2, false)]
+    #[case::single(1, false)]
+    #[case::single_with_other(1, true)]
+    #[tokio::test]
+    async fn start_registration_certificate_selection(
+        #[case] registration_certificate_count: usize,
+        #[case] has_other_issuer_info: bool,
+    ) {
+        let (_server, issuer_identifier, issuer_trust_anchors, wrpac_trust_anchors, crl_verifier) =
+            start_httpmock_issuer(IssuerMetadataOptions {
+                registration_certificate_count,
+                has_other_issuer_info,
+                ..IssuerMetadataOptions::default()
+            })
+            .await;
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            MockStatusListClient::default(),
+        );
+        let result = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &issuer_trust_anchors,
+            )
+            .await;
+
+        match registration_certificate_count {
+            0 => assert_matches!(
+                result,
+                Err(WalletIssuanceError::IssuerRegistrationCertificate(
+                    RegistrationCertificateError::Missing
+                ))
+            ),
+            1 => assert_matches!(result, Ok(IssuanceFlow::PreAuthorizedCode { .. })),
+            _ => assert_matches!(
+                result,
+                Err(WalletIssuanceError::IssuerRegistrationCertificate(
+                    RegistrationCertificateError::Multiple
+                ))
+            ),
         }
     }
 

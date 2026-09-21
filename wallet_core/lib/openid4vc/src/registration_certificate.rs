@@ -17,9 +17,9 @@ use utils::generator::Generator;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateError {
-    #[error("Authorization Request does not contain a registration certificate")]
+    #[error("no registration certificate found")]
     Missing,
-    #[error("Authorization Request contains multiple registration certificates")]
+    #[error("multiple registration certificates found")]
     Multiple,
     #[error("registration certificate has an invalid envelope: {0}")]
     Envelope(#[source] RegistrationCertificateEnvelopeError),
