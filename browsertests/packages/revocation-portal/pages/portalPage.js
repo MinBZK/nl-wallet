@@ -2,46 +2,48 @@ export class PortalPage {
   constructor(page) {
     this.page = page
 
-    this.title = "h1"
-    this.revocationSubmitButton = ".btn-delete"
-    this.revocationCancelButton = ".btn-cancel"
-    this.helpLink = ".help-link"
-    this.universityButton = "#university_mdoc"
-    this.successMessage = "#success_message"
-    this.revocationCodeInput = "#deletion-code"
+    // Core page components initialized as locators using exact existing CSS selectors
+    this.title = page.getByRole("heading", { level: 1 })
+    this.revocationSubmitButton = page.locator(".btn-delete")
+    this.revocationCancelButton = page.locator(".btn-cancel")
+    this.helpLink = page.locator(".help-link")
+    this.universityButton = page.locator("#university_mdoc")
+    this.successMessage = page.locator("#success_message")
+    this.revocationCodeInput = page.locator("#deletion-code")
 
-    this.languageSelector = 'label[for="lang_toggle"]'
-    this.dutchLanguageOption = 'button[value="nl"]'
-    this.englishLanguageOption = 'button[value="en"]'
+    // Configuration / Localization controls
+    this.languageSelector = page.locator('label[for="lang_toggle"]')
+    this.dutchLanguageOption = page.locator('button[value="nl"]')
+    this.englishLanguageOption = page.locator('button[value="en"]')
   }
 
   async enterRevocationCode(code) {
-    await this.page.locator(this.revocationCodeInput).fill(code)
+    await this.revocationCodeInput.fill(code)
   }
 
   async submitRevocation() {
-    await Promise.all([this.page.waitForLoadState("load"), this.page.locator(this.revocationSubmitButton).click()])
+    await Promise.all([this.page.waitForLoadState("load"), this.revocationSubmitButton.click()])
   }
 
   async cancelRevocation() {
-    await this.page.locator(this.revocationCancelButton).click()
+    await this.revocationCancelButton.click()
   }
 
   async getHelpLink() {
-    return this.page.locator(this.helpLink)
+    return this.helpLink
   }
 
   async getTitle() {
-    return this.page.locator(this.title).innerText()
+    return this.title.innerText()
   }
 
   async setDutchLanguage() {
-    await this.page.locator(this.languageSelector).click()
-    await this.page.locator(this.dutchLanguageOption).click()
+    await this.languageSelector.click()
+    await this.dutchLanguageOption.click()
   }
 
   async setEnglishLanguage() {
-    await this.page.locator(this.languageSelector).click()
-    await this.page.locator(this.englishLanguageOption).click()
+    await this.languageSelector.click()
+    await this.englishLanguageOption.click()
   }
 }
