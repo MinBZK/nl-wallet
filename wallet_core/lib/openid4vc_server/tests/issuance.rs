@@ -46,6 +46,7 @@ use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
+use openid4vc::metadata::issuer_metadata::IssuerInfo;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::nonce::response::NonceResponse;
@@ -1814,6 +1815,16 @@ async fn openid_metadata_signed(#[case] accept_header: Option<&str>) {
 
     assert_eq!(&payload.sub.as_ref(), &issuer.issuer_identifier());
     assert_eq!(&payload.metadata.credential_issuer, issuer.issuer_identifier());
+    let issuer_info = payload.metadata.issuer_info.as_ref().unwrap();
+    let [IssuerInfo::RegistrationCertificate { data }] = issuer_info.as_slice() else {
+        panic!("expected exactly one registration certificate");
+    };
+    let IssuerInfo::RegistrationCertificate { data: expected } =
+        issuer.metadata().issuer_info.as_ref().unwrap().first()
+    else {
+        panic!("expected a configured registration certificate");
+    };
+    assert_eq!(String::try_from(data).unwrap(), String::try_from(expected).unwrap());
 }
 
 #[rstest]

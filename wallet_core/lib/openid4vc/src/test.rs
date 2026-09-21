@@ -7,6 +7,8 @@ use std::sync::Mutex;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
@@ -307,6 +309,13 @@ where
     let trust_anchors = TrustAnchors::from(&ca);
     let wia_keypair = ca.generate_wia_mock().unwrap();
 
+    let registration_certificate = MockRegistrationCertificate::new_issuer(
+        metadata_keypair.certificate(),
+        attestations
+            .iter()
+            .map(|(format, attestation_type, _)| CredentialKind::new(*format, attestation_type.clone())),
+    );
+
     let config_params = attestations
         .into_iter()
         .map(|(format, attestation_type, metadata_documents)| {
@@ -350,6 +359,7 @@ where
     let issuer = MockIssuer::try_new(
         issuer_identifier,
         metadata_keypair,
+        RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
         config_params,

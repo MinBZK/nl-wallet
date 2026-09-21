@@ -35,6 +35,9 @@ metadata = ["com_example_insurance_metadata.json"]
 # Maximum number of attestation copies the wallet may request per credential in a single batch
 batch_size = 10
 
+# Base64url-encoded WRPRC bound to the WRPAC in credential_metadata_keypair
+registration_certificate = "<base64url-encoded WRPRC>"
+
 # Public and internal endpoints for the issuer
 [wallet_server]
 ip = "127.0.0.1"

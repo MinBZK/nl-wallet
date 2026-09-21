@@ -37,6 +37,9 @@ metadata = ["com_example_address_metadata.json"]
 # The maximum amount of credentials a holder will be able to request, in the range 1-255
 batch_size = 10
 
+# Base64url-encoded WRPRC bound to the WRPAC in credential_metadata_keypair
+registration_certificate = "<base64url-encoded WRPRC>"
+
 # Public and private endpoint for the issuer
 [wallet_server]
 ip = "127.0.0.1"
