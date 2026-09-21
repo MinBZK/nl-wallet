@@ -2,25 +2,26 @@ export class FallbackPage {
   constructor(page) {
     this.page = page
 
-    this.deeplink = "#deeplink"
-    this.pageTitle = "h1"
-    this.storeBanners = ".store-banners"
-    this.helpLink = "footer .button-link"
+    // Fallback page components using Playwright locators
+    this.deeplink = page.locator("#deeplink")
+    this.pageTitle = page.getByRole("heading", { level: 1 })
+    this.storeBanners = page.locator(".store-banners")
+    this.helpLink = page.locator("footer .button-link")
   }
 
   async getPageTitle() {
-    return this.page.textContent(this.pageTitle)
+    return this.pageTitle.textContent()
   }
 
   getDeeplink() {
-    return this.page.locator(this.deeplink)
+    return this.deeplink
   }
 
   getStoreBanners() {
-    return this.page.locator(this.storeBanners)
+    return this.storeBanners
   }
 
   getHelpLink() {
-    return this.page.locator(this.helpLink)
+    return this.helpLink
   }
 }

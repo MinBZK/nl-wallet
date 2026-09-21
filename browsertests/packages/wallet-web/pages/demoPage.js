@@ -4,135 +4,138 @@ export class DemoPage {
   constructor(page) {
     this.page = page
 
-    this.amsterdamMunicipalityButton = "#mijn_amsterdam_mdoc"
-    this.xyzBankButton = "#xyz_bank_sd_jwt"
-    this.marketplaceButton = "#online_marketplace"
-    this.monkeyBikeButton = "#monkey_bike"
-    this.universityButton = "#university_mdoc"
+    // Top-level action buttons (Restored to ID locators since name-based matching failed)
+    this.amsterdamMunicipalityButton = page.locator("#mijn_amsterdam_mdoc")
+    this.xyzBankButton = page.locator("#xyz_bank_sd_jwt")
+    this.marketplaceButton = page.locator("#online_marketplace")
+    this.monkeyBikeButton = page.locator("#monkey_bike")
+    this.universityButton = page.locator("#university_mdoc")
 
-    this.walletModal = 'aside[data-testid="wallet_modal"]'
+    // Modals and components
+    this.walletModal = page.getByTestId("wallet_modal")
     this.nlWalletButtonTag = "nl-wallet-button"
-    this.nlWalletButton = ".nl-wallet-button"
-    this.modalMessageHeader = ".modal h2"
-    this.modalMessageP = ".modal p"
+    this.walletButtonContainer = page.locator(this.nlWalletButtonTag)
 
-    this.helpLink = 'a[data-testid="help"]'
-    this.retryButton = 'button[data-testid="retry_button"]'
-    this.closeButton = 'button[data-testid="close_button"]'
-    this.cancelButton = 'button[data-testid="cancel_button"]'
-    this.websiteLink = 'section[data-testid="website_link"'
+    // Components within the wallet button container
+    this.nlWalletButton = this.walletButtonContainer.getByTestId("wallet_button")
+    this.modalMessageHeader = this.walletButtonContainer.getByRole("heading", { level: 2 })
+    this.modalMessageP = this.walletButtonContainer.locator(".modal p")
 
-    this.sameDeviceButton = 'a[data-testid="same_device_button"]'
-    this.crossDeviceButton = 'button[data-testid="cross_device_button"]'
-    this.qrCode = 'div[data-testid="qr"]'
+    this.helpLink = this.walletButtonContainer.getByTestId("help")
+    this.retryButton = this.walletButtonContainer.getByTestId("retry_button")
+    this.closeButton = this.walletButtonContainer.getByTestId("close_button")
+    this.cancelButton = this.walletButtonContainer.getByTestId("cancel_button")
+    this.websiteLink = this.walletButtonContainer.getByTestId("website_link")
 
-    this.languageSelector = 'label[for="lang_toggle"]'
-    this.dutchLanguageOption = 'button[value="nl"]'
+    this.sameDeviceButton = this.walletButtonContainer.getByTestId("same_device_button")
+    this.crossDeviceButton = this.walletButtonContainer.getByTestId("cross_device_button")
+    this.qrCode = this.walletButtonContainer.getByTestId("qr")
+
+    // Configuration/Controls
+    this.languageSelector = page.locator('label[for="lang_toggle"]')
+    this.dutchLanguageOption = page.locator('button[value="nl"]')
   }
 
   async goToAmsterdamMunicipality() {
-    await this.page.locator(this.amsterdamMunicipalityButton).click()
+    await this.amsterdamMunicipalityButton.click()
   }
 
   async goToXyzBank() {
-    await this.page.locator(this.xyzBankButton).click()
+    await this.xyzBankButton.click()
   }
 
   async goToMarketplace() {
-    await this.page.locator(this.marketplaceButton).click()
+    await this.marketplaceButton.click()
   }
 
   async goToMonkeyBike() {
-    await this.page.locator(this.monkeyBikeButton).click()
+    await this.monkeyBikeButton.click()
   }
 
   async goToUniversity() {
-    await this.page.locator(this.universityButton).click()
+    await this.universityButton.click()
   }
 
   async getWalletButtonText() {
-    return this.page.locator(this.nlWalletButtonTag).locator(this.nlWalletButton).textContent()
+    return this.nlWalletButton.textContent()
   }
 
   async openWalletLogin() {
-    await this.page.locator(this.nlWalletButtonTag).locator(this.nlWalletButton).click()
+    await this.nlWalletButton.click()
   }
 
   async getWalletModal() {
-    return this.page.locator(this.walletModal)
+    return this.walletModal
   }
 
   async getModalMessageHeaderText() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.modalMessageHeader).textContent()
+    return this.modalMessageHeader.textContent()
   }
 
   async getModalMessageText() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.modalMessageP).textContent()
+    return this.modalMessageP.textContent()
   }
 
   async getHelpLink() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.helpLink)
+    return this.helpLink
   }
 
   async getTryAgainButton() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.retryButton)
+    return this.retryButton
   }
 
   async getCloseButton() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.closeButton)
+    return this.closeButton
   }
 
   async getCancelButton() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.cancelButton)
+    return this.cancelButton
   }
 
   async getSameDeviceButton() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.sameDeviceButton)
+    return this.sameDeviceButton
   }
 
   async getCrossDeviceButton() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.crossDeviceButton)
+    return this.crossDeviceButton
   }
 
   async getQrCode() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.qrCode)
+    return this.qrCode
   }
 
   async getWebsiteLink() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.websiteLink)
+    return this.websiteLink
   }
 
   async getQrScreenshot() {
     await this.waitForModalLoad()
-    return this.page.locator(this.nlWalletButtonTag).locator(this.qrCode).screenshot()
+    return this.qrCode.screenshot()
   }
 
   async startCrossDeviceFlow() {
     await this.waitForModalLoad()
-    const button = this.page.locator(this.nlWalletButtonTag).locator(this.crossDeviceButton)
-    if (await button.isVisible()) {
-      await button.click()
+    if (await this.crossDeviceButton.isVisible()) {
+      await this.crossDeviceButton.click()
     }
   }
 
   async setDutchLanguage() {
-    await this.page.locator(this.languageSelector).click()
-    await this.page.locator(this.dutchLanguageOption).click()
+    await this.languageSelector.click()
+    await this.dutchLanguageOption.click()
   }
 
   async waitForModalLoad() {
-    await expect(this.page.locator(this.nlWalletButtonTag).locator(this.modalMessageHeader)).not.toContainText(
-      /(Please wait|Even geduld)/,
-    )
+    await expect(this.modalMessageHeader).not.toContainText(/(Please wait|Even geduld)/)
   }
 }
