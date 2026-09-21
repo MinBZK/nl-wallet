@@ -185,7 +185,7 @@ impl MockVerifierSession {
         let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
 
         let registration_certificate =
-            MockRegistrationCertificate::new(key_pair.certificate(), Query::from(credential_requests.clone()));
+            MockRegistrationCertificate::new_verifier(key_pair.certificate(), Query::from(credential_requests.clone()));
 
         // Generate some OpenID4VP specific session material.
         let nonce = Nonce::new_random();
@@ -236,7 +236,7 @@ impl MockVerifierSession {
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
         let registration_certificate = self.registration_certificate.as_ref().cloned().unwrap_or_else(|| {
-            MockRegistrationCertificate::new(
+            MockRegistrationCertificate::new_verifier(
                 self.key_pair.certificate(),
                 Query::from(self.credential_requests.clone()),
             )

@@ -12,7 +12,7 @@ use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
-use attestation_data::registration_certificate::mock::registration_certificate_payload;
+use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration as ChronoDuration;
@@ -610,7 +610,7 @@ fn generate_and_validate_registration_certificate() -> Result<()> {
         .success();
 
     let access_certificate = certificate_from_pem(&wrpac_crt)?;
-    let mut payload = serde_json::to_value(registration_certificate_payload(
+    let mut payload = serde_json::to_value(verifier_registration_certificate_payload(
         &access_certificate,
         serde_json::from_value(registration_certificate_query())?,
     ))?;

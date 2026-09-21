@@ -153,7 +153,7 @@ async fn wallet_server_settings_and_listener(
     let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&wrpac_ca);
     let registration_certificate =
-        MockRegistrationCertificate::new(usecase_keypair.certificate(), request.dcql_query.clone().unwrap());
+        MockRegistrationCertificate::new_verifier(usecase_keypair.certificate(), request.dcql_query.clone().unwrap());
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
