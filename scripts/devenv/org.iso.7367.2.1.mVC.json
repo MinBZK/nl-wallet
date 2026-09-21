@@ -69,7 +69,7 @@
       "display": [
         {
           "locale": "nl-NL",
-          "label": "Afgegeven op",
+          "label": "Afgegeven door",
           "description": "Instantie die het kentekenbewijs heeft afgegeven"
         },
         { "locale": "en-US", "label": "Issued by", "description": "Authority that issued the certificate" }
