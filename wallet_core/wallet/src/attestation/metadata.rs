@@ -1,10 +1,5 @@
-use std::str::FromStr;
-
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::data_uri::DataUri;
-use attestation_types::data_uri::DataUriError;
 use attestation_types::image::Image;
-use attestation_types::image::ImageError;
 use openid4vc::metadata::issuer_metadata::BackgroundImage as CredentialBackgroundImage;
 use openid4vc::metadata::issuer_metadata::CredentialClaim;
 use openid4vc::metadata::issuer_metadata::CredentialDisplay;
@@ -22,19 +17,10 @@ use sd_jwt_vc_metadata::RenderingMetadata;
 use sd_jwt_vc_metadata::SvgId;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use tracing::warn;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
-
-#[derive(Debug, thiserror::Error)]
-pub enum AttestationMetadataError {
-    #[error("could not read image as a data URI: {0}")]
-    ImageDataUri(#[source] DataUriError),
-
-    #[error("could not convert image: {0}")]
-    Image(#[source] ImageError),
-}
 
 /// The parts of an attestation's metadata that are needed to present it to the user.
 #[derive(Debug)]
@@ -47,11 +33,11 @@ pub struct PresentationComponents {
 }
 
 pub trait AttestationDisplay {
-    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError>;
+    fn into_presentation_components(self) -> PresentationComponents;
 }
 
 impl AttestationDisplay for CredentialMetadata {
-    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
+    fn into_presentation_components(self) -> PresentationComponents {
         // Note that metadata without any display properties or claims is deliberately not an error here, but rather a
         // UI concern.
         let display_metadata = self
@@ -60,10 +46,9 @@ impl AttestationDisplay for CredentialMetadata {
                 display
                     .into_inner()
                     .into_iter()
-                    .filter_map(|display| AttestationDisplayMetadata::from_credential_display(display).transpose())
-                    .collect::<Result<Vec<_>, _>>()
+                    .filter_map(AttestationDisplayMetadata::from_credential_display)
+                    .collect()
             })
-            .transpose()?
             .unwrap_or_default();
 
         let claims = self
@@ -71,31 +56,30 @@ impl AttestationDisplay for CredentialMetadata {
             .map(|claims| claims.into_inner().into_iter().map(ClaimDescription::from).collect())
             .unwrap_or_default();
 
-        Ok(PresentationComponents {
+        PresentationComponents {
             display_metadata,
             claims,
-        })
+        }
     }
 }
 
-// Note that this conversion is infallible. It also always yields display metadata, as a type metadata chain is
-// validated to contain it when it is normalized.
+// This always yields display metadata, as a type metadata chain is validated to contain it when it is normalized.
 impl AttestationDisplay for NormalizedTypeMetadata {
-    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
+    fn into_presentation_components(self) -> PresentationComponents {
         let (display, claims) = self.into_display_and_claims();
 
         let display_metadata = display.into_iter().map(AttestationDisplayMetadata::from).collect();
         let claims = claims.into_iter().map(ClaimDescription::from).collect();
 
-        Ok(PresentationComponents {
+        PresentationComponents {
             display_metadata,
             claims,
-        })
+        }
     }
 }
 
 impl AttestationDisplay for OfferedCredentialMetadata {
-    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
+    fn into_presentation_components(self) -> PresentationComponents {
         match self {
             OfferedCredentialMetadata::TypeMetadata { normalized, .. } => normalized.into_presentation_components(),
             OfferedCredentialMetadata::CredentialMetadata(credential_metadata) => {
@@ -149,11 +133,9 @@ pub enum Rendering {
     SvgTemplates,
 }
 
-/// The logo of an attestation.
-#[serde_as]
+/// The logo of an attestation. A URI that does not embed a supported image results in the logo being dropped entirely.
 #[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Logo {
-    /// Explicitly reject non-embedded images and unsupported mime types
     #[debug(skip)]
     pub image: Image,
 
@@ -161,11 +143,10 @@ pub struct Logo {
     pub alt_text: Option<String>,
 }
 
-/// The background image of an attestation.
-#[serde_as]
+/// The background image of an attestation. A URI that does not embed a supported image results in the background image
+/// being dropped entirely.
 #[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BackgroundImage {
-    /// Explicitly reject non-embedded images and unsupported mime types
     #[debug(skip)]
     pub image: Image,
 }
@@ -221,8 +202,10 @@ impl From<RenderingMetadata> for Rendering {
                 background_color,
                 text_color,
             } => Self::Simple {
-                logo: logo.map(Logo::from),
-                background_image: background_image.map(BackgroundImage::from),
+                logo: logo.and_then(Logo::from_logo_metadata),
+                background_image: background_image
+                    .as_ref()
+                    .and_then(BackgroundImage::from_background_image_metadata),
                 background_color,
                 text_color,
             },
@@ -231,18 +214,15 @@ impl From<RenderingMetadata> for Rendering {
     }
 }
 
-impl From<LogoMetadata> for Logo {
-    fn from(value: LogoMetadata) -> Self {
-        Self {
-            image: value.image,
-            alt_text: value.alt_text,
-        }
+impl Logo {
+    fn from_logo_metadata(value: LogoMetadata) -> Option<Self> {
+        logo_from_uri(&value.uri, value.alt_text)
     }
 }
 
-impl From<BackgroundImageMetadata> for BackgroundImage {
-    fn from(value: BackgroundImageMetadata) -> Self {
-        Self { image: value.image }
+impl BackgroundImage {
+    fn from_background_image_metadata(value: &BackgroundImageMetadata) -> Option<Self> {
+        background_image_from_uri(&value.uri)
     }
 }
 
@@ -266,13 +246,12 @@ impl From<ClaimDisplayMetadata> for ClaimDisplay {
     }
 }
 
-// Conversions from Credential Issuer metadata, which are fallible because images can be hosted externally.
-
+// Conversions from Credential Issuer metadata, all of which are infallible.
 impl AttestationDisplayMetadata {
     /// Convert a single Credential Issuer metadata display entry. Both the name and the locale are optional in the
     /// specification, while the wallet requires them in order to present the attestation for that locale, so an entry
     /// that is missing either of them yields `None` and is skipped.
-    fn from_credential_display(value: CredentialDisplay) -> Result<Option<Self>, AttestationMetadataError> {
+    fn from_credential_display(value: CredentialDisplay) -> Option<Self> {
         let CredentialDisplay {
             name_locale: NameLocale { name, locale },
             logo,
@@ -282,12 +261,13 @@ impl AttestationDisplayMetadata {
             text_color,
         } = value;
 
-        let (Some(locale), Some(name)) = (locale, name) else {
-            return Ok(None);
-        };
+        let locale = locale?;
+        let name = name?;
 
-        let logo = logo.map(Logo::try_from).transpose()?;
-        let background_image = background_image.map(BackgroundImage::try_from).transpose()?;
+        let logo = logo.and_then(Logo::from_credential_logo);
+        let background_image = background_image
+            .as_ref()
+            .and_then(BackgroundImage::from_credential_background_image);
 
         // Only include rendering information if any of its properties is actually present.
         let rendering =
@@ -308,32 +288,19 @@ impl AttestationDisplayMetadata {
             rendering,
         };
 
-        Ok(Some(display))
+        Some(display)
     }
 }
 
-impl TryFrom<CredentialLogo> for Logo {
-    type Error = AttestationMetadataError;
-
-    fn try_from(value: CredentialLogo) -> Result<Self, Self::Error> {
-        let logo = Self {
-            image: image_from_uri(&value.uri)?,
-            alt_text: value.alt_text,
-        };
-
-        Ok(logo)
+impl Logo {
+    fn from_credential_logo(value: CredentialLogo) -> Option<Self> {
+        logo_from_uri(&value.uri, value.alt_text)
     }
 }
 
-impl TryFrom<CredentialBackgroundImage> for BackgroundImage {
-    type Error = AttestationMetadataError;
-
-    fn try_from(value: CredentialBackgroundImage) -> Result<Self, Self::Error> {
-        let background_image = Self {
-            image: image_from_uri(&value.uri)?,
-        };
-
-        Ok(background_image)
+impl BackgroundImage {
+    fn from_credential_background_image(value: &CredentialBackgroundImage) -> Option<Self> {
+        background_image_from_uri(&value.uri)
     }
 }
 
@@ -366,11 +333,24 @@ impl From<CredentialClaim> for ClaimDescription {
     }
 }
 
-/// Decode an image that is embedded in a URI. Images hosted externally are rejected.
-fn image_from_uri(uri: &Url) -> Result<Image, AttestationMetadataError> {
-    let data_uri = DataUri::from_str(uri.as_str()).map_err(AttestationMetadataError::ImageDataUri)?;
+/// Decode an image that is embedded in a `uri` field as a `data:` URI. A URI that refers to an external resource
+/// (or that embeds malformed or unsupported image data) is not supported, so it is ignored (and logged).
+fn decode_embedded_image(uri: &Url, description: &str) -> Option<Image> {
+    Image::try_from(uri)
+        .inspect_err(|error| warn!("not showing {description}, could not decode its URI as an image: {error}"))
+        .ok()
+}
 
-    Image::try_from(data_uri).map_err(AttestationMetadataError::Image)
+fn logo_from_uri(uri: &Url, alt_text: Option<String>) -> Option<Logo> {
+    let image = decode_embedded_image(uri, "logo")?;
+
+    Some(Logo { image, alt_text })
+}
+
+fn background_image_from_uri(uri: &Url) -> Option<BackgroundImage> {
+    let image = decode_embedded_image(uri, "background image")?;
+
+    Some(BackgroundImage { image })
 }
 
 #[cfg(test)]
@@ -393,9 +373,7 @@ mod tests {
         let PresentationComponents {
             display_metadata: display,
             claims,
-        } = CredentialMetadata::new_full_example()
-            .into_presentation_components()
-            .expect("credential metadata should convert to presentation components");
+        } = CredentialMetadata::new_full_example().into_presentation_components();
 
         let display = display
             .into_iter()
@@ -447,9 +425,7 @@ mod tests {
         let PresentationComponents {
             display_metadata: display,
             claims,
-        } = NormalizedTypeMetadata::nl_pid_example()
-            .into_presentation_components()
-            .expect("type metadata should convert to presentation components");
+        } = NormalizedTypeMetadata::nl_pid_example().into_presentation_components();
 
         assert!(!display.is_empty());
         assert!(!claims.is_empty());
@@ -470,26 +446,24 @@ mod tests {
         let PresentationComponents {
             display_metadata: display,
             claims,
-        } = metadata
-            .into_presentation_components()
-            .expect("credential metadata without display should convert");
+        } = metadata.into_presentation_components();
 
         assert!(display.is_empty());
         assert_eq!(claims.len(), 1);
     }
 
     #[test]
-    fn test_credential_metadata_presentation_components_error_external_logo() {
+    fn test_credential_metadata_presentation_components_ignores_external_logo() {
         let metadata = CredentialMetadata {
             display: Some(vec_nonempty![CredentialDisplay {
                 name_locale: NameLocale {
                     name: Some(String::from("Example credential")),
                     locale: Some(String::from("en")),
                 },
-                // Only images that are embedded in the URI are accepted.
+                // A logo hosted externally is dropped.
                 logo: Some(CredentialLogo {
                     uri: "https://example.com/logo.png".parse().unwrap(),
-                    alt_text: None,
+                    alt_text: Some(String::from("a logo")),
                 }),
                 description: None,
                 background_color: None,
@@ -499,11 +473,14 @@ mod tests {
             claims: None,
         };
 
-        let error = metadata
-            .into_presentation_components()
-            .expect_err("credential metadata with an externally hosted logo should not convert");
+        let PresentationComponents {
+            display_metadata: display,
+            ..
+        } = metadata.into_presentation_components();
 
-        assert_matches!(error, AttestationMetadataError::ImageDataUri(_));
+        let display = display.into_iter().next().expect("display should contain one entry");
+        // Rendering metadata is only present if any of its properties is, and the logo was the only one present.
+        assert!(display.rendering.is_none());
     }
 
     #[test]
@@ -531,8 +508,7 @@ mod tests {
             ]),
             claims: None,
         }
-        .into_presentation_components()
-        .expect("credential metadata with incomplete display entries should convert");
+        .into_presentation_components();
 
         // Only the entry that has both a name and a locale survives.
         assert_eq!(
@@ -563,8 +539,7 @@ mod tests {
             }]),
             claims: None,
         }
-        .into_presentation_components()
-        .expect("credential metadata whose display entries are all skipped should convert");
+        .into_presentation_components();
 
         assert!(display.is_empty());
     }
@@ -589,9 +564,7 @@ mod tests {
         let PresentationComponents {
             display_metadata: display,
             claims,
-        } = metadata
-            .into_presentation_components()
-            .expect("credential metadata without claims should convert");
+        } = metadata.into_presentation_components();
 
         // Rendering metadata is only present if any of its properties is.
         assert!(
