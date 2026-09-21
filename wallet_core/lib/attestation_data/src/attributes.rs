@@ -733,7 +733,6 @@ pub mod test {
 
     use attestation_types::claim_path::ClaimPath;
     use indexmap::IndexMap;
-    use itertools::Itertools;
     use mdoc::Entry;
     use rstest::rstest;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -828,34 +827,36 @@ pub mod test {
     /// The attributes of an mdoc are always exactly two levels deep, regardless of any metadata.
     #[test]
     fn test_from_mdoc_attributes() {
-        let mdoc_attributes = IndexMap::from([
-            (
-                String::from("com.example.pid"),
-                vec![Entry {
-                    name: String::from("birthdate"),
-                    value: ciborium::Value::Text(String::from("1963-08-12")),
-                }],
-            ),
-            (
-                String::from("com.example.pid.place_of_birth"),
-                vec![Entry {
-                    name: String::from("locality"),
-                    value: ciborium::Value::Text(String::from("The Hague")),
-                }],
-            ),
-        ]);
+        let mdoc_attributes = IndexMap::from([(
+            String::from("org.iso.7367.2.1"),
+            vec![
+                Entry {
+                    name: String::from("registration_date"),
+                    value: ciborium::Value::Tag(1004, Box::new(ciborium::Value::Text(String::from("2024-03-01")))),
+                },
+                Entry {
+                    name: String::from("basic_vehicle_info"),
+                    value: ciborium::Value::Map(vec![(
+                        ciborium::Value::Text(String::from("make")),
+                        ciborium::Value::Text(String::from("Volkswagen")),
+                    )]),
+                },
+            ],
+        )]);
 
-        let result = Attributes::from_mdoc_attributes(mdoc_attributes).unwrap();
+        let result = Attributes::from_mdoc_attributes(mdoc_attributes.clone()).unwrap();
 
         // Note that the namespace level is an `Attribute::Object`, which is tagged like any other attribute.
         let expected_json = json!({
-            "com.example.pid": {
+            "org.iso.7367.2.1": {
                 "type": "object",
-                "value": { "birthdate": { "type": "text", "value": "1963-08-12" } },
-            },
-            "com.example.pid.place_of_birth": {
-                "type": "object",
-                "value": { "locality": { "type": "text", "value": "The Hague" } },
+                "value": {
+                    "registration_date": { "type": "date", "value": "2024-03-01" },
+                    "basic_vehicle_info": {
+                        "type": "object",
+                        "value": { "make": { "type": "text", "value": "Volkswagen" } },
+                    },
+                },
             },
         });
 
@@ -865,21 +866,7 @@ pub mod test {
         );
 
         // Converting back should yield exactly the input again.
-        assert_eq!(
-            result
-                .to_mdoc_attributes()
-                .unwrap()
-                .into_iter()
-                .map(|(name_space, entries)| (name_space, entries.into_iter().map(|entry| entry.name).collect_vec()))
-                .collect_vec(),
-            vec![
-                (String::from("com.example.pid"), vec![String::from("birthdate")]),
-                (
-                    String::from("com.example.pid.place_of_birth"),
-                    vec![String::from("locality")]
-                ),
-            ]
-        );
+        assert_eq!(result.to_mdoc_attributes().unwrap(), mdoc_attributes);
     }
 
     /// Attributes that are not laid out in mdoc namespaces cannot be converted.
