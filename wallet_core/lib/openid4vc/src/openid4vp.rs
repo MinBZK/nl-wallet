@@ -1807,7 +1807,9 @@ mod tests {
             _ => unreachable!("test case should remove a supported field"),
         }
 
-        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let error = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
 
         assert_matches!(
             error,
@@ -1825,7 +1827,9 @@ mod tests {
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
         auth_request.oauth_request.response_type = response_types.clone();
 
-        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let error = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
 
         assert_matches!(
             error,
@@ -1849,7 +1853,9 @@ mod tests {
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
         auth_request.response_mode = Some(response_mode);
 
-        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        let error = auth_request
+            .normalize_request(rp_keypair.certificate(), None)
+            .unwrap_err();
 
         assert_matches!(
             error,
