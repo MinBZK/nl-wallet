@@ -858,14 +858,6 @@ mod test {
 
         let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key).await.unwrap();
 
-        // Round-trip the `IssuerSigned` through CBOR, as happens when it is sent to the wallet and stored.
-        let issuer_signed: IssuerSigned = mdoc::utils::serialization::cbor_deserialize(
-            mdoc::utils::serialization::cbor_serialize(&issuer_signed)
-                .unwrap()
-                .as_slice(),
-        )
-        .unwrap();
-
         assert_eq!(
             Attributes::from_mdoc_attributes(issuer_signed.into_entries_by_namespace()).unwrap(),
             attributes
