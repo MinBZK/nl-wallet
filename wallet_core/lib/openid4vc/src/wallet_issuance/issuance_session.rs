@@ -2977,6 +2977,7 @@ mod tests {
 
     fn mock_credential_response_credential(
         format: Format,
+        sd_jwt_uses_credential_metadata: SdJwtMetadataUsage,
     ) -> (
         Credentials,
         CredentialPreview,
@@ -2987,7 +2988,7 @@ mod tests {
         let credential_id: CredentialId = "credential_id".to_string().into();
         let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
             HashMap::from([(credential_id.clone(), format)]),
-            SdJwtMetadataUsage::TypeMetadata,
+            sd_jwt_uses_credential_metadata,
         );
 
         let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
@@ -3032,41 +3033,10 @@ mod tests {
         }
     }
 
-    /// Like [`mock_credential_response_credential`], but describes the (SD-JWT) credential by its Credential
-    /// Metadata instead of SD-JWT VC Type Metadata, as if no `type_metadata_uri` had been offered.
-    fn mock_credential_response_credential_sd_jwt_credential_metadata_fallback() -> (
-        Credentials,
-        CredentialPreview,
-        OfferedCredentialMetadata,
-        PublicKey,
-        TrustAnchors,
-    ) {
-        let credential_id: CredentialId = "credential_id".to_string().into();
-        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
-            HashMap::from([(credential_id.clone(), Format::SdJwt)]),
-            SdJwtMetadataUsage::CredentialMetadata,
-        );
-
-        let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
-        let credentials = signer
-            .response_from_holder_pubkeys(&credential_id, vec_nonempty![&holder_pubkey])
-            .into_immediate_credentials()
-            .unwrap();
-
-        let preview = previews.into_iter().exactly_one().unwrap();
-        let metadata = metadata
-            .into_iter()
-            .exactly_one()
-            .expect("a single format is described by a single credential configuration")
-            .1;
-
-        (credentials, preview, metadata, holder_pubkey, signer.trust_anchors)
-    }
-
     #[rstest]
     fn test_credential_response_into_credential(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
         let (credentials, preview_data, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format);
+            mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
 
         test_convert_credentials_into_issued_credential(
             credentials,
@@ -3081,7 +3051,7 @@ mod tests {
     #[test]
     fn test_credential_response_into_credential_with_sd_jwt_credential_metadata_fallback() {
         let (credentials, preview_data, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential_sd_jwt_credential_metadata_fallback();
+            mock_credential_response_credential(Format::SdJwt, SdJwtMetadataUsage::CredentialMetadata);
 
         assert_matches!(metadata, OfferedCredentialMetadata::CredentialMetadata(_));
 
@@ -3098,7 +3068,7 @@ mod tests {
     #[test]
     fn test_credential_response_into_mdoc_attribute_random_length_error() {
         let (credentials, preview_data, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(Format::MsoMdoc);
+            mock_credential_response_credential(Format::MsoMdoc, SdJwtMetadataUsage::CredentialMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` from a response
         // that contains insufficient random data should fail.
@@ -3142,7 +3112,8 @@ mod tests {
 
     #[test]
     fn test_credential_response_into_sd_jwt_sd_jwt_verification_error() {
-        let (credentials, preview, metadata, holder_public_key, _) = mock_credential_response_credential(Format::SdJwt);
+        let (credentials, preview, metadata, holder_public_key, _) =
+            mock_credential_response_credential(Format::SdJwt, SdJwtMetadataUsage::TypeMetadata);
 
         // Converting a `CredentialResponse` into an SD-JWT credential that
         // is validated against incorrect trust anchors should fail.
@@ -3162,7 +3133,8 @@ mod tests {
     fn test_credential_response_into_mdoc_public_key_mismatch_error(
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
     ) {
-        let (credentials, preview_data, metadata, _, trust_anchor) = mock_credential_response_credential(format);
+        let (credentials, preview_data, metadata, _, trust_anchor) =
+            mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
         // public key than the one contained within the response should fail.
@@ -3184,7 +3156,7 @@ mod tests {
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
     ) {
         let (credentials, preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format);
+            mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
@@ -3211,7 +3183,7 @@ mod tests {
     #[test]
     fn test_credential_response_into_mdoc_mdoc_verification_error() {
         let (credentials, preview, metadata, holder_public_key, _) =
-            mock_credential_response_credential(Format::MsoMdoc);
+            mock_credential_response_credential(Format::MsoMdoc, SdJwtMetadataUsage::CredentialMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` that is
         // validated against incorrect trust anchors should fail.
@@ -3230,7 +3202,7 @@ mod tests {
     #[test]
     fn test_credential_response_into_mdoc_issued_attributes_mismatch_error() {
         let (credentials, mut preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(Format::MsoMdoc);
+            mock_credential_response_credential(Format::MsoMdoc, SdJwtMetadataUsage::CredentialMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail. Note that these stay laid out in the
@@ -3260,7 +3232,7 @@ mod tests {
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
     ) {
         let (credentials, mut preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format);
+            mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
         // within the response should fail.
@@ -3283,7 +3255,7 @@ mod tests {
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
     ) {
         let (credentials, mut preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format);
+            mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` with different expiration information in the preview than
         // contained within the response should fail.
