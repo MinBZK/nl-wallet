@@ -93,7 +93,7 @@ impl UnverifiedKeyBindingJwt {
         if !(payload.iat <= now + leeway && now <= payload.iat + acceptance_window) {
             return Err(KeyBindingError::InvalidSignatureTimestamp {
                 iat: payload.iat,
-                window: acceptance_window,
+                acceptance_window,
                 leeway,
                 current_time: now,
             });
@@ -458,8 +458,8 @@ mod test {
             let _verified_jwt = result.unwrap();
         } else {
             let err = result.unwrap_err();
-            assert_matches!(err, KeyBindingError::InvalidSignatureTimestamp{ iat, window, leeway, current_time }
-                        if verify_timestamp(iat, window, leeway, current_time));
+            assert_matches!(err, KeyBindingError::InvalidSignatureTimestamp{ iat, acceptance_window, leeway, current_time }
+                        if verify_timestamp(iat, acceptance_window, leeway, current_time));
         }
     }
 

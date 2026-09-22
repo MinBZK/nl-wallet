@@ -151,12 +151,12 @@ pub enum KeyBindingError {
     NonceMismatch(Nonce),
 
     #[error(
-        "iat ({iat}) not in acceptable window of `{window:?}` and leeway of `{leeway:?}`, current time: \
+        "iat ({iat}) not in acceptable window of `{acceptance_window:?}` and leeway of `{leeway:?}`, current time: \
          `{current_time}`"
     )]
     InvalidSignatureTimestamp {
         iat: DateTime<Utc>,
-        window: Duration,
+        acceptance_window: Duration,
         leeway: Duration,
         current_time: DateTime<Utc>,
     },
