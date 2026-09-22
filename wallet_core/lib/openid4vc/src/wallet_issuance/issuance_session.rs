@@ -2489,13 +2489,19 @@ mod tests {
         issuer_key: KeyPair,
         metadata_integrity: Integrity,
         /// mdoc attributes, namespaced (namespace, element).
-        previewable_payload: PreviewableCredentialPayload,
+        mdoc_previewable_payload: PreviewableCredentialPayload,
         /// The same attributes as `previewable_payload` (without mdoc namesapce) and matching
         /// `NormalizedTypeMetadata`.
         sd_jwt_previewable_payload: PreviewableCredentialPayload,
         status: StatusClaim,
         normalized_metadata: NormalizedTypeMetadata,
         pub first_metadata_integrity_random: bool,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum SdJwtMetadataUsage {
+        CredentialMetadata,
+        TypeMetadata,
     }
 
     impl MockCredentialSigner {
@@ -2506,37 +2512,34 @@ mod tests {
 
         pub fn new_with_preview_and_type_metadata(
             formats_by_credential_id: HashMap<CredentialId, Format>,
+            sd_jwt_uses_credential_metadata: SdJwtMetadataUsage,
         ) -> (
             Self,
             Vec<CredentialPreview>,
             HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         ) {
-            let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
-            let type_metadata = TypeMetadata::example_with_claim_name(&preview_payload.attestation_type, "family_name");
+            let sd_jwt_preview_payload =
+                PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
+            let mdoc_preview_payload =
+                PreviewableCredentialPayload::example_family_name_mdoc(&MockTimeGenerator::default());
+            let type_metadata =
+                TypeMetadata::example_with_claim_name(&sd_jwt_preview_payload.attestation_type, "family_name");
 
-            Self::from_metadata_and_preview(formats_by_credential_id, type_metadata, preview_payload, false)
-        }
-
-        /// Like [`Self::new_with_preview_and_type_metadata`], but describes any SD-JWT credential configuration by
-        /// its Credential Metadata instead of SD-JWT VC Type Metadata, as if no `type_metadata_uri` had been offered.
-        pub fn new_with_preview_and_sd_jwt_credential_metadata_fallback(
-            formats_by_credential_id: HashMap<CredentialId, Format>,
-        ) -> (
-            Self,
-            Vec<CredentialPreview>,
-            HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
-        ) {
-            let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
-            let type_metadata = TypeMetadata::example_with_claim_name(&preview_payload.attestation_type, "family_name");
-
-            Self::from_metadata_and_preview(formats_by_credential_id, type_metadata, preview_payload, true)
+            Self::from_metadata_and_preview(
+                formats_by_credential_id,
+                type_metadata,
+                mdoc_preview_payload,
+                sd_jwt_preview_payload,
+                sd_jwt_uses_credential_metadata,
+            )
         }
 
         fn from_metadata_and_preview(
             formats_by_credential_id: HashMap<CredentialId, Format>,
             type_metadata: TypeMetadata,
-            preview_payload: PreviewableCredentialPayload,
-            sd_jwt_uses_credential_metadata: bool,
+            mdoc_previewable_payload: PreviewableCredentialPayload,
+            sd_jwt_previewable_payload: PreviewableCredentialPayload,
+            sd_jwt_metadata_usage: SdJwtMetadataUsage,
         ) -> (
             Self,
             Vec<CredentialPreview>,
@@ -2553,14 +2556,6 @@ mod tests {
                 TypeMetadataDocuments::from_single_example(type_metadata);
             let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(&attestation_type).unwrap();
 
-            let mdoc_preview_payload = PreviewableCredentialPayload {
-                attributes: Attributes::example([(
-                    [attestation_type.as_str(), "family_name"],
-                    Attribute::Text("De Bruijn".to_string()),
-                )]),
-                ..preview_payload.clone()
-            };
-
             let previews = formats_by_credential_id
                 .iter()
                 .map(|(credential_id, format)| CredentialPreview {
@@ -2568,8 +2563,8 @@ mod tests {
                     config_id: Self::config_id_for_format(*format),
                     format: *format,
                     credential_payload: match format {
-                        Format::MsoMdoc => mdoc_preview_payload.clone(),
-                        Format::SdJwt => preview_payload.clone(),
+                        Format::MsoMdoc => mdoc_previewable_payload.clone(),
+                        Format::SdJwt => sd_jwt_previewable_payload.clone(),
                     },
                     issuer_certificate: issuer_certificate.clone(),
                 })
@@ -2580,16 +2575,16 @@ mod tests {
                 .values()
                 .unique()
                 .map(|format| {
-                    let metadata = match format {
-                        Format::MsoMdoc => OfferedCredentialMetadata::CredentialMetadata(
+                    let metadata = match (format, sd_jwt_metadata_usage) {
+                        (Format::MsoMdoc, _) => OfferedCredentialMetadata::CredentialMetadata(
                             CredentialMetadata::new_mdoc_example(&attestation_type, &["family_name"]),
                         ),
-                        Format::SdJwt if sd_jwt_uses_credential_metadata => {
+                        (Format::SdJwt, SdJwtMetadataUsage::CredentialMetadata) => {
                             OfferedCredentialMetadata::CredentialMetadata(CredentialMetadata::new_example(&[
                                 "family_name",
                             ]))
                         }
-                        Format::SdJwt => OfferedCredentialMetadata::TypeMetadata {
+                        (Format::SdJwt, SdJwtMetadataUsage::TypeMetadata) => OfferedCredentialMetadata::TypeMetadata {
                             normalized: normalized_metadata.clone(),
                             raw: raw_metadata.clone(),
                         },
@@ -2605,8 +2600,8 @@ mod tests {
                 issuer_key,
                 metadata_integrity,
                 first_metadata_integrity_random: false,
-                previewable_payload: mdoc_preview_payload,
-                sd_jwt_previewable_payload: preview_payload,
+                mdoc_previewable_payload,
+                sd_jwt_previewable_payload,
                 status: StatusClaim::new_mock(),
                 normalized_metadata,
             };
@@ -2652,7 +2647,7 @@ mod tests {
             // An mdoc lays its attributes out in a name space, while an SD-JWT carries them as its metadata
             // prescribes, so each format signs its own previewable payload.
             let previewable_payload = match format {
-                Format::MsoMdoc => &self.previewable_payload,
+                Format::MsoMdoc => &self.mdoc_previewable_payload,
                 Format::SdJwt => &self.sd_jwt_previewable_payload,
             };
 
@@ -2788,8 +2783,10 @@ mod tests {
         };
         let credential_count = formats_by_credential_id.len();
 
-        let (signer, previews, metadata) =
-            MockCredentialSigner::new_with_preview_and_type_metadata(formats_by_credential_id);
+        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            formats_by_credential_id,
+            SdJwtMetadataUsage::TypeMetadata,
+        );
         let trust_anchors = signer.trust_anchors.clone();
         let wscd = MockRemoteWscd::default();
 
@@ -2849,11 +2846,10 @@ mod tests {
 
     #[test]
     fn test_accept_issuance_sd_jwt_credential_metadata_fallback() {
-        let (signer, previews, metadata) =
-            MockCredentialSigner::new_with_preview_and_sd_jwt_credential_metadata_fallback(HashMap::from([(
-                "credential_id".to_string().into(),
-                Format::SdJwt,
-            )]));
+        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
+            SdJwtMetadataUsage::CredentialMetadata,
+        );
         let trust_anchors = signer.trust_anchors.clone();
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
@@ -2886,9 +2882,10 @@ mod tests {
 
     #[test]
     fn test_accept_issuance_error_metadata_integrity_inconsistent() {
-        let (mut signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(HashMap::from(
-            [("credential_id_1".to_string().into(), Format::SdJwt)],
-        ));
+        let (mut signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id_1".to_string().into(), Format::SdJwt)]),
+            SdJwtMetadataUsage::TypeMetadata,
+        );
         let trust_anchors = signer.trust_anchors.clone();
 
         // Prepare one of the returned SD-JWT copies to have an incorrect resource integrity in its payload.
@@ -2919,9 +2916,10 @@ mod tests {
     #[test]
     fn test_accept_issuance_incorrect_resource_integrity() {
         // Only an SD-JWT binds to a Type Metadata integrity digest, so only that format can mismatch it.
-        let (mut signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(HashMap::from(
-            [("credential_id".to_string().into(), Format::SdJwt)],
-        ));
+        let (mut signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
+            SdJwtMetadataUsage::TypeMetadata,
+        );
         let trust_anchors = signer.trust_anchors.clone();
 
         // Include a random resource integrity in the returned SD-JWT.
@@ -2952,10 +2950,10 @@ mod tests {
 
     #[rstest]
     fn test_accept_issuance_error_deferred_issuance_unsupported() {
-        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(HashMap::from([(
-            "credential_id".to_string().into(),
-            Format::SdJwt,
-        )]));
+        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
+            SdJwtMetadataUsage::TypeMetadata,
+        );
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
@@ -2992,8 +2990,10 @@ mod tests {
         TrustAnchors,
     ) {
         let credential_id: CredentialId = "credential_id".to_string().into();
-        let (signer, previews, metadata) =
-            MockCredentialSigner::new_with_preview_and_type_metadata(HashMap::from([(credential_id.clone(), format)]));
+        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([(credential_id.clone(), format)]),
+            SdJwtMetadataUsage::TypeMetadata,
+        );
 
         let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
         let credentials = signer
@@ -3048,11 +3048,10 @@ mod tests {
         TrustAnchors,
     ) {
         let credential_id: CredentialId = "credential_id".to_string().into();
-        let (signer, previews, metadata) =
-            MockCredentialSigner::new_with_preview_and_sd_jwt_credential_metadata_fallback(HashMap::from([(
-                credential_id.clone(),
-                Format::SdJwt,
-            )]));
+        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([(credential_id.clone(), Format::SdJwt)]),
+            SdJwtMetadataUsage::CredentialMetadata,
+        );
 
         let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
         let credentials = signer

@@ -569,6 +569,17 @@ mod examples {
             )
         }
 
+        pub fn example_family_name_mdoc(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(
+                PID_ATTESTATION_TYPE,
+                Attributes::example([(
+                    [PID_ATTESTATION_TYPE, "family_name"],
+                    Attribute::Text(String::from("De Bruijn")),
+                )]),
+                time_generator,
+            )
+        }
+
         pub fn example_with_attributes(
             attestation_type: &str,
             attributes: Attributes,
