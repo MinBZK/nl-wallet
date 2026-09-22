@@ -150,8 +150,16 @@ pub enum KeyBindingError {
     #[error("unexpected nonce, got `{0}``")]
     NonceMismatch(Nonce),
 
-    #[error("iat ({0}) not in acceptable window with duration `{1:?}`, current time: `{2}`")]
-    InvalidSignatureTimestamp(DateTime<Utc>, Duration, DateTime<Utc>),
+    #[error(
+        "iat ({iat}) not in acceptable window of `{acceptance_window:?}` and leeway of `{leeway:?}`, current time: \
+         `{current_time}`"
+    )]
+    InvalidSignatureTimestamp {
+        iat: DateTime<Utc>,
+        acceptance_window: Duration,
+        leeway: Duration,
+        current_time: DateTime<Utc>,
+    },
 
     #[error("jwt verify error: {0}")]
     JwtVerify(#[from] JwtVerifyError),
