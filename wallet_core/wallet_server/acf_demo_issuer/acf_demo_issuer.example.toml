@@ -28,7 +28,8 @@ wallet_redirect_uris = ["http://localhost:3004/return"]
 # Default value: https://wallet.edi.rijksoverheid.nl
 wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 
-# Files containing SD-JWT Type Metadata documents for issued attestations
+# Files containing SD-JWT Type Metadata documents for issued attestations. Note: only applicable to credential
+# configurations with the `dc+sd-jwt` credential format.
 metadata = ["com_example_insurance_metadata.json"]
 
 # Maximum number of attestation copies the wallet may request per credential in a single batch
