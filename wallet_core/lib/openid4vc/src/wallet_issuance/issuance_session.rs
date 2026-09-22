@@ -939,14 +939,48 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .into_immediate_credentials()
             .ok_or(WalletIssuanceError::DeferredIssuanceUnsupported)?;
 
-        let metadata = self
+        let offered_metadata = self
             .session_state
             .metadata
             .get(&credential_preview.config_id)
             .expect("`IssuanceState::metadata` has an entry for every offered configuration");
 
         let (credential_copies, extended_attestation_types, issued_metadata) =
-            match (credential_preview.format, metadata) {
+            match (credential_preview.format, offered_metadata) {
+                (Format::SdJwt, metadata @ OfferedCredentialMetadata::TypeMetadata { normalized, raw }) => {
+                    let sd_jwts = credentials.into_issued_sd_jwts(
+                        key_ids_and_public_keys,
+                        metadata,
+                        credential_preview,
+                        trust_anchors,
+                    )?;
+
+                    // Verify that all credentials contain the same metadata integrity value and validate this against
+                    // the SD-JWT VC Type Metadata document chain.
+                    let verified_metadata = verify_metadata_integrity(sd_jwts.iter(), raw.clone())?;
+
+                    // Credential Metadata is not covered by an integrity digest, nor does it describe a chain of
+                    // extended attestation types.
+                    (
+                        IssuedCredentialCopies::SdJwt(sd_jwts),
+                        normalized.extended_vcts().map(String::from).collect(),
+                        IssuedCredentialMetadata::TypeMetadata(verified_metadata),
+                    )
+                }
+                (Format::SdJwt, metadata @ OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
+                    let sd_jwts = credentials.into_issued_sd_jwts(
+                        key_ids_and_public_keys,
+                        metadata,
+                        credential_preview,
+                        trust_anchors,
+                    )?;
+
+                    (
+                        IssuedCredentialCopies::SdJwt(sd_jwts),
+                        Vec::new(),
+                        IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
+                    )
+                }
                 (Format::MsoMdoc, OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
                     let mdocs = credentials.into_issued_mdocs(
                         key_ids_and_public_keys,
@@ -957,45 +991,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
                     (
                         IssuedCredentialCopies::Mdoc(mdocs),
-                        Vec::new(),
-                        IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
-                    )
-                }
-                (Format::SdJwt, offered_metadata @ OfferedCredentialMetadata::TypeMetadata { normalized, raw }) => {
-                    let sd_jwts = credentials.into_issued_sd_jwts(
-                        key_ids_and_public_keys,
-                        offered_metadata,
-                        credential_preview,
-                        trust_anchors,
-                    )?;
-
-                    // Verify that all credentials contain the same metadata integrity value and validate this against
-                    // the SD-JWT VC Type Metadata document chain.
-                    let verified_metadata = verify_metadata_integrity(sd_jwts.iter(), raw.clone())?;
-
-                    let credential_copies = IssuedCredentialCopies::SdJwt(sd_jwts);
-
-                    // Credential Metadata is not covered by an integrity digest, nor does it describe a chain of
-                    // extended attestation types.
-                    (
-                        credential_copies,
-                        normalized.extended_vcts().map(String::from).collect(),
-                        IssuedCredentialMetadata::TypeMetadata(verified_metadata),
-                    )
-                }
-                (
-                    Format::SdJwt,
-                    offered_metadata @ OfferedCredentialMetadata::CredentialMetadata(credential_metadata),
-                ) => {
-                    let sd_jwts = credentials.into_issued_sd_jwts(
-                        key_ids_and_public_keys,
-                        offered_metadata,
-                        credential_preview,
-                        trust_anchors,
-                    )?;
-
-                    (
-                        IssuedCredentialCopies::SdJwt(sd_jwts),
                         Vec::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
                     )
