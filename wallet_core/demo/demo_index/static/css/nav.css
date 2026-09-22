@@ -6,14 +6,14 @@
 
 :root {
   color-scheme: light dark;
-  --page-bg: #fcfcfc;
-  --spacer: #e8eaef;
-  --text: #152a62;
-  --action: #383ede;
-  --button-text: #ffffff;
-  --button-hover: #3237c4;
-  --ribbon-bg: #ab0065;
-  --ribbon-text: #ffffff;
+  --page-bg: light-dark(#fcfcfc, #1c1e25);
+  --divider: light-dark(#e8eaef, #656d87);
+  --text: light-dark(#152a62, #ffffff);
+  --action: light-dark(#383ede, #a2b7ff);
+  --action-hover: light-dark(#3237c4, #8fa5ff);
+  --button-text: light-dark(#ffffff, #0d193b);
+  --ribbon-bg: light-dark(#ab0065, #ff8989);
+  --ribbon-text: light-dark(#ffffff, #0d193b);
 
   font-family: "RO Sans", sans-serif;
   font-feature-settings:
@@ -21,19 +21,6 @@
     "liga" off;
   font-size: 16px;
   line-height: 1.5;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --page-bg: #1c1e25;
-    --spacer: #656d87;
-    --text: #ffffff;
-    --action: #a2b7ff;
-    --button-text: #0d193b;
-    --button-hover: #8fa5ff;
-    --ribbon-bg: #ff8989;
-    --ribbon-text: #0d193b;
-  }
 }
 
 body {
@@ -48,10 +35,10 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 1rem 1rem 1rem;
-  width: 100%;
+  margin-bottom: 1rem;
+  /* leave a 1rem gutter on both sides of the viewport */
+  width: calc(100% - 2rem);
   max-width: 31.25rem;
-  box-sizing: border-box;
 }
 
 aside {
@@ -80,7 +67,6 @@ aside {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 31.25rem;
 }
 
 .logo-row {
@@ -120,8 +106,6 @@ aside {
 }
 
 .intro h1 {
-  margin: 0;
-  color: var(--text);
   font-size: 1.875rem;
   font-weight: 700;
   line-height: 2.625rem;
@@ -135,7 +119,6 @@ aside {
 }
 
 .intro p {
-  margin: 0;
   line-height: 1.375rem;
 }
 
@@ -144,7 +127,7 @@ aside {
 }
 
 .intro a:hover {
-  color: var(--button-hover);
+  color: var(--action-hover);
   text-decoration: none;
 }
 
@@ -152,12 +135,9 @@ aside {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  width: 100%;
-  max-width: 31.25rem;
 }
 
 .list-heading {
-  margin: 0;
   font-size: 1.125rem;
   font-weight: 700;
   line-height: 1.5rem;
@@ -183,7 +163,6 @@ nav a span {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
   min-height: 3.25rem;
   background: var(--action);
   color: var(--button-text);
@@ -196,14 +175,14 @@ nav a span {
 
 nav a:hover span {
   color: var(--button-text);
-  background: var(--button-hover);
+  background: var(--action-hover);
 }
 
 nav a::before {
   content: " ";
   flex: none;
   background-color: black;
-  border-radius: 0.61rem;
+  border-radius: 0.625rem;
   width: 3.25rem;
   height: 3.25rem;
 }
@@ -274,10 +253,11 @@ nav a::before {
   .intro,
   .examples {
     flex: 1 1 0;
+    max-width: 31.25rem;
   }
 
   .examples {
-    border-left: 1px solid var(--spacer);
+    border-left: 1px solid var(--divider);
     padding-left: 2.5rem;
   }
 }
