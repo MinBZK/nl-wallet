@@ -5,6 +5,16 @@
 @import url("../../../demo_utils/static/css/demo_bar.css");
 
 :root {
+  color-scheme: light dark;
+  --page-bg: #fcfcfc;
+  --spacer: #e8eaef;
+  --text: #152a62;
+  --action: #383ede;
+  --button-text: #ffffff;
+  --button-hover: #3237c4;
+  --ribbon-bg: #ab0065;
+  --ribbon-text: #ffffff;
+
   font-family: "RO Sans", sans-serif;
   font-feature-settings:
     "clig" off,
@@ -13,8 +23,22 @@
   line-height: 1.5;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page-bg: #1c1e25;
+    --spacer: #656d87;
+    --text: #ffffff;
+    --action: #a2b7ff;
+    --button-text: #0d193b;
+    --button-hover: #8fa5ff;
+    --ribbon-bg: #ff8989;
+    --ribbon-text: #0d193b;
+  }
+}
+
 body {
-  background: #faf9fb;
+  background: var(--page-bg);
+  color: var(--text);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -24,21 +48,20 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 16px 16px 16px;
-}
-
-main > * {
-  max-width: 500px;
+  margin: 0 1rem 1rem 1rem;
+  width: 100%;
+  max-width: 31.25rem;
+  box-sizing: border-box;
 }
 
 aside {
   justify-content: right;
-  padding: 38px 16px 0 16px;
+  padding: 2.375rem 1rem 0 1rem;
 }
 
-@media only screen and (min-width: 577px) {
+@media only screen and (min-width: 36rem) {
   aside {
-    padding: 16px 24px;
+    padding: 1rem 1.5rem;
   }
 }
 
@@ -46,53 +69,115 @@ aside {
   margin: 0;
 }
 
-header {
-  content: " ";
-  background: url("../non-free/images/nl-wallet.svg") no-repeat center center / cover;
-  width: 64px;
-  height: 64px;
-}
-
-main section {
+.page-columns {
   display: flex;
   flex-direction: column;
-  text-align: center;
-  gap: 8px;
-  margin: 40px 0;
+  gap: 2.5rem;
+  width: 100%;
 }
 
-main section h1 {
-  color: #152a62;
-  font-size: 30px;
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 31.25rem;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.wallet-logo {
+  position: relative;
+  flex: none;
+  width: 4rem;
+  height: 4rem;
+  background: url("../non-free/images/nl-wallet.svg") no-repeat center center / cover;
+}
+
+.version-ribbon {
+  position: absolute;
+  left: 50%;
+  bottom: -0.625rem;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: var(--ribbon-bg);
+  color: var(--ribbon-text);
+  font-size: 0.625rem;
   font-weight: 700;
-  line-height: 44px;
+  letter-spacing: 1px;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
 }
 
-main section p {
-  color: #30293d;
-  letter-spacing: 0.5px;
+.logo-label {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5rem;
 }
 
-main section a {
-  color: #383ede;
+.intro h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 2.625rem;
 }
 
-main section a:hover {
-  color: #3237c4;
+.intro h2 {
+  margin: 1rem 0 0 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+}
+
+.intro p {
+  margin: 0;
+  line-height: 1.375rem;
+}
+
+.needs-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.intro a {
+  color: var(--action);
+}
+
+.intro a:hover {
+  color: var(--button-hover);
   text-decoration: none;
+}
+
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 31.25rem;
+}
+
+.list-heading {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.5rem;
 }
 
 nav {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 2rem;
   width: 100%;
 }
 
 nav a {
   display: flex;
   text-align: center;
-  gap: 16px;
+  gap: 1rem;
   height: 100%;
   text-decoration: none;
 }
@@ -102,26 +187,29 @@ nav a span {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #383ede;
-  color: white;
+  box-sizing: border-box;
+  min-height: 3.25rem;
+  background: var(--action);
+  color: var(--button-text);
   font-weight: 700;
   letter-spacing: 1px;
-  border-radius: 12px;
-  padding: 16px 24px;
-  line-height: 20px;
+  border-radius: 0.75rem;
+  padding: 1rem 1.5rem;
+  line-height: 1.25rem;
 }
 
 nav a:hover span {
-  color: white;
-  background: #3237c4;
+  color: var(--button-text);
+  background: var(--button-hover);
 }
 
 nav a::before {
   content: " ";
+  flex: none;
   background-color: black;
-  border-radius: 9.75px;
-  width: 52px;
-  height: 52px;
+  border-radius: 0.61rem;
+  width: 3.25rem;
+  height: 3.25rem;
 }
 
 /* use case icons */
@@ -175,4 +263,25 @@ nav a::before {
 
 #mvc::before {
   background: url("../non-free/images/rdw.svg") no-repeat center center / cover;
+}
+
+@media only screen and (min-width: 70rem) {
+  main {
+    max-width: 70rem;
+  }
+
+  .page-columns {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .intro,
+  .examples {
+    flex: 1 1 0;
+  }
+
+  .examples {
+    border-left: 1px solid var(--spacer);
+    padding-left: 2.5rem;
+  }
 }
