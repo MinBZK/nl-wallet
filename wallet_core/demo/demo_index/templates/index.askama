@@ -26,12 +26,12 @@
             {% endfor %}
             <h2>{{ base.trans.index_needs_heading }}</h2>
             <ul class="needs-list">
-                <li><strong>{{ base.trans.index_needs_bullet_pre }}{{ app_environment }}{{ base.trans.index_needs_bullet_post }}</strong></li>
+                <li><strong>{{ base.trans.index_needs.replace("{env}", app_environment) }}</strong></li>
             </ul>
-            <p>{{ base.trans.index_icon_pre }}<strong>{{ app_environment|upper }}</strong>{{ base.trans.index_icon_post }}</p>
+            <p>{{ base.trans.index_icon.replace("{env}", &app_environment.to_uppercase()) }}</p>
             <p>{{ base.trans.index_opened_from }}</p>
             <p>
-                {{ base.trans.index_info_pre }}<a href="https://{{ base.trans.index_info_link }}">{{ base.trans.index_info_link }}</a>{{ base.trans.index_info_post }}
+                {{ base.trans.index_info }}<a href="https://edi.pleio.nl">{{ base.trans.index_info_link }}</a>.
             </p>
         </section>
         <section class="examples">
