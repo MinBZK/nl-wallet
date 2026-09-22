@@ -44,7 +44,7 @@ impl JwtTyp for KeyBindingJwtClaims {
 /// - `expected_aud`: audience to enforce,
 /// - `expected_nonce`: nonce to match,
 /// - `iat_leeway`: allowed leeway when verifying `iat` with the current time,
-/// - `iat_acceptance_window`: allowed duration after `iat`, assuming larger than leeway
+/// - `iat_acceptance_window`: allowed duration after `iat`.
 pub struct KbVerificationOptions<'a> {
     pub expected_aud: &'a str,
     pub expected_nonce: &'a Nonce,
@@ -90,7 +90,7 @@ impl UnverifiedKeyBindingJwt {
         let now = time.generate();
         let leeway = kb_verification_options.iat_leeway;
         let acceptance_window = kb_verification_options.iat_acceptance_window;
-        if !(payload.iat <= now + leeway && now <= payload.iat + acceptance_window) {
+        if !(payload.iat - leeway <= now && now <= payload.iat + leeway + acceptance_window) {
             return Err(KeyBindingError::InvalidSignatureTimestamp {
                 iat: payload.iat,
                 acceptance_window,
@@ -415,8 +415,8 @@ mod test {
     #[case::not_yet_valid(1000, Duration::from_secs(5), 994, Duration::from_secs(500), false)]
     #[case::valid_in_leeway(1000, Duration::from_secs(5), 995, Duration::from_secs(500), true)]
     #[case::valid(1000, Duration::from_secs(5), 1200, Duration::from_secs(500), true)]
-    #[case::valid_atwindow_boundary(1000, Duration::from_secs(5), 1500, Duration::from_secs(500), true)]
-    #[case::expired(1000, Duration::from_secs(5), 1501, Duration::from_secs(500), false)]
+    #[case::valid_atwindow_boundary(1000, Duration::from_secs(5), 1505, Duration::from_secs(500), true)]
+    #[case::expired(1000, Duration::from_secs(5), 1506, Duration::from_secs(500), false)]
     #[tokio::test]
     async fn test_parse_and_verify_iat(
         #[case] iat_epoch: i64,
