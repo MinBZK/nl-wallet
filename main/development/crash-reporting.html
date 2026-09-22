@@ -278,9 +278,9 @@ If <code class="docutils literal notranslate"><span class="pre">SENTRY_AUTH_TOKE
 before publishing.</p>
 <p><code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS</span></code> is a separate logging policy switch. Debug builds allow
 logs by default. Profile and release builds allow logs only when
-<code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS=true</span></code>. CI defaults this flag to <code class="docutils literal notranslate"><span class="pre">false</span></code>; <code class="docutils literal notranslate"><span class="pre">ont</span></code> and <code class="docutils literal notranslate"><span class="pre">demo</span></code>
-release builds opt in explicitly, while production builds keep it <code class="docutils literal notranslate"><span class="pre">false</span></code>. Do
-not infer log allowance from <code class="docutils literal notranslate"><span class="pre">SENTRY_ENVIRONMENT</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS=true</span></code>. Our CI defaults this flag to <code class="docutils literal notranslate"><span class="pre">true</span></code>, but should be
+set explicitly on production-like environments. Do not infer log allowance from
+<code class="docutils literal notranslate"><span class="pre">SENTRY_ENVIRONMENT</span></code>.</p>
 </section>
 <section id="event-sources">
 <h2>Event Sources<a class="headerlink" href="#event-sources" title="Link to this heading"></a></h2>
