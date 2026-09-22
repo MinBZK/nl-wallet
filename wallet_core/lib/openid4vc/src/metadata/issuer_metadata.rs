@@ -663,7 +663,8 @@ mod example_constructors {
 
         /// Example mdoc Credential Metadata describing the same claims as `type_metadata`. This lets a test that
         /// covers both formats derive the mdoc metadata from the Type Metadata it already has, instead of maintaining a
-        /// second list of claim names by hand.
+        /// second list of claim names by hand. Since mdoc fields cannot be nested, this takes only the last element of
+        /// the claim paths.
         pub fn new_mdoc_example_from_type_metadata(name_space: &str, type_metadata: &NormalizedTypeMetadata) -> Self {
             let claim_names = type_metadata
                 .claim_constraints()
