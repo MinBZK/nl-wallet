@@ -46,6 +46,7 @@ client_id = "${DIGID_CLIENT_ID}"
 # own mock page. Maps each bsn to a display name; each bsn must resolve in the dev BRP dataset. Comment out for the
 # real-DigiD flow.
 [digid.mock_subjects]
+"900265462" = "Lennert uijt de Fruitplukker"
 "999991772" = "Frouke Jansen"
 "999991905" = "Linda Strijps"
 

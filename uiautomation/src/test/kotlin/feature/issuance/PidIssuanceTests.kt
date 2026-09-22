@@ -133,8 +133,7 @@ class PidIssuanceTests : TestBase() {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()
         digidLoginMockWebPage.switchToWebViewContext()
-        digidLoginMockWebPage.enterBsn("123456789")
-        digidLoginMockWebPage.clickLoginButton()
+        digidLoginMockWebPage.loginWithFakeBsn()
         personalizeAuthenticatingWithDigidScreen.switchToNativeContext()
         assertAll(
             { assertTrue(personalizeAuthenticatingWithDigidScreen.loginFailedMessageVisible(), "message is not visible") },
