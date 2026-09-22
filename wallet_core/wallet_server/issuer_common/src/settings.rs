@@ -15,6 +15,7 @@ use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
+use derive_more::Into;
 use derive_more::IntoIterator;
 use futures::future::try_join_all;
 use health_checkers::postgres::DatabaseChecker;
@@ -212,14 +213,8 @@ impl TryFrom<Vec<String>> for TypeMetadataByVct {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Into)]
 pub struct CredentialMetadataFile(CredentialMetadata);
-
-impl From<CredentialMetadataFile> for CredentialMetadata {
-    fn from(value: CredentialMetadataFile) -> Self {
-        value.0
-    }
-}
 
 impl<'de> Deserialize<'de> for CredentialMetadataFile {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
