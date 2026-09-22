@@ -7,7 +7,6 @@ use attestation_data::attributes::AttributesTraversalBehaviour;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::metadata::AttestationClaims;
-use attestation_data::metadata::ClaimConstraint;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use crypto::PublicKey;
@@ -60,6 +59,7 @@ use wscd::payload::wia::WiaDisclosure;
 use wscd::wia::WiaClient;
 
 use super::IssuanceSession;
+use super::OfferedCredentialMetadata;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
@@ -465,24 +465,6 @@ struct IssuanceState {
     #[debug(skip)]
     dpop_signing_key: SigningKey,
     dpop_nonce: Option<DpopNonce>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum OfferedCredentialMetadata {
-    TypeMetadata {
-        normalized: NormalizedTypeMetadata,
-        raw: SortedTypeMetadataDocuments,
-    },
-    CredentialMetadata(CredentialMetadata),
-}
-
-impl AttestationClaims for OfferedCredentialMetadata {
-    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
-        match self {
-            Self::TypeMetadata { normalized, .. } => Either::Left(normalized.claim_constraints()),
-            Self::CredentialMetadata(metadata) => Either::Right(metadata.claim_constraints()),
-        }
-    }
 }
 
 /// Internal state of credential previews offered by the issuer, indexed either by Credential Identifier or Credential

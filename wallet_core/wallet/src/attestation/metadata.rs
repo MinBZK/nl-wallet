@@ -11,7 +11,7 @@ use openid4vc::metadata::issuer_metadata::CredentialDisplay;
 use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use openid4vc::metadata::issuer_metadata::Logo as CredentialLogo;
 use openid4vc::metadata::issuer_metadata::NameLocale;
-use openid4vc::wallet_issuance::issuance_session::OfferedCredentialMetadata;
+use openid4vc::wallet_issuance::OfferedCredentialMetadata;
 use sd_jwt_vc_metadata::BackgroundImageMetadata;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;

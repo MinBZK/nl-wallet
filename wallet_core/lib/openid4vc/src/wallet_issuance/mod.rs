@@ -16,11 +16,14 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
 use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::metadata::AttestationClaims;
+use attestation_data::metadata::ClaimConstraint;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
+use itertools::Either;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
@@ -35,6 +38,8 @@ use oauth::metadata::well_known::WellKnownError;
 use oauth::scope::Scope;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -46,7 +51,6 @@ use wscd::wia::WiaClient;
 use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
-use self::issuance_session::OfferedCredentialMetadata;
 use crate::authorization_details::CredentialId;
 use crate::client_auth::ClientAttestationChallengeError;
 use crate::client_auth::ClientAttestationChallengeMechanismError;
@@ -55,6 +59,7 @@ use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
 
@@ -391,6 +396,24 @@ pub struct IssuanceDiscoveryParameters<'a, W> {
     pub selection: &'a CredentialSelection,
     pub wia_client: &'a W,
     pub wrpac_trust_anchors: &'a TrustAnchors,
+}
+
+#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+pub enum OfferedCredentialMetadata {
+    TypeMetadata {
+        normalized: NormalizedTypeMetadata,
+        raw: SortedTypeMetadataDocuments,
+    },
+    CredentialMetadata(CredentialMetadata),
+}
+
+impl AttestationClaims for OfferedCredentialMetadata {
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
+        match self {
+            Self::TypeMetadata { normalized, .. } => Either::Left(normalized.claim_constraints()),
+            Self::CredentialMetadata(metadata) => Either::Right(metadata.claim_constraints()),
+        }
+    }
 }
 
 /// Allows selection of specific credential kinds (i.e. combinations of format and attestation type) at the start of
