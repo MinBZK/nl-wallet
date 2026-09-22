@@ -92,18 +92,11 @@ where
 
     let mut wallet_router = issuance_router.merge(authorization_router).merge(callback_router);
 
-    // Serve the pid_issuer-hosted mock DigiD login page when configured. Its dynamic routes go under no-store with the
-    // rest; its static assets (CSS/JS) are merged outside the no-store layer below so the browser can cache them.
-    let mock_login_assets = mock_login.as_ref().map(MockLoginState::assets_router);
     if let Some(mock_login) = mock_login {
-        wallet_router = wallet_router.merge(mock_login.page_router());
+        wallet_router = wallet_router.merge(mock_login.router());
     }
 
     let mut router = add_cache_control_no_store_layer(wallet_router);
-
-    if let Some(mock_login_assets) = mock_login_assets {
-        router = router.merge(mock_login_assets);
-    }
 
     if serve_status_lists {
         let status_list_router = create_serve_router(
