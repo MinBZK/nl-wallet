@@ -28,8 +28,6 @@ use serde_with::skip_serializing_none;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::storage::StoredAttestationMetadata;
-
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationMetadataError {
     #[error("could not read image as a data URI: {0}")]
@@ -94,17 +92,6 @@ impl AttestationDisplay for NormalizedTypeMetadata {
             display_metadata,
             claims,
         })
-    }
-}
-
-impl AttestationDisplay for StoredAttestationMetadata {
-    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
-        match self {
-            StoredAttestationMetadata::TypeMetadata(type_metadata) => type_metadata.into_presentation_components(),
-            StoredAttestationMetadata::CredentialMetadata(credential_metadata) => {
-                credential_metadata.into_presentation_components()
-            }
-        }
     }
 }
 
