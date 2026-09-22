@@ -415,9 +415,6 @@ mod tests {
             CredentialFormat::SdJwt { vct, .. } if vct == "com.example.degree"
         );
 
-        let (_, metadata_docs) = TypeMetadataDocuments::degree_example();
-        let (metadata, _) = metadata_docs.into_normalized("com.example.degree").unwrap();
-
         for metadata_config in metadata_configs.values() {
             let proof_types = metadata_config
                 .cryptographic_binding
@@ -430,30 +427,25 @@ mod tests {
             assert_eq!(proof_types, HashSet::from([ProofType::Jwt]));
         }
 
-        let mdoc_credential_metadata = metadata_configs
+        let mdoc_config = metadata_configs
             .get("degree_mso_mdoc")
-            .expect("metadata configuration should exist")
-            .credential_metadata
-            .as_ref()
-            .expect("mdoc credential metadata should be present");
+            .expect("metadata configuration should exist");
 
-        assert!(mdoc_credential_metadata.display.is_some());
+        assert!(mdoc_config.credential_metadata.is_some());
+        assert!(mdoc_config.type_metadata_uri.is_none());
 
+        let sd_jwt_config = metadata_configs
+            .get("degree_dc+sd-jwt")
+            .expect("metadata configuration should exist");
+
+        assert!(sd_jwt_config.credential_metadata.is_none());
         assert_eq!(
-            mdoc_credential_metadata
-                .claims
+            sd_jwt_config
+                .type_metadata_uri
                 .as_ref()
-                .map(|claims| claims.len().get())
-                .unwrap_or_default(),
-            metadata.claims().len()
-        );
-
-        assert!(
-            metadata_configs
-                .get("degree_dc+sd-jwt")
-                .expect("metadata configuration should exist")
-                .credential_metadata
-                .is_none()
+                .expect("SD-JWT type metadata URI should be present")
+                .to_string(),
+            "https://example.com/degree_dc+sd-jwt"
         );
     }
 
