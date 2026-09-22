@@ -139,11 +139,6 @@ aside {
   line-height: 1.375rem;
 }
 
-.needs-list {
-  margin: 0;
-  padding-left: 1.25rem;
-}
-
 .intro a {
   color: var(--action);
 }
@@ -164,6 +159,7 @@ aside {
 .list-heading {
   margin: 0;
   font-size: 1.125rem;
+  font-weight: 700;
   line-height: 1.5rem;
 }
 

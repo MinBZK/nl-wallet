@@ -90,3 +90,9 @@
 | Name          | Description                                 | Value   |
 | ------------- | ------------------------------------------- | ------- |
 | `logRequests` | Log request and response headers and bodies | `false` |
+
+### Application parameters
+
+| Name             | Description                                                                     | Value           |
+| ---------------- | ------------------------------------------------------------------------------- | --------------- |
+| `appEnvironment` | Name of the NL Wallet app version this demo pairs with, shown on the index page | `unspecified`   |
