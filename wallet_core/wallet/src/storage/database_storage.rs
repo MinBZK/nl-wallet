@@ -2015,7 +2015,7 @@ pub(crate) mod tests {
         );
         assert_eq!(
             attestation_copy2.metadata,
-            StoredAttestationMetadata::CredentialMetadata(credential_metadata.clone())
+            StoredAttestationMetadata::CredentialMetadata(credential_metadata)
         );
         assert_ne!(
             attestation_copy1.attestation_copy_id,
