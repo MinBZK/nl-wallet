@@ -89,12 +89,14 @@ impl UnverifiedKeyBindingJwt {
 
         let now = time.generate();
         let leeway = kb_verification_options.iat_leeway;
-        if !(payload.iat <= now + leeway && now <= payload.iat + kb_verification_options.iat_acceptance_window) {
-            return Err(KeyBindingError::InvalidSignatureTimestamp(
-                payload.iat,
-                kb_verification_options.iat_acceptance_window,
-                now,
-            ));
+        let acceptance_window = kb_verification_options.iat_acceptance_window;
+        if !(payload.iat <= now + leeway && now <= payload.iat + acceptance_window) {
+            return Err(KeyBindingError::InvalidSignatureTimestamp {
+                iat: payload.iat,
+                window: acceptance_window,
+                leeway,
+                current_time: now,
+            });
         };
 
         Ok(verified)
@@ -418,7 +420,7 @@ mod test {
     #[tokio::test]
     async fn test_parse_and_verify_iat(
         #[case] iat_epoch: i64,
-        #[case] leeway: Duration,
+        #[case] iat_leeway: Duration,
         #[case] now_epoch: i64,
         #[case] iat_acceptance_window: Duration,
         #[case] expected_valid: bool,
@@ -432,8 +434,9 @@ mod test {
 
         let jwt_str = example_kb_jwt_with_iat(&signing_key, iat).await.to_string();
 
-        let verify_timestamp = |iat: DateTime<Utc>, window: Duration, current_time: DateTime<Utc>| {
+        let verify_timestamp = |iat: DateTime<Utc>, window: Duration, leeway: Duration, current_time: DateTime<Utc>| {
             window == iat_acceptance_window
+                && leeway == iat_leeway
                 && iat == iat_generator.generate()
                 && current_time == now_generator.generate()
         };
@@ -441,7 +444,7 @@ mod test {
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "aud",
             expected_nonce: &Nonce::from("abc123".to_string()),
-            iat_leeway: leeway,
+            iat_leeway,
             iat_acceptance_window,
         };
 
@@ -455,8 +458,8 @@ mod test {
             let _verified_jwt = result.unwrap();
         } else {
             let err = result.unwrap_err();
-            assert_matches!(err, KeyBindingError::InvalidSignatureTimestamp(iat, window, now)
-                        if verify_timestamp(iat, window, now));
+            assert_matches!(err, KeyBindingError::InvalidSignatureTimestamp{ iat, window, leeway, current_time }
+                        if verify_timestamp(iat, window, leeway, current_time));
         }
     }
 
