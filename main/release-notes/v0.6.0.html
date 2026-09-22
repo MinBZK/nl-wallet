@@ -377,6 +377,10 @@ has been removed from SD-JWT VC credentials and the <code class="docutils litera
 response. Issuer authentication now relies solely on certificate chain
 verification against trust anchors. Consequently the <code class="docutils literal notranslate"><span class="pre">certificate_san</span></code> setting
 has been removed from the issuer configuration.</p></li>
+<li><p>The Wallet Provider settings’ <code class="docutils literal notranslate"><span class="pre">attestation_wrapping_key_identifier</span></code> and
+<code class="docutils literal notranslate"><span class="pre">pin_pubkey_encryption_key_identifier</span></code> fields have been replaced by
+<code class="docutils literal notranslate"><span class="pre">[attestation_wrapping_kid]</span></code> and <code class="docutils literal notranslate"><span class="pre">[pin_pubkey_encryption_kid]</span></code>, each with a
+<code class="docutils literal notranslate"><span class="pre">current</span></code> and optional <code class="docutils literal notranslate"><span class="pre">previous</span></code> key identifier (kid).</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -433,6 +437,11 @@ signing key. The Wallet Configuration’s <code class="docutils literal notransl
 field maps key identifiers to public keys, and the Wallet Provider’s
 <code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code> setting selects which key is currently used
 for signing.</p></li>
+<li><p>The Wallet Provider now supports key rollover for the attestation wrapping
+key and the PIN public key encryption key. The <code class="docutils literal notranslate"><span class="pre">current</span></code> field of the
+<code class="docutils literal notranslate"><span class="pre">[attestation_wrapping_kid]</span></code> and <code class="docutils literal notranslate"><span class="pre">[pin_pubkey_encryption_kid]</span></code> settings
+sections selects the key used to encrypt new data, while the <code class="docutils literal notranslate"><span class="pre">previous</span></code>
+field still allows already-stored data to be decrypted during a rollover.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">

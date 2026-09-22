@@ -164,6 +164,10 @@
   response. Issuer authentication now relies solely on certificate chain
   verification against trust anchors. Consequently the `certificate_san` setting
   has been removed from the issuer configuration.
+- The Wallet Provider settings' `attestation_wrapping_key_identifier` and
+  `pin_pubkey_encryption_key_identifier` fields have been replaced by
+  `[attestation_wrapping_kid]` and `[pin_pubkey_encryption_kid]`, each with a
+  `current` and optional `previous` key identifier (kid).
 
 [1]:
     https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p
@@ -221,6 +225,11 @@
   field maps key identifiers to public keys, and the Wallet Provider's
   `current_instruction_result_kid` setting selects which key is currently used
   for signing.
+- The Wallet Provider now supports key rollover for the attestation wrapping
+  key and the PIN public key encryption key. The `current` field of the
+  `[attestation_wrapping_kid]` and `[pin_pubkey_encryption_kid]` settings
+  sections selects the key used to encrypt new data, while the `previous`
+  field still allows already-stored data to be decrypted during a rollover.
 
 ## Interoperability improvements
 
