@@ -82,6 +82,7 @@ josekit.workspace = true
 jsonwebtoken.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
+tower = { workspace = true, features = ["util"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
 http_utils = { path = "../../lib/http_utils", features = ["httpmock"] }

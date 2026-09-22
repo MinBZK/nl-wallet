@@ -190,29 +190,19 @@ impl MockLoginState {
         }
     }
 
-    /// The non-cacheable dynamic mock login routes (the page and per-card selection), with the CSP layered on.
-    pub fn page_router(self) -> Router {
+    /// The mock login routes (page, card selection and static assets), with the CSP layered on.
+    pub fn router(self) -> Router {
         let csp = self.csp;
 
         Router::new()
             .route(MOCK_LOGIN_PATH, get(mock_login_page))
             .route(MOCK_LOGIN_SELECT_PATH, post(mock_login_select))
-            .layer(middleware::from_fn(move |request, next| {
-                set_content_security_policy(request, next, csp)
-            }))
-            .with_state(self)
-    }
-
-    /// The cacheable static asset routes (CSS + JS), with the CSP layered on.
-    pub fn assets_router(&self) -> Router {
-        let csp = self.csp;
-
-        Router::new()
             .route(MOCK_LOGIN_CSS_PATH, get(mock_login_css))
             .route(MOCK_LOGIN_JS_PATH, get(mock_login_js))
             .layer(middleware::from_fn(move |request, next| {
                 set_content_security_policy(request, next, csp)
             }))
+            .with_state(self)
     }
 }
 
@@ -224,16 +214,10 @@ async fn mock_login_css(headers: HeaderMap) -> Response {
 /// `GET /digid/mock-login/mock_login.js`: the page's script.
 async fn mock_login_js() -> impl IntoResponse {
     (
-        [
-            (
-                header::CONTENT_TYPE,
-                HeaderValue::from_static("text/javascript; charset=utf-8"),
-            ),
-            (
-                header::CACHE_CONTROL,
-                HeaderValue::from_static("public, max-age=604800"),
-            ),
-        ],
+        [(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/javascript; charset=utf-8"),
+        )],
         MOCK_LOGIN_JS,
     )
 }
@@ -363,9 +347,35 @@ async fn mock_login_select(
 mod tests {
     use std::collections::HashMap;
 
+    use axum::body::Body;
+    use axum::http::Request;
+    use axum::http::header::CACHE_CONTROL;
+    use server_utils::server::add_cache_control_no_store_layer;
+    use tower::ServiceExt;
     use url::Url;
 
+    use super::MOCK_LOGIN_CSS_PATH;
+    use super::MOCK_LOGIN_JS_PATH;
+    use super::MockLoginState;
+    use super::MockSubjects;
     use super::mock_acs_url;
+
+    #[tokio::test]
+    async fn mock_login_assets_send_no_store_cache_control() {
+        let router = add_cache_control_no_store_layer(
+            MockLoginState::new(reqwest::Client::new(), MockSubjects::new(), "default-src 'self'").router(),
+        );
+
+        for path in [MOCK_LOGIN_CSS_PATH, MOCK_LOGIN_JS_PATH] {
+            let response = router
+                .clone()
+                .oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+
+            assert_eq!(response.headers().get(CACHE_CONTROL).unwrap(), "no-store");
+        }
+    }
 
     #[test]
     fn mock_acs_url_preserves_bridge_base_path() {
