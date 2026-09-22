@@ -429,7 +429,6 @@ mod test {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::sync::LazyLock;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -439,13 +438,8 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
-    use attestation_types::pid_constants::PID_AGE_OVER_18;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::pid_constants::PID_BIRTH_DATE;
     use attestation_types::pid_constants::PID_BSN;
-    use attestation_types::pid_constants::PID_FAMILY_NAME;
-    use attestation_types::pid_constants::PID_GIVEN_NAME;
-    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use crypto::PublicKey;
@@ -499,17 +493,14 @@ mod tests {
                 key_identifier: "mdoc_key_id".to_string(),
                 data: StoredAttestation::MsoMdoc(mdoc),
             },
-            metadata: StoredAttestationMetadata::CredentialMetadata(CredentialMetadata::new_mdoc_example(
-                PID_ATTESTATION_TYPE,
-                &[
-                    PID_GIVEN_NAME,
-                    PID_FAMILY_NAME,
-                    PID_BIRTH_DATE,
-                    PID_AGE_OVER_18,
-                    PID_BSN,
-                    PID_RECOVERY_CODE,
-                ],
-            )),
+            // Derive the Credential Metadata from the Type Metadata that `sd_jwt_stored_attestation_copy()` uses,
+            // so that both formats describe the same claims in the same order.
+            metadata: StoredAttestationMetadata::CredentialMetadata(
+                CredentialMetadata::new_mdoc_example_from_type_metadata(
+                    PID_ATTESTATION_TYPE,
+                    &NormalizedTypeMetadata::nl_pid_example(),
+                ),
+            ),
             revocation_status: None,
             validity_window: ValidityWindow::new_valid_mock(),
         };
@@ -615,19 +606,14 @@ mod tests {
             assert_eq!(mdoc_presentation.issuer, sd_jwt_presentation.issuer);
             assert_eq!(mdoc_presentation.validity, sd_jwt_presentation.validity);
 
-            // mdoc and SD-JWT each carry their own, independently-authored Credential/Type Metadata (mdoc's claim
-            // keys are namespaced rather than flat, and the two orderings need not match), so display metadata,
-            // attribute keys and attribute order are not expected to match between formats -- only the underlying
-            // attribute values (the same real-world PID facts), keyed by their own (unnamespaced) name, are.
-            let by_leaf_key = |attributes: &[AttestationAttribute]| {
-                attributes
-                    .iter()
-                    .map(|attribute| (attribute.key.last().clone(), attribute.value.clone()))
-                    .collect::<HashMap<_, _>>()
+            // Since both mdoc and sd-jwt fixtures derive their claims from the same Type Metadata, the attribute values
+            // should match exactly.
+            let attribute_values = |attributes: &[AttestationAttribute]| {
+                attributes.iter().map(|attribute| attribute.value.clone()).collect_vec()
             };
             assert_eq!(
-                by_leaf_key(&mdoc_presentation.attributes),
-                by_leaf_key(&sd_jwt_presentation.attributes)
+                attribute_values(&mdoc_presentation.attributes),
+                attribute_values(&sd_jwt_presentation.attributes)
             );
         }
     }

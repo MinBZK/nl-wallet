@@ -22,7 +22,7 @@ mod transfer;
 mod uri;
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test;
 
 use std::marker::PhantomData;
 use std::sync::Arc;

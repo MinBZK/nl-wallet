@@ -1494,13 +1494,7 @@ pub(crate) mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
-    use attestation_types::pid_constants::PID_AGE_OVER_18;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::pid_constants::PID_BIRTH_DATE;
-    use attestation_types::pid_constants::PID_BSN;
-    use attestation_types::pid_constants::PID_FAMILY_NAME;
-    use attestation_types::pid_constants::PID_GIVEN_NAME;
-    use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use chrono::Days;
     use chrono::Duration;
     use chrono::TimeZone;
@@ -1512,7 +1506,6 @@ pub(crate) mod tests {
     use crypto::utils::random_string;
     use itertools::Itertools;
     use mdoc::holder::Mdoc;
-    use openid4vc::metadata::issuer_metadata::CredentialMetadata;
     use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
     use openid4vc::wallet_issuance::credential::SdJwtCopy;
     use p256::ecdsa::SigningKey;
@@ -1536,26 +1529,13 @@ pub(crate) mod tests {
     use crate::attestation::AttestationValidity;
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::storage::data::RegistrationData;
+    use crate::wallet::test::nl_pid_mdoc_credential_metadata_example;
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
 
         generate_issuer_mock_with_registration(&issuer_ca, &IssuerRegistration::new_mock()).unwrap()
     });
-
-    fn nl_pid_mdoc_credential_metadata_example() -> CredentialMetadata {
-        CredentialMetadata::new_mdoc_example(
-            PID_ATTESTATION_TYPE,
-            &[
-                PID_GIVEN_NAME,
-                PID_FAMILY_NAME,
-                PID_BIRTH_DATE,
-                PID_AGE_OVER_18,
-                PID_BSN,
-                PID_RECOVERY_CODE,
-            ],
-        )
-    }
 
     #[test]
     fn test_key_file_alias_for_name() {
