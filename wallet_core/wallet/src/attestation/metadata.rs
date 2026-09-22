@@ -22,7 +22,6 @@ use sd_jwt_vc_metadata::RenderingMetadata;
 use sd_jwt_vc_metadata::SvgId;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::TryFromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -156,8 +155,6 @@ pub enum Rendering {
 pub struct Logo {
     /// Explicitly reject non-embedded images and unsupported mime types
     #[debug(skip)]
-    #[serde(rename = "uri")]
-    #[serde_as(as = "TryFromInto<DataUri>")]
     pub image: Image,
 
     /// Alternative text for the image.
@@ -170,8 +167,6 @@ pub struct Logo {
 pub struct BackgroundImage {
     /// Explicitly reject non-embedded images and unsupported mime types
     #[debug(skip)]
-    #[serde(rename = "uri")]
-    #[serde_as(as = "TryFromInto<DataUri>")]
     pub image: Image,
 }
 
