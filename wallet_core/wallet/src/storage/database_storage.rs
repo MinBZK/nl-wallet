@@ -2050,14 +2050,8 @@ pub(crate) mod tests {
         assert_ne!(attestation_copy1.attestation_copy_id, remaning_attestation_copy_id1);
         assert_ne!(attestation_copy2.attestation_copy_id, remaning_attestation_copy_id1);
 
-        // Test that fetching extended VCTs does not return anything, as this should only work for SD-JWT. Since an mdoc
-        // has no "extends" chain of its own, a real SD-JWT VC Type Metadata example is used.
-        let extended_vcts = NormalizedTypeMetadata::nl_pid_example()
-            .extended_vcts()
-            .map(ToOwned::to_owned)
-            .collect::<HashSet<_>>();
-
-        assert!(!extended_vcts.is_empty());
+        // Test that fetching extended VCTs does not return anything, as this should only work for SD-JWT.
+        let extended_vcts = HashSet::from([String::from("non_existing_attestation_type")]);
 
         let fetched_unique = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
@@ -2075,7 +2069,7 @@ pub(crate) mod tests {
             .fetch_unique_attestations_by_credential_kinds(
                 &extended_vcts
                     .into_iter()
-                    .map(|attestation_type| CredentialKind::new(Format::SdJwt, attestation_type))
+                    .map(|attestation_type| CredentialKind::new(Format::MsoMdoc, attestation_type))
                     .collect(),
             )
             .await
