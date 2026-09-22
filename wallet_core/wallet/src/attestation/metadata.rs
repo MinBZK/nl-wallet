@@ -106,9 +106,6 @@ impl AttestationDisplay for OfferedCredentialMetadata {
     }
 }
 
-// Note that these types are stored as part of the JSON serialized `AttestationPresentation` of a history event, so
-// their serialization has to remain compatible with that of the SD-JWT VC Type Metadata types they replace.
-
 /// How an attestation is displayed to the user for a single locale, independent of the kind of metadata it was derived
 /// from.
 #[skip_serializing_none]
