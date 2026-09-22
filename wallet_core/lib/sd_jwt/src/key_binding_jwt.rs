@@ -43,8 +43,8 @@ impl JwtTyp for KeyBindingJwtClaims {
 /// Verification options for KB-JWT verification:
 /// - `expected_aud`: audience to enforce,
 /// - `expected_nonce`: nonce to match,
-/// - `iat_leeway`: allowed leeway around the lower bound of `iat`,
-/// - `iat_acceptance_window`: allowed duration after `iat`.
+/// - `iat_leeway`: allowed leeway when verifying `iat` with the current time,
+/// - `iat_acceptance_window`: allowed duration after `iat`, assuming larger than leeway
 pub struct KbVerificationOptions<'a> {
     pub expected_aud: &'a str,
     pub expected_nonce: &'a Nonce,
