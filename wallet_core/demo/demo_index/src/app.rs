@@ -31,6 +31,7 @@ use crate::translations::TRANSLATIONS;
 use crate::translations::Words;
 
 struct ApplicationState {
+    app_environment: String,
     demo_services: Vec<DemoService>,
 }
 
@@ -49,6 +50,7 @@ static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
 
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
+        app_environment: settings.app_environment,
         demo_services: settings.demo_services,
     });
 
@@ -94,12 +96,14 @@ struct BaseTemplate<'a> {
 #[derive(Template, WebTemplate)]
 #[template(path = "index.askama", escape = "html", ext = "html")]
 struct IndexTemplate<'a> {
+    app_environment: &'a str,
     demo_services: &'a [DemoService],
     base: BaseTemplate<'a>,
 }
 
 async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Response {
     IndexTemplate {
+        app_environment: &state.app_environment,
         demo_services: &state.demo_services,
         base: BaseTemplate {
             selected_lang: language,

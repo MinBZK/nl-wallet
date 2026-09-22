@@ -108,3 +108,7 @@ probes:
 ## @section Logging
 ## @param logRequests Log request and response headers and bodies
 logRequests: false
+
+## @section Application parameters
+## @param appEnvironment Name of the NL Wallet app version this demo pairs with, shown on the index page
+appEnvironment: unspecified

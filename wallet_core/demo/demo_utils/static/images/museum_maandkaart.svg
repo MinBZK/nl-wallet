@@ -1,8 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" fill="none">
-  <rect width="52" height="52" fill="#3d2b8e" rx="10"/>
-  <rect x="7" y="36" width="38" height="3" fill="white"/>
-  <rect x="13" y="22" width="5" height="14" fill="white"/>
-  <rect x="24" y="22" width="5" height="14" fill="white"/>
-  <rect x="35" y="22" width="5" height="14" fill="white"/>
-  <polygon points="7,22 45,22 26,9" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
+  <rect width="52" height="52" fill="#3d2b8e" rx="9.75"/>
+  <svg x="14" y="14" width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <path d="M11.9999 2.5957L2.54819 5.73084V7.29841H21.4517V5.73084L11.9999 2.5957ZM2.54819 8.86597V10.4335H4.12348V18.2714H2.54819L0.9729 21.4065H23.027L21.4517 18.2714H19.8764V10.4335H21.4517V8.86597H2.54819ZM8.84935 10.4335C9.63227 10.4335 10.4246 11.2691 10.4246 12.0011V18.2714H7.27406V12.0011C7.27406 11.175 8.06643 10.4335 8.84935 10.4335ZM15.1505 10.4335C15.9429 10.4335 16.7258 11.175 16.7258 12.0011V18.2714H13.5752V12.0011C13.5752 11.175 14.3581 10.4335 15.1505 10.4335Z" fill="white"/>
+  </svg>
 </svg>

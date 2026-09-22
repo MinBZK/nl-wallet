@@ -54,6 +54,8 @@ spec:
               mountPath: /demo_index.toml
               subPath: config.toml
           env:
+            - name: DEMO_INDEX__APP_ENVIRONMENT
+              value: {{ .Values.appEnvironment | quote }}
             - name: DEMO_INDEX__STRUCTURED_LOGGING
               value: "true"
             - name: DEMO_INDEX__LOG_REQUESTS
