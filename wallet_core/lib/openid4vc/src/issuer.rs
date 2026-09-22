@@ -2592,7 +2592,14 @@ mod tests {
         // Check that all the "issued_at" timestamps and type metadata integrity values are the same across the
         // credential copies.
         assert_eq!(issued_ats.len(), 1);
-        assert_eq!(vct_integrities.len(), 1);
+        match format {
+            Format::SdJwt => {
+                assert_eq!(vct_integrities.len(), 1);
+            }
+            Format::MsoMdoc => {
+                assert!(vct_integrities.iter().flatten().collect_vec().is_empty());
+            }
+        }
 
         // Check that each issued credential has a distinct status claim.
         assert_eq!(status_claims.len(), copy_count);
