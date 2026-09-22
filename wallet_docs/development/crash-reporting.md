@@ -68,9 +68,9 @@ before publishing.
 
 `ALLOW_RELEASE_LOGS` is a separate logging policy switch. Debug builds allow
 logs by default. Profile and release builds allow logs only when
-`ALLOW_RELEASE_LOGS=true`. CI defaults this flag to `false`; `ont` and `demo`
-release builds opt in explicitly, while production builds keep it `false`. Do
-not infer log allowance from `SENTRY_ENVIRONMENT`.
+`ALLOW_RELEASE_LOGS=true`. Our CI defaults this flag to `true`, but should be
+set explicitly on production-like environments. Do not infer log allowance from
+`SENTRY_ENVIRONMENT`.
 
 ## Event Sources
 

@@ -90,7 +90,7 @@ use crate::jwe::JweEncryptionAlgorithm;
 use crate::registration_certificate::RegistrationCertificateError;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
-const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(5);
+const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(90);
 const SD_JWT_IAT_WINDOW: Duration = Duration::from_secs(15 * 60);
 
 pub(crate) const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =

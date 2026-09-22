@@ -94,6 +94,10 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 use wallet_account::signed::ChallengeResponsePayload;
 use wallet_account::signed::SequenceNumberComparison;
+use wallet_provider_domain::keys::Kid;
+use wallet_provider_domain::keys::KidError;
+use wallet_provider_domain::keys::KidPair;
+use wallet_provider_domain::keys::UnknownKid;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
@@ -107,6 +111,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -128,9 +133,8 @@ use crate::instructions::PinChecks;
 use crate::instructions::ValidateInstruction;
 use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
-use crate::keys::Kid;
-use crate::keys::KidError;
 use crate::keys::WalletCertificateSigningKey;
+use crate::keys::pin_pubkey_encryption_key_identifier;
 use crate::pin_policy::PinRecoveryPinPolicy;
 use crate::revocation::RevocationError;
 use crate::wallet_certificate::new_wallet_certificate;
@@ -193,6 +197,9 @@ pub enum WalletCertificateError {
 
     #[error("wallet certificate JWT signing error: {0}")]
     JwtSigning(#[source] JwtSignError),
+
+    #[error(transparent)]
+    UnknownKid(#[from] UnknownKid),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -364,6 +371,9 @@ pub enum InstructionError {
 
     #[error("unsupported holder public key: {0:?}")]
     UnsupportedHolderPublicKey(Box<PublicKey>),
+
+    #[error(transparent)]
+    UnknownKid(#[from] UnknownKid),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -412,6 +422,12 @@ pub enum InstructionValidationError {
 
     #[error("wallet requested creation of too many keys, requested {requested}, maximum: {maximum}")]
     TooManyKeysRequest { requested: usize, maximum: u16 },
+
+    #[error("invalid key identifier for stored ciphertext: {0}")]
+    InvalidKid(#[source] KidError),
+
+    #[error(transparent)]
+    UnknownKid(#[from] UnknownKid),
 }
 
 impl From<PinPolicyEvaluation> for InstructionError {
@@ -515,21 +531,34 @@ pub struct AndroidAttestationConfiguration {
 }
 
 pub struct AccountServerKeys {
-    pub wallet_certificate_signing_pubkeys: HashMap<Kid, CertificateSigningKeys>,
-    pub pin_keys: AccountServerPinKeys,
+    pub current_certificate_signing_key: CurrentCertificateSigningKey,
+    pub previous_certificate_signing_keys: HashMap<Kid, PreviousCertificateSigningKey>,
+    pub pin_pubkey_encryption_kids: KidPair,
     pub revocation_code_key_identifier: String,
 }
 
-/// View of certificate signing keys by KID, with expired keys filtered out.
+#[derive(Debug, Clone)]
+pub struct CurrentCertificateSigningKey {
+    pub kid: Kid,
+    pub public_key: PublicKey,
+}
+
+/// View of certificate signing keys by KID: the current key never expires, previous keys return an
+/// error once expired, and unknown kids yield `None`.
 pub struct CertificateSigningKeysByKid<'a> {
-    keys: &'a HashMap<Kid, CertificateSigningKeys>,
+    current: &'a CurrentCertificateSigningKey,
+    previous: &'a HashMap<Kid, PreviousCertificateSigningKey>,
     now: DateTime<Utc>,
 }
 
 impl<'a> CertificateSigningKeysByKid<'a> {
-    pub fn new(keys: &'a HashMap<Kid, CertificateSigningKeys>, time: &impl Generator<DateTime<Utc>>) -> Self {
+    pub fn new(keys: &'a AccountServerKeys, time: &impl Generator<DateTime<Utc>>) -> Self {
         let now = time.generate();
-        Self { keys, now }
+        Self {
+            current: &keys.current_certificate_signing_key,
+            previous: &keys.previous_certificate_signing_keys,
+            now,
+        }
     }
 }
 
@@ -546,26 +575,22 @@ impl<'a> PublicKeyByKid for CertificateSigningKeysByKid<'a> {
             Err(_) => return Ok(None),
         };
 
-        let key = self.keys.get(&kid);
-        match key {
-            Some(key) if key.exp.is_none_or(|e| e > self.now) => Ok(Some(key.certificate_public_key.clone())),
-            Some(key) if let Some(exp) = key.exp => Err(KeyExpired(exp)),
-            // only reached if key.exp is `None`
-            _ => Ok(None),
+        if kid == self.current.kid {
+            return Ok(Some(self.current.public_key.clone()));
+        }
+
+        match self.previous.get(&kid) {
+            Some(key) if key.exp > self.now => Ok(Some(key.certificate_public_key.clone())),
+            Some(key) => Err(KeyExpired(key.exp)),
+            None => Ok(None),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct CertificateSigningKeys {
-    pub exp: Option<DateTime<Utc>>,
+pub struct PreviousCertificateSigningKey {
     pub certificate_public_key: PublicKey,
-    pub pin_hmac_key_identifier: String,
-}
-
-pub struct AccountServerPinKeys {
-    pub encryption_key_identifier: String,
-    pub hmac_key_identifier: String,
+    pub exp: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, From)]
@@ -619,7 +644,7 @@ pub struct UserState<R, F, H, K, S> {
     pub wallet_user_hsm: H,
     pub wia_issuer: WiaIssuer<K>,
     pub wia_status_tracking_validity: Duration,
-    pub wrapping_key_identifier: String,
+    pub attestation_wrapping_kids: KidPair,
     pub pid_issuer_trust_anchors: TrustAnchors,
     pub status_list_service: S,
 }
@@ -694,11 +719,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         // violation when writing the registration to the database below, should the Wallet Provider receive any
         // subsequent registration using the exact same challenge.
         let challenge = &unverified.challenge;
-        let wallet_id = Self::verify_registration_challenge(
-            &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, time),
-            challenge,
-        )?
-        .wallet_id;
+        let wallet_id =
+            Self::verify_registration_challenge(&CertificateSigningKeysByKid::new(&self.keys, time), challenge)?
+                .wallet_id;
 
         debug!("Validating attestation and checking signed registration against the provided hardware and pin keys");
 
@@ -866,6 +889,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         debug!("Starting database transaction");
 
         let revocation_code = RevocationCode::new_random();
+        let pin_pubkey_encryption_key_identifier =
+            pin_pubkey_encryption_key_identifier(&self.keys.pin_pubkey_encryption_kids.current);
 
         let (tx, encrypted_pin_pubkey, revocation_code_hmac) = try_join!(
             user_state
@@ -874,7 +899,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 .map_err(RegistrationError::from),
             Encrypter::encrypt(
                 &user_state.wallet_user_hsm,
-                &self.keys.pin_keys.encryption_key_identifier,
+                &pin_pubkey_encryption_key_identifier,
                 pin_pubkey,
             )
             .map_err(RegistrationError::from),
@@ -896,7 +921,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 WalletUserCreate {
                     wallet_id: wallet_id.clone(),
                     hw_pubkey,
-                    encrypted_pin_pubkey,
+                    encrypted_pin_pubkey: WithKid {
+                        value: encrypted_pin_pubkey,
+                        kid: self.keys.pin_pubkey_encryption_kids.current.clone(),
+                    },
                     attestation_date_time: attestation_timestamp,
                     attestation,
                     revocation_code_hmac,
@@ -908,7 +936,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let wallet_certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.keys.pin_keys.hmac_key_identifier,
+            &self.keys.current_certificate_signing_key.kid,
             certificate_signing_key,
             wallet_id,
             hw_pubkey,
@@ -949,7 +977,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (user, claims, _) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &challenge_request.certificate,
-            &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, time_generator),
+            &CertificateSigningKeysByKid::new(&self.keys, time_generator),
             allow_blocked,
             &user_state.repositories,
         )
@@ -1090,7 +1118,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let (wallet_user, _, _) = parse_and_verify_wallet_cert_using_hw_pubkey(
             &instruction.certificate,
-            &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, generators),
+            &CertificateSigningKeysByKid::new(&self.keys, generators),
             false,
             &user_state.repositories,
         )
@@ -1203,7 +1231,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let encrypted_pin_pubkey = Encrypter::encrypt(
             &user_state.wallet_user_hsm,
-            &self.keys.pin_keys.encryption_key_identifier,
+            &pin_pubkey_encryption_key_identifier(&self.keys.pin_pubkey_encryption_kids.current),
             pin_pubkey,
         )
         .await?;
@@ -1215,14 +1243,17 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .change_pin(
                 &tx,
                 &wallet_user.wallet_id,
-                encrypted_pin_pubkey,
+                WithKid {
+                    value: encrypted_pin_pubkey,
+                    kid: self.keys.pin_pubkey_encryption_kids.current.clone(),
+                },
                 WalletUserState::Active,
             )
             .await?;
 
         let wallet_certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.keys.pin_keys.hmac_key_identifier,
+            &self.keys.current_certificate_signing_key.kid,
             signing_keys.1,
             wallet_user.wallet_id,
             wallet_user.hw_pubkey,
@@ -1325,14 +1356,17 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let encrypted_pin_pubkey = Encrypter::encrypt(
             &user_state.wallet_user_hsm,
-            &self.keys.pin_keys.encryption_key_identifier,
+            &pin_pubkey_encryption_key_identifier(&self.keys.pin_pubkey_encryption_kids.current),
             pin_pubkey,
         )
         .await?;
 
         let (wallet_user, instruction_payload) = self
             .verify_and_extract_instruction(instruction, generators, &PinRecoveryPinPolicy, user_state, |_| {
-                encrypted_pin_pubkey.clone()
+                WithKid {
+                    value: encrypted_pin_pubkey.clone(),
+                    kid: self.keys.pin_pubkey_encryption_kids.current.clone(),
+                }
             })
             .await?;
 
@@ -1347,7 +1381,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .change_pin(
                 &tx,
                 &wallet_user.wallet_id,
-                encrypted_pin_pubkey,
+                WithKid {
+                    value: encrypted_pin_pubkey,
+                    kid: self.keys.pin_pubkey_encryption_kids.current.clone(),
+                },
                 WalletUserState::RecoveringPin,
             )
             .await?;
@@ -1363,7 +1400,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                         .iter()
                         .map(|key| WalletUserKey {
                             wallet_user_key_id: generators.generate(),
-                            key: key.clone(),
+                            key: WithKid {
+                                value: key.clone(),
+                                kid: user_state.attestation_wrapping_kids.current.clone(),
+                            },
                             is_blocked: true,
                         })
                         .collect(),
@@ -1385,7 +1425,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.keys.pin_keys.hmac_key_identifier,
+            &self.keys.current_certificate_signing_key.kid,
             certificate_signing_key,
             wallet_user.wallet_id,
             wallet_user.hw_pubkey,
@@ -1424,14 +1464,14 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         I: InstructionAndResult + ValidateInstruction + PinChecks,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
-        P: Fn(&WalletUser) -> Encrypted<VerifyingKey>,
+        P: Fn(&WalletUser) -> WithKid<Encrypted<VerifyingKey>>,
     {
         debug!("Verifying certificate and retrieving wallet user");
 
         let (wallet_user, pin_pubkey) = verify_wallet_certificate(
             &instruction.certificate,
-            &CertificateSigningKeysByKid::new(&self.keys.wallet_certificate_signing_pubkeys, generators),
-            &self.keys.pin_keys,
+            &CertificateSigningKeysByKid::new(&self.keys, generators),
+            &self.keys.pin_pubkey_encryption_kids,
             I::pin_checks_options(),
             pin_pubkey,
             user_state,
@@ -1460,7 +1500,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         wallet_user: &WalletUser,
         instruction: Instruction<I>,
         generators: &G,
-        pin_pubkey: Encrypted<VerifyingKey>,
+        pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         pin_policy: &impl PinPolicyEvaluator,
         user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
     ) -> Result<I, InstructionError>
@@ -1631,7 +1671,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         instruction: &Instruction<I>,
         wallet_user: &WalletUser,
-        pin_pubkey: Encrypted<VerifyingKey>,
+        pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         time_generator: &impl Generator<DateTime<Utc>>,
         verifying_key_decrypter: &D,
     ) -> Result<(ChallengeResponsePayload<I>, Option<AssertionCounter>), InstructionValidationError>
@@ -1641,8 +1681,10 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     {
         let challenge = Self::verify_instruction_challenge(wallet_user, time_generator)?;
 
+        self.keys.pin_pubkey_encryption_kids.validate(&pin_pubkey.kid)?;
+
         let pin_pubkey = verifying_key_decrypter
-            .decrypt(&self.keys.pin_keys.encryption_key_identifier, pin_pubkey)
+            .decrypt(&pin_pubkey_encryption_key_identifier(&pin_pubkey.kid), pin_pubkey.value)
             .await?;
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
@@ -1801,13 +1843,12 @@ pub mod mock {
     use token_status_list::status_list_service::mock::MockStatusListService;
     use token_status_list::status_list_service::mock::generate_status_claims;
     use utils::vec_nonempty;
+    use wallet_provider_domain::keys::Kid;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use super::mock_play_integrity::MockPlayIntegrityClient;
     use super::*;
     use crate::flags::mock::StubWalletFlags;
-    use crate::keys::Kid;
-    use crate::keys::pin_hmac_key_identifier;
     use crate::wallet_certificate;
     use crate::wia_issuer::mock::MockWiaIssuer;
 
@@ -1865,23 +1906,18 @@ pub mod mock {
             HashSet::from([crypto::utils::random_bytes(16)]),
         );
 
-        let hmac_key_identifier = pin_hmac_key_identifier(&certificate_signing_kid);
-
         AccountServer::new(
             "mock_account_server".into(),
             Duration::from_millis(15000),
             AccountServerKeys {
-                wallet_certificate_signing_pubkeys: HashMap::from([(
-                    certificate_signing_kid,
-                    CertificateSigningKeys {
-                        exp: None,
-                        certificate_public_key: PublicKey::from(*certificate_signing_pubkey),
-                        pin_hmac_key_identifier: hmac_key_identifier.clone(),
-                    },
-                )]),
-                pin_keys: AccountServerPinKeys {
-                    encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
-                    hmac_key_identifier,
+                current_certificate_signing_key: CurrentCertificateSigningKey {
+                    kid: certificate_signing_kid,
+                    public_key: PublicKey::from(*certificate_signing_pubkey),
+                },
+                previous_certificate_signing_keys: HashMap::new(),
+                pin_pubkey_encryption_kids: KidPair {
+                    current: wallet_certificate::mock::ENCRYPTION_KID.clone(),
+                    previous: None,
                 },
                 revocation_code_key_identifier: wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER.to_string(),
             },
@@ -1909,7 +1945,7 @@ pub mod mock {
         repositories: R,
         flags: F,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
-        wrapping_key_identifier: String,
+        wrapping_kid: Kid,
         pid_issuer_trust_anchors: TrustAnchors,
         status_list_service: S,
     ) -> UserState<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
@@ -1919,7 +1955,10 @@ pub mod mock {
             wallet_user_hsm,
             wia_issuer: MockWiaIssuer::new_mock(),
             wia_status_tracking_validity: Duration::from_hours(24),
-            wrapping_key_identifier,
+            attestation_wrapping_kids: KidPair {
+                current: wrapping_kid,
+                previous: None,
+            },
             pid_issuer_trust_anchors,
             status_list_service,
         }
@@ -2129,6 +2168,8 @@ mod tests {
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
+    use wallet_provider_domain::keys::Kid;
+    use wallet_provider_domain::keys::KidPair;
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::TimeoutPinPolicy;
@@ -2160,15 +2201,13 @@ mod tests {
     use super::mock::mock_status_list_service;
     use super::mock::recovery_code_sd_jwt;
     use super::mock_play_integrity::MockPlayIntegrityClient;
-    use crate::account_server::AccountServerPinKeys;
     use crate::account_server::RecoveryCodeConfig;
     use crate::account_server::WalletCertificateError;
     use crate::flags::WalletFlags;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
-    use crate::keys::Kid;
     use crate::keys::WalletCertificateSigningKey;
-    use crate::keys::pin_hmac_key_identifier;
+    use crate::keys::pin_pubkey_encryption_key_identifier;
     use crate::wallet_certificate;
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wallet_certificate::mock::setup_hsm;
@@ -2229,7 +2268,7 @@ mod tests {
         certificate_signing_key: &impl WalletCertificateSigningKey,
         pin_privkey: &SigningKey,
         attestation_ca: AttestationCa<'_>,
-        wrapping_key_identifier: &str,
+        wrapping_kid: Kid,
     ) -> Result<
         (
             WalletCertificate,
@@ -2264,7 +2303,10 @@ mod tests {
             wallet_user_hsm: hsm,
             wia_issuer: MockWiaIssuer::new_mock(),
             wia_status_tracking_validity: Duration::from_hours(24),
-            wrapping_key_identifier: wrapping_key_identifier.to_string(),
+            attestation_wrapping_kids: KidPair {
+                current: wrapping_kid,
+                previous: None,
+            },
             pid_issuer_trust_anchors: TrustAnchors::empty(), /* not needed in these
                                                               * tests */
             status_list_service: MockStatusListService::default(),
@@ -2354,7 +2396,7 @@ mod tests {
         RevocationCode,
         MockUserState,
     ) {
-        let wrapping_key_identifier = "my_wrapping_key_identifier".to_string();
+        let wrapping_kid = Kid::try_from("0").unwrap();
 
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(
@@ -2373,7 +2415,7 @@ mod tests {
             &setup.signing_key,
             &setup.pin_privkey,
             attestation_ca,
-            &wrapping_key_identifier,
+            wrapping_kid.clone(),
         )
         .await
         .expect("Could not process registration message at account server");
@@ -2400,7 +2442,7 @@ mod tests {
             repo,
             StubWalletFlags::default(),
             hsm,
-            wrapping_key_identifier,
+            wrapping_kid,
             TrustAnchors::empty(),
             mock_status_list_service(),
         );
@@ -2517,7 +2559,7 @@ mod tests {
 
         let encrypted_new_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
             &MockPkcs11Client::<HsmError>::default(),
-            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+            &pin_pubkey_encryption_key_identifier(&wallet_certificate::mock::ENCRYPTION_KID),
             new_pin_pubkey,
         )
         .await
@@ -2600,9 +2642,9 @@ mod tests {
                 setup.signing_key.kid().to_owned(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
-            &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
-                encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            &KidPair {
+                current: wallet_certificate::mock::ENCRYPTION_KID.clone(),
+                previous: None,
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
@@ -2626,7 +2668,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_register_invalid_apple_attestation() {
-        let wrapping_key_identifier = "my_wrapping_key_identifier";
+        let wrapping_kid = Kid::try_from("0").unwrap();
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(
             &setup.signing_pubkey,
@@ -2642,7 +2684,7 @@ mod tests {
             &setup.signing_key,
             &setup.pin_privkey,
             AttestationCa::Apple(&other_apple_mock_ca),
-            wrapping_key_identifier,
+            wrapping_kid,
         )
         .await
         .map(|_| ()) // the return value MockPkcs11Client doesn't implement Debug, so discard it
@@ -2655,7 +2697,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_register_invalid_android_key_attestation() {
-        let wrapping_key_identifier = "my_wrapping_key_identifier";
+        let wrapping_kid = Kid::try_from("0").unwrap();
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(
             &setup.signing_pubkey,
@@ -2671,7 +2713,7 @@ mod tests {
             &setup.signing_key,
             &setup.pin_privkey,
             AttestationCa::Google(&other_android_mock_ca_chain),
-            wrapping_key_identifier,
+            wrapping_kid.clone(),
         )
         .await
         .map(|_| ())
@@ -2684,7 +2726,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_register_android_play_integrity_client_error() {
-        let wrapping_key_identifier = "my_wrapping_key_identifier";
+        let wrapping_kid = Kid::try_from("0").unwrap();
         let setup = WalletCertificateSetup::new().await;
         let mut account_server = mock::setup_account_server(
             &setup.signing_pubkey,
@@ -2700,7 +2742,7 @@ mod tests {
             &setup.signing_key,
             &setup.pin_privkey,
             AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
-            wrapping_key_identifier,
+            wrapping_kid,
         )
         .await
         .map(|_| ())
@@ -2716,7 +2758,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_register_invalid_android_integrity_verdict() {
-        let wrapping_key_identifier = "my_wrapping_key_identifier";
+        let wrapping_kid = Kid::try_from("0").unwrap();
         let setup = WalletCertificateSetup::new().await;
         let mut account_server = mock::setup_account_server(
             &setup.signing_pubkey,
@@ -2735,7 +2777,7 @@ mod tests {
             &setup.signing_key,
             &setup.pin_privkey,
             AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
-            wrapping_key_identifier,
+            wrapping_kid,
         )
         .await
         .map(|_| ())
@@ -3229,9 +3271,9 @@ mod tests {
                 setup.signing_key.kid().to_owned(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
-            &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
-                encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            &KidPair {
+                current: wallet_certificate::mock::ENCRYPTION_KID.clone(),
+                previous: None,
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
@@ -3248,9 +3290,9 @@ mod tests {
                 setup.signing_key.kid().to_owned(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
-            &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
-                encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            &KidPair {
+                current: wallet_certificate::mock::ENCRYPTION_KID.clone(),
+                previous: None,
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
@@ -3632,7 +3674,7 @@ mod tests {
         user_state.repositories = WalletUserTestRepo {
             encrypted_pin_pubkey: Encrypter::encrypt(
                 &user_state.wallet_user_hsm,
-                wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+                &pin_pubkey_encryption_key_identifier(&wallet_certificate::mock::ENCRYPTION_KID),
                 new_pin_pubkey,
             )
             .await
@@ -3647,9 +3689,9 @@ mod tests {
                 setup.signing_key.kid().to_owned(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
-            &AccountServerPinKeys {
-                hmac_key_identifier: pin_hmac_key_identifier(&wallet_certificate::mock::CERTIFICATE_KID),
-                encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+            &KidPair {
+                current: wallet_certificate::mock::ENCRYPTION_KID.clone(),
+                previous: None,
             },
             PinCheckOptions::default(),
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
@@ -3767,7 +3809,7 @@ mod tests {
             wallet_user_hsm: user_state.wallet_user_hsm,
             wia_issuer: user_state.wia_issuer,
             wia_status_tracking_validity: Duration::from_hours(24),
-            wrapping_key_identifier: user_state.wrapping_key_identifier,
+            attestation_wrapping_kids: user_state.attestation_wrapping_kids,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
             status_list_service: user_state.status_list_service,
         };
@@ -3867,7 +3909,10 @@ mod tests {
             wallet_user_hsm: setup_hsm().await,
             wia_issuer: MockWiaIssuer::new_mock(),
             wia_status_tracking_validity: Duration::from_hours(24),
-            wrapping_key_identifier: "my_wrapping_key_identifier".to_string(),
+            attestation_wrapping_kids: KidPair {
+                current: Kid::try_from("my_wrapping_kid".to_string()).unwrap(),
+                previous: None,
+            },
             pid_issuer_trust_anchors: TrustAnchors::empty(),
             status_list_service: MockStatusListService::default(),
         };

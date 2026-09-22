@@ -29,24 +29,23 @@ use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionResultMessage;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
 use wallet_provider_service::account_server::AccountServerKeys;
-use wallet_provider_service::account_server::AccountServerPinKeys;
 use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
-use wallet_provider_service::account_server::CertificateSigningKeys;
+use wallet_provider_service::account_server::CurrentCertificateSigningKey;
+use wallet_provider_service::account_server::PreviousCertificateSigningKey;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::flags::WalletRepoFlags;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
-use wallet_provider_service::keys::Kid;
 use wallet_provider_service::keys::WalletCertificateSigning;
 use wallet_provider_service::keys::certificate_signing_key_identifier;
-use wallet_provider_service::keys::pin_hmac_key_identifier;
 use wallet_provider_service::pin_policy::PinPolicy;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 use wallet_provider_service::wia_issuer::WiaIssuer;
@@ -87,20 +86,18 @@ async fn get_certificate_public_key(kid: &Kid, wallet_user_hsm: &Pkcs11Hsm) -> R
         .map(|k| k.into())
 }
 
-async fn kid_and_certificate_signing_keys(
+async fn kid_and_previous_certificate_signing_key(
     kid: Kid,
-    exp: Option<DateTime<Utc>>,
+    exp: DateTime<Utc>,
     wallet_user_hsm: &Pkcs11Hsm,
-) -> Result<(Kid, CertificateSigningKeys), HsmError> {
+) -> Result<(Kid, PreviousCertificateSigningKey), HsmError> {
     let certificate_public_key = get_certificate_public_key(&kid, wallet_user_hsm).await?;
-    let pin_hmac_key_identifier = pin_hmac_key_identifier(&kid);
 
     Ok((
         kid,
-        CertificateSigningKeys {
-            exp,
+        PreviousCertificateSigningKey {
             certificate_public_key,
-            pin_hmac_key_identifier,
+            exp,
         },
     ))
 }
@@ -124,7 +121,6 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         play_integrity_client: PIC,
     ) -> Result<RouterState<GRC, PIC>, Box<dyn Error>> {
         let wc_signing_key_identifier = certificate_signing_key_identifier(&settings.current_certificate_kid);
-        let hmac_key_identifier = pin_hmac_key_identifier(&settings.current_certificate_kid);
 
         let certificate_signing_key = WalletCertificateSigning {
             kid: settings.current_certificate_kid.clone(),
@@ -167,33 +163,27 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             certificate_hashes: settings.android.play_store_certificate_hashes,
         };
 
-        let wallet_certificate_signing_pubkeys =
-            try_join_all(settings.previous_certificate_kids.unwrap_or_default().into_iter().map(
-                async |(kid, expiration)| {
-                    kid_and_certificate_signing_keys(kid, Some(expiration), &wallet_user_hsm).await
-                },
-            ))
-            .await?
-            .into_iter()
-            .chain(std::iter::once((
-                settings.current_certificate_kid.clone(),
-                CertificateSigningKeys {
-                    exp: None,
-                    certificate_public_key,
-                    pin_hmac_key_identifier: hmac_key_identifier.clone(),
-                },
-            )))
-            .collect();
+        let previous_certificate_signing_keys = try_join_all(
+            settings
+                .previous_certificate_kids
+                .unwrap_or_default()
+                .into_iter()
+                .map(async |(kid, exp)| kid_and_previous_certificate_signing_key(kid, exp, &wallet_user_hsm).await),
+        )
+        .await?
+        .into_iter()
+        .collect();
 
         let account_server = AccountServer::new(
             "account_server".into(),
             settings.instruction_challenge_timeout,
             AccountServerKeys {
-                wallet_certificate_signing_pubkeys,
-                pin_keys: AccountServerPinKeys {
-                    encryption_key_identifier: settings.pin_pubkey_encryption_key_identifier,
-                    hmac_key_identifier,
+                current_certificate_signing_key: CurrentCertificateSigningKey {
+                    kid: settings.current_certificate_kid,
+                    public_key: certificate_public_key,
                 },
+                previous_certificate_signing_keys,
+                pin_pubkey_encryption_kids: settings.pin_pubkey_encryption_kid,
                 revocation_code_key_identifier: settings.revocation_code_key_identifier,
             },
             settings.recovery_code_paths.into(),
@@ -275,7 +265,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 wallet_user_hsm,
                 wia_issuer,
                 wia_status_tracking_validity: settings.wia_settings.wia_status_tracking_validity,
-                wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
+                attestation_wrapping_kids: settings.attestation_wrapping_kid,
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
                 status_list_service,
             },

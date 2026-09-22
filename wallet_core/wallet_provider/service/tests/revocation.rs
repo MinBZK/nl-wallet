@@ -36,11 +36,13 @@ use utils::num::U31;
 use uuid::Uuid;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -108,7 +110,7 @@ async fn setup_state(
         Repositories::from(db),
         flags,
         hsm,
-        "wrapping_key_identifier".to_owned(),
+        Kid::try_from("0").unwrap(),
         TrustAnchors::empty(),
         service,
     );
@@ -278,7 +280,10 @@ async fn register_wallets_to_revoke_with_revocation_codes(
                 WalletUserCreate {
                     wallet_id: wallet_id.clone(),
                     hw_pubkey: *SigningKey::generate().verifying_key(),
-                    encrypted_pin_pubkey: encrypted_pin_key("key1").await,
+                    encrypted_pin_pubkey: WithKid {
+                        value: encrypted_pin_key("key1").await,
+                        kid: Kid::try_from("0").unwrap(),
+                    },
                     attestation_date_time: Utc::now(),
                     attestation: WalletUserAttestationCreate::Apple {
                         data: random_bytes(64),

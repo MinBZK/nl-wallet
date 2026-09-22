@@ -147,7 +147,8 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::StatusClaimBatchIdExists(_)
                 | InstructionError::ObtainStatusClaim(_)
                 | InstructionError::SystemRevocationError(_)
-                | InstructionError::UnsupportedHolderPublicKey(_) => Self::Unexpected,
+                | InstructionError::UnsupportedHolderPublicKey(_)
+                | InstructionError::UnknownKid(_) => Self::Unexpected,
             },
             WalletProviderError::Hsm(_) => Self::Unexpected,
         }

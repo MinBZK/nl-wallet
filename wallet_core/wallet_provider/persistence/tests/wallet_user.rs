@@ -11,12 +11,14 @@ use hsm::model::encrypted::Encrypted;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use uuid::Uuid;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::database::Db;
@@ -231,13 +233,16 @@ async fn do_change_pin(
     Db,
     Uuid,
     WalletId,
-    Encrypted<VerifyingKey>,
+    WithKid<Encrypted<VerifyingKey>>,
     wallet_user::Model,
     wallet_user::Model,
 ) {
     let (db, wallet_user_id, wallet_id, before) = common::create_test_user(db_setup, WalletDeviceVendor::Apple).await;
 
-    let new_pin = encrypted_pin_key("new_pin_1").await;
+    let new_pin = WithKid {
+        value: encrypted_pin_key("new_pin_1").await,
+        kid: Kid::try_from("0").unwrap(),
+    };
 
     wallet_provider_persistence::wallet_user::change_pin(&db, &wallet_id, new_pin.clone(), WalletUserState::Active)
         .await
@@ -250,9 +255,11 @@ async fn do_change_pin(
         before.encrypted_pin_pubkey_sec1,
     );
     assert_eq!(after.previous_pin_pubkey_iv.clone().unwrap(), before.pin_pubkey_iv);
+    assert_eq!(after.previous_pin_pubkey_kid.clone().unwrap(), before.pin_pubkey_kid);
 
-    assert_eq!(after.encrypted_pin_pubkey_sec1, new_pin.clone().data);
-    assert_eq!(after.pin_pubkey_iv, new_pin.clone().iv.0);
+    assert_eq!(after.encrypted_pin_pubkey_sec1, new_pin.value.clone().data);
+    assert_eq!(after.pin_pubkey_iv, new_pin.value.clone().iv.0);
+    assert_eq!(&after.pin_pubkey_kid, new_pin.kid.as_ref());
 
     (db, wallet_user_id, wallet_id, new_pin, before, after)
 }
@@ -269,8 +276,10 @@ async fn test_change_pin_and_commit() {
 
     assert!(after_commit.encrypted_previous_pin_pubkey_sec1.is_none());
     assert!(after_commit.previous_pin_pubkey_iv.is_none());
-    assert_eq!(after_commit.encrypted_pin_pubkey_sec1, new_pin.clone().data);
-    assert_eq!(after_commit.pin_pubkey_iv, new_pin.iv.0);
+    assert!(after_commit.previous_pin_pubkey_kid.is_none());
+    assert_eq!(after_commit.encrypted_pin_pubkey_sec1, new_pin.value.clone().data);
+    assert_eq!(after_commit.pin_pubkey_iv, new_pin.value.iv.0);
+    assert_eq!(after_commit.pin_pubkey_kid, new_pin.kid.into_inner());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -285,11 +294,13 @@ async fn test_rollback_pin() {
 
     assert!(after_rollback.encrypted_previous_pin_pubkey_sec1.is_none());
     assert!(after_rollback.previous_pin_pubkey_iv.is_none());
+    assert!(after_rollback.previous_pin_pubkey_kid.is_none());
     assert_eq!(
         after_rollback.encrypted_pin_pubkey_sec1,
         before_pin_change.encrypted_pin_pubkey_sec1
     );
     assert_eq!(after_rollback.pin_pubkey_iv, before_pin_change.pin_pubkey_iv);
+    assert_eq!(after_rollback.pin_pubkey_kid, before_pin_change.pin_pubkey_kid);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
