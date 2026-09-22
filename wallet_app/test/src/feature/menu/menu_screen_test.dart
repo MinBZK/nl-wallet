@@ -18,7 +18,7 @@ void main() {
   group('goldens', () {
     testGoldens('ltc26 light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const MenuScreen().withState<MenuBloc, MenuState>(
+        const MenuScreen(showDesignSystemRow: false).withState<MenuBloc, MenuState>(
           MockMenuBloc(),
           const MenuInitial(),
         ),
