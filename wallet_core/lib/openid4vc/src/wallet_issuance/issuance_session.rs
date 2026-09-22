@@ -3025,8 +3025,7 @@ mod tests {
                     )
                     .map(|_| ())
             }
-            (Credentials::SdJwt(_), metadata @ OfferedCredentialMetadata::TypeMetadata { .. })
-            | (Credentials::SdJwt(_), metadata @ OfferedCredentialMetadata::CredentialMetadata(_)) => credentials
+            (Credentials::SdJwt(_), metadata) => credentials
                 .into_issued_sd_jwts(key_identifiers_and_public_keys, metadata, preview, trust_anchors)
                 .map(|_| ()),
             _ => panic!("illegal credential format and metadata combination"),
