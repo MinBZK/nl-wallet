@@ -717,13 +717,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 config.credential_metadata.as_ref(),
             ) {
                 (CredentialFormat::SdJwt { .. } | CredentialFormat::Other { .. }, Some(uri), _) => {
-                    let attestation_type = config
+                    let vct = config
                         .format
                         .attestation_type()
                         // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
                         .expect("unsupported format");
 
-                    type_metadata_configs.push((uri, (config_id, attestation_type)));
+                    type_metadata_configs.push((uri, (vct, config_id)));
                 }
                 (_, _, Some(metadata)) => {
                     credential_metadata.insert(
@@ -757,24 +757,47 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             ));
         }
 
+        // Make sure there is only one distinct attestation type per URI, while retaining the config IDs.
+        let (uris_and_vcts_with_configs, multi_vct_uris): (Vec<_>, Vec<_>) =
+            configs_per_uri.into_iter().partition_map(|(uri, vct_and_config_ids)| {
+                let (vcts, config_ids): (Vec<_>, Vec<_>) = vct_and_config_ids.into_iter().unzip();
+
+                match vcts.into_iter().unique().exactly_one() {
+                    Ok(vct) => Either::Left((uri, vct, config_ids)),
+                    Err(vcts_iter) => {
+                        let vcts = vcts_iter.map(str::to_string).collect_vec();
+
+                        Either::Right((uri.clone(), vcts))
+                    }
+                }
+            });
+
+        if !multi_vct_uris.is_empty() {
+            return Err(WalletIssuanceError::TypeMetadataUriMultipleVcts(Box::new(
+                multi_vct_uris,
+            )));
+        }
+
         // Fetch type metadata documents from URIs, then normalize the chain of documents.
-        let metadata_per_config_id = try_join_all(configs_per_uri.into_iter().map(
-            async |(uri, configs)| -> Result<_, WalletIssuanceError> {
+        let metadata_per_config_id = try_join_all(uris_and_vcts_with_configs.into_iter().map(
+            async |(uri, vct, config_ids)| -> Result<_, WalletIssuanceError> {
                 let documents = message_client.request_type_metadata(uri.as_url().clone()).await?;
 
-                configs
+                let (normalized, raw) = documents
+                    .clone()
+                    .into_normalized(vct)
+                    .map_err(WalletIssuanceError::TypeMetadataVerification)?;
+                let metadata = OfferedCredentialMetadata::TypeMetadata { normalized, raw };
+
+                // Duplicate the resulting metadata per Credential Configuration ID.
+                let config_id_count = config_ids.len();
+                let config_ids_and_metadata = config_ids
                     .into_iter()
-                    .map(|(config_id, attestation_type)| {
-                        let (normalized, raw) = documents
-                            .clone()
-                            .into_normalized(attestation_type)
-                            .map_err(WalletIssuanceError::TypeMetadataVerification)?;
+                    .cloned()
+                    .zip(std::iter::repeat_n(metadata, config_id_count))
+                    .collect_vec();
 
-                        let metadata = OfferedCredentialMetadata::TypeMetadata { normalized, raw };
-
-                        Ok((config_id.clone(), metadata))
-                    })
-                    .collect::<Result<Vec<_>, _>>()
+                Ok(config_ids_and_metadata)
             },
         ))
         .await?
@@ -1334,6 +1357,7 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
@@ -2067,7 +2091,7 @@ mod tests {
         let pid_config_id = CredentialConfigurationId::from("pid_config_id".to_string());
         let other_config_id = CredentialConfigurationId::from("other_config_id".to_string());
 
-        // Both configurations carry the same type metadata URI.
+        // Both configurations carry the same type metadata URI and have the same vct value.
         let issuer_metadata = IssuerMetadata::new_mock(
             issuer_identifier.clone(),
             vec![(
@@ -2081,6 +2105,7 @@ mod tests {
             .unwrap()
             .clone();
 
+        // The metadata should be fetched only once.
         let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_request_type_metadata()
@@ -2102,13 +2127,92 @@ mod tests {
         assert_eq!(metadata.len(), 2);
         assert!(metadata.contains_key(&pid_config_id));
         assert!(metadata.contains_key(&other_config_id));
-        assert_matches!(
-            metadata.get(&pid_config_id).unwrap(),
-            OfferedCredentialMetadata::TypeMetadata { .. }
+
+        // The normalized SD-JWT VC Type Metadata for both Credential Configurations should be exactly the same.
+        match (metadata.get(&pid_config_id), metadata.get(&other_config_id)) {
+            (
+                Some(OfferedCredentialMetadata::TypeMetadata {
+                    normalized: pid_normalized,
+                    ..
+                }),
+                Some(OfferedCredentialMetadata::TypeMetadata {
+                    normalized: other_normalized,
+                    ..
+                }),
+            ) => {
+                assert_eq!(pid_normalized, other_normalized);
+            }
+            _ => {
+                panic!("metadata for both credential configurations should be SD-JWT VC Type Metadata");
+            }
+        }
+    }
+
+    #[test]
+    fn test_start_issuance_type_metadata_multiple_vcts() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        // Create issuer metadata with a type_metadata_uri that is used by two distinct credential configurations.
+        let pid_config_id = CredentialConfigurationId::from("pid_config_id".to_string());
+        let address_config_id = CredentialConfigurationId::from("address_config_id".to_string());
+
+        let mut issuer_metadata = IssuerMetadata::new_mock(
+            "https://example.com".parse().unwrap(),
+            vec![(
+                pid_config_id.clone(),
+                CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            )],
         );
+        let mut address_credential_config = issuer_metadata
+            .credential_configurations_supported
+            .get(&pid_config_id)
+            .unwrap()
+            .clone();
+        let expected_type_metadata_uri = address_credential_config.type_metadata_uri.clone().unwrap();
+        let CredentialFormat::SdJwt { vct, .. } = &mut address_credential_config.format else {
+            unreachable!()
+        };
+        *vct = ADDRESS_ATTESTATION_TYPE.to_string();
+        issuer_metadata
+            .credential_configurations_supported
+            .insert(address_config_id.clone(), address_credential_config);
+
+        let error = test_start_issuance(
+            &ca,
+            &TrustAnchors::from(&ca),
+            issuer_metadata,
+            vec![
+                (
+                    "pid_credential_id".to_string().into(),
+                    pid_config_id,
+                    Format::SdJwt,
+                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                ),
+                (
+                    "address_credential_id".to_string().into(),
+                    address_config_id,
+                    Format::SdJwt,
+                    PreviewableCredentialPayload::nl_pid_address_example(&MockTimeGenerator::default()),
+                ),
+            ],
+            TypeMetadata::pid_example(),
+            &TokenResponseFields::Neither,
+        )
+        .expect_err("starting issuance session should not succeed");
+
         assert_matches!(
-            metadata.get(&other_config_id).unwrap(),
-            OfferedCredentialMetadata::TypeMetadata { .. }
+            error,
+            WalletIssuanceError::TypeMetadataUriMultipleVcts(multi_vct_uris)
+                if multi_vct_uris.len() == 1 &&
+                    multi_vct_uris.first().unwrap().0 == expected_type_metadata_uri &&
+                    multi_vct_uris
+                        .first()
+                        .unwrap()
+                        .1
+                        .iter()
+                        .map(String::as_str)
+                        .sorted()
+                        .eq([ADDRESS_ATTESTATION_TYPE, PID_ATTESTATION_TYPE])
         );
     }
 

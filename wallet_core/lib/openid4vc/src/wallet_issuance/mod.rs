@@ -211,6 +211,15 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     CredentialMetadataMissing(Vec<CredentialConfigurationId>),
 
+    #[error(
+        "type metadata URI(s) for multiple attestation types detected: {}",
+        .0.iter().map(|(uri, attestation_types)| {
+            format!("{}: {}", uri, attestation_types.iter().join(" / "))
+        }).join(", ")
+    )]
+    #[category(critical)]
+    TypeMetadataUriMultipleVcts(Box<Vec<(IssuerUrl, Vec<String>)>>),
+
     #[error("could not read issuer registration from preview: {0}")]
     PreviewIssuerRegistration(#[source] CredentialPreviewError),
 
