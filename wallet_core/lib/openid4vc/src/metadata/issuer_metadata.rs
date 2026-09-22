@@ -619,12 +619,7 @@ mod example_constructors {
 
     fn example_claim(keys: &[&str], mandatory: bool) -> CredentialClaim {
         CredentialClaim {
-            path: keys
-                .iter()
-                .map(|key| ClaimPath::SelectByKey(String::from(*key)))
-                .collect_vec()
-                .try_into()
-                .expect("claim path should not be empty"),
+            path: ClaimPath::select_by_keys(keys),
             mandatory,
             display: Some(vec_nonempty![NameLocale {
                 name: Some(format!("label for {}", keys.join("."))),
