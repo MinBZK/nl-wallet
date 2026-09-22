@@ -286,7 +286,8 @@ where
 
 /// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
 /// are based on a list of format / attestation type combinations and the relevant SD-JWT VC Type Metadata documents.
-/// The Type Metadata is also used to generate Credential Metadata from, ensuring the claim names are identical.
+/// The Type Metadata is also used to generate Credential Metadata from, ensuring the claim names (without namespace)
+/// are identical.
 pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
     issuer_identifier: IssuerIdentifier,
     attestations: Vec<(Format, String, TypeMetadataDocuments)>,
