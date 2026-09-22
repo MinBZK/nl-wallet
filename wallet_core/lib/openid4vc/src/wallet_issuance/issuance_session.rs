@@ -996,7 +996,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     )
                 }
                 (Format::MsoMdoc, OfferedCredentialMetadata::TypeMetadata { .. }) => {
-                    Err(WalletIssuanceError::CredentialMetadataMissing(vec![
+                    Err(WalletIssuanceError::MetadataMissing(vec![
                         credential_preview.config_id.clone(),
                     ]))?
                 }
@@ -2873,6 +2873,49 @@ mod tests {
         );
         // Credential Metadata does not describe a chain of extended attestation types.
         assert!(credential_with_metadata.extended_attestation_types.is_empty());
+    }
+
+    #[test]
+    fn test_accept_issuance_error_mdoc_described_by_type_metadata() {
+        let (signer, previews, mut metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id".to_string().into(), Format::MsoMdoc)]),
+            SdJwtMetadataUsage::TypeMetadata,
+        );
+        let trust_anchors = signer.trust_anchors.clone();
+
+        // Replace the mdoc configuration's Credential Metadata with Type Metadata for the same attestation type.
+        let config_id = MockCredentialSigner::config_id_for_format(Format::MsoMdoc);
+        let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(
+            TypeMetadata::example_with_claim_name(PID_ATTESTATION_TYPE, "family_name"),
+        );
+        let (normalized, raw) = metadata_documents.into_normalized(PID_ATTESTATION_TYPE).unwrap();
+        metadata.insert(
+            config_id.clone(),
+            OfferedCredentialMetadata::TypeMetadata { normalized, raw },
+        );
+
+        let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
+
+        // The credential response is only rejected once it has been received, so it is still requested.
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            move |_url, credential_request, _dpop_header, _access_token| {
+                Ok(signer.response_from_request(credential_request))
+            },
+        );
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
+        }
+        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(
+            error,
+            WalletIssuanceError::MetadataMissing(missing_config_ids) if missing_config_ids == vec![config_id]
+        );
     }
 
     #[test]
