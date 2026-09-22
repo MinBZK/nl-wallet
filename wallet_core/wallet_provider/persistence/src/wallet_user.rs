@@ -28,6 +28,7 @@ use sea_orm::sea_query::SelectStatement;
 use sea_orm::sea_query::SimpleExpr;
 use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
@@ -41,6 +42,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
@@ -212,10 +214,12 @@ where
             .to_public_key_der()
             .map_err(|error| PersistenceError::VerifyingKeyConversion(Box::new(error)))?
             .to_vec()),
-        encrypted_pin_pubkey_sec1: Set(user.encrypted_pin_pubkey.data),
-        pin_pubkey_iv: Set(user.encrypted_pin_pubkey.iv.0),
+        encrypted_pin_pubkey_sec1: Set(user.encrypted_pin_pubkey.value.data),
+        pin_pubkey_iv: Set(user.encrypted_pin_pubkey.value.iv.0),
+        pin_pubkey_kid: Set(user.encrypted_pin_pubkey.kid.into_inner()),
         encrypted_previous_pin_pubkey_sec1: Set(None),
         previous_pin_pubkey_iv: Set(None),
+        previous_pin_pubkey_kid: Set(None),
         instruction_sequence_number: Set(0),
         pin_entries: Set(0),
         last_unsuccessful_pin: Set(None),
@@ -243,8 +247,10 @@ struct WalletUserJoinedModel {
     hw_pubkey_der: Vec<u8>,
     encrypted_pin_pubkey_sec1: Vec<u8>,
     pin_pubkey_iv: Vec<u8>,
+    pin_pubkey_kid: String,
     encrypted_previous_pin_pubkey_sec1: Option<Vec<u8>>,
     previous_pin_pubkey_iv: Option<Vec<u8>>,
+    previous_pin_pubkey_kid: Option<String>,
     pin_entries: i16,
     last_unsuccessful_pin: Option<DateTimeWithTimeZone>,
     instruction_challenge: Option<Vec<u8>>,
@@ -275,8 +281,10 @@ where
         .column(wallet_user::Column::HwPubkeyDer)
         .column(wallet_user::Column::EncryptedPinPubkeySec1)
         .column(wallet_user::Column::PinPubkeyIv)
+        .column(wallet_user::Column::PinPubkeyKid)
         .column(wallet_user::Column::EncryptedPreviousPinPubkeySec1)
         .column(wallet_user::Column::PreviousPinPubkeyIv)
+        .column(wallet_user::Column::PreviousPinPubkeyKid)
         .column(wallet_user::Column::PinEntries)
         .column(wallet_user::Column::LastUnsuccessfulPin)
         .column(wallet_user::Column::RevocationCodeHmac)
@@ -330,12 +338,22 @@ where
         .parse()
         .expect("parsing the wallet user state from the database should always succeed");
 
-    let encrypted_pin_pubkey = Encrypted::new(
-        model.encrypted_pin_pubkey_sec1,
-        InitializationVector(model.pin_pubkey_iv),
-    );
-    let encrypted_previous_pin_pubkey = match (model.encrypted_previous_pin_pubkey_sec1, model.previous_pin_pubkey_iv) {
-        (Some(sec1), Some(iv)) => Some(Encrypted::new(sec1, InitializationVector(iv))),
+    let encrypted_pin_pubkey = WithKid {
+        value: Encrypted::new(
+            model.encrypted_pin_pubkey_sec1,
+            InitializationVector(model.pin_pubkey_iv),
+        ),
+        kid: Kid::try_from(model.pin_pubkey_kid).map_err(PersistenceError::KidConversion)?,
+    };
+    let encrypted_previous_pin_pubkey = match (
+        model.encrypted_previous_pin_pubkey_sec1,
+        model.previous_pin_pubkey_iv,
+        model.previous_pin_pubkey_kid,
+    ) {
+        (Some(sec1), Some(iv), Some(kid)) => Some(WithKid {
+            value: Encrypted::new(sec1, InitializationVector(iv)),
+            kid: Kid::try_from(kid).map_err(PersistenceError::KidConversion)?,
+        }),
         _ => None,
     };
     let instruction_challenge = match (
@@ -599,7 +617,7 @@ where
 pub async fn change_pin<S, T>(
     db: &T,
     wallet_id: &WalletId,
-    new_encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    new_encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
     user_state: WalletUserState,
 ) -> Result<()>
 where
@@ -609,11 +627,15 @@ where
     let mut fields = vec![
         (
             wallet_user::Column::EncryptedPinPubkeySec1,
-            Expr::value(new_encrypted_pin_pubkey.data),
+            Expr::value(new_encrypted_pin_pubkey.value.data),
         ),
         (
             wallet_user::Column::PinPubkeyIv,
-            Expr::value(new_encrypted_pin_pubkey.iv.0),
+            Expr::value(new_encrypted_pin_pubkey.value.iv.0),
+        ),
+        (
+            wallet_user::Column::PinPubkeyKid,
+            Expr::value(new_encrypted_pin_pubkey.kid.into_inner()),
         ),
         (wallet_user::Column::State, Expr::value(user_state.to_string())),
     ];
@@ -628,6 +650,10 @@ where
             wallet_user::Column::PreviousPinPubkeyIv,
             Expr::col(wallet_user::Column::PinPubkeyIv).into(),
         ));
+        fields.push((
+            wallet_user::Column::PreviousPinPubkeyKid,
+            Expr::col(wallet_user::Column::PinPubkeyKid).into(),
+        ));
     }
 
     update_fields(db, wallet_id, fields).await
@@ -641,6 +667,7 @@ where
     wallet_user::Entity::update_many()
         .col_expr(wallet_user::Column::EncryptedPreviousPinPubkeySec1, Expr::cust("null"))
         .col_expr(wallet_user::Column::PreviousPinPubkeyIv, Expr::cust("null"))
+        .col_expr(wallet_user::Column::PreviousPinPubkeyKid, Expr::cust("null"))
         .filter(
             wallet_user::Column::WalletId
                 .eq(wallet_id.as_ref())
@@ -667,8 +694,13 @@ where
             wallet_user::Column::PinPubkeyIv,
             Expr::col(wallet_user::Column::PreviousPinPubkeyIv).into(),
         )
+        .col_expr(
+            wallet_user::Column::PinPubkeyKid,
+            Expr::col(wallet_user::Column::PreviousPinPubkeyKid).into(),
+        )
         .col_expr(wallet_user::Column::EncryptedPreviousPinPubkeySec1, Expr::cust("null"))
         .col_expr(wallet_user::Column::PreviousPinPubkeyIv, Expr::cust("null"))
+        .col_expr(wallet_user::Column::PreviousPinPubkeyKid, Expr::cust("null"))
         .filter(
             wallet_user::Column::WalletId
                 .eq(wallet_id.as_ref())

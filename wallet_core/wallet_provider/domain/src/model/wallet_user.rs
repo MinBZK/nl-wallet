@@ -19,9 +19,16 @@ use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
 
+use crate::keys::Kid;
 use crate::model::QueryResult;
 
 pub type WalletUserQueryResult = QueryResult<WalletUser>;
+
+#[derive(Debug, Clone)]
+pub struct WithKid<T> {
+    pub value: T,
+    pub kid: Kid,
+}
 
 #[derive(Debug)]
 pub struct WalletUser {
@@ -29,9 +36,9 @@ pub struct WalletUser {
     pub wallet_id: WalletId,
     pub hw_pubkey: VerifyingKey,
     #[debug(skip)]
-    pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    pub encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
     #[debug(skip)]
-    pub encrypted_previous_pin_pubkey: Option<Encrypted<VerifyingKey>>,
+    pub encrypted_previous_pin_pubkey: Option<WithKid<Encrypted<VerifyingKey>>>,
     pub unsuccessful_pin_entries: u8,
     pub last_unsuccessful_pin_entry: Option<DateTime<Utc>>,
     pub instruction_challenge: Option<InstructionChallenge>,
@@ -104,7 +111,7 @@ pub struct WalletUserCreate {
     pub wallet_id: WalletId,
     pub hw_pubkey: VerifyingKey,
     #[debug(skip)]
-    pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    pub encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
     pub attestation_date_time: DateTime<Utc>,
     pub attestation: WalletUserAttestationCreate,
     pub revocation_code_hmac: Vec<u8>,
@@ -145,13 +152,13 @@ pub struct WalletUserKeys {
 #[derive(Clone)]
 pub struct WalletUserKey {
     pub wallet_user_key_id: Uuid,
-    pub key: WrappedKey,
+    pub key: WithKid<WrappedKey>,
     pub is_blocked: bool,
 }
 
 impl WalletUserKey {
     pub fn sha256_fingerprint(&self) -> String {
-        verifying_key_sha256(self.key.public_key())
+        verifying_key_sha256(self.key.value.public_key())
     }
 }
 
@@ -207,6 +214,8 @@ pub mod mock {
     use super::WalletUser;
     use super::WalletUserAttestation;
     use super::WalletUserState;
+    use super::WithKid;
+    use crate::keys::Kid;
     use crate::model::wallet_user::WalletId;
 
     pub fn wallet_user_1() -> WalletUser {
@@ -225,7 +234,10 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
 "#,
             )
             .unwrap(),
-            encrypted_pin_pubkey: Encrypted::new(random_bytes(32), InitializationVector(random_bytes(32))),
+            encrypted_pin_pubkey: WithKid {
+                value: Encrypted::new(random_bytes(32), InitializationVector(random_bytes(32))),
+                kid: Kid::try_from("0").unwrap(),
+            },
             encrypted_previous_pin_pubkey: None,
             unsuccessful_pin_entries: 0,
             last_unsuccessful_pin_entry: None,

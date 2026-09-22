@@ -1,3 +1,5 @@
+use crate::keys::KidError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum PersistenceError {
     #[error("connection error: {0}")]
@@ -11,6 +13,9 @@ pub enum PersistenceError {
 
     #[error("verifying key conversion error: {0}")]
     VerifyingKeyConversion(#[source] Box<p256::pkcs8::spki::Error>),
+
+    #[error("kid conversion error: {0}")]
+    KidConversion(#[source] KidError),
 
     #[error("signing key conversion error: {0}")]
     SigningKeyConversion(#[from] p256::ecdsa::Error),

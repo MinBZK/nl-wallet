@@ -733,8 +733,14 @@ generate_wp_signing_key instruction_result_signing_1
 WP_INSTRUCTION_RESULT_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/instruction_result_signing_${WP_INSTRUCTION_RESULT_KID}.pub.der" ${BASE64})
 export WP_INSTRUCTION_RESULT_PUBLIC_KEY
 
+WP_ATTESTATION_WRAPPING_KID=0
+export WP_ATTESTATION_WRAPPING_KID
+
 generate_wp_aes_key attestation_wrapping
 export WP_ATTESTATION_WRAPPING_KEY_PATH="${TARGET_DIR}/wallet_provider/attestation_wrapping.key"
+
+WP_PIN_PUBKEY_ENCRYPTION_KID=0
+export WP_PIN_PUBKEY_ENCRYPTION_KID
 
 generate_wp_aes_key pin_pubkey_encryption
 export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
@@ -767,8 +773,8 @@ render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-co
 # Import secret keys into HSM
 ########################################################################
 
-softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "${HSM_TOKEN}"
-softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "${HSM_TOKEN}"
+softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_${WP_ATTESTATION_WRAPPING_KID}" --token "${HSM_TOKEN}"
+softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_${WP_PIN_PUBKEY_ENCRYPTION_KID}" --token "${HSM_TOKEN}"
 
 p11tool --login --write \
   --secret-key="$(openssl rand -hex 32 | tr -d '\n')" \

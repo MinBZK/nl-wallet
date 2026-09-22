@@ -162,6 +162,7 @@ test_common = [
     "dep:verification_server",
     "dep:wallet_configuration",
     "dep:wallet_provider",
+    "dep:wallet_provider_domain",
     "dep:wallet_provider_persistence",
     "hsm/test",
     "http_utils/client",
@@ -342,6 +343,7 @@ wallet = { path = "../wallet", optional = true }
 wallet_account = { path = "../wallet_provider/wallet_account", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
+wallet_provider_domain = { path = "../wallet_provider/domain", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_provider_service = { path = "../wallet_provider/service", optional = true }
 wscd = { path = "../lib/wscd", optional = true }

@@ -109,6 +109,20 @@ spec:
             - name: WALLET_PROVIDER__CURRENT_INSTRUCTION_RESULT_KID
               value: {{ .Values.keyIdentifiers.currentInstructionResultKid | quote }}
 
+            - name: WALLET_PROVIDER__ATTESTATION_WRAPPING_KID__CURRENT
+              value: {{ .Values.keyIdentifiers.currentAttestationWrappingKid | quote }}
+            {{- if ne .Values.keyIdentifiers.previousAttestationWrappingKid nil }}
+            - name: WALLET_PROVIDER__ATTESTATION_WRAPPING_KID__PREVIOUS
+              value: {{ .Values.keyIdentifiers.previousAttestationWrappingKid | quote }}
+            {{- end }}
+
+            - name: WALLET_PROVIDER__PIN_PUBKEY_ENCRYPTION_KID__CURRENT
+              value: {{ .Values.keyIdentifiers.currentPinPubkeyEncryptionKid | quote }}
+            {{- if ne .Values.keyIdentifiers.previousPinPubkeyEncryptionKid nil }}
+            - name: WALLET_PROVIDER__PIN_PUBKEY_ENCRYPTION_KID__PREVIOUS
+              value: {{ .Values.keyIdentifiers.previousPinPubkeyEncryptionKid | quote }}
+            {{- end }}
+
             - name: WALLET_PROVIDER__PID_ISSUER_TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:
