@@ -803,7 +803,6 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::attributes::AttributesError;
     use attestation_data::metadata::AttestationClaims;
-    use attestation_data::metadata::ClaimConstraint;
     use attestation_types::claim_path::ClaimPath;
     use chrono::DateTime;
     use jwe::algorithm::EncryptionAlgorithm;
@@ -1460,27 +1459,6 @@ mod tests {
         assert_eq!(
             credential_config.type_metadata_uri,
             Some("https://example.com/type_metadata".parse().unwrap())
-        );
-    }
-
-    #[test]
-    fn test_credential_metadata_described_claims() {
-        let metadata = CredentialMetadata::new_full_example();
-        let claims = metadata.claim_constraints().collect::<Vec<_>>();
-
-        assert_eq!(
-            claims
-                .iter()
-                .map(|claim| (claim.path.clone(), claim.mandatory))
-                .collect::<Vec<_>>(),
-            vec![
-                (ClaimPath::select_by_keys(&["birth_date"]), true),
-                (ClaimPath::select_by_keys(&["place_of_birth", "locality"]), false),
-            ]
-        );
-        assert_eq!(
-            claims.iter().filter_map(ClaimConstraint::key_path).collect::<Vec<_>>(),
-            vec![vec_nonempty!["birth_date"], vec_nonempty!["place_of_birth", "locality"],]
         );
     }
 

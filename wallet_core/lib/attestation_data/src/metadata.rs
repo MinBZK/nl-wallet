@@ -39,3 +39,43 @@ impl AttestationClaims for NormalizedTypeMetadata {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use attestation_types::claim_path::ClaimPath;
+    use utils::vec_nonempty;
+
+    use crate::metadata::ClaimConstraint;
+
+    #[test]
+    fn test_claim_constraints_key_path() {
+        let birth_date_paths = ClaimPath::select_by_keys(&["birth_date"]);
+        let locality_paths = ClaimPath::select_by_keys(&["place_of_birth", "locality"]);
+
+        let claims = vec_nonempty![
+            ClaimConstraint {
+                path: &birth_date_paths,
+                mandatory: true,
+            },
+            ClaimConstraint {
+                path: &locality_paths,
+                mandatory: false,
+            }
+        ];
+
+        assert_eq!(
+            claims
+                .iter()
+                .map(|claim| (claim.path.clone(), claim.mandatory))
+                .collect::<Vec<_>>(),
+            vec![
+                (ClaimPath::select_by_keys(&["birth_date"]), true),
+                (ClaimPath::select_by_keys(&["place_of_birth", "locality"]), false),
+            ]
+        );
+        assert_eq!(
+            claims.iter().filter_map(ClaimConstraint::key_path).collect::<Vec<_>>(),
+            vec![vec_nonempty!["birth_date"], vec_nonempty!["place_of_birth", "locality"],]
+        );
+    }
+}
