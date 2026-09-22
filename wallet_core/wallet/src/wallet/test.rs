@@ -686,91 +686,80 @@ pub fn mock_issuance_session(
                             Vec::<String>::new(),
                         )
                     }
-                    (StoredAttestation::SdJwt(sd_jwt), IssuedCredentialMetadata::TypeMetadata(metadata_documents)) => {
-                        let normalized_type_metadata = metadata_documents.clone().to_normalized().unwrap();
-
-                        let key_identifier = stored_attestation.key_identifier;
-                        let claims = sd_jwt.claims();
-                        let exp = claims.exp;
-                        let nbf = claims.nbf;
-                        let attestation_type = claims.vct.clone();
-                        let issuer_registration =
-                            match IssuerRegistration::from_certificate(sd_jwt.issuer_leaf_certificate()) {
-                                Ok(Some(registration)) => registration,
-                                _ => IssuerRegistration::new_mock(),
-                            };
-
-                        let attestation_presentation = AttestationPresentation::create_from_sd_jwt_claims(
-                            AttestationIdentity::Ephemeral,
-                            normalized_type_metadata.vct().to_string(),
-                            normalized_type_metadata.clone(),
-                            issuer_registration.organization.clone(),
-                            AttestationValidity {
-                                revocation_status: None,
-                                validity_window: ValidityWindow {
-                                    valid_from: nbf.map(Into::into),
-                                    valid_until: exp.map(Into::into),
-                                },
-                            },
-                            sd_jwt.decoded_claims().unwrap(),
-                            &EmptyPresentationConfig,
-                        )
-                        .unwrap();
-
-                        (
-                            IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy { key_identifier, sd_jwt }]),
-                            attestation_type,
-                            exp,
-                            nbf,
-                            issuer_registration,
-                            attestation_presentation,
-                            normalized_type_metadata.extended_vcts().map(str::to_string).collect(),
-                        )
-                    }
-                    (
-                        StoredAttestation::SdJwt(sd_jwt),
-                        IssuedCredentialMetadata::CredentialMetadata(credential_metadata),
-                    ) => {
-                        let key_identifier = stored_attestation.key_identifier;
-                        let claims = sd_jwt.claims();
-                        let exp = claims.exp;
-                        let nbf = claims.nbf;
-                        let attestation_type = claims.vct.clone();
-                        let issuer_registration =
-                            match IssuerRegistration::from_certificate(sd_jwt.issuer_leaf_certificate()) {
-                                Ok(Some(registration)) => registration,
-                                _ => IssuerRegistration::new_mock(),
-                            };
-
-                        let attestation_presentation = AttestationPresentation::create_from_sd_jwt_claims(
-                            AttestationIdentity::Ephemeral,
-                            attestation_type.clone(),
-                            credential_metadata.clone(),
-                            issuer_registration.organization.clone(),
-                            AttestationValidity {
-                                revocation_status: None,
-                                validity_window: ValidityWindow {
-                                    valid_from: nbf.map(Into::into),
-                                    valid_until: exp.map(Into::into),
-                                },
-                            },
-                            sd_jwt.decoded_claims().unwrap(),
-                            &EmptyPresentationConfig,
-                        )
-                        .unwrap();
-
-                        (
-                            IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy { key_identifier, sd_jwt }]),
-                            attestation_type,
-                            exp,
-                            nbf,
-                            issuer_registration,
-                            attestation_presentation,
-                            Vec::<String>::new(),
-                        )
-                    }
                     (StoredAttestation::MsoMdoc(_), IssuedCredentialMetadata::TypeMetadata(_)) => {
                         panic!("an mdoc is described by Credential Metadata, not Type Metadata")
+                    }
+                    (StoredAttestation::SdJwt(sd_jwt), metadata) => {
+                        let key_identifier = stored_attestation.key_identifier;
+                        let claims = sd_jwt.claims();
+                        let exp = claims.exp;
+                        let nbf = claims.nbf;
+                        let attestation_type = claims.vct.clone();
+                        let issuer_registration =
+                            match IssuerRegistration::from_certificate(sd_jwt.issuer_leaf_certificate()) {
+                                Ok(Some(registration)) => registration,
+                                _ => IssuerRegistration::new_mock(),
+                            };
+
+                        let (attestation_presentation, extended_vcts) = match metadata {
+                            IssuedCredentialMetadata::TypeMetadata(metadata_documents) => {
+                                let normalized_type_metadata = metadata_documents.clone().to_normalized().unwrap();
+
+                                let attestation_presentation = AttestationPresentation::create_from_sd_jwt_claims(
+                                    AttestationIdentity::Ephemeral,
+                                    normalized_type_metadata.vct().to_string(),
+                                    normalized_type_metadata.clone(),
+                                    issuer_registration.organization.clone(),
+                                    AttestationValidity {
+                                        revocation_status: None,
+                                        validity_window: ValidityWindow {
+                                            valid_from: nbf.map(Into::into),
+                                            valid_until: exp.map(Into::into),
+                                        },
+                                    },
+                                    sd_jwt.decoded_claims().unwrap(),
+                                    &EmptyPresentationConfig,
+                                )
+                                .unwrap();
+
+                                let extended_vcts =
+                                    normalized_type_metadata.extended_vcts().map(str::to_string).collect();
+
+                                (attestation_presentation, extended_vcts)
+                            }
+                            IssuedCredentialMetadata::CredentialMetadata(credential_metadata) => {
+                                let attestation_presentation = AttestationPresentation::create_from_sd_jwt_claims(
+                                    AttestationIdentity::Ephemeral,
+                                    attestation_type.clone(),
+                                    credential_metadata.clone(),
+                                    issuer_registration.organization.clone(),
+                                    AttestationValidity {
+                                        revocation_status: None,
+                                        validity_window: ValidityWindow {
+                                            valid_from: nbf.map(Into::into),
+                                            valid_until: exp.map(Into::into),
+                                        },
+                                    },
+                                    sd_jwt.decoded_claims().unwrap(),
+                                    &EmptyPresentationConfig,
+                                )
+                                .unwrap();
+
+                                let extended_vcts = Vec::<String>::new();
+
+                                (attestation_presentation, extended_vcts)
+                            }
+                        };
+
+                        (
+                            IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy { key_identifier, sd_jwt }]),
+                            attestation_type,
+                            exp,
+                            nbf,
+                            issuer_registration,
+                            attestation_presentation,
+                            extended_vcts,
+                        )
                     }
                 };
 
