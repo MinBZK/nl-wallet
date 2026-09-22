@@ -1580,7 +1580,6 @@ mod tests {
 
         // The wallet will log a single disclosure event, containing
         // `AttestationPresentation` values for those attributes disclosed.
-        // An mdoc's claim key is namespaced (and has no "address" group of its own), unlike SD-JWT's.
         let (expected_given_name_key, expected_address_namespace): (Vec<&str>, &str) = match requested_format {
             Format::MsoMdoc => (vec![PID_ATTESTATION_TYPE, PID_GIVEN_NAME], ADDRESS_ATTESTATION_TYPE),
             Format::SdJwt => (vec![PID_GIVEN_NAME], PID_ADDRESS_GROUP),
