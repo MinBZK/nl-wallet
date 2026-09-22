@@ -11,16 +11,32 @@
 
 {% block content %}
 <aside>{% call languages::lang_selector(base.selected_lang, base.trans, base.available_languages, web_utils::OPTION_STR_NONE, web_utils::OPTION_STR_NONE) %}</aside>
-<header><!-- just the logo --></header>
 <main>
-    <section>
-        <h1>{{ base.trans.index_title }}</h1>
-        <p>
-            {{ base.trans.index_intro }}
-            <a href="https://edi.pleio.nl">{{ base.trans.index_intro_link }}</a>.
-        </p>
-    </section>
-    <nav>
+    <div class="page-columns">
+        <section class="intro">
+            <div class="logo-row">
+                <span class="wallet-logo" role="img" aria-label="NL Wallet">
+                    <span class="version-ribbon">{{ app_environment|upper }}</span>
+                </span>
+                <span class="logo-label">NL Wallet {{ app_environment|capitalize }}</span>
+            </div>
+            <h1>{{ base.trans.index_title }}</h1>
+            {% for paragraph in base.trans.index_intro %}
+            <p>{{ paragraph }}</p>
+            {% endfor %}
+            <h2>{{ base.trans.index_needs_heading }}</h2>
+            <ul class="needs-list">
+                <li><strong>{{ base.trans.index_needs_bullet_pre }}{{ app_environment }}{{ base.trans.index_needs_bullet_post }}</strong></li>
+            </ul>
+            <p>{{ base.trans.index_icon_pre }}<strong>{{ app_environment|upper }}</strong>{{ base.trans.index_icon_post }}</p>
+            <p>{{ base.trans.index_opened_from }}</p>
+            <p>
+                {{ base.trans.index_info_pre }}<a href="https://{{ base.trans.index_info_link }}">{{ base.trans.index_info_link }}</a>{{ base.trans.index_info_post }}
+            </p>
+        </section>
+        <section class="examples">
+            <p class="list-heading"><strong>{{ base.trans.index_list_heading }}</strong></p>
+            <nav>
         {% for service in demo_services %}
             {% for usecase_id in service.usecases %}
                 <a role="button" id="{{ usecase_id }}" href="{{ service.service_url.join(usecase_id) }}/?lang={{ base.selected_lang }}">
@@ -65,6 +81,8 @@
                 </a>
             {% endfor %}
         {% endfor %}
-    </nav>
+            </nav>
+        </section>
+    </div>
 </main>
 {% endblock %}
