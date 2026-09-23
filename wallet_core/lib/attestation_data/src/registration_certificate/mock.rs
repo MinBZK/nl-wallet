@@ -223,7 +223,7 @@ impl MockRegistrationCertificateAuthority {
         self.sign_jwt(&verifier_registration_certificate_payload(access_certificate, query))
     }
 
-    fn sign_jwt(&self, payload: &RegistrationCertificateFixture) -> Vec<u8> {
+    pub fn sign_jwt(&self, payload: &RegistrationCertificateFixture) -> Vec<u8> {
         let signing_key_pair = self.ca.generate_issuer_mock().unwrap();
         SignedJwt::<_, JadesbbHeader>::sign_with_iat(payload, &signing_key_pair, &TimeGenerator)
             .now_or_never()
@@ -234,16 +234,16 @@ impl MockRegistrationCertificateAuthority {
     }
 
     pub fn issue_cwt(&self, access_certificate: &BorrowingCertificate, query: Query) -> Vec<u8> {
+        self.sign_cwt(&verifier_registration_certificate_payload(access_certificate, query))
+    }
+
+    pub fn sign_cwt(&self, payload: &RegistrationCertificateFixture) -> Vec<u8> {
         let signing_key_pair = self.ca.generate_issuer_mock().unwrap();
-        SignedWrprcCwt::sign_with_certificate(
-            &verifier_registration_certificate_payload(access_certificate, query),
-            &signing_key_pair,
-            &TimeGenerator,
-        )
-        .now_or_never()
-        .unwrap()
-        .unwrap()
-        .to_vec()
-        .unwrap()
+        SignedWrprcCwt::sign_with_certificate(payload, &signing_key_pair, &TimeGenerator)
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+            .to_vec()
+            .unwrap()
     }
 }

@@ -699,7 +699,11 @@ mod test {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
+    use attestation_data::registration_certificate::RegistrationCertificateValidationError;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
+    use attestation_data::registration_certificate::mock::issuer_registration_certificate_payload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
@@ -727,6 +731,7 @@ mod test {
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use serde_json::json;
+    use token_status_list::status_list::StatusType;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use url::Url;
     use utils::date_time_seconds::DateTimeSeconds;
@@ -879,11 +884,47 @@ mod test {
             issuer_metadata_json["nonce_endpoint"] = json!(server.url("/issuance/nonce"));
         }
 
-        let registration_certificate = MockRegistrationCertificate::new_issuer(
+        let mut payload = issuer_registration_certificate_payload(
             wrpac_keypair.certificate(),
             [Format::MsoMdoc, Format::SdJwt]
                 .map(|format| CredentialKind::new(format, PID_ATTESTATION_TYPE.to_string())),
         );
+        match options.registration_certificate {
+            RegistrationCertificateScenario::WrongSubject => payload.0["sub"] = json!("another-issuer"),
+            RegistrationCertificateScenario::Expired => {
+                payload.0["iat"] = json!(12345678);
+                payload.0["exp"] = json!(12345679);
+            }
+            RegistrationCertificateScenario::InvalidPayload => payload.0["id"] = json!(null),
+            _ => {}
+        }
+        let authority = MockRegistrationCertificateAuthority::new_with_status(
+            if matches!(
+                options.registration_certificate,
+                RegistrationCertificateScenario::Revoked
+            ) {
+                StatusType::Invalid
+            } else {
+                StatusType::Valid
+            },
+        );
+        let certificate = if matches!(options.registration_certificate, RegistrationCertificateScenario::Cwt) {
+            authority.sign_cwt(&payload)
+        } else {
+            authority.sign_jwt(&payload)
+        };
+        let registration_certificate = MockRegistrationCertificate {
+            certificate,
+            trust_anchors: authority.trust_anchors,
+            status_list_client: if matches!(
+                options.registration_certificate,
+                RegistrationCertificateScenario::UntrustedStatusList
+            ) {
+                MockRegistrationCertificateAuthority::new().status_list_client
+            } else {
+                authority.status_list_client
+            },
+        };
         let mut issuer_metadata: IssuerMetadata = serde_json::from_value(issuer_metadata_json).unwrap();
         let issuer_info = IssuerInfo::RegistrationCertificate {
             data: RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
@@ -948,6 +989,18 @@ mod test {
         )
     }
 
+    #[derive(Debug, Clone, Copy, Default)]
+    enum RegistrationCertificateScenario {
+        #[default]
+        Jwt,
+        Cwt,
+        WrongSubject,
+        Expired,
+        InvalidPayload,
+        Revoked,
+        UntrustedStatusList,
+    }
+
     #[derive(Debug, Clone, Copy)]
     struct IssuerMetadataOptions<'a> {
         has_nonce_endpoint: bool,
@@ -957,6 +1010,7 @@ mod test {
         with_crl: bool,
         registration_certificate_count: usize,
         has_other_issuer_info: bool,
+        registration_certificate: RegistrationCertificateScenario,
     }
 
     impl Default for IssuerMetadataOptions<'static> {
@@ -969,6 +1023,7 @@ mod test {
                 with_crl: true,
                 registration_certificate_count: 1,
                 has_other_issuer_info: false,
+                registration_certificate: RegistrationCertificateScenario::default(),
             }
         }
     }
@@ -1648,6 +1703,139 @@ mod test {
         )
         .await;
         (credential_issuer, result)
+    }
+
+    #[tokio::test]
+    async fn start_cwt_registration_certificate() {
+        let (
+            _server,
+            issuer_identifier,
+            issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            registration_certificate: RegistrationCertificateScenario::Cwt,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client,
+        );
+        let result = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &issuer_trust_anchors,
+            )
+            .await;
+
+        assert_matches!(result, Ok(IssuanceFlow::PreAuthorizedCode { .. }));
+    }
+
+    #[rstest]
+    #[case::wrong_subject(RegistrationCertificateScenario::WrongSubject)]
+    #[case::expired(RegistrationCertificateScenario::Expired)]
+    #[case::invalid_payload(RegistrationCertificateScenario::InvalidPayload)]
+    #[case::revoked(RegistrationCertificateScenario::Revoked)]
+    #[case::untrusted_status_list(RegistrationCertificateScenario::UntrustedStatusList)]
+    #[tokio::test]
+    async fn start_invalid_registration_certificate(#[case] scenario: RegistrationCertificateScenario) {
+        let server = MockServer::start_async().await;
+        // No downstream request should be made when issuer authentication fails.
+        let downstream = server
+            .mock_async(|when, then| {
+                when.path_excludes("/.well-known/openid-credential-issuer");
+                then.status(500);
+            })
+            .await;
+        let (credential_issuer, wrpac_trust_anchors, crl_verifier, registration_certificate) =
+            httpmock_issuer_add_metadata(
+                &server,
+                IssuerMetadataOptions {
+                    registration_certificate: scenario,
+                    ..IssuerMetadataOptions::default()
+                },
+                default_signed_metadata(),
+            )
+            .await;
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            credential_issuer,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client,
+        );
+        let error = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &TrustAnchors::empty(),
+            )
+            .await
+            .unwrap_err();
+        match scenario {
+            RegistrationCertificateScenario::WrongSubject => {
+                assert_matches!(
+                    error,
+                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::BindingAndTime(
+                        RegistrationCertificateValidationError::SubjectIdentifierMismatch {
+                            field: "organizationIdentifier"
+                        }
+                    ))
+                );
+            }
+            RegistrationCertificateScenario::Expired | RegistrationCertificateScenario::InvalidPayload => {
+                assert_matches!(
+                    error,
+                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::Envelope(_))
+                );
+            }
+            RegistrationCertificateScenario::Revoked => {
+                assert_matches!(
+                    error,
+                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::Status(
+                        RegistrationCertificateStatusValidationError::NotValid
+                    ))
+                );
+            }
+            RegistrationCertificateScenario::UntrustedStatusList => {
+                assert_matches!(
+                    error,
+                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::Status(
+                        RegistrationCertificateStatusValidationError::InvalidStatusListReference
+                    ))
+                );
+            }
+            _ => panic!("expected an invalid registration certificate scenario"),
+        }
+        downstream.assert_calls_async(0).await;
     }
 
     #[tokio::test]
