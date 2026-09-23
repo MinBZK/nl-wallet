@@ -346,13 +346,10 @@ where
                     .flattened()
                     .into_iter()
                     .map(|(path, value)| {
-                        let key = path.as_ref().join(".");
-                        let display_value = format_attribute_value(&key, value, language);
+                        let key = *path.last();
+                        let display_value = format_attribute_value(key, value, language);
                         // Show a hardcoded, translated label; fall back to the raw path if unlabelled.
-                        let label = TRANSLATIONS[language]
-                            .attribute_label(&key)
-                            .map(str::to_string)
-                            .unwrap_or(key);
+                        let label = TRANSLATIONS[language].attribute_label(key).unwrap_or(key).to_string();
                         (label, display_value)
                     })
                     .collect(),
