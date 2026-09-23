@@ -48,8 +48,8 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- \
 Both `jwt` and `cwt` formats are supported. The command prints one unpadded
 base64url string containing the serialized WRPRC, ready for a
 `registration_certificate` configuration value or OpenID4VP
-`verifier_info.data`. It does not create the payload, its referenced status
-list, or deployment configuration.
+`verifier_info.data` or OpenID4VCI `issuer_info.data`. It does not create the
+payload, its referenced status list, or deployment configuration.
 
 ## Status List Tokens
 
