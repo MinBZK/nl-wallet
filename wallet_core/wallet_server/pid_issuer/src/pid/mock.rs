@@ -219,16 +219,37 @@ pub fn mock_pid_mdoc_example() -> Attributes {
 
 #[cfg(test)]
 mod tests {
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::Attributes;
+    use indexmap::IndexMap;
+    use itertools::Either;
+
     use super::*;
+    use crate::pid::constants::PID_ATTESTATION_TYPE;
+
+    // Lay out the attributes of a PID for mdoc, which places every attribute in a single namespace named
+    // after the attestation type, without nesting.
+    fn into_mdoc_attributes(attributes: Attributes) -> Attributes {
+        let entries = attributes
+            .into_inner()
+            .into_iter()
+            .flat_map(|(name, attribute)| match attribute {
+                Attribute::Object(group) => Either::Right(group.into_iter()),
+                value => Either::Left(std::iter::once((name, value))),
+            })
+            .collect::<IndexMap<_, _>>();
+
+        Attributes::from(IndexMap::from([(
+            String::from(PID_ATTESTATION_TYPE),
+            Attribute::Object(entries),
+        )]))
+    }
 
     /// Ensures that the two authored sets of attributes describe the same PID, so that a test using one format
     /// cannot silently diverge from a test using the other.
     #[test]
     fn mock_pid_mdoc_example_matches_mock_pid_example() {
-        assert_eq!(
-            mock_pid_mdoc_example(),
-            crate::pid::into_mdoc_attributes(mock_pid_example())
-        );
+        assert_eq!(mock_pid_mdoc_example(), into_mdoc_attributes(mock_pid_example()));
     }
 
     /// Ensures that data returned by [`MockBrpClient`] and [`mock_pid_example`] are identical, because some tests rely
@@ -236,14 +257,16 @@ mod tests {
     #[tokio::test]
     async fn mock_brp_person_attributes_match_mock_pid_example() {
         let mut persons = MockBrpClient::default().get_person_by_bsn(MOCK_BSN).await.unwrap();
-        let attributes = persons.persons.remove(0).into_attributes();
+        let attributes = persons
+            .persons
+            .remove(0)
+            .into_sd_jwt_attributes(Attribute::Text(String::from("1234567")));
 
         // The BRP person yields the example attribute set minus the recovery code,
         // which is not BRP data but inserted later by the flow.
-        let serde_json::Value::Object(mut expected) = serde_json::to_value(mock_pid_example()).unwrap() else {
+        let serde_json::Value::Object(expected) = serde_json::to_value(mock_pid_example()).unwrap() else {
             panic!("example attributes should serialize to a JSON object");
         };
-        expected.remove(PID_RECOVERY_CODE);
 
         assert_eq!(
             serde_json::to_value(attributes).unwrap(),

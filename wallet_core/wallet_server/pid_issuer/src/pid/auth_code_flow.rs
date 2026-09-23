@@ -2,9 +2,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use attestation_data::attributes::Attribute;
-use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
-use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use axum::Router;
@@ -49,15 +47,12 @@ use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_nonempty;
 
-use crate::pid;
 use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
 use crate::pid::brp::client::HttpBrpClient;
+use crate::pid::brp::data::BrpPerson;
 use crate::pid::constants::PID_ATTESTATION_TYPE;
-use crate::pid::constants::PID_BSN;
-use crate::pid::constants::PID_RECOVERY_CODE;
 use crate::pid::digid;
 use crate::pid::digid::DigidClient;
 use crate::pid::digid::DigidMetadataClient;
@@ -91,20 +86,11 @@ pub enum Error {
     #[error("error creating issuable documents")]
     InvalidIssuableDocuments,
 
-    #[error("could not find BSN attribute")]
-    NoBsnFound,
-
     #[error("error retrieving BSN: {0}")]
     RetrievingBsn(#[source] AttributesHandlingError),
 
-    #[error("BSN attribute had unexpected type (expected string)")]
-    BsnUnexpectedType,
-
     #[error("failed to compute BSN HMAC: {0}")]
     Hmac(#[source] HsmError),
-
-    #[error("error inserting recovery code: {0}")]
-    InsertingRecoveryCode(#[source] AttributesHandlingError),
 
     #[error("error completing authorization: {0}")]
     CompleteAuthorization(#[source] CompleteAuthorizationError),
@@ -124,11 +110,8 @@ impl ErrorWithCode for Error {
             | Self::NoAttributesFound
             | Self::Brp(_)
             | Self::InvalidIssuableDocuments
-            | Self::NoBsnFound
             | Self::RetrievingBsn(_)
-            | Self::BsnUnexpectedType
-            | Self::Hmac(_)
-            | Self::InsertingRecoveryCode(_) => AuthorizationErrorCode::ServerError,
+            | Self::Hmac(_) => AuthorizationErrorCode::ServerError,
 
             Self::CompleteAuthorization(error) => error.error_code(),
         }
@@ -290,17 +273,22 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             return Err(Error::NoAttributesFound);
         }
         let person = persons.persons.remove(0);
-        let attributes = insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
+        let recovery_code = recovery_code(&person, &self.recovery_code_secret_key).await?;
+        let sd_jwt_attributes = person.clone().into_sd_jwt_attributes(recovery_code.clone());
+        let mdoc_attributes = person.into_mdoc_attributes(recovery_code);
 
         // Create an `IssuableDocument` for each requested format.
         let format_count = formats.len();
         let issuable_documents = formats
             .into_nonempty_iter()
-            .zip(utils::vec_at_least::repeat_n(attributes, format_count))
-            .map(|(format, attributes)| {
+            .zip(utils::vec_at_least::repeat_n(
+                (sd_jwt_attributes, mdoc_attributes),
+                format_count,
+            ))
+            .map(|(format, (sd_jwt_attributes, mdoc_attributes))| {
                 let attributes = match format {
-                    Format::MsoMdoc => pid::into_mdoc_attributes(attributes),
-                    Format::SdJwt => attributes,
+                    Format::MsoMdoc => mdoc_attributes,
+                    Format::SdJwt => sd_jwt_attributes,
                 };
 
                 IssuableDocument::try_new_with_random_id(
@@ -512,29 +500,13 @@ where
         .map_err(Error::CompleteAuthorization)
 }
 
-/// Add the BRP-derived BSN's recovery code (an HMAC over the BSN) as an attribute
-async fn insert_recovery_code(mut attributes: Attributes, secret_key: &SecretKeyVariant) -> Result<Attributes, Error> {
-    let bsn = match attributes
-        .get(&vec_nonempty![ClaimPath::SelectByKey(PID_BSN.to_string())])
-        .map_err(Error::RetrievingBsn)?
-        .ok_or(Error::NoBsnFound)?
-    {
-        Attribute::Text(str) => str,
-        _ => return Err(Error::BsnUnexpectedType),
-    };
-
-    let recovery_code = Attribute::Text(hex::encode(
-        secret_key.sign_hmac(bsn.as_bytes()).await.map_err(Error::Hmac)?,
-    ));
-
-    attributes
-        .insert(
-            &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
-            recovery_code,
-        )
-        .map_err(Error::InsertingRecoveryCode)?;
-
-    Ok(attributes)
+/// The recovery code of a person (an HMAC over the BSN) as an attribute
+async fn recovery_code(person: &BrpPerson, secret_key: &SecretKeyVariant) -> Result<Attribute, Error> {
+    let hmac = secret_key
+        .sign_hmac(person.bsn().as_bytes())
+        .await
+        .map_err(Error::Hmac)?;
+    Ok(Attribute::Text(hex::encode(hmac)))
 }
 
 #[cfg(test)]
@@ -548,10 +520,9 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::Attributes;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
-    use indexmap::IndexMap;
+    use futures::FutureExt;
     use issuer_common::state_bridge_store::IssuerStateBridgeStore;
     use itertools::Itertools;
     use oauth::issuer_identifier::IssuerIdentifier;
@@ -590,8 +561,10 @@ mod tests {
     use super::StateBridgeEntry;
     use super::UpstreamOidcAuthorizationCodeFlow;
     use super::complete_digid_callback;
-    use super::insert_recovery_code;
+    use super::recovery_code;
+    use crate::pid::brp::client::BrpClient;
     use crate::pid::constants::PID_ATTESTATION_TYPE;
+    use crate::pid::mock::MOCK_BSN;
     use crate::pid::mock::MockBrpClient;
     use crate::pid::mock::MockDigidClient;
 
@@ -727,10 +700,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_recovery_code() {
-        let bsn = "123";
+        let bsn = MOCK_BSN;
         let key: Vec<_> = (0..32).collect();
-
-        let attrs: Attributes = IndexMap::from_iter([("bsn".to_string(), Attribute::Text(bsn.to_string()))]).into();
 
         let secret_key = SecretKeyVariant::from_settings(
             SecretKey::Software {
@@ -740,20 +711,21 @@ mod tests {
         )
         .unwrap();
 
-        let attrs = insert_recovery_code(attrs, &secret_key).await.unwrap();
+        let person = MockBrpClient::default()
+            .get_person_by_bsn(bsn)
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+            .persons
+            .remove(0);
+        let recovery_code = recovery_code(&person, &secret_key).await.unwrap();
 
         let hmac_key = &hmac::Key::new(HMAC_SHA256, &key);
         let expected_hmac = hex::encode(hmac::sign(hmac_key, bsn.as_bytes()));
 
-        let expected_attrs = Attributes::from(IndexMap::from_iter([
-            ("bsn".to_string(), Attribute::Text(bsn.to_string())),
-            ("recovery_code".to_string(), Attribute::Text(expected_hmac)),
-        ]));
+        let expected_recovery_code = Attribute::Text(expected_hmac);
 
-        assert_eq!(
-            attrs, expected_attrs,
-            "The result should be the attributes we started with, with a recovery_code attribute added to it."
-        );
+        assert_eq!(recovery_code, expected_recovery_code,);
     }
 
     #[tokio::test]
