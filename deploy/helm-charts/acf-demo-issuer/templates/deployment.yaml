@@ -125,7 +125,7 @@ spec:
         - name: private-keys
           secret:
             secretName: nl-wallet-acf-demo-issuer-private-keys
-        {{- if .Values.typeMetadata }}
+        {{- if or .Values.typeMetadata .Values.credentialMetadata }}
         - name: metadata
           configMap:
             name: nl-wallet-acf-demo-issuer-metadata
