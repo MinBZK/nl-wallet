@@ -43,11 +43,9 @@ use crate::wallet::notifications::emit_scheduled_notifications;
 #[category(defer)]
 pub enum RevocationError {
     #[error("error emitting attestations: {0}")]
-    #[category(unexpected)]
     Attestations(#[from] AttestationsError),
 
     #[error("storage error: {0}")]
-    #[category(unexpected)]
     Storage(#[from] StorageError),
 }
 

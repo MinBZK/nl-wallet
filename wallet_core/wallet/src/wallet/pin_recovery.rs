@@ -83,7 +83,6 @@ pub enum PinRecoveryError {
     PinKey(#[from] PinKeyError),
 
     #[error("storage error: {0}")]
-    #[category(unexpected)]
     Storage(#[from] StorageError),
 
     #[error("failed to disclose recovery code to WP: {0}")]
