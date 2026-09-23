@@ -97,6 +97,7 @@ class RenewCardTests : TestBase() {
         cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
+        dashboardScreen.dismissNotificationsDrawer()
 
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
@@ -130,6 +131,7 @@ class RenewCardTests : TestBase() {
         clearBrowser(WebDriverRunner.getWebDriver() as AppiumDriver)
         dashboardScreen.openApp()
         if (pinScreen.pinScreenVisible()) pinScreen.enterPin(DEFAULT_PIN)
+        dashboardScreen.dismissNotificationsDrawer()
 
         dashboardScreen.clickCard(tasData.getPidDisplayName())
         cardDetailScreen.renewPidCard()

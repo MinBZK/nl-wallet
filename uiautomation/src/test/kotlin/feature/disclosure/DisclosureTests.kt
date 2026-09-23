@@ -281,6 +281,7 @@ class DisclosureTests : TestBase() {
         cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
+        dashboardScreen.dismissNotificationsDrawer()
 
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
