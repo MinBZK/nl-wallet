@@ -10,6 +10,7 @@ use itertools::Itertools;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::CredentialQueryIdentifier;
+use crate::normalized::NormalizedCredentialRequest;
 use crate::normalized::NormalizedCredentialRequests;
 
 #[derive(Debug, thiserror::Error)]
@@ -66,6 +67,10 @@ pub trait ExtendingVctRetriever {
     fn retrieve(&self, vct_value: &str) -> impl Iterator<Item = &str>;
 }
 
+/// Helper type alias internal to [`NormalizedCredentialRequests`].
+type RequestsAndCredentialsById<'a, C> =
+    HashMap<&'a CredentialQueryIdentifier, (&'a NormalizedCredentialRequest, &'a C)>;
+
 impl NormalizedCredentialRequests {
     /// Match keyed credentials received from the holder against a set of normalized DQCL requests.
     pub fn is_satisfied_by_disclosed_credentials(
@@ -111,6 +116,25 @@ impl NormalizedCredentialRequests {
         }
 
         // Each received credential should be of the requested format.
+        Self::check_requested_formats(&requests_and_credentials)?;
+
+        // Each received credential should be of (one of) the requested credential type(s) for that query.
+        Self::check_requested_credential_types(&requests_and_credentials, extending_vct_values)?;
+
+        // For each of the requested credentials, any one of the specified AKIs (if present) should be present in any
+        // of the certificates of the received credential.
+        Self::check_requested_akis(&requests_and_credentials)?;
+
+        // Finally, each received credential should contain all of the requested attributes, as optional attributes are
+        // not supported.
+        Self::check_requested_claim_paths(&requests_and_credentials)?;
+
+        Ok(())
+    }
+
+    fn check_requested_formats(
+        requests_and_credentials: &RequestsAndCredentialsById<'_, impl DisclosedCredential>,
+    ) -> Result<(), CredentialValidationError> {
         let format_mismatches = requests_and_credentials
             .iter()
             .filter_map(|(id, (request, credential))| {
@@ -125,7 +149,13 @@ impl NormalizedCredentialRequests {
             return Err(CredentialValidationError::FormatMismatch(format_mismatches));
         }
 
-        // Each received credential should be of (one of) the requested credential type(s) for that query.
+        Ok(())
+    }
+
+    fn check_requested_credential_types(
+        requests_and_credentials: &RequestsAndCredentialsById<'_, impl DisclosedCredential>,
+        extending_vct_values: &impl ExtendingVctRetriever,
+    ) -> Result<(), CredentialValidationError> {
         let credential_type_mismatches = requests_and_credentials
             .iter()
             .filter_map(|(id, (request, credential))| {
@@ -161,8 +191,12 @@ impl NormalizedCredentialRequests {
             ));
         }
 
-        // For each of the requested credentials, any one of the specified AKIs (if present) should be present in any
-        // of the certificates of the received credential.
+        Ok(())
+    }
+
+    fn check_requested_akis(
+        requests_and_credentials: &RequestsAndCredentialsById<'_, impl DisclosedCredential>,
+    ) -> Result<(), CredentialValidationError> {
         let unmatched_akis = requests_and_credentials
             .iter()
             .filter(|&(_, (request, credential))| {
@@ -175,14 +209,18 @@ impl NormalizedCredentialRequests {
             return Err(CredentialValidationError::UnmatchedAkis(unmatched_akis));
         }
 
-        // Finally, each received credential should contain all of the requested attributes,
-        // as optional attributes are not supported.
+        Ok(())
+    }
+
+    fn check_requested_claim_paths(
+        requests_and_credentials: &RequestsAndCredentialsById<'_, impl DisclosedCredential>,
+    ) -> Result<(), CredentialValidationError> {
         let missing_attribute_credentials = requests_and_credentials
-            .into_iter()
+            .iter()
             .filter_map(|(id, (request, credential))| {
                 let missing_attributes = credential.missing_claim_paths(request.claim_paths());
 
-                (!missing_attributes.is_empty()).then(|| (id.clone(), missing_attributes))
+                (!missing_attributes.is_empty()).then(|| ((*id).clone(), missing_attributes))
             })
             .collect::<HashMap<_, _>>();
 
