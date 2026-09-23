@@ -9,32 +9,30 @@ This crate makes it possible to categorize various types of errors, which in
 turn makes it possible to decide what/if to send things to Sentry. There are
 essentially three important Rust attributes this crate provides:
 
-  * `#[sentry_capture_error]`: Indicates that you want to capture errors and
-    send them to Sentry. Can be applied to a function (`fn`) or implementation
-    (`impl`). When applied to an implementation, it applies to all functions
-    in the implementation. Note that `#[sentry_capture_error]` is applied
-    transitively; if annotated on function `a`, which calls `b`, which in turn
-    calls `c`, and `c` causes an (unhandled) error, it will be reported to
-    Sentry
-  * `#[derive(ErrorCategory)]`: Opt to derive a category for `Error` types
-  * `#[category(..)]`: Set a category. On an enum or struct, this sets a
-    default category for any un-annotated field within the enum or struct
-    On a field, this sets the category for that field
-  * `#[defer]`: Used on a field in an enum or struct. Indicates that you want
-    to defer the categorization of this field to the type which the field
-    references
+- `#[sentry_capture_error]`: Indicates that you want to capture errors and send
+  them to Sentry. Can be applied to a function (`fn`) or implementation
+  (`impl`). When applied to an implementation, it applies to all functions in
+  the implementation. Note that `#[sentry_capture_error]` is applied
+  transitively; if annotated on function `a`, which calls `b`, which in turn
+  calls `c`, and `c` causes an (unhandled) error, it will be reported to Sentry
+- `#[derive(ErrorCategory)]`: Opt to derive a category for `Error` types
+- `#[category(..)]`: Set a category. On an enum or struct, this sets a default
+  category for any un-annotated field within the enum or struct On a field, this
+  sets the category for that field
+- `#[defer]`: Used on a field in an enum or struct. Indicates that you want to
+  defer the categorization of this field to the type which the field references
 
 The following categories exist (which you set using the `#[category(..)]`
 attribute):
 
-  * `expected`: Expected errors, will not be sent to Sentry
-  * `critical`: Critical error, report to Sentry with message(s)
-  * `pd`: Critical error with personal data, sent call stack without messages
-  * `defer`: Analysis of categorization is deferred to one of the fields
-    of this variant
-  * `unexpected`: This is an unexpected error and should never be encountered
-    by `sentry_capture_error`. Results in an error being logged. Is reported
-    to Sentry without message(s).
+- `expected`: Expected errors, will not be sent to Sentry
+- `critical`: Critical error, report to Sentry with message(s)
+- `pd`: Critical error with personal data, sent call stack without messages
+- `defer`: Analysis of categorization is deferred to one of the fields of this
+  variant
+- `unexpected`: This is an unexpected error and should never be encountered by
+  `sentry_capture_error`. Results in an error being logged. Is reported to
+  Sentry without message(s).
 
 ## Configuration
 
@@ -50,10 +48,10 @@ see: https://docs.sentry.io/platforms/rust/
 
 1. This crate does categorization and private-data filtering only for Rust.
    i.e., Something like Flutter, which might interact with the `wallet` crate
-   through a `flutter-api` crate, has its own Flutter client configuration,
-   and hence, needs to either do something similar to what this crate enables,
-   or needs to globally disable the sending of any privacy-sensitive information
-   at the Flutter Sentry client-level.
+   through a `flutter-api` crate, has its own Flutter client configuration, and
+   hence, needs to either do something similar to what this crate enables, or
+   needs to globally disable the sending of any privacy-sensitive information at
+   the Flutter Sentry client-level.
 
 2. Using this crate does not magically guarantee that you are not logging any
    sensitive data to Sentry! You need to use the tools provided by this crate
@@ -73,5 +71,5 @@ see: https://docs.sentry.io/platforms/rust/
    has 109 lines of code in 29 files which contain a `#[category(critical)]`.
    None of the annotated fields, enums and structs contain obvious issues where
    the field, enum or struct could be considered as miscategorized (i.e., the
-   field, enum or struct should be annotated as `#[category(pd)]` instead).
-   This consideration is no guarantee of non-existing faulty annotations.
+   field, enum or struct should be annotated as `#[category(pd)]` instead). This
+   consideration is no guarantee of non-existing faulty annotations.
