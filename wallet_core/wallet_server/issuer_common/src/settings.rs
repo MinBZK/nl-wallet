@@ -131,7 +131,9 @@ pub struct IssuerSettings {
     #[debug(skip)]
     pub credential_metadata_keypair: KeyPair,
 
+    /// Type metadata is optional for mdocs.
     #[debug(skip)]
+    #[serde(default)]
     #[serde_as(as = "TryFromInto<Vec<String>>")]
     pub type_metadata: TypeMetadataByVct,
 
@@ -156,7 +158,7 @@ pub struct IssuerSettings {
     pub wia_trust_anchors: TrustAnchors,
 }
 
-#[derive(Debug, Clone, AsRef)]
+#[derive(Debug, Clone, Default, AsRef)]
 pub struct TypeMetadataByVct(HashMap<String, JsonFile<UncheckedTypeMetadata>>);
 
 #[derive(Debug, Clone, Deserialize, From, IntoIterator, AsRef)]

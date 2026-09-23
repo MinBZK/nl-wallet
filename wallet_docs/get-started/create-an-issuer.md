@@ -861,6 +861,23 @@ EOF
 unset IS_WALLET_METADATA_FILES
 ```
 
+<div class="admonition note">
+<p class="title">Issuing mdocs instead of SD-JWTs</p>
+The `type_metadata` setting only applies to credential configurations with
+format `dc+sd-jwt`. An `mso_mdoc` configuration is described by Credential
+Metadata instead: add a `credential_metadata` key to its
+`[credential_configurations.<id>]` block, naming a JSON file that holds a
+`display` array and a `claims` array. Two differences with the TAS above are
+worth noting: a claim `display` entry uses `name` where the TAS uses `label`,
+and each claim `path` has two elements, the mdoc namespace followed by the data
+element name, where the TAS addresses the same attribute with a single-element
+path. Every credential configuration has to be described one way or the other:
+the `issuance_server` refuses to start when a `dc+sd-jwt` configuration has no
+technical attestation schema, or an `mso_mdoc` configuration has no
+`credential_metadata`. The `type_metadata` key itself is mandatory whether or
+not you issue SD-JWTs, so write `type_metadata = []` if you issue mdocs only.
+</div>
+
 #### Configuring listener address and port
 
 The server can be configured to listen on a single IP address and port. The
