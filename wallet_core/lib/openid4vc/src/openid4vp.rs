@@ -784,14 +784,10 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
     }
 }
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(unexpected)]
+#[derive(Debug, thiserror::Error)]
 pub enum AuthResponseError {
     #[error("error (de)serializing JWE payload: {0}")]
     Json(#[from] serde_json::Error),
-
-    #[error("error encrypting JWE: {0}")]
-    JweEncryption(#[source] JweJsonEncryptionError),
 
     #[error("error decrypting JWE: {0}")]
     JweDecryption(#[source] JweJsonDecryptionError),
@@ -806,7 +802,6 @@ pub enum AuthResponseError {
     Utf8(#[from] FromUtf8Error),
 
     #[error("no Document received in any DeviceResponse for credential query identifier: {0}")]
-    #[category(pd)]
     NoMdocDocuments(CredentialQueryIdentifier),
 
     #[error("error verifying disclosed mdoc(s): {0}")]
@@ -828,11 +823,9 @@ pub enum AuthResponseError {
     PoaVerification(#[from] PoaVerificationError),
 
     #[error("error converting disclosed attestations: {0}")]
-    #[category(pd)]
     DisclosedAttestation(#[from] DisclosedAttestationError),
 
     #[error("not all revocation statuses are valid")]
-    #[category(expected)]
     RevocationStatusNotAllValid,
 }
 
@@ -899,10 +892,12 @@ impl VpAuthorizationResponse {
         encryption_algorithm: EncryptionAlgorithm,
         encryption_nonce: &str,
         poa: Option<Poa>,
-    ) -> Result<String, AuthResponseError> {
-        let jwe = Self::new(vp_token, auth_request.state.clone(), poa)
-            .encrypt(auth_request, encryption_algorithm, encryption_nonce)
-            .map_err(AuthResponseError::JweEncryption)?;
+    ) -> Result<String, JweJsonEncryptionError> {
+        let jwe = Self::new(vp_token, auth_request.state.clone(), poa).encrypt(
+            auth_request,
+            encryption_algorithm,
+            encryption_nonce,
+        )?;
 
         Ok(jwe)
     }
