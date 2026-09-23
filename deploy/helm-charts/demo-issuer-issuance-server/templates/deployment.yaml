@@ -74,6 +74,11 @@ spec:
               value: "true"
             - name: ISSUANCE_SERVER__TYPE_METADATA
               value: "com.example.degree.json,com.example.housing.json"
+            - name: ISSUANCE_SERVER__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-issuer-issuance-server-wrpac
+                  key: registration_certificate
             - name: ISSUANCE_SERVER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
               valueFrom:
                 secretKeyRef:

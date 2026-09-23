@@ -117,6 +117,11 @@ spec:
               value: {{ join "," .Values.walletRedirectUris | quote }}
             - name: PID_ISSUER__TYPE_METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json"
+            - name: PID_ISSUER__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pid-issuer-wrpac
+                  key: registration_certificate
             - name: PID_ISSUER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
               valueFrom:
                 secretKeyRef:

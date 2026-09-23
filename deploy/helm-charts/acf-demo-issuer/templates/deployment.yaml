@@ -102,6 +102,11 @@ spec:
             - name: ACF_DEMO_ISSUER__TYPE_METADATA
               value: {{ join "," .Values.typeMetadata | quote }}
             {{- end }}
+            - name: ACF_DEMO_ISSUER__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-acf-demo-issuer-wrpac
+                  key: registration_certificate
             - name: ACF_DEMO_ISSUER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
               valueFrom:
                 secretKeyRef:
