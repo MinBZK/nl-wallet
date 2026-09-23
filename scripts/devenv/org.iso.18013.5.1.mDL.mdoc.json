@@ -25,6 +25,20 @@
   ],
   "claims": [
     {
+      "path": ["org.iso.18013.5.1", "portrait"],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Photo",
+          "locale": "en-US"
+        },
+        {
+          "name": "Pasfoto",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
       "path": ["org.iso.18013.5.1", "family_name"],
       "mandatory": true,
       "display": [
@@ -57,67 +71,11 @@
       "mandatory": true,
       "display": [
         {
-          "name": "Date of birth",
+          "name": "Birth date",
           "locale": "en-US"
         },
         {
           "name": "Geboortedatum",
-          "locale": "nl-NL"
-        }
-      ]
-    },
-    {
-      "path": ["org.iso.18013.5.1", "issue_date"],
-      "mandatory": true,
-      "display": [
-        {
-          "name": "Issue date",
-          "locale": "en-US"
-        },
-        {
-          "name": "Afgiftedatum",
-          "locale": "nl-NL"
-        }
-      ]
-    },
-    {
-      "path": ["org.iso.18013.5.1", "expiry_date"],
-      "mandatory": true,
-      "display": [
-        {
-          "name": "Expiry date",
-          "locale": "en-US"
-        },
-        {
-          "name": "Vervaldatum",
-          "locale": "nl-NL"
-        }
-      ]
-    },
-    {
-      "path": ["org.iso.18013.5.1", "issuing_country"],
-      "mandatory": true,
-      "display": [
-        {
-          "name": "Issuing country",
-          "locale": "en-US"
-        },
-        {
-          "name": "Uitgevend land",
-          "locale": "nl-NL"
-        }
-      ]
-    },
-    {
-      "path": ["org.iso.18013.5.1", "issuing_authority"],
-      "mandatory": true,
-      "display": [
-        {
-          "name": "Issuing authority",
-          "locale": "en-US"
-        },
-        {
-          "name": "Uitgevende instantie",
           "locale": "nl-NL"
         }
       ]
@@ -131,21 +89,35 @@
           "locale": "en-US"
         },
         {
-          "name": "Documentnummer",
+          "name": "Document-nummer",
           "locale": "nl-NL"
         }
       ]
     },
     {
-      "path": ["org.iso.18013.5.1", "portrait"],
+      "path": ["org.iso.18013.5.1", "issue_date"],
       "mandatory": true,
       "display": [
         {
-          "name": "Portrait",
+          "name": "Valid from",
           "locale": "en-US"
         },
         {
-          "name": "Portretfoto",
+          "name": "Geldig vanaf",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": ["org.iso.18013.5.1", "expiry_date"],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Valid until",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geldig tot",
           "locale": "nl-NL"
         }
       ]
@@ -155,11 +127,39 @@
       "mandatory": true,
       "display": [
         {
-          "name": "Driving privileges",
+          "name": "Driving license privileges",
           "locale": "en-US"
         },
         {
-          "name": "Rijbevoegdheden",
+          "name": "Rijbewijscategorieën",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": ["org.iso.18013.5.1", "issuing_authority"],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Issued by",
+          "locale": "en-US"
+        },
+        {
+          "name": "Uitgegeven door",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": ["org.iso.18013.5.1", "issuing_country"],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Country of issuance",
+          "locale": "en-US"
+        },
+        {
+          "name": "Land van afgifte",
           "locale": "nl-NL"
         }
       ]
