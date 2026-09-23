@@ -54,7 +54,6 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
 use serde::Serialize;
-use ssri::Integrity;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
@@ -83,6 +82,7 @@ use crate::credential::MdocCredential;
 use crate::credential::SdJwtCredential;
 use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationParameters;
+use crate::credential_configurations::CredentialConfigurationTypeMetadata;
 use crate::credential_configurations::CredentialConfigurations;
 use crate::credential_configurations::CredentialConfigurationsError;
 use crate::credential_offer::CredentialOffer;
@@ -141,8 +141,14 @@ pub enum IssuableDocumentError {
     #[error("credential type not offered in Credential Configurations: {0}")]
     CredentialTypeNotOffered(CredentialKind),
 
-    #[error("attributes do not match type metadata: {0}")]
+    #[error("attributes do not match metadata: {0}")]
     AttributesError(#[source] AttributesError),
+
+    #[error("no credential metadata for mdoc credential configuration: {0}")]
+    MissingCredentialMetadata(CredentialConfigurationId),
+
+    #[error("no type metadata for SD-JWT credential configuration: {0}")]
+    MissingTypeMetadata(CredentialConfigurationId),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -603,7 +609,8 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
         self.issuer_data
             .credential_configs
             .get_by_configuration_id(id)
-            .map(|config| config.metadata.documents().clone().into())
+            .and_then(|config| config.type_metadata.as_ref())
+            .map(|metadata| metadata.documents().clone().into())
     }
 }
 
@@ -673,7 +680,7 @@ where
             batch_credential_issuance,
             display: None,
             credential_configurations_supported: credential_configs
-                .to_credential_configurations_supported(&type_metadata_base_url),
+                .to_credential_configurations_supported(&type_metadata_base_url)?,
         };
 
         let issuer_data = IssuerData::new(
@@ -750,9 +757,29 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
                     .get_by_credential_kind(&document.credential_kind)
                     .ok_or_else(|| IssuableDocumentError::CredentialTypeNotOffered(document.credential_kind.clone()))?;
 
-                document
-                    .validate_with_metadata(credential_config.metadata.normalized())
-                    .map_err(IssuableDocumentError::AttributesError)?;
+                match document.credential_kind {
+                    CredentialKind {
+                        format: Format::MsoMdoc,
+                        ..
+                    } => {
+                        let credential_metadata = credential_config.credential_metadata.as_ref().ok_or_else(|| {
+                            IssuableDocumentError::MissingCredentialMetadata(credential_config_id.clone())
+                        })?;
+
+                        document.validate_with_metadata(credential_metadata)
+                    }
+                    CredentialKind {
+                        format: Format::SdJwt, ..
+                    } => {
+                        let type_metadata = credential_config
+                            .type_metadata
+                            .as_ref()
+                            .ok_or_else(|| IssuableDocumentError::MissingTypeMetadata(credential_config_id.clone()))?;
+
+                        document.validate_with_metadata(type_metadata.normalized())
+                    }
+                }
+                .map_err(IssuableDocumentError::AttributesError)?;
 
                 Ok((credential_config_id.clone(), document))
             })
@@ -1482,11 +1509,9 @@ impl Session<AccessTokenIssued> {
             credential.credential_payload.clone(),
             utc_now_truncated_to_days(),
             public_keys.nonempty_iter().collect(),
-            credential_config.metadata.first_document_integrity().clone(),
-            credential_config.metadata.normalized(),
+            credential_config.type_metadata.as_ref(),
             &credential_config.key_pair,
             &credential_config.status_list,
-            credential_config.mdoc_namespace.as_deref(),
         )
         .await?;
 
@@ -1585,17 +1610,21 @@ impl Credentials {
         preview_credential_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
         holder_public_keys: VecNonEmpty<&PublicKey>,
-        metadata_integrity: Integrity,
-        type_metadata: &NormalizedTypeMetadata,
+        type_metadata: Option<&CredentialConfigurationTypeMetadata>,
         key_pair: &KeyPair<K>,
         status_list: &L,
-        mdoc_namespace: Option<&str>,
     ) -> Result<Self, CredentialRequestError>
     where
         K: EcdsaKey,
         L: StatusListService,
     {
         let copy_count = holder_public_keys.len();
+
+        // Type Metadata describes an SD-JWT; an mdoc is described by its Credential Metadata and therefore carries no
+        // integrity digest for a Type Metadata document.
+        let metadata_integrity = matches!(format, Format::SdJwt)
+            .then(|| type_metadata.map(|metadata| metadata.first_document_integrity().clone()))
+            .flatten();
 
         // Obtain a status claim for each holder public key, i.e. for each credential copy.
         let status_claims = status_list
@@ -1642,17 +1671,23 @@ impl Credentials {
         // Convert all of these `CredentialPayload` values into actual credentials by signing them.
         let credentials = match format {
             Format::MsoMdoc => {
-                let mdoc_credentials = try_join_all(payloads.into_iter().map(|credential_payload| {
-                    MdocCredential::from_credential_payload(credential_payload, key_pair, mdoc_namespace)
-                }))
-                .await
-                .map_err(CredentialRequestError::MdocConversion)?
-                .try_into()
-                .expect("source iterator is non-empty");
+                let mdoc_credentials =
+                    try_join_all(payloads.into_iter().map(|credential_payload| {
+                        MdocCredential::from_credential_payload(credential_payload, key_pair)
+                    }))
+                    .await
+                    .map_err(CredentialRequestError::MdocConversion)?
+                    .try_into()
+                    .expect("source iterator is non-empty");
 
                 Self::MsoMdoc(mdoc_credentials)
             }
             Format::SdJwt => {
+                // Guaranteed by `CredentialConfiguration::try_new()`, which requires Type Metadata for an SD-JWT.
+                let type_metadata = type_metadata
+                    .expect("SD-JWT credential configuration should have Type Metadata")
+                    .normalized();
+
                 let sd_jwt_credentials = try_join_all(payloads.into_iter().map(|credential_payload| {
                     SdJwtCredential::from_credential_payload(credential_payload, key_pair, type_metadata)
                 }))
@@ -1673,12 +1708,11 @@ impl MdocCredential {
     async fn from_credential_payload<K>(
         credential_payload: CredentialPayload,
         key_pair: &KeyPair<K>,
-        mdoc_namespace: Option<&str>,
     ) -> Result<Self, CredentialPayloadIntoSignedMdocError>
     where
         K: EcdsaKey,
     {
-        let (issuer_signed, _mso) = credential_payload.into_signed_mdoc(key_pair, mdoc_namespace).await?;
+        let (issuer_signed, _mso) = credential_payload.into_signed_mdoc(key_pair).await?;
 
         Ok(Self {
             credential: issuer_signed,
@@ -2519,9 +2553,11 @@ mod tests {
                         .into_claims();
 
                     let issued_at = DateTime::<Utc>::from(sd_jwt_claims.iat);
-                    let vct_integrity = sd_jwt_claims
-                        .vct_integrity
-                        .expect("issued SD-JWT should contain vct#integrity");
+                    let vct_integrity = Some(
+                        sd_jwt_claims
+                            .vct_integrity
+                            .expect("issued SD-JWT should contain vct#integrity"),
+                    );
                     let status_claim = sd_jwt_claims.status.expect("issued SD-JWT should contain status claim");
                     let public_key = sd_jwt_claims.cnf.try_to_public_key().unwrap();
 
@@ -2537,9 +2573,8 @@ mod tests {
                         .expect("issued mdoc should verify correctly");
 
                     let issued_at = DateTime::<Utc>::try_from(&mso.validity_info.signed).unwrap();
-                    let vct_integrity = mso
-                        .type_metadata_integrity
-                        .expect("issued mdoc should contain type_metadata_integrity");
+                    // An mdoc is described by Credential Metadata, so it carries no Type Metadata integrity digest.
+                    let vct_integrity = None;
                     let status_claim = mso.status.expect("issued mdoc should contain status claim");
                     let public_key = VerifyingKey::try_from(mso.device_key_info).unwrap().into();
 
@@ -2557,7 +2592,14 @@ mod tests {
         // Check that all the "issued_at" timestamps and type metadata integrity values are the same across the
         // credential copies.
         assert_eq!(issued_ats.len(), 1);
-        assert_eq!(vct_integrities.len(), 1);
+        match format {
+            Format::SdJwt => {
+                assert_eq!(vct_integrities.len(), 1);
+            }
+            Format::MsoMdoc => {
+                assert!(vct_integrities.iter().flatten().collect_vec().is_empty());
+            }
+        }
 
         // Check that each issued credential has a distinct status claim.
         assert_eq!(status_claims.len(), copy_count);

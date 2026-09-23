@@ -729,6 +729,7 @@ dependencies = [
  "strum 0.28.0",
  "thiserror 2.0.17",
  "url",
+ "utils",
 ]
 
 [[package]]
@@ -2661,6 +2662,7 @@ dependencies = [
  "chrono",
  "crypto",
  "derive_more",
+ "openid4vc",
  "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
@@ -4771,14 +4773,12 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
- "sd_jwt_vc_metadata",
  "serde",
  "serde-aux",
  "serde_bytes",
  "serde_json",
  "serde_repr",
  "serde_with",
- "ssri",
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",

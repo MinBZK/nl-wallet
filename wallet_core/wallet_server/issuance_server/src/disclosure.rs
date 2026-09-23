@@ -263,6 +263,7 @@ mod tests {
 
         let config_params = CredentialConfigurationParameters {
             credential_kind: CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()),
+            credential_metadata: None,
             key_pair: KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),
                 issuance_keypair.certificate().to_owned(),
@@ -270,8 +271,7 @@ mod tests {
             .unwrap(),
             status_list,
             valid_days: Days::new(1),
-            mdoc_namespace: None,
-            metadata_documents: TypeMetadataDocuments::degree_example().1,
+            type_metadata: Some(TypeMetadataDocuments::degree_example().1),
         };
 
         // Normally this is its own CA; here we just reuse the ca we have.

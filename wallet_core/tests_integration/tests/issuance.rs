@@ -64,11 +64,20 @@ fn test_pid_attestation(pid_attestation: &AttestationPresentation) {
     // A PID attestation should have the PID attestation type.
     assert_eq!(pid_attestation.attestation_type, PID_ATTESTATION_TYPE);
 
+    // An mdoc's claim key is namespaced, unlike SD-JWT's flat one.
+    let (expected_bsn_key, expected_recovery_code_key): (Vec<&str>, Vec<&str>) = match pid_attestation.format {
+        Format::MsoMdoc => (
+            vec![PID_ATTESTATION_TYPE, PID_BSN],
+            vec![PID_ATTESTATION_TYPE, PID_RECOVERY_CODE],
+        ),
+        Format::SdJwt => (vec![PID_BSN], vec![PID_RECOVERY_CODE]),
+    };
+
     // It should all contain the BSN.
     let bsn_attr = pid_attestation
         .attributes
         .iter()
-        .find(|a| a.key.iter().eq([PID_BSN]))
+        .find(|a| a.key.iter().eq(expected_bsn_key.clone()))
         .unwrap();
 
     assert_eq!(bsn_attr.value, Attribute::Text("999991772".to_string()));
@@ -77,7 +86,7 @@ fn test_pid_attestation(pid_attestation: &AttestationPresentation) {
     let recovery_code_result = pid_attestation
         .attributes
         .iter()
-        .find(|a| a.key.iter().eq([PID_RECOVERY_CODE]));
+        .find(|a| a.key.iter().eq(expected_recovery_code_key.clone()));
 
     assert_eq!(recovery_code_result, None);
 }

@@ -5,7 +5,6 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::From;
 use jwt::nonce::Nonce;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
@@ -19,6 +18,7 @@ use super::IssuanceDiscovery;
 use super::IssuanceDiscoveryParameters;
 use super::IssuanceFlow;
 use super::IssuanceSession;
+use super::OfferedCredentialMetadata;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use crate::token::CredentialPreview;
@@ -149,7 +149,7 @@ impl AuthorizationSession for MockAuthorizationSession {
 
 /// Helper type that allows `mockall` to return references from a mocked method.
 #[derive(From)]
-pub struct MockIssuanceSessionPreviewsWithMetadata(Vec<(CredentialPreview, NormalizedTypeMetadata)>);
+pub struct MockIssuanceSessionPreviewsWithMetadata(Vec<(CredentialPreview, OfferedCredentialMetadata)>);
 
 mockall::mock! {
     #[derive(Debug)]
@@ -175,7 +175,7 @@ impl IssuanceSession for MockIssuanceSession {
         self.accept(max_copy_count)
     }
 
-    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)> {
+    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)> {
         let MockIssuanceSessionPreviewsWithMetadata(inner) = self.previews_with_metadata();
 
         inner.iter().map(|(preview, metadata)| (preview, metadata))

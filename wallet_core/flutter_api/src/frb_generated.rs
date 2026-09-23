@@ -2451,7 +2451,7 @@ impl SseDecode for crate::models::image::ImageWithMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_image = <crate::models::image::Image>::sse_decode(deserializer);
-        let mut var_altText = <String>::sse_decode(deserializer);
+        let mut var_altText = <Option<String>>::sse_decode(deserializer);
         return crate::models::image::ImageWithMetadata {
             image: var_image,
             alt_text: var_altText,
@@ -4949,7 +4949,7 @@ impl SseEncode for crate::models::image::ImageWithMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::models::image::Image>::sse_encode(self.image, serializer);
-        <String>::sse_encode(self.alt_text, serializer);
+        <Option<String>>::sse_encode(self.alt_text, serializer);
     }
 }
 

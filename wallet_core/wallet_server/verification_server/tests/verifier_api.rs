@@ -826,10 +826,14 @@ fn pid_start_disclosure_request(format: Format) -> StartDisclosureRequest {
 }
 
 fn prepare_example_credential_payload(
+    format: Format,
     issuer_ca: &Ca,
     wscd: &MockRemoteWscd,
 ) -> (CredentialPayload, KeyPair, String, NormalizedTypeMetadata) {
-    let payload_preview = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let payload_preview = match format {
+        Format::MsoMdoc => PreviewableCredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default()),
+        Format::SdJwt => PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+    };
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
     let issuer_keypair =
@@ -841,7 +845,7 @@ fn prepare_example_credential_payload(
         payload_preview,
         Utc::now(),
         &PublicKey::from(*holder_privkey.verifying_key()),
-        Integrity::from(""),
+        Some(Integrity::from("")),
         StatusClaim::new_mock(),
     )
     .unwrap();
@@ -851,9 +855,9 @@ fn prepare_example_credential_payload(
 
 fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Mdoc, String) {
     let (credential_payload, issuer_keypair, holder_privkey_identifier, _) =
-        prepare_example_credential_payload(issuer_ca, wscd);
+        prepare_example_credential_payload(Format::MsoMdoc, issuer_ca, wscd);
     let (issuer_signed, mso) = credential_payload
-        .into_signed_mdoc(&issuer_keypair, None)
+        .into_signed_mdoc(&issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();
@@ -863,7 +867,7 @@ fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Mdoc, St
 
 fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SignedSdJwt, String) {
     let (credential_payload, issuer_keypair, holder_privkey_identifier, metadata) =
-        prepare_example_credential_payload(issuer_ca, wscd);
+        prepare_example_credential_payload(Format::SdJwt, issuer_ca, wscd);
     let sd_jwt = credential_payload
         .into_signed_sd_jwt(&metadata, &issuer_keypair)
         .now_or_never()

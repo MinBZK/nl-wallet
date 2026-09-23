@@ -4,7 +4,9 @@ use std::ops::Add;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_ADDRESS_GROUP;
+use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_BIRTH_DATE;
 use attestation_types::pid_constants::PID_BSN;
 use attestation_types::pid_constants::PID_FAMILY_NAME;
@@ -35,7 +37,6 @@ use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::PartialMdoc;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
 use utils::generator::mock::MockTimeGenerator;
@@ -58,7 +59,8 @@ pub struct TestCredentials(VecNonEmpty<TestCredential>);
 
 /// This type can be used when testing disclosure of credentials. It contains the following:
 ///
-/// * A source credential and its metadata.
+/// * A source credential.
+/// * Type metadata for SD-JWT credentials. For mdoc disclosure, no metadata is needed.
 /// * A subset of the the attributes of this credential, to be disclosed.
 /// * An identifier for a generated credential query.
 ///
@@ -72,11 +74,13 @@ pub struct TestCredentials(VecNonEmpty<TestCredential>);
 /// * Construct example values, based on the PID and address credential types.
 #[derive(Debug, Clone)]
 pub struct TestCredential {
-    payload_preview: PreviewableCredentialPayload,
+    sd_jwt_payload_preview: PreviewableCredentialPayload,
+    mdoc_attributes: Attributes,
     #[debug(skip)]
-    metadata_documents: TypeMetadataDocuments,
+    type_metadata_documents: Option<TypeMetadataDocuments>,
     query_id: CredentialQueryIdentifier,
-    disclosure_attributes: Attributes,
+    sd_jwt_disclosure_attributes: Attributes,
+    mdoc_disclosure_attributes: Attributes,
     status: StatusClaim,
 }
 
@@ -164,7 +168,7 @@ impl TestCredentials {
             // Verify the attestation type.
             assert_eq!(
                 attestation.attestation_type,
-                credential.payload_preview.attestation_type
+                credential.sd_jwt_payload_preview.attestation_type
             );
 
             // Verify the actual attributes.
@@ -192,32 +196,44 @@ impl Add for TestCredentials {
 }
 
 impl TestCredential {
+    #[expect(clippy::too_many_arguments, reason = "test constructor")]
     pub fn new<'a>(
-        payload_preview: PreviewableCredentialPayload,
-        metadata_documents: TypeMetadataDocuments,
+        sd_jwt_payload_preview: PreviewableCredentialPayload,
+        mdoc_attributes: Attributes,
+        type_metadata_documents: Option<TypeMetadataDocuments>,
         query_id: CredentialQueryIdentifier,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
         status: StatusClaim,
     ) -> Self {
-        let claim_paths = query_claim_paths
-            .into_iter()
-            .map(|path| {
-                path.into_iter()
-                    .map(|element| ClaimPath::SelectByKey(element.to_string()))
-                    .collect_vec()
-                    .try_into()
-                    .expect("query path should have at least one element")
-            })
-            .collect_vec();
+        fn to_claim_paths<'a>(
+            paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        ) -> Vec<VecNonEmpty<ClaimPath>> {
+            paths
+                .into_iter()
+                .map(|path| {
+                    path.into_iter()
+                        .map(|element| ClaimPath::SelectByKey(element.to_string()))
+                        .collect_vec()
+                        .try_into()
+                        .expect("query path should have at least one element")
+                })
+                .collect_vec()
+        }
 
-        let mut disclosure_attributes = payload_preview.attributes.clone();
-        disclosure_attributes.prune(&claim_paths);
+        let mut sd_jwt_disclosure_attributes = sd_jwt_payload_preview.attributes.clone();
+        sd_jwt_disclosure_attributes.prune(&to_claim_paths(query_claim_paths));
+
+        let mut mdoc_disclosure_attributes = mdoc_attributes.clone();
+        mdoc_disclosure_attributes.prune(&to_claim_paths(mdoc_query_claim_paths));
 
         Self {
-            payload_preview,
-            metadata_documents,
+            sd_jwt_payload_preview,
+            mdoc_attributes,
+            type_metadata_documents,
             query_id,
-            disclosure_attributes,
+            sd_jwt_disclosure_attributes,
+            mdoc_disclosure_attributes,
             status,
         }
     }
@@ -230,9 +246,10 @@ impl TestCredential {
     }
 
     fn to_mdoc_attributes(&self) -> IndexMap<String, Vec<Entry>> {
-        self.disclosure_attributes
+        self.mdoc_disclosure_attributes
             .clone()
-            .to_mdoc_attributes(&self.payload_preview.attestation_type)
+            .to_mdoc_attributes()
+            .expect("mdoc attributes of a TestCredential should be laid out in namespaces")
     }
 
     fn to_mdoc_claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
@@ -261,7 +278,7 @@ impl TestCredential {
 
         NormalizedCredentialRequest::MsoMdoc {
             id: self.query_id.clone(),
-            doctype_value: self.payload_preview.attestation_type.clone(),
+            doctype_value: self.sd_jwt_payload_preview.attestation_type.clone(),
             claims,
             aki: vec![],
         }
@@ -269,7 +286,7 @@ impl TestCredential {
 
     fn to_sd_jwt_normalized_credential_request(&self) -> NormalizedCredentialRequest {
         let claims = self
-            .disclosure_attributes
+            .sd_jwt_disclosure_attributes
             .claim_paths(AttributesTraversalBehaviour::OnlyLeaves)
             .into_iter()
             .map(|path| SdJwtAttributeRequest { path })
@@ -279,44 +296,41 @@ impl TestCredential {
 
         NormalizedCredentialRequest::SdJwt {
             id: self.query_id.clone(),
-            vct_values: vec_nonempty![self.payload_preview.attestation_type.clone()],
+            vct_values: vec_nonempty![self.sd_jwt_payload_preview.attestation_type.clone()],
             claims,
             aki: vec![],
         }
     }
 
-    fn metadata_integrity(&self) -> Integrity {
-        Integrity::from(self.metadata_documents.as_ref().first())
-    }
-
     fn to_credential_payload(
         &self,
         wscd: &impl AsRef<MockRemoteWscd>,
-    ) -> (CredentialPayload, String, NormalizedTypeMetadata) {
+        attributes: Attributes,
+        vct_integrity: Option<Integrity>,
+    ) -> (CredentialPayload, String) {
         let holder_key = wscd.as_ref().create_random_key();
-        let (normalized_metadata, _) = self
-            .metadata_documents
-            .clone()
-            .into_normalized(&self.payload_preview.attestation_type)
-            .expect("TestCredential metadata documents should normalize");
 
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
-            self.payload_preview.clone(),
+            PreviewableCredentialPayload {
+                attributes,
+                ..self.sd_jwt_payload_preview.clone()
+            },
             Utc::now(),
             &PublicKey::from(*holder_key.verifying_key()),
-            self.metadata_integrity(),
+            vct_integrity,
             self.status.clone(),
         )
         .expect("TestCredential payload preview should convert to CredentialPayload");
 
-        (credential_payload, holder_key.identifier, normalized_metadata)
+        (credential_payload, holder_key.identifier)
     }
 
     pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (Mdoc, String) {
-        let (credential_payload, holder_key_identifier, _) = self.to_credential_payload(wscd);
+        let (credential_payload, holder_key_identifier) =
+            self.to_credential_payload(wscd, self.mdoc_attributes.clone(), None);
 
         let (issuer_signed, mso) = credential_payload
-            .into_signed_mdoc(issuer_keypair, None)
+            .into_signed_mdoc(issuer_keypair)
             .now_or_never()
             .unwrap()
             .expect("TestCredential payload preview should convert to Mdoc");
@@ -325,7 +339,21 @@ impl TestCredential {
     }
 
     pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (SignedSdJwt, String) {
-        let (credential_payload, holder_key_identifier, normalized_metadata) = self.to_credential_payload(wscd);
+        let type_metadata_documents = self
+            .type_metadata_documents
+            .clone()
+            .expect("TestCredential should carry Type Metadata documents to be issued as an SD-JWT");
+
+        let vct_integrity = Integrity::from(type_metadata_documents.as_ref().first());
+        let (normalized_metadata, _) = type_metadata_documents
+            .into_normalized(&self.sd_jwt_payload_preview.attestation_type)
+            .expect("TestCredential Type Metadata documents should normalize");
+
+        let (credential_payload, holder_key_identifier) = self.to_credential_payload(
+            wscd,
+            self.sd_jwt_payload_preview.attributes.clone(),
+            Some(vct_integrity),
+        );
 
         let sd_jwt = credential_payload
             .into_signed_sd_jwt(&normalized_metadata, issuer_keypair)
@@ -359,7 +387,7 @@ impl TestCredential {
 
         let sd_jwt = signed_sd_jwt.into_verified();
         let presentation = self
-            .disclosure_attributes
+            .sd_jwt_disclosure_attributes
             .claim_paths(AttributesTraversalBehaviour::OnlyLeaves)
             .iter()
             .fold(sd_jwt.into_presentation_builder(), |builder, path| {
@@ -398,7 +426,7 @@ impl TestCredential {
                     .into_iter()
                     .collect::<HashSet<_>>();
                 let expected_paths = self
-                    .disclosure_attributes
+                    .sd_jwt_disclosure_attributes
                     .claim_paths(AttributesTraversalBehaviour::OnlyLeaves)
                     .into_iter()
                     .collect::<HashSet<_>>();
@@ -407,7 +435,7 @@ impl TestCredential {
 
                 for path in &disclosed_paths {
                     let disclosed_attribute = attributes.get(path).unwrap().unwrap();
-                    let expected_attribute = self.disclosure_attributes.get(path).unwrap().unwrap();
+                    let expected_attribute = self.sd_jwt_disclosure_attributes.get(path).unwrap().unwrap();
 
                     assert_eq!(disclosed_attribute, expected_attribute);
                 }
@@ -421,14 +449,17 @@ impl TestCredential {
     fn new_nl_pid<'a>(
         query_id: &str,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
     ) -> Self {
-        let (_, metadata_documents) = TypeMetadataDocuments::nl_pid_example();
+        let (_, type_metadata_documents) = TypeMetadataDocuments::nl_pid_example();
 
         Self::new(
             PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
-            metadata_documents,
+            Attributes::nl_pid_mdoc_example(),
+            Some(type_metadata_documents),
             query_id.parse().unwrap(),
             query_claim_paths,
+            mdoc_query_claim_paths,
             StatusClaim::new_mock(),
         )
     }
@@ -437,36 +468,60 @@ impl TestCredential {
         Self::new_nl_pid(
             "nl_pid_all",
             [[PID_GIVEN_NAME], [PID_FAMILY_NAME], [PID_BIRTH_DATE], [PID_BSN]],
+            [
+                [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+                [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
+                [PID_ATTESTATION_TYPE, PID_BIRTH_DATE],
+                [PID_ATTESTATION_TYPE, PID_BSN],
+            ],
         )
     }
 
     pub fn new_nl_pid_full_name() -> Self {
-        Self::new_nl_pid("nl_pid_full_name", [[PID_GIVEN_NAME], [PID_FAMILY_NAME]])
+        Self::new_nl_pid(
+            "nl_pid_full_name",
+            [[PID_GIVEN_NAME], [PID_FAMILY_NAME]],
+            [
+                [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+                [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
+            ],
+        )
     }
 
     pub fn new_nl_pid_given_name() -> Self {
-        Self::new_nl_pid("nl_pid_given_name", [[PID_GIVEN_NAME]])
+        Self::new_nl_pid(
+            "nl_pid_given_name",
+            [[PID_GIVEN_NAME]],
+            [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]],
+        )
     }
 
     pub fn new_nl_pid_given_name_for_query_id(query_id: &str) -> Self {
-        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]])
+        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]], [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])
     }
 
     pub fn new_nl_pid_family_name() -> Self {
-        Self::new_nl_pid("nl_pid_family_name", [[PID_FAMILY_NAME]])
+        Self::new_nl_pid(
+            "nl_pid_family_name",
+            [[PID_FAMILY_NAME]],
+            [[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]],
+        )
     }
 
     pub fn new_nl_pid_address<'a>(
         query_id: &str,
         query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
+        mdoc_query_claim_paths: impl IntoIterator<Item = impl IntoIterator<Item = &'a str>>,
     ) -> Self {
-        let (_, metadata_documents) = TypeMetadataDocuments::nl_address_example();
+        let (_, type_metadata_documents) = TypeMetadataDocuments::nl_address_example();
 
         Self::new(
             PreviewableCredentialPayload::nl_pid_address_example(&MockTimeGenerator::default()),
-            metadata_documents,
+            Attributes::nl_pid_address_mdoc_example(),
+            Some(type_metadata_documents),
             query_id.parse().unwrap(),
             query_claim_paths,
+            mdoc_query_claim_paths,
             StatusClaim::new_mock(),
         )
     }
@@ -481,6 +536,13 @@ impl TestCredential {
                 [PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
                 [PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
             ],
+            [
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_STREET],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_HOUSE_NUMBER],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_POSTAL_CODE],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_CITY],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_COUNTRY],
+            ],
         )
     }
 
@@ -491,6 +553,11 @@ impl TestCredential {
                 [PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
                 [PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
                 [PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+            ],
+            [
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_STREET],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_HOUSE_NUMBER],
+                [ADDRESS_ATTESTATION_TYPE, PID_RESIDENT_POSTAL_CODE],
             ],
         )
     }

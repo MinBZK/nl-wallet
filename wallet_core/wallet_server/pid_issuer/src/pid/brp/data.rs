@@ -8,11 +8,13 @@ use serde_with::skip_serializing_none;
 
 use crate::pid::constants::PID_ADDRESS_GROUP;
 use crate::pid::constants::PID_AGE_OVER_18;
+use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BIRTH_DATE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_FAMILY_NAME;
 use crate::pid::constants::PID_GIVEN_NAME;
 use crate::pid::constants::PID_NATIONALITY;
+use crate::pid::constants::PID_RECOVERY_CODE;
 use crate::pid::constants::PID_RESIDENT_CITY;
 use crate::pid::constants::PID_RESIDENT_COUNTRY;
 use crate::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
@@ -28,7 +30,7 @@ pub struct BrpPersons {
 // Represents a person from the BRP.
 // Note: for categories that can occur multiple times, the ordering is such that the most recent category is first.
 // See Logisch Ontwerp BRP 2024 Q2 section 5.1.7.3
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct BrpPerson {
     #[serde(rename = "burgerservicenummer")]
     bsn: String,
@@ -57,22 +59,50 @@ impl BrpPerson {
     fn is_over_18(&self) -> bool {
         self.age >= 18
     }
+
+    pub fn bsn(&self) -> &str {
+        &self.bsn
+    }
 }
 
 impl BrpPerson {
-    pub fn into_attributes(self) -> Attributes {
+    pub fn into_sd_jwt_attributes(self, recovery_code: Attribute) -> Attributes {
+        let address_attributes = self.residence.clone().into_address_attributes();
+        let mut attributes = self.common_attributes();
+
+        attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
+        attributes.insert(
+            String::from(PID_ADDRESS_GROUP),
+            Attribute::Object(IndexMap::from_iter(address_attributes)),
+        );
+
+        Attributes::from(attributes)
+    }
+
+    pub fn into_mdoc_attributes(self, recovery_code: Attribute) -> Attributes {
+        let address_attributes = self.residence.clone().into_address_attributes();
+        let mut attributes = self.common_attributes();
+
+        attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
+        attributes.extend(address_attributes);
+
+        Attributes::from(IndexMap::from([(
+            String::from(PID_ATTESTATION_TYPE),
+            Attribute::Object(attributes),
+        )]))
+    }
+
+    fn common_attributes(self) -> IndexMap<String, Attribute> {
         let given_names = self.name.given_names.clone();
         let is_over_18 = self.is_over_18();
         let family_name = self.name.into_name_with_prefix();
-        let street = self.residence.address.street().map(String::from);
-        let house_number = self.residence.address.locator_designator();
         let nationalities = self
             .nationalities
             .into_iter()
             .filter_map(|nationality| nationality.nationality.map(|nationality| nationality.description))
             .collect_vec();
 
-        let attributes = IndexMap::from_iter(
+        IndexMap::from_iter(
             vec![
                 Some((String::from(PID_FAMILY_NAME), Attribute::Text(family_name))),
                 given_names.map(|names| (String::from(PID_GIVEN_NAME), Attribute::Text(names))),
@@ -86,47 +116,46 @@ impl BrpPerson {
                     String::from(PID_NATIONALITY),
                     Attribute::Array(nationalities.into_iter().map(Attribute::Text).collect_vec()),
                 )),
-                Some((
-                    String::from(PID_ADDRESS_GROUP),
-                    Attribute::Object(IndexMap::from_iter(
-                        vec![
-                            street.map(|street| (String::from(PID_RESIDENT_STREET), Attribute::Text(street))),
-                            Some((String::from(PID_RESIDENT_HOUSE_NUMBER), Attribute::Text(house_number))),
-                            Some((
-                                String::from(PID_RESIDENT_POSTAL_CODE),
-                                Attribute::Text(self.residence.address.postal_code),
-                            )),
-                            Some((
-                                String::from(PID_RESIDENT_CITY),
-                                Attribute::Text(self.residence.address.city),
-                            )),
-                            Some((
-                                String::from(PID_RESIDENT_COUNTRY),
-                                Attribute::Text(self.residence.address.country.description),
-                            )),
-                        ]
-                        .into_iter()
-                        .flatten()
-                        .collect::<Vec<(String, Attribute)>>(),
-                    )),
-                )),
             ]
             .into_iter()
             .flatten()
             .collect::<Vec<(String, Attribute)>>(),
-        );
-
-        Attributes::from(attributes)
+        )
     }
 }
 
-#[derive(Deserialize)]
+impl BrpResidence {
+    pub fn into_address_attributes(self) -> impl Iterator<Item = (String, Attribute)> {
+        vec![
+            self.address
+                .street()
+                .map(|street| (String::from(PID_RESIDENT_STREET), Attribute::Text(String::from(street)))),
+            Some((
+                String::from(PID_RESIDENT_HOUSE_NUMBER),
+                Attribute::Text(self.address.locator_designator()),
+            )),
+            Some((
+                String::from(PID_RESIDENT_POSTAL_CODE),
+                Attribute::Text(self.address.postal_code),
+            )),
+            Some((String::from(PID_RESIDENT_CITY), Attribute::Text(self.address.city))),
+            Some((
+                String::from(PID_RESIDENT_COUNTRY),
+                Attribute::Text(self.address.country.description),
+            )),
+        ]
+        .into_iter()
+        .flatten()
+    }
+}
+
+#[derive(Clone, Deserialize)]
 pub struct BrpGender {
     #[expect(dead_code)]
     code: BrpGenderCode,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all(deserialize = "UPPERCASE"))]
 pub enum BrpGenderCode {
     V,
@@ -167,7 +196,7 @@ impl BrpName {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct BrpBirth {
     #[serde(rename = "datum")]
     date: BrpDate,
@@ -181,7 +210,7 @@ pub struct BrpBirth {
     place: Option<BrpDescription>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct BrpDate {
     #[serde(rename = "datum")]
     date: NaiveDate,
@@ -194,19 +223,19 @@ pub struct BrpDescription {
 }
 
 #[skip_serializing_none]
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
 pub struct BrpNationality {
     #[serde(rename = "nationaliteit")]
     nationality: Option<BrpDescription>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct BrpResidence {
     #[serde(rename = "verblijfadres")]
     address: BrpAddress,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct BrpAddress {
     #[serde(rename = "officieleStraatnaam")]
     official_street_name: Option<String>,
@@ -259,6 +288,7 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
+    use attestation_data::attributes::Attribute;
     use rstest::rstest;
     use serde_json::json;
     use utils::path::prefix_local_path;
@@ -310,7 +340,10 @@ mod tests {
     #[test]
     fn should_convert_brp_person_to_issuable_vec() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
-        let pid_card = brp_persons.persons.remove(0).into_attributes();
+        let pid_card = brp_persons
+            .persons
+            .remove(0)
+            .into_sd_jwt_attributes(Attribute::Text(String::from("recovery_code_123")));
 
         assert_eq!(
             json!({
@@ -346,6 +379,10 @@ mod tests {
                             "value": "Belgische"
                         }
                     ]
+                },
+                "recovery_code": {
+                    "type": "text",
+                    "value": "recovery_code_123"
                 },
                 "address": {
                     "type": "object",

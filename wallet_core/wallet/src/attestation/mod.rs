@@ -1,4 +1,5 @@
 mod attribute;
+pub(crate) mod metadata;
 
 use std::collections::HashSet;
 
@@ -11,14 +12,16 @@ use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
 use error_category::ErrorCategory;
-use sd_jwt_vc_metadata::ClaimDisplayMetadata;
-use sd_jwt_vc_metadata::DisplayMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
+
+use crate::attestation::metadata::AttestationDisplayMetadata;
+use crate::attestation::metadata::AttestationMetadataError;
+use crate::attestation::metadata::ClaimDisplay;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
@@ -33,6 +36,10 @@ pub enum AttestationError {
     #[error("error converting to attributes: {0}")]
     #[category(pd)]
     Attributes(#[from] AttributesError),
+
+    #[error("error validating metadata rules for display: {0}")]
+    #[category(pd)]
+    Metadata(#[source] AttestationMetadataError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -47,12 +54,17 @@ pub enum AttributeError {
 }
 
 pub trait AttestationPresentationConfig {
-    fn filtered_attribute(&self, attestation_type: &str) -> Option<&[String]>;
+    fn filtered_attribute(&self, format: Format, attestation_type: &str) -> Option<&[String]>;
 }
 
 impl AttestationPresentationConfig for PidAttributesConfiguration {
-    fn filtered_attribute(&self, attribute: &str) -> Option<&[String]> {
-        self.sd_jwt
+    fn filtered_attribute(&self, format: Format, attribute: &str) -> Option<&[String]> {
+        let paths_by_attestation_type = match format {
+            Format::MsoMdoc => &self.mso_mdoc,
+            Format::SdJwt => &self.sd_jwt,
+        };
+
+        paths_by_attestation_type
             .get(attribute)
             .map(|pid_paths| pid_paths.recovery_code.as_ref())
     }
@@ -64,7 +76,7 @@ pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub format: Format,
     pub attestation_type: String,
-    pub display_metadata: VecNonEmpty<DisplayMetadata>,
+    pub display_metadata: Vec<AttestationDisplayMetadata>,
     pub issuer: Box<Organization>,
     pub validity: AttestationValidity,
     pub attributes: Vec<AttestationAttribute>,
@@ -80,7 +92,7 @@ pub enum AttestationIdentity {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationAttribute {
     pub key: VecNonEmpty<String>,
-    pub metadata: Vec<ClaimDisplayMetadata>,
+    pub metadata: Vec<ClaimDisplay>,
     pub value: Attribute,
     pub svg_id: Option<String>,
 }
@@ -153,18 +165,17 @@ pub mod mock {
     use attestation_data::auth::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
-    use utils::vec_nonempty;
 
+    use super::AttestationDisplayMetadata;
     use super::AttestationIdentity;
     use super::AttestationPresentation;
     use super::AttestationPresentationConfig;
     use super::AttestationValidity;
-    use super::DisplayMetadata;
 
     pub struct EmptyPresentationConfig;
 
     impl AttestationPresentationConfig for EmptyPresentationConfig {
-        fn filtered_attribute(&self, _attestation_type: &str) -> Option<&[String]> {
+        fn filtered_attribute(&self, _format: Format, _attestation_type: &str) -> Option<&[String]> {
             None
         }
     }
@@ -176,7 +187,7 @@ pub mod mock {
                 identity: AttestationIdentity::Ephemeral,
                 format: Format::SdJwt,
                 attestation_type: "mock".to_string(),
-                display_metadata: vec_nonempty![DisplayMetadata {
+                display_metadata: vec![AttestationDisplayMetadata {
                     locale: "nl".to_string(),
                     name: "mock".to_string(),
                     description: None,

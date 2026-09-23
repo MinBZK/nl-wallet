@@ -2532,7 +2532,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
     return ImageWithMetadata(
       image: dco_decode_image(arr[0]),
-      altText: dco_decode_String(arr[1]),
+      altText: dco_decode_opt_String(arr[1]),
     );
   }
 
@@ -3608,7 +3608,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   ImageWithMetadata sse_decode_image_with_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_image = sse_decode_image(deserializer);
-    var var_altText = sse_decode_String(deserializer);
+    var var_altText = sse_decode_opt_String(deserializer);
     return ImageWithMetadata(image: var_image, altText: var_altText);
   }
 
@@ -5022,7 +5022,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_image_with_metadata(ImageWithMetadata self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_image(self.image, serializer);
-    sse_encode_String(self.altText, serializer);
+    sse_encode_opt_String(self.altText, serializer);
   }
 
   @protected

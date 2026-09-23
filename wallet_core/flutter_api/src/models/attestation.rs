@@ -2,7 +2,7 @@ use chrono::Utc;
 use svg_sanitize::SanitizedSvg;
 use tracing::warn;
 use wallet::attestation_data;
-use wallet::sd_jwt_vc_metadata::LogoMetadata;
+use wallet::display::Logo;
 
 use crate::models::image::Image;
 use crate::models::image::ImageWithMetadata;
@@ -98,8 +98,8 @@ pub struct DisplayMetadata {
     pub rendering: Option<RenderingMetadata>,
 }
 
-impl From<wallet::sd_jwt_vc_metadata::DisplayMetadata> for DisplayMetadata {
-    fn from(value: wallet::sd_jwt_vc_metadata::DisplayMetadata) -> Self {
+impl From<wallet::display::AttestationDisplayMetadata> for DisplayMetadata {
+    fn from(value: wallet::display::AttestationDisplayMetadata) -> Self {
         Self {
             locale: value.locale,
             name: value.name,
@@ -120,10 +120,10 @@ pub enum RenderingMetadata {
     SvgTemplates,
 }
 
-impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
-    fn from(value: wallet::sd_jwt_vc_metadata::RenderingMetadata) -> Self {
+impl From<wallet::display::Rendering> for RenderingMetadata {
+    fn from(value: wallet::display::Rendering) -> Self {
         match value {
-            wallet::sd_jwt_vc_metadata::RenderingMetadata::Simple {
+            wallet::display::Rendering::Simple {
                 logo,
                 background_image,
                 background_color,
@@ -142,15 +142,15 @@ impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
                 background_color,
                 text_color,
             },
-            wallet::sd_jwt_vc_metadata::RenderingMetadata::SvgTemplates => RenderingMetadata::SvgTemplates,
+            wallet::display::Rendering::SvgTemplates => RenderingMetadata::SvgTemplates,
         }
     }
 }
 
-impl TryFrom<LogoMetadata> for ImageWithMetadata {
+impl TryFrom<Logo> for ImageWithMetadata {
     type Error = svg_sanitize::Error;
 
-    fn try_from(value: LogoMetadata) -> Result<Self, Self::Error> {
+    fn try_from(value: Logo) -> Result<Self, Self::Error> {
         Ok(ImageWithMetadata {
             image: match value.image {
                 wallet::attestation_types::Image::Jpeg(data) => Image::Jpeg { data },
@@ -159,7 +159,7 @@ impl TryFrom<LogoMetadata> for ImageWithMetadata {
                     svg: SanitizedSvg::try_new(&xml)?.into(),
                 },
             },
-            alt_text: value.alt_text.into_inner(),
+            alt_text: value.alt_text,
         })
     }
 }
@@ -170,8 +170,8 @@ pub struct ClaimDisplayMetadata {
     pub description: Option<String>,
 }
 
-impl From<wallet::sd_jwt_vc_metadata::ClaimDisplayMetadata> for ClaimDisplayMetadata {
-    fn from(value: wallet::sd_jwt_vc_metadata::ClaimDisplayMetadata) -> Self {
+impl From<wallet::display::ClaimDisplay> for ClaimDisplayMetadata {
+    fn from(value: wallet::display::ClaimDisplay) -> Self {
         Self {
             locale: value.locale,
             label: value.label,

@@ -2,6 +2,7 @@ use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
+use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use sea_orm::FromJsonQueryResult;
 use sea_orm::entity::prelude::*;
@@ -23,7 +24,7 @@ pub struct Model {
     pub not_before: Option<DateTime<Utc>>,
     pub attestation_format: AttestationFormat,
     pub extended_types: ExtendedTypesModel,
-    pub type_metadata: TypeMetadataModel,
+    pub metadata: AttestationMetadataModel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
@@ -59,10 +60,13 @@ pub struct ExtendedTypesModel {
     pub attestation_types: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, Constructor)]
-#[serde(transparent)]
-pub struct TypeMetadataModel {
-    pub documents: VerifiedTypeMetadataDocuments,
+/// The metadata that describes a stored attestation, which is either the chain of SD-JWT VC Type Metadata documents
+/// it was issued with or the Credential Metadata taken from the Credential Issuer metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult)]
+#[serde(rename_all = "snake_case")]
+pub enum AttestationMetadataModel {
+    TypeMetadata(VerifiedTypeMetadataDocuments),
+    CredentialMetadata(CredentialMetadata),
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

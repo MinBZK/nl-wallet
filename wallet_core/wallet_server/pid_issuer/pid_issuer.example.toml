@@ -73,6 +73,7 @@ certificate = "MIJ..."
 [credential_configurations."com.example.pid_mdoc"]
 format = "mso_mdoc"
 attestation_type = "com.example.pid"
+credential_metadata = "com_example_pid_metadata_mdoc.json"
 valid_days = 365
 private_key_type = "software"
 private_key = "MIG..."               # DER-encoded private key

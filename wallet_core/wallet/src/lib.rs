@@ -66,6 +66,16 @@ pub mod attestation_types {
     pub use attestation_types::image::Image;
 }
 
+/// How an attestation and its claims are displayed to the user, independent of the kind of metadata the attestation
+/// was issued with.
+pub mod display {
+    pub use crate::attestation::metadata::AttestationDisplayMetadata;
+    pub use crate::attestation::metadata::BackgroundImage;
+    pub use crate::attestation::metadata::ClaimDisplay;
+    pub use crate::attestation::metadata::Logo;
+    pub use crate::attestation::metadata::Rendering;
+}
+
 pub mod configuration {
     pub use wallet_configuration::wallet_config::AccountServerConfiguration;
     pub use wallet_configuration::wallet_config::LockTimeoutConfiguration;
@@ -77,13 +87,6 @@ pub mod configuration {
 
 pub mod openid4vc {
     pub use openid4vc::verifier::SessionType;
-}
-
-pub mod sd_jwt_vc_metadata {
-    pub use sd_jwt_vc_metadata::ClaimDisplayMetadata;
-    pub use sd_jwt_vc_metadata::DisplayMetadata;
-    pub use sd_jwt_vc_metadata::LogoMetadata;
-    pub use sd_jwt_vc_metadata::RenderingMetadata;
 }
 
 pub mod utils {

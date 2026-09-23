@@ -5,6 +5,7 @@ use std::num::NonZeroU8;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::Days;
 use crypto::trust_anchor::TrustAnchors;
@@ -28,11 +29,13 @@ use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
+use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use sea_orm::DatabaseConnection;
 use sea_orm::DbErr;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use serde_with::TryFromInto;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
@@ -128,7 +131,9 @@ pub struct IssuerSettings {
     #[debug(skip)]
     pub credential_metadata_keypair: KeyPair,
 
+    /// Type metadata is optional for mdocs.
     #[debug(skip)]
+    #[serde(default)]
     #[serde_as(as = "TryFromInto<Vec<String>>")]
     pub type_metadata: TypeMetadataByVct,
 
@@ -153,14 +158,15 @@ pub struct IssuerSettings {
     pub wia_trust_anchors: TrustAnchors,
 }
 
-#[derive(Debug, Clone, AsRef)]
-pub struct TypeMetadataByVct(HashMap<String, (UncheckedTypeMetadata, Vec<u8>)>);
+#[derive(Debug, Clone, Default, AsRef)]
+pub struct TypeMetadataByVct(HashMap<String, JsonFile<UncheckedTypeMetadata>>);
 
 #[derive(Debug, Clone, Deserialize, From, IntoIterator, AsRef)]
 pub struct CredentialConfigurationsSettings(
     #[into_iterator(owned, ref)] HashMap<CredentialConfigurationId, CredentialConfigurationSettings>,
 );
 
+#[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct CredentialConfigurationSettings {
     #[serde(flatten)]
@@ -174,16 +180,14 @@ pub struct CredentialConfigurationSettings {
 
     pub status_list: StatusListAttestationSettings,
 
-    /// Overrides the root mdoc namespace used when issuing this attestation as `MsoMdoc`. This exists for attestation
-    /// types whose mdoc namespace is mandated by an external specification and differs from their doctype, e.g. ISO
-    /// 18013-5 mDL uses doctype `org.iso.18013.5.1.mDL` but namespace `org.iso.18013.5.1`. Must be left unset for
-    /// `SdJwt`.
-    #[serde(default)]
-    pub mdoc_namespace: Option<String>,
+    /// Path to the JSON file with the Credential Metadata published for this credential configuration.
+    #[debug(skip)]
+    #[serde_as(as = "Option<TryFromInto<String>>")]
+    pub credential_metadata: Option<JsonFile<CredentialMetadata>>,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum TypeMetadataParseError {
+pub enum JsonFileParseError {
     #[error("could not read \"{0}\": {1}")]
     Read(PathBuf, #[source] std::io::Error),
 
@@ -191,21 +195,55 @@ pub enum TypeMetadataParseError {
     Deserialize(PathBuf, #[source] serde_json::Error),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JsonFile<T> {
+    contents: T,
+    json: Vec<u8>,
+}
+
+impl<T> JsonFile<T> {
+    pub fn contents(&self) -> &T {
+        &self.contents
+    }
+
+    pub fn into_contents(self) -> T {
+        self.contents
+    }
+
+    pub fn json(&self) -> &[u8] {
+        &self.json
+    }
+}
+
+impl<T> TryFrom<String> for JsonFile<T>
+where
+    T: DeserializeOwned,
+{
+    type Error = JsonFileParseError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let path = prefix_local_path(PathBuf::from(value));
+        let json = fs::read(&path).map_err(|error| JsonFileParseError::Read(path.clone().into_owned(), error))?;
+        let contents =
+            serde_json::from_slice(&json).map_err(|error| JsonFileParseError::Deserialize(path.into_owned(), error))?;
+
+        Ok(Self { contents, json })
+    }
+}
+
 impl TryFrom<Vec<String>> for TypeMetadataByVct {
-    type Error = TypeMetadataParseError;
+    type Error = JsonFileParseError;
 
     fn try_from(value: Vec<String>) -> Result<Self, Self::Error> {
         // Map the contents of each JSON file by the `vct` field by decoding the JSON and extracting just that field.
         let documents = value
             .into_iter()
             .map(|path| {
-                let path = prefix_local_path(PathBuf::from(path));
-                let json =
-                    fs::read(&path).map_err(|error| TypeMetadataParseError::Read(path.clone().into_owned(), error))?;
-                let metadata = serde_json::from_slice::<UncheckedTypeMetadata>(&json)
-                    .map_err(|error| TypeMetadataParseError::Deserialize(path.into_owned(), error))?;
+                let document = JsonFile::<UncheckedTypeMetadata>::try_from(path)?;
 
-                Ok((metadata.vct.clone(), (metadata, json)))
+                let vct = document.contents().vct.clone();
+
+                Ok((vct, document))
             })
             .try_collect()?;
 
@@ -239,13 +277,14 @@ impl TypeMetadataByVct {
                 return Err(TypeMetadataDocumentsError::MaximumLengthExceeded);
             }
 
-            let (metadata_document, metadata_json) = metadata_by_vct
+            let document = metadata_by_vct
                 .get(vct)
                 .ok_or_else(|| TypeMetadataDocumentsError::MissingDocument(vct.to_string()))?;
 
-            documents.push(metadata_json.clone());
+            documents.push(document.json().to_vec());
 
-            next_vct = metadata_document
+            next_vct = document
+                .contents()
                 .extends
                 .as_ref()
                 .map(|extends| extends.extends.as_str());
@@ -298,11 +337,17 @@ impl CredentialConfigurationsSettings {
                     (status_list_connection, public_url, hsm),
                     config_count,
                 ))
-                .map(
-                    |((config_id, settings), (status_list_connection, public_url, hsm))| async move {
-                        let metadata_documents = metadata_by_vct
-                            .to_metadata_documents(&settings.credential_kind.attestation_type)
-                            .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
+                .map(|((config_id, settings), (status_list_connection, public_url, hsm))| {
+                    async move {
+                        // An mdoc is described by its CredentialMetadata, so no chain needs to be configured for it.
+                        let type_metadata = match settings.credential_kind.format {
+                            Format::SdJwt => Some(
+                                metadata_by_vct
+                                    .to_metadata_documents(&settings.credential_kind.attestation_type)
+                                    .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?,
+                            ),
+                            Format::MsoMdoc => None,
+                        };
 
                         let key_pair = settings
                             .keypair
@@ -321,13 +366,13 @@ impl CredentialConfigurationsSettings {
                             key_pair,
                             status_list,
                             valid_days: Days::new(settings.valid_days),
-                            mdoc_namespace: settings.mdoc_namespace,
-                            metadata_documents,
+                            type_metadata,
+                            credential_metadata: settings.credential_metadata.map(JsonFile::into_contents),
                         };
 
                         Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
-                    },
-                ),
+                    }
+                }),
         )
         .await?
         .into_iter()
@@ -626,6 +671,7 @@ mod tests {
 
     use super::CredentialConfigurationSettings;
     use super::IssuerSettings;
+    use super::JsonFile;
     use super::StatusListAttestationSettings;
     use super::TypeMetadataByVct;
     use crate::settings::IssuerSettingsValidationError;
@@ -654,6 +700,7 @@ mod tests {
                 "pid_sdjwt".to_string().into(),
                 CredentialConfigurationSettings {
                     credential_kind: CredentialKind::new(Format::SdJwt, "com.example.pid".to_string()),
+                    credential_metadata: None,
                     keypair: issuance_keypair,
                     valid_days: 365,
                     status_list: StatusListAttestationSettings {
@@ -663,7 +710,6 @@ mod tests {
                         keypair: status_list_keypair,
                         publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                     },
-                    mdoc_namespace: None,
                 },
             )])
             .into(),
@@ -671,8 +717,14 @@ mod tests {
             type_metadata: TypeMetadataByVct(HashMap::from([{
                 let metadata = UncheckedTypeMetadata::pid_example();
                 let vct = metadata.vct.clone();
-                let metadata_bytes = serde_json::to_vec(&metadata).unwrap();
-                (vct, (metadata, metadata_bytes))
+                let json = serde_json::to_vec(&metadata).unwrap();
+                (
+                    vct,
+                    JsonFile {
+                        contents: metadata,
+                        json,
+                    },
+                )
             }])),
             wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
@@ -766,6 +818,7 @@ mod tests {
             "no_registration_sdjwt".to_string().into(),
             CredentialConfigurationSettings {
                 credential_kind: CredentialKind::new(Format::SdJwt, "com.example.no_registration".to_string()),
+                credential_metadata: None,
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
                 status_list: StatusListAttestationSettings {
@@ -775,7 +828,6 @@ mod tests {
                     keypair: status_list_keypair,
                     publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                 },
-                mdoc_namespace: None,
             },
         )])
         .into();
@@ -784,16 +836,25 @@ mod tests {
             vct: "com.example.no_registration".to_string(),
             ..UncheckedTypeMetadata::empty_example()
         };
-        let no_registration_metadata_serialized = serde_json::to_vec(&no_registration_metadata).unwrap();
+        let no_registration_metadata_json = serde_json::to_vec(&no_registration_metadata).unwrap();
         let pid_metadata = TypeMetadata::pid_example().into_inner();
-        let pid_metadata_serialized = serde_json::to_vec(&pid_metadata).unwrap();
+        let pid_metadata_json = serde_json::to_vec(&pid_metadata).unwrap();
 
         settings.type_metadata = TypeMetadataByVct(HashMap::from([
             (
                 no_registration_metadata.vct.clone(),
-                (no_registration_metadata, no_registration_metadata_serialized),
+                JsonFile {
+                    contents: no_registration_metadata,
+                    json: no_registration_metadata_json,
+                },
             ),
-            (pid_metadata.vct.clone(), (pid_metadata, pid_metadata_serialized)),
+            (
+                pid_metadata.vct.clone(),
+                JsonFile {
+                    contents: pid_metadata,
+                    json: pid_metadata_json,
+                },
+            ),
         ]));
 
         assert_matches!(

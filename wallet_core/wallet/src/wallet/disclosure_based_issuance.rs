@@ -129,12 +129,12 @@ where
         let issuance_session = self
             .issuance_discovery
             .start_pre_authorized_code_flow(
-                IssuanceDiscoveryParameters::new(
-                    &redirect_uri,
-                    &CredentialSelection::All,
-                    &self.new_remote_wia_client(attested_key, &registration_data, &config),
-                    config.wrpac_trust_anchors(),
-                ),
+                IssuanceDiscoveryParameters {
+                    offer_uri: &redirect_uri,
+                    selection: &CredentialSelection::All,
+                    wia_client: &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                    wrpac_trust_anchors: config.wrpac_trust_anchors(),
+                },
                 config.issuer_trust_anchors(),
             )
             .await
@@ -194,7 +194,6 @@ mod tests {
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
-    use openid4vc::wallet_issuance::CredentialSelection;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
@@ -218,6 +217,7 @@ mod tests {
     use crate::storage::PartialAttestation;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::storage::StoredAttestationMetadata;
     use crate::storage::WithKeyIdentifier;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::create_example_pid_mdoc;
@@ -294,18 +294,17 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
-        let (credential_preview, normalized_metadata) =
+        let (credential_preview, metadata) =
             create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         wallet
             .issuance_discovery
             .expect_start_pre_authorized_code_flow_sync()
-            .withf(|selection| matches!(selection, CredentialSelection::All))
-            .return_once(move |_| {
+            .return_once(move |_selection| {
                 let mut issuance_session = MockIssuanceSession::new();
 
                 issuance_session
                     .expect_previews_with_metadata()
-                    .return_const(vec![(credential_preview, normalized_metadata)].into());
+                    .return_const(vec![(credential_preview, metadata)].into());
 
                 issuance_session
                     .expect_issuer()
@@ -336,7 +335,7 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
 
-        let (mdoc, metadata) = create_example_pid_mdoc(&SigningKey::generate());
+        let (mdoc, credential_metadata) = create_example_pid_mdoc(&SigningKey::generate());
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
@@ -345,7 +344,7 @@ mod tests {
                 key_identifier: "mdoc_key_id".to_string(),
                 data: StoredAttestation::MsoMdoc(mdoc),
             },
-            metadata,
+            StoredAttestationMetadata::CredentialMetadata(credential_metadata),
             None,
         );
 

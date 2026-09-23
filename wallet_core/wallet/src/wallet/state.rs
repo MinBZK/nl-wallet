@@ -352,6 +352,7 @@ mod tests {
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::decryption::JweEcdhSecretKey;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
+    use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use rstest::rstest;
@@ -760,7 +761,7 @@ mod tests {
                     key_identifier: "key_id".to_string(),
                     data: StoredAttestation::SdJwt(sd_jwt.clone()),
                 },
-                VerifiedTypeMetadataDocuments::nl_pid_example(),
+                IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
             )],
             None,
         );

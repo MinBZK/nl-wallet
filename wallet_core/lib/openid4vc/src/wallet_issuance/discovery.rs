@@ -785,10 +785,18 @@ mod test {
                     "format": "mso_mdoc",
                     "doctype": PID_ATTESTATION_TYPE,
                     "scope": "pid_mdoc_scope",
+                    // Note that this is deliberately still present, as the wallet should ignore it for an mdoc.
                     "type_metadata_uri": issuer_identifier
                                             .as_issuer_url()
                                             .join_issuer_url("/issuance/type_metadata")
                                             .join_config_id(&CONFIG_ID_MDOC),
+                    "credential_metadata": {
+                        "display": [{ "name": "PID", "locale": "en" }],
+                        "claims": [{
+                            "path": ["family_name"],
+                            "display": [{ "name": "Family name", "locale": "en" }],
+                        }],
+                    },
                 },
                 CONFIG_ID_SD_JWT.as_ref(): {
                     "format": "dc+sd-jwt",

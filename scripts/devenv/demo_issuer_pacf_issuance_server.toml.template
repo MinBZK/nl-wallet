@@ -6,12 +6,6 @@ wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
 wia_trust_anchors = ["${WIA_CA_CRT}"]
 
-type_metadata = [
-    "${ISSUER_METADATA_MUSEUM_MAANDKAART_PATH}",
-    "${ISSUER_METADATA_MDL_PATH}",
-    "${ISSUER_METADATA_MVC_PATH}"
-]
-
 [credential_metadata_keypair]
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC}"
@@ -40,6 +34,7 @@ max_session_lifetime_in_sec = 900
 [credential_configurations."com.example.museum_maandkaart"]
 format = "mso_mdoc"
 attestation_type = "com.example.museum_maandkaart"
+credential_metadata = "com.example.museum_maandkaart.mdoc.json"
 valid_days = 30
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_ISSUER}"
@@ -56,7 +51,7 @@ certificate = "${DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL}"
 [credential_configurations."org.iso.18013.5.1.mDL"]
 format = "mso_mdoc"
 attestation_type = "org.iso.18013.5.1.mDL"
-mdoc_namespace = "org.iso.18013.5.1"
+credential_metadata = "org.iso.18013.5.1.mDL.mdoc.json"
 valid_days = 3650
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_MDL_ISSUER}"
@@ -73,7 +68,7 @@ certificate = "${DEMO_ISSUER_CRT_MDL_TSL}"
 [credential_configurations."org.iso.7367.2.1.mVC"]
 format = "mso_mdoc"
 attestation_type = "org.iso.7367.2.1.mVC"
-mdoc_namespace = "org.iso.7367.2.1"
+credential_metadata = "org.iso.7367.2.1.mVC.mdoc.json"
 valid_days = 3650
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_MVC_ISSUER}"

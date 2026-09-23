@@ -112,21 +112,14 @@ impl PreviewableCredentialPayload {
         Ok(SplitCredential::from_sd_jwt(sd_jwt)?.previewable)
     }
 
-    pub fn from_mdoc(
-        mdoc: Mdoc,
-        metadata: &NormalizedTypeMetadata,
-    ) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
-        Ok(SplitCredential::from_mdoc(mdoc, metadata)?.previewable)
+    pub fn from_mdoc(mdoc: Mdoc) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
+        Ok(SplitCredential::from_mdoc(mdoc)?.previewable)
     }
 }
 
 /// Shared error for required fields that are absent from a decoded credential, regardless of format.
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CredentialPayloadMissingFieldError {
-    #[error("missing metadata integrity")]
-    #[category(critical)]
-    MetadataIntegrity,
-
     #[error("missing status claim")]
     #[category(critical)]
     StatusClaim,
@@ -175,6 +168,10 @@ pub enum CredentialPayloadIntoSignedMdocError {
     #[category(critical)]
     MissingValidUntil,
 
+    #[error("cannot convert attributes to mdoc: {0}")]
+    #[category(pd)]
+    InvalidAttributes(#[source] AttributesError),
+
     #[error("missing or empty NameSpace detected: {0}")]
     #[category(critical)]
     MissingOrEmptyNamespace(#[source] IssuerNameSpacesPreConditionError),
@@ -216,9 +213,10 @@ pub struct CredentialPayload {
     #[serde(rename = "cnf")]
     pub confirmation_key: ConfirmationClaim,
 
-    /// Contains the integrity digest of the type metadata document of this `vct`.
+    /// Contains the integrity digest of the SD-JWT Type Metadata document of this `vct`. When absent, the credential
+    /// is described by the issuer credential metadata instead.
     #[serde(rename = "vct#integrity")]
-    pub vct_integrity: Integrity,
+    pub vct_integrity: Option<Integrity>,
 
     /// The information on how to read the status of the Verifiable Credential.
     pub status: StatusClaim,
@@ -232,7 +230,7 @@ impl CredentialPayload {
         previewable_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
         holder_pubkey: &PublicKey,
-        metadata_integrity: Integrity,
+        vct_integrity: Option<Integrity>,
         status: StatusClaim,
     ) -> Result<Self, JwkConversionError> {
         let confirmation_key = jwk_from_public_key(holder_pubkey)?;
@@ -240,7 +238,7 @@ impl CredentialPayload {
         Ok(CredentialPayload {
             issued_at: issued_at.into(),
             confirmation_key: ConfirmationClaim::Jwk(confirmation_key),
-            vct_integrity: metadata_integrity,
+            vct_integrity,
             status,
             previewable_payload,
         })
@@ -253,8 +251,8 @@ impl CredentialPayload {
             .map_err(CredentialPayloadFromSdJwtError::MissingField)
     }
 
-    pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadFromMdocError> {
-        SplitCredential::from_mdoc(mdoc, metadata)
+    pub fn from_mdoc(mdoc: Mdoc) -> Result<Self, CredentialPayloadFromMdocError> {
+        SplitCredential::from_mdoc(mdoc)
             .map_err(CredentialPayloadFromMdocError::PreviewableCredentialPayload)?
             .try_into_credential_payload()
             .map_err(CredentialPayloadFromMdocError::MissingField)
@@ -306,14 +304,13 @@ impl CredentialPayload {
     pub async fn into_signed_mdoc(
         self,
         issuer_keypair: &KeyPair<impl EcdsaKey>,
-        mdoc_namespace: Option<&str>,
     ) -> Result<(IssuerSigned, MobileSecurityObject), CredentialPayloadIntoSignedMdocError> {
         let CredentialPayload {
             issued_at,
             confirmation_key,
-            vct_integrity,
             status,
             previewable_payload,
+            ..
         } = self;
         let PreviewableCredentialPayload {
             not_before,
@@ -333,7 +330,9 @@ impl CredentialPayload {
             expected_update: None,
         };
 
-        let attributes = attributes.to_mdoc_attributes(mdoc_namespace.unwrap_or(&attestation_type));
+        let attributes = attributes
+            .to_mdoc_attributes()
+            .map_err(CredentialPayloadIntoSignedMdocError::InvalidAttributes)?;
         let attrs = IssuerNameSpaces::try_from(attributes)
             .map_err(CredentialPayloadIntoSignedMdocError::MissingOrEmptyNamespace)?;
 
@@ -362,7 +361,6 @@ impl CredentialPayload {
             device_key_info: cose_pubkey.into(),
             validity_info: validity,
             status: Some(status),
-            type_metadata_integrity: Some(vct_integrity),
         };
 
         let mso = TaggedBytes(mso);
@@ -395,9 +393,7 @@ impl SplitCredential {
         Ok(CredentialPayload {
             issued_at: self.issued_at,
             confirmation_key: self.key_info,
-            vct_integrity: self
-                .vct_integrity
-                .ok_or(CredentialPayloadMissingFieldError::MetadataIntegrity)?,
+            vct_integrity: self.vct_integrity,
             status: self.status.ok_or(CredentialPayloadMissingFieldError::StatusClaim)?,
             previewable_payload: self.previewable,
         })
@@ -427,19 +423,19 @@ impl SplitCredential {
         })
     }
 
-    fn from_mdoc(
-        mdoc: Mdoc,
-        metadata: &NormalizedTypeMetadata,
-    ) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
+    fn from_mdoc(mdoc: Mdoc) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
         let (mso, issuer_signed) = mdoc.into_components();
         let attributes = issuer_signed.into_entries_by_namespace();
+        let attestation_type = mso.doc_type;
+        let attributes = Attributes::from_mdoc_attributes(attributes)
+            .map_err(PreviewableCredentialPayloadFromMdocError::InvalidAttributes)?;
 
         let issued_at = (&mso.validity_info.signed)
             .try_into()
             .map_err(PreviewableCredentialPayloadFromMdocError::DateConversion)?;
 
         let previewable = PreviewableCredentialPayload {
-            attestation_type: mso.doc_type,
+            attestation_type,
             expires: Some(
                 (&mso.validity_info.valid_until)
                     .try_into()
@@ -450,8 +446,7 @@ impl SplitCredential {
                     .try_into()
                     .map_err(PreviewableCredentialPayloadFromMdocError::DateConversion)?,
             ),
-            attributes: Attributes::from_mdoc_attributes(metadata, attributes)
-                .map_err(PreviewableCredentialPayloadFromMdocError::InvalidAttributes)?,
+            attributes,
         };
 
         let key_info = ConfirmationClaim::Jwk(
@@ -465,7 +460,7 @@ impl SplitCredential {
             previewable,
             issued_at,
             key_info,
-            vct_integrity: mso.type_metadata_integrity,
+            vct_integrity: None,
             status: mso.status,
         })
     }
@@ -477,7 +472,7 @@ impl TryFrom<CredentialPayload> for SdJwtVcClaims {
     fn try_from(value: CredentialPayload) -> Result<Self, Self::Error> {
         Ok(SdJwtVcClaims {
             vct: value.previewable_payload.attestation_type,
-            vct_integrity: Some(value.vct_integrity),
+            vct_integrity: value.vct_integrity,
             iat: value.issued_at,
             exp: value.previewable_payload.expires,
             nbf: value.previewable_payload.not_before,
@@ -511,13 +506,13 @@ mod examples {
             previewable_payload: PreviewableCredentialPayload,
             issued_at: DateTime<Utc>,
             holder_pubkey: &PublicKey,
-            metadata_integrity: Integrity,
+            vct_integrity: Option<Integrity>,
             status: StatusClaim,
         ) -> Result<Self, JwkConversionError> {
             Ok(Self {
                 issued_at: issued_at.into(),
                 confirmation_key: ConfirmationClaim::try_from_public_key(holder_pubkey)?,
-                vct_integrity: metadata_integrity,
+                vct_integrity,
                 status,
                 previewable_payload,
             })
@@ -535,7 +530,7 @@ mod examples {
             Self {
                 issued_at: time.into(),
                 confirmation_key: ConfirmationClaim::Jwk(confirmation_key),
-                vct_integrity: Integrity::from(""),
+                vct_integrity: Some(Integrity::from("")),
                 status: StatusClaim::new_mock(),
                 previewable_payload,
             }
@@ -570,6 +565,17 @@ mod examples {
             Self::example_with_attributes(
                 PID_ATTESTATION_TYPE,
                 Attributes::example([(["family_name"], Attribute::Text(String::from("De Bruijn")))]),
+                time_generator,
+            )
+        }
+
+        pub fn example_family_name_mdoc(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(
+                PID_ATTESTATION_TYPE,
+                Attributes::example([(
+                    [PID_ATTESTATION_TYPE, "family_name"],
+                    Attribute::Text(String::from("De Bruijn")),
+                )]),
                 time_generator,
             )
         }
@@ -611,8 +617,29 @@ mod mock {
             )
         }
 
+        /// The same claims as [`CredentialPayload::nl_pid_example()`], but with mdoc-namespaced attributes.
+        pub fn nl_pid_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> (Self, SigningKey) {
+            let previewable_payload = PreviewableCredentialPayload::nl_pid_mdoc_example(time_generator);
+            let holder_key = SigningKey::generate();
+            (
+                Self::example_with_preview(previewable_payload, holder_key.verifying_key(), time_generator),
+                holder_key,
+            )
+        }
+
         pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             let previewable_payload = PreviewableCredentialPayload::nl_pid_address_example(time_generator);
+
+            Self::example_with_preview(
+                previewable_payload,
+                SigningKey::generate().verifying_key(),
+                time_generator,
+            )
+        }
+
+        /// The same claims as [`CredentialPayload::nl_pid_address_example()`], but with mdoc-namespaced attributes.
+        pub fn nl_pid_address_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            let previewable_payload = PreviewableCredentialPayload::nl_pid_address_mdoc_example(time_generator);
 
             Self::example_with_preview(
                 previewable_payload,
@@ -627,10 +654,26 @@ mod mock {
             Self::example_with_attributes(PID_ATTESTATION_TYPE, Attributes::nl_pid_example(), time_generator)
         }
 
+        /// The same claims as [`PreviewableCredentialPayload::nl_pid_example()`], but with mdoc-namespaced
+        /// attributes.
+        pub fn nl_pid_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(PID_ATTESTATION_TYPE, Attributes::nl_pid_mdoc_example(), time_generator)
+        }
+
         pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
             Self::example_with_attributes(
                 ADDRESS_ATTESTATION_TYPE,
                 Attributes::nl_pid_address_example(),
+                time_generator,
+            )
+        }
+
+        /// The same claims as [`PreviewableCredentialPayload::nl_pid_address_example()`], but with mdoc-namespaced
+        /// attributes. Note that the address is not grouped, as an mdoc has no nesting of its own.
+        pub fn nl_pid_address_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+            Self::example_with_attributes(
+                ADDRESS_ATTESTATION_TYPE,
+                Attributes::nl_pid_address_mdoc_example(),
                 time_generator,
             )
         }
@@ -713,7 +756,7 @@ mod test {
             payload_preview.clone(),
             Utc::now(),
             &PublicKey::from(*SigningKey::generate().verifying_key()),
-            metadata_integrity.clone(),
+            Some(metadata_integrity.clone()),
             StatusClaim::new_mock(),
         )
         .unwrap();
@@ -730,9 +773,27 @@ mod test {
 
     #[tokio::test]
     async fn test_into_signed_mdoc() {
-        let (payload_preview, credential_payload, _, metadata_integrity, ca, issuance_key) = setup_into_signed();
+        let (payload_preview, credential_payload, _, _, ca, issuance_key) = setup_into_signed();
 
-        let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key, None).await.unwrap();
+        // The attributes of an mdoc are laid out in namespaces, as the issuer authors them.
+        let credential_payload = CredentialPayload {
+            previewable_payload: PreviewableCredentialPayload {
+                attributes: Attributes::example([
+                    (
+                        [PID_ATTESTATION_TYPE, "first_name"],
+                        Attribute::Text("John".to_string()),
+                    ),
+                    (
+                        [PID_ATTESTATION_TYPE, "family_name"],
+                        Attribute::Text("Doe".to_string()),
+                    ),
+                ]),
+                ..payload_preview.clone()
+            },
+            ..credential_payload
+        };
+
+        let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key).await.unwrap();
 
         // The IssuerSigned should be valid
         issuer_signed
@@ -755,7 +816,52 @@ mod test {
             payload_preview.expires.unwrap(),
             (&cose_payload.validity_info.valid_until).try_into().unwrap(),
         );
-        assert_eq!(cose_payload.type_metadata_integrity, Some(metadata_integrity));
+    }
+
+    /// An mdoc data element value may be any CBOR value, including a map, which ISO 7367-2 mVC relies on for e.g.
+    /// `chassis_number_info`. Such an element should survive signing, CBOR (de)serialization and conversion back
+    /// into `Attributes` unchanged.
+    #[tokio::test]
+    async fn test_into_signed_mdoc_map_valued_data_element_round_trip() {
+        let (payload_preview, credential_payload, _, _, _, issuance_key) = setup_into_signed();
+
+        let attributes = Attributes::example([
+            (
+                vec![PID_ATTESTATION_TYPE, "registration_number"],
+                Attribute::Text("AB-CD-12".to_string()),
+            ),
+            (
+                vec![
+                    PID_ATTESTATION_TYPE,
+                    "chassis_number_info",
+                    "vehicle_identification_number",
+                ],
+                Attribute::Text("WVWZZZ1JZXW000001".to_string()),
+            ),
+            (
+                vec![PID_ATTESTATION_TYPE, "basic_vehicle_info", "make"],
+                Attribute::Text("Volkswagen".to_string()),
+            ),
+            (
+                vec![PID_ATTESTATION_TYPE, "date_of_registration"],
+                Attribute::Date(chrono::NaiveDate::from_ymd_opt(2023, 1, 10).unwrap()),
+            ),
+        ]);
+
+        let credential_payload = CredentialPayload {
+            previewable_payload: PreviewableCredentialPayload {
+                attributes: attributes.clone(),
+                ..payload_preview.clone()
+            },
+            ..credential_payload
+        };
+
+        let (issuer_signed, _) = credential_payload.into_signed_mdoc(&issuance_key).await.unwrap();
+
+        assert_eq!(
+            Attributes::from_mdoc_attributes(issuer_signed.into_entries_by_namespace()).unwrap(),
+            attributes
+        );
     }
 
     #[tokio::test]
@@ -784,25 +890,35 @@ mod test {
         assert_eq!(claims.vct_integrity, Some(metadata_integrity));
     }
 
+    /// The attributes of an mdoc are always exactly two levels deep: the namespace, then the element identifier.
     #[test]
     fn test_from_mdoc() {
         let mdoc = Mdoc::new_mock().now_or_never().unwrap();
-        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::pid_example());
 
-        let payload = CredentialPayload::from_mdoc(mdoc, &metadata)
+        let payload = CredentialPayload::from_mdoc(mdoc)
             .expect("creating and validating CredentialPayload from Mdoc should succeed");
 
         assert_eq!(
             payload
                 .previewable_payload
                 .attributes
-                .into_inner()
-                .into_values()
+                .flattened()
+                .into_iter()
+                .map(|(path, value)| (path.into_inner(), value.clone()))
                 .collect_vec(),
             vec![
-                Attribute::Text("De Bruijn".to_string()),
-                Attribute::Text("Willeke Liselotte".to_string()),
-                Attribute::Text("999999999".to_string())
+                (
+                    vec![PID_ATTESTATION_TYPE, "bsn"],
+                    Attribute::Text("999999999".to_string())
+                ),
+                (
+                    vec![PID_ATTESTATION_TYPE, "given_name"],
+                    Attribute::Text("Willeke Liselotte".to_string())
+                ),
+                (
+                    vec![PID_ATTESTATION_TYPE, "family_name"],
+                    Attribute::Text("De Bruijn".to_string())
+                ),
             ]
         );
     }
@@ -814,7 +930,7 @@ mod test {
         let payload = CredentialPayload {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
             confirmation_key: ConfirmationClaim::Jwk(confirmation_key.clone()),
-            vct_integrity: Integrity::from(""),
+            vct_integrity: Some(Integrity::from("")),
             status: StatusClaim::new_mock(),
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: String::from("com.example.pid"),
@@ -896,7 +1012,7 @@ mod test {
             preview_payload.clone(),
             Utc::now(),
             &PublicKey::from(*holder_key.verifying_key()),
-            Integrity::from(""),
+            Some(Integrity::from("")),
             StatusClaim::new_mock(),
         )
         .unwrap();

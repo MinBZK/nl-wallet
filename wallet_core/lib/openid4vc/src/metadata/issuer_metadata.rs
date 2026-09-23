@@ -4,10 +4,11 @@ use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::ops::Not;
 
+use attestation_data::metadata::AttestationClaims;
+use attestation_data::metadata::ClaimConstraint;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use attestation_types::data_uri::DataUri;
 use cose::CoseAlgorithmIdentifier;
 use cose::KnownCoseAlgorithmIdentifier;
 use derive_more::AsRef;
@@ -15,7 +16,6 @@ use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
 use http_utils::urls::BaseUrl;
-use itertools::Itertools;
 use jwk_simple::Algorithm;
 use jwk_simple::Key;
 use jwt::JwtTyp;
@@ -24,11 +24,6 @@ use oauth::issuer_identifier::IssuerUrl;
 use oauth::jose::JwsAlgorithm;
 use oauth::metadata::well_known::WellKnownMetadata;
 use oauth::scope::Scope;
-use sd_jwt_vc_metadata::BackgroundImageMetadata;
-use sd_jwt_vc_metadata::ClaimMetadata;
-use sd_jwt_vc_metadata::DisplayMetadata;
-use sd_jwt_vc_metadata::LogoMetadata;
-use sd_jwt_vc_metadata::RenderingMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::MapPreventDuplicates;
@@ -298,7 +293,7 @@ pub struct IssuerDisplay {
 
 /// A language identifier, and a name in that language.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NameLocale {
     /// String value of a display name for the Credential Issuer or Credential.
     pub name: Option<String>,
@@ -311,7 +306,7 @@ pub struct NameLocale {
 
 /// Information about the logo of the Credential Issuer or Credential.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Logo {
     /// String value that contains a URI where the Wallet can obtain the logo. The Wallet needs to determine the
     /// scheme, since the URI value could use the `https:` scheme, the `data:` scheme, etc.
@@ -319,15 +314,6 @@ pub struct Logo {
 
     /// String value of the alternative text for the logo image.
     pub alt_text: Option<String>,
-}
-
-impl From<LogoMetadata> for Logo {
-    fn from(value: LogoMetadata) -> Self {
-        Self {
-            uri: Url::from(&DataUri::from(value.image)),
-            alt_text: Some(value.alt_text.into_inner()),
-        }
-    }
 }
 
 /// Metadata about a specific Credential.
@@ -371,51 +357,29 @@ impl CredentialConfiguration {
         doctype: String,
         scope: Scope,
         proof_types: Vec<ProofType>,
-        vc_display: Vec<DisplayMetadata>,
-        vc_claims: Vec<ClaimMetadata>,
-        type_metadata_uri: IssuerUrl,
+        credential_metadata: CredentialMetadata,
     ) -> Self {
-        Self::new_ecdsa_p256_sha256(
-            CredentialFormat::new_mdoc_ecdsa_p256_sha256(doctype),
-            scope,
-            CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types),
-            vc_display,
-            vc_claims,
-            type_metadata_uri,
-        )
+        Self {
+            format: CredentialFormat::new_mdoc_ecdsa_p256_sha256(doctype),
+            scope: Some(scope),
+            cryptographic_binding: Some(CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types)),
+            credential_metadata: Some(credential_metadata),
+            type_metadata_uri: None,
+        }
     }
 
     pub fn new_sd_jwt_ecdsa_p256_sha256(
         vct: String,
         scope: Scope,
         proof_types: Vec<ProofType>,
-        vc_display: Vec<DisplayMetadata>,
-        vc_claims: Vec<ClaimMetadata>,
-        type_metadata_uri: IssuerUrl,
-    ) -> Self {
-        Self::new_ecdsa_p256_sha256(
-            CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct),
-            scope,
-            CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types),
-            vc_display,
-            vc_claims,
-            type_metadata_uri,
-        )
-    }
-
-    fn new_ecdsa_p256_sha256(
-        format: CredentialFormat,
-        scope: Scope,
-        cryptographic_binding: CryptographicBinding,
-        vc_display: Vec<DisplayMetadata>,
-        vc_claims: Vec<ClaimMetadata>,
+        credential_metadata: Option<CredentialMetadata>,
         type_metadata_uri: IssuerUrl,
     ) -> Self {
         Self {
-            format,
+            format: CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct),
             scope: Some(scope),
-            cryptographic_binding: Some(cryptographic_binding),
-            credential_metadata: Some(CredentialMetadata::new_from_sd_jwt_vc(vc_display, vc_claims)),
+            cryptographic_binding: Some(CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types)),
+            credential_metadata,
             type_metadata_uri: Some(type_metadata_uri),
         }
     }
@@ -622,7 +586,7 @@ pub enum AttackPotentialResistance {
 /// SD-JWT VC display metadata are always preferred by the Wallet over the information in this object, which serves
 /// as the default fallback.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialMetadata {
     /// A non-empty array of objects, where each object contains the display properties of the supported Credential
     /// for a certain language.
@@ -632,28 +596,127 @@ pub struct CredentialMetadata {
     pub claims: Option<VecNonEmpty<CredentialClaim>>,
 }
 
-impl CredentialMetadata {
-    fn new_from_sd_jwt_vc(display: Vec<DisplayMetadata>, claims: Vec<ClaimMetadata>) -> Self {
-        Self {
-            display: display
-                .into_iter()
-                .map(CredentialDisplay::from)
-                .collect_vec()
-                .try_into()
-                .ok(),
-            claims: claims
-                .into_iter()
-                .map(CredentialClaim::from)
-                .collect_vec()
-                .try_into()
-                .ok(),
+#[cfg(any(test, feature = "mock"))]
+mod example_constructors {
+    use attestation_data::metadata::AttestationClaims;
+    use attestation_types::claim_path::ClaimPath;
+    use itertools::Itertools;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
+
+    use super::BackgroundImage;
+    use super::CredentialClaim;
+    use super::CredentialDisplay;
+    use super::CredentialMetadata;
+    use super::Logo;
+    use super::NameLocale;
+
+    /// A single transparent pixel, as a PNG.
+    const PIXEL_PNG_DATA_URI: &str =
+        "data:image/png;base64,\
+         iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+    fn example_claim(keys: &[&str], mandatory: bool) -> CredentialClaim {
+        CredentialClaim {
+            path: ClaimPath::select_by_keys(keys),
+            mandatory,
+            display: Some(vec_nonempty![NameLocale {
+                name: Some(format!("label for {}", keys.join("."))),
+                locale: Some(String::from("en")),
+            }]),
+        }
+    }
+
+    impl CredentialMetadata {
+        /// Example Credential Metadata that populates every display property, including images, so that it covers the
+        /// full conversion to presentation components.
+        pub fn new_full_example() -> Self {
+            Self {
+                display: Some(vec_nonempty![CredentialDisplay {
+                    name_locale: NameLocale {
+                        name: Some(String::from("Example credential")),
+                        locale: Some(String::from("en")),
+                    },
+                    logo: Some(Logo {
+                        uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
+                        alt_text: Some(String::from("a single pixel")),
+                    }),
+                    description: Some(String::from("An example")),
+                    background_color: Some(String::from("#FFFFFF")),
+                    background_image: Some(BackgroundImage {
+                        uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
+                    }),
+                    text_color: Some(String::from("#000000")),
+                }]),
+                claims: Some(vec_nonempty![
+                    example_claim(&["birth_date"], true),
+                    example_claim(&["place_of_birth", "locality"], false),
+                ]),
+            }
+        }
+
+        /// Example mdoc Credential Metadata describing the same claims as `type_metadata`. This lets a test that
+        /// covers both formats derive the mdoc metadata from the Type Metadata it already has, instead of maintaining a
+        /// second list of claim names by hand. Since mdoc fields cannot be nested, this takes only the last element of
+        /// the claim paths.
+        pub fn new_mdoc_example_from_type_metadata(name_space: &str, type_metadata: &NormalizedTypeMetadata) -> Self {
+            let claim_names = type_metadata
+                .claim_constraints()
+                .filter_map(|claim| claim.key_path())
+                .map(|path| *path.last())
+                .collect_vec();
+
+            Self::new_mdoc_example(name_space, &claim_names)
+        }
+
+        pub fn new_mdoc_example(name_space: &str, claim_names: &[&str]) -> Self {
+            Self::new_example_with_paths(claim_names.iter().map(|name| {
+                vec_nonempty![
+                    ClaimPath::SelectByKey(String::from(name_space)),
+                    ClaimPath::SelectByKey(String::from(*name)),
+                ]
+            }))
+        }
+
+        pub fn new_example(claim_names: &[&str]) -> Self {
+            Self::new_example_with_paths(
+                claim_names
+                    .iter()
+                    .map(|name| vec_nonempty![ClaimPath::SelectByKey(String::from(*name))]),
+            )
+        }
+
+        fn new_example_with_paths(paths: impl Iterator<Item = VecNonEmpty<ClaimPath>>) -> Self {
+            Self {
+                display: Some(vec_nonempty![CredentialDisplay {
+                    name_locale: NameLocale {
+                        name: Some(String::from("Example credential")),
+                        locale: Some(String::from("en")),
+                    },
+                    logo: None,
+                    description: None,
+                    background_color: None,
+                    background_image: None,
+                    text_color: None,
+                }]),
+                claims: paths
+                    .map(|path| CredentialClaim {
+                        path,
+                        mandatory: false,
+                        display: None,
+                    })
+                    .collect_vec()
+                    .try_into()
+                    .ok(),
+            }
         }
     }
 }
 
 /// Display properties of a supported Credential for a certain language.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialDisplay {
     /// A language identifier, and a name in that language.
     #[serde(flatten)]
@@ -677,47 +740,13 @@ pub struct CredentialDisplay {
     pub text_color: Option<String>,
 }
 
-impl From<DisplayMetadata> for CredentialDisplay {
-    fn from(value: DisplayMetadata) -> Self {
-        let (logo, background_image, background_color, text_color) = match value.rendering {
-            Some(RenderingMetadata::Simple {
-                logo,
-                background_image,
-                background_color,
-                text_color,
-            }) => (logo, background_image, background_color, text_color),
-            Some(RenderingMetadata::SvgTemplates) | None => (None, None, None, None),
-        };
-
-        Self {
-            name_locale: NameLocale {
-                name: Some(value.name),
-                locale: Some(value.locale),
-            },
-            logo: logo.map(Logo::from),
-            description: value.description,
-            background_color,
-            background_image: background_image.map(Into::into),
-            text_color,
-        }
-    }
-}
-
 /// Information about the background image of the Credential.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BackgroundImage {
     /// String value that contains a URI where the Wallet can obtain the background image of the Credential from the
     /// Credential Issuer. The Wallet needs to determine the scheme, since the URI value could use the `https:` scheme,
     /// the `data:` scheme, etc.
     pub uri: Url,
-}
-
-impl From<BackgroundImageMetadata> for BackgroundImage {
-    fn from(value: BackgroundImageMetadata) -> Self {
-        Self {
-            uri: Url::from(&DataUri::from(value.image)),
-        }
-    }
 }
 
 const fn bool_value<const B: bool>() -> bool {
@@ -727,7 +756,7 @@ const fn bool_value<const B: bool>() -> bool {
 /// A claims description object as used in the Credential Issuer metadata is an object used to describe how a certain
 /// claim in the Credential is displayed to the End-User.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CredentialClaim {
     /// The value MUST be a non-empty array representing a claims path pointer that specifies the path to a claim
     /// within the credential, as defined in Appendix C.
@@ -745,22 +774,18 @@ pub struct CredentialClaim {
     pub display: Option<VecNonEmpty<NameLocale>>,
 }
 
-impl From<ClaimMetadata> for CredentialClaim {
-    fn from(value: ClaimMetadata) -> Self {
-        Self {
-            path: value.path,
-            mandatory: false,
-            display: value
-                .display
-                .into_iter()
-                .map(|display| NameLocale {
-                    name: Some(display.label),
-                    locale: Some(display.locale),
-                })
-                .collect_vec()
-                .try_into()
-                .ok(),
-        }
+impl CredentialMetadata {
+    fn claim_descriptions(&self) -> impl Iterator<Item = &CredentialClaim> {
+        self.claims.iter().flat_map(|claims| claims.iter())
+    }
+}
+
+impl AttestationClaims for CredentialMetadata {
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
+        self.claim_descriptions().map(|claim| ClaimConstraint {
+            path: &claim.path,
+            mandatory: claim.mandatory,
+        })
     }
 }
 
@@ -769,6 +794,11 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
 
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::Attributes;
+    use attestation_data::attributes::AttributesError;
+    use attestation_data::metadata::AttestationClaims;
+    use attestation_types::claim_path::ClaimPath;
     use chrono::DateTime;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
@@ -778,15 +808,19 @@ mod tests {
     use oauth::issuer_identifier::IssuerUrl;
     use rstest::rstest;
     use serde_json::json;
+    use utils::vec_nonempty;
 
     use super::CoseAlgorithmIdentifier;
     use super::CredentialConfiguration;
+    use super::CredentialDisplay;
     use super::CredentialFormat;
+    use super::CredentialMetadata;
     use super::CryptographicBindingMethod;
     use super::IssuerMetadata;
     use super::JoinCredentialConfigurationId;
     use super::JwsAlgorithm;
     use super::KnownCoseAlgorithmIdentifier;
+    use super::NameLocale;
     use super::SignedIssuerMetadataPayload;
     use crate::jwe::JweCompressionAlgorithm;
 
@@ -1420,6 +1454,60 @@ mod tests {
         assert_eq!(
             credential_config.type_metadata_uri,
             Some("https://example.com/type_metadata".parse().unwrap())
+        );
+    }
+
+    /// Metadata that describes no claims cannot validate any attributes, regardless of its display properties.
+    #[test]
+    fn test_credential_metadata_without_claims() {
+        let metadata = CredentialMetadata {
+            display: Some(vec_nonempty![CredentialDisplay {
+                name_locale: NameLocale {
+                    name: Some(String::from("Example credential")),
+                    locale: Some(String::from("en")),
+                },
+                logo: None,
+                description: None,
+                background_color: None,
+                background_image: None,
+                text_color: None,
+            }]),
+            claims: None,
+        };
+
+        assert_eq!(metadata.claim_constraints().count(), 0);
+
+        let error = Attributes::example([(["birth_date"], Attribute::Text(String::from("1963-08-12")))])
+            .validate(&metadata)
+            .expect_err("attributes should not validate against metadata without claims");
+
+        assert_matches!(error, AttributesError::AttributesWithoutClaim(paths) if paths == vec![vec!["birth_date"]]);
+    }
+
+    #[test]
+    fn test_credential_metadata_validate_attributes() {
+        let metadata = CredentialMetadata::new_full_example();
+
+        Attributes::example([
+            (vec!["birth_date"], Attribute::Text(String::from("1963-08-12"))),
+            (
+                vec!["place_of_birth", "locality"],
+                Attribute::Text(String::from("The Hague")),
+            ),
+        ])
+        .validate(&metadata)
+        .expect("attributes should validate against the credential metadata");
+
+        let error = Attributes::example([(
+            vec!["place_of_birth", "locality"],
+            Attribute::Text(String::from("The Hague")),
+        )])
+        .validate(&metadata)
+        .expect_err("attributes missing a mandatory claim should not validate");
+
+        assert_matches!(
+            error,
+            AttributesError::MissingMandatoryAttribute(paths) if paths == vec![ClaimPath::select_by_keys(&["birth_date"])]
         );
     }
 

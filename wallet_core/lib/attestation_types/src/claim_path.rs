@@ -64,6 +64,8 @@ mod mock {
     use std::num::ParseIntError;
     use std::str::FromStr;
 
+    use utils::vec_at_least::VecNonEmpty;
+
     use super::ClaimPath;
 
     /// Parse a `ClaimPath` entry from a string, for use in tests. Note that this makes it impossible to create a
@@ -77,6 +79,16 @@ mod mock {
                 s if s.chars().all(|c| c.is_ascii_digit()) => s.parse().map(ClaimPath::SelectByIndex),
                 s => Ok(ClaimPath::SelectByKey(String::from(s))),
             }
+        }
+    }
+
+    impl ClaimPath {
+        pub fn select_by_keys(keys: &[&str]) -> VecNonEmpty<ClaimPath> {
+            keys.iter()
+                .map(|key| ClaimPath::SelectByKey(String::from(*key)))
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap()
         }
     }
 }

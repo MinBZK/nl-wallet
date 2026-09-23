@@ -61,6 +61,9 @@ spec:
             - name: metadata
               mountPath: /eudi:pid:nl:1.json
               subPath: eudi_pid_nl_1.json
+            - name: metadata
+              mountPath: /eudi_pid_nl_1_mdoc.json
+              subPath: eudi_pid_nl_1_mdoc.json
             - name: status-lists
               mountPath: /status-lists
           env:

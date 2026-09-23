@@ -16,11 +16,14 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
 use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::metadata::AttestationClaims;
+use attestation_data::metadata::ClaimConstraint;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
+use itertools::Either;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
@@ -36,6 +39,7 @@ use oauth::scope::Scope;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -55,6 +59,7 @@ use crate::errors::CredentialErrorCode;
 use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
 
@@ -88,7 +93,7 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataVerification(#[source] TypeMetadataChainError),
 
-    #[error("attributes do not match type metadata: {0}")]
+    #[error("attributes do not match metadata: {0}")]
     #[category(pd)]
     AttributesVerification(#[from] AttributesError),
 
@@ -192,9 +197,12 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TokenResponseUnknownScope(Vec<Scope>),
 
-    #[error("type metadata URI is missing for credential configuration ID(s): {}", .0.iter().join(", "))]
+    #[error(
+        "no metadata (type metadata URI or credential metadata) available for credential configuration ID(s): {}",
+        .0.iter().join(", ")
+    )]
     #[category(critical)]
-    TypeMetadataUriMissing(Vec<CredentialConfigurationId>),
+    MetadataMissing(Vec<CredentialConfigurationId>),
 
     #[error(
         "type metadata URI(s) found in Issuer Metadata with issuer identifier \"{}\" that have a different host: {}",
@@ -211,7 +219,7 @@ pub enum WalletIssuanceError {
         }).join(", ")
     )]
     #[category(critical)]
-    TypeMetadataUriMultipleAttestationTypes(Box<Vec<(IssuerUrl, Vec<String>)>>),
+    TypeMetadataUriMultipleVcts(Box<Vec<(IssuerUrl, Vec<String>)>>),
 
     #[error("could not read issuer registration from preview: {0}")]
     PreviewIssuerRegistration(#[source] CredentialPreviewError),
@@ -225,9 +233,6 @@ pub enum WalletIssuanceError {
     #[error("issuer contained in credential not equal to expected value")]
     #[category(critical)]
     IssuerMismatch,
-
-    #[error("error retrieving metadata from issued mdoc: {0}")]
-    Metadata(#[source] mdoc::Error),
 
     #[error("missing metadata integrity digest in SD-JWT payload")]
     #[category(critical)]
@@ -280,10 +285,6 @@ pub enum WalletIssuanceError {
     #[error("error during OAuth: {0}")]
     #[category(expected)]
     OAuth(#[from] OAuthError),
-
-    #[error("issuer has no batch credential endpoint")]
-    #[category(critical)]
-    NoBatchCredentialEndpoint,
 
     #[error("issuer has no credential preview endpoint")]
     #[category(critical)]
@@ -397,6 +398,24 @@ pub struct IssuanceDiscoveryParameters<'a, W> {
     pub wrpac_trust_anchors: &'a TrustAnchors,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OfferedCredentialMetadata {
+    TypeMetadata {
+        normalized: NormalizedTypeMetadata,
+        raw: SortedTypeMetadataDocuments,
+    },
+    CredentialMetadata(CredentialMetadata),
+}
+
+impl AttestationClaims for OfferedCredentialMetadata {
+    fn claim_constraints(&self) -> impl Iterator<Item = ClaimConstraint<'_>> {
+        match self {
+            Self::TypeMetadata { normalized, .. } => Either::Left(normalized.claim_constraints()),
+            Self::CredentialMetadata(metadata) => Either::Right(metadata.claim_constraints()),
+        }
+    }
+}
+
 /// Allows selection of specific credential kinds (i.e. combinations of format and attestation type) at the start of
 /// issuance. If the `CredentialSelection::ByCredentialKind` variant is used, issuance will fail if the issuer offers
 /// none of the credential kinds. If some of them match, issuance will proceed with those matched credential
@@ -503,7 +522,7 @@ pub trait IssuanceSession {
     where
         W: IssuanceWscd;
 
-    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &NormalizedTypeMetadata)>;
+    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

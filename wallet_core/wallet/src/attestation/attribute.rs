@@ -8,7 +8,6 @@ use indexmap::IndexMap;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
 use sd_jwt::claims::ObjectClaims;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -18,32 +17,39 @@ use super::AttestationIdentity;
 use super::AttestationPresentation;
 use super::AttestationPresentationConfig;
 use super::AttestationValidity;
+use crate::attestation::metadata::AttestationDisplay;
+use crate::attestation::metadata::PresentationComponents;
 
 impl AttestationPresentation {
+    #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(crate) fn create_from_mdoc(
         identity: AttestationIdentity,
-        metadata: NormalizedTypeMetadata,
+        attestation_type: String,
+        metadata: impl AttestationDisplay,
         issuer_organization: Box<Organization>,
         validity: AttestationValidity,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
-        let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
+        let attributes = Attributes::from_mdoc_attributes(mdoc_attributes)?;
 
         Self::create_from_attributes(
             identity,
             Format::MsoMdoc,
+            attestation_type,
             metadata,
             issuer_organization,
             validity,
-            &nested_attributes,
+            &attributes,
             config,
         )
     }
 
+    #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(crate) fn create_from_sd_jwt_claims(
         identity: AttestationIdentity,
-        metadata: NormalizedTypeMetadata,
+        attestation_type: String,
+        metadata: impl AttestationDisplay,
         issuer_organization: Box<Organization>,
         validity: AttestationValidity,
         sd_jwt_claims: ObjectClaims,
@@ -54,6 +60,7 @@ impl AttestationPresentation {
         Self::create_from_attributes(
             identity,
             Format::SdJwt,
+            attestation_type,
             metadata,
             issuer_organization,
             validity,
@@ -67,13 +74,19 @@ impl AttestationPresentation {
     pub(crate) fn create_from_attributes(
         identity: AttestationIdentity,
         format: Format,
-        metadata: NormalizedTypeMetadata,
+        attestation_type: String,
+        metadata: impl AttestationDisplay,
         issuer: Box<Organization>,
         validity: AttestationValidity,
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
-        let (attestation_type, display_metadata, claims) = metadata.into_presentation_components();
+        let PresentationComponents {
+            display_metadata,
+            claims,
+        } = metadata
+            .into_presentation_components()
+            .map_err(AttestationError::Metadata)?;
 
         // For every claim in the metadata, find the correct attribute
         // and convert it to a `AttestationAttribute` value (with optionally Json Schema metadata).
@@ -102,7 +115,7 @@ impl AttestationPresentation {
                     key: claim_path,
                     metadata: claim.display,
                     value: value.to_owned(),
-                    svg_id: claim.svg_id.map(String::from),
+                    svg_id: claim.svg_id.map(Into::into),
                 })
             }
         }
@@ -120,7 +133,7 @@ impl AttestationPresentation {
             return Err(AttestationError::AttributesNotProcessedByClaim(paths));
         }
 
-        let attributes = match config.filtered_attribute(&attestation_type) {
+        let attributes = match config.filtered_attribute(format, &attestation_type) {
             Some(filtered_key) => attributes
                 .into_iter()
                 .filter(|attr| attr.key.iter().ne(filtered_key))
@@ -150,7 +163,6 @@ pub mod test {
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
     use attestation_data::validity::ValidityWindow;
-    use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
@@ -158,11 +170,8 @@ pub mod test {
     use indexmap::IndexMap;
     use mdoc::iso::mdocs::DataElementValue;
     use mdoc::iso::mdocs::Entry;
-    use sd_jwt_vc_metadata::ClaimDisplayMetadata;
-    use sd_jwt_vc_metadata::ClaimMetadata;
-    use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
+    use openid4vc::metadata::issuer_metadata::CredentialMetadata;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use serde_json::json;
     use utils::vec_nonempty;
 
@@ -170,32 +179,15 @@ pub mod test {
     use super::super::AttestationError;
     use super::super::AttestationIdentity;
     use super::super::AttestationPresentation;
-    use super::super::AttributesError;
     use super::super::mock::EmptyPresentationConfig;
     use crate::attestation::AttestationValidity;
+    use crate::attestation::metadata::ClaimDisplay;
     use crate::config::test::test_wallet_config;
 
-    fn claim_metadata(keys: &[&str]) -> ClaimMetadata {
-        ClaimMetadata {
-            path: keys
-                .iter()
-                .map(|key| ClaimPath::SelectByKey(String::from(*key)))
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap(),
-            display: vec![],
-            sd: ClaimSelectiveDisclosureMetadata::Always,
-            mandatory: false,
-            svg_id: None,
-        }
-    }
-
-    fn example_metadata() -> NormalizedTypeMetadata {
-        NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {
-            vct: String::from("example_attestation_type"),
-            claims: vec![claim_metadata(&["entry1"]), claim_metadata(&["entry2"])],
-            ..UncheckedTypeMetadata::example_with_claim_names("example_attestation_type", &["entry1", "entry2"])
-        })
+    /// Credential Metadata for an mdoc: claim paths are namespaced, with the namespace matching the attestation
+    /// type (mdoc has no nesting of its own, so all attributes live in a single namespace).
+    fn example_metadata() -> CredentialMetadata {
+        CredentialMetadata::new_mdoc_example("example_attestation_type", &["entry1", "entry2"])
     }
 
     #[test]
@@ -216,6 +208,7 @@ pub mod test {
 
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
+            "example_attestation_type".to_string(),
             example_metadata(),
             Organization::new_mock().into(),
             AttestationValidity {
@@ -236,10 +229,13 @@ pub mod test {
         assert_eq!(
             [
                 (
-                    vec_nonempty![String::from("entry1")],
+                    vec_nonempty![String::from("example_attestation_type"), String::from("entry1")],
                     Attribute::Text(String::from("value1"))
                 ),
-                (vec_nonempty![String::from("entry2")], Attribute::Bool(true)),
+                (
+                    vec_nonempty![String::from("example_attestation_type"), String::from("entry2")],
+                    Attribute::Bool(true)
+                ),
             ],
             attrs.as_slice()
         );
@@ -257,6 +253,7 @@ pub mod test {
 
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
+            "example_attestation_type".to_string(),
             example_metadata(),
             Organization::new_mock().into(),
             AttestationValidity {
@@ -273,11 +270,7 @@ pub mod test {
 
     #[test]
     fn test_create_from_mdoc_error_some_attributes_not_processed() {
-        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {
-            vct: String::from("example_attestation_type"),
-            claims: vec![claim_metadata(&["entry1"])],
-            ..UncheckedTypeMetadata::example_with_claim_names("example_attestation_type", &["entry1"])
-        });
+        let metadata = CredentialMetadata::new_mdoc_example("example_attestation_type", &["entry1"]);
 
         let mdoc_attributes = IndexMap::from([(
             String::from("example_attestation_type"),
@@ -295,6 +288,7 @@ pub mod test {
 
         let error = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
+            "example_attestation_type".to_string(),
             metadata,
             Organization::new_mock().into(),
             AttestationValidity {
@@ -308,15 +302,11 @@ pub mod test {
 
         assert_matches!(
             error,
-            AttestationError::Attributes(AttributesError::SomeAttributesNotProcessed(claims))
-                if *claims == IndexMap::from([
-                    (String::from("example_attestation_type"),
-                    vec![Entry {
-                        name: String::from("entry2"),
-                        value: ciborium::value::Value::Text(String::from("value2"))
-                    }]
-                )]
-            )
+            AttestationError::AttributesNotProcessedByClaim(paths)
+                if paths == HashSet::from([vec![
+                    String::from("example_attestation_type"),
+                    String::from("entry2"),
+                ]])
         );
     }
 
@@ -370,6 +360,7 @@ pub mod test {
         let attestation_presentation = AttestationPresentation::create_from_attributes(
             AttestationIdentity::Ephemeral,
             Format::SdJwt,
+            type_metadata.vct().to_string(),
             type_metadata,
             organization.clone().into(),
             AttestationValidity {
@@ -387,7 +378,7 @@ pub mod test {
             vec![
                 AttestationAttribute {
                     key: vec_nonempty!["name".to_string()],
-                    metadata: vec![ClaimDisplayMetadata {
+                    metadata: vec![ClaimDisplay {
                         locale: "en".to_string(),
                         label: "name".to_string(),
                         description: None
@@ -397,7 +388,7 @@ pub mod test {
                 },
                 AttestationAttribute {
                     key: vec_nonempty!["birth_date".to_string()],
-                    metadata: vec![ClaimDisplayMetadata {
+                    metadata: vec![ClaimDisplay {
                         locale: "en".to_string(),
                         label: "birth date".to_string(),
                         description: None
@@ -407,7 +398,7 @@ pub mod test {
                 },
                 AttestationAttribute {
                     key: vec_nonempty!["address".to_string(), "street".to_string()],
-                    metadata: vec![ClaimDisplayMetadata {
+                    metadata: vec![ClaimDisplay {
                         locale: "en".to_string(),
                         label: "address street".to_string(),
                         description: None
@@ -417,7 +408,7 @@ pub mod test {
                 },
                 AttestationAttribute {
                     key: vec_nonempty!["address".to_string(), "number".to_string()],
-                    metadata: vec![ClaimDisplayMetadata {
+                    metadata: vec![ClaimDisplay {
                         locale: "en".to_string(),
                         label: "address number".to_string(),
                         description: None
@@ -451,6 +442,7 @@ pub mod test {
         let error = AttestationPresentation::create_from_attributes(
             AttestationIdentity::Ephemeral,
             Format::SdJwt,
+            type_metadata.vct().to_string(),
             type_metadata,
             Organization::new_mock().into(),
             AttestationValidity {
@@ -485,9 +477,13 @@ pub mod test {
             ],
         )]);
 
+        let credential_metadata =
+            CredentialMetadata::new_mdoc_example(PID_ATTESTATION_TYPE, &[PID_BSN, PID_RECOVERY_CODE]);
+
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
-            NormalizedTypeMetadata::nl_pid_example(),
+            PID_ATTESTATION_TYPE.to_string(),
+            credential_metadata,
             Organization::new_mock().into(),
             AttestationValidity {
                 revocation_status: None,
@@ -506,7 +502,7 @@ pub mod test {
 
         assert_eq!(
             [(
-                vec_nonempty![String::from(PID_BSN)],
+                vec_nonempty![String::from(PID_ATTESTATION_TYPE), String::from(PID_BSN)],
                 Attribute::Text(String::from("999991772"))
             ),],
             attrs.as_slice()

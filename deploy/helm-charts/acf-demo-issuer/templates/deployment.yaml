@@ -60,6 +60,11 @@ spec:
               mountPath: /{{ . }}
               subPath: {{ . }}
             {{- end }}
+            {{- range .Values.credentialMetadata }}
+            - name: metadata
+              mountPath: /{{ . }}
+              subPath: {{ . }}
+            {{- end }}
             - name: status-lists
               mountPath: /status-lists
           env:
@@ -93,8 +98,10 @@ spec:
               value: {{ join "," .Values.walletRedirectUris | quote }}
             - name: ACF_DEMO_ISSUER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
+            {{- if .Values.typeMetadata }}
             - name: ACF_DEMO_ISSUER__TYPE_METADATA
               value: {{ join "," .Values.typeMetadata | quote }}
+            {{- end }}
             - name: ACF_DEMO_ISSUER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
               valueFrom:
                 secretKeyRef:

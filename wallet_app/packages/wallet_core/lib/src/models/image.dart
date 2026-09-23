@@ -38,11 +38,11 @@ sealed class Image with _$Image {
 
 class ImageWithMetadata {
   final Image image;
-  final String altText;
+  final String? altText;
 
   const ImageWithMetadata({
     required this.image,
-    required this.altText,
+    this.altText,
   });
 
   @override

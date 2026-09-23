@@ -1,0 +1,102 @@
+{
+  "display": [
+    {
+      "name": "Insurance",
+      "locale": "en-US",
+      "description": "An insurance credential",
+      "background_color": "#b2e1ea",
+      "text_color": "#152a62"
+    },
+    {
+      "name": "Verzekering",
+      "locale": "nl-NL",
+      "description": "Een verzekering attestatie",
+      "background_color": "#b2e1ea",
+      "text_color": "#152a62"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "com.example.insurance",
+        "product"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Product",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Product",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.insurance",
+        "coverage"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Dekking",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Coverage",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.insurance",
+        "start_date"
+      ],
+      "display": [
+        {
+          "name": "Startdatum",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Start date",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.insurance",
+        "duration"
+      ],
+      "display": [
+        {
+          "name": "Duur",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Duration",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.insurance",
+        "customer_number"
+      ],
+      "display": [
+        {
+          "name": "Klantnummer",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Customer number",
+          "locale": "en-US"
+        }
+      ]
+    }
+  ]
+}

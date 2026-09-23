@@ -54,6 +54,7 @@ use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
+use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
 use crate::server_state::MemorySessionStore;
@@ -113,20 +114,27 @@ pub fn mock_type_metadata_with_required_attr(vct: &str, required_attr: &str) -> 
 }
 
 /// A single mock document for `attestation_type` carrying exactly the given attributes
-/// (typically a subset of [`MOCK_ATTRS`]).
+/// (typically a subset of [`MOCK_ATTRS`]). For an mdoc, the attributes are namespaced under
+/// `attestation_type`, matching [`CredentialMetadata::new_mdoc_example`].
 pub fn mock_issuable_document_with_attrs(
     format: Format,
     attestation_type: &str,
     attrs: &[(&str, &str)],
 ) -> IssuableDocument {
+    let flat_attrs = IndexMap::from_iter(
+        attrs
+            .iter()
+            .map(|(key, val)| (key.to_string(), Attribute::Text(val.to_string()))),
+    );
+
+    let attributes = match format {
+        Format::MsoMdoc => IndexMap::from([(attestation_type.to_string(), Attribute::Object(flat_attrs))]),
+        Format::SdJwt => flat_attrs,
+    };
+
     IssuableDocument::try_new_with_random_id(
         CredentialKind::new(format, attestation_type.to_string()),
-        IndexMap::from_iter(
-            attrs
-                .iter()
-                .map(|(key, val)| (key.to_string(), Attribute::Text(val.to_string()))),
-        )
-        .into(),
+        attributes.into(),
     )
     .unwrap()
 }
@@ -278,6 +286,8 @@ where
 
 /// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
 /// are based on a list of format / attestation type combinations and the relevant SD-JWT VC Type Metadata documents.
+/// The Type Metadata is also used to generate Credential Metadata from, ensuring the claim names (without namespace)
+/// are identical.
 pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
     issuer_identifier: IssuerIdentifier,
     attestations: Vec<(Format, String, TypeMetadataDocuments)>,
@@ -302,6 +312,17 @@ where
         .map(|(format, attestation_type, metadata_documents)| {
             let config_id = format!("{attestation_type}_{format}");
 
+            let credential_metadata = matches!(format, Format::MsoMdoc).then(|| {
+                let (normalized, _) = metadata_documents
+                    .clone()
+                    .into_normalized(&attestation_type)
+                    .expect("example type metadata should normalize");
+
+                CredentialMetadata::new_mdoc_example_from_type_metadata(&attestation_type, &normalized)
+            });
+
+            let type_metadata = matches!(format, Format::SdJwt).then_some(metadata_documents);
+
             let status_list_uri_path = config_id.replace(':', "-");
             let status_list = MockObtainingStatusListService::new(
                 format!("https://tsl.example.com/{status_list_uri_path}")
@@ -318,8 +339,8 @@ where
                 .unwrap(),
                 valid_days: Days::new(365),
                 status_list,
-                mdoc_namespace: None,
-                metadata_documents,
+                type_metadata,
+                credential_metadata,
             };
 
             (config_id.into(), params)

@@ -1,10 +1,10 @@
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::metadata::AttestationClaims;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
@@ -79,8 +79,8 @@ impl IssuableDocument {
         (self.id, payload)
     }
 
-    pub fn validate_with_metadata(&self, type_metadata: &NormalizedTypeMetadata) -> Result<(), AttributesError> {
-        self.attributes.validate(type_metadata)
+    pub fn validate_with_metadata(&self, metadata: &impl AttestationClaims) -> Result<(), AttributesError> {
+        self.attributes.validate(metadata)
     }
 }
 
@@ -114,11 +114,14 @@ pub mod mock {
         pub fn new_mock_museum_maandkaart() -> Self {
             IssuableDocument::try_new_with_random_id(
                 CredentialKind::new(Format::MsoMdoc, "com.example.museum_maandkaart".to_string()),
-                IndexMap::from([
-                    ("name".to_string(), Attribute::Text("Jan de Vries".to_string())),
-                    ("member_number".to_string(), Attribute::Text("1234567890".to_string())),
-                    ("valid_year".to_string(), Attribute::Text("2026".to_string())),
-                ])
+                IndexMap::from([(
+                    "com.example.museum_maandkaart".to_string(),
+                    Attribute::Object(IndexMap::from([
+                        ("name".to_string(), Attribute::Text("Jan de Vries".to_string())),
+                        ("member_number".to_string(), Attribute::Text("1234567890".to_string())),
+                        ("valid_year".to_string(), Attribute::Text("2026".to_string())),
+                    ])),
+                )])
                 .into(),
             )
             .unwrap()

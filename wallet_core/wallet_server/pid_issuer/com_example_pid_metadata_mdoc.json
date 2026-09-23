@@ -1,0 +1,96 @@
+{
+  "display": [
+    {
+      "name": "NL Wallet Personal Data",
+      "locale": "en-US",
+      "description": "The Personal Data credential for the NL Wallet"
+    },
+    {
+      "name": "NL Wallet persoonsgegevens",
+      "locale": "nl-NL",
+      "description": "De persoonsgegevensattestatie voor de NL Wallet"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "com.example.pid",
+        "family_name"
+      ],
+      "display": [
+        {
+          "name": "Achternaam",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Name",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.pid",
+        "given_name"
+      ],
+      "display": [
+        {
+          "name": "Voornaam",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "First name",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.pid",
+        "birth_date"
+      ],
+      "display": [
+        {
+          "name": "Geboortedatum",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Birth date",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.pid",
+        "age_over_18"
+      ],
+      "display": [
+        {
+          "name": "18+",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Over 18",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "com.example.pid",
+        "bsn"
+      ],
+      "display": [
+        {
+          "name": "BSN",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "BSN",
+          "locale": "en-US"
+        }
+      ]
+    }
+  ]
+}
