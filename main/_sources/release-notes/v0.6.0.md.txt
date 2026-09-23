@@ -2,26 +2,26 @@
 
 ## Upgrading
 
-- OpenID4VP disclosure use cases now require a Wallet Relying Party
-  Registration Certificate (WRPRC). Configure each verification server and
-  disclosure-based issuance server use case with a `registration_certificate`,
-  configure `wrprc_trust_anchors`, and publish the referenced WRPRC status list
-  before deploying wallet clients. The `static_server` configuration now also
-  requires `wrprc_publish_dir`, which identifies the directory containing those
-  status lists. The services reject missing or invalid certificates at startup,
-  and the wallet rejects requests that are revoked or exceed the certificate's
+- OpenID4VP disclosure use cases now require a Wallet Relying Party Registration
+  Certificate (WRPRC). Configure each verification server and disclosure-based
+  issuance server use case with a `registration_certificate`, configure
+  `wrprc_trust_anchors`, and publish the referenced WRPRC status list before
+  deploying wallet clients. The `static_server` configuration now also requires
+  `wrprc_publish_dir`, which identifies the directory containing those status
+  lists. The services reject missing or invalid certificates at startup, and the
+  wallet rejects requests that are revoked or exceed the certificate's
   authorization.
 - The wallet now requires a usable Certificate Revocation List (CRL) for every
   Wallet Relying Party Access Certificate (WRPAC) used in signed OpenID4VP
   authorization requests, signed issuer metadata, and close-proximity reader
   authentication. Before deploying wallet clients with this change, publish a
   signed CRL at a stable HTTP(S) URL, rotate existing WRPACs to include that URL
-  as a CRL Distribution Point, and verify the CRL endpoint is available. The
-  CRL publication and certificate rotation must be deployed before CRL
-  validation is enabled in wallet clients.
-  For production, the WRPAC PKI operator must provide an automated CRL service;
-  the `wallet_ca` utility is intended for development and is not suitable for
-  operating a production CA. The production service must:
+  as a CRL Distribution Point, and verify the CRL endpoint is available. The CRL
+  publication and certificate rotation must be deployed before CRL validation is
+  enabled in wallet clients. For production, the WRPAC PKI operator must provide
+  an automated CRL service; the `wallet_ca` utility is intended for development
+  and is not suitable for operating a production CA. The production service
+  must:
     - Include a usable CRL Distribution Point in every WRPAC and supplied
       intermediate CA certificate. The root trust anchor is excluded.
     - Publish a complete, DER-encoded X.509 version 2 CRL at each distribution
@@ -32,11 +32,10 @@
       and retain revoked certificate serial numbers until those certificates
       expire.
     - For CRLs covering WRPACs, publish a complete CRL at least every 24 hours
-      until a final CRL is published. This cadence follows from ETSI TS
-      119 411-8, `REV-6.3.9-01`, applying ETSI EN 319 411-1,
-      `CSS-6.3.9-05`. Set `nextUpdate` to the next scheduled publication,
-      automate renewal before it expires, and support immediate publication
-      after an emergency revocation.
+      until a final CRL is published. This cadence follows from ETSI TS 119
+      411-8, `REV-6.3.9-01`, applying ETSI EN 319 411-1, `CSS-6.3.9-05`. Set
+      `nextUpdate` to the next scheduled publication, automate renewal before it
+      expires, and support immediate publication after an emergency revocation.
     - Keep CRLs at most 5 MiB. Monitor endpoint availability, CRL integrity and
       freshness, and alert before `nextUpdate`; the wallet rejects a WRPAC when
       its applicable CRL cannot be fetched or validated.
@@ -143,11 +142,11 @@
 - The enum `Attribute` is now a tagged enum. Therefore, attributes configured in
   `demo-issuer`, `acf-demo-issuer` and `pacf-issuance-server` must tag their
   values with the appropriate tag.
-- The Wallet Provider settings now requires a `current_certificate_kid`
-  and optionally `previous_certificate_kids`. The
-  `current_certificate_kid` is used to identify the current certificate
-  signing key, and `previous_certificate_kids` is used to accept certificates
-  signed with previous signing keys after key rollover.
+- The Wallet Provider settings now requires a `current_certificate_kid` and
+  optionally `previous_certificate_kids`. The `current_certificate_kid` is used
+  to identify the current certificate signing key, and
+  `previous_certificate_kids` is used to accept certificates signed with
+  previous signing keys after key rollover.
 - The Wallet Provider settings now requires a `current_instruction_result_kid`
   instead of `instruction_result_signing_key_identifier`. The
   `current_instruction_result_kid` is used to identify the current instruction
@@ -168,6 +167,13 @@
   `pin_pubkey_encryption_key_identifier` fields have been replaced by
   `[attestation_wrapping_kid]` and `[pin_pubkey_encryption_kid]`, each with a
   `current` and optional `previous` key identifier (kid).
+- Every credential configuration with format `mso_mdoc` now requires a
+  `credential_metadata` setting that names a JSON file with the Credential
+  Metadata for that credential, and the issuer refuses to start without it.
+  SD-JWT VC Type Metadata documents can only be used for `sd_jwt` credentials.
+- The attributes of an issuable mdoc document now have exactly two levels of
+  keys: a namespace and the name of a data element. Existing `IssuableDocuments`
+  should be updated to reflect this.
 
 [1]:
     https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p
@@ -213,23 +219,23 @@
 - The `pid_issuer` service can now serve a custom styled DigiD login page, where
   a preconfigured BSN can be selected, or a custom BSN can be entered.
 - A new `admin-portal` service has been added. It is a Vue 3 web GUI for
-  administrative tasks such as (de)blocking and revocation, served by NGINX.
-  The service ships with a Helm chart (`deploy/helm-charts/admin-portal`),
-  and a Docker image built in CI (`nl-wallet-admin-portal`).
+  administrative tasks such as (de)blocking and revocation, served by NGINX. The
+  service ships with a Helm chart (`deploy/helm-charts/admin-portal`), and a
+  Docker image built in CI (`nl-wallet-admin-portal`).
 - The Wallet Provider now supports key rollover for the wallet certificate
   related keys (wallet certificate signing key and PIN HMAC key). This is done
-  by updating the `current_certificate_kid` and
-  `previous_certificate_kids` fields in the Wallet Provider settings.
+  by updating the `current_certificate_kid` and `previous_certificate_kids`
+  fields in the Wallet Provider settings.
 - The Wallet Provider now supports key rollover for the instruction result
-  signing key. The Wallet Configuration's `instruction_result_public_keys`
-  field maps key identifiers to public keys, and the Wallet Provider's
+  signing key. The Wallet Configuration's `instruction_result_public_keys` field
+  maps key identifiers to public keys, and the Wallet Provider's
   `current_instruction_result_kid` setting selects which key is currently used
   for signing.
-- The Wallet Provider now supports key rollover for the attestation wrapping
-  key and the PIN public key encryption key. The `current` field of the
+- The Wallet Provider now supports key rollover for the attestation wrapping key
+  and the PIN public key encryption key. The `current` field of the
   `[attestation_wrapping_kid]` and `[pin_pubkey_encryption_kid]` settings
-  sections selects the key used to encrypt new data, while the `previous`
-  field still allows already-stored data to be decrypted during a rollover.
+  sections selects the key used to encrypt new data, while the `previous` field
+  still allows already-stored data to be decrypted during a rollover.
 
 ## Interoperability improvements
 
@@ -261,10 +267,10 @@
       provides copies of a single credential, necessitating the Wallet to call
       this endpoint as many times as there are distinct credentials in a
       session.
-    - Sending a DELETE to the `Issuer` Credential Endpoint in order to reject
-      an offered credential has been removed. This is not part of the
-      OpenID4VCI specification, the Notitication Endpoint should be used for
-      this instead. Currently the `Issuer` does not support this endpoint.
+    - Sending a DELETE to the `Issuer` Credential Endpoint in order to reject an
+      offered credential has been removed. This is not part of the OpenID4VCI
+      specification, the Notitication Endpoint should be used for this instead.
+      Currently the `Issuer` does not support this endpoint.
 - The well-known path is now derived according to spec for Credential Issuer
   Metadata and Oauth 2.0 Authorization Server Metadata when a subpath is
   involved.
@@ -272,12 +278,18 @@
 - All issuance servers can serve signed OpenID4VCI metadata with the WRPAC
   certificate.
 - The WIA, also known as the Wallet Attestation in OpenID4VCI, is now no longer
-  sent as part of the `CredentialRequest` data structure, but along with the
-  PAR and Token Request as defined in the ["OAuth 2.0 Attestation-Based Client
+  sent as part of the `CredentialRequest` data structure, but along with the PAR
+  and Token Request as defined in the ["OAuth 2.0 Attestation-Based Client
   Authentication" draft specification][2], in accordance with OpenID4VCI 1.0.
 - The wallet requires signed credential issuer metadata.
 - The wallet can now receive and render an ISO mDL. Labeling fields in nested
   objects is not supported yet.
+- mdocs should now be described by Credential Metadata from the Credential
+  Issuer Metadata and are completely independent of SD-JWT VC Type Metadata.
+- The `type_metadata_integrity` field has been removed from the mdoc MSO, as
+  mdocs no longer refer to SD-JWT VC Type Metadata.
+- When an SD-JWT does not have `type_metadata_uri`, the wallet will use the
+  Credential Metadata from the Credential Issuer Metadata.
 
 ## Bug fixes
 

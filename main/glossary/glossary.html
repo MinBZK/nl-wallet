@@ -133,7 +133,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../development/authorized-attributes.html">Authorized attributes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/crash-reporting.html">Crash Reporting</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/keycloak-setup.html">Keycloak Setup</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/pid-issuer-architecture.html">PID Issuer architecture</a></li>
@@ -205,30 +204,33 @@
 <td><p>A digital credential, format can be ISO (mdoc) or SD-JWT</p></td>
 </tr>
 <tr class="row-odd"><td><p>Credential Type</p></td>
-<td><p>An identifier that uniquely identifies the type of a Credential. (docType in ISO, vct in SD-JWT)</p></td>
+<td><p>An identifier that uniquely identifies the type of a Credential. (docType in ISO, vct in SD-JWT)</p></td>
 </tr>
 <tr class="row-even"><td><p>Credential Type metadata</p></td>
-<td><p>A metadata document that describes the Credential. (SD-JWT VC Type metadata spec)</p></td>
+<td><p>A metadata document that describes an SD-JWT Credential. (SD-JWT VC Type metadata spec)</p></td>
 </tr>
-<tr class="row-odd"><td><p>Credential Presentation Data</p></td>
+<tr class="row-odd"><td><p>Credential metadata</p></td>
+<td><p>A metadata document that describes a Credential of either format, as part of the Credential Issuer Metadata. (<code class="docutils literal notranslate"><span class="pre">credential_metadata</span></code> in the OpenID4VCI spec)</p></td>
+</tr>
+<tr class="row-even"><td><p>Credential Presentation Data</p></td>
 <td><p>NL Wallet internal format, to store attributes (stemming from Credentials) in a format-agnostic way.</p></td>
 </tr>
-<tr class="row-even"><td><p>Status List</p></td>
-<td><p>A digitally signed document that describes the rovcation revocation status for a set of credentials. (Token Status List spec)</p></td>
+<tr class="row-odd"><td><p>Status List</p></td>
+<td><p>A digitally signed document that describes th revocation status for a set of credentials. (Token Status List spec)</p></td>
 </tr>
-<tr class="row-odd"><td><p>Update Policy</p></td>
-<td><p>A policy describing app versions, information messages and m</p></td>
+<tr class="row-even"><td><p>Update Policy</p></td>
+<td><p>A policy describing app versions, information messages and mandatory updates</p></td>
 </tr>
-<tr class="row-even"><td><p>Issuance Event</p></td>
+<tr class="row-odd"><td><p>Issuance Event</p></td>
 <td><p>An event in the log that informs the user about (attempted) issuances of a Credentials</p></td>
 </tr>
-<tr class="row-odd"><td><p>Disclosure Event</p></td>
+<tr class="row-even"><td><p>Disclosure Event</p></td>
 <td><p>An event in the log that informs the user about (attempted) disclosures of Credentials</p></td>
 </tr>
-<tr class="row-even"><td><p>Verifier-Certificate</p></td>
+<tr class="row-odd"><td><p>Verifier-Certificate</p></td>
 <td><p>Identifies a party that acts as verifier in a disclosure session with the Wallet-App</p></td>
 </tr>
-<tr class="row-odd"><td><p>Issuer-Certificate</p></td>
+<tr class="row-even"><td><p>Issuer-Certificate</p></td>
 <td><p>Identifies a party that acts as issuer in an issuance session with the Wallet-App</p></td>
 </tr>
 </tbody>

@@ -132,7 +132,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../development/authorized-attributes.html">Authorized attributes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/crash-reporting.html">Crash Reporting</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../development/generic-issuance.html">Generic Issuance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/keycloak-setup.html">Keycloak Setup</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../development/pid-issuer-architecture.html">PID Issuer architecture</a></li>
@@ -196,26 +195,26 @@
 <section id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
 <ul>
-<li><p>OpenID4VP disclosure use cases now require a Wallet Relying Party
-Registration Certificate (WRPRC). Configure each verification server and
-disclosure-based issuance server use case with a <code class="docutils literal notranslate"><span class="pre">registration_certificate</span></code>,
-configure <code class="docutils literal notranslate"><span class="pre">wrprc_trust_anchors</span></code>, and publish the referenced WRPRC status list
-before deploying wallet clients. The <code class="docutils literal notranslate"><span class="pre">static_server</span></code> configuration now also
-requires <code class="docutils literal notranslate"><span class="pre">wrprc_publish_dir</span></code>, which identifies the directory containing those
-status lists. The services reject missing or invalid certificates at startup,
-and the wallet rejects requests that are revoked or exceed the certificate’s
+<li><p>OpenID4VP disclosure use cases now require a Wallet Relying Party Registration
+Certificate (WRPRC). Configure each verification server and disclosure-based
+issuance server use case with a <code class="docutils literal notranslate"><span class="pre">registration_certificate</span></code>, configure
+<code class="docutils literal notranslate"><span class="pre">wrprc_trust_anchors</span></code>, and publish the referenced WRPRC status list before
+deploying wallet clients. The <code class="docutils literal notranslate"><span class="pre">static_server</span></code> configuration now also requires
+<code class="docutils literal notranslate"><span class="pre">wrprc_publish_dir</span></code>, which identifies the directory containing those status
+lists. The services reject missing or invalid certificates at startup, and the
+wallet rejects requests that are revoked or exceed the certificate’s
 authorization.</p></li>
 <li><p>The wallet now requires a usable Certificate Revocation List (CRL) for every
 Wallet Relying Party Access Certificate (WRPAC) used in signed OpenID4VP
 authorization requests, signed issuer metadata, and close-proximity reader
 authentication. Before deploying wallet clients with this change, publish a
 signed CRL at a stable HTTP(S) URL, rotate existing WRPACs to include that URL
-as a CRL Distribution Point, and verify the CRL endpoint is available. The
-CRL publication and certificate rotation must be deployed before CRL
-validation is enabled in wallet clients.
-For production, the WRPAC PKI operator must provide an automated CRL service;
-the <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> utility is intended for development and is not suitable for
-operating a production CA. The production service must:</p>
+as a CRL Distribution Point, and verify the CRL endpoint is available. The CRL
+publication and certificate rotation must be deployed before CRL validation is
+enabled in wallet clients. For production, the WRPAC PKI operator must provide
+an automated CRL service; the <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> utility is intended for development
+and is not suitable for operating a production CA. The production service
+must:</p>
 <ul class="simple">
 <li><p>Include a usable CRL Distribution Point in every WRPAC and supplied
 intermediate CA certificate. The root trust anchor is excluded.</p></li>
@@ -227,11 +226,10 @@ SHA-256. Include <code class="docutils literal notranslate"><span class="pre">ne
 and retain revoked certificate serial numbers until those certificates
 expire.</p></li>
 <li><p>For CRLs covering WRPACs, publish a complete CRL at least every 24 hours
-until a final CRL is published. This cadence follows from ETSI TS
-119 411-8, <code class="docutils literal notranslate"><span class="pre">REV-6.3.9-01</span></code>, applying ETSI EN 319 411-1,
-<code class="docutils literal notranslate"><span class="pre">CSS-6.3.9-05</span></code>. Set <code class="docutils literal notranslate"><span class="pre">nextUpdate</span></code> to the next scheduled publication,
-automate renewal before it expires, and support immediate publication
-after an emergency revocation.</p></li>
+until a final CRL is published. This cadence follows from ETSI TS 119
+411-8, <code class="docutils literal notranslate"><span class="pre">REV-6.3.9-01</span></code>, applying ETSI EN 319 411-1, <code class="docutils literal notranslate"><span class="pre">CSS-6.3.9-05</span></code>. Set
+<code class="docutils literal notranslate"><span class="pre">nextUpdate</span></code> to the next scheduled publication, automate renewal before it
+expires, and support immediate publication after an emergency revocation.</p></li>
 <li><p>Keep CRLs at most 5 MiB. Monitor endpoint availability, CRL integrity and
 freshness, and alert before <code class="docutils literal notranslate"><span class="pre">nextUpdate</span></code>; the wallet rejects a WRPAC when
 its applicable CRL cannot be fetched or validated.</p></li>
@@ -356,11 +354,11 @@ configuration file, instead of just the PID issuer.</p></li>
 <li><p>The enum <code class="docutils literal notranslate"><span class="pre">Attribute</span></code> is now a tagged enum. Therefore, attributes configured in
 <code class="docutils literal notranslate"><span class="pre">demo-issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">acf-demo-issuer</span></code> and <code class="docutils literal notranslate"><span class="pre">pacf-issuance-server</span></code> must tag their
 values with the appropriate tag.</p></li>
-<li><p>The Wallet Provider settings now requires a <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code>
-and optionally <code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code>. The
-<code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> is used to identify the current certificate
-signing key, and <code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code> is used to accept certificates
-signed with previous signing keys after key rollover.</p></li>
+<li><p>The Wallet Provider settings now requires a <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> and
+optionally <code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code>. The <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> is used
+to identify the current certificate signing key, and
+<code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code> is used to accept certificates signed with
+previous signing keys after key rollover.</p></li>
 <li><p>The Wallet Provider settings now requires a <code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code>
 instead of <code class="docutils literal notranslate"><span class="pre">instruction_result_signing_key_identifier</span></code>. The
 <code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code> is used to identify the current instruction
@@ -381,6 +379,13 @@ has been removed from the issuer configuration.</p></li>
 <code class="docutils literal notranslate"><span class="pre">pin_pubkey_encryption_key_identifier</span></code> fields have been replaced by
 <code class="docutils literal notranslate"><span class="pre">[attestation_wrapping_kid]</span></code> and <code class="docutils literal notranslate"><span class="pre">[pin_pubkey_encryption_kid]</span></code>, each with a
 <code class="docutils literal notranslate"><span class="pre">current</span></code> and optional <code class="docutils literal notranslate"><span class="pre">previous</span></code> key identifier (kid).</p></li>
+<li><p>Every credential configuration with format <code class="docutils literal notranslate"><span class="pre">mso_mdoc</span></code> now requires a
+<code class="docutils literal notranslate"><span class="pre">credential_metadata</span></code> setting that names a JSON file with the Credential
+Metadata for that credential, and the issuer refuses to start without it.
+SD-JWT VC Type Metadata documents can only be used for <code class="docutils literal notranslate"><span class="pre">sd_jwt</span></code> credentials.</p></li>
+<li><p>The attributes of an issuable mdoc document now have exactly two levels of
+keys: a namespace and the name of a data element. Existing <code class="docutils literal notranslate"><span class="pre">IssuableDocuments</span></code>
+should be updated to reflect this.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -425,23 +430,23 @@ showing an organization to the user.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> service can now serve a custom styled DigiD login page, where
 a preconfigured BSN can be selected, or a custom BSN can be entered.</p></li>
 <li><p>A new <code class="docutils literal notranslate"><span class="pre">admin-portal</span></code> service has been added. It is a Vue 3 web GUI for
-administrative tasks such as (de)blocking and revocation, served by NGINX.
-The service ships with a Helm chart (<code class="docutils literal notranslate"><span class="pre">deploy/helm-charts/admin-portal</span></code>),
-and a Docker image built in CI (<code class="docutils literal notranslate"><span class="pre">nl-wallet-admin-portal</span></code>).</p></li>
+administrative tasks such as (de)blocking and revocation, served by NGINX. The
+service ships with a Helm chart (<code class="docutils literal notranslate"><span class="pre">deploy/helm-charts/admin-portal</span></code>), and a
+Docker image built in CI (<code class="docutils literal notranslate"><span class="pre">nl-wallet-admin-portal</span></code>).</p></li>
 <li><p>The Wallet Provider now supports key rollover for the wallet certificate
 related keys (wallet certificate signing key and PIN HMAC key). This is done
-by updating the <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> and
-<code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code> fields in the Wallet Provider settings.</p></li>
+by updating the <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> and <code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code>
+fields in the Wallet Provider settings.</p></li>
 <li><p>The Wallet Provider now supports key rollover for the instruction result
-signing key. The Wallet Configuration’s <code class="docutils literal notranslate"><span class="pre">instruction_result_public_keys</span></code>
-field maps key identifiers to public keys, and the Wallet Provider’s
+signing key. The Wallet Configuration’s <code class="docutils literal notranslate"><span class="pre">instruction_result_public_keys</span></code> field
+maps key identifiers to public keys, and the Wallet Provider’s
 <code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code> setting selects which key is currently used
 for signing.</p></li>
-<li><p>The Wallet Provider now supports key rollover for the attestation wrapping
-key and the PIN public key encryption key. The <code class="docutils literal notranslate"><span class="pre">current</span></code> field of the
+<li><p>The Wallet Provider now supports key rollover for the attestation wrapping key
+and the PIN public key encryption key. The <code class="docutils literal notranslate"><span class="pre">current</span></code> field of the
 <code class="docutils literal notranslate"><span class="pre">[attestation_wrapping_kid]</span></code> and <code class="docutils literal notranslate"><span class="pre">[pin_pubkey_encryption_kid]</span></code> settings
-sections selects the key used to encrypt new data, while the <code class="docutils literal notranslate"><span class="pre">previous</span></code>
-field still allows already-stored data to be decrypted during a rollover.</p></li>
+sections selects the key used to encrypt new data, while the <code class="docutils literal notranslate"><span class="pre">previous</span></code> field
+still allows already-stored data to be decrypted during a rollover.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">
@@ -476,10 +481,10 @@ issuing copies of all credentials offered in the session at once, it only
 provides copies of a single credential, necessitating the Wallet to call
 this endpoint as many times as there are distinct credentials in a
 session.</p></li>
-<li><p>Sending a DELETE to the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> Credential Endpoint in order to reject
-an offered credential has been removed. This is not part of the
-OpenID4VCI specification, the Notitication Endpoint should be used for
-this instead. Currently the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> does not support this endpoint.</p></li>
+<li><p>Sending a DELETE to the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> Credential Endpoint in order to reject an
+offered credential has been removed. This is not part of the OpenID4VCI
+specification, the Notitication Endpoint should be used for this instead.
+Currently the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> does not support this endpoint.</p></li>
 </ul>
 </li>
 <li><p>The well-known path is now derived according to spec for Credential Issuer
@@ -489,12 +494,18 @@ involved.</p></li>
 <li><p>All issuance servers can serve signed OpenID4VCI metadata with the WRPAC
 certificate.</p></li>
 <li><p>The WIA, also known as the Wallet Attestation in OpenID4VCI, is now no longer
-sent as part of the <code class="docutils literal notranslate"><span class="pre">CredentialRequest</span></code> data structure, but along with the
-PAR and Token Request as defined in the [“OAuth 2.0 Attestation-Based Client
+sent as part of the <code class="docutils literal notranslate"><span class="pre">CredentialRequest</span></code> data structure, but along with the PAR
+and Token Request as defined in the [“OAuth 2.0 Attestation-Based Client
 Authentication” draft specification][2], in accordance with OpenID4VCI 1.0.</p></li>
 <li><p>The wallet requires signed credential issuer metadata.</p></li>
 <li><p>The wallet can now receive and render an ISO mDL. Labeling fields in nested
 objects is not supported yet.</p></li>
+<li><p>mdocs should now be described by Credential Metadata from the Credential
+Issuer Metadata and are completely independent of SD-JWT VC Type Metadata.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">type_metadata_integrity</span></code> field has been removed from the mdoc MSO, as
+mdocs no longer refer to SD-JWT VC Type Metadata.</p></li>
+<li><p>When an SD-JWT does not have <code class="docutils literal notranslate"><span class="pre">type_metadata_uri</span></code>, the wallet will use the
+Credential Metadata from the Credential Issuer Metadata.</p></li>
 </ul>
 </section>
 <section id="bug-fixes">

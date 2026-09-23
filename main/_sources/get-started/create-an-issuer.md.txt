@@ -59,22 +59,22 @@ To get a clear view on what issuance (in both its specialized PID issuance, and
 generic disclosure-based issuance form) looks like on the NL Wallet platform,
 have a look at the following documents:
 
-  * [Issuance with OpenID4VCI][6]
-  * [Disclosure-based Iissuance][7]
+- [Issuance with OpenID4VCI][6]
+- [Disclosure-based Iissuance][7]
 
 ### Platform components overview
 
 The NL Wallet platform consists of:
 
-  * **Issuers**: (also known as Verstrekkende Voorzieningen), which can issue
-    attested attributes, and which this document is mainly about;
-  * **Verifiers**: (also known as Ontvangende Voorzieningen or Relying Parties),
-    which can verify attested attributes they are interested in;
-  * **Backend**: services that run in the NL Wallet datacenter(s) or cloud that
-    facilitate various functions for the mobile app (usually not interacted with
-    directly, by either Issuers or Verifiers);
-  * **App**: the NL Wallet mobile app, which contains attested attributes,
-    received from Issuers, and which it can disclose to Verifiers.
+- **Issuers**: (also known as Verstrekkende Voorzieningen), which can issue
+  attested attributes, and which this document is mainly about;
+- **Verifiers**: (also known as Ontvangende Voorzieningen or Relying Parties),
+  which can verify attested attributes they are interested in;
+- **Backend**: services that run in the NL Wallet datacenter(s) or cloud that
+  facilitate various functions for the mobile app (usually not interacted with
+  directly, by either Issuers or Verifiers);
+- **App**: the NL Wallet mobile app, which contains attested attributes,
+  received from Issuers, and which it can disclose to Verifiers.
 
 Issuers configure and maintain an `issuance_server` on their own premises or
 cloud environments, which they integrate with their own application, and which
@@ -84,10 +84,10 @@ interacts with the NL Wallet app, in order to issue attested attributes.
 
 In the next two sub-sections we'll dive into what's needed to create a TAS
 document, i.e., a "technical attestation schema". We'll first decide on the
-required attributes for your TAS and then create an actual document. You're
-free to change values mostly as you see fit, especially if you'll be running
-this in a testing environment, but keep in mind that when this document is
-intended for a production environment, more stringent rules might apply.
+required attributes for your TAS and then create an actual document. You're free
+to change values mostly as you see fit, especially if you'll be running this in
+a testing environment, but keep in mind that when this document is intended for
+a production environment, more stringent rules might apply.
 
 <div class="admonition note">
 <p class="title">When you work on eventual production readiness</p>
@@ -101,25 +101,21 @@ validation of your TAS, `issuer_auth` and `issuance_server` configuration files.
 
 The TAS contains the following particularly important data elements:
 
-**ROOT**
-| Key           | Type   | Description                                         |
-| ------------- | ------ | --------------------------------------------------- |
-| `vct`         | string | Verifiable credential type field                    |
-| `name`        | string | Readable name of this verifiable credential         |
-| `description` | string | Description of this verifiable credential           |
-| `display`     | array  | Array of display objects, one per language          |
-| `claims`      | array  | Array of claim objects                              |
+**ROOT** | Key | Type | Description | | ------------- | ------ |
+--------------------------------------------------- | | `vct` | string |
+Verifiable credential type field | | `name` | string | Readable name of this
+verifiable credential | | `description` | string | Description of this
+verifiable credential | | `display` | array | Array of display objects, one per
+language | | `claims` | array | Array of claim objects |
 
 Claims have the following elements:
 
-**CLAIMS**
-| Key           | Type   | Description                                         |
-| ------------- | ------ | --------------------------------------------------- |
-| `path`        | array  | An array of strings describing the claim path       |
-| `display`     | array  | Array of display objects, one per language          |
-| `sd`          | string | Indicates whether a claim is selectively disclosable|
-| `svg_id`      | string | Template identifier for the SVG rendering metadata  |
-
+**CLAIMS** | Key | Type | Description | | ------------- | ------ |
+--------------------------------------------------- | | `path` | array | An
+array of strings describing the claim path | | `display` | array | Array of
+display objects, one per language | | `sd` | string | Indicates whether a claim
+is selectively disclosable| | `svg_id` | string | Template identifier for the
+SVG rendering metadata |
 
 ### Creating the technical attestation schema JSON document
 
@@ -136,120 +132,120 @@ Here is the example TAS for an insurance:
 
 ```json
 {
-  "vct": "com.example.insurance",
-  "name": "Insurance credential",
-  "description": "Insurance credential",
-  "display": [
-    {
-      "locale": "en-US",
-      "name": "Insurance",
-      "description": "An insurance credential",
-      "summary": "{{coverage}}",
-      "rendering": {
-        "simple": {
-          "background_color": "#b2e1ea",
-          "text_color": "#152a62"
-        }
-      }
-    },
-    {
-      "locale": "nl-NL",
-      "name": "Verzekering",
-      "description": "Een verzekering attestatie",
-      "summary": "{{coverage}}",
-      "rendering": {
-        "simple": {
-          "background_color": "#b2e1ea",
-          "text_color": "#152a62"
-        }
-      }
-    }
-  ],
-  "claims": [
-    {
-      "path": ["product"],
-      "display": [
+    "vct": "com.example.insurance",
+    "name": "Insurance credential",
+    "description": "Insurance credential",
+    "display": [
         {
-          "locale": "nl-NL",
-          "label": "Product",
-          "description": "Soort verzekering"
+            "locale": "en-US",
+            "name": "Insurance",
+            "description": "An insurance credential",
+            "summary": "{{coverage}}",
+            "rendering": {
+                "simple": {
+                    "background_color": "#b2e1ea",
+                    "text_color": "#152a62"
+                }
+            }
         },
         {
-          "locale": "en-US",
-          "label": "Product",
-          "description": "Type of insurance"
+            "locale": "nl-NL",
+            "name": "Verzekering",
+            "description": "Een verzekering attestatie",
+            "summary": "{{coverage}}",
+            "rendering": {
+                "simple": {
+                    "background_color": "#b2e1ea",
+                    "text_color": "#152a62"
+                }
+            }
         }
-      ],
-      "sd": "always",
-      "mandatory": true
-    },
-    {
-      "path": ["coverage"],
-      "display": [
+    ],
+    "claims": [
         {
-          "locale": "nl-NL",
-          "label": "Dekking",
-          "description": "Dekking van de verzekering"
+            "path": ["product"],
+            "display": [
+                {
+                    "locale": "nl-NL",
+                    "label": "Product",
+                    "description": "Soort verzekering"
+                },
+                {
+                    "locale": "en-US",
+                    "label": "Product",
+                    "description": "Type of insurance"
+                }
+            ],
+            "sd": "always",
+            "mandatory": true
         },
         {
-          "locale": "en-US",
-          "label": "Coverage",
-          "description": "Coverage of the insurance"
-        }
-      ],
-      "sd": "always",
-      "mandatory": true,
-      "svg_id": "coverage"
-    },
-    {
-      "path": ["start_date"],
-      "display": [
-        {
-          "locale": "nl-NL",
-          "label": "Startdatum",
-          "description": "Datum waarop de verzekering ingaat"
+            "path": ["coverage"],
+            "display": [
+                {
+                    "locale": "nl-NL",
+                    "label": "Dekking",
+                    "description": "Dekking van de verzekering"
+                },
+                {
+                    "locale": "en-US",
+                    "label": "Coverage",
+                    "description": "Coverage of the insurance"
+                }
+            ],
+            "sd": "always",
+            "mandatory": true,
+            "svg_id": "coverage"
         },
         {
-          "locale": "en-US",
-          "label": "Start date",
-          "description": "Date on which the insurance starts"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["duration"],
-      "display": [
-        {
-          "locale": "nl-NL",
-          "label": "Duur",
-          "description": "Duur van de verzekering"
+            "path": ["start_date"],
+            "display": [
+                {
+                    "locale": "nl-NL",
+                    "label": "Startdatum",
+                    "description": "Datum waarop de verzekering ingaat"
+                },
+                {
+                    "locale": "en-US",
+                    "label": "Start date",
+                    "description": "Date on which the insurance starts"
+                }
+            ],
+            "sd": "always"
         },
         {
-          "locale": "en-US",
-          "label": "Duration",
-          "description": "Duration of the insurance"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": ["customer_number"],
-      "display": [
-        {
-          "locale": "nl-NL",
-          "label": "Klantnummer",
-          "description": "Klantnummer van de verzekerde"
+            "path": ["duration"],
+            "display": [
+                {
+                    "locale": "nl-NL",
+                    "label": "Duur",
+                    "description": "Duur van de verzekering"
+                },
+                {
+                    "locale": "en-US",
+                    "label": "Duration",
+                    "description": "Duration of the insurance"
+                }
+            ],
+            "sd": "always"
         },
         {
-          "locale": "en-US",
-          "label": "Customer number",
-          "description": "Customer number of the insured"
+            "path": ["customer_number"],
+            "display": [
+                {
+                    "locale": "nl-NL",
+                    "label": "Klantnummer",
+                    "description": "Klantnummer van de verzekerde"
+                },
+                {
+                    "locale": "en-US",
+                    "label": "Customer number",
+                    "description": "Customer number of the insured"
+                }
+            ],
+            "sd": "always"
         }
-      ],
-      "sd": "always"
-    }
-  ]
+    ]
 }
 ```
 
@@ -282,24 +278,24 @@ do need to be onboarded to get access to those environments.
 
 ### Decide on required metadata for your issuer_auth
 
-An issuer certificate contains a bunch of metadata, which we store as a part
-of the certificate in a so-called X.509v3 extension. We use this data to present
-a view of you, the issuer, in the NL Wallet app GUI.
+An issuer certificate contains a bunch of metadata, which we store as a part of
+the certificate in a so-called X.509v3 extension. We use this data to present a
+view of you, the issuer, in the NL Wallet app GUI.
 
-**ROOT**
-| Key                             | Languages | Description                                                          |
-| ------------------------------- | --------- | -------------------------------------------------------------------- |
-| `organization.displayName`      | `nl+en`   | Name of the verifier as shown in the app app.                        |
-| `organization.legalName`        | `nl+en`   | Legal name of the verifier.                                          |
-| `organization.description`      | `nl+en`   | Short one-sentence description or mission statement of the verifier. |
-| `organization.webUrl`           | -         | The home URL of the verifier.                                        |
-| `organization.city`             | `nl+en`   | The home city of the verifier.                                       |
-| `organization.category`         | `nl+en`   | Bank, Municipality, Trading, Delivery Service, etc.                  |
-| `organization.logo.mimeType`    | -         | Logo mimetype, can be image/svg+xml, image/png or image/jpeg         |
-| `organization.logo.imageData`   | -         | Logo image data. When SVG, an escaped XML string, else base64        |
-| `organization.countryCode`      | -         | Two-letter country code of verifier residence.                       |
-| `organization.kvk`              | -         | Chamber of commerce number of verifier.                              |
-| `organization.privacyPolicyUrl` | -         | Link to verifier's privacy policy.                                   |
+| **ROOT**                                                      | Key                        | Languages                                      | Description                             |                              | ------------------------------- |
+| ------------------------------------------------------------- | -------------------------- | ---------------------------------------------- | --------------------------------------- | ---------------------------- | ------------------------------- |
+|                                                               | `organization.displayName` | `nl+en`                                        | Name of the verifier as shown in the    |
+| app app.                                                      |                            | `organization.legalName`                       | `nl+en`                                 | Legal name of the verifier.  |
+| `organization.description`                                    | `nl+en`                    | Short one-sentence description or              |
+| mission statement of the verifier.                            |                            | `organization.webUrl`                          | -                                       | The home URL                 |
+| of the verifier.                                              |                            | `organization.city`                            | `nl+en`                                 | The home city of the         |
+| verifier.                                                     |                            | `organization.category`                        | `nl+en`                                 | Bank, Municipality, Trading, |
+| Delivery Service, etc.                                        |                            | `organization.logo.mimeType`                   | -                                       | Logo mimetype, can           |
+| be image/svg+xml, image/png or image/jpeg                     |                            | `organization.logo.imageData`                  | -                                       |
+| Logo image data. When SVG, an escaped XML string, else base64 |                            |
+| `organization.countryCode`                                    | -                          | Two-letter country code of verifier residence. |
+|                                                               | `organization.kvk`         | -                                              | Chamber of commerce number of verifier. |                              |
+| `organization.privacyPolicyUrl`                               | -                          | Link to verifier's privacy policy.             |
 
 Note: In the `Languages` column where it says `nl+en` for example, please
 provide both Dutch and English values.
@@ -309,48 +305,47 @@ provide both Dutch and English values.
 When you've collected all the required metadata, you are ready to create the
 `issuer_auth.json` file. Here is an example for our insurance company:
 
-
 ```json
 {
-  "organization": {
-    "displayName": {
-      "nl": "VerzekerAar",
-      "en": "InsurAnce"
-    },
-    "legalName": {
-      "nl": "VerzekerAar N.V.",
-      "en": "VerzekerAar N.V."
-    },
-    "description": {
-      "nl": "VerzekerAar is een voorbeeld-verzekeraar.",
-      "en": "InsurAnce is an exemplar insurance company."
-    },
-    "webUrl": "https://insurance.example.com",
-    "city": {
-      "nl": "Den Haag",
-      "en": "The Hague"
-    },
-    "category": {
-      "nl": "Verzekeringen",
-      "en": "Insurance"
-    },
-    "logo": {
-      "mimeType": "image/svg+xml",
-      "imageData": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\" fill=\"none\"><rect width=\"64\" height=\"64\" y=\"-.002\" fill=\"#3A839A\" rx=\"12\"/><path fill=\"#FCFCFC\" d=\"M29.563 33.6H25.5v-4.8h4.063v-4h4.875v4H38.5v4.8h-4.062v4h-4.876zM32 16l-13 4.8v9.744C19 38.624 24.541 46.16 32 48c7.459-1.84 13-9.376 13-17.456V20.8zm9.75 14.544c0 6.4-4.144 12.32-9.75 14.128-5.606-1.808-9.75-7.712-9.75-14.128v-7.52l9.75-3.6 9.75 3.6z\"/></svg>"
-    },
-    "countryCode": "nl",
-    "kvk": "99876543",
-    "privacyPolicyUrl": "https://insurance.example.com/privacy"
-  }
+    "organization": {
+        "displayName": {
+            "nl": "VerzekerAar",
+            "en": "InsurAnce"
+        },
+        "legalName": {
+            "nl": "VerzekerAar N.V.",
+            "en": "VerzekerAar N.V."
+        },
+        "description": {
+            "nl": "VerzekerAar is een voorbeeld-verzekeraar.",
+            "en": "InsurAnce is an exemplar insurance company."
+        },
+        "webUrl": "https://insurance.example.com",
+        "city": {
+            "nl": "Den Haag",
+            "en": "The Hague"
+        },
+        "category": {
+            "nl": "Verzekeringen",
+            "en": "Insurance"
+        },
+        "logo": {
+            "mimeType": "image/svg+xml",
+            "imageData": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\" fill=\"none\"><rect width=\"64\" height=\"64\" y=\"-.002\" fill=\"#3A839A\" rx=\"12\"/><path fill=\"#FCFCFC\" d=\"M29.563 33.6H25.5v-4.8h4.063v-4h4.875v4H38.5v4.8h-4.062v4h-4.876zM32 16l-13 4.8v9.744C19 38.624 24.541 46.16 32 48c7.459-1.84 13-9.376 13-17.456V20.8zm9.75 14.544c0 6.4-4.144 12.32-9.75 14.128-5.606-1.808-9.75-7.712-9.75-14.128v-7.52l9.75-3.6 9.75 3.6z\"/></svg>"
+        },
+        "countryCode": "nl",
+        "kvk": "99876543",
+        "privacyPolicyUrl": "https://insurance.example.com/privacy"
+    }
 }
 ```
 
 Take the above example, make sure you've read the previous sections which
-explain what the different key/values mean, and (optionally) construct your
-own `issuer_auth.json` file (or copy it verbatim if you're just testing). When
-we are going to be creating the issuer certificate in the next sections, we are
-going to need it at a specific location, so save it (inside the `nl-wallet`
-git directory):
+explain what the different key/values mean, and (optionally) construct your own
+`issuer_auth.json` file (or copy it verbatim if you're just testing). When we
+are going to be creating the issuer certificate in the next sections, we are
+going to need it at a specific location, so save it (inside the `nl-wallet` git
+directory):
 
 ```
 target/is-config/issuer_auth.json
@@ -358,8 +353,8 @@ target/is-config/issuer_auth.json
 
 ## Creating issuer, TSL and WRPAC certificates
 
-Let's create the issuer, TSL and WRPAC certificates. We're going to clone the
-NL Wallet repository, enter its directory, set a target directory and specify an
+Let's create the issuer, TSL and WRPAC certificates. We're going to clone the NL
+Wallet repository, enter its directory, set a target directory and specify an
 identifier (this identifies your organization, and should be in lowercase
 characters a-z, can end with numbers but may not begin with them).
 
@@ -477,8 +472,8 @@ openssl pkcs8 -topk8 -nocrypt \
     -out "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der" -outform DER
 ```
 
-Serve `${TARGET_DIR}/wrpac.${IDENTIFIER}.crl.der` at `WRPAC_CRL_URL` and
-replace it before its `nextUpdate` (seven days in this example). To revoke a
+Serve `${TARGET_DIR}/wrpac.${IDENTIFIER}.crl.der` at `WRPAC_CRL_URL` and replace
+it before its `nextUpdate` (seven days in this example). To revoke a
 certificate, regenerate the CRL with its hex serial number supplied through
 `--serial-number`, then replace the published DER file in a single operation so
 clients receive either the previous or new complete CRL, never a partially
@@ -487,8 +482,8 @@ expired, or lists that certificate.
 
 The used CA public certificate (referenced in the previous `wallet_ca` command)
 needs to be in the list of various so-called trust anchors. Specifically,
-issuers and verifiers, and the NL Wallet app itself need to know if this CA is
-a trusted CA, and our software "knows" that by checking its trust anchors.
+issuers and verifiers, and the NL Wallet app itself need to know if this CA is a
+trusted CA, and our software "knows" that by checking its trust anchors.
 
 When you run locally, when using `setup-devenv.sh` and `start-devenv.sh`, the
 generated CA certificate is automatically added to the trust anchors within the
@@ -496,13 +491,13 @@ configuration files of `pid_issuer`, `demo_issuer`, `verification_server`,
 `issuance_server`, `demo_relying_party` and the NL Wallet app config.
 
 When you [create your own CA][19], you need to make sure the public key of your
-CA is in the relevant trust anchor configuration settings. When you are a
-member of the [NL Wallet community][10], and so using NL Wallet managed backend
-services and mobile apps, this is done for you (i.e., you just need to sign
-your issuer certificate with your CA, which the `wallet_ca` utility invocation
-above did for you, and during the NL Wallet community [onboarding][10] process
-you shared your CA certificate with the operations team who ensure your CA is
-in the various trust anchor lists).
+CA is in the relevant trust anchor configuration settings. When you are a member
+of the [NL Wallet community][10], and so using NL Wallet managed backend
+services and mobile apps, this is done for you (i.e., you just need to sign your
+issuer certificate with your CA, which the `wallet_ca` utility invocation above
+did for you, and during the NL Wallet community [onboarding][10] process you
+shared your CA certificate with the operations team who ensure your CA is in the
+various trust anchor lists).
 
 When you run locally, but with a manually created CA, you need to add the CA
 public certificate to your services and wallet app config yourself. When we
@@ -560,11 +555,10 @@ so anyway, accidentally or not, could expose you to man-in-the-middle attacks.
 
 The `issuance_server` needs a PostgreSQL database for maintaining status lists.
 When compiled with the `postgres` feature flag (which is the default), it can
-also use a PostgreSQL database backend to store state.
-This is done by configuring a `postgres://` storage URL in the
-`issuance_server.toml` configuration file. In this section, we'll create a
-PostgreSQL database, configure credentials and configure the schema
-(tables, columns).
+also use a PostgreSQL database backend to store state. This is done by
+configuring a `postgres://` storage URL in the `issuance_server.toml`
+configuration file. In this section, we'll create a PostgreSQL database,
+configure credentials and configure the schema (tables, columns).
 
 <div class="admonition tip">
 <p class="title">You can also run with a memory session store</p>
@@ -658,8 +652,8 @@ cargo run \
   --bin issuance_server_migrations -- fresh
 ```
 
-You can show the configuration by issuing the following (might be a good idea
-to keep this safe somewhere):
+You can show the configuration by issuing the following (might be a good idea to
+keep this safe somewhere):
 
 ```shell
 echo -e "\npostgres.host: '$PGHOST'\npostgres.port: '$PGPORT'\npostgres.user: '$PGUSER'\npostgres.pass: '$PGPASSWORD'\ndatabase.name: '$DB_NAME'\ndatabase.user: '$DB_USERNAME'\ndatabase.pass: '$DB_PASSWORD'\n"
@@ -718,12 +712,10 @@ setup script or specifically [created by you][19] as part of the (optional)
 
 The `issuance_server` distinguishes two kinds of trust anchors:
 
-  * `issuer_trust_anchors` - a string array of CA certificates which are
-    considered trusted to sign issuer certificates, in DER format, base64
-    encoded;
-  * `wrpac_trust_anchors` - a string array of CA certificates which are
-    considered trusted for identifying WRPAC, in DER format, base64
-    encoded;
+- `issuer_trust_anchors` - a string array of CA certificates which are
+  considered trusted to sign issuer certificates, in DER format, base64 encoded;
+- `wrpac_trust_anchors` - a string array of CA certificates which are considered
+  trusted for identifying WRPAC, in DER format, base64 encoded;
 
 The trust anchor arrays tell the `issuance_server` which certificates it can
 trust. If an `issuance_server` is presented with certificates signed by a CA
@@ -732,10 +724,10 @@ that is not in its trust anchor arrays, operations will fail (by design).
 We need to trust our own CA, whether it is created by the development setup
 scripts or explicitly by you. The development scripts create a separate CA for
 issuers and WRPACs (usually at `scripts/devenv/target/ca.issuer.crt.der` and
-`scripts/devenv/target/ca.wrpac.crt.der`). When you create and use your own
-CA for community development purposes as [documented here][19], you can use that
-CA generally for signing both issuance and WRPAC certificates, and hence, add
-it to both the issuer and WRPAC trust anchors.
+`scripts/devenv/target/ca.wrpac.crt.der`). When you create and use your own CA
+for community development purposes as [documented here][19], you can use that CA
+generally for signing both issuance and WRPAC certificates, and hence, add it to
+both the issuer and WRPAC trust anchors.
 
 The below code block will initialize the issuer and WRPAC trust anchor
 environment variables with the CA certificates it can find, both generated by
@@ -792,17 +784,17 @@ cannot specify an `http://` URL here, and *need* to specify an `https://` URL.
 
 #### Universal link base URL
 
-The `issuance_server` uses the universal link base URL to construct the
-correct environment-specific universal link. A universal link is used to to
-associate a specific domain name and/or part of an URL with a specific app on
-the mobile device. In our case, it results in the link provided by the
-`issuance_server` being handled by the NL Wallet app when a user clicks
-on the link or scans the QR code.
+The `issuance_server` uses the universal link base URL to construct the correct
+environment-specific universal link. A universal link is used to to associate a
+specific domain name and/or part of an URL with a specific app on the mobile
+device. In our case, it results in the link provided by the `issuance_server`
+being handled by the NL Wallet app when a user clicks on the link or scans the
+QR code.
 
 A universal link base URL is usually associated with a specific backend
-environment like pre-production or testing. When you're integrating with the
-NL Wallet platform, you would use a universal link base URL that was provided
-to you as part of our community [onboarding][10] process.
+environment like pre-production or testing. When you're integrating with the NL
+Wallet platform, you would use a universal link base URL that was provided to
+you as part of our community [onboarding][10] process.
 
 ```shell
 cd nl-wallet
@@ -823,10 +815,10 @@ On Google Android this is configured using [app links][18].
 #### Configuring allowed client IDs
 
 You can restrict which NL Wallet apps are accepted by the `issuance_server` by
-configuring a `wallet_client_ids` array. The entries of this array would
-contain the `client_id` value of a wallet implementation. This allows you to
-allow-list groups of wallet apps based on their `client_id` value. For example,
-for allowing apps that have `https://wallet.edi.rijksoverheid.nl` configured as
+configuring a `wallet_client_ids` array. The entries of this array would contain
+the `client_id` value of a wallet implementation. This allows you to allow-list
+groups of wallet apps based on their `client_id` value. For example, for
+allowing apps that have `https://wallet.edi.rijksoverheid.nl` configured as
 `client_id`:
 
 ```shell
@@ -841,25 +833,39 @@ unset IS_WALLET_CLIENT_IDS
 
 #### Configuring metadata document references
 
-We [previously](#creating-the-technical-attestation-schema-json-document) made
-a technical attestation schema JSON document. The `issuance_server` needs to
-know about these schemas. We can tell the server about available schemas through
-the `metadata` setting. In this section, we're going to reference the previously
-created JSON document `insurance_metadata.json`, which, if you followed the
-instructions, was copied to `target/is-config` within the `nl-wallet` directory,
-where the `issuance_server` will find it using the below configuration (provided
-it is started from the `target/is-config` directory):
-
+We [previously](#creating-the-technical-attestation-schema-json-document) made a
+technical attestation schema JSON document. The `issuance_server` needs to know
+about these schemas. We can tell the server about available schemas through the
+`type_metadata` setting. In this section, we're going to reference the
+previously created JSON document `insurance_metadata.json`, which, if you
+followed the instructions, was copied to `target/is-config` within the
+`nl-wallet` directory, where the `issuance_server` will find it using the below
+configuration (provided it is started from the `target/is-config` directory):
 
 ```shell
 cd nl-wallet
 export IS_WALLET_METADATA_FILES=("insurance_metadata.json")
 export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/08-wallet-metadata-files.toml"
-metadata = [$(printf '"%s",' "${IS_WALLET_METADATA_FILES[@]}" | sed 's/,$//')]
+type_metadata = [$(printf '"%s",' "${IS_WALLET_METADATA_FILES[@]}" | sed 's/,$//')]
 EOF
 unset IS_WALLET_METADATA_FILES
 ```
+
+<div class="admonition note">
+<p class="title">Issuing mdocs instead of SD-JWTs</p>
+The `type_metadata` setting only applies to credential configurations with
+format `dc+sd-jwt`, and can be left out entirely by an issuer of only mdocs. An
+`mso_mdoc` configuration is described by Credential Metadata instead: add a
+`credential_metadata` key to its `[credential_configurations.<id>]` block,
+naming a JSON file that holds a `display` array and a `claims` array. Two
+differences with the TAS above are worth noting: a claim `display` entry uses
+`name` where the TAS uses `label`, and each claim `path` has two elements, the
+mdoc namespace followed by the data element name. Every credential configuration has to
+be described one way or the other: the `issuance_server` refuses to start when a
+`dc+sd-jwt` configuration has no technical attestation schema, or an `mso_mdoc`
+configuration has no `credential_metadata`.
+</div>
 
 #### Configuring listener address and port
 
@@ -988,9 +994,9 @@ opt out of this behaviour and serve the status lists yourself. Ensure that you
 map a request with URL path ending on `/id` to filesystem path of with name
 `id.jwt`.
 
-By default the status lists uses the same database as configured for the
-session store. If you have a memory store as session store you need to configure
-a PostgreSQL `storage_url` under the `[status_lists]` block. You can also
+By default the status lists uses the same database as configured for the session
+store. If you have a memory store as session store you need to configure a
+PostgreSQL `storage_url` under the `[status_lists]` block. You can also
 configure a `storage_url` under the `[status_lists]` block if you want to store
 the status list in a different database or use a different user.</p>
 
@@ -1010,10 +1016,10 @@ We're now going to configure the configuration blocks that together make up a
 disclosure-based issuance element. We're going to call our `insurance` elements
 as follows:
 
-  * `[disclosure_settings.insurance]`
-  * `[[disclosure_settings.insurance.dcql_query.credentials]]`
-  * `[disclosure_settings.insurance.attestation_url_config]`
-  * `[credential_configurations.insurance]`
+- `[disclosure_settings.insurance]`
+- `[[disclosure_settings.insurance.dcql_query.credentials]]`
+- `[disclosure_settings.insurance.attestation_url_config]`
+- `[credential_configurations.insurance]`
 
 In the next sub-sections we'll cover each one of these.
 
@@ -1039,8 +1045,8 @@ unset BASE64 IDENTIFIER
 
 ##### The DCQL query credentials
 
-Add the [DCQL query credentials][21] (note, the double brackets, i.e., `[[`,
-and `]]`, are intentional):
+Add the [DCQL query credentials][21] (note, the double brackets, i.e., `[[`, and
+`]]`, are intentional):
 
 ```shell
 cd nl-wallet
@@ -1106,11 +1112,11 @@ EOF
 ##### The attestation settings associated status list settings
 
 Next to the previously done `[status_lists]` settings, which controls when
-status lists are created and how big they are, add a `status_list` block that
-is associated with a `credential_configurations` section. Using `group_name`,
-this scopes the issued credential to a particular status list group, which is
-stored separately in the database. A sensible default value for this would be
-the credential configuration identifier.
+status lists are created and how big they are, add a `status_list` block that is
+associated with a `credential_configurations` section. Using `group_name`, this
+scopes the issued credential to a particular status list group, which is stored
+separately in the database. A sensible default value for this would be the
+credential configuration identifier.
 
 This block configures the `context_path`, which together with a `base_url` (if
 empty the `public_url` of the issuance server is used) is added to the
@@ -1118,8 +1124,8 @@ attestation as a location for the Status List Claim. This url needs to be
 publicly reachable by the NL Wallet app and the verifiers.
 
 Next to the location a `publish_dir` needs to be configured where the status
-lists need to be published. This can be served via either a separate static
-file server or via the issuance server.
+lists need to be published. This can be served via either a separate static file
+server or via the issuance server.
 
 Additionally, the `private_key` settings are used to sign the Status Token List,
 which the wallet and the `verification_server` validate when interacting with
@@ -1157,8 +1163,8 @@ cat "$TARGET_DIR"/parts/*.toml > "$TARGET_DIR/issuance_server.toml"
 ```
 
 You should now have a configuration file in the `$TARGET` directory called
-`issuance_server.toml`. Feel free to check the file to see if everything
-looks like you'd expect.
+`issuance_server.toml`. Feel free to check the file to see if everything looks
+like you'd expect.
 
 ### Running the server for the first time
 
@@ -1204,36 +1210,36 @@ an error and abort. For more insights into this process,
 The wallet starts disclosure based issuance if it encounters a UL (or a QR with
 a UL within it) of a specific format. To create this UL, proceed as follows.
 
-  1. If your `issuance_server` is reachable on the internet by the wallet at
-     `https://issuer.example.com`, create a URL of the following form:
+1. If your `issuance_server` is reachable on the internet by the wallet at
+   `https://issuer.example.com`, create a URL of the following form:
 
-     ```
-     https://issuer.example.com/disclosure/foo/request_uri?session_type=same_device
-     ```
+    ```
+    https://issuer.example.com/disclosure/foo/request_uri?session_type=same_device
+    ```
 
-     In the above URL, `foo` has to be the identifier you used when you
-     configured the disclosure-based issuance settings in the configuration
-     file (so, it relates to `[disclosure_settings.foo]`,
-     `[disclosure_settings.foo.dcql_query.credentials]`, and
-     `[disclosure_settings.foo.attestation_url_config]`)
+    In the above URL, `foo` has to be the identifier you used when you
+    configured the disclosure-based issuance settings in the configuration file
+    (so, it relates to `[disclosure_settings.foo]`,
+    `[disclosure_settings.foo.dcql_query.credentials]`, and
+    `[disclosure_settings.foo.attestation_url_config]`)
 
-  2. URL-encode the above URL.
+2. URL-encode the above URL.
 
-  3. Create the UL as follows (newlines only for readability purposes):
+3. Create the UL as follows (newlines only for readability purposes):
 
-     ```
-     https://app.test.voorbeeldwallet.nl/deeplink/disclosure_based_issuance
-       ?request_uri_method=post
-       &client_id=disclosure_based_issuance.example.com
-       &request_uri=https%3A%2F%2Fissuer.example.com...
-     ```
+    ```
+    https://app.test.voorbeeldwallet.nl/deeplink/disclosure_based_issuance
+      ?request_uri_method=post
+      &client_id=disclosure_based_issuance.example.com
+      &request_uri=https%3A%2F%2Fissuer.example.com...
+    ```
 
-     In which the `client_id` has to be the SAN DNS name from the RP
-     `certificate`, and the `request_uri` is the URL-encoded URL from
-     the previous step.
+    In which the `client_id` has to be the SAN DNS name from the RP
+    `certificate`, and the `request_uri` is the URL-encoded URL from the
+    previous step.
 
-  4. Place this UL on your website (within in a QR code in case of cross device
-     flows).
+4. Place this UL on your website (within in a QR code in case of cross device
+   flows).
 
 <!-- References -->
 
@@ -1242,7 +1248,8 @@ a UL within it) of a specific format. To create this UL, proceed as follows.
 [3]: https://www.logius.nl/onze-dienstverlening/toegang/digid
 [4]: https://github.com/minvws/nl-rdo-max
 [5]: https://www.rvig.nl/basisregistratie-personen
-[6]: https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet
+[6]:
+    https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet
 [7]: ../architecture/use-cases/issuance-with-openid4vci
 [8]: ../architecture/use-cases/disclosure-based-issuance
 [9]: create-a-verifier
@@ -1252,12 +1259,15 @@ a UL within it) of a specific format. To create this UL, proceed as follows.
 [13]: https://github.com/MinBZK/nl-wallet/releases
 [14]: https://www.postgresql.org/download/
 [15]: https://www.docker.com/
-[16]: https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_server/issuance_server/issuance_server.example.toml
-[17]: https://developer.apple.com/documentation/xcode/supporting-associated-domains
+[16]:
+    https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_server/issuance_server/issuance_server.example.toml
+[17]:
+    https://developer.apple.com/documentation/xcode/supporting-associated-domains
 [18]: https://developer.android.com/training/app-links
 [19]: ../community/create-a-ca
 [20]: https://github.com/softhsm/SoftHSMv2
-[21]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-digital-credentials-query-l
+[21]:
+    https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-digital-credentials-query-l
 [22]: ../development/openapi-specifications
 [23]: create-a-verifier
 [24]: ../development/authorized-attributes
