@@ -15,7 +15,6 @@ use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
-use derive_more::Into;
 use derive_more::IntoIterator;
 use futures::future::try_join_all;
 use health_checkers::postgres::DatabaseChecker;
@@ -36,6 +35,7 @@ use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use sea_orm::DatabaseConnection;
 use sea_orm::DbErr;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use serde_with::TryFromInto;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
@@ -157,13 +157,14 @@ pub struct IssuerSettings {
 }
 
 #[derive(Debug, Clone, AsRef)]
-pub struct TypeMetadataByVct(HashMap<String, (UncheckedTypeMetadata, Vec<u8>)>);
+pub struct TypeMetadataByVct(HashMap<String, JsonFile<UncheckedTypeMetadata>>);
 
 #[derive(Debug, Clone, Deserialize, From, IntoIterator, AsRef)]
 pub struct CredentialConfigurationsSettings(
     #[into_iterator(owned, ref)] HashMap<CredentialConfigurationId, CredentialConfigurationSettings>,
 );
 
+#[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct CredentialConfigurationSettings {
     #[serde(flatten)]
@@ -179,11 +180,12 @@ pub struct CredentialConfigurationSettings {
 
     /// Path to the JSON file with the Credential Metadata published for this credential configuration.
     #[debug(skip)]
-    pub credential_metadata: Option<CredentialMetadataFile>,
+    #[serde_as(as = "Option<TryFromInto<String>>")]
+    pub credential_metadata: Option<JsonFile<CredentialMetadata>>,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum MetadataParseError {
+pub enum JsonFileParseError {
     #[error("could not read \"{0}\": {1}")]
     Read(PathBuf, #[source] std::io::Error),
 
@@ -191,49 +193,59 @@ pub enum MetadataParseError {
     Deserialize(PathBuf, #[source] serde_json::Error),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JsonFile<T> {
+    contents: T,
+    json: Vec<u8>,
+}
+
+impl<T> JsonFile<T> {
+    pub fn contents(&self) -> &T {
+        &self.contents
+    }
+
+    pub fn into_contents(self) -> T {
+        self.contents
+    }
+
+    pub fn json(&self) -> &[u8] {
+        &self.json
+    }
+}
+
+impl<T> TryFrom<String> for JsonFile<T>
+where
+    T: DeserializeOwned,
+{
+    type Error = JsonFileParseError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let path = prefix_local_path(PathBuf::from(value));
+        let json = fs::read(&path).map_err(|error| JsonFileParseError::Read(path.clone().into_owned(), error))?;
+        let contents =
+            serde_json::from_slice(&json).map_err(|error| JsonFileParseError::Deserialize(path.into_owned(), error))?;
+
+        Ok(Self { contents, json })
+    }
+}
+
 impl TryFrom<Vec<String>> for TypeMetadataByVct {
-    type Error = MetadataParseError;
+    type Error = JsonFileParseError;
 
     fn try_from(value: Vec<String>) -> Result<Self, Self::Error> {
         // Map the contents of each JSON file by the `vct` field by decoding the JSON and extracting just that field.
         let documents = value
             .into_iter()
             .map(|path| {
-                let path = prefix_local_path(PathBuf::from(path));
-                let json =
-                    fs::read(&path).map_err(|error| MetadataParseError::Read(path.clone().into_owned(), error))?;
-                let metadata = serde_json::from_slice::<UncheckedTypeMetadata>(&json)
-                    .map_err(|error| MetadataParseError::Deserialize(path.into_owned(), error))?;
+                let document = JsonFile::<UncheckedTypeMetadata>::try_from(path)?;
 
-                Ok((metadata.vct.clone(), (metadata, json)))
+                let vct = document.contents().vct.clone();
+
+                Ok((vct, document))
             })
             .try_collect()?;
 
         Ok(Self(documents))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Into)]
-pub struct CredentialMetadataFile(CredentialMetadata);
-
-impl<'de> Deserialize<'de> for CredentialMetadataFile {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let path = String::deserialize(deserializer)?;
-
-        Self::try_from(path).map_err(serde::de::Error::custom)
-    }
-}
-
-impl TryFrom<String> for CredentialMetadataFile {
-    type Error = MetadataParseError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let path = prefix_local_path(PathBuf::from(value));
-        let json = fs::read(&path).map_err(|error| MetadataParseError::Read(path.clone().into_owned(), error))?;
-        let metadata =
-            serde_json::from_slice(&json).map_err(|error| MetadataParseError::Deserialize(path.into_owned(), error))?;
-
-        Ok(Self(metadata))
     }
 }
 
@@ -263,13 +275,14 @@ impl TypeMetadataByVct {
                 return Err(TypeMetadataDocumentsError::MaximumLengthExceeded);
             }
 
-            let (metadata_document, metadata_json) = metadata_by_vct
+            let document = metadata_by_vct
                 .get(vct)
                 .ok_or_else(|| TypeMetadataDocumentsError::MissingDocument(vct.to_string()))?;
 
-            documents.push(metadata_json.clone());
+            documents.push(document.json().to_vec());
 
-            next_vct = metadata_document
+            next_vct = document
+                .contents()
                 .extends
                 .as_ref()
                 .map(|extends| extends.extends.as_str());
@@ -352,7 +365,7 @@ impl CredentialConfigurationsSettings {
                             status_list,
                             valid_days: Days::new(settings.valid_days),
                             type_metadata,
-                            credential_metadata: settings.credential_metadata.map(CredentialMetadata::from),
+                            credential_metadata: settings.credential_metadata.map(JsonFile::into_contents),
                         };
 
                         Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
@@ -656,6 +669,7 @@ mod tests {
 
     use super::CredentialConfigurationSettings;
     use super::IssuerSettings;
+    use super::JsonFile;
     use super::StatusListAttestationSettings;
     use super::TypeMetadataByVct;
     use crate::settings::IssuerSettingsValidationError;
@@ -701,8 +715,14 @@ mod tests {
             type_metadata: TypeMetadataByVct(HashMap::from([{
                 let metadata = UncheckedTypeMetadata::pid_example();
                 let vct = metadata.vct.clone();
-                let metadata_bytes = serde_json::to_vec(&metadata).unwrap();
-                (vct, (metadata, metadata_bytes))
+                let json = serde_json::to_vec(&metadata).unwrap();
+                (
+                    vct,
+                    JsonFile {
+                        contents: metadata,
+                        json,
+                    },
+                )
             }])),
             wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
@@ -814,16 +834,25 @@ mod tests {
             vct: "com.example.no_registration".to_string(),
             ..UncheckedTypeMetadata::empty_example()
         };
-        let no_registration_metadata_serialized = serde_json::to_vec(&no_registration_metadata).unwrap();
+        let no_registration_metadata_json = serde_json::to_vec(&no_registration_metadata).unwrap();
         let pid_metadata = TypeMetadata::pid_example().into_inner();
-        let pid_metadata_serialized = serde_json::to_vec(&pid_metadata).unwrap();
+        let pid_metadata_json = serde_json::to_vec(&pid_metadata).unwrap();
 
         settings.type_metadata = TypeMetadataByVct(HashMap::from([
             (
                 no_registration_metadata.vct.clone(),
-                (no_registration_metadata, no_registration_metadata_serialized),
+                JsonFile {
+                    contents: no_registration_metadata,
+                    json: no_registration_metadata_json,
+                },
             ),
-            (pid_metadata.vct.clone(), (pid_metadata, pid_metadata_serialized)),
+            (
+                pid_metadata.vct.clone(),
+                JsonFile {
+                    contents: pid_metadata,
+                    json: pid_metadata_json,
+                },
+            ),
         ]));
 
         assert_matches!(
