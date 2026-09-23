@@ -978,6 +978,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     )
                 }
                 (Format::MsoMdoc, OfferedCredentialMetadata::TypeMetadata { .. }) => {
+                    // TODO (PVW-6320): use "impossible" error category
                     Err(WalletIssuanceError::MetadataMissing(vec![
                         credential_preview.config_id.clone(),
                     ]))?
