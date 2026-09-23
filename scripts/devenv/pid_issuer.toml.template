@@ -1,5 +1,6 @@
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_PORT}/'
 batch_size = 4
+registration_certificate = "${PID_ISSUER_REGISTRATION_CERTIFICATE}"
 wallet_client_ids = ["${NL_WALLET_CLIENT_ID}"]
 wallet_redirect_uris = ["${WALLET_REDIRECT_URI}"]
 

@@ -436,7 +436,7 @@ DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn
 export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM
 DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM
-generate_demo_relying_party_registration_certificate mijn_amsterdam 0
+generate_demo_relying_party_disclosure_registration_certificate mijn_amsterdam 0
 DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.wrprc")
 export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MIJN_AMSTERDAM
 
@@ -446,7 +446,7 @@ DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/
 export DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE
 DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/online_marketplace.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE
-generate_demo_relying_party_registration_certificate online_marketplace 1
+generate_demo_relying_party_disclosure_registration_certificate online_marketplace 1
 DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/online_marketplace.wrprc")
 export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_ONLINE_MARKETPLACE
 
@@ -456,7 +456,7 @@ DEMO_RELYING_PARTY_KEY_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.k
 export DEMO_RELYING_PARTY_KEY_XYZ_BANK
 DEMO_RELYING_PARTY_CRT_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_XYZ_BANK
-generate_demo_relying_party_registration_certificate xyz_bank 2
+generate_demo_relying_party_disclosure_registration_certificate xyz_bank 2
 DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.wrprc")
 export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_XYZ_BANK
 
@@ -466,7 +466,7 @@ DEMO_RELYING_PARTY_KEY_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_
 export DEMO_RELYING_PARTY_KEY_MONKEY_BIKE
 DEMO_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MONKEY_BIKE
-generate_demo_relying_party_registration_certificate monkey_bike 3
+generate_demo_relying_party_disclosure_registration_certificate monkey_bike 3
 DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.wrprc")
 export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_MONKEY_BIKE
 
@@ -476,7 +476,7 @@ DEMO_RELYING_PARTY_KEY_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_find
 export DEMO_RELYING_PARTY_KEY_JOB_FINDER
 DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_JOB_FINDER
-generate_demo_relying_party_registration_certificate job_finder 4
+generate_demo_relying_party_disclosure_registration_certificate job_finder 4
 DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.wrprc")
 export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER
 
@@ -501,7 +501,7 @@ DEMO_ISSUER_KEY_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac
 export DEMO_ISSUER_KEY_UNIVERSITY_WRPAC
 DEMO_ISSUER_CRT_UNIVERSITY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/university.wrpac.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_WRPAC
-generate_demo_issuer_registration_certificate university 5
+generate_demo_issuer_disclosure_registration_certificate university 5
 DEMO_ISSUER_REGISTRATION_CERTIFICATE_UNIVERSITY=$(< "${TARGET_DIR}/demo_issuer/university.wrprc")
 export DEMO_ISSUER_REGISTRATION_CERTIFICATE_UNIVERSITY
 DEMO_ISSUER_CLIENT_ID_UNIVERSITY="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/university.wrpac.crt.der" | base64_url_encode)"
@@ -535,7 +535,7 @@ DEMO_ISSUER_KEY_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.key.d
 export DEMO_ISSUER_KEY_HOUSING_WRPAC
 DEMO_ISSUER_CRT_HOUSING_WRPAC=$(< "${TARGET_DIR}/demo_issuer/housing.wrpac.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_HOUSING_WRPAC
-generate_demo_issuer_registration_certificate housing 6
+generate_demo_issuer_disclosure_registration_certificate housing 6
 DEMO_ISSUER_REGISTRATION_CERTIFICATE_HOUSING=$(< "${TARGET_DIR}/demo_issuer/housing.wrprc")
 export DEMO_ISSUER_REGISTRATION_CERTIFICATE_HOUSING
 DEMO_ISSUER_CLIENT_ID_HOUSING="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/housing.wrpac.crt.der" | base64_url_encode)"
@@ -597,6 +597,27 @@ export DEMO_ISSUER_KEY_MVC_WRPAC
 DEMO_ISSUER_CRT_MVC_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mvc.wrpac.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MVC_WRPAC
 
+# Each issuance service publishes a WRPRC bound to its metadata-signing WRPAC.
+generate_issuance_registration_certificate pid 7 \
+    "${TARGET_DIR}/pid_issuer/wrpac.crt.pem" "${TARGET_DIR}/pid_issuer/issuance" PID_Provider
+PID_ISSUER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/pid_issuer/issuance.wrprc")
+export PID_ISSUER_REGISTRATION_CERTIFICATE
+
+generate_issuance_registration_certificate university 8 \
+    "${TARGET_DIR}/demo_issuer/university.wrpac.crt.pem" "${TARGET_DIR}/demo_issuer/university.issuance"
+ISSUANCE_SERVER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/demo_issuer/university.issuance.wrprc")
+export ISSUANCE_SERVER_REGISTRATION_CERTIFICATE
+
+generate_issuance_registration_certificate insurance 9 \
+    "${TARGET_DIR}/demo_issuer/insurance.wrpac.crt.pem" "${TARGET_DIR}/demo_issuer/insurance.issuance"
+ACF_DEMO_ISSUER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/demo_issuer/insurance.issuance.wrprc")
+export ACF_DEMO_ISSUER_REGISTRATION_CERTIFICATE
+
+generate_issuance_registration_certificate museum_maandkaart 10 \
+    "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.crt.pem" "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuance"
+PACF_ISSUANCE_SERVER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuance.wrprc")
+export PACF_ISSUANCE_SERVER_REGISTRATION_CERTIFICATE
+
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 
 
@@ -646,12 +667,12 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wrprc"
 
-# All seven demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
+# All eleven demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca status-list \
     --tsl-key-file "${TARGET_DIR}/wrprc_tsl.key.pem" \
     --tsl-crt-file "${TARGET_DIR}/wrprc_tsl.crt.pem" \
     --uri "${WRPRC_STATUS_LIST_URI}" \
-    --status valid valid valid valid valid valid valid \
+    --status valid valid valid valid valid valid valid valid valid valid valid \
     --ttl-seconds 3600 \
     > "${WALLET_CORE_DIR}/target/status-lists/wrprc/1.jwt"
 
