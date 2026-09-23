@@ -844,11 +844,11 @@ unset IS_WALLET_CLIENT_IDS
 We [previously](#creating-the-technical-attestation-schema-json-document) made
 a technical attestation schema JSON document. The `issuance_server` needs to
 know about these schemas. We can tell the server about available schemas through
-the `metadata` setting. In this section, we're going to reference the previously
-created JSON document `insurance_metadata.json`, which, if you followed the
-instructions, was copied to `target/is-config` within the `nl-wallet` directory,
-where the `issuance_server` will find it using the below configuration (provided
-it is started from the `target/is-config` directory):
+the `type_metadata` setting. In this section, we're going to reference the
+previously created JSON document `insurance_metadata.json`, which, if you
+followed the instructions, was copied to `target/is-config` within the
+`nl-wallet` directory, where the `issuance_server` will find it using the below
+configuration (provided it is started from the `target/is-config` directory):
 
 
 ```shell
@@ -856,7 +856,7 @@ cd nl-wallet
 export IS_WALLET_METADATA_FILES=("insurance_metadata.json")
 export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/08-wallet-metadata-files.toml"
-metadata = [$(printf '"%s",' "${IS_WALLET_METADATA_FILES[@]}" | sed 's/,$//')]
+type_metadata = [$(printf '"%s",' "${IS_WALLET_METADATA_FILES[@]}" | sed 's/,$//')]
 EOF
 unset IS_WALLET_METADATA_FILES
 ```
