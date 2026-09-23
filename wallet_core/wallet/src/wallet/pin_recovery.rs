@@ -79,6 +79,7 @@ pub enum PinRecoveryError {
     PinValidation(#[from] PinValidationError),
 
     #[error("error computing PIN public key: {0}")]
+    // This error cannot actually occur, as deriving the verifying key from the PIN should never fail.
     #[category(unexpected)]
     PinKey(#[from] PinKeyError),
 
