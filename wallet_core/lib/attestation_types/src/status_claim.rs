@@ -20,7 +20,6 @@ use url::Url;
 #[serde(rename_all = "snake_case")]
 pub enum StatusClaim {
     StatusList(StatusListClaim),
-    IdentifierList(IdentifierListInfo),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -36,10 +35,17 @@ pub struct StatusListClaim {
 #[cfg(feature = "mock")]
 impl StatusClaim {
     pub fn new_mock() -> Self {
-        StatusClaim::StatusList(StatusListClaim {
+        StatusClaim::StatusList(StatusListClaim::new_mock())
+    }
+}
+
+#[cfg(feature = "mock")]
+impl StatusListClaim {
+    pub fn new_mock() -> Self {
+        StatusListClaim {
             idx: 1,
             uri: "https://example.com/statuslists/1".parse().unwrap(),
-        })
+        }
     }
 }
 
@@ -81,17 +87,6 @@ mod test {
     }), StatusClaim::StatusList(StatusListClaim {
         idx: 0,
         uri: "https://example.com/statuslists/1".parse().unwrap(),
-    }))]
-    #[case::identifier_list(json!({
-        "identifier_list": {
-            "id": hex::decode("cccc").unwrap(),
-            "uri": "https://example.com/identifierlists/1",
-            // "certificate": h'aa...'
-        }
-    }), StatusClaim::IdentifierList(IdentifierListInfo {
-        id: [0xcc, 0xcc].to_vec(),
-        uri: "https://example.com/identifierlists/1".parse().unwrap(),
-        certificate: None,
     }))]
     fn test_deserialize_status_claim(#[case] value: serde_json::Value, #[case] expected: StatusClaim) {
         let claim: StatusClaim = serde_json::from_value(value).unwrap();

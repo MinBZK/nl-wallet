@@ -166,9 +166,7 @@ async fn register_wallets_with_wias(
 }
 
 async fn status_type_for_claim(claim: &StatusClaim, publish_dir: &PublishDir) -> StatusType {
-    let StatusClaim::StatusList(claim) = claim else {
-        unimplemented!("only status lists are supported")
-    };
+    let StatusClaim::StatusList(claim) = claim;
 
     let external_id = claim.uri.path().split('/').next_back().unwrap();
     let external_id = ExternalId::try_from(external_id).unwrap();

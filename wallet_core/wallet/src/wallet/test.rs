@@ -26,7 +26,7 @@ use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
 use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
 use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
 use attestation_types::pid_constants::PID_RESIDENT_STREET;
-use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
@@ -342,7 +342,7 @@ pub fn mdoc_from_credential_payload(
         Utc::now(),
         &PublicKey::from(*holder_key.verifying_key()),
         None,
-        StatusClaim::new_mock(),
+        Some(StatusListClaim::new_mock()),
     )
     .unwrap()
     .into_signed_mdoc(issuer_keypair)

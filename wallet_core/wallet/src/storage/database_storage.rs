@@ -27,6 +27,7 @@ use entity::keyed_data;
 use entity::revocation_info;
 use futures::try_join;
 use itertools::Itertools;
+use mdoc::MdocStatus;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
@@ -1318,7 +1319,19 @@ fn create_attestation_copy_models(
 
                 let attestation_bytes: Vec<u8> = cbor_serialize(&issuer_signed)?;
 
-                Ok((mso.status, key_identifier, issuer_certificate_dn, attestation_bytes))
+                let (status_uri, status_index) = match mso.status {
+                    Some(MdocStatus::StatusList(claim)) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    // `identifier_list` status not supported so no status list reference is stored (PVW-6106)
+                    Some(MdocStatus::IdentifierList(_)) | None => (None, None),
+                };
+
+                Ok((
+                    status_uri,
+                    status_index,
+                    key_identifier,
+                    issuer_certificate_dn,
+                    attestation_bytes,
+                ))
             })
             .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
         IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
@@ -1330,35 +1343,40 @@ fn create_attestation_copy_models(
                     .expect("the issuer certificate should contain a valid DN at this point");
 
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
-                let status = sd_jwt.into_claims().status;
 
-                Ok((status, key_identifier, issuer_certificate_dn, attestation_bytes))
+                let (status_uri, status_index) = match sd_jwt.into_claims().status {
+                    Some(StatusClaim::StatusList(claim)) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    None => (None, None),
+                };
+
+                Ok((
+                    status_uri,
+                    status_index,
+                    key_identifier,
+                    issuer_certificate_dn,
+                    attestation_bytes,
+                ))
             })
             .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
     }
     .into_nonempty_iter()
-    .map(|(status, key_identifier, issuer_certificate_dn, attestation_bytes)| {
-        let (status_uri, status_index) = status
-            .map(|status| match status {
-                StatusClaim::StatusList(claim) => (Some(claim.uri.to_string()), Some(claim.idx)),
-                StatusClaim::IdentifierList(_) => (None, None), // TODO support identifier lists (PVW-6106)
-            })
-            .unwrap_or((None, None));
+    .map(
+        |(status_uri, status_index, key_identifier, issuer_certificate_dn, attestation_bytes)| {
+            let model = attestation_copy::ActiveModel {
+                id: Set(Uuid::now_v7()),
+                disclosure_count: Set(0),
+                attestation_id: Set(attestation_id),
+                key_identifier: Set(key_identifier),
+                status_list_url: Set(status_uri),
+                status_list_index: Set(status_index),
+                issuer_certificate_dn: Set(issuer_certificate_dn),
+                revocation_status: Set(None),
+                attestation: Set(CompressedBlob::new(&attestation_bytes)?),
+            };
 
-        let model = attestation_copy::ActiveModel {
-            id: Set(Uuid::now_v7()),
-            disclosure_count: Set(0),
-            attestation_id: Set(attestation_id),
-            key_identifier: Set(key_identifier),
-            status_list_url: Set(status_uri),
-            status_list_index: Set(status_index),
-            issuer_certificate_dn: Set(issuer_certificate_dn),
-            revocation_status: Set(None),
-            attestation: Set(CompressedBlob::new(&attestation_bytes)?),
-        };
-
-        Ok(model)
-    })
+            Ok(model)
+        },
+    )
     .collect::<Result<_, _>>()
 }
 
@@ -2087,12 +2105,13 @@ pub(crate) mod tests {
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let key = MockRemoteEcdsaKey::new("mdoc_key".to_owned(), SigningKey::generate());
-        let status = StatusClaim::IdentifierList(IdentifierListInfo {
+        let status = MdocStatus::IdentifierList(IdentifierListInfo {
             id: hex::decode("cccc").unwrap(),
             uri: "https://example.com/identifierlists/1".parse().unwrap(),
             certificate: None,
         });
-        let mdoc = Mdoc::new_mock_with_ca_key_and_status(&ca, &key, status).await;
+        let mdoc = Mdoc::new_mock_with_ca_key_and_status(&ca, &key, Some(status)).await;
+
         let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
         let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed).unwrap();
 

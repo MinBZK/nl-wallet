@@ -1338,8 +1338,9 @@ mod tests {
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::status_claim::IdentifierListInfo;
-    use attestation_types::status_claim::StatusClaim;
+    use attestation_types::status_claim::StatusListClaim;
     use chrono::Utc;
+    use cose::TypedCose;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
@@ -1349,6 +1350,8 @@ mod tests {
     use futures::FutureExt;
     use jwt::jwk::jwk_to_public_key;
     use jwt::nonce::Nonce;
+    use mdoc::IssuerSigned;
+    use mdoc::MdocStatus;
     use mdoc::utils::serialization::TaggedBytes;
     use mockall::predicate::eq;
     use oauth::errors::ErrorResponse;
@@ -2472,7 +2475,6 @@ mod tests {
         /// The same attributes as `previewable_payload` (without mdoc namesapce) and matching
         /// `NormalizedTypeMetadata`.
         sd_jwt_previewable_payload: PreviewableCredentialPayload,
-        pub status: StatusClaim,
         normalized_metadata: NormalizedTypeMetadata,
         pub first_metadata_integrity_random: bool,
     }
@@ -2581,7 +2583,6 @@ mod tests {
                 first_metadata_integrity_random: false,
                 mdoc_previewable_payload,
                 sd_jwt_previewable_payload,
-                status: StatusClaim::new_mock(),
                 normalized_metadata,
             };
 
@@ -2648,7 +2649,7 @@ mod tests {
                         Utc::now(),
                         holder_pubkey,
                         metadata_integrity,
-                        self.status.clone(),
+                        Some(StatusListClaim::new_mock()),
                     )
                     .unwrap()
                 });
@@ -2825,26 +2826,43 @@ mod tests {
 
     #[test]
     fn test_accept_issuance_with_identifier_list_status() {
-        let (mut signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
             HashMap::from([("credential_id".to_owned().into(), Format::MsoMdoc)]),
             SdJwtMetadataUsage::CredentialMetadata,
         );
         let trust_anchors = signer.trust_anchors.clone();
 
-        let identifier_list_status = StatusClaim::IdentifierList(IdentifierListInfo {
-            id: hex::decode("cccc").unwrap(),
-            uri: "https://example.com/identifierlists/1".parse().unwrap(),
-            certificate: None,
-        });
-        signer.status = identifier_list_status.clone();
-
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
+                // Build a normal response first, to reuse its holder-key and attribute handling, then replace its
+                // status with an identifier list and re-sign it.
                 let response = signer.response_from_request(credential_request);
+                let Credentials::MsoMdoc(mdoc_credentials) = response.into_immediate_credentials().unwrap() else {
+                    panic!("response should contain mdoc credentials");
+                };
+                let issuer_signed = mdoc_credentials.into_first().credential;
 
-                Ok(response)
+                let TaggedBytes(mut mso) = issuer_signed.issuer_auth.dangerous_parse_unverified().unwrap();
+                mso.status = Some(MdocStatus::IdentifierList(IdentifierListInfo {
+                    id: hex::decode("cccc").unwrap(),
+                    uri: "https://example.com/identifierlists/1".parse().unwrap(),
+                    certificate: None,
+                }));
+                let mso_tagged = TaggedBytes(mso);
+                let issuer_auth = TypedCose::sign_with_certificate(&mso_tagged, &signer.issuer_key, true)
+                    .now_or_never()
+                    .unwrap()
+                    .unwrap();
+
+                let issuer_signed = IssuerSigned {
+                    name_spaces: issuer_signed.name_spaces,
+                    issuer_auth,
+                };
+                let credentials = Credentials::MsoMdoc(vec_nonempty![MdocCredential::new(issuer_signed)]);
+
+                Ok(CredentialResponse::new_immediate(credentials))
             },
         );
 
@@ -2861,9 +2879,7 @@ mod tests {
         let IssuedCredentialCopies::Mdoc(mdoc_copies) = credential.copies else {
             panic!("issued credential should be an mdoc");
         };
-        let mdoc = mdoc_copies.into_first().mdoc;
-
-        assert_eq!(mdoc.into_components().0.status, Some(identifier_list_status));
+        assert_eq!(mdoc_copies.len().get(), 1);
     }
 
     #[test]

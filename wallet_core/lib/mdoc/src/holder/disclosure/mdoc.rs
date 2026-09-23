@@ -58,7 +58,6 @@ mod examples {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::status_claim::StatusClaim;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -67,6 +66,7 @@ mod examples {
 
     use super::PartialMdoc;
     use crate::holder::Mdoc;
+    use crate::iso::mdocs::MdocStatus;
 
     static PID_EXAMPLE_CLAIM_PATHS: LazyLock<Vec<VecNonEmpty<ClaimPath>>> = LazyLock::new(|| {
         ["bsn", "given_name", "family_name"]
@@ -88,7 +88,11 @@ mod examples {
             Self::try_new(mdoc, PID_EXAMPLE_CLAIM_PATHS.iter()).unwrap()
         }
 
-        pub fn new_mock_with_ca_key_and_status(ca: &Ca, device_key: &MockRemoteEcdsaKey, status: StatusClaim) -> Self {
+        pub fn new_mock_with_ca_key_and_status(
+            ca: &Ca,
+            device_key: &MockRemoteEcdsaKey,
+            status: Option<MdocStatus>,
+        ) -> Self {
             let mdoc = Mdoc::new_mock_with_ca_key_and_status(ca, device_key, status)
                 .now_or_never()
                 .unwrap();
