@@ -66,9 +66,6 @@ class ViewRevocationCodeTests : TestBase() {
         personalizeInformScreen.clickDigidLoginButton()
 
         digidLoginMockWebPage.switchToWebViewContext()
-        personalizeAuthenticatingWithDigidScreen.openApp()
-        digidLoginMockWebPage.switchToBrowser()
-        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
         personalizePidPreviewScreen.switchToNativeContext()

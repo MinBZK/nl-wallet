@@ -81,10 +81,6 @@ class RevokeWalletsTests : TestBase() {
         personalizeInformScreen.clickDigidLoginButton()
 
         digidLoginMockWebPage.switchToWebViewContext()
-        personalizeAuthenticatingWithDigidScreen.openApp()
-        personalizeAuthenticatingWithDigidScreen.switchToNativeContext()
-        digidLoginMockWebPage.switchToBrowser()
-        digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
         personalizePidPreviewScreen.switchToNativeContext()

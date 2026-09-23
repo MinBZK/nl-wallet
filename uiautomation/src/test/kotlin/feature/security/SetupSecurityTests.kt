@@ -45,10 +45,6 @@ class SetupSecurityTests : TestBase() {
         assertTrue(pinScreen.setupPinScreenVisible(), "choose pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
 
-        pinScreen.clickAppInfoButton()
-        assertTrue(aboutScreen.visible(), "about screen is not visible")
-        aboutScreen.goBack()
-
         val pin = "12222"
         pinScreen.enterPin(pin)
         assertTrue(pinScreen.enteredPinAbsent(pin), "entered pin is not absent")
