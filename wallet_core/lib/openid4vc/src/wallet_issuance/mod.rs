@@ -398,7 +398,7 @@ pub struct IssuanceDiscoveryParameters<'a, W> {
     pub wrpac_trust_anchors: &'a TrustAnchors,
 }
 
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OfferedCredentialMetadata {
     TypeMetadata {
         normalized: NormalizedTypeMetadata,
