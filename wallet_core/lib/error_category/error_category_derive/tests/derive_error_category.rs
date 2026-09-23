@@ -8,8 +8,8 @@ use rstest::rstest;
 enum ChildError {
     #[category(expected)]
     Unit,
-    #[category(unexpected)]
-    Unexpected,
+    #[category(impossible)]
+    Impossible,
     #[category(expected)]
     EmptyTuple(),
     #[category(critical)]
@@ -107,7 +107,7 @@ struct DoubleStructRoot {
 
 #[rstest]
 #[case(ChildError::Unit, Category::Expected)]
-#[case(ChildError::Unexpected, Category::Unexpected)]
+#[case(ChildError::Impossible, Category::Impossible)]
 #[case(ChildError::EmptyTuple(), Category::Expected)]
 #[case(ChildError::SingleTuple(42), Category::Critical)]
 #[case(ChildError::DoubleTuple(42, 42), Category::PersonalData)]

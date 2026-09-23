@@ -30,9 +30,9 @@ attribute):
 - `pd`: Critical error with personal data, sent call stack without messages
 - `defer`: Analysis of categorization is deferred to one of the fields of this
   variant
-- `unexpected`: This is an unexpected error and should never be encountered by
-  `sentry_capture_error`. Results in an error being logged. Is reported to
-  Sentry without message(s).
+- `impossible`: This is an impossible error and should never be encountered by
+  `sentry_capture_error`. This error category can be used in place of a panic.
+  Results in an error being logged. Is reported to Sentry without message(s).
 
 ## Configuration
 

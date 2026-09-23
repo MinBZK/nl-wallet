@@ -80,7 +80,7 @@ pub enum PinRecoveryError {
 
     #[error("error computing PIN public key: {0}")]
     // This error cannot actually occur, as deriving the verifying key from the PIN should never fail.
-    #[category(unexpected)]
+    #[category(impossible)]
     PinKey(#[from] PinKeyError),
 
     #[error("storage error: {0}")]
