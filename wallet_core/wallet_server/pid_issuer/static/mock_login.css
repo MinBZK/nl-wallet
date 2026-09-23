@@ -1,20 +1,21 @@
 :root {
     color-scheme: light dark;
-    --bg: #f3f4f6;
+    --bg: #fcfcfc;
     --card-bg: #ffffff;
-    --border: #d0d5dd;
-    --accent: #154273; /* Rijksoverheid blue */
-    --text: #1f2933;
-    --muted: #667085;
+    --border: #e8eaef;
+    --accent: #383ede;
+    --text: #152a62;
+    --lang-bg: #f1f1f1;
+    --badge-orange: #f39200;
 }
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg: #1f2933;
-        --card-bg: #27313d;
-        --border: #3b4756;
-        --accent: #8fb8e0;
-        --text: #f3f4f6;
-        --muted: #9aa5b1;
+        --bg: #1c1e25;
+        --card-bg: #1c1e25;
+        --border: #656d87;
+        --accent: #a2b7ff;
+        --text: #ffffff;
+        --lang-bg: #2f3444;
     }
 }
 * {
@@ -26,63 +27,117 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2rem;
-    padding: 2rem 1rem;
+    gap: 2.5rem;
+    padding: 1.5rem 1rem;
     background: var(--bg);
     color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 .lang-bar {
-    align-self: flex-end;
+    align-self: center;
+    width: 100%;
+    max-width: 30rem;
     display: flex;
+    justify-content: flex-end;
     gap: 0.25rem;
     font-size: 0.9rem;
 }
 .lang-bar a,
 .lang-bar span {
     padding: 0.25rem 0.5rem;
-    border-radius: 6px;
+    border-radius: 0.125rem;
     text-decoration: none;
     color: var(--accent);
+    background: var(--lang-bg);
 }
 .lang-bar .active {
     font-weight: 700;
-    color: var(--text);
-    background: var(--border);
     cursor: default;
 }
-header {
-    text-align: center;
+header.page-header {
+    text-align: left;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 1rem;
+    width: 100%;
+    max-width: 30rem;
+}
+.logo-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.digid-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 0.5rem;
+    background: #000000;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex: none;
+}
+.digid-badge b {
+    color: var(--badge-orange);
+}
+.logo-heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.4;
 }
 h1 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.875rem;
+    line-height: 1.4;
 }
-.intro {
+.body {
     margin: 0;
-    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.375;
 }
+.divider {
+    width: 100%;
+    max-width: 30rem;
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+}
+.items {
+    width: 100%;
+    max-width: 30rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+.list-heading {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.33;
+}
+/* Single-column list of test identities. */
 .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 1rem;
     width: 100%;
-    max-width: 720px;
 }
 .card {
     margin: 0;
 }
 .card button {
     width: 100%;
+    min-height: 5rem;
     display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    padding: 1.1rem 1.25rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0.5rem 1rem 1rem;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 0.5rem;
     background: var(--card-bg);
     color: inherit;
     font: inherit;
@@ -101,75 +156,36 @@ h1 {
     opacity: 0.5;
     transform: none;
 }
-.card .name {
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-.card .bsn {
-    font-size: 0.85rem;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-}
-/* The "enter your own BSN" card: same frame as a selectable card, but holding an input + submit. */
-.card-custom {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    padding: 1.1rem 1.25rem;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--card-bg);
-    transition: border-color 0.15s ease;
-}
-.card-custom:focus-within {
-    border-color: var(--accent);
-}
-.card-custom .name {
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-/* Second line inside the custom card: the BSN input grows, the submit button sits beside it. */
-.custom-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: stretch;
-}
-.bsn-input {
+.card-text {
     flex: 1;
     min-width: 0;
-    padding: 0.55rem 0.65rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
-    color: inherit;
-    font: inherit;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+}
+.card .name {
+    font-size: 1.125rem;
+    line-height: 1.33;
+    font-weight: 700;
+}
+.card .bsn {
+    font-size: 0.875rem;
+    line-height: 1.43;
     font-variant-numeric: tabular-nums;
 }
-.bsn-input:focus-visible {
-    outline: none;
-    border-color: var(--accent);
-}
-.card-custom button {
+.card-arrow {
     flex: none;
-    padding: 0.55rem 1.35rem;
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    background: var(--accent);
-    color: var(--card-bg);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    color: var(--accent);
 }
-.card-custom button:hover,
-.card-custom button:focus-visible {
-    opacity: 0.9;
-    outline: none;
-}
-.card-custom button:disabled {
-    opacity: 0.5;
-    cursor: default;
+.card-arrow svg {
+    width: 1.5rem;
+    height: 1.5rem;
 }
 /* Loading overlay, revealed by JS once a card has been submitted. */
 #overlay {
@@ -188,7 +204,7 @@ h1 {
 .spinner {
     width: 1.25rem;
     height: 1.25rem;
-    border: 3px solid var(--muted);
+    border: 3px solid var(--border);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;

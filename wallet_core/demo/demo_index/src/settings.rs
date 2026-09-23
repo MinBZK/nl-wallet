@@ -11,6 +11,7 @@ use utils::path::prefix_local_path;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
+    pub app_environment: String,
     pub webserver: Server,
     pub structured_logging: bool,
     pub log_requests: bool,
@@ -32,6 +33,7 @@ pub struct DemoService {
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
+            .set_default("app_environment", "unspecified")?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 8001)?
             .set_default("structured_logging", false)?

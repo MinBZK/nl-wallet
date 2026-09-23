@@ -13,7 +13,7 @@ kubectl exec $POD -- sh -c 'rm -rf /usr/share/nginx/html/wia/*'
 
 # Delete PVCs created by helm install
 kubectl delete pvc --wait=true \
-    acf-issuance-server \
+    acf-demo-issuer \
     data-redis-0 \
     demo-issuer-issuance-server \
     demo-issuer-pacf-issuance-server \

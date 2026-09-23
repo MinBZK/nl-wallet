@@ -5,6 +5,16 @@
 @import url("../../../demo_utils/static/css/demo_bar.css");
 
 :root {
+  color-scheme: light dark;
+  --page-bg: light-dark(#fcfcfc, #1c1e25);
+  --divider: light-dark(#e8eaef, #656d87);
+  --text: light-dark(#152a62, #ffffff);
+  --action: light-dark(#383ede, #a2b7ff);
+  --action-hover: light-dark(#3237c4, #8fa5ff);
+  --button-text: light-dark(#ffffff, #0d193b);
+  --ribbon-bg: light-dark(#ab0065, #ff8989);
+  --ribbon-text: light-dark(#ffffff, #0d193b);
+
   font-family: "RO Sans", sans-serif;
   font-feature-settings:
     "clig" off,
@@ -14,7 +24,8 @@
 }
 
 body {
-  background: #faf9fb;
+  background: var(--page-bg);
+  color: var(--text);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -24,21 +35,20 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 16px 16px 16px;
-}
-
-main > * {
-  max-width: 500px;
+  margin-bottom: 1rem;
+  /* leave a 1rem gutter on both sides of the viewport */
+  width: calc(100% - 2rem);
+  max-width: 31.25rem;
 }
 
 aside {
   justify-content: right;
-  padding: 38px 16px 0 16px;
+  padding: 2.375rem 1rem 0 1rem;
 }
 
-@media only screen and (min-width: 577px) {
+@media only screen and (min-width: 36rem) {
   aside {
-    padding: 16px 24px;
+    padding: 1rem 1.5rem;
   }
 }
 
@@ -46,53 +56,104 @@ aside {
   margin: 0;
 }
 
-header {
-  content: " ";
-  background: url("../non-free/images/nl-wallet.svg") no-repeat center center / cover;
-  width: 64px;
-  height: 64px;
-}
-
-main section {
+.page-columns {
   display: flex;
   flex-direction: column;
-  text-align: center;
-  gap: 8px;
-  margin: 40px 0;
+  gap: 2.5rem;
+  width: 100%;
 }
 
-main section h1 {
-  color: #152a62;
-  font-size: 30px;
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.wallet-logo {
+  position: relative;
+  flex: none;
+  width: 4rem;
+  height: 4rem;
+  background: url("../non-free/images/nl-wallet.svg") no-repeat center center / cover;
+}
+
+.version-ribbon {
+  position: absolute;
+  left: 50%;
+  bottom: -0.625rem;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: var(--ribbon-bg);
+  color: var(--ribbon-text);
+  font-size: 0.625rem;
   font-weight: 700;
-  line-height: 44px;
+  letter-spacing: 1px;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
 }
 
-main section p {
-  color: #30293d;
-  letter-spacing: 0.5px;
+.logo-label {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5rem;
 }
 
-main section a {
-  color: #383ede;
+.intro h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 2.625rem;
 }
 
-main section a:hover {
-  color: #3237c4;
+.intro h2 {
+  margin: 1rem 0 0 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+}
+
+.intro p {
+  line-height: 1.375rem;
+}
+
+.intro a {
+  color: var(--action);
+}
+
+.intro a:hover {
+  color: var(--action-hover);
   text-decoration: none;
+}
+
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.list-heading {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5rem;
 }
 
 nav {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 2rem;
   width: 100%;
 }
 
 nav a {
   display: flex;
   text-align: center;
-  gap: 16px;
+  gap: 1rem;
   height: 100%;
   text-decoration: none;
 }
@@ -102,26 +163,28 @@ nav a span {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #383ede;
-  color: white;
+  min-height: 3.25rem;
+  background: var(--action);
+  color: var(--button-text);
   font-weight: 700;
   letter-spacing: 1px;
-  border-radius: 12px;
-  padding: 16px 24px;
-  line-height: 20px;
+  border-radius: 0.75rem;
+  padding: 1rem 1.5rem;
+  line-height: 1.25rem;
 }
 
 nav a:hover span {
-  color: white;
-  background: #3237c4;
+  color: var(--button-text);
+  background: var(--action-hover);
 }
 
 nav a::before {
   content: " ";
+  flex: none;
   background-color: black;
-  border-radius: 9.75px;
-  width: 52px;
-  height: 52px;
+  border-radius: 0.625rem;
+  width: 3.25rem;
+  height: 3.25rem;
 }
 
 /* use case icons */
@@ -175,4 +238,26 @@ nav a::before {
 
 #mvc::before {
   background: url("../non-free/images/rdw.svg") no-repeat center center / cover;
+}
+
+@media only screen and (min-width: 70rem) {
+  main {
+    max-width: 70rem;
+  }
+
+  .page-columns {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .intro,
+  .examples {
+    flex: 1 1 0;
+    max-width: 31.25rem;
+  }
+
+  .examples {
+    border-left: 1px solid var(--divider);
+    padding-left: 2.5rem;
+  }
 }

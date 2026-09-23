@@ -14,6 +14,7 @@ pub struct Model {
     pub public_key: Vec<u8>,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub encrypted_private_key: Vec<u8>,
+    pub wrapping_kid: String,
     pub is_blocked: bool,
 }
 

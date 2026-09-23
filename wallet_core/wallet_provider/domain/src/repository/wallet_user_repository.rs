@@ -22,6 +22,7 @@ use crate::model::wallet_user::WalletUserIsRevoked;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
 use crate::model::wallet_user::WalletUserState;
+use crate::model::wallet_user::WithKid;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
@@ -130,13 +131,13 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key_identifiers: &[String],
-    ) -> Result<HashMap<String, WrappedKey>>;
+    ) -> Result<HashMap<String, WithKid<WrappedKey>>>;
 
     async fn change_pin(
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &WalletId,
-        encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+        encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         user_state: WalletUserState,
     ) -> Result<()>;
 
@@ -434,7 +435,7 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             _key_identifiers: &[String],
-        ) -> Result<HashMap<String, WrappedKey>> {
+        ) -> Result<HashMap<String, WithKid<WrappedKey>>> {
             Ok(HashMap::new())
         }
 
@@ -442,7 +443,7 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &WalletId,
-            _encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+            _encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
             _user_state: WalletUserState,
         ) -> Result<()> {
             Ok(())

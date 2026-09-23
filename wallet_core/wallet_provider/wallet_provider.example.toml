@@ -7,12 +7,6 @@ current_certificate_kid = "0"
 # key identifier used to sign instruction results sent from wallet_provider to wallet
 current_instruction_result_kid = "0"
 
-# Identifier for key used to wrap attestation private keys that will be persisted
-attestation_wrapping_key_identifier = "attestation_wrapping_key"
-
-# Identifier for key used to encrypt the pin public key
-pin_pubkey_encryption_key_identifier = "pin_pubkey_encryption_key"
-
 # Identifier for key used to generate revocation code HMACs that are stored in the database
 revocation_code_key_identifier = "revocation_code_key"
 
@@ -48,6 +42,16 @@ wia_wallet_version = "1.0.0"
 
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
+
+# Identifier for the key used to wrap attestation private keys that will be persisted
+[attestation_wrapping_kid]
+current = "1"
+# previous = "0"
+
+# Identifier for the key used to encrypt the pin public key
+[pin_pubkey_encryption_kid]
+current = "1"
+# previous = "0"
 
 # Recovery code claim path for every attestation type
 [recovery_code_paths]

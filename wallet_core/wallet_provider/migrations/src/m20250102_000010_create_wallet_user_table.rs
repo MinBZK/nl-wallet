@@ -20,8 +20,11 @@ impl MigrationTrait for Migration {
                     .col(binary(WalletUser::HwPubkeyDer))
                     .col(binary(WalletUser::EncryptedPinPubkeySec1))
                     .col(binary(WalletUser::PinPubkeyIv))
+                    .col(string(WalletUser::PinPubkeyKid))
                     .col(binary_null(WalletUser::EncryptedPreviousPinPubkeySec1))
                     .col(binary_null(WalletUser::PreviousPinPubkeyIv))
+                    // Note: Kid of the previous PIN ciphertext, not a previous Kid
+                    .col(string_null(WalletUser::PreviousPinPubkeyKid))
                     .col(unsigned(WalletUser::InstructionSequenceNumber).default(0))
                     .col(small_unsigned(WalletUser::PinEntries).default(0))
                     .col(timestamp_with_time_zone_null(WalletUser::LastUnsuccessfulPin))
@@ -34,13 +37,15 @@ impl MigrationTrait for Migration {
                     .col(timestamp_with_time_zone_null(WalletUser::RevocationDateTime))
                     .col(string_null(WalletUser::RecoveryCode))
                     .check(SimpleExpr::or(
-                        // Both of these columns should be used or neither.
+                        // All of these columns should be used or none of them.
                         Expr::col(WalletUser::EncryptedPreviousPinPubkeySec1)
                             .is_null()
-                            .and(Expr::col(WalletUser::PreviousPinPubkeyIv).is_null()),
+                            .and(Expr::col(WalletUser::PreviousPinPubkeyIv).is_null())
+                            .and(Expr::col(WalletUser::PreviousPinPubkeyKid).is_null()),
                         Expr::col(WalletUser::EncryptedPreviousPinPubkeySec1)
                             .is_not_null()
-                            .and(Expr::col(WalletUser::PreviousPinPubkeyIv).is_not_null()),
+                            .and(Expr::col(WalletUser::PreviousPinPubkeyIv).is_not_null())
+                            .and(Expr::col(WalletUser::PreviousPinPubkeyKid).is_not_null()),
                     ))
                     .check(SimpleExpr::or(
                         // One and only one of these foreign key columns should be used.
@@ -103,8 +108,10 @@ pub enum WalletUser {
     HwPubkeyDer,
     EncryptedPinPubkeySec1,
     PinPubkeyIv,
+    PinPubkeyKid,
     EncryptedPreviousPinPubkeySec1,
     PreviousPinPubkeyIv,
+    PreviousPinPubkeyKid,
     InstructionSequenceNumber,
     PinEntries,
     LastUnsuccessfulPin,

@@ -66,6 +66,7 @@ class RevokeCardTests : TestBase() {
         revocationHelper.revokeAllNonRevokedPids()
         dashboardScreen.openApp()
         pinScreen.enterPin(DEFAULT_PIN)
+        dashboardScreen.dismissNotificationsDrawer()
         assertTrue(dashboardScreen.cardRevocationVisible(tasData.getPidDisplayName()), "Card revocation not visible")
 
         dashboardScreen.clickCard(tasData.getPidDisplayName())

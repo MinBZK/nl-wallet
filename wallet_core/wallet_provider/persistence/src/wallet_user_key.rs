@@ -18,7 +18,9 @@ use sea_orm::Set;
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::SelectStatement;
 use uuid::Uuid;
+use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
@@ -35,7 +37,7 @@ where
         .keys
         .into_iter()
         .map(|key_create| {
-            let key_identifier = verifying_key_sha256(key_create.key.public_key());
+            let key_identifier = verifying_key_sha256(key_create.key.value.public_key());
 
             Ok(wallet_user_key::ActiveModel {
                 id: Set(key_create.wallet_user_key_id),
@@ -44,12 +46,14 @@ where
                 identifier: Set(key_identifier),
                 public_key: Set(key_create
                     .key
+                    .value
                     .public_key()
                     .to_public_key_der()
                     .map_err(|error| PersistenceError::VerifyingKeyConversion(Box::new(error)))?
                     .into_vec()),
-                encrypted_private_key: Set(key_create.key.wrapped_private_key().to_vec()),
+                encrypted_private_key: Set(key_create.key.value.wrapped_private_key().to_vec()),
                 is_blocked: Set(key_create.is_blocked),
+                wrapping_kid: Set(key_create.key.kid.into_inner()),
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -183,7 +187,7 @@ pub async fn find_active_keys_by_identifiers<S, T>(
     db: &T,
     wallet_user_id: Uuid,
     identifiers: &[String],
-) -> Result<HashMap<String, WrappedKey>>
+) -> Result<HashMap<String, WithKid<WrappedKey>>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -193,22 +197,26 @@ where
         .column(wallet_user_key::Column::Identifier)
         .column(wallet_user_key::Column::EncryptedPrivateKey)
         .column(wallet_user_key::Column::PublicKey)
+        .column(wallet_user_key::Column::WrappingKid)
         .filter(wallet_user_key::Column::Identifier.is_in(identifiers))
         .filter(wallet_user_key::Column::WalletUserId.eq(wallet_user_id))
         .filter(wallet_user_key::Column::IsBlocked.eq(false))
-        .into_tuple::<(String, Vec<u8>, Vec<u8>)>()
+        .into_tuple::<(String, Vec<u8>, Vec<u8>, String)>()
         .all(db.connection())
         .await
         .map_err(PersistenceError::Execution)?
         .into_iter()
-        .map(|(id, key_data, public_key)| {
+        .map(|(id, key_data, public_key, wrapping_kid)| {
             Ok((
                 id,
-                WrappedKey::new(
-                    key_data,
-                    VerifyingKey::from_public_key_der(&public_key)
-                        .map_err(|error| PersistenceError::VerifyingKeyConversion(Box::new(error)))?,
-                ),
+                WithKid {
+                    value: WrappedKey::new(
+                        key_data,
+                        VerifyingKey::from_public_key_der(&public_key)
+                            .map_err(|error| PersistenceError::VerifyingKeyConversion(Box::new(error)))?,
+                    ),
+                    kid: Kid::try_from(wrapping_kid).map_err(PersistenceError::KidConversion)?,
+                },
             ))
         })
         .collect()

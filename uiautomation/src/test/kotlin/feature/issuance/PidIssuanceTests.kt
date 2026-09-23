@@ -76,18 +76,6 @@ class PidIssuanceTests : TestBase() {
         assertTrue(personalizeInformScreen.digidWebsiteButtonVisible(), "digid button is not visible")
 
         personalizeInformScreen.clickDigidLoginButton()
-
-        digidLoginMockWebPage.switchToWebViewContext()
-
-
-        personalizeAuthenticatingWithDigidScreen.openApp()
-        personalizeAuthenticatingWithDigidScreen.switchToNativeContext()
-        assertAll(
-            { assertTrue(personalizeAuthenticatingWithDigidScreen.awaitingUserAuthTitleVisible(), "title is not visible") },
-            { assertTrue(personalizeAuthenticatingWithDigidScreen.digidLoadingStopCtaVisible(), "stop button is not visible") },
-        )
-
-        digidLoginMockWebPage.switchToBrowser()
         digidLoginMockWebPage.switchToWebViewContext()
         digidLoginMockWebPage.login(DEFAULT_BSN)
 
@@ -133,8 +121,7 @@ class PidIssuanceTests : TestBase() {
         setUp(testInfo)
         personalizeInformScreen.clickDigidLoginButton()
         digidLoginMockWebPage.switchToWebViewContext()
-        digidLoginMockWebPage.enterBsn("123456789")
-        digidLoginMockWebPage.clickLoginButton()
+        digidLoginMockWebPage.loginWithFakeBsn()
         personalizeAuthenticatingWithDigidScreen.switchToNativeContext()
         assertAll(
             { assertTrue(personalizeAuthenticatingWithDigidScreen.loginFailedMessageVisible(), "message is not visible") },

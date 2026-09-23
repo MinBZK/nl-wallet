@@ -1,3 +1,5 @@
+app_environment = '${DEMO_INDEX_ENV}'
+
 [webserver]
 ip = '0.0.0.0'
 port = ${DEMO_INDEX_PORT}

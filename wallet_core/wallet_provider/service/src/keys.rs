@@ -3,18 +3,14 @@ use crypto::keys::SecureEcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use jwt::KeyWithKid;
-use nutype::nutype;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
+use wallet_provider_domain::keys::Kid;
 
 const WALLET_CERTIFICATE_SIGNING_KEY_PREFIX: &str = "wallet_certificate_signing_";
 const PIN_HMAC_KEY_PREFIX: &str = "pin_hmac_";
-
-#[nutype(
-    derive(Debug, Clone, TryFrom, AsRef, Hash, PartialEq, Eq, Deserialize),
-    validate(regex = r"^[\w-]+$")
-)]
-pub struct Kid(String);
+const PIN_PUBKEY_ENCRYPTION_KEY_PREFIX: &str = "pin_pubkey_encryption_";
+const ATTESTATION_WRAPPING_KEY_PREFIX: &str = "attestation_wrapping_";
 
 pub fn certificate_signing_key_identifier(kid: &Kid) -> String {
     format!("{}{}", WALLET_CERTIFICATE_SIGNING_KEY_PREFIX, kid.as_ref())
@@ -22,6 +18,14 @@ pub fn certificate_signing_key_identifier(kid: &Kid) -> String {
 
 pub fn pin_hmac_key_identifier(kid: &Kid) -> String {
     format!("{}{}", PIN_HMAC_KEY_PREFIX, kid.as_ref())
+}
+
+pub fn attestation_wrapping_key_identifier(kid: &Kid) -> String {
+    format!("{}{}", ATTESTATION_WRAPPING_KEY_PREFIX, kid.as_ref())
+}
+
+pub fn pin_pubkey_encryption_key_identifier(kid: &Kid) -> String {
+    format!("{}{}", PIN_PUBKEY_ENCRYPTION_KEY_PREFIX, kid.as_ref())
 }
 
 pub trait WalletCertificateSigningKey: SecureEcdsaKey + KeyWithKid {}

@@ -19,7 +19,9 @@ utoipa = ["utoipa/chrono", "wallet_account/utoipa"]
 chrono = { workspace = true, features = ["serde"] }
 derive_more = { workspace = true, features = ["as_ref", "debug", "display", "from", "into", "unwrap"] }
 futures.workspace = true
+nutype = { workspace = true, features = ["regex"] }
 p256.workspace = true
+regex.workspace = true
 sea-orm.workspace = true
 semver.workspace = true
 serde.workspace = true

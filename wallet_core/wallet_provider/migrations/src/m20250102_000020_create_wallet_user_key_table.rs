@@ -20,6 +20,7 @@ impl MigrationTrait for Migration {
                     .col(string(WalletUserKey::Identifier))
                     .col(binary(WalletUserKey::PublicKey))
                     .col(binary(WalletUserKey::EncryptedPrivateKey))
+                    .col(string(WalletUserKey::WrappingKid))
                     // Allow blocking keys for PID renewal and PIN recovery flows
                     .col(boolean(WalletUserKey::IsBlocked))
                     .foreign_key(
@@ -64,4 +65,5 @@ enum WalletUserKey {
     EncryptedPrivateKey,
     PublicKey,
     IsBlocked,
+    WrappingKid,
 }

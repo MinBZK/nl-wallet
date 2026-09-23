@@ -25,10 +25,7 @@
   ],
   "claims": [
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "registration_number"
-      ],
+      "path": ["org.iso.7367.2.1", "registration_number"],
       "mandatory": true,
       "display": [
         {
@@ -42,10 +39,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "issue_date"
-      ],
+      "path": ["org.iso.7367.2.1", "issue_date"],
       "mandatory": true,
       "display": [
         {
@@ -59,10 +53,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "expiry_date"
-      ],
+      "path": ["org.iso.7367.2.1", "expiry_date"],
       "display": [
         {
           "name": "Geldig tot",
@@ -75,14 +66,11 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "issuing_authority_unicode"
-      ],
+      "path": ["org.iso.7367.2.1", "issuing_authority_unicode"],
       "mandatory": true,
       "display": [
         {
-          "name": "Afgegeven op",
+          "name": "Afgegeven door",
           "locale": "nl-NL"
         },
         {
@@ -92,10 +80,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "issuing_authority_latin1"
-      ],
+      "path": ["org.iso.7367.2.1", "issuing_authority_latin1"],
       "mandatory": true,
       "display": [
         {
@@ -109,10 +94,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "issuing_country"
-      ],
+      "path": ["org.iso.7367.2.1", "issuing_country"],
       "mandatory": true,
       "display": [
         {
@@ -126,10 +108,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "un_distinguishing_sign"
-      ],
+      "path": ["org.iso.7367.2.1", "un_distinguishing_sign"],
       "mandatory": true,
       "display": [
         {
@@ -143,10 +122,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "document_number"
-      ],
+      "path": ["org.iso.7367.2.1", "document_number"],
       "display": [
         {
           "name": "Documentnummer",
@@ -159,10 +135,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "date_of_registration"
-      ],
+      "path": ["org.iso.7367.2.1", "date_of_registration"],
       "mandatory": true,
       "display": [
         {
@@ -176,10 +149,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "date_of_first_registration"
-      ],
+      "path": ["org.iso.7367.2.1", "date_of_first_registration"],
       "mandatory": true,
       "display": [
         {
@@ -193,11 +163,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "chassis_number_info",
-        "vehicle_identification_number"
-      ],
+      "path": ["org.iso.7367.2.1", "chassis_number_info", "vehicle_identification_number"],
       "mandatory": true,
       "display": [
         {
@@ -211,11 +177,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "basic_vehicle_info",
-        "vehicle_category_code"
-      ],
+      "path": ["org.iso.7367.2.1", "basic_vehicle_info", "vehicle_category_code"],
       "display": [
         {
           "name": "Voertuigcategorie",
@@ -228,11 +190,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "basic_vehicle_info",
-        "make"
-      ],
+      "path": ["org.iso.7367.2.1", "basic_vehicle_info", "make"],
       "mandatory": true,
       "display": [
         {
@@ -246,11 +204,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "basic_vehicle_info",
-        "commercial_name"
-      ],
+      "path": ["org.iso.7367.2.1", "basic_vehicle_info", "commercial_name"],
       "display": [
         {
           "name": "Handelsbenaming",
@@ -263,10 +217,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "owners"
-      ],
+      "path": ["org.iso.7367.2.1", "owners"],
       "display": [
         {
           "name": "Eigenaren",
@@ -279,10 +230,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "users"
-      ],
+      "path": ["org.iso.7367.2.1", "users"],
       "mandatory": true,
       "display": [
         {
@@ -296,11 +244,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "mass_info",
-        "techn_perm_max_laden_mass"
-      ],
+      "path": ["org.iso.7367.2.1", "mass_info", "techn_perm_max_laden_mass"],
       "display": [
         {
           "name": "Max. technisch toelaatbare massa",
@@ -313,11 +257,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "mass_info",
-        "vehicle_max_mass"
-      ],
+      "path": ["org.iso.7367.2.1", "mass_info", "vehicle_max_mass"],
       "display": [
         {
           "name": "Toegestane maximum massa",
@@ -330,11 +270,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "mass_info",
-        "mass_in_running_order"
-      ],
+      "path": ["org.iso.7367.2.1", "mass_info", "mass_in_running_order"],
       "display": [
         {
           "name": "Massa rijklaar",
@@ -347,11 +283,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "mass_info",
-        "mass_in_running_order_variable_min"
-      ],
+      "path": ["org.iso.7367.2.1", "mass_info", "mass_in_running_order_variable_min"],
       "display": [
         {
           "name": "Massa rijklaar (min.)",
@@ -364,11 +296,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "mass_info",
-        "mass_in_running_order_variable_max"
-      ],
+      "path": ["org.iso.7367.2.1", "mass_info", "mass_in_running_order_variable_max"],
       "display": [
         {
           "name": "Massa rijklaar (max.)",
@@ -381,11 +309,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "towed_trailer_mass_info",
-        "tech_perm_max_tow_mass"
-      ],
+      "path": ["org.iso.7367.2.1", "towed_trailer_mass_info", "tech_perm_max_tow_mass"],
       "display": [
         {
           "name": "Max. massa aanhangwagen",
@@ -398,11 +322,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "towed_trailer_mass_info",
-        "technically_permissible_maximum_combination_mass"
-      ],
+      "path": ["org.iso.7367.2.1", "towed_trailer_mass_info", "technically_permissible_maximum_combination_mass"],
       "display": [
         {
           "name": "Max. massa combinatie",
@@ -415,11 +335,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "towed_trailer_mass_info",
-        "braked_type_trail_code"
-      ],
+      "path": ["org.iso.7367.2.1", "towed_trailer_mass_info", "braked_type_trail_code"],
       "display": [
         {
           "name": "Remtype aanhangwagen",
@@ -432,11 +348,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "towed_trailer_mass_info",
-        "type_trailer_code"
-      ],
+      "path": ["org.iso.7367.2.1", "towed_trailer_mass_info", "type_trailer_code"],
       "display": [
         {
           "name": "Type aanhangwagen",
@@ -449,11 +361,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "engine_info",
-        "engine_number"
-      ],
+      "path": ["org.iso.7367.2.1", "engine_info", "engine_number"],
       "display": [
         {
           "name": "Motornummer",
@@ -466,11 +374,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "engine_info",
-        "engine_capacity"
-      ],
+      "path": ["org.iso.7367.2.1", "engine_info", "engine_capacity"],
       "display": [
         {
           "name": "Cilinderinhoud",
@@ -483,11 +387,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "engine_info",
-        "engine_power"
-      ],
+      "path": ["org.iso.7367.2.1", "engine_info", "engine_power"],
       "display": [
         {
           "name": "Motorvermogen",
@@ -500,11 +400,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "engine_info",
-        "class_of_hybrid_vehicle_code"
-      ],
+      "path": ["org.iso.7367.2.1", "engine_info", "class_of_hybrid_vehicle_code"],
       "display": [
         {
           "name": "Hybrideklasse",
@@ -517,11 +413,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "engine_info",
-        "energy_sources"
-      ],
+      "path": ["org.iso.7367.2.1", "engine_info", "energy_sources"],
       "display": [
         {
           "name": "Brandstof/energiebron",
@@ -534,11 +426,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "seating_info",
-        "number_of_seating_positions_including_driver"
-      ],
+      "path": ["org.iso.7367.2.1", "seating_info", "number_of_seating_positions_including_driver"],
       "display": [
         {
           "name": "Aantal zitplaatsen",
@@ -551,11 +439,7 @@
       ]
     },
     {
-      "path": [
-        "org.iso.7367.2.1",
-        "seating_info",
-        "number_of_standing_places"
-      ],
+      "path": ["org.iso.7367.2.1", "seating_info", "number_of_standing_places"],
       "display": [
         {
           "name": "Aantal staanplaatsen",

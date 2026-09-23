@@ -190,29 +190,19 @@ impl MockLoginState {
         }
     }
 
-    /// The non-cacheable dynamic mock login routes (the page and per-card selection), with the CSP layered on.
-    pub fn page_router(self) -> Router {
+    /// The mock login routes (page, card selection and static assets), with the CSP layered on.
+    pub fn router(self) -> Router {
         let csp = self.csp;
 
         Router::new()
             .route(MOCK_LOGIN_PATH, get(mock_login_page))
             .route(MOCK_LOGIN_SELECT_PATH, post(mock_login_select))
-            .layer(middleware::from_fn(move |request, next| {
-                set_content_security_policy(request, next, csp)
-            }))
-            .with_state(self)
-    }
-
-    /// The cacheable static asset routes (CSS + JS), with the CSP layered on.
-    pub fn assets_router(&self) -> Router {
-        let csp = self.csp;
-
-        Router::new()
             .route(MOCK_LOGIN_CSS_PATH, get(mock_login_css))
             .route(MOCK_LOGIN_JS_PATH, get(mock_login_js))
             .layer(middleware::from_fn(move |request, next| {
                 set_content_security_policy(request, next, csp)
             }))
+            .with_state(self)
     }
 }
 
@@ -224,48 +214,48 @@ async fn mock_login_css(headers: HeaderMap) -> Response {
 /// `GET /digid/mock-login/mock_login.js`: the page's script.
 async fn mock_login_js() -> impl IntoResponse {
     (
-        [
-            (
-                header::CONTENT_TYPE,
-                HeaderValue::from_static("text/javascript; charset=utf-8"),
-            ),
-            (
-                header::CACHE_CONTROL,
-                HeaderValue::from_static("public, max-age=604800"),
-            ),
-        ],
+        [(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/javascript; charset=utf-8"),
+        )],
         MOCK_LOGIN_JS,
     )
 }
 
 struct Translations {
+    logo_heading: &'static str,
     title: &'static str,
-    intro: &'static str,
+    paragraphs: &'static [&'static str],
+    list_heading: &'static str,
     // Overlay shown (via JS) once a card has been submitted.
     signing_in: &'static str,
-    // The "enter your own BSN" card, for BSNs not in the configured list.
-    custom_heading: &'static str,
-    custom_placeholder: &'static str,
-    custom_submit: &'static str,
 }
 
 fn translations(language: Language) -> Translations {
     match language {
         Language::Nl => Translations {
-            title: "Kies een test-identiteit",
-            intro: "Selecteer een test-identiteit of voer zelf een BSN in.",
+            logo_heading: "Test-ID's",
+            title: "Kies een test-ID",
+            paragraphs: &[
+                "Normaal gebruik je DigiD om te laten zien wie je bent. Daarna komen je eigen gegevens in NL Wallet.",
+                "Je gebruikt nu een versie van NL Wallet om uit te proberen. Daarom slaan we DigiD over.",
+                "Zo kun je NL Wallet uitproberen zonder je eigen gegevens te gebruiken.",
+                "De test-ID die je kiest bestaat alleen uit testgegevens en is niet van een echt persoon.",
+            ],
+            list_heading: "Kies een test-ID om verder te gaan.",
             signing_in: "Bezig met inloggen…",
-            custom_heading: "Eigen BSN",
-            custom_placeholder: "Voer een BSN in",
-            custom_submit: "Inloggen",
         },
         Language::En => Translations {
-            title: "Choose a test identity",
-            intro: "Select a test identity or enter a BSN yourself.",
+            logo_heading: "Test-IDs",
+            title: "Choose a test ID",
+            paragraphs: &[
+                "Normally, you use DigiD to show who you are. Your own details are then added to NL Wallet.",
+                "You are now using a version of NL Wallet that you can try out. That is why we skip DigiD.",
+                "This lets you try NL Wallet without using your own details.",
+                "The test ID you choose contains only test data and does not belong to a real person.",
+            ],
+            list_heading: "Choose a test ID to continue.",
             signing_in: "Signing in…",
-            custom_heading: "Custom BSN",
-            custom_placeholder: "Enter a BSN",
-            custom_submit: "Sign in",
         },
     }
 }
@@ -357,9 +347,35 @@ async fn mock_login_select(
 mod tests {
     use std::collections::HashMap;
 
+    use axum::body::Body;
+    use axum::http::Request;
+    use axum::http::header::CACHE_CONTROL;
+    use server_utils::server::add_cache_control_no_store_layer;
+    use tower::ServiceExt;
     use url::Url;
 
+    use super::MOCK_LOGIN_CSS_PATH;
+    use super::MOCK_LOGIN_JS_PATH;
+    use super::MockLoginState;
+    use super::MockSubjects;
     use super::mock_acs_url;
+
+    #[tokio::test]
+    async fn mock_login_assets_send_no_store_cache_control() {
+        let router = add_cache_control_no_store_layer(
+            MockLoginState::new(reqwest::Client::new(), MockSubjects::new(), "default-src 'self'").router(),
+        );
+
+        for path in [MOCK_LOGIN_CSS_PATH, MOCK_LOGIN_JS_PATH] {
+            let response = router
+                .clone()
+                .oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+
+            assert_eq!(response.headers().get(CACHE_CONTROL).unwrap(), "no-store");
+        }
+    }
 
     #[test]
     fn mock_acs_url_preserves_bridge_base_path() {
