@@ -89,10 +89,6 @@ pub enum PinRecoveryError {
     #[error("failed to disclose recovery code to WP: {0}")]
     DiscloseRecoveryCode(#[source] InstructionError),
 
-    #[error("not permitted: already committed to PIN recovery")]
-    #[category(unexpected)]
-    CommittedToPinRecovery,
-
     #[error("user denied authentication")]
     #[category(expected)]
     AuthorizationDenied,
