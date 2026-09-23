@@ -67,19 +67,21 @@ pub trait ExtendingVctRetriever {
     fn retrieve(&self, vct_value: &str) -> impl Iterator<Item = &str>;
 }
 
-/// Helper type alias internal to [`NormalizedCredentialRequests`].
+/// Helper type used by [`NormalizedCredentialRequests`] methods when validating a DCQL request against disclosed
+/// credentials. It represents combinations of DCQL credential queries and disclosed credentials, indexed by the
+/// identifier of the credential request.
 type RequestsAndCredentialsById<'a, C> =
     HashMap<&'a CredentialQueryIdentifier, (&'a NormalizedCredentialRequest, &'a C)>;
 
 impl NormalizedCredentialRequests {
-    /// Match keyed credentials received from the holder against a set of normalized DQCL requests.
+    /// Match keyed credentials received from the holder against a set of normalized DCQL requests.
     pub fn is_satisfied_by_disclosed_credentials(
         &self,
         disclosed_credentials: &HashMap<CredentialQueryIdentifier, VecNonEmpty<impl DisclosedCredential>>,
         extending_vct_values: &impl ExtendingVctRetriever,
     ) -> Result<(), CredentialValidationError> {
         // Credential queries that allow for multiple responses are not supported, so make the `HashMap` resolve to a
-        // single credential. If at least one of the values has more than one credential, this consitutes an error.
+        // single credential. If at least one of the values has more than one credential, this constitutes an error.
         let (mut single_credentials, multiple_credential_ids): (HashMap<_, _>, HashSet<_>) =
             disclosed_credentials.iter().partition_map(|(id, credentials)| {
                 if let Ok(credential) = credentials.iter().exactly_one() {
@@ -94,7 +96,7 @@ impl NormalizedCredentialRequests {
         }
 
         // Combine the queries and credentials into a single `HashMap`. If a query identifier is not found in the
-        // credential response, this consitutes an error, as optional credentials are not supported.
+        // credential response, this constitutes an error, as optional credentials are not supported.
         let (requests_and_credentials, missing_ids): (HashMap<_, _>, HashSet<_>) =
             self.as_ref().iter().partition_map(|request| {
                 if let Some(credential) = single_credentials.remove(request.id()) {
