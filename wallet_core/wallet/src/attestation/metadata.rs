@@ -197,7 +197,8 @@ pub struct ClaimDisplay {
     pub description: Option<String>,
 }
 
-// Conversions from SD-JWT VC Type Metadata, all of which are infallible.
+// Conversions from SD-JWT VC Type Metadata, all of which are infallible because the fallible conversions (externally
+// hosted images) have already been checked upon deserialization.
 
 impl From<DisplayMetadata> for AttestationDisplayMetadata {
     fn from(value: DisplayMetadata) -> Self {
