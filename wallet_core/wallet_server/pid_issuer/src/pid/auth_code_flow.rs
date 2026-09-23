@@ -274,21 +274,16 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         }
         let person = persons.persons.remove(0);
         let recovery_code = recovery_code(&person, &self.recovery_code_secret_key).await?;
-        let sd_jwt_attributes = person.clone().into_sd_jwt_attributes(recovery_code.clone());
-        let mdoc_attributes = person.into_mdoc_attributes(recovery_code);
 
         // Create an `IssuableDocument` for each requested format.
         let format_count = formats.len();
         let issuable_documents = formats
             .into_nonempty_iter()
-            .zip(utils::vec_at_least::repeat_n(
-                (sd_jwt_attributes, mdoc_attributes),
-                format_count,
-            ))
-            .map(|(format, (sd_jwt_attributes, mdoc_attributes))| {
+            .zip(utils::vec_at_least::repeat_n((person, recovery_code), format_count))
+            .map(|(format, (person, recovery_code))| {
                 let attributes = match format {
-                    Format::MsoMdoc => mdoc_attributes,
-                    Format::SdJwt => sd_jwt_attributes,
+                    Format::MsoMdoc => person.into_mdoc_attributes(recovery_code),
+                    Format::SdJwt => person.into_sd_jwt_attributes(recovery_code),
                 };
 
                 IssuableDocument::try_new_with_random_id(
