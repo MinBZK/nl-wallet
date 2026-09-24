@@ -8,6 +8,7 @@ use jwt::headers::HeaderWithTyp;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::skip_serializing_none;
 use utils::generator::Generator;
 
 pub const OPENID4VCI_PROOF_JWT_TYP: &str = "openid4vci-proof+jwt";
@@ -31,6 +32,7 @@ pub type JwtProofHeader = HeaderWithJwk<HeaderWithTyp>;
 /// JWT Proof Type for a OpenID4VCI Credential Request, implemented as JWT claims of a PoP (Proof of Possession).
 ///
 /// Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-F.1>
+#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtProofClaims {
     /// The value of this claim MUST be the client_id of the Client making the Credential request. This claim MUST be
