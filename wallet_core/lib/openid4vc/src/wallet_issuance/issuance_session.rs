@@ -1002,10 +1002,19 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     )
                 }
                 (Format::MsoMdoc, OfferedCredentialMetadata::TypeMetadata { .. }) => {
-                    // TODO (PVW-6320): use "impossible" error category
-                    Err(WalletIssuanceError::MetadataMissing(vec![
-                        credential_preview.config_id.clone(),
-                    ]))?
+                    // The combination of an mdoc credential preview and SD-JWT VC Type Metadata being present in
+                    // `IssuanceState` should never occur for the following reasons:
+                    //
+                    // 1. SD-JWT VC Type Metadata is only fetched for Credential Configurations with the SD-JWT format.
+                    // 2. For each credential preview, the format is matched against the Credential Configuration with
+                    //    the same Credential Configuration Identifier. On a mismatch an error is returned.
+                    //
+                    // This means that the metadata stored for a particular preview's Credential Configuration
+                    // Identifier should always be appropriate for its format.
+                    //
+                    // The error variant returned is categorized as `impossible`. Note that this does not include any
+                    // details, as these could reveal personal data.
+                    return Err(WalletIssuanceError::MdocPreviewWithSdJwtVcTypeMetadata);
                 }
             };
 
@@ -2940,10 +2949,7 @@ mod tests {
             TypeMetadata::example_with_claim_name(PID_ATTESTATION_TYPE, "family_name"),
         );
         let (normalized, raw) = metadata_documents.into_normalized(PID_ATTESTATION_TYPE).unwrap();
-        metadata.insert(
-            config_id.clone(),
-            OfferedCredentialMetadata::TypeMetadata { normalized, raw },
-        );
+        metadata.insert(config_id, OfferedCredentialMetadata::TypeMetadata { normalized, raw });
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
@@ -2963,10 +2969,7 @@ mod tests {
         .unwrap()
         .expect_err("accepting issuance should not succeed");
 
-        assert_matches!(
-            error,
-            WalletIssuanceError::MetadataMissing(missing_config_ids) if missing_config_ids == vec![config_id]
-        );
+        assert_matches!(error, WalletIssuanceError::MdocPreviewWithSdJwtVcTypeMetadata);
     }
 
     #[test]

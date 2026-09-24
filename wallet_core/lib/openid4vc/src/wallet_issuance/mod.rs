@@ -160,6 +160,10 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     DeferredIssuanceUnsupported,
 
+    #[error("credential preview with mdoc format has credential configuration with SD-JWT VC Type Metadata")]
+    #[category(impossible)]
+    MdocPreviewWithSdJwtVcTypeMetadata,
+
     #[error("received credential response: {actual}, expected type {expected}")]
     #[category(pd)]
     UnexpectedCredentialResponseType { expected: Format, actual: Format },
