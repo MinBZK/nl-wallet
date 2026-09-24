@@ -436,6 +436,14 @@ impl CredentialFormat {
         }
     }
 
+    pub fn format(&self) -> Option<Format> {
+        match self {
+            Self::MsoMdoc { .. } => Some(Format::MsoMdoc),
+            Self::SdJwt { .. } => Some(Format::SdJwt),
+            Self::Other { .. } => None,
+        }
+    }
+
     pub fn credential_kind(&self) -> Option<CredentialKind> {
         match self {
             Self::MsoMdoc { doctype, .. } => Some(CredentialKind::new(Format::MsoMdoc, doctype.to_string())),
