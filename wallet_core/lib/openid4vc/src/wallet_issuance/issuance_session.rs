@@ -2227,6 +2227,53 @@ mod tests {
     }
 
     #[test]
+    fn test_start_issuance_sd_jwt_type_metadata_preferred_over_credential_metadata() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        // Create issuer metadata for an SD-JWT configuration that has both a type metadata URI and Credential Metadata.
+        let config_id = CredentialConfigurationId::from("config_id".to_string());
+        let mut issuer_metadata = IssuerMetadata::new_mock(
+            "https://example.com".parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            )],
+        );
+        issuer_metadata
+            .credential_configurations_supported
+            .values_mut()
+            .for_each(|config| {
+                config.credential_metadata = Some(CredentialMetadata::new_example(&["family_name"]));
+            });
+
+        let session = test_start_issuance(
+            &ca,
+            &TrustAnchors::from(&ca),
+            issuer_metadata,
+            vec![(
+                "credential_id".to_string().into(),
+                config_id,
+                Format::SdJwt,
+                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            )],
+            TypeMetadata::pid_example(),
+            &TokenResponseFields::Neither,
+        )
+        .expect("starting issuance session should succeed");
+
+        let Ok((_preview, metadata)) = session
+            .previews_with_metadata()
+            .expect("issuance session should contain previews")
+            .exactly_one()
+        else {
+            panic!("issuance session should contain exactly one preview")
+        };
+
+        // The SD-JWT configuration has a type metadata URI, so its Type Metadata should be used.
+        assert_matches!(metadata, OfferedCredentialMetadata::TypeMetadata { .. });
+    }
+
+    #[test]
     fn test_start_issuance_type_metadata_host_mismatch() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 

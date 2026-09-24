@@ -335,12 +335,14 @@ impl<K, L> CredentialConfigurations<K, L> {
                         proof_types,
                         credential_metadata.clone(),
                     ),
+                    // As the Type Metadata URI is not part of the OpenID4VCI specification, Credential Metadata derived
+                    // from the Type Metadata is published as well.
                     CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(type_metadata)) => {
                         issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                             type_metadata.vct().to_string(),
                             scope,
                             proof_types,
-                            None,
+                            Some(CredentialMetadata::from(type_metadata.normalized())),
                             Some(type_metadata_base_url.join_config_id(config_id)),
                         )
                     }
@@ -516,7 +518,11 @@ mod tests {
             .get("degree_dc+sd-jwt")
             .expect("metadata configuration should exist");
 
-        assert!(sd_jwt_config.credential_metadata.is_none());
+        assert_eq!(
+            sd_jwt_config.credential_metadata,
+            Some(CredentialMetadata::from(degree_type_metadata().normalized())),
+            "an SD-JWT described by Type Metadata should also contain Credential Metadata derived from it"
+        );
         assert_matches!(
             &sd_jwt_config.format,
             CredentialFormat::SdJwt {
