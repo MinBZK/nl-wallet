@@ -28,6 +28,7 @@ impl ChangePinClientError for InstructionError {
             Self::Blocked => false,
             Self::InstructionValidation => false,
             Self::Signing(_) => false,
+            Self::PinKey(_) => false,
             Self::InstructionResultValidation(_) => false,
             Self::StoreInstructionSequenceNumber(_) => false,
             Self::AccountRevoked(..) => false,
@@ -86,10 +87,7 @@ where
                     .await
                     .map_err(|e| InstructionError::Signing(wallet_account::error::EncodeError::Signing(e.into())))?;
                 let instruction = ChangePinStart {
-                    pin_pubkey: new_pin_key
-                        .verifying_key()
-                        .map_err(|e| InstructionError::Signing(wallet_account::error::EncodeError::Signing(e.into())))?
-                        .into(),
+                    pin_pubkey: new_pin_key.verifying_key().map_err(InstructionError::PinKey)?.into(),
                     pop_pin_pubkey: new_pin_key_pop.into(),
                 };
                 Ok(instruction)
