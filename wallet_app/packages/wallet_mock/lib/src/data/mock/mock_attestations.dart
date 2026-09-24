@@ -8,7 +8,7 @@ const _kRijksLogoAsset = 'assets/non-free/logos/card_rijksoverheid.png';
 const _kWhite = '#FFFFFF';
 const _kDarkBlue = '#152A62';
 const _kEducationSummary = '{{mock_education}}';
-const _kDrivingLicenseSummary = '{{mock_drivingLicenseCategories}}';
+const _kDrivingLicenseSummary = '{{mock_drivingLicenseNumber}}';
 
 const kValidityStatus = ValidityStatus_Valid(validUntil: null);
 

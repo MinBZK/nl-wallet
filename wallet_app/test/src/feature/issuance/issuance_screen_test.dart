@@ -189,6 +189,20 @@ void main() {
       await screenMatchesGolden('review_card.light');
     });
 
+    testGoldens('ltc5 IssuanceReviewCards Light Scaled - Single card', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceReviewCards.init(
+            cards: [WalletMockData.card.copyWith(attestationId: null)],
+          ),
+        ),
+        surfaceSize: const Size(375, 1000 /* tall enough to show the whole card */),
+        textScaleSize: 2,
+      );
+      await screenMatchesGolden('review_card.light.scaled');
+    });
+
     testGoldens('ltc5 IssuanceReviewCards Light - New and updated cards', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(

@@ -3,6 +3,8 @@ import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
+import 'package:wallet/src/domain/model/card/status/card_status.dart';
+import 'package:wallet/src/feature/common/widget/button/tertiary_button.dart';
 import 'package:wallet/src/feature/common/widget/card/card_holograph.dart';
 import 'package:wallet/src/feature/common/widget/card/card_logo.dart';
 import 'package:wallet/src/feature/common/widget/card/mock_card_background.dart';
@@ -278,6 +280,43 @@ void main() {
       );
       expect(find.text('title'), findsOneWidget);
       expect(find.text('subtitle1'), findsOneWidget);
+    });
+
+    testWidgets('verify footer is a separate, tappable button', (tester) async {
+      var cardPressed = false;
+      var footerPressed = false;
+      await tester.pumpWidgetWithAppWrapper(
+        WalletCardItem(
+          title: 'title',
+          onPressed: () => cardPressed = true,
+          footer: TertiaryButton(text: const Text('footer'), onPressed: () => footerPressed = true),
+        ),
+      );
+
+      // Skips the invisible copy that reserves the footer's height.
+      final footer = find.text('footer').hitTestable();
+      expect(tester.getSemantics(footer), isSemantics(label: 'footer', isButton: true));
+      await tester.tap(footer);
+      expect(footerPressed, isTrue);
+      expect(cardPressed, isFalse);
+    });
+
+    testWidgets('verify footer leaves the subtitle and status uncovered at large text sizes', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) => WalletCardItem.fromWalletCard(
+            context,
+            WalletMockData.card.copyWith(status: CardStatusValidSoon(validFrom: WalletMockData.validFrom)),
+            footer: const TertiaryButton(text: Text('footer'), onPressed: _voidCallback),
+          ),
+        ),
+        textScaleSize: 2,
+      );
+
+      final footerTop = tester.getRect(find.byType(TertiaryButton).hitTestable()).top;
+      expect(tester.getRect(find.text('Subtitle')).bottom, lessThanOrEqualTo(footerTop));
+      // .last skips the Opacity copy in the card content that reserves the label's height.
+      expect(tester.getRect(find.byType(CardStatusInfoLabel).last).bottom, lessThanOrEqualTo(footerTop));
     });
 
     testWidgets('verify title, subtitle are shown in shuttle card', (tester) async {

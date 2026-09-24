@@ -97,13 +97,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
   Widget _buildCardListItem(BuildContext context, WalletCard card) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Stack(
-        fit: StackFit.passthrough,
-        children: [
-          WalletCardItem.fromWalletCard(context, card),
-          Positioned(bottom: 0, left: 0, right: 0, child: _buildCardButtons(context, card: card)),
-        ],
-      ),
+      child: WalletCardItem.fromWalletCard(context, card, footer: _buildCardButtons(context, card: card)),
     );
   }
 

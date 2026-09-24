@@ -150,14 +150,18 @@ class QrPresentScreen extends StatelessWidget {
                         text: Text(context.l10n.qrPresentScreenCenterQrCodeCta),
                         onPressed: () => QrCodeDialog.show(
                           context,
-                          title: context.l10n.qrPresentScreenDialogTitle,
+                          title: context.l10n.qrPresentScreenTitle,
+                          semanticsLabel: context.l10n.qrPresentScreenQrWCAGLabel,
                           data: qrContents,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        child: WalletQrView(data: qrContents),
+                        child: WalletQrView(
+                          data: qrContents,
+                          semanticsLabel: context.l10n.qrPresentScreenQrWCAGLabel,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       ListButton(

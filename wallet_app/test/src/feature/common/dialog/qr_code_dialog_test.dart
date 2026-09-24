@@ -16,6 +16,7 @@ void main() {
             context,
             title: 'Test Title',
             data: 'Test Data',
+            semanticsLabel: 'Test QR semantics label',
           ),
         );
         await TestUtils.preCacheWalletLogoForQrImageView(tester);

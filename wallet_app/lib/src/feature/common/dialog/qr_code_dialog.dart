@@ -23,7 +23,15 @@ class QrCodeDialog extends StatelessWidget {
   final String title;
   final String data;
 
-  const QrCodeDialog({required this.title, required this.data, super.key});
+  /// What the code is for; see [WalletQrView.semanticsLabel].
+  final String semanticsLabel;
+
+  const QrCodeDialog({
+    required this.title,
+    required this.data,
+    required this.semanticsLabel,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -48,17 +56,22 @@ class QrCodeDialog extends StatelessWidget {
                 alignment: Alignment.center,
                 width: maxQrSize,
                 height: maxQrSize,
-                child: QrImageView(
-                  padding: const EdgeInsets.all(12),
-                  backgroundColor: LightWalletTheme.colorScheme.surface,
-                  dataModuleStyle: const QrDataModuleStyle(
-                    color: Colors.black,
-                    dataModuleShape: QrDataModuleShape.square,
+                child: Semantics(
+                  image: true,
+                  label: semanticsLabel,
+                  excludeSemantics: true,
+                  child: QrImageView(
+                    padding: const EdgeInsets.all(12),
+                    backgroundColor: LightWalletTheme.colorScheme.surface,
+                    dataModuleStyle: const QrDataModuleStyle(
+                      color: Colors.black,
+                      dataModuleShape: QrDataModuleShape.square,
+                    ),
+                    data: data,
+                    embeddedImage: const AssetImage(WalletAssets.logo_wallet_qr),
+                    embeddedImageEmitsError: true,
+                    embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(32, 32)),
                   ),
-                  data: data,
-                  embeddedImage: const AssetImage(WalletAssets.logo_wallet_qr),
-                  embeddedImageEmitsError: true,
-                  embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(32, 32)),
                 ),
               ),
             ],
@@ -79,10 +92,19 @@ class QrCodeDialog extends StatelessWidget {
     );
   }
 
-  static Future<void> show(BuildContext context, {required String title, required String data}) {
+  static Future<void> show(
+    BuildContext context, {
+    required String title,
+    required String data,
+    required String semanticsLabel,
+  }) {
     return showDialog<void>(
       context: context,
-      builder: (BuildContext context) => QrCodeDialog(title: title, data: data),
+      builder: (BuildContext context) => QrCodeDialog(
+        title: title,
+        data: data,
+        semanticsLabel: semanticsLabel,
+      ),
     );
   }
 }
