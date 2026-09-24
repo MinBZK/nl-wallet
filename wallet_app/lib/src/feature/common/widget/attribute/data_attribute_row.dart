@@ -15,6 +15,9 @@ import '../list/list_item.dart';
 const _kMaxImageSize = 160.0;
 const _kImageBorderRadius = 4.0;
 
+/// From this text scale a map entry's label gets its own line, so a long label can't squeeze its value.
+const _kMapLabelAboveValueTextScale = 1.5;
+
 class DataAttributeRow extends StatelessWidget {
   final DataAttribute attribute;
 
@@ -95,10 +98,18 @@ class DataAttributeRow extends StatelessWidget {
           // A grouping key such as the 'full_address' of an mVRC owner has no label of its own, so
           // its entries line up with their siblings instead of being indented behind an empty one.
           if (label == null) return value;
+          final labelText = Text.rich('$label: '.toTextSpan(context), style: context.textTheme.bodyMedium);
+          if (context.textScaler.scale(1) >= _kMapLabelAboveValueTextScale) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [labelText, value],
+            );
+          }
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text.rich('$label: '.toTextSpan(context), style: context.textTheme.bodyMedium),
+              labelText,
               Expanded(child: value),
             ],
           );

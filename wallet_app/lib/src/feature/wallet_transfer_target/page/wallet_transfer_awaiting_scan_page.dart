@@ -42,13 +42,23 @@ class WalletTransferAwaitingScanPage extends StatelessWidget {
                     ),
                   ),
                   ListButton(
-                    onPressed: () => QrCodeDialog.show(context, title: context.l10n.qrCodeCodeDialogTitle, data: data),
+                    onPressed: () => QrCodeDialog.show(
+                      context,
+                      title: context.l10n.walletTransferAwaitingScanPageTitle,
+                      data: data,
+                      semanticsLabel: context.l10n.walletTransferAwaitingScanPageQrWCAGLabel,
+                    ),
                     icon: const Icon(Icons.arrow_forward_ios_outlined),
                     text: Text.rich(context.l10n.walletTransferAwaitingScanPageCenterQrCta.toTextSpan(context)),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    child: Center(child: WalletQrView(data: data)),
+                    child: Center(
+                      child: WalletQrView(
+                        data: data,
+                        semanticsLabel: context.l10n.walletTransferAwaitingScanPageQrWCAGLabel,
+                      ),
+                    ),
                   ),
                 ],
               ),

@@ -10,13 +10,27 @@ class WalletQrView extends StatelessWidget {
   /// The data to be encoded in the QR code.
   final String data;
 
+  /// Screen reader label: what the user should do with this code.
+  final String semanticsLabel;
+
   const WalletQrView({
     required this.data,
+    required this.semanticsLabel,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Replaces qr_flutter's own label, a hardcoded English 'qr code' without the image role.
+    return Semantics(
+      image: true,
+      label: semanticsLabel,
+      excludeSemantics: true,
+      child: _buildQr(context),
+    );
+  }
+
+  Widget _buildQr(BuildContext context) {
     return QrImageView(
       padding: const EdgeInsets.all(16),
       backgroundColor: LightWalletTheme.colorScheme.surface,

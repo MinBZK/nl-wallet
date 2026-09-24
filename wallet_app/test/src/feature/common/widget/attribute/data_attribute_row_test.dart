@@ -154,6 +154,24 @@ void main() {
       await screenMatchesGolden('data_attribute_row/map_value');
     });
 
+    testGoldens('Map (200% text)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        DataAttributeRow(
+          attribute: DataAttribute.untranslated(
+            label: 'Driving privilege',
+            value: MapValue({
+              'vehicle_category_code': const StringValue('B'),
+              'issue_date': DateValue(DateTime(2017, 2, 23)),
+            }),
+            key: 'mock_map',
+          ),
+        ),
+        surfaceSize: const Size(220, 260),
+        textScaleSize: 2,
+      );
+      await screenMatchesGolden('data_attribute_row/map_value_2x');
+    });
+
     testGoldens('Array of maps with a grouping key (mVRC owners)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         DataAttributeRow(

@@ -224,10 +224,12 @@ const kMockMasterDiplomaDataAttributes = [
   ),
 ];
 
-final kMockDrivingLicenseDataAttributes = _buildDrivingLicenseDataAttributes(category: 'AM, B, BE');
-final kMockDrivingLicenseRenewedDataAttributes = _buildDrivingLicenseDataAttributes(category: 'AM, B, C1, BE');
+final kMockDrivingLicenseDataAttributes = _buildDrivingLicenseDataAttributes(categories: ['AM', 'B', 'BE']);
+final kMockDrivingLicenseRenewedDataAttributes = _buildDrivingLicenseDataAttributes(
+  categories: ['AM', 'B', 'C1', 'BE'],
+);
 
-List<AttestationAttribute> _buildDrivingLicenseDataAttributes({required String category}) {
+List<AttestationAttribute> _buildDrivingLicenseDataAttributes({required List<String> categories}) {
   return [
     const AttestationAttribute(
       labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Voornamen')],
@@ -268,17 +270,26 @@ List<AttestationAttribute> _buildDrivingLicenseDataAttributes({required String c
     const AttestationAttribute(
       labels: [ClaimDisplayMetadata(locale: 'nl', label: 'Rijbewijsnummer')],
       value: AttributeValue.string(value: '99999999999'),
-      key: kMockOtherKey,
-      svgId: kMockOtherKey,
+      key: 'mock_drivingLicenseNumber',
+      svgId: 'mock_drivingLicenseNumber',
     ),
     AttestationAttribute(
       labels: [const ClaimDisplayMetadata(locale: 'nl', label: 'Rijbewijscategorieën')],
-      value: AttributeValue.string(value: category),
+      // Nested like the driving_privileges of a real mDL.
+      value: AttributeValue.array(value: categories.map(_buildDrivingPrivilege).toList()),
       key: 'mock_drivingLicenseCategories',
       svgId: 'mock_drivingLicenseCategories',
     ),
   ];
 }
+
+AttributeValue _buildDrivingPrivilege(String category) => AttributeValue.map(
+  value: [
+    ('vehicle_category_code', AttributeValue.string(value: category)),
+    const ('issue_date', AttributeValue.date(value: '2018-04-23')),
+    const ('expiry_date', AttributeValue.date(value: '2028-04-23')),
+  ],
+);
 
 final kMockHealthInsuranceDataAttributes = [
   const AttestationAttribute(

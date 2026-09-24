@@ -8,7 +8,6 @@ import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/text/body_text.dart';
-import '../common/widget/text/headline_small_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 
@@ -35,7 +34,7 @@ class WalletTransferFaqScreen extends StatelessWidget {
                       children: [
                         TitleText(context.l10n.walletTransferFaqScreenTitle),
                         const SizedBox(height: 24),
-                        HeadlineSmallText(
+                        TitleText(
                           context.l10n.walletTransferFaqScreenSection1Heading,
                           style: context.textTheme.labelMedium,
                         ),
@@ -45,12 +44,24 @@ class WalletTransferFaqScreen extends StatelessWidget {
                           icon: const BulletListDot(),
                         ),
                         const SizedBox(height: 16),
-                        HeadlineSmallText(
+                        TitleText(
                           context.l10n.walletTransferFaqScreenSection2Heading,
                           style: context.textTheme.labelMedium,
                         ),
                         const SizedBox(height: 4),
-                        BodyText(context.l10n.walletTransferFaqScreenSection2Content),
+                        // One node per step, so a screen reader doesn't read all steps at once.
+                        Semantics(
+                          container: true,
+                          explicitChildNodes: true,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: context.l10n.walletTransferFaqScreenSection2Content
+                                .split('\n')
+                                .map(BodyText.new)
+                                .toList(),
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         BodyText(context.l10n.walletTransferFaqScreenFooter),
                         const SizedBox(height: 16),

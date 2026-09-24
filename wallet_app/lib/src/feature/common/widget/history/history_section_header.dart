@@ -27,7 +27,6 @@ class HistorySectionHeader extends StatelessWidget {
                   DateFormat.YEAR_MONTH,
                   context.l10n.localeName,
                 ).format(dateTime).capitalize.toTextSpan(context),
-                maxLines: 1,
                 style: context.textTheme.labelSmall,
               ),
             ),

@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/feature/common/dialog/qr_code_dialog.dart';
 import 'package:wallet/src/feature/qr/present/bloc/qr_present_bloc.dart';
 import 'package:wallet/src/feature/qr/present/qr_present_screen.dart';
 import 'package:wallet/src/util/extension/build_context_extension.dart';
@@ -134,7 +135,14 @@ void main() {
         await tester.tap(find.text(l10n.qrPresentScreenCenterQrCodeCta));
         await tester.pumpAndSettle();
 
-        expect(find.text(l10n.qrPresentScreenDialogTitle), findsOneWidget);
+        // The screen behind the dialog shows the same title.
+        expect(
+          find.descendant(
+            of: find.byType(QrCodeDialog),
+            matching: find.text(l10n.qrPresentScreenTitle),
+          ),
+          findsOneWidget,
+        );
       });
     });
   });
