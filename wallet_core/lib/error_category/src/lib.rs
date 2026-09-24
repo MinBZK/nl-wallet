@@ -11,7 +11,7 @@ pub enum Category {
     Critical, // Report Error to Sentry with contents
     #[strum(serialize = "pd")]
     PersonalData, // Report Error to Sentry without contents
-    Impossible, // Should never occur in the Wallet, log error and report to Sentry without contents
+    Impossible, // Should never occur in the Wallet, log error and report to Sentry
 }
 
 pub trait ErrorCategory {

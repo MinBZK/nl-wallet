@@ -32,7 +32,7 @@ attribute):
   variant
 - `impossible`: This is an impossible error and should never be encountered by
   `sentry_capture_error`. This error category can be used in place of a panic.
-  Results in an error being logged. Is reported to Sentry without message(s).
+  Results in an error being logged and a report to Sentry with message(s).
 
 ## Configuration
 

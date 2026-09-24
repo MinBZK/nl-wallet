@@ -124,9 +124,9 @@ pub fn filter_and_scrub_sensitive_data(mut event: Event) -> Option<Event> {
     match category {
         Some(Category::Impossible) => {
             tracing::error!(
-                "event has category impossible, this is a programming error, sending scrubbed event to Sentry"
+                "event has category impossible, this is a programming error, sending event to Sentry verbatim"
             );
-            event.scrub(true);
+            event.scrub(false);
             Some(event)
         }
         Some(Category::Expected) => {
