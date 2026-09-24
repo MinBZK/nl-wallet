@@ -4,11 +4,6 @@ ignoreUntil = 2027-01-01
 reason = "The vulnerability pertains to the use of RSA _private_ keys in the `rsa` crate. We only use this crate to evaluate RSA _public_ keys as found in certificates."
 
 [[IgnoredVulns]]
-id = "RUSTSEC-2024-0436"
-ignoreUntil = 2027-01-01
-reason = "`paste` is a transitive dependency that is no longer maintained but used by `utoipa-axum`. Waiting for `utoipa-axum` to release a new version."
-
-[[IgnoredVulns]]
 id = "RUSTSEC-2025-0141"
 ignoreUntil = 2027-01-01
 reason = "`bincode` is a transitive dependency that is no longer maintained but considered complete and used by `http-cache`. Waiting for `http-cache` to release a new version."
