@@ -36,6 +36,7 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use wscd::payload::key_attestation::AttackPotentialResistance;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
@@ -593,20 +594,6 @@ pub struct KeyAttestationsRequired {
 
     /// A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
     pub user_authentication: Option<VecNonEmpty<AttackPotentialResistance>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AttackPotentialResistance {
-    Iso18045High,
-    Iso18045Moderate,
-    #[serde(rename = "iso_18045_enhanced-basic")]
-    Iso18045EnhancedBasic,
-    Iso18045Basic,
-
-    // Allow the issuer to announce an attack potential resistance that the wallet doesn't support.
-    #[serde(untagged)]
-    Other(String),
 }
 
 /// Information relevant to the usage and display of issued Credentials. Credential Format-specific mechanisms can
