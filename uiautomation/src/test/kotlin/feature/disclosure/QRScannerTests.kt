@@ -45,6 +45,7 @@ class QRScannerTests : TestBase() {
             qrScanner.visible(),
             "QR Scanner is not visible")
         qrScanner.goBack()
+        dashboardScreen.dismissNotificationsDrawer()
         assertTrue(
             dashboardScreen.visible(),
             "dashboard is not visible"
