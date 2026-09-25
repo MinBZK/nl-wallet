@@ -386,6 +386,9 @@ SD-JWT VC Type Metadata documents can only be used for <code class="docutils lit
 <li><p>The attributes of an issuable mdoc document now have exactly two levels of
 keys: a namespace and the name of a data element. Existing <code class="docutils literal notranslate"><span class="pre">IssuableDocuments</span></code>
 should be updated to reflect this.</p></li>
+<li><p>The Wallet Provider Helm chart values for iOS root certificates and Android
+root public keys and Play Store certificate hashes are now arrays. Operators
+should convert their existing CSV values into proper arrays.</p></li>
 </ul>
 </section>
 <section id="new-features">
