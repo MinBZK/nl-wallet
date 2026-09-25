@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use http::StatusCode;
 use reqwest::header::ACCEPT;
 use reqwest::header::CACHE_CONTROL;
 use reqwest::header::ETAG;
@@ -40,7 +41,7 @@ async fn test_router_serve_with_ttl(#[case] ttl: Option<Duration>, #[case] cache
     tokio::fs::write(&path, "test123").await.unwrap();
 
     let response = reqwest::get(url.join("test").unwrap()).await.unwrap();
-    assert_eq!(response.status(), 200);
+    assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.headers().get(CACHE_CONTROL).unwrap(), cache_control);
     assert_eq!(
         response.headers().get(ETAG).unwrap(),
@@ -57,17 +58,17 @@ async fn test_router_not_found() {
 
     let response = reqwest::get(url.join("test").unwrap()).await.unwrap();
     assert_eq!(response.headers().get(VARY).unwrap(), "accept");
-    assert_eq!(response.status(), 404);
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]
 #[rstest]
-#[case("application/statuslist+jwt", 200)]
-#[case("application/statuslist+cwt", 406)]
-#[case("application/statuslist+cwt, application/statuslist+jwt", 200)]
-#[case("text/plain", 406)]
-#[case("*/*", 200)]
-async fn test_router_media_type(#[case] accept: &str, #[case] status_code: u16) {
+#[case("application/statuslist+jwt", StatusCode::OK)]
+#[case("application/statuslist+cwt", StatusCode::NOT_ACCEPTABLE)]
+#[case("application/statuslist+cwt, application/statuslist+jwt", StatusCode::OK)]
+#[case("text/plain", StatusCode::NOT_ACCEPTABLE)]
+#[case("*/*", StatusCode::OK)]
+async fn test_router_media_type(#[case] accept: &str, #[case] status_code: StatusCode) {
     let publish_dir = TempDir::new().unwrap();
     let url = setup_server(&publish_dir, None).await.unwrap();
 
@@ -88,9 +89,9 @@ async fn test_router_media_type(#[case] accept: &str, #[case] status_code: u16) 
 
 #[tokio::test]
 #[rstest]
-#[case("\"7-246253568559076899098453655604172054734\"", 304)]
-#[case("\"7-246253568559076899098453655604172054735\"", 200)]
-async fn test_router_etag(#[case] etag: &str, #[case] status_code: u16) {
+#[case("\"7-246253568559076899098453655604172054734\"", StatusCode::NOT_MODIFIED)]
+#[case("\"7-246253568559076899098453655604172054735\"", StatusCode::OK)]
+async fn test_router_etag(#[case] etag: &str, #[case] status_code: StatusCode) {
     let publish_dir = TempDir::new().unwrap();
     let url = setup_server(&publish_dir, None).await.unwrap();
 
