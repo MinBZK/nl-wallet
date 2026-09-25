@@ -20,6 +20,16 @@ revoke_solution_enabled = true
 
 pid_issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
+# Admin Portal OIDC login, see wallet_docs/development/keycloak-setup.md
+[admin_portal]
+keycloak_url = "https://${SERVICES_HOST}:${KC_PORT_HTTPS}"
+keycloak_realm = "nl-wallet"
+keycloak_client_id = "wallet-backend"
+keycloak_trust_anchors = ["${KEYCLOAK_CA_CRT}"]
+public_url = "http://${SERVICES_HOST}:5173"
+session_ttl_in_ms = 900_000
+login_attempt_ttl_in_ms = 600_000
+
 [attestation_wrapping_kid]
 current = "${WP_ATTESTATION_WRAPPING_KID}"
 

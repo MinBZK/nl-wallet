@@ -149,10 +149,10 @@ const walletServer = createServer(async (req, res) => {
   const { pathname, searchParams } = url
 
   try {
-    if (req.method === 'GET' && pathname === '/auth/login') return handleLogin(req, res, searchParams)
-    if (req.method === 'GET' && pathname === '/auth/callback') return await handleCallback(req, res, searchParams)
-    if (req.method === 'GET' && pathname === '/auth/logout') return handleLogout(req, res)
-    if (req.method === 'GET' && pathname === '/api/me') return handleMe(req, res)
+    if (req.method === 'GET' && pathname === '/admin-portal/auth/login') return handleLogin(req, res, searchParams)
+    if (req.method === 'GET' && pathname === '/admin-portal/auth/callback') return await handleCallback(req, res, searchParams)
+    if (req.method === 'GET' && pathname === '/admin-portal/auth/logout') return handleLogout(req, res)
+    if (req.method === 'GET' && pathname === '/admin-portal/api/me') return handleMe(req, res)
 
     if (pathname === '/__debug/state') return handleDebugState(req, res)
     if (pathname === '/__debug/reset') return handleDebugReset(req, res)
@@ -186,7 +186,7 @@ function handleLogin(req, res, searchParams) {
   const loginHint = searchParams.get('login_hint')
   if (loginHint) authUrl.searchParams.set('login_hint', loginHint)
 
-  log('wallet', `/auth/login -> ${KEYCLOAK_URL} (realm ${KEYCLOAK_REALM})`)
+  log('wallet', `/admin-portal/auth/login -> ${KEYCLOAK_URL} (realm ${KEYCLOAK_REALM})`)
   redirect(res, authUrl.toString())
 }
 

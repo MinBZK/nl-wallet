@@ -1,3 +1,4 @@
+pub mod admin_portal_session;
 pub mod pin_policy;
 pub mod wallet_flag;
 pub mod wallet_user;

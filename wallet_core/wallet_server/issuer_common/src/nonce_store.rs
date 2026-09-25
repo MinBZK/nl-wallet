@@ -12,11 +12,14 @@ use openid4vc::nonce::store::NonceStoreError;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ActiveValue;
 use sea_orm::ColumnTrait;
+use sea_orm::ConnectionTrait;
 use sea_orm::DatabaseConnection;
+use sea_orm::DbBackend;
 use sea_orm::DbErr;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::SqlErr;
+use sea_orm::Statement;
 use server_utils::store::StoreConnection;
 use tracing::info;
 use utils::generator::Generator;
@@ -24,6 +27,10 @@ use utils::generator::TimeGenerator;
 
 use crate::entity::prelude::*;
 use crate::entity::proof_nonce;
+
+/// Maximum rows deleted per statement during cleanup, to bound lock duration and DB load. See
+/// `par_store`/`state_bridge_store` for the same pattern.
+const CLEANUP_BATCH_SIZE: u64 = 1_000;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProofNonceStoreError {
@@ -166,14 +173,43 @@ where
     async fn remove_expired_nonces(&self) -> Result<(), NonceStoreError<Self::Error>> {
         match &self.backend {
             NonceStoreBackend::Postgres(connection) => {
-                let result = ProofNonce::delete_many()
-                    .filter(proof_nonce::Column::CreatedDateTime.lt(earliest_nonce_validity_datetime(self.now())))
-                    .exec(connection)
-                    .await
-                    .map_err(ProofNonceStoreError::DbDeleteExpiredNonces)?;
+                let cutoff = earliest_nonce_validity_datetime(self.now());
+                let mut total_deleted: u64 = 0;
 
-                if result.rows_affected > 0 {
-                    info!("Deleted {} expired nonce(s) from storage", result.rows_affected);
+                // Delete in bounded batches so a single statement never holds a large lock or scans
+                // the whole backlog. `FOR UPDATE SKIP LOCKED` skips rows currently locked by a
+                // concurrent `check_nonce_status_and_remove`; the loop drains the rest, stopping once
+                // a batch removes fewer rows than the limit (nothing left to delete). This also
+                // allows multiple pods to run concurrent cleanup tasks safely.
+                loop {
+                    let result = connection
+                        .execute(Statement::from_sql_and_values(
+                            DbBackend::Postgres,
+                            r#"
+                            WITH rows_to_delete AS (
+                                SELECT id
+                                FROM proof_nonce
+                                WHERE created_date_time < $1
+                                LIMIT $2
+                                FOR UPDATE SKIP LOCKED
+                            )
+                            DELETE FROM proof_nonce pn
+                            USING rows_to_delete
+                            WHERE pn.id = rows_to_delete.id
+                            "#,
+                            [cutoff.into(), (CLEANUP_BATCH_SIZE as i64).into()],
+                        ))
+                        .await
+                        .map_err(ProofNonceStoreError::DbDeleteExpiredNonces)?;
+
+                    total_deleted += result.rows_affected();
+                    if result.rows_affected() < CLEANUP_BATCH_SIZE {
+                        break;
+                    }
+                }
+
+                if total_deleted > 0 {
+                    info!("Deleted {total_deleted} expired nonce(s) from storage");
                 }
             }
             NonceStoreBackend::Memory(memory_store) => memory_store.remove_expired(),

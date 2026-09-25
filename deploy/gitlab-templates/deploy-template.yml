@@ -84,7 +84,7 @@ wallet-provider-${DEPLOY_ENV}:
   variables:
     CHART_NAME: wallet-provider
     RELEASE_NAME: wallet-provider
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/wallet-provider.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-admin-portal-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/wallet-provider.yaml"
 
 pid-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -194,7 +194,7 @@ admin-portal-${DEPLOY_ENV}:
   variables:
     CHART_NAME: admin-portal
     RELEASE_NAME: admin-portal
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/admin-portal.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-admin-portal-default-headers.yaml,${DEPLOY_ENV}/admin-portal.yaml"
 
 update-policy-server-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag

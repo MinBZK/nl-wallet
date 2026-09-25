@@ -137,6 +137,17 @@ spec:
             - name: WALLET_PROVIDER__REVOKE_SOLUTION_ENABLED
               value: {{ .Values.revokeSolutionEnabled | quote }}
 
+            - name: WALLET_PROVIDER__ADMIN_PORTAL__KEYCLOAK_URL
+              value: {{ .Values.adminPortal.keycloakUrl | quote }}
+            - name: WALLET_PROVIDER__ADMIN_PORTAL__KEYCLOAK_REALM
+              value: {{ .Values.adminPortal.keycloakRealm | quote }}
+            - name: WALLET_PROVIDER__ADMIN_PORTAL__KEYCLOAK_CLIENT_ID
+              value: {{ .Values.adminPortal.keycloakClientId | quote }}
+            - name: WALLET_PROVIDER__ADMIN_PORTAL__KEYCLOAK_TRUST_ANCHORS
+              value: {{ .Values.adminPortal.keycloakTrustAnchors | join "," }}
+            - name: WALLET_PROVIDER__ADMIN_PORTAL__PUBLIC_URL
+              value: https://{{ .Values.httpRouteAdminPortal.hostnames | first }}/
+
             - name: WALLET_PROVIDER__WIA_CERTIFICATE
               value: {{ .Values.wiaCertificate }}
             - name: WALLET_PROVIDER__WIA_WALLET_VERSION

@@ -174,6 +174,7 @@ impl DigidClient for HttpDigidClient {
                 pkce_pair,
             ),
             nonce: Some(Nonce::new_random()),
+            login_hint: None,
         };
 
         let query_string = serde_qs::to_string(&oidc_request).map_err(Error::Encode)?;
