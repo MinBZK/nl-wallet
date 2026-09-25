@@ -2,7 +2,7 @@ use std::assert_matches;
 
 use crypto::PublicKey;
 use http_utils::client::TlsPinningConfig;
-use http_utils::reqwest::tls_reqwest_client_builder;
+use http_utils::reqwest::default_reqwest_client_builder;
 use jwt::SignedJwt;
 use jwt::error::JwtVerifyError;
 use p256::ecdsa::SigningKey;
@@ -28,16 +28,17 @@ use wallet_provider::settings::Settings as WpSettings;
 
 #[tokio::test]
 async fn test_wrprc_status_list() {
-    let (static_settings, static_root_ca) = static_server_settings();
+    let (mut static_settings, _) = static_server_settings();
     let expected = fs::read_to_string(static_settings.wrprc_publish_dir.as_ref().join("1.jwt"))
         .await
         .unwrap();
-    let port = start_static_server(static_settings, static_root_ca.clone()).await;
+    static_settings.crl_port = 0;
+    let port = start_static_crl_server(&static_settings).await;
 
-    let response = tls_reqwest_client_builder([static_root_ca.into_certificate()])
+    let response = default_reqwest_client_builder()
         .build()
         .unwrap()
-        .get(local_https_base_url(port).join("wrprc/1"))
+        .get(local_http_base_url(port).join("wrprc/1"))
         .header(header::ACCEPT, "application/statuslist+jwt")
         .send()
         .await

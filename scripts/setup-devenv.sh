@@ -326,7 +326,8 @@ else
 fi
 WRPRC_CA_CRT=$(< "${TARGET_DIR}/ca.wrprc.crt.der" ${BASE64})
 export WRPRC_CA_CRT
-WRPRC_STATUS_LIST_URI="https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wrprc/1"
+# Like CRLs, WRPRC status lists are signed and served over HTTP in the local development environment.
+WRPRC_STATUS_LIST_URI="http://${SERVICES_HOST}:${STATIC_SERVER_CRL_PORT}/wrprc/1"
 export WRPRC_STATUS_LIST_URI
 
 # Generate the end-entity certificate used to sign the demo relying parties' WRPRCs.

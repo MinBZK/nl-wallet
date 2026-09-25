@@ -829,16 +829,20 @@ pub async fn start_static_server(settings: StaticSettings, trust_anchor: Reqwest
     port
 }
 
-pub async fn start_static_crl_server(settings: &StaticSettings) {
+pub async fn start_static_crl_server(settings: &StaticSettings) -> u16 {
     let listener = TcpListener::bind((settings.ip, settings.crl_port)).await.unwrap();
+    let port = listener.local_addr().unwrap().port();
     let crl_file = settings.crl_file.clone();
+    let wrprc_publish_dir = settings.wrprc_publish_dir.clone();
 
     tokio::spawn(async {
-        if let Err(error) = static_server::server::serve_crl_with_listener(listener, crl_file).await {
-            tracing::error!("Could not start static_server CRL endpoint: {error:?}");
+        if let Err(error) = static_server::server::serve_http_with_listener(listener, crl_file, wrprc_publish_dir).await
+        {
+            tracing::error!("Could not start static_server HTTP endpoints: {error:?}");
             process::exit(1);
         }
     });
+    port
 }
 
 pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
