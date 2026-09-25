@@ -40,10 +40,10 @@ class CloseProximityDisclosureTests : TestBase() {
             "urn:eudi:pid:nl:1/family_name",
             "urn:eudi:pid:nl:1/birthdate",
             "urn:eudi:pid:nl:1/gender",
-            "urn:eudi:pid:nl:1.address/street_address",
-            "urn:eudi:pid:nl:1.address/house_number",
-            "urn:eudi:pid:nl:1.address/postal_code",
-            "urn:eudi:pid:nl:1.address/locality",
+            "urn:eudi:pid:nl:1/street_address",
+            "urn:eudi:pid:nl:1/house_number",
+            "urn:eudi:pid:nl:1/postal_code",
+            "urn:eudi:pid:nl:1/locality",
         )
         private const val READER_STARTUP_TIMEOUT_SECONDS = 40L
     }
