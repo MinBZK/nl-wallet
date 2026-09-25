@@ -87,13 +87,12 @@ pub enum ClientAttestationChallengeMechanism {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(critical)]
 pub enum ClientAttestationChallengeMechanismError {
     #[error("cannot use both a challenge endpoint and a header value for attestation-based client authentication")]
-    #[category(unexpected)]
     DoubleChallengeMechanism,
 
     #[error("OAuth-Client-Attestation-Challenge contained non-visible-ASCII bytes")]
-    #[category(critical)]
     ChallengeHeaderNonVisibleAscii,
 }
 

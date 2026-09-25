@@ -79,19 +79,15 @@ pub enum PinRecoveryError {
     PinValidation(#[from] PinValidationError),
 
     #[error("error computing PIN public key: {0}")]
-    #[category(unexpected)]
+    // This error cannot actually occur, as deriving the verifying key from the PIN should never fail.
+    #[category(impossible)]
     PinKey(#[from] PinKeyError),
 
     #[error("storage error: {0}")]
-    #[category(unexpected)]
     Storage(#[from] StorageError),
 
     #[error("failed to disclose recovery code to WP: {0}")]
     DiscloseRecoveryCode(#[source] InstructionError),
-
-    #[error("not permitted: already committed to PIN recovery")]
-    #[category(unexpected)]
-    CommittedToPinRecovery,
 
     #[error("user denied authentication")]
     #[category(expected)]

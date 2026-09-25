@@ -5,11 +5,11 @@ use attestation_types::credential_format::Format;
 use derive_more::Constructor;
 use derive_more::Display;
 use error_category::ErrorCategory;
+use jwe::error::JweJsonEncryptionError;
 
 use super::VpMessageClientError;
 use super::uri_source::DisclosureUriSource;
 use crate::openid4vp::AuthRequestValidationError;
-use crate::openid4vp::AuthResponseError;
 use crate::verifier::SessionType;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -70,7 +70,8 @@ pub enum VpClientError {
     SdJwtSigning(#[source] sd_jwt::error::SigningError),
 
     #[error("error encrypting Authorization Response: {0}")]
-    AuthResponseEncryption(#[source] AuthResponseError),
+    #[category(pd)]
+    AuthResponseEncryption(#[source] JweJsonEncryptionError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

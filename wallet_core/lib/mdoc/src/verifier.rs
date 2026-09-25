@@ -7,6 +7,7 @@ use coset::iana::Algorithm;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use crypto::x509::KeyIdentifier;
+use error_category::ErrorCategory;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -50,31 +51,51 @@ pub struct IssuerSignedVerificationResult {
     pub ca_common_name: String,
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(pd)]
 pub enum VerificationError {
     #[error("errors in device response: {0:#?}")]
     DeviceResponseErrors(VecNonEmpty<DocumentError>),
+
     #[error("unexpected status: {0:?}")]
+    #[category(critical)]
     UnexpectedStatus(DeviceResponseStatus),
+
     #[error("no documents found in device response")]
+    #[category(critical)]
     NoDocuments,
+
     #[error("inconsistent doctypes: document contained {document}, mso contained {mso}")]
     WrongDocType { document: DocType, mso: DocType },
+
     #[error("namespace {0} not found in mso")]
     MissingNamespace(NameSpace),
+
     #[error("digest ID {0} not found in mso")]
     MissingDigestID(DigestID),
+
     #[error("attribute verification failed: did not hash to the value in the MSO")]
+    #[category(critical)]
     AttributeVerificationFailed,
+
     #[error("missing ephemeral key")]
+    #[category(critical)]
     EphemeralKeyMissing,
+
     #[error("validity error: {0}")]
+    #[category(defer)]
     Validity(#[from] ValidityError),
+
     #[error("unexpected amount of CA Common Names in issuer certificate: expected 1, found {0}")]
+    #[category(critical)]
     UnexpectedCACommonNameCount(usize),
+
     #[error("unsupported algorithm: {0:?}")]
+    #[category(critical)]
     UnsupportedAlgorithm(RegisteredLabelWithPrivate<Algorithm>),
+
     #[error("missing algorithm")]
+    #[category(critical)]
     MissingAlgorithm,
 }
 
@@ -180,12 +201,15 @@ impl DeviceResponse {
     }
 }
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum ValidityError {
     #[error("validity parsing failed: {0}")]
     ParsingFailed(#[from] chrono::ParseError),
+
     #[error("not yet valid: valid from {0}")]
     NotYetValid(String),
+
     #[error("expired at {0}")]
     Expired(String),
 }

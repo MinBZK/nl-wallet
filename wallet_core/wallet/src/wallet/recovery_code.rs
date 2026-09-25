@@ -16,7 +16,7 @@ use crate::storage::Storage;
 #[category(defer)]
 pub enum RecoveryCodeError {
     #[error("no recovery code found in PID")]
-    #[category(unexpected)]
+    #[category(critical)]
     MissingRecoveryCode,
 
     #[error("incorrect recovery code: expected {expected}, received {received}")]
@@ -30,7 +30,7 @@ pub enum RecoveryCodeError {
     AttestationQuery(#[from] StorageError),
 
     #[error("no PID received")]
-    #[category(unexpected)]
+    #[category(critical)]
     MissingPid,
 
     #[error("PID configuration error: {0}")]

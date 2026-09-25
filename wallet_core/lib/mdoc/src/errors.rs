@@ -27,7 +27,6 @@ pub enum Error {
     Cbor(#[from] CborError),
 
     #[error("verification error: {0}")]
-    #[category(unexpected)]
     Verification(#[from] VerificationError),
 
     #[error("keys error: {0}")]

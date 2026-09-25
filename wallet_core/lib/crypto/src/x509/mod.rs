@@ -81,52 +81,52 @@ pub use usage::CertificateUsageError;
 pub enum CertificateError {
     #[error("certificate verification failed: {0}")]
     Verification(#[source] Box<webpki::Error>),
+
     #[error("certificate parsing failed: {0}")]
     CertificateParsing(#[source] Box<webpki::Error>),
+
     #[error("certificate parsing for validation failed: {0}")]
     EndEntityCertificateParsing(#[source] Box<webpki::Error>),
+
     #[error("certificate content parsing failed: {0}")]
     X509CertificateParsing(#[from] x509_parser::nom::Err<X509Error>),
+
     #[error("pem parsing failed: {0}")]
     PemParsing(#[from] rustls_pki_types::pem::Error),
-    #[cfg(any(test, feature = "generate"))]
-    #[error("certificate private key generation failed: {0}")]
-    #[category(unexpected)]
-    GeneratingPrivateKey(#[source] Box<p256::pkcs8::Error>),
-    #[cfg(any(test, feature = "generate"))]
-    #[error("certificate creation failed: {0}")]
-    #[category(unexpected)]
-    GeneratingFailed(#[from] rcgen::Error),
-    #[cfg(any(test, feature = "generate"))]
-    #[error("parsed X.509 certificate is not a root CA")]
-    #[category(unexpected)]
-    NotRootCa,
-    #[cfg(any(test, feature = "generate"))]
-    #[error("the basic constraint of this CA does not allow generating an intermediate CA")]
-    #[category(unexpected)]
-    BasicConstraintViolation,
+
     #[error("failed to parse certificate public key: {0}")]
     PublicKeyParsing(#[source] Box<p256::pkcs8::spki::Error>),
+
     #[error("PEM decoding error: {0}")]
     Pem(#[from] x509_parser::nom::Err<PEMError>),
+
     #[error("DER coding error: {0}")]
     DerEncodingError(#[source] Box<p256::pkcs8::der::Error>),
+
     #[error("JSON coding error: {0}")]
     JsonEncodingError(#[from] serde_json::Error),
+
     #[error("X509 coding error: {0}")]
     X509Error(#[from] X509Error),
+
     #[error("private key does not belong to public key from certificate")]
     KeyMismatch,
+
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
     #[error("missing SAN extension")]
     MissingSan,
+
     #[error("missing SAN DNS name or URI")]
     MissingSanDnsNameOrUri,
+
     #[error("SAN DNS name is not a URI: {0}")]
     SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriError),
+
     #[error("could not serialize to DER: {0}")]
     DerSerialization(#[from] SerializeError),
+
     #[error("certificate chain must not contain the trust anchor")]
     #[category(critical)]
     TrustAnchorInChain,

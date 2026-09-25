@@ -99,14 +99,14 @@ fn is_allowed_breadcrumb_message(message: &str) -> bool {
 /// A tag `category` with the string representation of the [`ErrorCategory`] is added to the event, so
 /// the `filter_and_scrub_sensitive_data` can act according to the category of the error.
 ///
-/// For errors that fall into the category `unexpected` an error message is logged.
-/// Unexpected errors should never occur in the wallet and point to a programming error, this can happen when
-/// the wallet uses code that is meant for an external service, like the wallet_provider or the verification_server.
-/// Otherwise the error classification is wrong.
+/// For errors that fall into the category `impossible` an error message is logged. Impossible errors should never occur
+/// in the wallet and point to a programming error. This should be used for a category of errors that should be
+/// impossible to reach according to the business logic, but where validating that this is the case is non-trival,
+/// making these cases unsuitable for panicking.
 pub fn classify_mask_and_capture<T: ErrorCategory + Error + ?Sized>(error: &T) {
     let category = error.category();
-    if category == Category::Unexpected {
-        tracing::error!("unexpected error, this should never occur in the Wallet: {error}");
+    if category == Category::Impossible {
+        tracing::error!("error should be impossible to reach in the Wallet: {error}");
     }
     if category != Category::Expected {
         add_breadcrumb(format!("rust.error.{category}"));
@@ -122,11 +122,11 @@ pub fn classify_mask_and_capture<T: ErrorCategory + Error + ?Sized>(error: &T) {
 pub fn filter_and_scrub_sensitive_data(mut event: Event) -> Option<Event> {
     let category: Option<Category> = event.tags.get("category").and_then(|t| t.parse().ok());
     match category {
-        Some(Category::Unexpected) => {
+        Some(Category::Impossible) => {
             tracing::error!(
-                "event has category unexpected, this is a programming error, sending scrubbed event to Sentry"
+                "event has category impossible, this is a programming error, sending event to Sentry verbatim"
             );
-            event.scrub(true);
+            event.scrub(false);
             Some(event)
         }
         Some(Category::Expected) => {
@@ -331,7 +331,7 @@ mod tests {
     #[case(Category::PersonalData, "pd")]
     #[case(Category::Critical, "critical")]
     #[case(Category::Expected, "expected")]
-    #[case(Category::Unexpected, "unexpected")]
+    #[case(Category::Impossible, "impossible")]
     fn test_classify_mask_and_capture_enum(#[case] category: Category, #[case] expected_tag: String) {
         let error = ErrorEnum::Specific(SpecificError { category });
         let mut events = with_captured_events(|| {
@@ -356,7 +356,7 @@ mod tests {
     #[case(Category::PersonalData, "pd")]
     #[case(Category::Critical, "critical")]
     #[case(Category::Expected, "expected")]
-    #[case(Category::Unexpected, "unexpected")]
+    #[case(Category::Impossible, "impossible")]
     fn test_classify_mask_and_capture_critical_struct(#[case] category: Category, #[case] expected_tag: String) {
         let error = SpecificError { category };
         let mut events = with_captured_events(|| {

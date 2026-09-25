@@ -254,21 +254,23 @@ pub mod generate {
     pub mod mock {
         use crypto::server_keys::KeyPair;
         use crypto::server_keys::generate::Ca;
+        use crypto::server_keys::generate::CertificateGenerationError;
         use crypto::server_keys::generate::mock::ISSUANCE_CERT_DN;
         use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
         use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
         use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
-        use crypto::x509::CertificateError;
 
         use crate::auth::issuer_auth::IssuerRegistration;
 
         pub fn generate_issuer_mock_with_registration(
             ca: &Ca,
             issuer_registration: &IssuerRegistration,
-        ) -> Result<KeyPair, CertificateError> {
+        ) -> Result<KeyPair, CertificateGenerationError> {
             ca.generate_key_pair(
                 ISSUANCE_CERT_DN.clone(),
-                issuer_registration.to_certificate_configuration()?,
+                issuer_registration
+                    .to_certificate_configuration()
+                    .map_err(CertificateGenerationError::Certificate)?,
                 [ISSUANCE_CERT_SAN_URI.clone()],
             )
         }
@@ -276,10 +278,12 @@ pub mod generate {
         pub fn generate_pid_issuer_mock_with_registration(
             ca: &Ca,
             issuer_registration: &IssuerRegistration,
-        ) -> Result<KeyPair, CertificateError> {
+        ) -> Result<KeyPair, CertificateGenerationError> {
             ca.generate_key_pair(
                 PID_ISSUER_CERT_DN.clone(),
-                issuer_registration.to_certificate_configuration()?,
+                issuer_registration
+                    .to_certificate_configuration()
+                    .map_err(CertificateGenerationError::Certificate)?,
                 [PID_ISSUER_CERT_SAN_URI.clone()],
             )
         }

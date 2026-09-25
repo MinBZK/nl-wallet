@@ -110,9 +110,27 @@ pub mod generate {
     use crate::x509::CertificateUsage;
     use crate::x509::DistinguishedName;
 
-    fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateError> {
+    #[derive(thiserror::Error, Debug)]
+    pub enum CertificateGenerationError {
+        #[error("certificate private key generation failed: {0}")]
+        GeneratingPrivateKey(#[source] Box<p256::pkcs8::Error>),
+
+        #[error("certificate creation failed: {0}")]
+        GeneratingFailed(#[source] rcgen::Error),
+
+        #[error("parsed X.509 certificate is not a root CA")]
+        NotRootCa,
+
+        #[error("the basic constraint of this CA does not allow generating an intermediate CA")]
+        BasicConstraintViolation,
+
+        #[error("could not parse certificate: {0}")]
+        Certificate(#[source] CertificateError),
+    }
+
+    fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateGenerationError> {
         SigningKey::from_pkcs8_der(keypair.serialized_der())
-            .map_err(|error| CertificateError::GeneratingPrivateKey(Box::new(error)))
+            .map_err(|error| CertificateGenerationError::GeneratingPrivateKey(Box::new(error)))
     }
 
     pub struct Ca {
@@ -127,9 +145,10 @@ pub mod generate {
             issuer: Issuer<'static, rcgen::KeyPair>,
             certificate: CertificateDer<'static>,
             intermediate_count: u8,
-        ) -> Result<Self, CertificateError> {
-            let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.as_ref())
-                .map_err(|error| CertificateError::Verification(Box::new(error)))?;
+        ) -> Result<Self, CertificateGenerationError> {
+            let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.as_ref()).map_err(|error| {
+                CertificateGenerationError::Certificate(CertificateError::CertificateParsing(Box::new(error)))
+            })?;
 
             let ca = Self {
                 issuer,
@@ -146,13 +165,15 @@ pub mod generate {
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
             intermediate_count: u8,
-        ) -> Result<Self, CertificateError> {
+        ) -> Result<Self, CertificateGenerationError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(intermediate_count));
             params.distinguished_name = distinguished_name.into();
 
-            let key_pair = rcgen::KeyPair::generate()?;
-            let certificate = params.self_signed(&key_pair)?;
+            let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
+            let certificate = params
+                .self_signed(&key_pair)
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
             let issuer = Issuer::new(params, key_pair);
 
             Self::new(issuer, certificate.into(), intermediate_count)
@@ -162,27 +183,29 @@ pub mod generate {
         pub fn generate(
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
-        ) -> Result<Self, CertificateError> {
+        ) -> Result<Self, CertificateGenerationError> {
             Self::generate_with_intermediate_count(distinguished_name, configuration, 0)
         }
 
         pub fn from_der(
             certificate_der: impl AsRef<[u8]>,
             signing_key_der: impl AsRef<[u8]>,
-        ) -> Result<Self, CertificateError> {
-            let (_, x509_certificate) = X509Certificate::from_der(certificate_der.as_ref())?;
+        ) -> Result<Self, CertificateGenerationError> {
+            let (_, x509_certificate) = X509Certificate::from_der(certificate_der.as_ref()).map_err(|error| {
+                CertificateGenerationError::Certificate(CertificateError::X509CertificateParsing(error))
+            })?;
 
             // Check if the parsed certificate is actually a root CA.
             if !x509_certificate.is_ca() || x509_certificate.issuer() != x509_certificate.subject() {
-                return Err(CertificateError::NotRootCa);
+                return Err(CertificateGenerationError::NotRootCa);
             }
 
-            let key_pair = rcgen::KeyPair::from_pkcs8_der_and_sign_algo(
-                &signing_key_der.as_ref().into(),
-                &PKCS_ECDSA_P256_SHA256,
-            )?;
+            let key_pair =
+                rcgen::KeyPair::from_pkcs8_der_and_sign_algo(&signing_key_der.as_ref().into(), &PKCS_ECDSA_P256_SHA256)
+                    .map_err(CertificateGenerationError::GeneratingFailed)?;
             let certificate = CertificateDer::from(certificate_der.as_ref()).into_owned();
-            let issuer = Issuer::from_ca_cert_der(&certificate, key_pair)?;
+            let issuer = Issuer::from_ca_cert_der(&certificate, key_pair)
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
 
             // Unfortunately `x509_parser` does not parse the intermediate count from
             // the basic constraint, so we should assume the worst, which is 0.
@@ -193,8 +216,8 @@ pub mod generate {
             &self.certificate
         }
 
-        pub fn as_borrowing_certificate(&self) -> Result<BorrowingCertificate, CertificateError> {
-            BorrowingCertificate::from_der(self.certificate().as_ref())
+        pub fn as_borrowing_certificate(&self) -> Result<BorrowingCertificate, CertificateGenerationError> {
+            BorrowingCertificate::from_der(self.certificate().as_ref()).map_err(CertificateGenerationError::Certificate)
         }
 
         pub fn borrowing_trust_anchor(&self) -> &BorrowingTrustAnchor {
@@ -205,7 +228,7 @@ pub mod generate {
             self.borrowing_trust_anchor.clone()
         }
 
-        pub fn to_signing_key(&self) -> Result<SigningKey, CertificateError> {
+        pub fn to_signing_key(&self) -> Result<SigningKey, CertificateGenerationError> {
             rcgen_cert_privkey(self.issuer.key())
         }
 
@@ -218,7 +241,7 @@ pub mod generate {
             &self,
             revoked_certs: Vec<RevokedCertParams>,
             crl_number: u64,
-        ) -> Result<CertificateRevocationList, CertificateError> {
+        ) -> Result<CertificateRevocationList, CertificateGenerationError> {
             let now = OffsetDateTime::now_utc();
             self.generate_crl_with_validity(revoked_certs, now, now + Duration::days(7), crl_number)
         }
@@ -231,7 +254,7 @@ pub mod generate {
             this_update: OffsetDateTime,
             next_update: OffsetDateTime,
             crl_number: u64,
-        ) -> Result<CertificateRevocationList, CertificateError> {
+        ) -> Result<CertificateRevocationList, CertificateGenerationError> {
             let params = CertificateRevocationListParams {
                 this_update,
                 next_update,
@@ -242,7 +265,7 @@ pub mod generate {
             };
             params
                 .signed_by(&self.issuer)
-                .map_err(CertificateError::GeneratingFailed)
+                .map_err(CertificateGenerationError::GeneratingFailed)
         }
 
         /// Generate a new intermediate CA key pair, with any constraint
@@ -251,9 +274,9 @@ pub mod generate {
             &self,
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
-        ) -> Result<Self, CertificateError> {
+        ) -> Result<Self, CertificateGenerationError> {
             if self.intermediate_count < 1 {
-                return Err(CertificateError::BasicConstraintViolation);
+                return Err(CertificateGenerationError::BasicConstraintViolation);
             }
 
             let intermediate_count = self.intermediate_count - 1;
@@ -263,8 +286,10 @@ pub mod generate {
             params.is_ca = IsCa::Ca(constraint);
             params.distinguished_name = distinguished_name.into();
 
-            let key_pair = rcgen::KeyPair::generate()?;
-            let certificate = params.signed_by(&key_pair, &self.issuer)?;
+            let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
+            let certificate = params
+                .signed_by(&key_pair, &self.issuer)
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
             let issuer = Issuer::new(params, key_pair);
 
             Self::new(issuer, certificate.into(), intermediate_count)
@@ -276,14 +301,17 @@ pub mod generate {
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
             subject_alt_names: impl IntoIterator<Item = impl Into<SanType>>,
-        ) -> Result<BorrowingCertificate, CertificateError> {
+        ) -> Result<BorrowingCertificate, CertificateGenerationError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
             params.distinguished_name = distinguished_name.into();
             params.subject_alt_names = subject_alt_names.into_iter().map(Into::into).collect();
 
-            let certificate = params.signed_by(pk, &self.issuer)?;
-            let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
+            let certificate = params
+                .signed_by(pk, &self.issuer)
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
+            let certificate = BorrowingCertificate::from_certificate_der(certificate.into())
+                .map_err(CertificateGenerationError::Certificate)?;
             Ok(certificate)
         }
 
@@ -293,8 +321,8 @@ pub mod generate {
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
             subject_alt_names: impl IntoIterator<Item = impl Into<SanType>>,
-        ) -> Result<KeyPair, CertificateError> {
-            let key_pair = rcgen::KeyPair::generate()?;
+        ) -> Result<KeyPair, CertificateGenerationError> {
+            let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
             let private_key = rcgen_cert_privkey(&key_pair)?;
             let certificate = self.certificate_for(&key_pair, distinguished_name, configuration, subject_alt_names)?;
 
@@ -313,8 +341,9 @@ pub mod generate {
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
             subject_alt_names: impl IntoIterator<Item = impl Into<SanType>>,
-        ) -> Result<BorrowingCertificate, CertificateError> {
-            let public_key = SubjectPublicKeyInfo::from_der(public_key)?;
+        ) -> Result<BorrowingCertificate, CertificateGenerationError> {
+            let public_key =
+                SubjectPublicKeyInfo::from_der(public_key).map_err(CertificateGenerationError::GeneratingFailed)?;
             self.certificate_for(&public_key, distinguished_name, configuration, subject_alt_names)
         }
 
@@ -326,18 +355,22 @@ pub mod generate {
             &self,
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
-        ) -> Result<(Self, CertificateDer<'static>), CertificateError> {
-            let key_pair = rcgen::KeyPair::generate()?;
+        ) -> Result<(Self, CertificateDer<'static>), CertificateGenerationError> {
+            let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
 
             let mut self_signed_params = CertificateParams::from(configuration.clone());
             self_signed_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
             self_signed_params.distinguished_name = distinguished_name.clone().into();
-            let self_signed_cert = self_signed_params.self_signed(&key_pair)?;
+            let self_signed_cert = self_signed_params
+                .self_signed(&key_pair)
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
 
             let mut cross_params = CertificateParams::from(configuration);
             cross_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
             cross_params.distinguished_name = distinguished_name.into();
-            let cross_cert = cross_params.signed_by(&key_pair, &self.issuer)?;
+            let cross_cert = cross_params
+                .signed_by(&key_pair, &self.issuer)
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
 
             let issuer = Issuer::new(self_signed_params, key_pair);
             let root_ca = Self::new(issuer, self_signed_cert.into(), 0)?;
@@ -414,15 +447,15 @@ pub mod generate {
                 .unwrap()
             }
 
-            pub fn generate_wrpac_mock_ca() -> Result<Self, CertificateError> {
+            pub fn generate_wrpac_mock_ca() -> Result<Self, CertificateGenerationError> {
                 Self::generate(WRPAC_CA_DN.clone(), Default::default())
             }
 
-            pub fn generate_issuer_mock_ca() -> Result<Self, CertificateError> {
+            pub fn generate_issuer_mock_ca() -> Result<Self, CertificateGenerationError> {
                 Self::generate(ISSUANCE_CA_DN.clone(), Default::default())
             }
 
-            pub fn generate_issuer_mock_ca_without_aki() -> Result<Self, CertificateError> {
+            pub fn generate_issuer_mock_ca_without_aki() -> Result<Self, CertificateGenerationError> {
                 Self::generate(
                     ISSUANCE_CA_DN.clone(),
                     CertificateConfiguration {
@@ -432,11 +465,11 @@ pub mod generate {
                 )
             }
 
-            pub fn generate_wrpac_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_wrpac_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(ISSUANCE_CERT_DN.clone(), Default::default(), NO_SAN)
             }
 
-            pub fn generate_wrpac_issuer_mock_with_crl(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_wrpac_issuer_mock_with_crl(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     ISSUANCE_CERT_DN.clone(),
                     CertificateConfiguration {
@@ -447,11 +480,11 @@ pub mod generate {
                 )
             }
 
-            pub fn generate_wrpac_verifier_mock(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_wrpac_verifier_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(RP_CERT_DN.clone(), Default::default(), NO_SAN)
             }
 
-            pub fn generate_wrpac_verifier_mock_with_crl(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_wrpac_verifier_mock_with_crl(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     RP_CERT_DN.clone(),
                     CertificateConfiguration {
@@ -462,7 +495,7 @@ pub mod generate {
                 )
             }
 
-            pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     PID_ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Mdl),
@@ -470,7 +503,7 @@ pub mod generate {
                 )
             }
 
-            pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     ISSUANCE_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Mdl),
@@ -478,7 +511,7 @@ pub mod generate {
                 )
             }
 
-            pub fn generate_wia_mock(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_wia_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     WIA_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Wia),
@@ -486,7 +519,7 @@ pub mod generate {
                 )
             }
 
-            pub fn generate_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     ISSUANCE_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
@@ -494,7 +527,7 @@ pub mod generate {
                 )
             }
 
-            pub fn generate_pid_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateError> {
+            pub fn generate_pid_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     PID_ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
@@ -505,17 +538,24 @@ pub mod generate {
             /// Generate a TLS server key pair with the given hostname as the DNS SAN.
             /// No custom extended key usage extensions are added, which allows webpki to accept
             /// the certificate for TLS server authentication.
-            pub fn generate_tls_mock(&self, hostname: &str) -> Result<KeyPair, CertificateError> {
-                let key_pair = rcgen::KeyPair::generate()?;
+            pub fn generate_tls_mock(&self, hostname: &str) -> Result<KeyPair, CertificateGenerationError> {
+                let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
                 let private_key = rcgen_cert_privkey(&key_pair)?;
 
                 let mut params = CertificateParams::default();
                 params.is_ca = IsCa::NoCa;
                 params.distinguished_name.push(DnType::CommonName, hostname);
-                params.subject_alt_names.push(SanType::DnsName(hostname.try_into()?));
+                params.subject_alt_names.push(SanType::DnsName(
+                    hostname
+                        .try_into()
+                        .map_err(CertificateGenerationError::GeneratingFailed)?,
+                ));
 
-                let certificate = params.signed_by(&key_pair, &self.issuer)?;
-                let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
+                let certificate = params
+                    .signed_by(&key_pair, &self.issuer)
+                    .map_err(CertificateGenerationError::GeneratingFailed)?;
+                let certificate = BorrowingCertificate::from_certificate_der(certificate.into())
+                    .map_err(CertificateGenerationError::Certificate)?;
 
                 Ok(KeyPair {
                     private_key,
