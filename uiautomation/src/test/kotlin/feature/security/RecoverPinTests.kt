@@ -89,6 +89,8 @@ class RecoverPinTests : TestBase() {
 
         pinScreen.closePinIncorrectAlertDialog()
         pinScreen.enterPin("222223")
+
+        dashboardScreen.dismissNotificationsDrawer()
         assertTrue(dashboardScreen.visible(), "dashboard screen is not visible")
     }
 }

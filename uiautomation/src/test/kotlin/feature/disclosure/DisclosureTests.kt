@@ -330,6 +330,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.stop()
         disclosureScreen.bottomSheetConfirmStop()
         sharingStoppedScreen.close()
+        dashboardScreen.dismissNotificationsDrawer()
         assertTrue(dashboardScreen.visible(), "Dashboard not visible")
     }
 }
