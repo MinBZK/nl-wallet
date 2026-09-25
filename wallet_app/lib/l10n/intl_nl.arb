@@ -1081,7 +1081,7 @@
     },
     "pinErrorDialogRestartSetupWarning": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is, zal het aanmaken proces opnieuw starten vanaf het begin.",
     "pinErrorDialogTitle": "Verkeerde pincode",
-    "pinFieldAnnouncementLabel": "{count, plural, one {Toegangscode, {count} cijfer over} other {Toeganscode, {count} cijfers over}}",
+    "pinFieldAnnouncementLabel": "{count, plural, one {Toegangscode, {count} cijfer over} other {Toegangscode, {count} cijfers over}}",
     "pinKeyboardWCAGBackspaceLabel": "Verwijder",
     "pinKeyboardWCAGBackspaceLongPressHint": "Alles te verwijderen",
     "pinScreenForgotPinCta": "Pincode vergeten?",
