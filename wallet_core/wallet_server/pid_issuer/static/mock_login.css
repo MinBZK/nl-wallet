@@ -6,7 +6,6 @@
     --accent: #383ede;
     --text: #152a62;
     --lang-bg: #f1f1f1;
-    --badge-orange: #f39200;
 }
 @media (prefers-color-scheme: dark) {
     :root {
@@ -69,20 +68,10 @@ header.page-header {
     margin-bottom: 1.5rem;
 }
 .digid-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     width: 4rem;
     height: 4rem;
-    border-radius: 0.5rem;
-    background: #000000;
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 1.1rem;
+    background: url("digid.svg") center / contain no-repeat;
     flex: none;
-}
-.digid-badge b {
-    color: var(--badge-orange);
 }
 .logo-heading {
     font-size: 1.25rem;

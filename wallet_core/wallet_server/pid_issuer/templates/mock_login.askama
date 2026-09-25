@@ -23,7 +23,7 @@
 
         <header class="page-header">
             <div class="logo-row">
-                <span class="digid-badge" aria-hidden="true">Digi<b>D</b></span>
+                <span class="digid-badge" aria-hidden="true"></span>
                 <span class="logo-heading">{{ trans.logo_heading }}</span>
             </div>
             <h1>{{ trans.title }}</h1>

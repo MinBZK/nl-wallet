@@ -42,9 +42,11 @@ const MOCK_LOGIN_SELECT_PATH: &str = "/digid/mock-login/select";
 /// than allowing inline styles/scripts.
 const MOCK_LOGIN_CSS_PATH: &str = "/digid/mock-login/mock_login.css";
 const MOCK_LOGIN_JS_PATH: &str = "/digid/mock-login/mock_login.js";
+const MOCK_LOGIN_LOGO_PATH: &str = "/digid/mock-login/digid.svg";
 
 const MOCK_LOGIN_CSS: &str = include_str!("../../static/mock_login.css");
 const MOCK_LOGIN_JS: &str = include_str!("../../static/mock_login.js");
+const MOCK_LOGIN_LOGO: &str = include_str!("../../static/non-free/digid.svg");
 
 /// The configured selectable mock identities, as a map from BSN to display name.
 pub type MockSubjects = IndexMap<String, String>;
@@ -199,6 +201,7 @@ impl MockLoginState {
             .route(MOCK_LOGIN_SELECT_PATH, post(mock_login_select))
             .route(MOCK_LOGIN_CSS_PATH, get(mock_login_css))
             .route(MOCK_LOGIN_JS_PATH, get(mock_login_js))
+            .route(MOCK_LOGIN_LOGO_PATH, get(mock_login_logo))
             .layer(middleware::from_fn(move |request, next| {
                 set_content_security_policy(request, next, csp)
             }))
@@ -219,6 +222,14 @@ async fn mock_login_js() -> impl IntoResponse {
             HeaderValue::from_static("text/javascript; charset=utf-8"),
         )],
         MOCK_LOGIN_JS,
+    )
+}
+
+/// `GET /digid/mock-login/digid.svg`: the DigiD logo.
+async fn mock_login_logo() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, HeaderValue::from_static("image/svg+xml"))],
+        MOCK_LOGIN_LOGO,
     )
 }
 
@@ -356,6 +367,7 @@ mod tests {
 
     use super::MOCK_LOGIN_CSS_PATH;
     use super::MOCK_LOGIN_JS_PATH;
+    use super::MOCK_LOGIN_LOGO_PATH;
     use super::MockLoginState;
     use super::MockSubjects;
     use super::mock_acs_url;
@@ -366,7 +378,7 @@ mod tests {
             MockLoginState::new(reqwest::Client::new(), MockSubjects::new(), "default-src 'self'").router(),
         );
 
-        for path in [MOCK_LOGIN_CSS_PATH, MOCK_LOGIN_JS_PATH] {
+        for path in [MOCK_LOGIN_CSS_PATH, MOCK_LOGIN_JS_PATH, MOCK_LOGIN_LOGO_PATH] {
             let response = router
                 .clone()
                 .oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
