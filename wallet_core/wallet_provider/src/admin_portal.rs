@@ -132,13 +132,26 @@ struct CallbackQuery {
     error: Option<String>,
 }
 
-async fn callback<R>(State(state): State<Arc<AdminPortalState<R>>>, Query(query): Query<CallbackQuery>) -> Response
+async fn callback<R>(
+    State(state): State<Arc<AdminPortalState<R>>>,
+    cookie_jar: CookieJar,
+    Query(query): Query<CallbackQuery>,
+) -> Response
 where
     R: AdminPortalSessionRepository + Send + Sync + 'static,
 {
+    let session_id = cookie_jar
+        .get(SESSION_ID_COOKIE)
+        .map(|cookie| cookie.value().to_string());
+
     let session_id = state
         .service
-        .handle_callback(query.state.as_deref(), query.code.as_deref(), query.error.as_deref())
+        .handle_callback(
+            session_id.as_deref(),
+            query.state.as_deref(),
+            query.code.as_deref(),
+            query.error.as_deref(),
+        )
         .await
         .inspect_err(|error| warn!("/auth/callback failed: {error}"));
 
@@ -303,11 +316,11 @@ mod tests {
             Ok(())
         }
 
-        async fn touch_user_session(
+        async fn fetch_user_session(
             &self,
             session_id: &str,
             now: DateTime<Utc>,
-            new_expires_at: DateTime<Utc>,
+            new_expires_at: Option<DateTime<Utc>>,
         ) -> Result<Option<AdminPortalUserSession>, PersistenceError> {
             self.handle_error()?;
             let mut sessions = self.sessions.lock().unwrap();
@@ -317,7 +330,9 @@ mod tests {
             if session.expires_at <= now {
                 return Ok(None);
             }
-            session.expires_at = new_expires_at;
+            if let Some(new_expires_at) = new_expires_at {
+                session.expires_at = new_expires_at;
+            }
             Ok(Some(session.clone()))
         }
 
@@ -374,6 +389,7 @@ mod tests {
 
         let response = callback(
             State(state),
+            CookieJar::new(),
             Query(CallbackQuery {
                 state: None,
                 code: None,

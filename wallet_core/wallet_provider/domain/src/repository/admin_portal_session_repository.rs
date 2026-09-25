@@ -21,13 +21,14 @@ pub trait AdminPortalSessionRepository {
 
     async fn insert_user_session(&self, session_id: String, session: AdminPortalUserSession) -> Result<()>;
 
-    /// Extends the session's expiry to `new_expires_at`, provided it has not already expired as of
-    /// `now`, and returns the updated session. Returns `None` if no valid session was found.
-    async fn touch_user_session(
+    /// Fetches the users session if not already expired and update if provided with a new expiry time.
+    ///
+    /// Returns `None` if no valid session was found.
+    async fn fetch_user_session(
         &self,
         session_id: &str,
         now: DateTime<Utc>,
-        new_expires_at: DateTime<Utc>,
+        new_expires_at: Option<DateTime<Utc>>,
     ) -> Result<Option<AdminPortalUserSession>>;
 
     /// Removes and returns the session identified by `session_id`, if present.

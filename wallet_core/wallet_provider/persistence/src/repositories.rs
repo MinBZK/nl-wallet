@@ -78,13 +78,13 @@ impl AdminPortalSessionRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn touch_user_session(
+    async fn fetch_user_session(
         &self,
         session_id: &str,
         now: DateTime<Utc>,
-        new_expires_at: DateTime<Utc>,
+        new_expires_at: Option<DateTime<Utc>>,
     ) -> Result<Option<AdminPortalUserSession>, PersistenceError> {
-        admin_portal_session::touch_user_session(&self.0, session_id, now, new_expires_at).await
+        admin_portal_session::fetch_user_session(&self.0, session_id, now, new_expires_at).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -680,11 +680,11 @@ pub mod mock {
                 session: AdminPortalUserSession,
             ) -> Result<(), PersistenceError>;
 
-            async fn touch_user_session(
+            async fn fetch_user_session(
                 &self,
                 session_id: &str,
                 now: DateTime<Utc>,
-                new_expires_at: DateTime<Utc>,
+                new_expires_at: Option<DateTime<Utc>>,
             ) -> Result<Option<AdminPortalUserSession>, PersistenceError>;
 
             async fn take_user_session(
