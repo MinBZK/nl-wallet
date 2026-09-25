@@ -5,7 +5,6 @@
     --border: #e8eaef;
     --accent: #383ede;
     --text: #152a62;
-    --lang-bg: #f1f1f1;
 }
 @media (prefers-color-scheme: dark) {
     :root {
@@ -14,7 +13,6 @@
         --border: #656d87;
         --accent: #a2b7ff;
         --text: #ffffff;
-        --lang-bg: #2f3444;
     }
 }
 * {
@@ -38,20 +36,13 @@ body {
     max-width: 30rem;
     display: flex;
     justify-content: flex-end;
-    gap: 0.25rem;
-    font-size: 0.9rem;
 }
-.lang-bar a,
-.lang-bar span {
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.125rem;
-    text-decoration: none;
-    color: var(--accent);
-    background: var(--lang-bg);
-}
-.lang-bar .active {
-    font-weight: 700;
-    cursor: default;
+
+/* Applicable lines of button-reset.css */
+.lang-selector .lang-modal button {
+    background: none;
+    border: none;
+    font: inherit;
 }
 header.page-header {
     text-align: left;
