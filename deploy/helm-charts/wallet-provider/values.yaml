@@ -108,6 +108,21 @@ httpRoute:
   annotations: {}
   nginxClientSettingsPolicy: {}
 
+## @section HTTP route admin-portal parameters
+## Parameters for the admin-portal HTTPRoute configuration
+## @param httpRouteAdminPortal.enabled Enable or disable the route
+## @param httpRouteAdminPortal.parentRefs Parent references to the gateway
+## @param httpRouteAdminPortal.hostnames Hostnames for the route
+## @param httpRouteAdminPortal.labels Additional labels for the route
+## @param httpRouteAdminPortal.annotations Additional annotations for the route
+##
+httpRouteAdminPortal:
+  enabled: true
+  parentRefs: []
+  hostnames: []
+  labels: {}
+  annotations: {}
+
 ## @section HTTP route internal parameters
 ## Parameters for the internal HTTPRoute configuration
 ## @param httpRouteInternal.enabled Enable or disable the route
@@ -218,6 +233,18 @@ flagsRefreshDelayInSeconds: null
 recoveryCodePaths:
   "urn:eudi:pid:nl:1": ["recovery_code"]
 revokeSolutionEnabled: false
+
+## @section Admin portal settings
+## @param adminPortal.keycloakUrl Keycloak URL
+## @param adminPortal.keycloakRealm Keycloak realm
+## @param adminPortal.keycloakClientId Keycloak client ID
+## @param adminPortal.keycloakTrustAnchors Keycloak trust anchors
+##
+adminPortal:
+  keycloakUrl: null
+  keycloakRealm: "nl-wallet"
+  keycloakClientId: "wallet-backend"
+  keycloakTrustAnchors: []
 
 ## @section WIA parameters
 ## @param wiaCertificate WIA signing certificate (base64-encoded DER)

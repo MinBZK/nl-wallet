@@ -209,7 +209,6 @@ where
                                 SELECT id
                                 FROM state_bridge
                                 WHERE expires_at <= $1
-                                ORDER BY expires_at
                                 LIMIT $2
                                 FOR UPDATE SKIP LOCKED
                             )

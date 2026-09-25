@@ -24,6 +24,7 @@ use derive_more::Into;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
+use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
@@ -67,6 +68,7 @@ pub struct Settings {
     #[serde_as(as = "DurationSeconds<u64>")]
     pub flags_refresh_delay: Duration,
     pub revoke_solution_enabled: bool,
+    pub admin_portal: AdminPortalSettings,
 
     #[serde(flatten)]
     pub wia_settings: WiaSettings,
@@ -112,6 +114,28 @@ pub struct DatabaseSettings {
 pub struct Webserver {
     pub ip: IpAddr,
     pub port: u16,
+}
+
+/// Configuration for the Admin Portal's OIDC login flow against Keycloak.
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct AdminPortalSettings {
+    pub keycloak_url: BaseUrl,
+    pub keycloak_realm: String,
+    pub keycloak_client_id: String,
+
+    /// CA certificates the Admin Portal's OIDC client pins its TLS connection to Keycloak.
+    #[serde_as(as = "Vec<Base64>")]
+    pub keycloak_trust_anchors: VecNonEmpty<ReqwestTrustAnchor>,
+
+    pub public_url: BaseUrl,
+
+    #[serde(rename = "session_ttl_in_ms")]
+    #[serde_as(as = "DurationMilliSeconds")]
+    pub session_ttl: Duration,
+    #[serde(rename = "login_attempt_ttl_in_ms")]
+    #[serde_as(as = "DurationMilliSeconds")]
+    pub login_attempt_ttl: Duration,
 }
 
 #[serde_as]
@@ -221,6 +245,12 @@ impl Settings {
             .set_default("max_transfer_upload_size_in_bytes", 100_000_000)?
             .set_default("flags_refresh_delay_in_seconds", 300)?
             .set_default("revoke_solution_enabled", false)?
+            .set_default("admin_portal.keycloak_url", "https://localhost:11443")?
+            .set_default("admin_portal.keycloak_realm", "nl-wallet")?
+            .set_default("admin_portal.keycloak_client_id", "wallet-backend")?
+            .set_default("admin_portal.public_url", "https://localhost:3000/")?
+            .set_default("admin_portal.session_ttl_in_ms", 15 * 60 * 1000)?
+            .set_default("admin_portal.login_attempt_ttl_in_ms", 10 * 60 * 1000)?
             .add_source(File::from(prefix_local_path(Path::new("wallet_provider.toml")).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
@@ -231,6 +261,7 @@ impl Settings {
                     .with_list_parse_key("android.root_public_keys")
                     .with_list_parse_key("android.play_store_certificate_hashes")
                     .with_list_parse_key("pid_issuer_trust_anchors")
+                    .with_list_parse_key("admin_portal.keycloak_trust_anchors")
                     .try_parsing(true),
             )
             .build()?

@@ -15,6 +15,8 @@ use uuid;
 use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
+use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
+use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
@@ -26,11 +28,13 @@ use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::model::wallet_user::WithKid;
+use wallet_provider_domain::repository::AdminPortalSessionRepository;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletFlagRepository;
 use wallet_provider_domain::repository::WalletUserRepository;
 
+use crate::admin_portal_session;
 use crate::database::Db;
 use crate::recovery_code;
 use crate::transaction;
@@ -43,6 +47,56 @@ use crate::wallet_user_wia;
 
 #[derive(Clone, From, AsRef)]
 pub struct Repositories(Db);
+
+impl AdminPortalSessionRepository for Repositories {
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn insert_login_attempt(
+        &self,
+        state: String,
+        login_attempt: AdminPortalLoginAttempt,
+    ) -> Result<(), PersistenceError> {
+        admin_portal_session::insert_login_attempt(&self.0, state, login_attempt).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn take_login_attempt(&self, state: &str) -> Result<Option<AdminPortalLoginAttempt>, PersistenceError> {
+        admin_portal_session::take_login_attempt(&self.0, state).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn cleanup_expired_login_attempts(&self, created_before: DateTime<Utc>) -> Result<(), PersistenceError> {
+        admin_portal_session::cleanup_expired_login_attempts(&self.0, created_before).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn insert_user_session(
+        &self,
+        session_id: String,
+        session: AdminPortalUserSession,
+    ) -> Result<(), PersistenceError> {
+        admin_portal_session::insert_user_session(&self.0, session_id, session).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn touch_user_session(
+        &self,
+        session_id: &str,
+        now: DateTime<Utc>,
+        new_expires_at: DateTime<Utc>,
+    ) -> Result<Option<AdminPortalUserSession>, PersistenceError> {
+        admin_portal_session::touch_user_session(&self.0, session_id, now, new_expires_at).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn take_user_session(&self, session_id: &str) -> Result<Option<AdminPortalUserSession>, PersistenceError> {
+        admin_portal_session::take_user_session(&self.0, session_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn cleanup_expired_user_sessions(&self, now: DateTime<Utc>) -> Result<(), PersistenceError> {
+        admin_portal_session::cleanup_expired_user_sessions(&self.0, now).await
+    }
+}
 
 impl TransactionStarter for Repositories {
     type TransactionType = Transaction;
@@ -574,6 +628,8 @@ pub mod mock {
     use wallet_account::messages::errors::RevocationReason;
     use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::model::QueryResult;
+    use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
+    use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
     use wallet_provider_domain::model::wallet_flag::WalletFlag;
     use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
@@ -591,11 +647,54 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WithKid;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_1;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_with_id;
+    use wallet_provider_domain::repository::AdminPortalSessionRepository;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;
     use wallet_provider_domain::repository::TransactionStarter;
     use wallet_provider_domain::repository::WalletUserRepository;
+
+    mockall::mock! {
+        pub AdminPortalSessionRepository {}
+
+        impl AdminPortalSessionRepository for AdminPortalSessionRepository {
+            async fn insert_login_attempt(
+                &self,
+                state: String,
+                login_attempt: AdminPortalLoginAttempt,
+            ) -> Result<(), PersistenceError>;
+
+            async fn take_login_attempt(
+                &self,
+                state: &str,
+            ) -> Result<Option<AdminPortalLoginAttempt>, PersistenceError>;
+
+            async fn cleanup_expired_login_attempts(
+                &self,
+                created_before: DateTime<Utc>,
+            ) -> Result<(), PersistenceError>;
+
+            async fn insert_user_session(
+                &self,
+                session_id: String,
+                session: AdminPortalUserSession,
+            ) -> Result<(), PersistenceError>;
+
+            async fn touch_user_session(
+                &self,
+                session_id: &str,
+                now: DateTime<Utc>,
+                new_expires_at: DateTime<Utc>,
+            ) -> Result<Option<AdminPortalUserSession>, PersistenceError>;
+
+            async fn take_user_session(
+                &self,
+                session_id: &str,
+            ) -> Result<Option<AdminPortalUserSession>, PersistenceError>;
+
+            async fn cleanup_expired_user_sessions(&self, now: DateTime<Utc>) -> Result<(), PersistenceError>;
+        }
+    }
 
     mockall::mock! {
         pub TransactionalWalletUserRepository {}

@@ -19,9 +19,9 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      // Proxy to the WalletBackend mock so the SPA and WalletBackend share one origin
-      '/api': 'http://localhost:3000',
-      '/auth': 'http://localhost:3000',
+      // Proxy to the wallet_provider (started via scripts/start-devenv.sh) so the SPA and
+      // wallet_provider share one origin. It serves TLS with a self-signed dev cert, hence `secure: false`.
+      "/admin-portal": { target: "https://localhost:3000", secure: false },
     },
   },
 })

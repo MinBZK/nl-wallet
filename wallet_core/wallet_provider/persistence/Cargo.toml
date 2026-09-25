@@ -35,6 +35,11 @@ name = "recovery_code"
 path = "tests/recovery_code.rs"
 required-features = ["db_test"]
 
+[[test]]
+name = "admin_portal_session"
+path = "tests/admin_portal_session.rs"
+required-features = ["db_test"]
+
 [features]
 # Include mock implementations and constructors for testing
 mock = ["dep:dashmap", "dep:mockall", "dep:rand_core", "wallet_provider_domain/mock"]

@@ -224,32 +224,27 @@ pub struct OidcProviderMetadata {
     pub oidc_metadata_extension: OpenIdMetadataExtension,
 }
 
-impl OidcProviderMetadata {
+pub trait WellKnownOpenIdConfiguration: WellKnownMetadata {
     /// Return the legacy OpenID well-known URL.
     ///
     /// This is the original OpenID behavior, which had it's own mechanism for the WellKnown spec was created, there it
     /// was required to specify the `.well-known` by extending the issuer URL. See also
     /// [https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig] and
     /// [https://www.rfc-editor.org/info/rfc8414/#section-5].
-    pub fn legacy_well_known_url(issuer: &IssuerIdentifier) -> Url {
+    fn legacy_well_known_url(issuer: &IssuerIdentifier) -> Url {
         issuer
             .as_issuer_url()
             .join_issuer_url(&format!(".well-known/{}", Self::PATH))
             .into_url()
     }
-}
-
-impl WellKnownMetadata for OidcProviderMetadata {
-    const PATH: &'static str = "openid-configuration";
-
-    fn issuer_identifier(&self) -> &IssuerIdentifier {
-        self.oauth_metadata.issuer_identifier()
-    }
 
     /// Fetch well known openid-configuration from the standard location, fallback to the legacy OpenID configuration.
     ///
     /// See [https://www.rfc-editor.org/info/rfc8414/#section-5].
-    async fn fetch_well_known_json(client: &HttpClient, issuer: &IssuerIdentifier) -> Result<Self, WellKnownError> {
+    async fn fetch_openid_configuration(
+        client: &HttpClient,
+        issuer: &IssuerIdentifier,
+    ) -> Result<Self, WellKnownError> {
         match Self::fetch_well_known_json_from(client, Self::well_known_url(issuer), issuer).await {
             // Only fall back to the legacy location if the standard location could not be fetched, any other error
             // means the metadata was served but is not acceptable, which should be reported to the caller.
@@ -263,6 +258,20 @@ impl WellKnownMetadata for OidcProviderMetadata {
             }
             result => result,
         }
+    }
+}
+
+impl WellKnownOpenIdConfiguration for OidcProviderMetadata {}
+
+impl WellKnownMetadata for OidcProviderMetadata {
+    const PATH: &'static str = "openid-configuration";
+
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        self.oauth_metadata.issuer_identifier()
+    }
+
+    async fn fetch_well_known_json(client: &HttpClient, issuer: &IssuerIdentifier) -> Result<Self, WellKnownError> {
+        Self::fetch_openid_configuration(client, issuer).await
     }
 }
 
@@ -284,6 +293,7 @@ pub mod tests {
     use super::AuthorizationServerMetadata;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::oauth_metadata::OidcProviderMetadata;
+    use crate::metadata::oauth_metadata::WellKnownOpenIdConfiguration;
     use crate::metadata::well_known::WellKnownMetadata;
 
     #[tokio::test]

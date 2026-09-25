@@ -1,6 +1,6 @@
 import router from '@/router'
 
-const BASE_PATH = '/api'
+const BASE_PATH = '/admin-portal/api'
 
 /** Thrown on 401 response, after redirecting to `/login`. */
 export class UnauthorizedError extends Error {

@@ -78,28 +78,11 @@ resources:
 ## @param httpRoute.enabled Enable or disable the route
 ## @param httpRoute.parentRefs Parent references to the gateway
 ## @param httpRoute.hostnames Hostnames for the route
-## @param httpRoute.contextPath Optional context path for the route
 ## @param httpRoute.labels Additional labels for the route
 ## @param httpRoute.annotations Additional annotations for the route
 ##
 httpRoute:
   enabled: true
-  parentRefs: []
-  hostnames: []
-  contextPath: null
-  labels: {}
-  annotations: {}
-
-## @section HTTP route internal parameters
-## Parameters for the internal HTTPRoute configuration
-## @param httpRouteInternal.enabled Enable or disable the route
-## @param httpRouteInternal.parentRefs Parent references to the gateway
-## @param httpRouteInternal.hostnames Hostnames for the route
-## @param httpRouteInternal.labels Additional labels for the route
-## @param httpRouteInternal.annotations Additional annotations for the route
-##
-httpRouteInternal:
-  enabled: false
   parentRefs: []
   hostnames: []
   labels: {}

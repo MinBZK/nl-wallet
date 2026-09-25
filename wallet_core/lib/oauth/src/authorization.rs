@@ -145,6 +145,11 @@ pub struct OidcAuthorizationRequest {
 
     /// REQUIRED for the implicit and hybrid flows, OPTIONAL for the authorization code flow.
     pub nonce: Option<Nonce>,
+
+    /// OPTIONAL. Hint to the Authorization Server about the login identifier the End-User might use. The Authorization
+    /// Server may use this to pre-fill the login form or short-circuit the flow.
+    #[serde(default)]
+    pub login_hint: Option<String>,
 }
 
 /// The OAuth 2.0 Authorization Response, which is URL-encoded and provided as query parameters added to the
@@ -261,13 +266,28 @@ mod tests {
         let request = OidcAuthorizationRequest {
             auth_request: example_request(),
             nonce: Some(nonce.clone()),
+            login_hint: Some("user@example.org".to_string()),
         };
 
         let encoded = serde_qs::to_string(&request).unwrap();
         let decoded: OidcAuthorizationRequest = serde_qs::from_str(&encoded).unwrap();
 
         assert_eq!(decoded.nonce, Some(nonce));
+        assert_eq!(decoded.login_hint.as_deref(), Some("user@example.org"));
         assert_eq!(decoded.auth_request.oauth_request.client_id, "client-123");
+    }
+
+    #[test]
+    fn oidc_authorization_request_omits_absent_login_hint() {
+        let request = OidcAuthorizationRequest {
+            auth_request: example_request(),
+            nonce: Some(Nonce::new_random()),
+            login_hint: None,
+        };
+
+        let encoded = serde_qs::to_string(&request).unwrap();
+
+        assert!(!encoded.contains("login_hint"));
     }
 
     #[test]
@@ -275,6 +295,7 @@ mod tests {
         let request = OidcAuthorizationRequest {
             auth_request: example_request(),
             nonce: Some(Nonce::new_random()),
+            login_hint: None,
         };
 
         let encoded = serde_qs::to_string(&request).unwrap();

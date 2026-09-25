@@ -44,8 +44,9 @@ where
 
     let tls_config = settings.tls_config.clone();
     let revoke_solution_enabled = settings.revoke_solution_enabled;
+    let admin_portal = settings.admin_portal.clone();
     let router_state = RouterState::new_from_settings(settings, hsm, google_crl_client, play_integrity_client).await?;
-    let app = router::router(router_state, revoke_solution_enabled);
+    let app = router::router(router_state, revoke_solution_enabled, admin_portal)?;
 
     if let Some(tls_config) = tls_config {
         axum_server::from_tcp_rustls(listener, tls_config.into_rustls_config()?)
