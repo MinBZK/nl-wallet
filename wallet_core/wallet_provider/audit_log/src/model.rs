@@ -27,6 +27,7 @@ pub trait AuditLog {
         &self,
         operation_name: impl Into<String>,
         parameters: JsonValue,
+        user_id: Option<impl Into<String>>,
         operation: F,
     ) -> Result<T, E>
     where
@@ -56,6 +57,7 @@ where
         &self,
         operation_name: impl Into<String>,
         parameters: JsonValue,
+        _user_id: Option<impl Into<String>>, // TODO: write to database
         operation: F,
     ) -> Result<T, E>
     where
@@ -163,6 +165,7 @@ pub mod mock {
             &self,
             _operation_name: impl Into<String>,
             _parameters: JsonValue,
+            _user_id: Option<impl Into<String>>,
             operation: F,
         ) -> Result<T, E>
         where
