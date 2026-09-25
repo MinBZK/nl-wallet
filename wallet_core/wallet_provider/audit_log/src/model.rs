@@ -57,7 +57,7 @@ where
         &self,
         operation_name: impl Into<String>,
         parameters: JsonValue,
-        _user_id: Option<impl Into<String>>, // TODO: write to database
+        user_id: Option<impl Into<String>>,
         operation: F,
     ) -> Result<T, E>
     where
@@ -75,7 +75,7 @@ where
             audit_correlation_id = correlation_id.to_string()
         );
 
-        self.audit_operation_start(operation_name, parameters, correlation_id)
+        self.audit_operation_start(operation_name, parameters, user_id.map(Into::into), correlation_id)
             .await
             .map_err(|e| E::from_audit_log_error(Box::new(e)))?;
 
@@ -98,6 +98,7 @@ where
         &self,
         operation_name: String,
         parameters: JsonValue,
+        user_id: Option<String>,
         correlation_id: Uuid,
     ) -> Result<(), DbErr> {
         let timestamp: DateTimeWithTimeZone = self.time_generator.generate().into();
@@ -107,6 +108,7 @@ where
             timestamp: Set(timestamp),
             operation: Set(Some(operation_name)),
             params: Set(Some(parameters.clone())),
+            user_id: Set(user_id),
             ..Default::default()
         };
 

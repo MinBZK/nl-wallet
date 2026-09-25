@@ -12,6 +12,7 @@ pub struct Model {
     pub operation: Option<String>,
     pub params: Option<Json>,
     pub is_success: Option<bool>,
+    pub user_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
