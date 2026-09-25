@@ -42,11 +42,24 @@ pub enum PublishDirError {
     NotADirectory,
 }
 
-impl PublishDir {
-    const TMP_EXTENSION: &'static str = "tmp";
-    const JWT_EXTENSION: &'static str = "jwt";
-    const LOCK_EXTENSION: &'static str = "lock";
+#[derive(Debug, Copy, Clone)]
+enum Extension {
+    Tmp,
+    Jwt,
+    Lock,
+}
 
+impl Extension {
+    fn as_os_str(self) -> &'static OsStr {
+        match self {
+            Self::Tmp => OsStr::new("tmp"),
+            Self::Jwt => OsStr::new("jwt"),
+            Self::Lock => OsStr::new("lock"),
+        }
+    }
+}
+
+impl PublishDir {
     fn sanitize(path: PathBuf) -> PathBuf {
         prefix_local_path(path).into_owned()
     }
@@ -59,22 +72,23 @@ impl PublishDir {
         Ok(())
     }
 
-    fn path_with_extension(&self, external_id: &ExternalId, extension: &str) -> PathBuf {
+    #[inline]
+    fn path_with_extension(&self, external_id: &ExternalId, extension: Extension) -> PathBuf {
         let mut path = self.as_ref().join(external_id.as_ref());
-        path.set_extension(extension);
+        path.set_extension(extension.as_os_str());
         path
     }
 
     pub fn tmp_path(&self, external_id: &ExternalId) -> PathBuf {
-        self.path_with_extension(external_id, Self::TMP_EXTENSION)
+        self.path_with_extension(external_id, Extension::Tmp)
     }
 
     pub fn jwt_path(&self, external_id: &ExternalId) -> PathBuf {
-        self.path_with_extension(external_id, Self::JWT_EXTENSION)
+        self.path_with_extension(external_id, Extension::Jwt)
     }
 
     pub fn lock_for(&self, external_id: &ExternalId) -> PublishLock {
-        PublishLock(self.path_with_extension(external_id, Self::LOCK_EXTENSION))
+        PublishLock(self.path_with_extension(external_id, Extension::Lock))
     }
 
     pub async fn clear_locks(&self) -> Result<(), PublishDirError> {
@@ -82,7 +96,7 @@ impl PublishDir {
         tokio::task::spawn_blocking(move || {
             for entry in std::fs::read_dir(&dir)? {
                 let path = entry?.path();
-                if path.extension() == Some(OsStr::new(Self::LOCK_EXTENSION)) {
+                if path.extension() == Some(Extension::Lock.as_os_str()) {
                     let mut file = File::create(&path)?;
                     LockVersion::default().write_to_io(&mut file)?;
                 }
@@ -399,7 +413,7 @@ mod tests {
 
         // Should republish with same time
         let published = publish_with_lock_if_newer(
-            publish_dir.path_with_extension(&external_id, PublishDir::LOCK_EXTENSION),
+            publish_dir.path_with_extension(&external_id, Extension::Lock),
             LockVersion::from(0, now),
         )
         .await;
