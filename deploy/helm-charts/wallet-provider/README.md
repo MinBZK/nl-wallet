@@ -90,6 +90,16 @@
 | `httpRoute.annotations`               | Additional annotations for the route                 | `{}`   |
 | `httpRoute.nginxClientSettingsPolicy` | Nginx specific client settings policy for this route | `{}`   |
 
+### HTTP route admin-portal parameters
+
+| Name                               | Description                          | Value  |
+| ---------------------------------- | ------------------------------------ | ------ |
+| `httpRouteAdminPortal.enabled`     | Enable or disable the route          | `true` |
+| `httpRouteAdminPortal.parentRefs`  | Parent references to the gateway     | `[]`   |
+| `httpRouteAdminPortal.hostnames`   | Hostnames for the route              | `[]`   |
+| `httpRouteAdminPortal.labels`      | Additional labels for the route      | `{}`   |
+| `httpRouteAdminPortal.annotations` | Additional annotations for the route | `{}`   |
+
 ### HTTP route internal parameters
 
 | Name                            | Description                          | Value  |
@@ -147,8 +157,8 @@
 
 | Name                                 | Description                                                             | Value                               |
 | ------------------------------------ | ----------------------------------------------------------------------- | ----------------------------------- |
-| `android.rootPublicKeys`             | Android root public keys                                                | `nil`                               |
-| `android.playstoreCertificateHashes` | Google Play Store certificate hashes                                    | `nil`                               |
+| `android.rootPublicKeys`             | Android root public keys                                                | `[]`                                |
+| `android.playstoreCertificateHashes` | Google Play Store certificate hashes                                    | `[]`                                |
 | `android.allowSideLoading`           | Allow installing apps from sources other than the Play Store            | `false`                             |
 | `android.serviceAccount.secretName`  | Name to the the Secret containing the Google Cloud service account file | `nl-wallet-gcloud-service-account`  |
 | `android.serviceAccount.secretKey`   | Key of the the Secret containing the Google Cloud service account file  | `google-cloud-service-account.json` |
@@ -157,7 +167,7 @@
 
 | Name                   | Description             | Value |
 | ---------------------- | ----------------------- | ----- |
-| `ios.rootCertificates` | iOS root certificates   | `nil` |
+| `ios.rootCertificates` | iOS root certificates   | `[]`  |
 | `ios.teamIdentifier`   | Team identifier for iOS | `nil` |
 
 ### Application parameters
@@ -168,6 +178,15 @@
 | `flagsRefreshDelayInSeconds`          | Interval in seconds of background job that refreshes flags | `nil`               |
 | `recoveryCodePaths.urn:eudi:pid:nl:1` | Recovery code path for default PID attestation             | `["recovery_code"]` |
 | `revokeSolutionEnabled`               | Whether the revoke-solution API is enabled                 | `false`             |
+
+### Admin portal settings
+
+| Name                               | Description            | Value            |
+| ---------------------------------- | ---------------------- | ---------------- |
+| `adminPortal.keycloakUrl`          | Keycloak URL           | `nil`            |
+| `adminPortal.keycloakRealm`        | Keycloak realm         | `nl-wallet`      |
+| `adminPortal.keycloakClientId`     | Keycloak client ID     | `wallet-backend` |
+| `adminPortal.keycloakTrustAnchors` | Keycloak trust anchors | `[]`             |
 
 ### WIA parameters
 
