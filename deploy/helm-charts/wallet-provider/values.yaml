@@ -206,8 +206,8 @@ keyIdentifiers:
 ## @param android.serviceAccount.secretKey Key of the the Secret containing the Google Cloud service account file
 ##
 android:
-  rootPublicKeys: null
-  playstoreCertificateHashes: null
+  rootPublicKeys: []
+  playstoreCertificateHashes: []
   allowSideLoading: false
   serviceAccount:
     secretName: nl-wallet-gcloud-service-account
@@ -219,7 +219,7 @@ android:
 ## @param ios.teamIdentifier Team identifier for iOS
 ##
 ios:
-  rootCertificates: null
+  rootCertificates: []
   teamIdentifier: null
 
 ## @section Application parameters
