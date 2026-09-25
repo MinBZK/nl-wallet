@@ -1,6 +1,6 @@
 .create-deployment:
   extends: .clone-variables
-  rules: !reference [.default-or-merge-request, rules]
+  rules: !reference [.default-branch, rules]
   script:
     # CI variables take precedence over dotenv
     - . deploy-variables/${DEPLOY_ENV}/cluster.env
@@ -19,6 +19,7 @@
 
 create-deployment-ont:
   extends: .create-deployment
+  rules: !reference [.default-or-merge-request, rules]
   variables:
     DEPLOY_ENV: ont
 
