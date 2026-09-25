@@ -76,7 +76,7 @@ spec:
             # - https://www.apple.com/certificateauthority/Apple_App_Attestation_Root_CA.pem
             # - wallet_core/lib/apple_app_attest/assets/mock_ca.crt.pem
             - name: WALLET_PROVIDER__IOS__ROOT_CERTIFICATES
-              value: {{ .Values.ios.rootCertificates }}
+              value: {{ .Values.ios.rootCertificates | join "," | quote }}
             - name: WALLET_PROVIDER__IOS__TEAM_IDENTIFIER
               value: {{ .Values.ios.teamIdentifier }}
             - name: WALLET_PROVIDER__IOS__BUNDLE_IDENTIFIER
@@ -84,9 +84,9 @@ spec:
 
             # Source: https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
             - name: WALLET_PROVIDER__ANDROID__ROOT_PUBLIC_KEYS
-              value: {{ .Values.android.rootPublicKeys }}
+              value: {{ .Values.android.rootPublicKeys | join "," | quote }}
             - name: WALLET_PROVIDER__ANDROID__PLAY_STORE_CERTIFICATE_HASHES
-              value: {{ .Values.android.playstoreCertificateHashes }}
+              value: {{ .Values.android.playstoreCertificateHashes | join "," | quote }}
             - name: WALLET_PROVIDER__ANDROID__ALLOW_SIDELOADING
               value: {{ .Values.android.allowSideLoading | quote }}
             - name: WALLET_PROVIDER__ANDROID__PACKAGE_NAME
@@ -144,7 +144,7 @@ spec:
             - name: WALLET_PROVIDER__ADMIN_PORTAL__KEYCLOAK_CLIENT_ID
               value: {{ .Values.adminPortal.keycloakClientId | quote }}
             - name: WALLET_PROVIDER__ADMIN_PORTAL__KEYCLOAK_TRUST_ANCHORS
-              value: {{ .Values.adminPortal.keycloakTrustAnchors | join "," }}
+              value: {{ .Values.adminPortal.keycloakTrustAnchors | join "," | quote }}
             - name: WALLET_PROVIDER__ADMIN_PORTAL__PUBLIC_URL
               value: https://{{ .Values.httpRouteAdminPortal.hostnames | first }}/
 
