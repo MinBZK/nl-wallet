@@ -109,3 +109,27 @@ async fn test_router_etag(#[case] etag: &str, #[case] status_code: StatusCode) {
     assert_eq!(response.headers().get(VARY).unwrap(), "accept");
     assert_eq!(response.status(), status_code);
 }
+
+#[tokio::test]
+async fn test_router_with_extension() {
+    let publish_dir = TempDir::new().unwrap();
+    let url = setup_server(&publish_dir, None).await.unwrap();
+
+    let path = publish_dir.path().join("test.jwt");
+    tokio::fs::write(&path, "test123").await.unwrap();
+
+    let response = reqwest::get(url.join("test.jwt").unwrap()).await.unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_router_external_id_check() {
+    let publish_dir = TempDir::new().unwrap();
+    let url = setup_server(&publish_dir, None).await.unwrap();
+
+    let path = publish_dir.path().join("teßt.jwt");
+    tokio::fs::write(&path, "test123").await.unwrap();
+
+    let response = reqwest::get(url.join("teßt").unwrap()).await.unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}

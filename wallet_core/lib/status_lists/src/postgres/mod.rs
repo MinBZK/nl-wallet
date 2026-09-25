@@ -57,6 +57,7 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
+use crate::ExternalId;
 use crate::config::StatusListConfig;
 use crate::entity::attestation_batch;
 use crate::entity::attestation_batch_list_indices;
@@ -70,9 +71,6 @@ use crate::refresh::RefreshControl;
 
 #[cfg(feature = "revocation_helper")]
 pub mod revocation_helper;
-
-/// Length of the external id for status lists used in the url (alphanumeric characters)
-const EXTERNAL_ID_SIZE: usize = 12;
 
 /// Number of tries to create status list while obtaining a status claim.
 const IN_FLIGHT_CREATE_TRIES: usize = 5;
@@ -190,7 +188,12 @@ where
     K: EcdsaKeySend + Sync + 'static,
     R: RevokeAll + Clone + Sync + 'static,
 {
-    async fn publish(&self, list_id: i64, external_id: &str, size: usize) -> Result<bool, StatusListServiceError> {
+    async fn publish(
+        &self,
+        list_id: i64,
+        external_id: &ExternalId,
+        size: usize,
+    ) -> Result<bool, StatusListServiceError> {
         if self.revoke_all {
             self.service.publish_status_list_all_revoked(external_id, size).await
         } else {
@@ -259,7 +262,10 @@ where
             .await
             .map_err(StatusListServiceError::Db)?
             .map(async |result| match result {
-                Ok((list_id, external_id, size)) => publisher.publish(list_id, &external_id, size as usize).await,
+                Ok((list_id, external_id, size)) => {
+                    let external_id = ExternalId::try_from(external_id).expect("external id from db should be valid");
+                    publisher.publish(list_id, &external_id, size as usize).await
+                }
                 Err(error) => Err(StatusListServiceError::Db(error)),
             })
             .buffer_unordered(REPUBLISH_ALL_MAX_CONCURRENT);
@@ -314,8 +320,9 @@ where
             .map_err(|error| StatusListServiceError::RevokeAll(Box::new(error)))?;
         try_join_all(status_list_info.into_iter().unique_by(|(id, _, _)| *id).map(
             |(list_id, external_id, size)| async move {
+                let external_id = ExternalId::try_from(external_id).expect("external id from db should be valid");
                 let size = size.try_into().expect("size should be non-zero");
-                publisher.publish(list_id, external_id.as_str(), size).await
+                publisher.publish(list_id, &external_id, size).await
             },
         ))
         .await?;
@@ -345,11 +352,11 @@ impl<K, R> PostgresStatusListService<K, R> {
         &self.config
     }
 
-    fn external_id_url(&self, external_id: &str) -> Url {
+    fn external_id_url(&self, external_id: &ExternalId) -> Url {
         self.config
             .base_url
             .join_base_url(&self.config.context_path)
-            .join(external_id)
+            .join(external_id.as_ref())
     }
 }
 
@@ -408,7 +415,8 @@ where
         let claims = lists_with_items
             .into_iter()
             .flat_map(|(list, items)| {
-                let url = self.external_id_url(&list.external_id);
+                let external_id = ExternalId::try_from(list.external_id).expect("external id from db should be valid");
+                let url = self.external_id_url(&external_id);
                 items.into_iter().map(move |item| {
                     StatusClaim::StatusList(StatusListClaim {
                         idx: item.index as u32,
@@ -617,13 +625,13 @@ where
         }
 
         // Create new list
-        let external_id = crypto::utils::random_string(EXTERNAL_ID_SIZE);
+        let external_id = ExternalId::generate();
         let list_size = self.config.list_size.into_inner();
         let new_next_sequence_no = attestation_group.next_sequence_no + i64::from(list_size);
         let list = status_list::ActiveModel {
             id: NotSet,
             attestation_group_id: Set(self.attestation_group_id),
-            external_id: Set(external_id.clone()),
+            external_id: Set(external_id.clone().into()),
             available: Set(list_size),
             size: Set(list_size),
             next_sequence_no: Set(new_next_sequence_no),
@@ -864,7 +872,8 @@ where
         // Republish if necessary
         let expiries = join_all(lists.into_iter().map(|list| {
             async move {
-                let path = self.config.publish_dir.jwt_path(&list.external_id);
+                let external_id = ExternalId::try_from(list.external_id).expect("external id from db should be valid");
+                let path = self.config.publish_dir.jwt_path(&external_id);
                 let mut expiry = read_token_expiry(&path)
                     .await
                     .inspect_err(|err| tracing::warn!("Could not read expiry from `{}`: {}", path.display(), err))
@@ -875,7 +884,7 @@ where
                     tracing::info!("Republishing status list for ID {}", list.id);
                     let size = list.size.try_into().expect("size should be non-zero");
 
-                    match publisher.publish(list.id, &list.external_id, size).await {
+                    match publisher.publish(list.id, &external_id, size).await {
                         // Always read token expiry as it can be changed by another instance
                         Ok(_) => {
                             expiry = read_token_expiry(&path)
@@ -903,7 +912,7 @@ where
         refresh_control.next_refresh_delay(expiries.into_iter().collect::<Option<Vec<_>>>().unwrap_or_default())
     }
 
-    async fn publish_new_status_list(&self, external_id: &str) -> Result<(), StatusListServiceError> {
+    async fn publish_new_status_list(&self, external_id: &ExternalId) -> Result<(), StatusListServiceError> {
         let is_revoked_all = self
             .revoke_all
             .is_revoked_all()
@@ -939,7 +948,7 @@ where
     async fn publish_status_list_from_db(
         &self,
         list_id: i64,
-        external_id: &str,
+        external_id: &ExternalId,
         size: usize,
     ) -> Result<bool, StatusListServiceError> {
         // Fetch all revoked attestation for this status list
@@ -980,7 +989,7 @@ where
 
     async fn publish_status_list_all_revoked(
         &self,
-        external_id: &str,
+        external_id: &ExternalId,
         size: usize,
     ) -> Result<bool, StatusListServiceError> {
         let expires = Utc::now() + self.config.expiry;
@@ -1000,7 +1009,7 @@ where
         &self,
         builder: StatusListTokenBuilder,
         expires: DateTime<Utc>,
-        external_id: &str,
+        external_id: &ExternalId,
     ) -> Result<(), StatusListServiceError> {
         // Sign
         let token = builder

@@ -27,6 +27,7 @@ use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
 
+use crate::ExternalId;
 use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
 
@@ -169,7 +170,11 @@ async fn serve_status_list(
 ) -> Result<Response, StatusCode> {
     check_accept(headers.get(header::ACCEPT))?;
 
-    let path = state.publish_dir.jwt_path(id.as_str());
+    let Ok(external_id) = ExternalId::try_from(id) else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+
+    let path = state.publish_dir.jwt_path(&external_id);
     let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
 
     let etag = EntityTag::from_data(&bytes);

@@ -15,6 +15,8 @@ use rustix::io::Errno;
 use tokio::task::JoinError;
 use utils::path::prefix_local_path;
 
+use crate::ExternalId;
+
 #[nutype(
     derive(Debug, Clone, TryFrom, Into, AsRef, PartialEq, Deserialize),
     sanitize(with=PublishDir::sanitize),
@@ -57,21 +59,21 @@ impl PublishDir {
         Ok(())
     }
 
-    fn path_with_extension(&self, external_id: &str, extension: &str) -> PathBuf {
-        let mut path = self.as_ref().join(external_id);
+    fn path_with_extension(&self, external_id: &ExternalId, extension: &str) -> PathBuf {
+        let mut path = self.as_ref().join(external_id.as_ref());
         path.set_extension(extension);
         path
     }
 
-    pub fn tmp_path(&self, external_id: &str) -> PathBuf {
+    pub fn tmp_path(&self, external_id: &ExternalId) -> PathBuf {
         self.path_with_extension(external_id, Self::TMP_EXTENSION)
     }
 
-    pub fn jwt_path(&self, external_id: &str) -> PathBuf {
+    pub fn jwt_path(&self, external_id: &ExternalId) -> PathBuf {
         self.path_with_extension(external_id, Self::JWT_EXTENSION)
     }
 
-    pub fn lock_for(&self, external_id: &str) -> PublishLock {
+    pub fn lock_for(&self, external_id: &ExternalId) -> PublishLock {
         PublishLock(self.path_with_extension(external_id, Self::LOCK_EXTENSION))
     }
 
@@ -387,16 +389,17 @@ mod tests {
     async fn clear_locks() {
         let tempdir = tempfile::tempdir().unwrap();
         let publish_dir = PublishDir::try_new(tempdir.path().to_path_buf()).unwrap();
+        let external_id = ExternalId::try_from("abcd".to_string()).unwrap();
 
         let now = Utc::now();
-        publish_dir.lock_for("abcd").create(Utc::now()).unwrap();
+        publish_dir.lock_for(&external_id).create(Utc::now()).unwrap();
 
         // Clear locks
         publish_dir.clear_locks().await.unwrap();
 
         // Should republish with same time
         let published = publish_with_lock_if_newer(
-            publish_dir.path_with_extension("abcd", PublishDir::LOCK_EXTENSION),
+            publish_dir.path_with_extension(&external_id, PublishDir::LOCK_EXTENSION),
             LockVersion::from(0, now),
         )
         .await;
