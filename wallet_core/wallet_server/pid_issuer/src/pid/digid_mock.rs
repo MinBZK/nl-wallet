@@ -59,8 +59,8 @@ const MOCK_LOGIN_CSS: &str = include_str!("../../static/mock_login.css");
 const MOCK_LOGIN_JS: &str = include_str!("../../static/mock_login.js");
 const MOCK_LOGIN_LOGO: &str = include_str!("../../static/non-free/digid.svg");
 
-const CSS_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("text/css; charset=utf-8");
-const JS_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("text/javascript; charset=utf-8");
+const CSS_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("text/css");
+const JS_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("text/javascript");
 const SVG_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("image/svg+xml");
 
 /// The languages offered by the language selector, each labelled in its own language.
