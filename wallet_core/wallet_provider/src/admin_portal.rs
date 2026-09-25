@@ -240,6 +240,7 @@ mod tests {
     use chrono::DateTime;
     use chrono::TimeDelta;
     use chrono::Utc;
+    use crypto::utils::random_string;
     use http_utils::reqwest::test::get_test_trust_anchor;
     use serde_json::Value;
     use utils::vec_nonempty;
@@ -371,6 +372,24 @@ mod tests {
         )
     }
 
+    fn setup_state_with_valid_user() -> (Arc<AdminPortalState<InMemoryRepository>>, CookieJar) {
+        let session_id = random_string(12);
+        let repository = InMemoryRepository::default();
+        repository.sessions.lock().unwrap().insert(
+            session_id.clone(),
+            AdminPortalUserSession {
+                display_name: "Jane Doe".to_string(),
+                roles: vec!["privilege_admin".to_string(), "offline_access".to_string()],
+                id_token: "the-id-token".to_string(),
+                expires_at: Utc::now() + TimeDelta::minutes(5),
+            },
+        );
+        let state = setup_state_with_repository(repository);
+        let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, session_id));
+
+        (state, jar)
+    }
+
     #[tokio::test]
     async fn login_reports_server_error_when_oidc_provider_is_unreachable() {
         let state = setup_state();
@@ -399,6 +418,28 @@ mod tests {
         assert_eq!(
             response.headers().get(header::LOCATION).unwrap(),
             "https://portal.example.org/error?reason=invalid_state"
+        );
+    }
+
+    #[tokio::test]
+    async fn callback_without_state_but_with_session_redirects_to_frontend_entry() {
+        let (state, jar) = setup_state_with_valid_user();
+
+        let response = callback(
+            State(state),
+            jar,
+            Query(CallbackQuery {
+                state: Some("unknown-state".to_string()),
+                code: None,
+                error: None,
+            }),
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        assert_eq!(
+            response.headers().get(header::LOCATION).unwrap(),
+            "https://portal.example.org/"
         );
     }
 
@@ -453,18 +494,7 @@ mod tests {
 
     #[tokio::test]
     async fn me_with_valid_session_reports_logged_in_user() {
-        let repository = InMemoryRepository::default();
-        repository.sessions.lock().unwrap().insert(
-            "the-session-id".to_string(),
-            AdminPortalUserSession {
-                display_name: "Jane Doe".to_string(),
-                roles: vec!["privilege_admin".to_string(), "offline_access".to_string()],
-                id_token: "the-id-token".to_string(),
-                expires_at: Utc::now() + TimeDelta::minutes(5),
-            },
-        );
-        let state = setup_state_with_repository(repository);
-        let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "the-session-id"));
+        let (state, jar) = setup_state_with_valid_user();
 
         let response = me(State(state), jar).await;
 
