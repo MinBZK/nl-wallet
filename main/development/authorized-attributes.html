@@ -251,9 +251,9 @@ entries in the registration certificate. Their claim paths use different
 conventions and are matched exactly; the wallet does not translate between
 them during authorization.</p>
 <p>An mdoc claim path starts with its namespace followed by the element
-identifier, for example <code class="docutils literal notranslate"><span class="pre">[&quot;urn:eudi:pid:nl:1&quot;,</span> <span class="pre">&quot;given_name&quot;]</span></code>. Elements in a
-separate namespace use that namespace instead, for example
-<code class="docutils literal notranslate"><span class="pre">[&quot;urn:eudi:pid:nl:1.address&quot;,</span> <span class="pre">&quot;street_address&quot;]</span></code>.</p>
+identifier, for example <code class="docutils literal notranslate"><span class="pre">[&quot;urn:eudi:pid:nl:1&quot;,</span> <span class="pre">&quot;given_name&quot;]</span></code>. The namespace
+does not necessarily equal the doctype, for example the mDL (doctype
+<code class="docutils literal notranslate"><span class="pre">org.iso.18013.5.1.mDL</span></code>) uses <code class="docutils literal notranslate"><span class="pre">[&quot;org.iso.18013.5.1&quot;,</span> <span class="pre">&quot;family_name&quot;]</span></code>.</p>
 <p>An SD-JWT claim path follows the nesting of the JSON claims. A top-level path
 is written as <code class="docutils literal notranslate"><span class="pre">[&quot;given_name&quot;]</span></code>, while a nested path is written as
 <code class="docutils literal notranslate"><span class="pre">[&quot;address&quot;,</span> <span class="pre">&quot;street_address&quot;]</span></code>.</p>
