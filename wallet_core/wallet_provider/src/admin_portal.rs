@@ -231,7 +231,6 @@ where
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::net::TcpListener;
     use std::sync::Mutex;
     use std::time::Duration;
 
@@ -242,7 +241,6 @@ mod tests {
     use chrono::TimeDelta;
     use chrono::Utc;
     use http_utils::reqwest::test::get_test_trust_anchor;
-    use http_utils::urls::BaseUrl;
     use serde_json::Value;
     use utils::vec_nonempty;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
@@ -350,17 +348,16 @@ mod tests {
         }
     }
 
-    /// Binds an ephemeral local port and immediately releases it, so that connecting to it is reliably refused.
-    fn unreachable_keycloak_url() -> BaseUrl {
-        let port = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
-        format!("https://127.0.0.1:{port}").parse().unwrap()
+    fn setup_state() -> Arc<AdminPortalState<InMemoryRepository>> {
+        setup_state_with_repository(InMemoryRepository::default())
     }
 
-    fn state(repository: InMemoryRepository, keycloak_url: BaseUrl) -> Arc<AdminPortalState<InMemoryRepository>> {
+    fn setup_state_with_repository(repository: InMemoryRepository) -> Arc<AdminPortalState<InMemoryRepository>> {
         Arc::new(
             AdminPortalState::try_new(
                 AdminPortalSettings {
-                    keycloak_url,
+                    // .invalid is reserved by the IETF and will never resolve
+                    keycloak_url: "https://keycloak.invalid".parse().unwrap(),
                     keycloak_realm: "test-realm".to_string(),
                     keycloak_client_id: "test-client".to_string(),
                     public_url: "https://portal.example.org/".parse().unwrap(),
@@ -376,7 +373,7 @@ mod tests {
 
     #[tokio::test]
     async fn login_reports_server_error_when_oidc_provider_is_unreachable() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
 
         let response = login(State(state), Query(LoginQuery { login_hint: None })).await;
 
@@ -385,7 +382,7 @@ mod tests {
 
     #[tokio::test]
     async fn callback_without_state_redirects_to_frontend_error_page() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
 
         let response = callback(
             State(state),
@@ -407,7 +404,7 @@ mod tests {
 
     #[tokio::test]
     async fn logout_without_session_cookie_redirects_to_frontend_entry() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
 
         let response = logout(State(state), CookieJar::new()).await;
 
@@ -423,7 +420,7 @@ mod tests {
         let mut session_repository = InMemoryRepository::default();
         session_repository.set_errors(true);
 
-        let state = state(session_repository, unreachable_keycloak_url());
+        let state = setup_state_with_repository(session_repository);
         let cookie_jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "my_session"));
 
         let response = logout(State(state), cookie_jar).await;
@@ -437,7 +434,7 @@ mod tests {
 
     #[tokio::test]
     async fn me_without_session_cookie_is_unauthorized() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
 
         let response = me(State(state), CookieJar::new()).await;
 
@@ -446,7 +443,7 @@ mod tests {
 
     #[tokio::test]
     async fn me_with_unknown_session_cookie_is_unauthorized() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
         let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "unknown-session"));
 
         let response = me(State(state), jar).await;
@@ -466,7 +463,7 @@ mod tests {
                 expires_at: Utc::now() + TimeDelta::minutes(5),
             },
         );
-        let state = state(repository, unreachable_keycloak_url());
+        let state = setup_state_with_repository(repository);
         let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "the-session-id"));
 
         let response = me(State(state), jar).await;
