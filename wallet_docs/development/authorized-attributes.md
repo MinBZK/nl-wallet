@@ -64,9 +64,9 @@ conventions and are matched exactly; the wallet does not translate between
 them during authorization.
 
 An mdoc claim path starts with its namespace followed by the element
-identifier, for example `["urn:eudi:pid:nl:1", "given_name"]`. Elements in a
-separate namespace use that namespace instead, for example
-`["urn:eudi:pid:nl:1.address", "street_address"]`.
+identifier, for example `["urn:eudi:pid:nl:1", "given_name"]`. The namespace
+does not necessarily equal the doctype, for example the mDL (doctype
+`org.iso.18013.5.1.mDL`) uses `["org.iso.18013.5.1", "family_name"]`.
 
 An SD-JWT claim path follows the nesting of the JSON claims. A top-level path
 is written as `["given_name"]`, while a nested path is written as
