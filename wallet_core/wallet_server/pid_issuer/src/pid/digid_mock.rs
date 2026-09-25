@@ -30,6 +30,10 @@ use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 use web_utils::css::serve_bundled_css;
 use web_utils::headers::set_content_security_policy;
+use web_utils::language::LANGUAGE_JS;
+use web_utils::language::LANGUAGE_SELECTOR_CHECKMARK_SVG;
+use web_utils::language::LANGUAGE_SELECTOR_CSS;
+use web_utils::language::LANGUAGE_SELECTOR_DOWN_SVG;
 use web_utils::language::Language;
 
 /// Path (relative to the issuer's public URL) of the mock login page.
@@ -42,9 +46,25 @@ const MOCK_LOGIN_SELECT_PATH: &str = "/digid/mock-login/select";
 /// than allowing inline styles/scripts.
 const MOCK_LOGIN_CSS_PATH: &str = "/digid/mock-login/mock_login.css";
 const MOCK_LOGIN_JS_PATH: &str = "/digid/mock-login/mock_login.js";
+const MOCK_LOGIN_LOGO_PATH: &str = "/digid/mock-login/digid.svg";
+
+/// Paths of the shared language selector's assets. The stylesheet refers to its icons as `../images/*.svg`,
+/// so it is served from a `css/` sibling of `images/`.
+const LANGUAGE_SELECTOR_CSS_PATH: &str = "/digid/mock-login/css/language_selector.css";
+const LANGUAGE_SELECTOR_DOWN_PATH: &str = "/digid/mock-login/images/down.svg";
+const LANGUAGE_SELECTOR_CHECKMARK_PATH: &str = "/digid/mock-login/images/checkmark.svg";
+const LANGUAGE_JS_PATH: &str = "/digid/mock-login/language.js";
 
 const MOCK_LOGIN_CSS: &str = include_str!("../../static/mock_login.css");
 const MOCK_LOGIN_JS: &str = include_str!("../../static/mock_login.js");
+const MOCK_LOGIN_LOGO: &str = include_str!("../../static/non-free/digid.svg");
+
+const CSS_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("text/css");
+const JS_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("text/javascript");
+const SVG_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("image/svg+xml");
+
+/// The languages offered by the language selector, each labelled in its own language.
+const LANGUAGE_OPTIONS: &[(Language, &str)] = &[(Language::Nl, "Nederlands"), (Language::En, "English")];
 
 /// The configured selectable mock identities, as a map from BSN to display name.
 pub type MockSubjects = IndexMap<String, String>;
@@ -198,7 +218,30 @@ impl MockLoginState {
             .route(MOCK_LOGIN_PATH, get(mock_login_page))
             .route(MOCK_LOGIN_SELECT_PATH, post(mock_login_select))
             .route(MOCK_LOGIN_CSS_PATH, get(mock_login_css))
-            .route(MOCK_LOGIN_JS_PATH, get(mock_login_js))
+            .route(
+                MOCK_LOGIN_JS_PATH,
+                get(|| async { static_asset(JS_CONTENT_TYPE, MOCK_LOGIN_JS) }),
+            )
+            .route(
+                MOCK_LOGIN_LOGO_PATH,
+                get(|| async { static_asset(SVG_CONTENT_TYPE, MOCK_LOGIN_LOGO) }),
+            )
+            .route(
+                LANGUAGE_SELECTOR_CSS_PATH,
+                get(|| async { static_asset(CSS_CONTENT_TYPE, LANGUAGE_SELECTOR_CSS) }),
+            )
+            .route(
+                LANGUAGE_SELECTOR_DOWN_PATH,
+                get(|| async { static_asset(SVG_CONTENT_TYPE, LANGUAGE_SELECTOR_DOWN_SVG) }),
+            )
+            .route(
+                LANGUAGE_SELECTOR_CHECKMARK_PATH,
+                get(|| async { static_asset(SVG_CONTENT_TYPE, LANGUAGE_SELECTOR_CHECKMARK_SVG) }),
+            )
+            .route(
+                LANGUAGE_JS_PATH,
+                get(|| async { static_asset(JS_CONTENT_TYPE, LANGUAGE_JS) }),
+            )
             .layer(middleware::from_fn(move |request, next| {
                 set_content_security_policy(request, next, csp)
             }))
@@ -211,15 +254,9 @@ async fn mock_login_css(headers: HeaderMap) -> Response {
     serve_bundled_css(&headers, MOCK_LOGIN_CSS)
 }
 
-/// `GET /digid/mock-login/mock_login.js`: the page's script.
-async fn mock_login_js() -> impl IntoResponse {
-    (
-        [(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("text/javascript; charset=utf-8"),
-        )],
-        MOCK_LOGIN_JS,
-    )
+/// Serves a bundled static asset with the given content type.
+fn static_asset(content_type: HeaderValue, body: &'static str) -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, content_type)], body)
 }
 
 struct Translations {
@@ -269,15 +306,14 @@ struct Subject {
 #[derive(Template, WebTemplate)]
 #[template(path = "mock_login.askama", escape = "html", ext = "html")]
 struct MockLoginTemplate {
-    /// Selected language code (`"nl"`/`"en"`), for the `<html lang>` attribute and the language bar.
-    lang: String,
+    /// Selected language, for the `<html lang>` attribute and the language selector.
+    lang: Language,
     trans: Translations,
-    /// The nl-rdo-max authorize URL, round-tripped as a hidden field so each card can POST it back.
+    /// The nl-rdo-max authorize URL, round-tripped as a hidden field so each card can POST it back and
+    /// switching the language keeps it.
     authorize_url: String,
     subjects: Vec<Subject>,
-    /// Relative links that switch the page language while preserving `authorize_url`.
-    nl_href: String,
-    en_href: String,
+    language_options: &'static [(Language, &'static str)],
 }
 
 /// Query parameters of the mock login page: the nl-rdo-max `/authorize` URL a selected card will
@@ -294,17 +330,6 @@ async fn mock_login_page(
     language: Language,
     Query(PageQuery { authorize_url }): Query<PageQuery>,
 ) -> MockLoginTemplate {
-    // A language-switch link for the given code, preserving the authorize URL across the switch. This
-    // is a query-only relative ref (`?…`) so the browser resolves it against the page's own URL,
-    // keeping any context path the issuer is served under.
-    let lang_href = |code: &str| {
-        let query = url::form_urlencoded::Serializer::new(String::new())
-            .append_pair("lang", code)
-            .append_pair("authorize_url", &authorize_url)
-            .finish();
-        format!("?{query}")
-    };
-
     let subjects = state
         .subjects
         .iter()
@@ -315,12 +340,11 @@ async fn mock_login_page(
         .collect();
 
     MockLoginTemplate {
-        lang: language.to_string(),
+        lang: language,
         trans: translations(language),
-        nl_href: lang_href("nl"),
-        en_href: lang_href("en"),
         authorize_url,
         subjects,
+        language_options: LANGUAGE_OPTIONS,
     }
 }
 
@@ -356,6 +380,7 @@ mod tests {
 
     use super::MOCK_LOGIN_CSS_PATH;
     use super::MOCK_LOGIN_JS_PATH;
+    use super::MOCK_LOGIN_LOGO_PATH;
     use super::MockLoginState;
     use super::MockSubjects;
     use super::mock_acs_url;
@@ -366,7 +391,7 @@ mod tests {
             MockLoginState::new(reqwest::Client::new(), MockSubjects::new(), "default-src 'self'").router(),
         );
 
-        for path in [MOCK_LOGIN_CSS_PATH, MOCK_LOGIN_JS_PATH] {
+        for path in [MOCK_LOGIN_CSS_PATH, MOCK_LOGIN_JS_PATH, MOCK_LOGIN_LOGO_PATH] {
             let response = router
                 .clone()
                 .oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
