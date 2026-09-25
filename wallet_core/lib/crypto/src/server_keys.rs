@@ -434,6 +434,8 @@ pub mod generate {
         pub static PID_ISSUER_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
             LazyLock::new(|| "https://pid.example.com".parse().unwrap());
         pub static WIA_CERT_DN: LazyLock<DistinguishedName> = LazyLock::new(|| DistinguishedName::create_mock("WIA"));
+        pub static KEY_ATTESTATION_CERT_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("Key Attestation"));
 
         pub static RP_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA relying party"));
@@ -519,6 +521,14 @@ pub mod generate {
                 self.generate_key_pair(
                     WIA_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Wia),
+                    NO_SAN,
+                )
+            }
+
+            pub fn generate_key_attestation_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
+                self.generate_key_pair(
+                    KEY_ATTESTATION_CERT_DN.clone(),
+                    CertificateConfiguration::with_usage(CertificateUsage::KeyAttestation),
                     NO_SAN,
                 )
             }
