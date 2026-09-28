@@ -167,7 +167,7 @@ async fn register_wallets_with_wias(
 
 async fn status_type_for_claim(StatusClaim::StatusList(claim): &StatusClaim, publish_dir: &PublishDir) -> StatusType {
     let external_id = claim.uri.path().split('/').next_back().unwrap();
-    let external_id = ExternalId::try_from(external_id.to_string()).unwrap();
+    let external_id = ExternalId::try_from(external_id).unwrap();
     let path = publish_dir.jwt_path(&external_id);
     tokio::fs::read_to_string(path)
         .await
