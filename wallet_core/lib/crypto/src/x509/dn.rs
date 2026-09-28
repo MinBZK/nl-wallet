@@ -11,7 +11,7 @@ use x509_parser::error::X509Error;
 use x509_parser::x509::AttributeTypeAndValue;
 use x509_parser::x509::X509Name;
 
-pub const DN_TYPE_ORGANIZATION_IDENTIFIER_OID: &Oid = &oid!(1.3.6.1.1.15);
+pub const DN_TYPE_ORGANIZATION_IDENTIFIER_OID: &Oid = &oid!(2.5.4.97);
 pub const DN_TYPE_SERIAL_NUMBER_OID: &Oid = &oid!(2.5.4.5);
 pub const DN_TYPE_SURNAME_OID: &Oid = &oid!(2.5.4.4);
 pub const DN_TYPE_GIVEN_NAME_OID: &Oid = &oid!(2.5.4.42);
@@ -367,7 +367,7 @@ mod tests {
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
         assert_eq!(
-            "2.5.4.3=DAZteWNlcnQ,2.5.4.6=DAJOTA,2.5.4.10=DAtteWNlcnQgQi5WLg,1.3.6.1.1.15=DA5OVFJOTC0xMjYwNjE3OA",
+            "2.5.4.3=DAZteWNlcnQ,2.5.4.6=DAJOTA,2.5.4.10=DAtteWNlcnQgQi5WLg,2.5.4.97=DA5OVFJOTC0xMjYwNjE3OA",
             certificate.to_canonical_distinguished_name().unwrap().as_ref()
         );
 
