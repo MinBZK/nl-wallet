@@ -30,6 +30,7 @@ export class GroupedReader implements ResultsReader {
       visitCheckResult: visitor.visitCheckResult.bind(visitor),
       visitMetadata: visitor.visitMetadata.bind(visitor),
       visitGlobals: visitor.visitGlobals.bind(visitor),
+      visitMetrics: visitor.visitMetrics.bind(visitor),
     }
     return this.#reader.read(wrappedVisitor, data)
   }
