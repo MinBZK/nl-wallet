@@ -51,7 +51,7 @@ where
     /// Audit operation.
     ///
     /// This adds two records to the audit log:
-    /// - before executing the `operation`, it records the operation with the parameters
+    /// - before executing the `operation`, it records the operation with the parameters and the optional `user_id`
     /// - after executing the `operation`, it records the result of the operation, i.e. Success or Failure
     async fn audit<F, T, E>(
         &self,

@@ -12,6 +12,8 @@ use syn::parse_macro_input;
 /// Exactly one parameter must be annotated with `#[auditor]` to identify the
 /// `AuditLog` implementor. Zero or more parameters may be annotated with
 /// `#[audit]` to include them in the JSON parameters passed to the audit log.
+/// At most one parameter may be annotated with `#[audit_user]` to provide the
+/// user id passed to the audit log; if omitted, `None` is passed.
 ///
 /// The macro generates a struct named `AuditParameters` with a field for each
 /// `#[audit]` parameter, derives `serde::Serialize`, and uses
@@ -31,6 +33,7 @@ use syn::parse_macro_input;
 /// #[audited]
 /// pub async fn revoke_wallet(
 ///     #[audit] wallet_id: &WalletId,
+///     #[audit_user] user_id: &str,
 ///     #[auditor] audit_log: &impl AuditLog,
 /// ) -> Result<(), RevocationError> {
 ///     Ok(())
@@ -47,7 +50,11 @@ use syn::parse_macro_input;
 /// # impl audit_log::model::FromAuditLogError for RevocationError {
 /// #     fn from_audit_log_error(_e: Box<dyn std::error::Error + Send + Sync>) -> Self { Self }
 /// # }
-/// pub async fn revoke_wallet(wallet_id: &WalletId, audit_log: &impl AuditLog) -> Result<(), RevocationError> {
+/// pub async fn revoke_wallet(
+///     wallet_id: &WalletId,
+///     user_id: &str,
+///     audit_log: &impl AuditLog,
+/// ) -> Result<(), RevocationError> {
 ///     #[derive(::serde::Serialize)]
 ///     struct AuditParameters<'__audit> {
 ///         wallet_id: &'__audit str,
@@ -63,7 +70,14 @@ use syn::parse_macro_input;
 ///             }
 ///         }
 ///     };
-///     audit_log::model::AuditLog::audit(audit_log, "revoke_wallet", __audit_params_json, async move || Ok(())).await
+///     audit_log::model::AuditLog::audit(
+///         audit_log,
+///         "revoke_wallet",
+///         __audit_params_json,
+///         Some(::std::convert::AsRef::<str>::as_ref(&user_id)),
+///         async move || Ok(()),
+///     )
+///     .await
 /// }
 /// ```
 #[proc_macro_attribute]
