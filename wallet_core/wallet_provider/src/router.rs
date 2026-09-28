@@ -28,7 +28,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-use tower_http::decompression::RequestDecompressionLayer;
+use tokio::sync::Semaphore;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
@@ -111,6 +111,7 @@ where
         admin_portal,
         state.user_state.repositories.clone(),
     )?);
+    let wallet_transfer_permits = Arc::new(Semaphore::new(state.wallet_transfer_concurrency_limit));
     let router = Router::new()
         .merge(health_router(&state.user_state))
         .merge(metrics_router())
@@ -140,11 +141,20 @@ where
                 .route(
                     &format!("/instructions/hw_signed/{}", SendWalletPayload::NAME),
                     post(handle_hw_signed_instruction::<SendWalletPayload, _, _, _>)
-                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
+                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes))
+                        .layer(middleware::from_fn_with_state(
+                            Arc::clone(&wallet_transfer_permits),
+                            wallet_transfer_concurrency_gate,
+                        )),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", ReceiveWalletPayload::NAME),
-                    post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>),
+                    post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>).layer(
+                        middleware::from_fn_with_state(
+                            Arc::clone(&wallet_transfer_permits),
+                            wallet_transfer_concurrency_gate,
+                        ),
+                    ),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", CompleteTransfer::NAME),
@@ -198,7 +208,6 @@ where
                     &format!("/instructions/{}", DeleteKeys::NAME),
                     post(handle_instruction::<DeleteKeys, _, _, _>),
                 )
-                .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))
                 .with_state(Arc::clone(&state)),
@@ -256,6 +265,20 @@ async fn metrics_handler(State(handle): State<PrometheusHandle>) -> String {
 
 async fn log_headers(req: Request, next: Next) -> Response {
     tracing::info!("Headers: {:?}", req.headers());
+    next.run(req).await
+}
+
+/// Bounds concurrent in-flight `SendWalletPayload`/`ReceiveWalletPayload` requests. Both
+/// buffer up to `max_transfer_upload_size_in_bytes` in memory, so a caller could otherwise
+/// open enough concurrent requests to exceed the pod's memory limit regardless of that
+/// per-request cap.
+///
+/// Sharing one semaphore between both routes bounds worst-case concurrent memory use to
+/// roughly `wallet_transfer_concurrency_limit * max_transfer_upload_size_in_bytes` combined,
+/// regardless of the send/receive mix; the container memory limit must be sized to cover
+/// that.
+async fn wallet_transfer_concurrency_gate(State(permits): State<Arc<Semaphore>>, req: Request, next: Next) -> Response {
+    let _permit = permits.acquire().await.expect("semaphore is never closed");
     next.run(req).await
 }
 
