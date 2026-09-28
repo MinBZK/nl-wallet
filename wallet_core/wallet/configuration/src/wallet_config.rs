@@ -109,7 +109,7 @@ pub struct AccountServerConfiguration {
     #[serde_as(as = "HashMap<_, Base64>")]
     pub instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
     #[debug(skip)]
-    pub wia_trust_anchors: TrustAnchors,
+    pub wptl_trust_anchors: TrustAnchors,
     #[serde(rename = "certificate_refresh_threshold_in_days", with = "utils::duration_days")]
     pub certificate_refresh_threshold: Duration,
 }

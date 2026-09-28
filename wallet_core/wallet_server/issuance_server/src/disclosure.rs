@@ -280,7 +280,7 @@ mod tests {
         };
 
         // Normally this is its own CA; here we just reuse the ca we have.
-        let wia_trust_anchors = TrustAnchors::from(&ca);
+        let wptl_trust_anchors = TrustAnchors::from(&ca);
 
         Issuer::try_new(
             "https://example.com".parse().unwrap(),
@@ -289,7 +289,7 @@ mod tests {
             NonZeroU8::MIN,
             HashSet::new(),
             [("credential_config_id".to_string().into(), config_params)].into(),
-            wia_trust_anchors,
+            wptl_trust_anchors,
             sessions,
             MemoryNonceStore::new(),
         )

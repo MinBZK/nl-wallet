@@ -448,8 +448,9 @@ pub struct IssuerData<K, L> {
     metadata: IssuerMetadata,
     metadata_keypair: KeyPair<K>,
 
-    /// Public key of the WIA issuer.
-    wia_trust_anchors: TrustAnchors,
+    /// The trust anchors for the Wallet Provider Trusted List. Both the signing certificate for the Wallet Instance
+    /// Attestation (WIA) and the signing certificate for Key Attestations must be verified using these anchors.
+    wp_trusted_list_anchors: TrustAnchors,
 
     jwt_proof_validation: JwtValidation,
 }
@@ -463,7 +464,7 @@ impl<K, L> IssuerData<K, L> {
         server_url: BaseUrl,
         metadata: IssuerMetadata,
         metadata_keypair: KeyPair<K>,
-        wia_trust_anchors: TrustAnchors,
+        wp_trusted_list_anchors: TrustAnchors,
     ) -> Self {
         let mut jwt_proof_validation = JwtValidation::default_with_algorithms([Algorithm::ES256]);
         jwt_proof_validation.require_iss(accepted_wallet_client_ids.clone());
@@ -476,7 +477,7 @@ impl<K, L> IssuerData<K, L> {
             server_url,
             metadata,
             metadata_keypair,
-            wia_trust_anchors,
+            wp_trusted_list_anchors,
             jwt_proof_validation,
         }
     }
@@ -523,7 +524,7 @@ impl<K, L> IssuerData<K, L> {
         let expected_aud = self.metadata.credential_issuer.as_ref();
 
         wia_disclosure.verify(
-            &self.wia_trust_anchors,
+            &self.wp_trusted_list_anchors,
             expected_aud,
             self.accepted_wallet_client_ids_vec(),
             client_id,
@@ -655,7 +656,7 @@ where
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
-        wia_trust_anchors: TrustAnchors,
+        wp_trusted_list_anchors: TrustAnchors,
         sessions: Arc<S>,
         nonce_store: N,
     ) -> Result<Self, CredentialConfigurationsError> {
@@ -700,7 +701,7 @@ where
             server_url.into_inner(),
             metadata,
             metadata_keypair,
-            wia_trust_anchors,
+            wp_trusted_list_anchors,
         );
 
         let nonce_store = Arc::new(nonce_store);

@@ -160,9 +160,10 @@ pub struct IssuerSettings {
 
     pub status_lists: StatusListsSettings,
 
-    /// Trust anchors for verifying the wallet attestation (Wallet Instance Attestation).
+    /// The trust anchors for the Wallet Provider Trusted List. Both the signing certificate for the Wallet Instance
+    /// Attestation (WIA) and the signing certificate for Key Attestations must be verified using these anchors.
     #[debug(skip)]
-    pub wia_trust_anchors: TrustAnchors,
+    pub wptl_trust_anchors: TrustAnchors,
 }
 
 #[derive(Debug, Clone, Default, AsRef)]
@@ -571,7 +572,7 @@ impl IssuerSettings {
             self.batch_size,
             self.wallet_client_ids,
             config_params,
-            self.wia_trust_anchors,
+            self.wptl_trust_anchors,
             Arc::new(sessions),
             proof_nonce_store,
         )
@@ -707,7 +708,7 @@ mod tests {
             .into();
 
         // Normally this is its own CA; here we just reuse the issuer_ca.
-        let wia_trust_anchors = TrustAnchors::from(issuer_ca);
+        let wptl_trust_anchors = TrustAnchors::from(issuer_ca);
 
         IssuerSettings {
             public_url: "https://example.com".parse().unwrap(),
@@ -778,7 +779,7 @@ mod tests {
                 ttl_in_minutes: None,
                 serve: true,
             },
-            wia_trust_anchors,
+            wptl_trust_anchors,
         }
     }
 
@@ -822,7 +823,7 @@ mod tests {
             "issuer_trust_anchors": [],
             "wrpac_trust_anchors": [],
             "wrprc_trust_anchors": [],
-            "wia_trust_anchors": [],
+            "wptl_trust_anchors": [],
             "status_lists": {
                 "list_size": 100_000,
                 "create_threshold_ratio": 0.1,

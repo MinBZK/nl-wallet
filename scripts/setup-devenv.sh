@@ -361,14 +361,14 @@ fi
 ISSUER_CA_CRT=$(< "${TARGET_DIR}/ca.issuer.crt.der" ${BASE64})
 export ISSUER_CA_CRT
 
-# Generate root CA for WIA
-if [[ ! -f "${TARGET_DIR}/ca.wia.key.pem" ]]; then
-    generate_root_ca wia
+# Generate root CA for Wallet Provider Trusted List (used for WIA and Key Attestations)
+if [[ ! -f "${TARGET_DIR}/ca.wptl.key.pem" ]]; then
+    generate_root_ca wptl
 else
-    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wia.key.pem' already exists, not (re-)generating issuer root CA"
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wptl.key.pem' already exists, not (re-)generating issuer root CA"
 fi
-WIA_CA_CRT=$(< "${TARGET_DIR}/ca.wia.crt.der" ${BASE64})
-export WIA_CA_CRT
+WPTL_CA_CRT=$(< "${TARGET_DIR}/ca.wptl.crt.der" ${BASE64})
+export WPTL_CA_CRT
 
 
 ########################################################################

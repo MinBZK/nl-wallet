@@ -385,8 +385,8 @@ function generate_wia_signing_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca cert-pub --type wia \
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
-        --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
+        --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
         --common-name "${access_certificates[(wia,name)]}" \
         --organization-name "${access_certificates[(wia,legal_name)]}" \
         --organization-id "${access_certificates[(wia,oid)]}" \
@@ -408,8 +408,8 @@ function generate_wia_tsl_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca cert-pub --type tsl \
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
-        --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
+        --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
         --common-name "${access_certificates[(wia,name)]}" \
         --organization-name "${access_certificates[(wia,legal_name)]}" \
         --organization-id "${access_certificates[(wia,oid)]}" \

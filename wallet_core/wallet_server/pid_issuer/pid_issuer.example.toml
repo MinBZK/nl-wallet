@@ -13,7 +13,7 @@ wallet_client_ids = [""]
 wallet_redirect_uris = ["walletdebuginteraction://wallet.edi.rijksoverheid.nl/iss"]
 
 issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
-wia_trust_anchors = ["MII..."]    # CAs for WIA certificates
+wptl_trust_anchors = ["MII..."]   # CAs for WIA certificates
 
 # Files containing SD-JWT Type Metadata documents
 metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"]
@@ -79,7 +79,7 @@ attestation_type = "com.example.pid"
 credential_metadata = "com_example_pid_metadata_mdoc.json"
 valid_days = 365
 private_key_type = "software"
-private_key = "MIG..."               # DER-encoded private key
+private_key = "MIG..."                                     # DER-encoded private key
 certificate = "MIJ..."
 
 [credential_configurations."com.example.pid_sdjwt".status_list]

@@ -48,9 +48,9 @@ const ISSUER_STATE: &str = "insurance";
 async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
     let db_setup = DbSetup::create_clean_only([DbName::AcfDemoIssuer]).await;
 
-    let wia_ca = Ca::generate_mock();
-    let wia_keypair = wia_ca.generate_wia_mock().unwrap();
-    let acf = setup_auth_code_env(&db_setup, Some(&wia_ca)).await;
+    let wptl_ca = Ca::generate_mock();
+    let wia_keypair = wptl_ca.generate_wia_mock().unwrap();
+    let acf = setup_auth_code_env(&db_setup, Some(&wptl_ca)).await;
 
     let client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
 
