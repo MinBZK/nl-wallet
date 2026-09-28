@@ -27,6 +27,7 @@ use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
 
+use crate::ExternalId;
 use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
 
@@ -164,12 +165,12 @@ async fn add_vary_header(request: Request, next: Next) -> Response {
 
 async fn serve_status_list(
     headers: HeaderMap,
-    Path(id): Path<String>,
+    Path(id): Path<ExternalId>,
     State(state): State<RouterState>,
 ) -> Result<Response, StatusCode> {
     check_accept(headers.get(header::ACCEPT))?;
 
-    let path = state.publish_dir.jwt_path(id.as_str());
+    let path = state.publish_dir.jwt_path(&id);
     let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
 
     let etag = EntityTag::from_data(&bytes);

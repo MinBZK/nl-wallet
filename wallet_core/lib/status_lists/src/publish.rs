@@ -15,6 +15,8 @@ use rustix::io::Errno;
 use tokio::task::JoinError;
 use utils::path::prefix_local_path;
 
+use crate::ExternalId;
+
 #[nutype(
     derive(Debug, Clone, TryFrom, Into, AsRef, PartialEq, Deserialize),
     sanitize(with=PublishDir::sanitize),
@@ -40,11 +42,21 @@ pub enum PublishDirError {
     NotADirectory,
 }
 
-impl PublishDir {
-    const TMP_EXTENSION: &'static str = "tmp";
-    const JWT_EXTENSION: &'static str = "jwt";
-    const LOCK_EXTENSION: &'static str = "lock";
+#[derive(Debug, Copy, Clone, strum::IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
+enum Extension {
+    Tmp,
+    Jwt,
+    Lock,
+}
 
+impl Extension {
+    fn as_os_str(self) -> &'static OsStr {
+        OsStr::new(self.into())
+    }
+}
+
+impl PublishDir {
     fn sanitize(path: PathBuf) -> PathBuf {
         prefix_local_path(path).into_owned()
     }
@@ -57,22 +69,23 @@ impl PublishDir {
         Ok(())
     }
 
-    fn path_with_extension(&self, external_id: &str, extension: &str) -> PathBuf {
-        let mut path = self.as_ref().join(external_id);
-        path.set_extension(extension);
+    #[inline]
+    fn path_with_extension(&self, external_id: &ExternalId, extension: Extension) -> PathBuf {
+        let mut path = self.as_ref().join(external_id.as_ref());
+        path.set_extension(extension.as_os_str());
         path
     }
 
-    pub fn tmp_path(&self, external_id: &str) -> PathBuf {
-        self.path_with_extension(external_id, Self::TMP_EXTENSION)
+    pub fn tmp_path(&self, external_id: &ExternalId) -> PathBuf {
+        self.path_with_extension(external_id, Extension::Tmp)
     }
 
-    pub fn jwt_path(&self, external_id: &str) -> PathBuf {
-        self.path_with_extension(external_id, Self::JWT_EXTENSION)
+    pub fn jwt_path(&self, external_id: &ExternalId) -> PathBuf {
+        self.path_with_extension(external_id, Extension::Jwt)
     }
 
-    pub fn lock_for(&self, external_id: &str) -> PublishLock {
-        PublishLock(self.path_with_extension(external_id, Self::LOCK_EXTENSION))
+    pub fn lock_for(&self, external_id: &ExternalId) -> PublishLock {
+        PublishLock(self.path_with_extension(external_id, Extension::Lock))
     }
 
     pub async fn clear_locks(&self) -> Result<(), PublishDirError> {
@@ -80,7 +93,7 @@ impl PublishDir {
         tokio::task::spawn_blocking(move || {
             for entry in std::fs::read_dir(&dir)? {
                 let path = entry?.path();
-                if path.extension() == Some(OsStr::new(Self::LOCK_EXTENSION)) {
+                if path.extension() == Some(Extension::Lock.as_os_str()) {
                     let mut file = File::create(&path)?;
                     LockVersion::default().write_to_io(&mut file)?;
                 }
@@ -387,16 +400,17 @@ mod tests {
     async fn clear_locks() {
         let tempdir = tempfile::tempdir().unwrap();
         let publish_dir = PublishDir::try_new(tempdir.path().to_path_buf()).unwrap();
+        let external_id = ExternalId::try_from("abcd".to_string()).unwrap();
 
         let now = Utc::now();
-        publish_dir.lock_for("abcd").create(Utc::now()).unwrap();
+        publish_dir.lock_for(&external_id).create(Utc::now()).unwrap();
 
         // Clear locks
         publish_dir.clear_locks().await.unwrap();
 
         // Should republish with same time
         let published = publish_with_lock_if_newer(
-            publish_dir.path_with_extension("abcd", PublishDir::LOCK_EXTENSION),
+            publish_dir.path_with_extension(&external_id, Extension::Lock),
             LockVersion::from(0, now),
         )
         .await;

@@ -38,6 +38,7 @@ use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
 use sea_orm::sea_query::Expr;
+use status_lists::ExternalId;
 use status_lists::config::StatusListConfig;
 use status_lists::entity::attestation_batch;
 use status_lists::entity::attestation_batch_list_indices;
@@ -199,7 +200,8 @@ async fn assert_published_list(
     list: &status_list::Model,
     revoked: impl IntoIterator<Item = usize>,
 ) {
-    let path = config.publish_dir.jwt_path(&list.external_id);
+    let external_id = ExternalId::try_from(list.external_id.to_string()).unwrap();
+    let path = config.publish_dir.jwt_path(&external_id);
     let status_list_token = tokio::fs::read_to_string(path)
         .await
         .unwrap()
