@@ -499,6 +499,7 @@ mod tests {
     use rcgen::RevocationReason;
     use rcgen::RevokedCertParams;
     use rcgen::SerialNumber;
+    use rstest::rstest;
     use time::OffsetDateTime;
     use time::macros::datetime;
     use utils::generator::TimeGenerator;
@@ -532,6 +533,13 @@ mod tests {
         BorrowingCertificate::from_pem(public_key_pem).expect_err("non-certificate PEM block should be rejected");
     }
 
+    fn assert_ca_key_usage(certificate: &X509Certificate<'_>) {
+        let key_usage = certificate.key_usage().unwrap().expect("CA must contain Key Usage");
+        assert!(key_usage.critical);
+        // ISO/IEC 18013-5:2021, Table B.1: only keyCertSign and cRLSign.
+        assert_eq!(key_usage.value.flags, 0b0110_0000);
+    }
+
     #[test]
     fn generate_ca() {
         let dn = DistinguishedName::create_mock("myca");
@@ -545,6 +553,7 @@ mod tests {
         assert!(basic_constraint.value.ca);
         assert_eq!(basic_constraint.value.path_len_constraint, Some(0));
         assert_certificate_default_validity(x509_cert);
+        assert_ca_key_usage(x509_cert);
     }
 
     #[test]
@@ -570,6 +579,35 @@ mod tests {
 
         let x509_cert = certificate.x509_certificate();
         assert_certificate_validity(x509_cert, now, later);
+    }
+
+    #[rstest]
+    #[case::issuer(Some(CertificateUsage::Mdl), Some(0b0000_0001))]
+    #[case::status_list(Some(CertificateUsage::StatusListSigning), None)]
+    #[case::wia(Some(CertificateUsage::Wia), None)]
+    #[case::without_eku(None, None)]
+    fn generated_leaf_key_usage(#[case] usage: Option<CertificateUsage>, #[case] expected_flags: Option<u16>) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    usage,
+                    ..Default::default()
+                },
+                NO_SAN,
+            )
+            .unwrap();
+        let key_usage = key_pair.certificate().x509_certificate().key_usage().unwrap();
+
+        // Table B.3 requires critical digitalSignature only for mDL
+        assert_eq!(
+            key_usage.as_ref().map(|extension| extension.value.flags),
+            expected_flags
+        );
+        if let Some(key_usage) = key_usage {
+            assert!(key_usage.critical);
+        }
     }
 
     #[test]
@@ -763,6 +801,8 @@ mod tests {
             .generate_root_and_cross_cert(DistinguishedName::create_mock("new_ca"), Default::default())
             .unwrap();
         let cross_cert = BorrowingCertificate::from_certificate_der(cross_cert_der).unwrap();
+        assert_ca_key_usage(new_ca.as_borrowing_certificate().unwrap().x509_certificate());
+        assert_ca_key_usage(cross_cert.x509_certificate());
 
         // Both leaves are signed by the new CA key (same key in cross-cert and self-signed cert).
         let leaf = new_ca
@@ -813,6 +853,7 @@ mod tests {
             .unwrap();
         let intermediate_ta = intermediate_ca.to_borrowing_trust_anchor();
         let intermediate_cert = intermediate_ca.as_borrowing_certificate().unwrap();
+        assert_ca_key_usage(intermediate_cert.x509_certificate());
 
         // Leaf
         let leaf_key_pair = intermediate_ca

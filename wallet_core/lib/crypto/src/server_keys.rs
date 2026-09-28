@@ -89,6 +89,7 @@ pub mod generate {
     use rcgen::IsCa;
     use rcgen::Issuer;
     use rcgen::KeyIdMethod;
+    use rcgen::KeyUsagePurpose;
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PublicKeyData;
     use rcgen::RevokedCertParams;
@@ -107,7 +108,6 @@ pub mod generate {
     use crate::x509::BorrowingCertificate;
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateError;
-    use crate::x509::CertificateUsage;
     use crate::x509::DistinguishedName;
 
     #[derive(thiserror::Error, Debug)]
@@ -168,6 +168,8 @@ pub mod generate {
         ) -> Result<Self, CertificateGenerationError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(intermediate_count));
+            // ISO/IEC 18013-5:2021, Table B.1: IACA Key Usage is keyCertSign and cRLSign only.
+            params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
             params.distinguished_name = distinguished_name.into();
 
             let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
@@ -284,6 +286,7 @@ pub mod generate {
 
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(constraint);
+            params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
             params.distinguished_name = distinguished_name.into();
 
             let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
@@ -360,6 +363,7 @@ pub mod generate {
 
             let mut self_signed_params = CertificateParams::from(configuration.clone());
             self_signed_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+            self_signed_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
             self_signed_params.distinguished_name = distinguished_name.clone().into();
             let self_signed_cert = self_signed_params
                 .self_signed(&key_pair)
@@ -367,6 +371,7 @@ pub mod generate {
 
             let mut cross_params = CertificateParams::from(configuration);
             cross_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+            cross_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
             cross_params.distinguished_name = distinguished_name.into();
             let cross_cert = cross_params
                 .signed_by(&key_pair, &self.issuer)
@@ -390,6 +395,7 @@ pub mod generate {
             }
             result.use_authority_key_identifier_extension = !source.exclude_aki;
             if let Some(usage) = source.usage {
+                result.key_usages = usage.key_usages();
                 result.extended_key_usages.push(usage.to_key_usage_purpose());
             }
             if let Some(extension) = source.extension {
@@ -412,6 +418,7 @@ pub mod generate {
         use std::sync::LazyLock;
 
         use super::*;
+        use crate::x509::CertificateUsage;
         use crate::x509::NO_SAN;
         use crate::x509::SubjectAltNameUri;
         use crate::x509::crl::mock::MOCK_CRL_DISTRIBUTION_POINT;
