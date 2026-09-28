@@ -1,7 +1,10 @@
 use crypto::utils::random_string;
 use nutype::nutype;
 
-#[nutype(derive(Debug, Clone, TryFrom, AsRef, Into), validate(regex = r"^[A-Za-z0-9]+$"))]
+#[nutype(
+    derive(Debug, Clone, Deserialize, TryFrom, AsRef, Into),
+    validate(regex = r"^[A-Za-z0-9]+$")
+)]
 pub struct ExternalId(String);
 
 impl ExternalId {

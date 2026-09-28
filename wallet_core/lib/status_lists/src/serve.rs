@@ -165,16 +165,12 @@ async fn add_vary_header(request: Request, next: Next) -> Response {
 
 async fn serve_status_list(
     headers: HeaderMap,
-    Path(id): Path<String>,
+    Path(id): Path<ExternalId>,
     State(state): State<RouterState>,
 ) -> Result<Response, StatusCode> {
     check_accept(headers.get(header::ACCEPT))?;
 
-    let Ok(external_id) = ExternalId::try_from(id) else {
-        return Err(StatusCode::NOT_FOUND);
-    };
-
-    let path = state.publish_dir.jwt_path(&external_id);
+    let path = state.publish_dir.jwt_path(&id);
     let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
 
     let etag = EntityTag::from_data(&bytes);

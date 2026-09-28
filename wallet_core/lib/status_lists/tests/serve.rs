@@ -119,7 +119,7 @@ async fn test_router_with_extension() {
     tokio::fs::write(&path, "test123").await.unwrap();
 
     let response = reqwest::get(url.join("test.jwt").unwrap()).await.unwrap();
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]
@@ -131,5 +131,5 @@ async fn test_router_external_id_check() {
     tokio::fs::write(&path, "test123").await.unwrap();
 
     let response = reqwest::get(url.join("teßt").unwrap()).await.unwrap();
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
