@@ -63,6 +63,7 @@ sea-orm = { workspace = true, features = [
     "with-uuid",
 ] }
 serde = { workspace = true, features = ["derive"] }
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "fs"] }
 tracing.workspace = true

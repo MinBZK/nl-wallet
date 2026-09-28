@@ -42,7 +42,8 @@ pub enum PublishDirError {
     NotADirectory,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, strum::IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 enum Extension {
     Tmp,
     Jwt,
@@ -51,11 +52,7 @@ enum Extension {
 
 impl Extension {
     fn as_os_str(self) -> &'static OsStr {
-        match self {
-            Self::Tmp => OsStr::new("tmp"),
-            Self::Jwt => OsStr::new("jwt"),
-            Self::Lock => OsStr::new("lock"),
-        }
+        OsStr::new(self.into())
     }
 }
 

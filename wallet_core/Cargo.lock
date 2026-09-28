@@ -8479,6 +8479,7 @@ dependencies = [
  "rustix",
  "sea-orm",
  "serde",
+ "strum 0.28.0",
  "tempfile",
  "thiserror 2.0.17",
  "token_status_list",
