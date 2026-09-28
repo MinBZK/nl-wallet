@@ -69,7 +69,7 @@ sonar-wallet-web:
     - cd wallet_web
     - sonar-scanner -Dsonar.scanner.skipJreProvisioning=true -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-web -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT -Dsonar.sources=lib/
-      -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/models/openid4vc.ts,lib/models/relying_party.ts,lib/util/qrcodegen,pnpm-lock.yaml,pnpm-workspace.yaml,
+      -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/models/openid4vc.ts,lib/models/relying_party.ts,lib/util/qrcodegen.ts,pnpm-lock.yaml,pnpm-workspace.yaml,
       -Dsonar.tests=lib/__tests__ -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
   allow_failure: true
 
