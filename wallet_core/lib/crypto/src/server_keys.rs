@@ -128,6 +128,12 @@ pub mod generate {
         Certificate(#[source] CertificateError),
     }
 
+    /// Key usages for CA certificates, which sign other certificates and CRLs.
+    ///
+    /// - RFC 5280, section 4.2.1.3: CAs must include the key usage extension.
+    /// - ISO/IEC 18013-5:2021, Table B.1: only keyCertSign and cRLSign.
+    const CA_KEY_USAGES: [KeyUsagePurpose; 2] = [KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+
     fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateGenerationError> {
         SigningKey::from_pkcs8_der(keypair.serialized_der())
             .map_err(|error| CertificateGenerationError::GeneratingPrivateKey(Box::new(error)))
@@ -168,8 +174,7 @@ pub mod generate {
         ) -> Result<Self, CertificateGenerationError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(intermediate_count));
-            // ISO/IEC 18013-5:2021, Table B.1: IACA Key Usage is keyCertSign and cRLSign only.
-            params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+            params.key_usages = CA_KEY_USAGES.to_vec();
             params.distinguished_name = distinguished_name.into();
 
             let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
@@ -286,7 +291,7 @@ pub mod generate {
 
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(constraint);
-            params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+            params.key_usages = CA_KEY_USAGES.to_vec();
             params.distinguished_name = distinguished_name.into();
 
             let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
@@ -359,7 +364,7 @@ pub mod generate {
 
             let mut self_signed_params = CertificateParams::from(configuration.clone());
             self_signed_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-            self_signed_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+            self_signed_params.key_usages = CA_KEY_USAGES.to_vec();
             self_signed_params.distinguished_name = distinguished_name.clone().into();
             let self_signed_cert = self_signed_params
                 .self_signed(&key_pair)
@@ -367,7 +372,7 @@ pub mod generate {
 
             let mut cross_params = CertificateParams::from(configuration);
             cross_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-            cross_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+            cross_params.key_usages = CA_KEY_USAGES.to_vec();
             cross_params.distinguished_name = distinguished_name.into();
             let cross_cert = cross_params
                 .signed_by(&key_pair, &self.issuer)

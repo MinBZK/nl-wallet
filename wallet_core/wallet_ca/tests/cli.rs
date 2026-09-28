@@ -164,10 +164,11 @@ fn assert_generated_certificate(
     let not_after = crt.validity().not_after.to_datetime();
     assert_eq!(not_after.cmp_range(&end, Duration::minutes(1)), Ordering::Equal);
 
-    // Required key usage as specified in ISO/IEC 18013-5:2021, Tables B.1 and B.3.
+    // Required key usage as specified in ISO/IEC 18013-5:2021, Tables B.1 and B.3, and ETSI EN 319 412-2, section
+    // 4.3.2.
     let expected_flags = if crt.is_ca() {
         Some(0b0110_0000) // keyCertSign and cRLSign only
-    } else if usage == Some(CertificateUsage::Mdl) {
+    } else if usage.is_some() {
         Some(0b0000_0001) // digitalSignature only
     } else {
         None

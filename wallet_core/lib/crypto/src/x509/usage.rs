@@ -88,7 +88,8 @@ impl CertificateUsage {
             // ISO/IEC 18013-5:2021, Table B.3 requires digitalSignature only for mdoc signers.
             // This issuer profile is also used for SD-JWT signing.
             Self::Mdl => vec![rcgen::KeyUsagePurpose::DigitalSignature],
-            Self::StatusListSigning | Self::Wia => Vec::new(),
+            // ETSI EN 319 412-2, section 4.3.2 requires a key usage; type C is digitalSignature only.
+            Self::StatusListSigning | Self::Wia => vec![rcgen::KeyUsagePurpose::DigitalSignature],
         }
     }
 
