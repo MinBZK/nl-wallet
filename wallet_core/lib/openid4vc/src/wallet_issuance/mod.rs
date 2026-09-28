@@ -11,6 +11,7 @@ pub mod mock;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroU8;
+use std::num::NonZeroUsize;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
@@ -147,6 +148,16 @@ pub enum WalletIssuanceError {
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error(
+        "received private key identifiers for unexpected credential count from WSCD, expected: {expected}, received: \
+         {received}"
+    )]
+    #[category(pd)]
+    PrivateKeyCredentialCount {
+        expected: NonZeroUsize,
+        received: NonZeroUsize,
+    },
 
     #[error("WIA issuance failed: {0}")]
     #[category(pd)]

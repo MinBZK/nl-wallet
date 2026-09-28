@@ -1115,16 +1115,24 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         // Have the WSCD generate sets of as many private keys and proofs as the number of credential copies for each
         // individual credential.
         let aud = self.session_state.credential_issuer.as_ref().to_string();
-        let key_counts_and_nonces = proof_nonces
+        let key_counts_and_nonces: VecNonEmpty<_> = proof_nonces
             .into_iter()
             .map(|proof_nonce| (copy_count, proof_nonce))
             .collect_vec()
             .try_into()
             .expect("credential_count is non-zero, which guarantees that proof_nonces is non-empty");
+        let credential_count = key_counts_and_nonces.len();
         let key_results = wscd
             .perform_issuance(aud, key_counts_and_nonces)
             .await
             .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
+
+        if key_results.len() != credential_count {
+            return Err(WalletIssuanceError::PrivateKeyCredentialCount {
+                expected: credential_count,
+                received: key_results.len(),
+            });
+        }
 
         // Fetch a set of credential copies for each credential in parallel, using the key identifiers / proofs and a
         // possible DPoP nonce.
@@ -1371,6 +1379,7 @@ fn verify_metadata_integrity<'a>(
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::convert::Infallible;
     use std::num::NonZeroU8;
     use std::time::Duration;
     use std::vec;
@@ -1388,6 +1397,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use derive_more::Debug;
     use futures::FutureExt;
+    use jwt::SignedJwt;
     use jwt::jwk::jwk_to_public_key;
     use jwt::nonce::Nonce;
     use mdoc::IdentifierListInfo;
@@ -1413,7 +1423,9 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_nonempty;
+    use wscd::mock::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
+    use wscd::payload::jwt_proof::JwtProofClaims;
     use wscd::wia::mock::MockWiaClient;
 
     use super::*;
@@ -2907,6 +2919,65 @@ mod tests {
         );
         // Credential Metadata does not describe a chain of extended attestation types.
         assert!(credential_with_metadata.extended_attestation_types.is_empty());
+    }
+
+    struct SingleMockRemoteWscd {}
+
+    impl IssuanceWscd for SingleMockRemoteWscd {
+        type Error = Infallible;
+
+        async fn perform_issuance(
+            &self,
+            aud: String,
+            key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
+        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
+            let (_key_count, nonce) = key_counts_and_nonces.into_first();
+
+            let claims = JwtProofClaims::new(
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                aud,
+                nonce,
+                &MockTimeGenerator::default(),
+            );
+            let pop = SignedJwt::sign_with_jwk(&claims, &SigningKey::generate())
+                .now_or_never()
+                .unwrap()
+                .unwrap()
+                .into();
+
+            let results = vec_nonempty![vec_nonempty![IssuanceKeyResult::new("the_one_key".to_string(), pop)]];
+
+            Ok(results)
+        }
+    }
+
+    #[test]
+    fn test_accept_issuance_error_private_key_credential_count() {
+        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([
+                ("credential_id_1".to_string().into(), Format::SdJwt),
+                ("credential_id_2".to_string().into(), Format::SdJwt),
+            ]),
+            SdJwtMetadataUsage::TypeMetadata,
+        );
+        let trust_anchors = signer.trust_anchors.clone();
+
+        let mock_msg_client = mock_openid_message_client_nonce(None, 2);
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
+        }
+        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &SingleMockRemoteWscd {})
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(
+            error,
+            WalletIssuanceError::PrivateKeyCredentialCount { expected, received }
+                if expected.get() == 2 && received.get() == 1
+        );
     }
 
     #[test]
