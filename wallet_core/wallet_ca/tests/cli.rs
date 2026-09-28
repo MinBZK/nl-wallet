@@ -195,7 +195,24 @@ fn assert_generated_certificate(
     let not_after = crt.validity().not_after.to_datetime();
     assert_eq!(not_after.cmp_range(&end, Duration::minutes(1)), Ordering::Equal);
 
-    // verify usage
+    // Required key usage as specified in ISO/IEC 18013-5:2021, Tables B.1 and B.3.
+    let expected_flags = if crt.is_ca() {
+        Some(0b0110_0000) // keyCertSign and cRLSign only
+    } else if usage == Some(CertificateUsage::Mdl) {
+        Some(0b0000_0001) // digitalSignature only
+    } else {
+        None
+    };
+    let key_usage = crt.key_usage()?;
+    assert_eq!(
+        key_usage.as_ref().map(|extension| extension.value.flags),
+        expected_flags
+    );
+    if let Some(key_usage) = key_usage {
+        assert!(key_usage.critical);
+    }
+
+    // Verify that Extended Key Usage remains separate from Key Usage.
     if let Some(usage) = usage {
         assert_eq!(CertificateUsage::from_certificate(&crt)?, usage);
     }
