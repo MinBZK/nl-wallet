@@ -387,15 +387,38 @@ function generate_wia_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
-        --common-name "${access_certificates[(wia,name)]}" \
-        --organization-name "${access_certificates[(wia,legal_name)]}" \
-        --organization-id "${access_certificates[(wia,oid)]}" \
+        --common-name "${access_certificates[(wp_trusted_list,name)]}" \
+        --organization-name "${access_certificates[(wp_trusted_list,legal_name)]}" \
+        --organization-id "${access_certificates[(wp_trusted_list,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_signing" \
         --force
 
     # Convert the PEM certificate to DER format
     openssl x509 -in "${TARGET_DIR}/wallet_provider/wia_signing.crt.pem" \
         -outform DER -out "${TARGET_DIR}/wallet_provider/wia_signing.crt.der"
+}
+
+# Generate an EC key pair for key attestations
+function generate_key_attestation_signing_key_pair {
+    echo -e "${INFO}Generating Key Attestation key pair in HSM${NC}"
+
+    generate_hsm_key_pair key_attestation_signing_key wallet_provider/key_attestation_signing_key.pub.pem
+
+    # Generate a certificate for the public key
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca cert-pub --type key-attestation \
+        --public-key-file "${TARGET_DIR}/wallet_provider/key_attestation_signing_key.pub.pem" \
+        --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --common-name "${access_certificates[(wp_trusted_list,name)]}" \
+        --organization-name "${access_certificates[(wp_trusted_list,legal_name)]}" \
+        --organization-id "${access_certificates[(wp_trusted_list,oid)]}" \
+        --file-prefix "${TARGET_DIR}/wallet_provider/key_attestation_signing" \
+        --force
+
+    # Convert the PEM certificate to DER format
+    openssl x509 -in "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.der"
 }
 
 # Generate an EC key pair for the wallet_provider
@@ -410,9 +433,9 @@ function generate_wia_tsl_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
-        --common-name "${access_certificates[(wia,name)]}" \
-        --organization-name "${access_certificates[(wia,legal_name)]}" \
-        --organization-id "${access_certificates[(wia,oid)]}" \
+        --common-name "${access_certificates[(wp_trusted_list,name)]}" \
+        --organization-name "${access_certificates[(wp_trusted_list,legal_name)]}" \
+        --organization-id "${access_certificates[(wp_trusted_list,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_tsl" \
         --force
 

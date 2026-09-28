@@ -73,6 +73,9 @@ pub struct Settings {
     #[serde(flatten)]
     pub wia_settings: WiaSettings,
 
+    #[serde(flatten)]
+    pub key_attestation_settings: KeyAttestationSettings,
+
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]
     pub instruction_challenge_timeout: Duration,
@@ -103,6 +106,16 @@ pub struct WiaSettings {
     pub wia_wallet_link: Option<Url>,
     pub wia_wallet_version: String,
     pub wia_wallet_solution_certification_information: String,
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct KeyAttestationSettings {
+    #[serde_as(as = "Base64")]
+    pub key_attestation_certificate: BorrowingCertificate,
+    pub key_attestation_signing_key_identifier: String,
+
+    pub key_attestation_certification: Url,
 }
 
 #[derive(Clone, Deserialize)]
@@ -219,6 +232,8 @@ impl Settings {
                 "wia_wallet_solution_certification_information",
                 "https://wallet.edi.rijksoverheid.nl",
             )?
+            .set_default("key_attestation_signing_key_identifier", "key_attestation_signing_key")?
+            .set_default("key_attestation_certification", "https://wallet.edi.rijksoverheid.nl")?
             .set_default("audit_log.options.acquire_timeout_in_sec", "10")?
             .set_default("audit_log.options.connect_timeout_in_sec", "3")?
             .set_default("audit_log.options.max_connections", "10")?

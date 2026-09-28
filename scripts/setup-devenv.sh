@@ -402,6 +402,10 @@ generate_wia_signing_key_pair
 WP_WIA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wia_signing.crt.der" ${BASE64})
 export WP_WIA_CERTIFICATE
 
+generate_key_attestation_signing_key_pair
+WP_KA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.der" ${BASE64})
+export WP_KA_CERTIFICATE
+
 generate_wia_tsl_key_pair
 WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
 export WIA_TSL_CRT

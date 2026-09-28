@@ -31,6 +31,15 @@ wia_wallet_version = "1.0.0"
 # Certification information for the wallet solution
 # wia_wallet_solution_certification_information = "https://wallet.edi.rijksoverheid.nl"
 
+# Certificate with which key attestations are signed
+key_attestation_certificate = "MIIBlDCC..."
+
+# Identifier for the private key used to issue key attestations to wallets
+key_attestation_signing_key_identifier = "key_attestation_signing_key"
+
+# Certification information about the WSCD or keystore, in the form of a URL
+# key_attestation_certification = "https://wallet.edi.rijksoverheid.nl"
+
 # Delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
 
