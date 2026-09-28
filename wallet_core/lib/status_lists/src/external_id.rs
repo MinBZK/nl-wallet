@@ -1,14 +1,8 @@
 use crypto::utils::random_string;
-use derive_more::AsRef;
-use derive_more::Into;
+use nutype::nutype;
 
-#[derive(Debug, Clone, AsRef, Into)]
+#[nutype(derive(Debug, Clone, TryFrom, AsRef, Into), validate(regex = r"^[A-Za-z0-9]+$"))]
 pub struct ExternalId(String);
-
-#[derive(Debug, thiserror::Error)]
-#[cfg_attr(test, derive(PartialEq))]
-#[error("invalid external id: {0}")]
-pub struct ExternalIdError(String);
 
 impl ExternalId {
     /// Length of the external id for status lists used in the url (alphanumeric characters)
@@ -17,21 +11,6 @@ impl ExternalId {
     pub fn generate() -> Self {
         Self::try_from(random_string(Self::SIZE))
             .expect("random_string should only generate ASCII alphanumeric characters")
-    }
-}
-
-impl TryFrom<String> for ExternalId {
-    type Error = ExternalIdError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        if value.is_empty() {
-            return Err(ExternalIdError(value));
-        }
-        if value.chars().all(|c| c.is_ascii_alphanumeric()) {
-            Ok(Self(value))
-        } else {
-            Err(ExternalIdError(value))
-        }
     }
 }
 
@@ -57,6 +36,6 @@ mod tests {
     #[case("..")]
     fn test_external_id_invalid(#[case] value: &str) {
         let result = ExternalId::try_from(value.to_string());
-        assert_eq!(result.expect_err("should fail"), ExternalIdError(value.to_string()));
+        assert_eq!(result.expect_err("should fail"), ExternalIdError::RegexViolated);
     }
 }
