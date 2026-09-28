@@ -292,10 +292,23 @@ function generate_wp_aes_key {
 }
 
 # Generate an EC root CA
+#
+# $1 - Short name of the CA. If `access_certificates` contains a legal name and organization identifier for this
+#      short name, the CA certificate subject includes them.
 function generate_root_ca {
     echo -e "${INFO}Generating Issuer CA key pair${NC}"
+    local ca_args=(
+        --common-name "CA $1"
+    )
+    if [[ -n ${access_certificates[($1,legal_name)]:-} ]]; then
+        ca_args+=(
+            --organization-name "${access_certificates[($1,legal_name)]}"
+            --organization-id "${access_certificates[($1,oid)]}"
+        )
+    fi
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA $1" \
+        "${ca_args[@]}" \
         --file-prefix "${TARGET_DIR}/ca.$1" \
         --force
     openssl x509 -in "${TARGET_DIR}/ca.$1.crt.pem" -outform DER -out "${TARGET_DIR}/ca.$1.crt.der"

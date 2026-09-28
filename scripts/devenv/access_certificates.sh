@@ -2,8 +2,8 @@
 
 declare -A access_certificates=(
     [(wia,name)]='NL Wallet'
-    [(wia,legal_name)]='Stichting ICTU'
-    [(wia,oid)]='NTRNL-27381312'
+    [(wia,legal_name)]='Ministerie van Economische Zaken'
+    [(wia,oid)]='NTRNL-52813150'
 
     [(pid,name)]='RvIG'
     [(pid,legal_name)]='Rijksdienst voor Identiteitsgegevens'
