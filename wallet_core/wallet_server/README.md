@@ -19,17 +19,6 @@ database tables. To migrate for all binaries (including wallet provider) run:
 "$(git rev-parse --show-toplevel)"/scripts/migrate-db.sh
 ```
 
-## Issuer registration certificates
-
-Issuers require a top-level `registration_certificate` containing an unpadded
-base64url-encoded WRPRC in JWT or CWT form, bound to the WRPAC in
-`credential_metadata_keypair`.
-
-Run `scripts/setup-devenv.sh` to generate certificates and configuration for
-local development. See
-[`wallet_ca`](../wallet_ca/README.md#registration-certificates) for certificate
-and status-list generation.
-
 ## Generate entities
 
 To generate the entities for `server-utils` component you have to run our script

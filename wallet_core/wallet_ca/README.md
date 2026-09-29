@@ -51,6 +51,11 @@ base64url string containing the serialized WRPRC, ready for a
 `verifier_info.data` or OpenID4VCI `issuer_info.data`. It does not create the
 payload, its referenced status list, or deployment configuration.
 
+For issuance, configure the WRPRC as the issuer's required top-level
+`registration_certificate`, bound to the WRPAC in `credential_metadata_keypair`.
+For local development, run `scripts/setup-devenv.sh` from the repository root
+to generate issuer certificates and configuration.
+
 ## Status List Tokens
 
 Create a separate Token Status List signing certificate under the same CA as
