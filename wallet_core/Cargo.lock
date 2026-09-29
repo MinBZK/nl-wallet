@@ -3508,7 +3508,6 @@ dependencies = [
  "db_test",
  "hsm",
  "http_utils",
- "r2d2-cryptoki",
  "rstest",
  "sea-orm",
  "tokio",

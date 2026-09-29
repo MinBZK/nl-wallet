@@ -26,7 +26,6 @@ db_test = [
 
 [dependencies]
 async-trait.workspace = true
-r2d2-cryptoki.workspace = true
 sea-orm = { workspace = true, features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 
 rstest = { workspace = true, optional = true }
