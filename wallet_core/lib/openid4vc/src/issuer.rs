@@ -14,6 +14,7 @@ use attestation_data::credential_payload::CredentialPayloadIntoSignedSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
+use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::DurationRound;
 use chrono::Utc;
@@ -1656,12 +1657,13 @@ impl Credentials {
             .zip(status_claims)
             .map(
                 |((public_key, (preview_credential_payload, metadata_integrity)), status_claim)| {
+                    let StatusClaim::StatusList(status_claim) = status_claim;
                     CredentialPayload::from_previewable_credential_payload(
                         preview_credential_payload,
                         issued_at,
                         public_key,
                         metadata_integrity,
-                        status_claim,
+                        Some(status_claim),
                     )
                     .map_err(CredentialRequestError::JwkConversion)
                 },
@@ -1743,6 +1745,7 @@ mod tests {
     use std::num::NonZeroUsize;
     use std::sync::Arc;
 
+    use attestation_types::status_claim::StatusClaim;
     use chrono::Timelike;
     use crypto::server_keys::KeyPair;
     use crypto::trust_anchor::TrustAnchors;
@@ -1750,6 +1753,7 @@ mod tests {
     use derive_more::Debug;
     use futures::FutureExt;
     use jwt::jwk::jwk_to_public_key;
+    use mdoc::MdocStatus;
     use mdoc::verifier::IssuerSignedVerificationResult;
     use mdoc::verifier::ValidityRequirement;
     use oauth::dpop::Dpop;
@@ -2575,7 +2579,12 @@ mod tests {
                     let issued_at = DateTime::<Utc>::try_from(&mso.validity_info.signed).unwrap();
                     // An mdoc is described by Credential Metadata, so it carries no Type Metadata integrity digest.
                     let vct_integrity = None;
-                    let status_claim = mso.status.expect("issued mdoc should contain status claim");
+                    let MdocStatus::StatusList(status_claim) =
+                        mso.status.expect("issued mdoc should contain status claim")
+                    else {
+                        panic!("issued mdoc status should be a status list");
+                    };
+                    let status_claim = StatusClaim::StatusList(status_claim);
                     let public_key = VerifyingKey::try_from(mso.device_key_info).unwrap().into();
 
                     (issued_at, vct_integrity, status_claim, public_key)

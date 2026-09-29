@@ -47,6 +47,7 @@ utoipa = { workspace = true, optional = true }
 [dev-dependencies]
 dashmap.workspace = true
 futures.workspace = true
+hex.workspace = true
 mockall.workspace = true
 regex.workspace = true
 rstest.workspace = true

@@ -19,7 +19,7 @@ use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_regist
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
@@ -846,7 +846,7 @@ fn prepare_example_credential_payload(
         Utc::now(),
         &PublicKey::from(*holder_privkey.verifying_key()),
         Some(Integrity::from("")),
-        StatusClaim::new_mock(),
+        Some(StatusListClaim::new_mock()),
     )
     .unwrap();
 

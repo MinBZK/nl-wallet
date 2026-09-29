@@ -1,5 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
+use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use coset::RegisteredLabelWithPrivate;
@@ -386,18 +387,20 @@ impl Document {
         let issuer_certificate = &self.issuer_signed.issuer_auth.x5chain()?.into_first();
 
         let revocation_status = match &mso.status {
-            Some(status_claim) => {
+            Some(MdocStatus::StatusList(status_list_claim)) => {
                 let revocation_status = revocation_verifier
                     .verify(
                         trust_anchors,
                         issuer_certificate.to_canonical_distinguished_name()?,
-                        status_claim.clone(),
+                        StatusClaim::StatusList(status_list_claim.clone()),
                         time,
                     )
                     .await;
                 Some(revocation_status)
             }
-            _ => None,
+            // `identifier_list` status are treated as undetermined for now (PVW-6106)
+            Some(MdocStatus::IdentifierList(_)) => Some(RevocationStatus::Undetermined),
+            None => None,
         };
 
         let aki = issuer_certificate.authority_key_id().into_iter().collect();
@@ -456,8 +459,13 @@ mod tests {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::examples::Examples;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
+    use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use token_status_list::verification::client::mock::StatusListClientStub;
+    use utils::generator::mock::MockTimeGenerator;
 
     use super::*;
     use crate::examples::EXAMPLE_ATTR_NAME;
@@ -466,8 +474,10 @@ mod tests {
     use crate::examples::EXAMPLE_NAMESPACE;
     use crate::examples::Example;
     use crate::examples::IsoCertTimeGenerator;
+    use crate::holder::disclosure::PartialMdoc;
     use crate::iso::disclosure::DeviceResponse;
     use crate::iso::engagement::DeviceAuthenticationBytes;
+    use crate::iso::engagement::SessionTranscript;
     use crate::iso::mdocs::ValidityInfo;
     use crate::test;
     use crate::test::DebugCollapseBts;
@@ -554,6 +564,49 @@ mod tests {
             EXAMPLE_NAMESPACE,
             EXAMPLE_ATTR_NAME,
             &EXAMPLE_ATTR_VALUE,
+        );
+    }
+
+    #[tokio::test]
+    async fn document_verify_with_identifier_list_status_is_undetermined() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let key = MockRemoteEcdsaKey::new("mdoc_key".to_owned(), SigningKey::generate());
+        let status = MdocStatus::IdentifierList(IdentifierListInfo {
+            id: hex::decode("cccc").unwrap(),
+            uri: "https://example.com/identifierlists/1".parse().unwrap(),
+            certificate: None,
+        });
+        let partial_mdoc = PartialMdoc::new_mock_with_ca_key_and_status(&ca, &key, Some(status));
+        let session_transcript = SessionTranscript::new_mock();
+        let wscd = MockRemoteWscd::new(vec![key.clone()]);
+
+        let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
+            vec_nonempty![(partial_mdoc, key.identifier.clone())],
+            &session_transcript,
+            &wscd,
+            (),
+        )
+        .await
+        .expect("signing DeviceResponse from mdoc should succeed");
+
+        let disclosed_documents = device_responses
+            .into_first()
+            .verify(
+                None,
+                &session_transcript,
+                &MockTimeGenerator::default(),
+                &TrustAnchors::from(&ca),
+                &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
+                    ca.generate_issuer_status_list_mock().unwrap(),
+                ))),
+            )
+            .await
+            .expect("verifying DeviceResponse should succeed");
+
+        let disclosed_document = disclosed_documents.into_iter().exactly_one().unwrap();
+        assert_eq!(
+            disclosed_document.revocation_status,
+            Some(RevocationStatus::Undetermined)
         );
     }
 }

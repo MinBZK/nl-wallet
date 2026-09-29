@@ -453,7 +453,7 @@ mod tests {
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
-    use attestation_types::status_claim::StatusClaim;
+    use attestation_types::status_claim::StatusListClaim;
     use chrono::Utc;
     use crypto::PublicKey;
     use crypto::server_keys::KeyPair;
@@ -490,7 +490,7 @@ mod tests {
             Utc::now(),
             &PublicKey::from(*holder_privkey.verifying_key()),
             None,
-            StatusClaim::new_mock(),
+            Some(StatusListClaim::new_mock()),
         )
         .unwrap()
         .into_signed_mdoc(issuer_keypair)
