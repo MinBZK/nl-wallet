@@ -293,6 +293,10 @@
   mdocs no longer refer to SD-JWT VC Type Metadata.
 - When an SD-JWT does not have `type_metadata_uri`, the wallet will use the
   Credential Metadata from the Credential Issuer Metadata.
+- The wallet can now receive and store mdocs whose MSO declares an
+  `identifier_list` status mechanism instead of a `status_list`. Since
+  `identifier_list` is not yet supported, the revocation status of these mdocs
+  is treated as undetermined.
 
 ## Bug fixes
 

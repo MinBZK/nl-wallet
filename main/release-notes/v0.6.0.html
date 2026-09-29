@@ -509,6 +509,10 @@ Issuer Metadata and are completely independent of SD-JWT VC Type Metadata.</p></
 mdocs no longer refer to SD-JWT VC Type Metadata.</p></li>
 <li><p>When an SD-JWT does not have <code class="docutils literal notranslate"><span class="pre">type_metadata_uri</span></code>, the wallet will use the
 Credential Metadata from the Credential Issuer Metadata.</p></li>
+<li><p>The wallet can now receive and store mdocs whose MSO declares an
+<code class="docutils literal notranslate"><span class="pre">identifier_list</span></code> status mechanism instead of a <code class="docutils literal notranslate"><span class="pre">status_list</span></code>. Since
+<code class="docutils literal notranslate"><span class="pre">identifier_list</span></code> is not yet supported, the revocation status of these mdocs
+is treated as undetermined.</p></li>
 </ul>
 </section>
 <section id="bug-fixes">
