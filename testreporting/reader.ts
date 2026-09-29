@@ -15,6 +15,11 @@ export class GroupedReader implements ResultsReader {
     this.#reader = reader
   }
 
+  matches(data: ResultFile) {
+    const matches = this.#reader.matches
+    return matches ? matches(data) : false
+  }
+
   read(visitor: ResultsVisitor, data: ResultFile) {
     const originFileName = this.#originFileName(data)
     if (!originFileName) {
