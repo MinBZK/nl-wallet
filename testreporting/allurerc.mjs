@@ -7,6 +7,7 @@ export default defineConfig({
     awesome: {
       options: {
         singleFile: true,
+        groupBy: ["parentSuite", "suite", "subSuite"],
       },
     },
   },
