@@ -277,6 +277,18 @@ where
         Ok(data.claims)
     }
 
+    async fn fetch_user_session(
+        &self,
+        session_id: &str,
+        extend: bool,
+    ) -> Result<Option<AdminPortalUserSession>, PersistenceError> {
+        let now = Utc::now();
+        let new_expires_at = extend.then_some(now).map(|now| self.expires_at(now));
+        self.repository
+            .fetch_user_session(session_id, now, new_expires_at)
+            .await
+    }
+
     /// Starts a login attempt: stores PKCE/nonce state for the pending exchange and returns the
     /// Keycloak authorization URL that the browser should be redirected to.
     pub async fn authorization_url(&self, login_hint: Option<&str>) -> Result<Url, LoginError> {
@@ -325,21 +337,34 @@ where
     /// starts a server-side session. Returns the new session id on success.
     pub async fn handle_callback(
         &self,
+        session_id: Option<&str>,
         state: Option<&str>,
         code: Option<&str>,
         error: Option<&str>,
     ) -> Result<String, CallbackError> {
         self.cleanup_expired().await;
 
-        let login_attempt = match state {
-            Some(session_state) => self
-                .repository
-                .take_login_attempt(session_state)
-                .await
-                .map_err(CallbackError::Storage)?,
-            None => None,
-        }
-        .ok_or(CallbackError::InvalidState)?;
+        // Fetch login attempt from database with provided state
+        let login_attempt = self
+            .repository
+            .take_login_attempt(state.ok_or(CallbackError::InvalidState)?)
+            .await
+            .map_err(CallbackError::Storage)?;
+
+        // If no login attempt is found it could be a retry, check if the actual session exists
+        let login_attempt = match (login_attempt, session_id) {
+            (Some(login_attempt), _) => login_attempt,
+            (None, Some(session_id))
+                if self
+                    .fetch_user_session(session_id, false)
+                    .await
+                    .map_err(CallbackError::Storage)?
+                    .is_some() =>
+            {
+                return Ok(session_id.to_owned());
+            }
+            _ => return Err(CallbackError::InvalidState),
+        };
 
         if let Some(error) = error {
             return Err(CallbackError::Upstream(error.to_string()));
@@ -421,18 +446,15 @@ where
         }
     }
 
-    /// Reports the logged-in user for `session_id`, extending (sliding) the session's expiry.
+    /// Reports the logged-in user for `session_id`, not extending the session's expiry.
+    ///
     /// Returns `Ok(None)` if there is no matching session, and `Err` if the session store could
     /// not be reached, so callers can distinguish "not logged in" from a backend failure.
     pub async fn authenticated_user(&self, session_id: &str) -> Result<Option<LoggedInUser>, PersistenceError> {
         self.cleanup_expired().await;
 
-        let now = Utc::now();
-        // Sliding expiry: every authenticated call extends the session.
-        // TODO(PVW-6127): Only extend on specific api calls.
         let session = self
-            .repository
-            .touch_user_session(session_id, now, self.expires_at(now))
+            .fetch_user_session(session_id, false)
             .await
             .inspect_err(|error| warn!("failed to extend admin portal session: {error}"))?;
 
@@ -631,6 +653,15 @@ yP3ST1F3e7Cha7l54e71Lg==
             nonce: nonce.to_string(),
             code_verifier: "test-code-verifier".to_string(),
             created_at: Utc::now(),
+        }
+    }
+
+    fn user_session(roles: impl IntoIterator<Item = String>) -> AdminPortalUserSession {
+        AdminPortalUserSession {
+            display_name: "Jane Doe".to_string(),
+            roles: roles.into_iter().collect(),
+            id_token: "the-id-token".to_string(),
+            expires_at: Utc::now() + Duration::from_secs(30),
         }
     }
 
@@ -840,7 +871,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
         let service = service_with_repository(&keycloak_url, repository);
 
-        let result = service.handle_callback(None, Some("code"), None).await;
+        let result = service.handle_callback(None, None, Some("code"), None).await;
 
         assert_matches!(result, Err(CallbackError::InvalidState));
     }
@@ -857,9 +888,34 @@ yP3ST1F3e7Cha7l54e71Lg==
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
         let service = service_with_repository(&keycloak_url, repository);
 
-        let result = service.handle_callback(Some("unknown-state"), Some("code"), None).await;
+        let result = service
+            .handle_callback(None, Some("unknown-state"), Some("code"), None)
+            .await;
 
         assert_matches!(result, Err(CallbackError::InvalidState));
+    }
+
+    #[tokio::test]
+    async fn handle_callback_with_unknown_state_but_with_active_session_returns_session() {
+        let mut repository = MockAdminPortalSessionRepository::new();
+        expect_cleanup(&mut repository);
+        repository
+            .expect_take_login_attempt()
+            .with(predicate::eq("unknown-state"))
+            .returning(|_| Ok(None));
+
+        repository
+            .expect_fetch_user_session()
+            .returning(|_, _, _| Ok(Some(user_session([]))));
+
+        let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
+        let service = service_with_repository(&keycloak_url, repository);
+
+        let result = service
+            .handle_callback(Some("session-id"), Some("unknown-state"), Some("code"), None)
+            .await;
+
+        assert_eq!(result.expect("callback should succeed"), "session-id".to_string());
     }
 
     #[tokio::test]
@@ -873,7 +929,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
         let service = service_with_repository(&keycloak_url, repository);
 
-        let result = service.handle_callback(Some("state"), Some("code"), None).await;
+        let result = service.handle_callback(None, Some("state"), Some("code"), None).await;
 
         assert_matches!(result, Err(CallbackError::Storage(PersistenceError::NoRowsUpdated)));
     }
@@ -890,7 +946,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         let service = service_with_repository(&keycloak_url, repository);
 
         let result = service
-            .handle_callback(Some("state"), None, Some("access_denied"))
+            .handle_callback(None, Some("state"), None, Some("access_denied"))
             .await;
 
         assert_matches!(result, Err(CallbackError::Upstream(ref reason)) if reason == "access_denied");
@@ -907,7 +963,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
         let service = service_with_repository(&keycloak_url, repository);
 
-        let result = service.handle_callback(Some("state"), None, None).await;
+        let result = service.handle_callback(None, Some("state"), None, None).await;
 
         assert_matches!(result, Err(CallbackError::MissingCode));
     }
@@ -926,7 +982,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
         let service = oidc.service(repository);
 
-        let result = service.handle_callback(Some("state"), Some("code"), None).await;
+        let result = service.handle_callback(None, Some("state"), Some("code"), None).await;
 
         assert_matches!(result, Err(CallbackError::TokenExchangeFailed));
     }
@@ -964,7 +1020,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
         let service = oidc.service(repository);
 
-        let result = service.handle_callback(Some("state"), Some("code"), None).await;
+        let result = service.handle_callback(None, Some("state"), Some("code"), None).await;
 
         assert_matches!(
             result,
@@ -1018,7 +1074,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         let service = oidc.service(repository);
 
         let session_id = service
-            .handle_callback(Some("session-state"), Some("auth-code"), None)
+            .handle_callback(None, Some("session-state"), Some("auth-code"), None)
             .await
             .unwrap();
 
@@ -1070,7 +1126,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         let service = oidc.service(repository);
 
         service
-            .handle_callback(Some("state"), Some("code"), None)
+            .handle_callback(None, Some("state"), Some("code"), None)
             .await
             .expect_err("login should fail when the access_token cannot be validated");
     }
@@ -1109,14 +1165,9 @@ yP3ST1F3e7Cha7l54e71Lg==
         oidc.mock_metadata().await;
         let mut repository = MockAdminPortalSessionRepository::new();
         expect_cleanup(&mut repository);
-        repository.expect_take_user_session().returning(|_| {
-            Ok(Some(AdminPortalUserSession {
-                display_name: "Jane Doe".to_string(),
-                roles: vec![],
-                id_token: "the-id-token".to_string(),
-                expires_at: Utc::now(),
-            }))
-        });
+        repository
+            .expect_take_user_session()
+            .returning(|_| Ok(Some(user_session([]))));
 
         let service = oidc.service(repository);
 
@@ -1127,7 +1178,7 @@ yP3ST1F3e7Cha7l54e71Lg==
     async fn authenticated_user_returns_none_for_unknown_session() {
         let mut repository = MockAdminPortalSessionRepository::new();
         expect_cleanup(&mut repository);
-        repository.expect_touch_user_session().returning(|_, _, _| Ok(None));
+        repository.expect_fetch_user_session().returning(|_, _, _| Ok(None));
 
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
         let service = service_with_repository(&keycloak_url, repository);
@@ -1140,7 +1191,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         let mut repository = MockAdminPortalSessionRepository::new();
         expect_cleanup(&mut repository);
         repository
-            .expect_touch_user_session()
+            .expect_fetch_user_session()
             .returning(|_, _, _| Err(PersistenceError::NoRowsUpdated));
 
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
@@ -1156,18 +1207,17 @@ yP3ST1F3e7Cha7l54e71Lg==
     async fn authenticated_user_reports_display_name_and_stripped_privileges() {
         let mut repository = MockAdminPortalSessionRepository::new();
         expect_cleanup(&mut repository);
-        repository.expect_touch_user_session().returning(|_, _, _| {
-            Ok(Some(AdminPortalUserSession {
-                display_name: "Jane Doe".to_string(),
-                roles: vec![
-                    "privilege_admin".to_string(),
-                    "privilege_support".to_string(),
-                    "offline_access".to_string(),
-                ],
-                id_token: "the-id-token".to_string(),
-                expires_at: Utc::now(),
-            }))
-        });
+
+        let user_session = user_session([
+            "privilege_admin".to_string(),
+            "privilege_support".to_string(),
+            "offline_access".to_string(),
+        ]);
+        let display_name = user_session.display_name.clone();
+
+        repository
+            .expect_fetch_user_session()
+            .returning(move |_, _, _| Ok(Some(user_session.clone())));
 
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
         let service = service_with_repository(&keycloak_url, repository);
@@ -1178,7 +1228,7 @@ yP3ST1F3e7Cha7l54e71Lg==
             .expect("no errors")
             .expect("session found");
 
-        assert_eq!(user.display_name, "Jane Doe");
+        assert_eq!(user.display_name, display_name);
         assert_eq!(user.privileges, vec!["admin".to_string(), "support".to_string()]);
     }
 }

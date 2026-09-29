@@ -1,4 +1,5 @@
 use chrono::DateTime;
+use chrono::SubsecRound;
 use chrono::TimeDelta;
 use chrono::Utc;
 use crypto::utils::random_string;
@@ -138,13 +139,14 @@ async fn test_user_session_and_take() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_user_session_touch_and_take() {
+async fn test_fetch_user_session() {
     let db_setup = DbSetup::create().await;
     let db = db_from_setup(&db_setup).await;
 
     let session_id = random_string(32);
-    let now = now();
+    let now = now().trunc_subsecs(3);
 
+    let old_expires_at = now + TimeDelta::minutes(15);
     admin_portal_session::insert_user_session(
         &db,
         session_id.clone(),
@@ -152,28 +154,41 @@ async fn test_user_session_touch_and_take() {
             display_name: "Jane Doe".to_string(),
             roles: vec!["privilege_admin".to_string()],
             id_token: "id_token".to_string(),
-            expires_at: now + TimeDelta::minutes(15),
+            expires_at: old_expires_at,
         },
     )
     .await
     .expect("should insert user session");
 
-    // Extending a valid session should succeed and return the updated session.
-    let new_expires_at = now + TimeDelta::minutes(30);
-    let session = admin_portal_session::touch_user_session(&db, &session_id, now, new_expires_at)
+    // Fetch a valid session should succeed and return the session.
+    let session = admin_portal_session::fetch_user_session(&db, &session_id, now, None)
         .await
         .unwrap()
         .expect("session should be present and not expired");
     assert_eq!(session.display_name, "Jane Doe");
     assert_eq!(session.roles, vec!["privilege_admin".to_string()]);
+    assert_eq!(session.expires_at, old_expires_at);
+
+    // Fetching a valid session should not succeed if it is already expired
+    let result = admin_portal_session::fetch_user_session(&db, &session_id, old_expires_at, None)
+        .await
+        .unwrap();
+    assert!(result.is_none());
+
+    // Fetch a valid session with an updated expires_at should succeed and return the updated session.
+    let new_expires_at = now + TimeDelta::minutes(30);
+    let session = admin_portal_session::fetch_user_session(&db, &session_id, now, Some(new_expires_at))
+        .await
+        .unwrap()
+        .expect("session should be present and not expired");
     assert_eq!(session.expires_at, new_expires_at);
 
-    // Extending an already expired session should not find it.
-    let result =
-        admin_portal_session::touch_user_session(&db, &session_id, new_expires_at + TimeDelta::minutes(1), now)
-            .await
-            .unwrap();
-    assert!(result.is_none());
+    // Should also be persisted in database
+    let session = admin_portal_session::fetch_user_session(&db, &session_id, old_expires_at, None)
+        .await
+        .unwrap()
+        .expect("session should be present and not expired");
+    assert_eq!(session.expires_at, new_expires_at);
 
     // Taking the session removes it and returns its contents.
     let session = admin_portal_session::take_user_session(&db, &session_id)

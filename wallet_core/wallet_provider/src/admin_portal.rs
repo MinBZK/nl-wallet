@@ -132,13 +132,26 @@ struct CallbackQuery {
     error: Option<String>,
 }
 
-async fn callback<R>(State(state): State<Arc<AdminPortalState<R>>>, Query(query): Query<CallbackQuery>) -> Response
+async fn callback<R>(
+    State(state): State<Arc<AdminPortalState<R>>>,
+    cookie_jar: CookieJar,
+    Query(query): Query<CallbackQuery>,
+) -> Response
 where
     R: AdminPortalSessionRepository + Send + Sync + 'static,
 {
+    let session_id = cookie_jar
+        .get(SESSION_ID_COOKIE)
+        .map(|cookie| cookie.value().to_string());
+
     let session_id = state
         .service
-        .handle_callback(query.state.as_deref(), query.code.as_deref(), query.error.as_deref())
+        .handle_callback(
+            session_id.as_deref(),
+            query.state.as_deref(),
+            query.code.as_deref(),
+            query.error.as_deref(),
+        )
         .await
         .inspect_err(|error| warn!("/auth/callback failed: {error}"));
 
@@ -218,7 +231,6 @@ where
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::net::TcpListener;
     use std::sync::Mutex;
     use std::time::Duration;
 
@@ -228,8 +240,8 @@ mod tests {
     use chrono::DateTime;
     use chrono::TimeDelta;
     use chrono::Utc;
+    use crypto::utils::random_string;
     use http_utils::reqwest::test::get_test_trust_anchor;
-    use http_utils::urls::BaseUrl;
     use serde_json::Value;
     use utils::vec_nonempty;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
@@ -303,11 +315,11 @@ mod tests {
             Ok(())
         }
 
-        async fn touch_user_session(
+        async fn fetch_user_session(
             &self,
             session_id: &str,
             now: DateTime<Utc>,
-            new_expires_at: DateTime<Utc>,
+            new_expires_at: Option<DateTime<Utc>>,
         ) -> Result<Option<AdminPortalUserSession>, PersistenceError> {
             self.handle_error()?;
             let mut sessions = self.sessions.lock().unwrap();
@@ -317,7 +329,9 @@ mod tests {
             if session.expires_at <= now {
                 return Ok(None);
             }
-            session.expires_at = new_expires_at;
+            if let Some(new_expires_at) = new_expires_at {
+                session.expires_at = new_expires_at;
+            }
             Ok(Some(session.clone()))
         }
 
@@ -335,17 +349,16 @@ mod tests {
         }
     }
 
-    /// Binds an ephemeral local port and immediately releases it, so that connecting to it is reliably refused.
-    fn unreachable_keycloak_url() -> BaseUrl {
-        let port = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
-        format!("https://127.0.0.1:{port}").parse().unwrap()
+    fn setup_state() -> Arc<AdminPortalState<InMemoryRepository>> {
+        setup_state_with_repository(InMemoryRepository::default())
     }
 
-    fn state(repository: InMemoryRepository, keycloak_url: BaseUrl) -> Arc<AdminPortalState<InMemoryRepository>> {
+    fn setup_state_with_repository(repository: InMemoryRepository) -> Arc<AdminPortalState<InMemoryRepository>> {
         Arc::new(
             AdminPortalState::try_new(
                 AdminPortalSettings {
-                    keycloak_url,
+                    // .invalid is reserved by the IETF and will never resolve
+                    keycloak_url: "https://keycloak.invalid".parse().unwrap(),
                     keycloak_realm: "test-realm".to_string(),
                     keycloak_client_id: "test-client".to_string(),
                     public_url: "https://portal.example.org/".parse().unwrap(),
@@ -359,9 +372,27 @@ mod tests {
         )
     }
 
+    fn setup_state_with_valid_user() -> (Arc<AdminPortalState<InMemoryRepository>>, CookieJar) {
+        let session_id = random_string(12);
+        let repository = InMemoryRepository::default();
+        repository.sessions.lock().unwrap().insert(
+            session_id.clone(),
+            AdminPortalUserSession {
+                display_name: "Jane Doe".to_string(),
+                roles: vec!["privilege_admin".to_string(), "offline_access".to_string()],
+                id_token: "the-id-token".to_string(),
+                expires_at: Utc::now() + TimeDelta::minutes(5),
+            },
+        );
+        let state = setup_state_with_repository(repository);
+        let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, session_id));
+
+        (state, jar)
+    }
+
     #[tokio::test]
     async fn login_reports_server_error_when_oidc_provider_is_unreachable() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
 
         let response = login(State(state), Query(LoginQuery { login_hint: None })).await;
 
@@ -370,10 +401,11 @@ mod tests {
 
     #[tokio::test]
     async fn callback_without_state_redirects_to_frontend_error_page() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
 
         let response = callback(
             State(state),
+            CookieJar::new(),
             Query(CallbackQuery {
                 state: None,
                 code: None,
@@ -390,8 +422,30 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn callback_without_state_but_with_session_redirects_to_frontend_entry() {
+        let (state, jar) = setup_state_with_valid_user();
+
+        let response = callback(
+            State(state),
+            jar,
+            Query(CallbackQuery {
+                state: Some("unknown-state".to_string()),
+                code: None,
+                error: None,
+            }),
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        assert_eq!(
+            response.headers().get(header::LOCATION).unwrap(),
+            "https://portal.example.org/"
+        );
+    }
+
+    #[tokio::test]
     async fn logout_without_session_cookie_redirects_to_frontend_entry() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
 
         let response = logout(State(state), CookieJar::new()).await;
 
@@ -407,7 +461,7 @@ mod tests {
         let mut session_repository = InMemoryRepository::default();
         session_repository.set_errors(true);
 
-        let state = state(session_repository, unreachable_keycloak_url());
+        let state = setup_state_with_repository(session_repository);
         let cookie_jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "my_session"));
 
         let response = logout(State(state), cookie_jar).await;
@@ -421,7 +475,7 @@ mod tests {
 
     #[tokio::test]
     async fn me_without_session_cookie_is_unauthorized() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
 
         let response = me(State(state), CookieJar::new()).await;
 
@@ -430,7 +484,7 @@ mod tests {
 
     #[tokio::test]
     async fn me_with_unknown_session_cookie_is_unauthorized() {
-        let state = state(InMemoryRepository::default(), unreachable_keycloak_url());
+        let state = setup_state();
         let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "unknown-session"));
 
         let response = me(State(state), jar).await;
@@ -440,18 +494,7 @@ mod tests {
 
     #[tokio::test]
     async fn me_with_valid_session_reports_logged_in_user() {
-        let repository = InMemoryRepository::default();
-        repository.sessions.lock().unwrap().insert(
-            "the-session-id".to_string(),
-            AdminPortalUserSession {
-                display_name: "Jane Doe".to_string(),
-                roles: vec!["privilege_admin".to_string(), "offline_access".to_string()],
-                id_token: "the-id-token".to_string(),
-                expires_at: Utc::now() + TimeDelta::minutes(5),
-            },
-        );
-        let state = state(repository, unreachable_keycloak_url());
-        let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "the-session-id"));
+        let (state, jar) = setup_state_with_valid_user();
 
         let response = me(State(state), jar).await;
 

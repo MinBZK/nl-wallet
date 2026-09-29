@@ -1,15 +1,12 @@
 use chrono::DateTime;
 use chrono::Utc;
 use sea_orm::ActiveValue::Set;
-use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::DbBackend;
 use sea_orm::EntityTrait;
-use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::Statement;
 use sea_orm::TransactionTrait;
-use sea_orm::prelude::Expr;
 use tracing::info;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
@@ -148,38 +145,42 @@ where
     Ok(())
 }
 
-/// Extends the session's expiry to `new_expires_at`, provided it has not already expired as of `now`.
-pub async fn touch_user_session<S, T>(
+pub async fn fetch_user_session<S, T>(
     db: &T,
     id: &str,
     now: DateTime<Utc>,
-    new_expires_at: DateTime<Utc>,
+    new_expires_at: Option<DateTime<Utc>>,
 ) -> Result<Option<AdminPortalUserSession>, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let result = admin_portal_user_session::Entity::update_many()
-        .col_expr(
-            admin_portal_user_session::Column::ExpiresAt,
-            Expr::value(new_expires_at),
-        )
-        .filter(admin_portal_user_session::Column::Id.eq(id))
-        .filter(admin_portal_user_session::Column::ExpiresAt.gt(now))
-        .exec(db.connection())
-        .await
-        .map_err(PersistenceError::Execution)?;
-
-    if result.rows_affected == 0 {
-        return Ok(None);
-    }
-
     let model = admin_portal_user_session::Entity::find_by_id(id.to_string())
         .one(db.connection())
         .await
         .map_err(PersistenceError::Execution)?;
 
-    Ok(model.map(|model| AdminPortalUserSession {
+    let mut model = match model {
+        None => return Ok(None),
+        Some(model) if model.expires_at <= now => return Ok(None),
+        Some(model) => model,
+    };
+
+    if let Some(new_expires_at) = new_expires_at {
+        let new_expires_at = new_expires_at.fixed_offset();
+        let insert = admin_portal_user_session::ActiveModel {
+            id: Set(model.id),
+            expires_at: Set(new_expires_at),
+            ..Default::default()
+        };
+        admin_portal_user_session::Entity::update(insert)
+            .exec(db.connection())
+            .await
+            .map_err(PersistenceError::Execution)?;
+        model.expires_at = new_expires_at;
+    }
+
+    Ok(Some(AdminPortalUserSession {
         display_name: model.display_name,
         roles: model.roles,
         id_token: model.id_token,
@@ -227,7 +228,7 @@ where
 
     // Deletes sessions that expired at or before `now`, in bounded batches so a single statement never holds a
     // large lock or scans the whole backlog. `FOR UPDATE SKIP LOCKED` skips rows currently locked by a concurrent
-    // `take_user_session`/`touch_user_session`; the loop drains the rest, stopping once a batch removes fewer rows
+    // `take_user_session`/`fetch_user_session`; the loop drains the rest, stopping once a batch removes fewer rows
     // than the limit (nothing left to delete). This also allows multiple pods to run concurrent cleanup tasks safely.
     loop {
         let result = db
