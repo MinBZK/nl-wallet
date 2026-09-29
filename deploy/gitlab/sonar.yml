@@ -77,7 +77,7 @@ sonar-admin-portal:
       -Dsonar.projectKey=nl-wallet-admin-portal
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=src/
-      -Dsonar.exclusions=src/__tests__/**/*,pnpm-lock.yaml,pnpm-workspace.yaml
+      -Dsonar.exclusions=src/__tests__/**/*
       -Dsonar.tests=src/__tests__
       -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
   allow_failure: true
@@ -95,7 +95,7 @@ sonar-wallet-web:
       -Dsonar.projectKey=nl-wallet-web
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=lib/
-      -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/models/openid4vc.ts,lib/models/relying_party.ts,lib/util/qrcodegen.ts,pnpm-lock.yaml,pnpm-workspace.yaml
+      -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/models/openid4vc.ts,lib/models/relying_party.ts,lib/util/qrcodegen.ts
       -Dsonar.tests=lib/__tests__
       -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
   allow_failure: true
