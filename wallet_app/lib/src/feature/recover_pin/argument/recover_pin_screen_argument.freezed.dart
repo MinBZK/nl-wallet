@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'recover_pin_screen_argument.dart';
@@ -9,6 +9,7 @@ part of 'recover_pin_screen_argument.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -23,16 +24,21 @@ mixin _$RecoverPinScreenArgument {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecoverPinScreenArgument&&(identical(other.uri, uri) || other.uri == uri)&&(identical(other.isRecoveryFlow, isRecoveryFlow) || other.isRecoveryFlow == isRecoveryFlow));
+  final _this = this as RecoverPinScreenArgument;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecoverPinScreenArgument&&(identical(other.uri, _this.uri) || other.uri == _this.uri)&&(identical(other.isRecoveryFlow, _this.isRecoveryFlow) || other.isRecoveryFlow == _this.isRecoveryFlow));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,uri,isRecoveryFlow);
+int get hashCode {
+  final _this = this as RecoverPinScreenArgument;
+  return Object.hash(runtimeType,_this.uri,_this.isRecoveryFlow);
+}
 
 @override
 String toString() {
-  return 'RecoverPinScreenArgument(uri: $uri, isRecoveryFlow: $isRecoveryFlow)';
+  final _this = this as RecoverPinScreenArgument;
+  return 'RecoverPinScreenArgument(uri: ${_this.uri}, isRecoveryFlow: ${_this.isRecoveryFlow})';
 }
 
 
@@ -189,16 +195,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RecoverPinScreenArgument&&(identical(other.uri, uri) || other.uri == uri)&&(identical(other.isRecoveryFlow, isRecoveryFlow) || other.isRecoveryFlow == isRecoveryFlow));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _RecoverPinScreenArgument&&(identical(other.uri, uri) || other.uri == uri)&&(identical(other.isRecoveryFlow, isRecoveryFlow) || other.isRecoveryFlow == isRecoveryFlow));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,uri,isRecoveryFlow);
+int get hashCode {
+    return Object.hash(runtimeType,uri,isRecoveryFlow);
+}
 
 @override
 String toString() {
-  return 'RecoverPinScreenArgument(uri: $uri, isRecoveryFlow: $isRecoveryFlow)';
+    return 'RecoverPinScreenArgument(uri: $uri, isRecoveryFlow: $isRecoveryFlow)';
 }
 
 

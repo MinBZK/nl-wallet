@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'os_notification.dart';
@@ -9,6 +9,7 @@ part of 'os_notification.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -34,16 +35,21 @@ $OsNotificationCopyWith<OsNotification> get copyWith => _$OsNotificationCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OsNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.payload, payload) || other.payload == payload)&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
+  final _this = this as OsNotification;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OsNotification&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.channel, _this.channel) || other.channel == _this.channel)&&(identical(other.title, _this.title) || other.title == _this.title)&&(identical(other.body, _this.body) || other.body == _this.body)&&(identical(other.payload, _this.payload) || other.payload == _this.payload)&&(identical(other.notifyAt, _this.notifyAt) || other.notifyAt == _this.notifyAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,channel,title,body,payload,notifyAt);
+int get hashCode {
+  final _this = this as OsNotification;
+  return Object.hash(runtimeType,_this.id,_this.channel,_this.title,_this.body,_this.payload,_this.notifyAt);
+}
 
 @override
 String toString() {
-  return 'OsNotification(id: $id, channel: $channel, title: $title, body: $body, payload: $payload, notifyAt: $notifyAt)';
+  final _this = this as OsNotification;
+  return 'OsNotification(id: ${_this.id}, channel: ${_this.channel}, title: ${_this.title}, body: ${_this.body}, payload: ${_this.payload}, notifyAt: ${_this.notifyAt})';
 }
 
 
@@ -72,7 +78,7 @@ class _$OsNotificationCopyWithImpl<$Res>
 /// Create a copy of OsNotification
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? channel = null,Object? title = null,Object? body = null,Object? payload = freezed,Object? notifyAt = null,}) {
-  return _then(_self.copyWith(
+  return _then(OsNotification(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,channel: null == channel ? _self.channel : channel // ignore: cast_nullable_to_non_nullable
 as NotificationChannel,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -249,16 +255,18 @@ _$OsNotificationCopyWith<_OsNotification> get copyWith => __$OsNotificationCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OsNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.payload, payload) || other.payload == payload)&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _OsNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.channel, channel) || other.channel == channel)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.payload, payload) || other.payload == payload)&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,channel,title,body,payload,notifyAt);
+int get hashCode {
+    return Object.hash(runtimeType,id,channel,title,body,payload,notifyAt);
+}
 
 @override
 String toString() {
-  return 'OsNotification(id: $id, channel: $channel, title: $title, body: $body, payload: $payload, notifyAt: $notifyAt)';
+    return 'OsNotification(id: $id, channel: $channel, title: $title, body: $body, payload: $payload, notifyAt: $notifyAt)';
 }
 
 

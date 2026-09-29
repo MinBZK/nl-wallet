@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'card_rendering.dart';
@@ -9,6 +9,7 @@ part of 'card_rendering.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 CardRendering _$CardRenderingFromJson(
@@ -35,16 +36,21 @@ $CardRenderingCopyWith<CardRendering> get copyWith => _$CardRenderingCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardRendering&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.logoAltText, logoAltText) || other.logoAltText == logoAltText)&&(identical(other.bgColor, bgColor) || other.bgColor == bgColor)&&(identical(other.textColor, textColor) || other.textColor == textColor));
+  final _this = this as CardRendering;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardRendering&&(identical(other.logo, _this.logo) || other.logo == _this.logo)&&(identical(other.logoAltText, _this.logoAltText) || other.logoAltText == _this.logoAltText)&&(identical(other.bgColor, _this.bgColor) || other.bgColor == _this.bgColor)&&(identical(other.textColor, _this.textColor) || other.textColor == _this.textColor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,logo,logoAltText,bgColor,textColor);
+int get hashCode {
+  final _this = this as CardRendering;
+  return Object.hash(runtimeType,_this.logo,_this.logoAltText,_this.bgColor,_this.textColor);
+}
 
 @override
 String toString() {
-  return 'CardRendering(logo: $logo, logoAltText: $logoAltText, bgColor: $bgColor, textColor: $textColor)';
+  final _this = this as CardRendering;
+  return 'CardRendering(logo: ${_this.logo}, logoAltText: ${_this.logoAltText}, bgColor: ${_this.bgColor}, textColor: ${_this.textColor})';
 }
 
 
@@ -73,7 +79,7 @@ class _$CardRenderingCopyWithImpl<$Res>
 /// Create a copy of CardRendering
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? logo = freezed,Object? logoAltText = freezed,Object? bgColor = freezed,Object? textColor = freezed,}) {
-  return _then(_self.copyWith(
+  return _then(CardRendering.simple(
 logo: freezed == logo ? _self.logo : logo // ignore: cast_nullable_to_non_nullable
 as AppImageData?,logoAltText: freezed == logoAltText ? _self.logoAltText : logoAltText // ignore: cast_nullable_to_non_nullable
 as String?,bgColor: freezed == bgColor ? _self.bgColor : bgColor // ignore: cast_nullable_to_non_nullable
@@ -234,16 +240,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SimpleCardRendering&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.logoAltText, logoAltText) || other.logoAltText == logoAltText)&&(identical(other.bgColor, bgColor) || other.bgColor == bgColor)&&(identical(other.textColor, textColor) || other.textColor == textColor));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is SimpleCardRendering&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.logoAltText, logoAltText) || other.logoAltText == logoAltText)&&(identical(other.bgColor, bgColor) || other.bgColor == bgColor)&&(identical(other.textColor, textColor) || other.textColor == textColor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,logo,logoAltText,bgColor,textColor);
+int get hashCode {
+    return Object.hash(runtimeType,logo,logoAltText,bgColor,textColor);
+}
 
 @override
 String toString() {
-  return 'CardRendering.simple(logo: $logo, logoAltText: $logoAltText, bgColor: $bgColor, textColor: $textColor)';
+    return 'CardRendering.simple(logo: $logo, logoAltText: $logoAltText, bgColor: $bgColor, textColor: $textColor)';
 }
 
 

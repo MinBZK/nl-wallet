@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'card_display_metadata.dart';
@@ -9,6 +9,7 @@ part of 'card_display_metadata.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -23,16 +24,21 @@ mixin _$CardDisplayMetadata {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardDisplayMetadata&&(identical(other.language, language) || other.language == language)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.rawSummary, rawSummary) || other.rawSummary == rawSummary)&&(identical(other.rendering, rendering) || other.rendering == rendering));
+  final _this = this as CardDisplayMetadata;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardDisplayMetadata&&(identical(other.language, _this.language) || other.language == _this.language)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.description, _this.description) || other.description == _this.description)&&(identical(other.rawSummary, _this.rawSummary) || other.rawSummary == _this.rawSummary)&&(identical(other.rendering, _this.rendering) || other.rendering == _this.rendering));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,language,name,description,rawSummary,rendering);
+int get hashCode {
+  final _this = this as CardDisplayMetadata;
+  return Object.hash(runtimeType,_this.language,_this.name,_this.description,_this.rawSummary,_this.rendering);
+}
 
 @override
 String toString() {
-  return 'CardDisplayMetadata(language: $language, name: $name, description: $description, rawSummary: $rawSummary, rendering: $rendering)';
+  final _this = this as CardDisplayMetadata;
+  return 'CardDisplayMetadata(language: ${_this.language}, name: ${_this.name}, description: ${_this.description}, rawSummary: ${_this.rawSummary}, rendering: ${_this.rendering})';
 }
 
 
@@ -192,16 +198,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardDisplayMetadata&&(identical(other.language, language) || other.language == language)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.rawSummary, rawSummary) || other.rawSummary == rawSummary)&&(identical(other.rendering, rendering) || other.rendering == rendering));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardDisplayMetadata&&(identical(other.language, language) || other.language == language)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.rawSummary, rawSummary) || other.rawSummary == rawSummary)&&(identical(other.rendering, rendering) || other.rendering == rendering));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,language,name,description,rawSummary,rendering);
+int get hashCode {
+    return Object.hash(runtimeType,language,name,description,rawSummary,rendering);
+}
 
 @override
 String toString() {
-  return 'CardDisplayMetadata(language: $language, name: $name, description: $description, rawSummary: $rawSummary, rendering: $rendering)';
+    return 'CardDisplayMetadata(language: $language, name: $name, description: $description, rawSummary: $rawSummary, rendering: $rendering)';
 }
 
 

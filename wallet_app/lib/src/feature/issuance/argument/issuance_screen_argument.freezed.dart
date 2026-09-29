@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'issuance_screen_argument.dart';
@@ -9,6 +9,7 @@ part of 'issuance_screen_argument.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -28,16 +29,21 @@ $IssuanceScreenArgumentCopyWith<IssuanceScreenArgument> get copyWith => _$Issuan
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceScreenArgument&&(identical(other.mockSessionId, mockSessionId) || other.mockSessionId == mockSessionId)&&(identical(other.isQrCode, isQrCode) || other.isQrCode == isQrCode)&&(identical(other.isRefreshFlow, isRefreshFlow) || other.isRefreshFlow == isRefreshFlow)&&(identical(other.uri, uri) || other.uri == uri)&&(identical(other.issuanceType, issuanceType) || other.issuanceType == issuanceType));
+  final _this = this as IssuanceScreenArgument;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceScreenArgument&&(identical(other.mockSessionId, _this.mockSessionId) || other.mockSessionId == _this.mockSessionId)&&(identical(other.isQrCode, _this.isQrCode) || other.isQrCode == _this.isQrCode)&&(identical(other.isRefreshFlow, _this.isRefreshFlow) || other.isRefreshFlow == _this.isRefreshFlow)&&(identical(other.uri, _this.uri) || other.uri == _this.uri)&&(identical(other.issuanceType, _this.issuanceType) || other.issuanceType == _this.issuanceType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,mockSessionId,isQrCode,isRefreshFlow,uri,issuanceType);
+int get hashCode {
+  final _this = this as IssuanceScreenArgument;
+  return Object.hash(runtimeType,_this.mockSessionId,_this.isQrCode,_this.isRefreshFlow,_this.uri,_this.issuanceType);
+}
 
 @override
 String toString() {
-  return 'IssuanceScreenArgument(mockSessionId: $mockSessionId, isQrCode: $isQrCode, isRefreshFlow: $isRefreshFlow, uri: $uri, issuanceType: $issuanceType)';
+  final _this = this as IssuanceScreenArgument;
+  return 'IssuanceScreenArgument(mockSessionId: ${_this.mockSessionId}, isQrCode: ${_this.isQrCode}, isRefreshFlow: ${_this.isRefreshFlow}, uri: ${_this.uri}, issuanceType: ${_this.issuanceType})';
 }
 
 
@@ -66,7 +72,7 @@ class _$IssuanceScreenArgumentCopyWithImpl<$Res>
 /// Create a copy of IssuanceScreenArgument
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? mockSessionId = freezed,Object? isQrCode = null,Object? isRefreshFlow = null,Object? uri = freezed,Object? issuanceType = null,}) {
-  return _then(_self.copyWith(
+  return _then(IssuanceScreenArgument(
 mockSessionId: freezed == mockSessionId ? _self.mockSessionId : mockSessionId // ignore: cast_nullable_to_non_nullable
 as String?,isQrCode: null == isQrCode ? _self.isQrCode : isQrCode // ignore: cast_nullable_to_non_nullable
 as bool,isRefreshFlow: null == isRefreshFlow ? _self.isRefreshFlow : isRefreshFlow // ignore: cast_nullable_to_non_nullable
@@ -235,16 +241,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _IssuanceScreenArgument&&(identical(other.mockSessionId, mockSessionId) || other.mockSessionId == mockSessionId)&&(identical(other.isQrCode, isQrCode) || other.isQrCode == isQrCode)&&(identical(other.isRefreshFlow, isRefreshFlow) || other.isRefreshFlow == isRefreshFlow)&&(identical(other.uri, uri) || other.uri == uri)&&(identical(other.issuanceType, issuanceType) || other.issuanceType == issuanceType));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _IssuanceScreenArgument&&(identical(other.mockSessionId, mockSessionId) || other.mockSessionId == mockSessionId)&&(identical(other.isQrCode, isQrCode) || other.isQrCode == isQrCode)&&(identical(other.isRefreshFlow, isRefreshFlow) || other.isRefreshFlow == isRefreshFlow)&&(identical(other.uri, uri) || other.uri == uri)&&(identical(other.issuanceType, issuanceType) || other.issuanceType == issuanceType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,mockSessionId,isQrCode,isRefreshFlow,uri,issuanceType);
+int get hashCode {
+    return Object.hash(runtimeType,mockSessionId,isQrCode,isRefreshFlow,uri,issuanceType);
+}
 
 @override
 String toString() {
-  return 'IssuanceScreenArgument(mockSessionId: $mockSessionId, isQrCode: $isQrCode, isRefreshFlow: $isRefreshFlow, uri: $uri, issuanceType: $issuanceType)';
+    return 'IssuanceScreenArgument(mockSessionId: $mockSessionId, isQrCode: $isQrCode, isRefreshFlow: $isRefreshFlow, uri: $uri, issuanceType: $issuanceType)';
 }
 
 
