@@ -479,7 +479,7 @@ mod tests {
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
         assert_eq!(
-            "2.5.4.3=DARteWNh,2.5.4.6=DAJOTA",
+            "2.5.4.3=DARteWNh,2.5.4.6=EwJOTA",
             certificate.to_canonical_distinguished_name().unwrap().as_ref()
         );
 

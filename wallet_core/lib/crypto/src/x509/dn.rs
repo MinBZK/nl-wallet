@@ -152,12 +152,19 @@ fn custom_dn_type(oid: &Oid) -> rcgen::DnType {
     )
 }
 
+/// Converts to the rcgen representation. Attributes of type DirectoryString are encoded as UTF8String, but RFC 5280
+/// (Appendix A.1) defines countryName and serialNumber as PrintableString.
 #[cfg(any(test, feature = "generate"))]
-impl From<DistinguishedName> for rcgen::DistinguishedName {
-    fn from(dn: DistinguishedName) -> Self {
+impl TryFrom<DistinguishedName> for rcgen::DistinguishedName {
+    type Error = rcgen::Error;
+
+    fn try_from(dn: DistinguishedName) -> Result<Self, Self::Error> {
         let mut value = rcgen::DistinguishedName::new();
         value.push(rcgen::DnType::CommonName, dn.common_name);
-        value.push(rcgen::DnType::CountryName, dn.country_name);
+        value.push(
+            rcgen::DnType::CountryName,
+            rcgen::DnValue::PrintableString(dn.country_name.try_into()?),
+        );
         if let Some(org_name) = dn.organization_name {
             value.push(rcgen::DnType::OrganizationName, org_name);
         }
@@ -165,7 +172,10 @@ impl From<DistinguishedName> for rcgen::DistinguishedName {
             value.push(custom_dn_type(DN_TYPE_ORGANIZATION_IDENTIFIER_OID), org_id);
         }
         if let Some(serial_number) = dn.serial_number {
-            value.push(custom_dn_type(DN_TYPE_SERIAL_NUMBER_OID), serial_number);
+            value.push(
+                custom_dn_type(DN_TYPE_SERIAL_NUMBER_OID),
+                rcgen::DnValue::PrintableString(serial_number.try_into()?),
+            );
         }
         if let Some(surname) = dn.surname {
             value.push(custom_dn_type(DN_TYPE_SURNAME_OID), surname);
@@ -173,7 +183,7 @@ impl From<DistinguishedName> for rcgen::DistinguishedName {
         if let Some(given_name) = dn.given_name {
             value.push(custom_dn_type(DN_TYPE_GIVEN_NAME_OID), given_name);
         }
-        value
+        Ok(value)
     }
 }
 
@@ -235,6 +245,7 @@ mod tests {
 
     use rstest::rstest;
     use x509_parser::asn1_rs::FromDer;
+    use x509_parser::asn1_rs::Tag;
     use x509_parser::der_parser::Oid;
     use x509_parser::der_parser::oid;
     use x509_parser::x509::X509Name;
@@ -343,7 +354,7 @@ mod tests {
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
         assert_eq!(
-            "2.5.4.3=DARteWNh,2.5.4.6=DAJOTA",
+            "2.5.4.3=DARteWNh,2.5.4.6=EwJOTA",
             certificate.to_canonical_distinguished_name().unwrap().as_ref()
         );
 
@@ -367,7 +378,7 @@ mod tests {
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
         assert_eq!(
-            "2.5.4.3=DAZteWNlcnQ,2.5.4.6=DAJOTA,2.5.4.10=DAtteWNlcnQgQi5WLg,2.5.4.97=DA5OVFJOTC0xMjYwNjE3OA",
+            "2.5.4.3=DAZteWNlcnQ,2.5.4.6=EwJOTA,2.5.4.10=DAtteWNlcnQgQi5WLg,2.5.4.97=DA5OVFJOTC0xMjYwNjE3OA",
             certificate.to_canonical_distinguished_name().unwrap().as_ref()
         );
 
@@ -395,7 +406,7 @@ mod tests {
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
         assert_eq!(
-            "2.5.4.3=DAhKb2huIERvZQ,2.5.4.6=DAJOTA,2.5.4.5=DAg5OTk4OTgwMg,2.5.4.4=DANEb2U,2.5.4.42=DARKb2hu",
+            "2.5.4.3=DAhKb2huIERvZQ,2.5.4.6=EwJOTA,2.5.4.5=Ewg5OTk4OTgwMg,2.5.4.4=DANEb2U,2.5.4.42=DARKb2hu",
             certificate.to_canonical_distinguished_name().unwrap().as_ref()
         );
 
@@ -411,6 +422,46 @@ mod tests {
         assert_x509_oid(x509_cert.subject(), SERIAL_NUMBER_OID, dn.serial_number.as_ref());
         assert_x509_oid(x509_cert.subject(), SN_OID, dn.surname.as_ref());
         assert_x509_oid(x509_cert.subject(), GN_OID, dn.given_name.as_ref());
+    }
+
+    #[rstest]
+    #[case::legal_person(DistinguishedName::create_legal_person_mock("mycert"))]
+    #[case::natural_person(DistinguishedName::create_natural_person_mock("John", "Doe"))]
+    fn test_dn_string_types_in_cert(#[case] dn: DistinguishedName) {
+        let ca = Ca::generate(DistinguishedName::create_mock("myca"), Default::default()).unwrap();
+        let key_pair = ca.generate_key_pair(dn, Default::default()).unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        for x509_name in [x509_cert.issuer(), x509_cert.subject()] {
+            for attribute in x509_name.iter_attributes() {
+                let expected_tag = if [COUNTRY_OID, SERIAL_NUMBER_OID]
+                    .iter()
+                    .any(|oid| *oid == attribute.attr_type())
+                {
+                    Tag::PrintableString
+                } else {
+                    Tag::Utf8String
+                };
+                assert_eq!(attribute.attr_value().tag(), expected_tag, "{}", attribute.attr_type());
+            }
+        }
+    }
+
+    #[rstest]
+    #[case::country(DistinguishedName::new("Test".to_string(), "N_".to_string()))]
+    #[case::serial_number(DistinguishedName::new_natural_person(
+        String::from("Test"),
+        String::from("NL"),
+        String::from("1_2"),
+        String::from("Doe"),
+        String::from("John"),
+    ))]
+    fn test_dn_non_printable_string_rejected(#[case] dn: DistinguishedName) {
+        let error = rcgen::DistinguishedName::try_from(dn).expect_err("expected error");
+        assert_matches!(
+            error,
+            rcgen::Error::InvalidAsn1String(rcgen::InvalidAsn1String::PrintableString(value)) if value.contains('_')
+        );
     }
 
     fn assert_x509_common_name(x509name: &X509Name, common_name: &str) {
