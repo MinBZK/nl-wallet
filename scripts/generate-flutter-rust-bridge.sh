@@ -21,8 +21,14 @@ if [[ -z ${CI:-} ]]; then
     done
 fi
 
-flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
-dart run build_runner build --delete-conflicting-outputs
+# Locally, FRB output feeds freezed, so build_runner must follow. CI skips it here because
+# verify-flutter-codegen checks that output on its own.
+if [[ -n ${CI:-} ]]; then
+    flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml --no-build-runner
+else
+    flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
+    dart run build_runner build --delete-conflicting-outputs
+fi
 
 # `flutter_rust_bridge_codegen` already formats the generated code, but it apparently doesn't match our style
 dart format . --line-length 120
