@@ -456,7 +456,6 @@ mod tests {
     use std::ops::Add;
     use std::sync::Arc;
 
-    use attestation_types::status_claim::IdentifierListInfo;
     use chrono::Duration;
     use chrono::Utc;
     use crypto::examples::Examples;

@@ -1337,7 +1337,6 @@ mod tests {
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::status_claim::IdentifierListInfo;
     use attestation_types::status_claim::StatusListClaim;
     use chrono::Utc;
     use cose::TypedCose;
@@ -1350,6 +1349,7 @@ mod tests {
     use futures::FutureExt;
     use jwt::jwk::jwk_to_public_key;
     use jwt::nonce::Nonce;
+    use mdoc::IdentifierListInfo;
     use mdoc::IssuerSigned;
     use mdoc::MdocStatus;
     use mdoc::utils::serialization::TaggedBytes;

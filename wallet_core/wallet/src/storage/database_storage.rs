@@ -1514,7 +1514,6 @@ pub(crate) mod tests {
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::status_claim::IdentifierListInfo;
     use chrono::Days;
     use chrono::Duration;
     use chrono::TimeZone;
@@ -1526,6 +1525,7 @@ pub(crate) mod tests {
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
     use itertools::Itertools;
+    use mdoc::IdentifierListInfo;
     use mdoc::holder::Mdoc;
     use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
     use openid4vc::wallet_issuance::credential::SdJwtCopy;

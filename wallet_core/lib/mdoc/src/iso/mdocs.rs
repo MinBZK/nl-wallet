@@ -7,7 +7,6 @@
 use std::fmt::Debug;
 use std::result::Result;
 
-use attestation_types::status_claim::IdentifierListInfo;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::ParseError;
@@ -24,6 +23,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
+use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -272,6 +272,28 @@ pub struct MobileSecurityObject {
 
     /// Optional because it is not in the spec.
     pub status: Option<MdocStatus>,
+}
+
+/// The `identifier_list` element is a CBOR structure with the following CDDL. The value of the Identifier field shall
+/// be unique per MSO.
+///
+/// ```cddl
+/// IdentifierListInfo = {
+///    "id" : Identifier,
+///    "uri": URI,
+///    ? "certificate": Certificate
+///    * tstr => RFU
+/// }
+///
+/// Identifier = bstr
+/// URI = tstr
+/// Certificate = bstr
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct IdentifierListInfo {
+    pub id: Vec<u8>,
+    pub uri: Url,
+    pub certificate: Option<Vec<u8>>,
 }
 
 /// The status of an mdoc, as found in the MSO's `status` element. `identifier_list` is a revocation mechanism that is
@@ -570,7 +592,6 @@ mod test {
 
 #[cfg(test)]
 mod tests {
-    use attestation_types::status_claim::IdentifierListInfo;
     use attestation_types::status_claim::StatusListClaim;
     use rstest::rstest;
     use serde_bytes::ByteBuf;
@@ -579,6 +600,7 @@ mod tests {
     use super::Attributes;
     use super::IssuerSignedItem;
     use super::MdocStatus;
+    use crate::IdentifierListInfo;
     use crate::utils::serialization::TaggedBytes;
 
     #[rstest]

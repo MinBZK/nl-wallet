@@ -49,47 +49,22 @@ impl StatusListClaim {
     }
 }
 
-/// The `identifier_list` element is a CBOR structure with the following CDDL. The value of the Identifier field shall
-/// be unique per MSO.
-///
-/// ```cddl
-/// IdentifierListInfo = {
-///    "id" : Identifier,
-///    "uri": URI,
-///    ? "certificate": Certificate
-///    * tstr => RFU
-/// }
-///
-/// Identifier = bstr
-/// URI = tstr
-/// Certificate = bstr
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct IdentifierListInfo {
-    pub id: Vec<u8>,
-    pub uri: Url,
-    pub certificate: Option<Vec<u8>>,
-}
-
 #[cfg(test)]
 mod test {
-    use rstest::rstest;
     use serde_json::json;
 
     use super::*;
 
-    #[rstest]
-    #[case::status_list(json!({
-        "status_list": {
-            "idx": 0,
-            "uri": "https://example.com/statuslists/1"
-        }
-    }), StatusClaim::StatusList(StatusListClaim {
-        idx: 0,
-        uri: "https://example.com/statuslists/1".parse().unwrap(),
-    }))]
-    fn test_deserialize_status_claim(#[case] value: serde_json::Value, #[case] expected: StatusClaim) {
-        let claim: StatusClaim = serde_json::from_value(value).unwrap();
-        assert_eq!(claim, expected);
+    #[test]
+    fn test_deserialize_status_claim() {
+        let example = json!({
+            "status_list": {
+                "idx": 0,
+                "uri": "https://example.com/statuslists/1"
+            }
+        });
+        let StatusClaim::StatusList(claim) = serde_json::from_value(example).unwrap();
+        assert_eq!(claim.idx, 0);
+        assert_eq!(claim.uri, "https://example.com/statuslists/1".parse().unwrap());
     }
 }

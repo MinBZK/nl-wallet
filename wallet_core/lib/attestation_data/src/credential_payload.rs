@@ -727,7 +727,6 @@ mod test {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use attestation_types::status_claim::IdentifierListInfo;
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::PublicKey;
@@ -740,6 +739,7 @@ mod test {
     use itertools::Itertools;
     use jwt::jwk::jwk_from_public_key;
     use jwt::nonce::Nonce;
+    use mdoc::IdentifierListInfo;
     use mdoc::MdocStatus;
     use mdoc::holder::Mdoc;
     use mdoc::utils::serialization::TaggedBytes;
