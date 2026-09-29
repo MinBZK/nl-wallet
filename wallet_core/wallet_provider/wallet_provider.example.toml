@@ -43,6 +43,17 @@ wia_wallet_version = "1.0.0"
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
 
+# Admin Portal OIDC login, see wallet_docs/development/keycloak-setup.md
+[admin_portal]
+# keycloak_url = "https://localhost:11443"
+# keycloak_realm = "nl-wallet"
+# keycloak_client_id = "wallet-backend"
+# # CA certificate(s) (DER, base64-encoded) the OIDC client pins its TLS connection to Keycloak to.
+# keycloak_trust_anchors = ["..."]
+# public_url = "http://localhost:5173/"
+# session_ttl_in_ms = 900_000
+# login_attempt_ttl_in_ms = 600_000
+
 # Identifier for the key used to wrap attestation private keys that will be persisted
 [attestation_wrapping_kid]
 current = "1"

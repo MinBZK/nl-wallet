@@ -2,6 +2,8 @@
 
 pub mod prelude;
 
+pub mod admin_portal_login_attempt;
+pub mod admin_portal_user_session;
 pub mod recovery_code;
 pub mod wallet_flag;
 pub mod wallet_transfer;

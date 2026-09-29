@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'attestation.dart';
@@ -9,6 +9,7 @@ part of 'attestation.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$AttestationIdentity {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttestationIdentity);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttestationIdentity);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'AttestationIdentity()';
+    return 'AttestationIdentity()';
 }
 
 
@@ -185,7 +186,7 @@ class AttestationIdentity_Ephemeral extends AttestationIdentity {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttestationIdentity_Ephemeral);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttestationIdentity_Ephemeral);
 }
 
 
@@ -194,7 +195,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'AttestationIdentity.ephemeral()';
+    return 'AttestationIdentity.ephemeral()';
 }
 
 
@@ -222,16 +223,18 @@ $AttestationIdentity_FixedCopyWith<AttestationIdentity_Fixed> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttestationIdentity_Fixed&&(identical(other.id, id) || other.id == id));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttestationIdentity_Fixed&&(identical(other.id, id) || other.id == id));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id);
+int get hashCode {
+    return Object.hash(runtimeType,id);
+}
 
 @override
 String toString() {
-  return 'AttestationIdentity.fixed(id: $id)';
+    return 'AttestationIdentity.fixed(id: $id)';
 }
 
 
@@ -278,7 +281,7 @@ mixin _$AttributeValue {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue);
 }
 
 
@@ -287,7 +290,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'AttributeValue()';
+    return 'AttributeValue()';
 }
 
 
@@ -398,7 +401,7 @@ return map(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( PlatformInt64 value)?  number,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,TResult Function( String value)?  date,TResult Function( Uint8List value)?  bytes,TResult Function( Image value)?  image,TResult Function( List<(String, AttributeValue)> value)?  map,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( PlatformInt64 value)?  number,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,TResult Function( String value)?  date,TResult Function( Uint8List value)?  bytes,TResult Function( Image value)?  image,TResult Function( List<(String, AttributeValue,)> value)?  map,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
@@ -427,7 +430,7 @@ return map(_that.value);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( PlatformInt64 value)  number,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,required TResult Function( String value)  date,required TResult Function( Uint8List value)  bytes,required TResult Function( Image value)  image,required TResult Function( List<(String, AttributeValue)> value)  map,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( PlatformInt64 value)  number,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,required TResult Function( String value)  date,required TResult Function( Uint8List value)  bytes,required TResult Function( Image value)  image,required TResult Function( List<(String, AttributeValue,)> value)  map,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String():
 return string(_that.value);case AttributeValue_Boolean():
@@ -452,7 +455,7 @@ return map(_that.value);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( PlatformInt64 value)?  number,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,TResult? Function( String value)?  date,TResult? Function( Uint8List value)?  bytes,TResult? Function( Image value)?  image,TResult? Function( List<(String, AttributeValue)> value)?  map,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( PlatformInt64 value)?  number,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,TResult? Function( String value)?  date,TResult? Function( Uint8List value)?  bytes,TResult? Function( Image value)?  image,TResult? Function( List<(String, AttributeValue,)> value)?  map,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
@@ -490,16 +493,18 @@ $AttributeValue_StringCopyWith<AttributeValue_String> get copyWith => _$Attribut
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_String&&(identical(other.value, value) || other.value == value));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_String&&(identical(other.value, value) || other.value == value));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,value);
+int get hashCode {
+    return Object.hash(runtimeType,value);
+}
 
 @override
 String toString() {
-  return 'AttributeValue.string(value: $value)';
+    return 'AttributeValue.string(value: $value)';
 }
 
 
@@ -556,16 +561,18 @@ $AttributeValue_BooleanCopyWith<AttributeValue_Boolean> get copyWith => _$Attrib
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Boolean&&(identical(other.value, value) || other.value == value));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Boolean&&(identical(other.value, value) || other.value == value));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,value);
+int get hashCode {
+    return Object.hash(runtimeType,value);
+}
 
 @override
 String toString() {
-  return 'AttributeValue.boolean(value: $value)';
+    return 'AttributeValue.boolean(value: $value)';
 }
 
 
@@ -622,16 +629,18 @@ $AttributeValue_NumberCopyWith<AttributeValue_Number> get copyWith => _$Attribut
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Number&&(identical(other.value, value) || other.value == value));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Number&&(identical(other.value, value) || other.value == value));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,value);
+int get hashCode {
+    return Object.hash(runtimeType,value);
+}
 
 @override
 String toString() {
-  return 'AttributeValue.number(value: $value)';
+    return 'AttributeValue.number(value: $value)';
 }
 
 
@@ -673,7 +682,7 @@ as PlatformInt64,
 
 
 class AttributeValue_Array extends AttributeValue {
-  const AttributeValue_Array({required final  List<AttributeValue> value}): _value = value,super._();
+  const AttributeValue_Array({required  List<AttributeValue> value}): _value = value,super._();
   
 
  final  List<AttributeValue> _value;
@@ -694,16 +703,18 @@ $AttributeValue_ArrayCopyWith<AttributeValue_Array> get copyWith => _$AttributeV
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Array&&const DeepCollectionEquality().equals(other._value, _value));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Array&&const DeepCollectionEquality().equals(other.value, _value));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_value));
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_value));
+}
 
 @override
 String toString() {
-  return 'AttributeValue.array(value: $value)';
+    return 'AttributeValue.array(value: $value)';
 }
 
 
@@ -755,7 +766,7 @@ class AttributeValue_Null extends AttributeValue {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Null);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Null);
 }
 
 
@@ -764,7 +775,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'AttributeValue.null_()';
+    return 'AttributeValue.null_()';
 }
 
 
@@ -792,16 +803,18 @@ $AttributeValue_DateCopyWith<AttributeValue_Date> get copyWith => _$AttributeVal
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Date&&(identical(other.value, value) || other.value == value));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Date&&(identical(other.value, value) || other.value == value));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,value);
+int get hashCode {
+    return Object.hash(runtimeType,value);
+}
 
 @override
 String toString() {
-  return 'AttributeValue.date(value: $value)';
+    return 'AttributeValue.date(value: $value)';
 }
 
 
@@ -858,16 +871,18 @@ $AttributeValue_BytesCopyWith<AttributeValue_Bytes> get copyWith => _$AttributeV
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Bytes&&const DeepCollectionEquality().equals(other.value, value));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Bytes&&const DeepCollectionEquality().equals(other.value, value));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(value));
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(value));
+}
 
 @override
 String toString() {
-  return 'AttributeValue.bytes(value: $value)';
+    return 'AttributeValue.bytes(value: $value)';
 }
 
 
@@ -924,16 +939,18 @@ $AttributeValue_ImageCopyWith<AttributeValue_Image> get copyWith => _$AttributeV
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Image&&(identical(other.value, value) || other.value == value));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Image&&(identical(other.value, value) || other.value == value));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,value);
+int get hashCode {
+    return Object.hash(runtimeType,value);
+}
 
 @override
 String toString() {
-  return 'AttributeValue.image(value: $value)';
+    return 'AttributeValue.image(value: $value)';
 }
 
 
@@ -984,11 +1001,11 @@ $ImageCopyWith<$Res> get value {
 
 
 class AttributeValue_Map extends AttributeValue {
-  const AttributeValue_Map({required final  List<(String, AttributeValue)> value}): _value = value,super._();
+  const AttributeValue_Map({required  List<(String, AttributeValue,)> value}): _value = value,super._();
   
 
- final  List<(String, AttributeValue)> _value;
- List<(String, AttributeValue)> get value {
+ final  List<(String, AttributeValue,)> _value;
+ List<(String, AttributeValue,)> get value {
   if (_value is EqualUnmodifiableListView) return _value;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_value);
@@ -1005,16 +1022,18 @@ $AttributeValue_MapCopyWith<AttributeValue_Map> get copyWith => _$AttributeValue
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Map&&const DeepCollectionEquality().equals(other._value, _value));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Map&&const DeepCollectionEquality().equals(other.value, _value));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_value));
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_value));
+}
 
 @override
 String toString() {
-  return 'AttributeValue.map(value: $value)';
+    return 'AttributeValue.map(value: $value)';
 }
 
 
@@ -1025,7 +1044,7 @@ abstract mixin class $AttributeValue_MapCopyWith<$Res> implements $AttributeValu
   factory $AttributeValue_MapCopyWith(AttributeValue_Map value, $Res Function(AttributeValue_Map) _then) = _$AttributeValue_MapCopyWithImpl;
 @useResult
 $Res call({
- List<(String, AttributeValue)> value
+ List<(String, AttributeValue,)> value
 });
 
 
@@ -1045,7 +1064,7 @@ class _$AttributeValue_MapCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') $Res call({Object? value = null,}) {
   return _then(AttributeValue_Map(
 value: null == value ? _self._value : value // ignore: cast_nullable_to_non_nullable
-as List<(String, AttributeValue)>,
+as List<(String, AttributeValue,)>,
   ));
 }
 
@@ -1061,7 +1080,7 @@ mixin _$RenderingMetadata {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata);
 }
 
 
@@ -1070,7 +1089,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'RenderingMetadata()';
+    return 'RenderingMetadata()';
 }
 
 
@@ -1234,16 +1253,18 @@ $RenderingMetadata_SimpleCopyWith<RenderingMetadata_Simple> get copyWith => _$Re
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata_Simple&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.backgroundImage, backgroundImage) || other.backgroundImage == backgroundImage)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.textColor, textColor) || other.textColor == textColor));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata_Simple&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.backgroundImage, backgroundImage) || other.backgroundImage == backgroundImage)&&(identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor)&&(identical(other.textColor, textColor) || other.textColor == textColor));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,logo,backgroundImage,backgroundColor,textColor);
+int get hashCode {
+    return Object.hash(runtimeType,logo,backgroundImage,backgroundColor,textColor);
+}
 
 @override
 String toString() {
-  return 'RenderingMetadata.simple(logo: $logo, backgroundImage: $backgroundImage, backgroundColor: $backgroundColor, textColor: $textColor)';
+    return 'RenderingMetadata.simple(logo: $logo, backgroundImage: $backgroundImage, backgroundColor: $backgroundColor, textColor: $textColor)';
 }
 
 
@@ -1310,7 +1331,7 @@ class RenderingMetadata_SvgTemplates extends RenderingMetadata {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata_SvgTemplates);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is RenderingMetadata_SvgTemplates);
 }
 
 
@@ -1319,7 +1340,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'RenderingMetadata.svgTemplates()';
+    return 'RenderingMetadata.svgTemplates()';
 }
 
 
@@ -1337,7 +1358,7 @@ mixin _$ValidityStatus {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus);
 }
 
 
@@ -1346,7 +1367,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'ValidityStatus()';
+    return 'ValidityStatus()';
 }
 
 
@@ -1519,16 +1540,18 @@ $ValidityStatus_NotYetValidCopyWith<ValidityStatus_NotYetValid> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_NotYetValid&&(identical(other.validFrom, validFrom) || other.validFrom == validFrom));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_NotYetValid&&(identical(other.validFrom, validFrom) || other.validFrom == validFrom));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,validFrom);
+int get hashCode {
+    return Object.hash(runtimeType,validFrom);
+}
 
 @override
 String toString() {
-  return 'ValidityStatus.notYetValid(validFrom: $validFrom)';
+    return 'ValidityStatus.notYetValid(validFrom: $validFrom)';
 }
 
 
@@ -1585,16 +1608,18 @@ $ValidityStatus_ValidCopyWith<ValidityStatus_Valid> get copyWith => _$ValiditySt
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_Valid&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_Valid&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,validUntil);
+int get hashCode {
+    return Object.hash(runtimeType,validUntil);
+}
 
 @override
 String toString() {
-  return 'ValidityStatus.valid(validUntil: $validUntil)';
+    return 'ValidityStatus.valid(validUntil: $validUntil)';
 }
 
 
@@ -1651,16 +1676,18 @@ $ValidityStatus_ExpiresSoonCopyWith<ValidityStatus_ExpiresSoon> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_ExpiresSoon&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_ExpiresSoon&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,validUntil);
+int get hashCode {
+    return Object.hash(runtimeType,validUntil);
+}
 
 @override
 String toString() {
-  return 'ValidityStatus.expiresSoon(validUntil: $validUntil)';
+    return 'ValidityStatus.expiresSoon(validUntil: $validUntil)';
 }
 
 
@@ -1717,16 +1744,18 @@ $ValidityStatus_ExpiredCopyWith<ValidityStatus_Expired> get copyWith => _$Validi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_Expired&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ValidityStatus_Expired&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,validUntil);
+int get hashCode {
+    return Object.hash(runtimeType,validUntil);
+}
 
 @override
 String toString() {
-  return 'ValidityStatus.expired(validUntil: $validUntil)';
+    return 'ValidityStatus.expired(validUntil: $validUntil)';
 }
 
 

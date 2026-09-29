@@ -20,7 +20,7 @@
 import AppButton from '@/components/ui/AppButton.vue'
 
 function login() {
-  window.location.href = '/auth/login'
+  window.location.href = '/admin-portal/auth/login'
 }
 </script>
 

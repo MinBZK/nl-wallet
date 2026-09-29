@@ -1,3 +1,4 @@
+pub mod admin_portal;
 pub mod errors;
 pub mod internal;
 pub mod logging;

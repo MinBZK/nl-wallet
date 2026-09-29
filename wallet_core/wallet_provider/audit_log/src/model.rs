@@ -27,6 +27,7 @@ pub trait AuditLog {
         &self,
         operation_name: impl Into<String>,
         parameters: JsonValue,
+        user_id: Option<impl Into<String>>,
         operation: F,
     ) -> Result<T, E>
     where
@@ -50,12 +51,13 @@ where
     /// Audit operation.
     ///
     /// This adds two records to the audit log:
-    /// - before executing the `operation`, it records the operation with the parameters
+    /// - before executing the `operation`, it records the operation with the parameters and the optional `user_id`
     /// - after executing the `operation`, it records the result of the operation, i.e. Success or Failure
     async fn audit<F, T, E>(
         &self,
         operation_name: impl Into<String>,
         parameters: JsonValue,
+        user_id: Option<impl Into<String>>,
         operation: F,
     ) -> Result<T, E>
     where
@@ -73,7 +75,7 @@ where
             audit_correlation_id = correlation_id.to_string()
         );
 
-        self.audit_operation_start(operation_name, parameters, correlation_id)
+        self.audit_operation_start(operation_name, parameters, user_id.map(Into::into), correlation_id)
             .await
             .map_err(|e| E::from_audit_log_error(Box::new(e)))?;
 
@@ -96,6 +98,7 @@ where
         &self,
         operation_name: String,
         parameters: JsonValue,
+        user_id: Option<String>,
         correlation_id: Uuid,
     ) -> Result<(), DbErr> {
         let timestamp: DateTimeWithTimeZone = self.time_generator.generate().into();
@@ -105,6 +108,7 @@ where
             timestamp: Set(timestamp),
             operation: Set(Some(operation_name)),
             params: Set(Some(parameters.clone())),
+            user_id: Set(user_id),
             ..Default::default()
         };
 
@@ -163,6 +167,7 @@ pub mod mock {
             &self,
             _operation_name: impl Into<String>,
             _parameters: JsonValue,
+            _user_id: Option<impl Into<String>>,
             operation: F,
         ) -> Result<T, E>
         where

@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'card_detail_screen_argument.dart';
@@ -9,6 +9,7 @@ part of 'card_detail_screen_argument.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -23,16 +24,21 @@ mixin _$CardDetailScreenArgument {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardDetailScreenArgument&&(identical(other.card, card) || other.card == card)&&(identical(other.cardId, cardId) || other.cardId == cardId)&&const DeepCollectionEquality().equals(other.cardTitle, cardTitle));
+  final _this = this as CardDetailScreenArgument;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardDetailScreenArgument&&(identical(other.card, _this.card) || other.card == _this.card)&&(identical(other.cardId, _this.cardId) || other.cardId == _this.cardId)&&const DeepCollectionEquality().equals(other.cardTitle, _this.cardTitle));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,card,cardId,const DeepCollectionEquality().hash(cardTitle));
+int get hashCode {
+  final _this = this as CardDetailScreenArgument;
+  return Object.hash(runtimeType,_this.card,_this.cardId,const DeepCollectionEquality().hash(_this.cardTitle));
+}
 
 @override
 String toString() {
-  return 'CardDetailScreenArgument(card: $card, cardId: $cardId, cardTitle: $cardTitle)';
+  final _this = this as CardDetailScreenArgument;
+  return 'CardDetailScreenArgument(card: ${_this.card}, cardId: ${_this.cardId}, cardTitle: ${_this.cardTitle})';
 }
 
 
@@ -175,7 +181,7 @@ return $default(_that.card,_that.cardId,_that.cardTitle);case _:
 @JsonSerializable()
 
 class _CardDetailScreenArgument extends CardDetailScreenArgument {
-  const _CardDetailScreenArgument({this.card, required this.cardId, @LocalizedTextConverter() final  LocalizedText? cardTitle}): _cardTitle = cardTitle,super._();
+  const _CardDetailScreenArgument({this.card, required this.cardId, @LocalizedTextConverter()  LocalizedText? cardTitle}): _cardTitle = cardTitle,super._();
   factory _CardDetailScreenArgument.fromJson(Map<String, dynamic> json) => _$CardDetailScreenArgumentFromJson(json);
 
 @override final  WalletCard? card;
@@ -198,16 +204,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardDetailScreenArgument&&(identical(other.card, card) || other.card == card)&&(identical(other.cardId, cardId) || other.cardId == cardId)&&const DeepCollectionEquality().equals(other._cardTitle, _cardTitle));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CardDetailScreenArgument&&(identical(other.card, card) || other.card == card)&&(identical(other.cardId, cardId) || other.cardId == cardId)&&const DeepCollectionEquality().equals(other.cardTitle, _cardTitle));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,card,cardId,const DeepCollectionEquality().hash(_cardTitle));
+int get hashCode {
+    return Object.hash(runtimeType,card,cardId,const DeepCollectionEquality().hash(_cardTitle));
+}
 
 @override
 String toString() {
-  return 'CardDetailScreenArgument(card: $card, cardId: $cardId, cardTitle: $cardTitle)';
+    return 'CardDetailScreenArgument(card: $card, cardId: $cardId, cardTitle: $cardTitle)';
 }
 
 

@@ -52,7 +52,7 @@ onMounted(() => document.addEventListener('click', handleClickOutside))
 onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
 function logout() {
-  window.location.href = '/auth/logout'
+  window.location.href = '/admin-portal/auth/logout'
 }
 </script>
 

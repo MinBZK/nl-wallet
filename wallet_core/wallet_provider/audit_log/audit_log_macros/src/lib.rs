@@ -12,6 +12,8 @@ use syn::parse_macro_input;
 /// Exactly one parameter must be annotated with `#[auditor]` to identify the
 /// `AuditLog` implementor. Zero or more parameters may be annotated with
 /// `#[audit]` to include them in the JSON parameters passed to the audit log.
+/// At most one parameter may be annotated with `#[audit_user]` to provide the
+/// user id passed to the audit log; if omitted, `None` is passed.
 ///
 /// The macro generates a struct named `AuditParameters` with a field for each
 /// `#[audit]` parameter, derives `serde::Serialize`, and uses
@@ -31,6 +33,7 @@ use syn::parse_macro_input;
 /// #[audited]
 /// pub async fn revoke_wallet(
 ///     #[audit] wallet_id: &WalletId,
+///     #[audit_user] user_id: &str,
 ///     #[auditor] audit_log: &impl AuditLog,
 /// ) -> Result<(), RevocationError> {
 ///     Ok(())
@@ -47,7 +50,11 @@ use syn::parse_macro_input;
 /// # impl audit_log::model::FromAuditLogError for RevocationError {
 /// #     fn from_audit_log_error(_e: Box<dyn std::error::Error + Send + Sync>) -> Self { Self }
 /// # }
-/// pub async fn revoke_wallet(wallet_id: &WalletId, audit_log: &impl AuditLog) -> Result<(), RevocationError> {
+/// pub async fn revoke_wallet(
+///     wallet_id: &WalletId,
+///     user_id: &str,
+///     audit_log: &impl AuditLog,
+/// ) -> Result<(), RevocationError> {
 ///     #[derive(::serde::Serialize)]
 ///     struct AuditParameters<'__audit> {
 ///         wallet_id: &'__audit str,
@@ -63,7 +70,14 @@ use syn::parse_macro_input;
 ///             }
 ///         }
 ///     };
-///     audit_log::model::AuditLog::audit(audit_log, "revoke_wallet", __audit_params_json, async move || Ok(())).await
+///     audit_log::model::AuditLog::audit(
+///         audit_log,
+///         "revoke_wallet",
+///         __audit_params_json,
+///         Some(::std::convert::AsRef::<str>::as_ref(&user_id)),
+///         async move || Ok(()),
+///     )
+///     .await
 /// }
 /// ```
 #[proc_macro_attribute]
@@ -77,6 +91,7 @@ pub fn audited(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 const AUDITOR: &str = "auditor";
+const AUDIT_USER: &str = "audit_user";
 const AUDIT: &str = "audit";
 
 struct AuditParam {
@@ -86,6 +101,7 @@ struct AuditParam {
 
 enum ParamRole {
     Auditor(syn::Ident),
+    AuditUser(syn::Ident),
     AuditParam(AuditParam),
     Plain,
 }
@@ -123,9 +139,9 @@ fn audited_inner(input: &ItemFn) -> syn::Result<proc_macro2::TokenStream> {
     }
 
     // Iterate through all classified parameters, and collect #[auditor] and parameters to #[audit].
-    let (auditor_ident, audit_params) = successes.into_iter().try_fold(
-        (None, Vec::new()),
-        |(mut auditor_ident, mut audit_params), (pat_type, role)| {
+    let (auditor_ident, audit_user_ident, audit_params) = successes.into_iter().try_fold(
+        (None, None, Vec::new()),
+        |(mut auditor_ident, mut audit_user_ident, mut audit_params), (pat_type, role)| {
             match role {
                 ParamRole::Auditor(ident) => {
                     if auditor_ident.is_some() {
@@ -136,10 +152,19 @@ fn audited_inner(input: &ItemFn) -> syn::Result<proc_macro2::TokenStream> {
                     }
                     auditor_ident = Some(ident);
                 }
+                ParamRole::AuditUser(ident) => {
+                    if audit_user_ident.is_some() {
+                        return Err(syn::Error::new_spanned(
+                            pat_type,
+                            "only one parameter may be annotated with #[audit_user], found multiple",
+                        ));
+                    }
+                    audit_user_ident = Some(ident);
+                }
                 ParamRole::AuditParam(param) => audit_params.push(param),
                 ParamRole::Plain => {}
             }
-            Ok((auditor_ident, audit_params))
+            Ok((auditor_ident, audit_user_ident, audit_params))
         },
     )?;
 
@@ -162,6 +187,11 @@ fn audited_inner(input: &ItemFn) -> syn::Result<proc_macro2::TokenStream> {
     let attrs = &input.attrs;
     let stmts = &input.block.stmts;
 
+    let user_id_expr = match &audit_user_ident {
+        Some(ident) => quote! { Some(::std::convert::AsRef::<str>::as_ref(&#ident)) },
+        None => quote! { ::std::option::Option::<&str>::None },
+    };
+
     let output = quote! {
         #(#attrs)*
         #vis #sig {
@@ -179,6 +209,7 @@ fn audited_inner(input: &ItemFn) -> syn::Result<proc_macro2::TokenStream> {
                 #audit_log_ident,
                 #fn_name_str,
                 __audit_params_json,
+                #user_id_expr,
                 async move || { #(#stmts)* },
             ).await
         }
@@ -196,9 +227,9 @@ fn remove_parameter_attributes(mut sig: syn::Signature) -> syn::Signature {
             _ => None,
         })
         .for_each(|pat_type| {
-            pat_type
-                .attrs
-                .retain(|attr| !attr.path().is_ident(AUDITOR) && !attr.path().is_ident(AUDIT))
+            pat_type.attrs.retain(|attr| {
+                !attr.path().is_ident(AUDITOR) && !attr.path().is_ident(AUDIT_USER) && !attr.path().is_ident(AUDIT)
+            })
         });
 
     sig
@@ -286,6 +317,8 @@ fn classify_param(pat_type: &syn::PatType) -> syn::Result<ParamRole> {
         .filter_map(|attr| {
             if attr.path().is_ident(AUDITOR) {
                 require_ident(pat_type, AUDITOR).map(ParamRole::Auditor).into()
+            } else if attr.path().is_ident(AUDIT_USER) {
+                require_ident(pat_type, AUDIT_USER).map(ParamRole::AuditUser).into()
             } else if attr.path().is_ident(AUDIT) {
                 require_ident(pat_type, AUDIT)
                     .map(|ident| {
@@ -314,8 +347,8 @@ fn classify_param(pat_type: &syn::PatType) -> syn::Result<ParamRole> {
         return Err(syn::Error::new_spanned(
             pat_type,
             format!(
-                "found multiple #[{AUDITOR}] and/or #[{AUDIT}] attributes on a single parameter, only a single is \
-                 allowed"
+                "found multiple #[{AUDITOR}], #[{AUDIT}] and/or #[{AUDIT_USER}] attributes on a single parameter, \
+                 only a single is allowed"
             ),
         ));
     }
@@ -510,6 +543,39 @@ mod tests {
         }
     }
 
+    fn duplicate_audit_user() -> ItemFn {
+        syn::parse_quote! {
+            async fn two_audit_users(
+                #[auditor] log: &Log,
+                #[audit_user] user1: &str,
+                #[audit_user] user2: &str,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
+    fn non_ident_audit_user() -> ItemFn {
+        syn::parse_quote! {
+            async fn destructured_audit_user(
+                #[auditor] log: &Log,
+                #[audit_user] (a, b): (String, String),
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
+    fn audit_user_and_auditor_on_same_param() -> ItemFn {
+        syn::parse_quote! {
+            async fn both_attrs(
+                #[audit_user] #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
     #[rstest]
     #[case::non_async_function(non_async_function(), "#[audited] can only be applied to async functions")]
     #[case::missing_auditor(
@@ -524,17 +590,30 @@ mod tests {
     #[case::non_ident_audit(non_ident_audit(), "#[audit] parameter must be a simple identifier")]
     #[case::both_audit_and_auditor_on_same_param(
         both_audit_and_auditor_on_same_param(),
-        "found multiple #[auditor] and/or #[audit] attributes on a single parameter, only a single is allowed"
+        "found multiple #[auditor], #[audit] and/or #[audit_user] attributes on a single parameter, only a single is \
+         allowed"
     )]
     #[case::both_audit_and_auditor_on_same_param(
         double_audit_on_same_param(),
-        "found multiple #[auditor] and/or #[audit] attributes on a single parameter, only a single is allowed"
+        "found multiple #[auditor], #[audit] and/or #[audit_user] attributes on a single parameter, only a single is \
+         allowed"
     )]
     #[case::both_audit_and_auditor_on_same_param(
         double_auditor_on_same_param(),
-        "found multiple #[auditor] and/or #[audit] attributes on a single parameter, only a single is allowed"
+        "found multiple #[auditor], #[audit] and/or #[audit_user] attributes on a single parameter, only a single is \
+         allowed"
     )]
     #[case::type_inference(type_inference(), "type cannot be audited")]
+    #[case::duplicate_audit_user(
+        duplicate_audit_user(),
+        "only one parameter may be annotated with #[audit_user], found multiple"
+    )]
+    #[case::non_ident_audit_user(non_ident_audit_user(), "#[audit_user] parameter must be a simple identifier")]
+    #[case::audit_user_and_auditor_on_same_param(
+        audit_user_and_auditor_on_same_param(),
+        "found multiple #[auditor], #[audit] and/or #[audit_user] attributes on a single parameter, only a single is \
+         allowed"
+    )]
     fn test_audited_inner_rejects(#[case] input: ItemFn, #[case] expected_error: &str) {
         let err = audited_inner(&input).unwrap_err();
         assert_eq!(err.to_string(), expected_error);
@@ -605,6 +684,29 @@ mod tests {
         }
     }
 
+    fn with_audit_user_param() -> ItemFn {
+        syn::parse_quote! {
+            async fn with_user(
+                #[audit] name: &str,
+                #[audit_user] user_id: &str,
+                #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
+    fn with_only_audit_user_param() -> ItemFn {
+        syn::parse_quote! {
+            async fn with_only_user(
+                #[audit_user] user_id: &str,
+                #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
     #[rstest]
     #[case::no_audit_params(no_audit_params())]
     #[case::with_audit_params(with_audit_params())]
@@ -612,6 +714,8 @@ mod tests {
     #[case::with_multiple_lifetimes(with_multiple_lifetimes_in_audit_params())]
     #[case::with_nested_lifetimes(with_nested_lifetimes_in_audit_param())]
     #[case::with_reference_to_type_with_lifetimes(with_reference_to_type_with_lifetimes())]
+    #[case::with_audit_user_param(with_audit_user_param())]
+    #[case::with_only_audit_user_param(with_only_audit_user_param())]
     fn audited_inner_succeeds(#[case] input: ItemFn) {
         assert!(audited_inner(&input).is_ok());
     }

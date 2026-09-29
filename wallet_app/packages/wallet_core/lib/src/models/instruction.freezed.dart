@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'instruction.dart';
@@ -9,6 +9,7 @@ part of 'instruction.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$DisclosureBasedIssuanceResult {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'DisclosureBasedIssuanceResult()';
+    return 'DisclosureBasedIssuanceResult()';
 }
 
 
@@ -175,7 +176,7 @@ return instructionError(_that.error);case _:
 
 
 class DisclosureBasedIssuanceResult_Ok extends DisclosureBasedIssuanceResult {
-  const DisclosureBasedIssuanceResult_Ok(final  List<AttestationPresentation> field0): _field0 = field0,super._();
+  const DisclosureBasedIssuanceResult_Ok( List<AttestationPresentation> field0): _field0 = field0,super._();
   
 
  final  List<AttestationPresentation> _field0;
@@ -196,16 +197,18 @@ $DisclosureBasedIssuanceResult_OkCopyWith<DisclosureBasedIssuanceResult_Ok> get 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult_Ok&&const DeepCollectionEquality().equals(other._field0, _field0));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult_Ok&&const DeepCollectionEquality().equals(other.field0, _field0));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_field0));
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_field0));
+}
 
 @override
 String toString() {
-  return 'DisclosureBasedIssuanceResult.ok(field0: $field0)';
+    return 'DisclosureBasedIssuanceResult.ok(field0: $field0)';
 }
 
 
@@ -262,16 +265,18 @@ $DisclosureBasedIssuanceResult_InstructionErrorCopyWith<DisclosureBasedIssuanceR
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult_InstructionError&&(identical(other.error, error) || other.error == error));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult_InstructionError&&(identical(other.error, error) || other.error == error));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,error);
+int get hashCode {
+    return Object.hash(runtimeType,error);
+}
 
 @override
 String toString() {
-  return 'DisclosureBasedIssuanceResult.instructionError(error: $error)';
+    return 'DisclosureBasedIssuanceResult.instructionError(error: $error)';
 }
 
 
@@ -327,7 +332,7 @@ mixin _$PidIssuanceResult {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PidIssuanceResult);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is PidIssuanceResult);
 }
 
 
@@ -336,7 +341,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'PidIssuanceResult()';
+    return 'PidIssuanceResult()';
 }
 
 
@@ -497,16 +502,18 @@ $PidIssuanceResult_OkCopyWith<PidIssuanceResult_Ok> get copyWith => _$PidIssuanc
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PidIssuanceResult_Ok&&(identical(other.transferAvailable, transferAvailable) || other.transferAvailable == transferAvailable));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is PidIssuanceResult_Ok&&(identical(other.transferAvailable, transferAvailable) || other.transferAvailable == transferAvailable));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,transferAvailable);
+int get hashCode {
+    return Object.hash(runtimeType,transferAvailable);
+}
 
 @override
 String toString() {
-  return 'PidIssuanceResult.ok(transferAvailable: $transferAvailable)';
+    return 'PidIssuanceResult.ok(transferAvailable: $transferAvailable)';
 }
 
 
@@ -563,16 +570,18 @@ $PidIssuanceResult_InstructionErrorCopyWith<PidIssuanceResult_InstructionError> 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PidIssuanceResult_InstructionError&&(identical(other.error, error) || other.error == error));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is PidIssuanceResult_InstructionError&&(identical(other.error, error) || other.error == error));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,error);
+int get hashCode {
+    return Object.hash(runtimeType,error);
+}
 
 @override
 String toString() {
-  return 'PidIssuanceResult.instructionError(error: $error)';
+    return 'PidIssuanceResult.instructionError(error: $error)';
 }
 
 
@@ -628,7 +637,7 @@ mixin _$RevocationCodeResult {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationCodeResult);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationCodeResult);
 }
 
 
@@ -637,7 +646,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'RevocationCodeResult()';
+    return 'RevocationCodeResult()';
 }
 
 
@@ -798,16 +807,18 @@ $RevocationCodeResult_OkCopyWith<RevocationCodeResult_Ok> get copyWith => _$Revo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationCodeResult_Ok&&(identical(other.revocationCode, revocationCode) || other.revocationCode == revocationCode));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationCodeResult_Ok&&(identical(other.revocationCode, revocationCode) || other.revocationCode == revocationCode));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,revocationCode);
+int get hashCode {
+    return Object.hash(runtimeType,revocationCode);
+}
 
 @override
 String toString() {
-  return 'RevocationCodeResult.ok(revocationCode: $revocationCode)';
+    return 'RevocationCodeResult.ok(revocationCode: $revocationCode)';
 }
 
 
@@ -864,16 +875,18 @@ $RevocationCodeResult_InstructionErrorCopyWith<RevocationCodeResult_InstructionE
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationCodeResult_InstructionError&&(identical(other.error, error) || other.error == error));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationCodeResult_InstructionError&&(identical(other.error, error) || other.error == error));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,error);
+int get hashCode {
+    return Object.hash(runtimeType,error);
+}
 
 @override
 String toString() {
-  return 'RevocationCodeResult.instructionError(error: $error)';
+    return 'RevocationCodeResult.instructionError(error: $error)';
 }
 
 
@@ -929,7 +942,7 @@ mixin _$WalletInstructionError {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionError);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionError);
 }
 
 
@@ -938,7 +951,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletInstructionError()';
+    return 'WalletInstructionError()';
 }
 
 
@@ -1106,16 +1119,18 @@ $WalletInstructionError_IncorrectPinCopyWith<WalletInstructionError_IncorrectPin
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionError_IncorrectPin&&(identical(other.attemptsLeftInRound, attemptsLeftInRound) || other.attemptsLeftInRound == attemptsLeftInRound)&&(identical(other.isFinalRound, isFinalRound) || other.isFinalRound == isFinalRound));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionError_IncorrectPin&&(identical(other.attemptsLeftInRound, attemptsLeftInRound) || other.attemptsLeftInRound == attemptsLeftInRound)&&(identical(other.isFinalRound, isFinalRound) || other.isFinalRound == isFinalRound));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,attemptsLeftInRound,isFinalRound);
+int get hashCode {
+    return Object.hash(runtimeType,attemptsLeftInRound,isFinalRound);
+}
 
 @override
 String toString() {
-  return 'WalletInstructionError.incorrectPin(attemptsLeftInRound: $attemptsLeftInRound, isFinalRound: $isFinalRound)';
+    return 'WalletInstructionError.incorrectPin(attemptsLeftInRound: $attemptsLeftInRound, isFinalRound: $isFinalRound)';
 }
 
 
@@ -1173,16 +1188,18 @@ $WalletInstructionError_TimeoutCopyWith<WalletInstructionError_Timeout> get copy
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionError_Timeout&&(identical(other.timeoutMillis, timeoutMillis) || other.timeoutMillis == timeoutMillis));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionError_Timeout&&(identical(other.timeoutMillis, timeoutMillis) || other.timeoutMillis == timeoutMillis));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,timeoutMillis);
+int get hashCode {
+    return Object.hash(runtimeType,timeoutMillis);
+}
 
 @override
 String toString() {
-  return 'WalletInstructionError.timeout(timeoutMillis: $timeoutMillis)';
+    return 'WalletInstructionError.timeout(timeoutMillis: $timeoutMillis)';
 }
 
 
@@ -1234,7 +1251,7 @@ class WalletInstructionError_Blocked extends WalletInstructionError {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionError_Blocked);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionError_Blocked);
 }
 
 
@@ -1243,7 +1260,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletInstructionError.blocked()';
+    return 'WalletInstructionError.blocked()';
 }
 
 
@@ -1261,7 +1278,7 @@ mixin _$WalletInstructionResult {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionResult);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionResult);
 }
 
 
@@ -1270,7 +1287,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletInstructionResult()';
+    return 'WalletInstructionResult()';
 }
 
 
@@ -1426,7 +1443,7 @@ class WalletInstructionResult_Ok extends WalletInstructionResult {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionResult_Ok);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionResult_Ok);
 }
 
 
@@ -1435,7 +1452,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletInstructionResult.ok()';
+    return 'WalletInstructionResult.ok()';
 }
 
 
@@ -1463,16 +1480,18 @@ $WalletInstructionResult_InstructionErrorCopyWith<WalletInstructionResult_Instru
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionResult_InstructionError&&(identical(other.error, error) || other.error == error));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletInstructionResult_InstructionError&&(identical(other.error, error) || other.error == error));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,error);
+int get hashCode {
+    return Object.hash(runtimeType,error);
+}
 
 @override
 String toString() {
-  return 'WalletInstructionResult.instructionError(error: $error)';
+    return 'WalletInstructionResult.instructionError(error: $error)';
 }
 
 

@@ -84,6 +84,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
 
         useSourceDevice {
             sourceDashboard.openLink(transferUrl)
+            sourceDashboard.openApp()
             assertTrue(sourceTransferScreen.confirmTransferVisible(), "Confirm transfer screen is not visible on source device")
             sourceTransferScreen.clickConfirmTransfer()
             sourcePin.enterPin(DEFAULT_PIN)
@@ -127,6 +128,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
 
         useSourceDevice {
             sourceDashboard.openLink(transferUrl)
+            sourceDashboard.openApp()
             assertTrue(sourceTransferScreen.confirmTransferVisible(), "Confirm transfer screen is not visible on source device")
             sourceTransferScreen.clickStop()
             sourceTransferScreen.confirmStop()
@@ -151,6 +153,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
 
         useSourceDevice {
             sourceDashboard.openLink(transferUrl)
+            sourceDashboard.openApp()
             assertTrue(sourceTransferScreen.confirmTransferVisible(), "Confirm transfer screen is not visible on source device")
             sourceTransferScreen.clickConfirmTransfer()
         }

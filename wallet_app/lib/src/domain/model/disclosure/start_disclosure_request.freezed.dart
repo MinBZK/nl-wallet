@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'start_disclosure_request.dart';
@@ -9,6 +9,7 @@ part of 'start_disclosure_request.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 StartDisclosureRequest _$StartDisclosureRequestFromJson(
@@ -50,7 +51,7 @@ mixin _$StartDisclosureRequest {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureRequest);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureRequest);
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -59,7 +60,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'StartDisclosureRequest()';
+    return 'StartDisclosureRequest()';
 }
 
 
@@ -211,7 +212,7 @@ return closeProximity();case _:
 @JsonSerializable()
 
 class DeeplinkStartDisclosureRequest implements StartDisclosureRequest {
-  const DeeplinkStartDisclosureRequest(this.uri, {final  String? $type}): $type = $type ?? 'deeplink';
+  const DeeplinkStartDisclosureRequest(this.uri, { String? $type}): $type = $type ?? 'deeplink';
   factory DeeplinkStartDisclosureRequest.fromJson(Map<String, dynamic> json) => _$DeeplinkStartDisclosureRequestFromJson(json);
 
  final  String uri;
@@ -233,16 +234,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DeeplinkStartDisclosureRequest&&(identical(other.uri, uri) || other.uri == uri));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DeeplinkStartDisclosureRequest&&(identical(other.uri, uri) || other.uri == uri));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,uri);
+int get hashCode {
+    return Object.hash(runtimeType,uri);
+}
 
 @override
 String toString() {
-  return 'StartDisclosureRequest.deeplink(uri: $uri)';
+    return 'StartDisclosureRequest.deeplink(uri: $uri)';
 }
 
 
@@ -284,7 +287,7 @@ as String,
 @JsonSerializable()
 
 class QrScanStartDisclosureRequest implements StartDisclosureRequest {
-  const QrScanStartDisclosureRequest(this.uri, {final  String? $type}): $type = $type ?? 'qrScan';
+  const QrScanStartDisclosureRequest(this.uri, { String? $type}): $type = $type ?? 'qrScan';
   factory QrScanStartDisclosureRequest.fromJson(Map<String, dynamic> json) => _$QrScanStartDisclosureRequestFromJson(json);
 
  final  String uri;
@@ -306,16 +309,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is QrScanStartDisclosureRequest&&(identical(other.uri, uri) || other.uri == uri));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is QrScanStartDisclosureRequest&&(identical(other.uri, uri) || other.uri == uri));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,uri);
+int get hashCode {
+    return Object.hash(runtimeType,uri);
+}
 
 @override
 String toString() {
-  return 'StartDisclosureRequest.qrScan(uri: $uri)';
+    return 'StartDisclosureRequest.qrScan(uri: $uri)';
 }
 
 
@@ -357,7 +362,7 @@ as String,
 @JsonSerializable()
 
 class CloseProximityStartDisclosureRequest implements StartDisclosureRequest {
-  const CloseProximityStartDisclosureRequest({final  String? $type}): $type = $type ?? 'closeProximity';
+  const CloseProximityStartDisclosureRequest({ String? $type}): $type = $type ?? 'closeProximity';
   factory CloseProximityStartDisclosureRequest.fromJson(Map<String, dynamic> json) => _$CloseProximityStartDisclosureRequestFromJson(json);
 
 
@@ -374,7 +379,7 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityStartDisclosureRequest);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityStartDisclosureRequest);
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -383,7 +388,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'StartDisclosureRequest.closeProximity()';
+    return 'StartDisclosureRequest.closeProximity()';
 }
 
 

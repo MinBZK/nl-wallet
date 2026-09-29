@@ -29,7 +29,7 @@ sonar-rust:
         -Dsonar.sourceEncoding=UTF-8 \
         -Dsonar.projectKey=nl-wallet-demo-app-rust \
         -Dsonar.sources=. \
-        -Dsonar.exclusions=demo/**,static_server/**,wallet_ca/**,wallet_*/*/src/entity/**,uniffi-bindgen/**,target/**,**/examples.rs,**/examples/**,**/resources/**,**/assets/**,**/test-assets/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs,revocation_portal/static/__tests__/**/* \
+        -Dsonar.exclusions=demo/**,static_server/**,wallet_ca/**,wallet_*/*/src/entity/**,uniffi-bindgen/**,target/**,**/examples.rs,**/examples/**,**/resources/**,**/assets/**,**/test-assets/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs,revocation_portal/static/__tests__/**/*,revocation_portal/pnpm-lock.yaml,revocation_portal/pnpm-workspace.yaml \
         -Dsonar.coverage.exclusions=**/migrations/** \
         -Dsonar.tests=. \
         -Dsonar.test.inclusions=**/tests/**,**/tests_integration/**,revocation_portal/static/__tests__/** \
@@ -69,7 +69,7 @@ sonar-wallet-web:
     - cd wallet_web
     - sonar-scanner -Dsonar.scanner.skipJreProvisioning=true -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-web -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT -Dsonar.sources=lib/
-      -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/models/openid4vc.ts,lib/models/relying_party.ts,lib/util/qrcodegen.ts
+      -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/models/openid4vc.ts,lib/models/relying_party.ts,lib/util/qrcodegen.ts,pnpm-lock.yaml,pnpm-workspace.yaml,
       -Dsonar.tests=lib/__tests__ -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
   allow_failure: true
 

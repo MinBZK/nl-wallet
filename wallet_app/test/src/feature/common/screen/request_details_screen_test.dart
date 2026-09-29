@@ -90,25 +90,24 @@ void main() {
         RequestDetailsScreen.forDisclosureEvent(
           l10n.requestDetailScreenTitle,
           WalletEvent.disclosure(
-                dateTime: DateTime(2024, 3, 1),
-                status: EventStatus.error,
-                relyingParty: WalletMockData.organization,
-                purpose: 'Sample where no attributes are available'.untranslated,
-                cards: [
-                  WalletCard(
-                    attestationId: 'id',
-                    attestationType: 'com.example.attestationType',
-                    format: AttestationFormat.sdJwt,
-                    issuer: WalletMockData.organization,
-                    status: WalletMockData.status,
-                    metadata: WalletMockData.card.metadata,
-                    attributes: [],
-                  ),
-                ],
-                policy: WalletMockData.policy,
-                type: DisclosureType.regular,
-              )
-              as DisclosureEvent,
+            dateTime: DateTime(2024, 3, 1),
+            status: EventStatus.error,
+            relyingParty: WalletMockData.organization,
+            purpose: 'Sample where no attributes are available'.untranslated,
+            cards: [
+              WalletCard(
+                attestationId: 'id',
+                attestationType: 'com.example.attestationType',
+                format: AttestationFormat.sdJwt,
+                issuer: WalletMockData.organization,
+                status: WalletMockData.status,
+                metadata: WalletMockData.card.metadata,
+                attributes: [],
+              ),
+            ],
+            policy: WalletMockData.policy,
+            type: DisclosureType.regular,
+          ) as DisclosureEvent,
         ),
       );
       await screenMatchesGolden('request_details/no_attributes.light');

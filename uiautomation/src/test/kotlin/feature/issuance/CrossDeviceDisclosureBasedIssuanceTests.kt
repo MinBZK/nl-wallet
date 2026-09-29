@@ -102,6 +102,7 @@ class CrossDeviceDisclosureBasedIssuanceTests : TwoDeviceTestBase() {
             sourcePinScreen.enterPin(DEFAULT_PIN)
 
             sourceCardIssuanceScreen.clickToDashboardButton()
+            sourceDashboard.dismissNotificationsDrawer()
             sourceDashboard.scrollToEndOfScreen()
             assertTrue(sourceDashboard.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
         }

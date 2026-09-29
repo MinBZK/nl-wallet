@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'image.dart';
@@ -9,6 +9,7 @@ part of 'image.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$Image {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is Image);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'Image()';
+    return 'Image()';
 }
 
 
@@ -202,16 +203,18 @@ $Image_JpegCopyWith<Image_Jpeg> get copyWith => _$Image_JpegCopyWithImpl<Image_J
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Jpeg&&const DeepCollectionEquality().equals(other.data, data));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Jpeg&&const DeepCollectionEquality().equals(other.data, data));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(data));
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(data));
+}
 
 @override
 String toString() {
-  return 'Image.jpeg(data: $data)';
+    return 'Image.jpeg(data: $data)';
 }
 
 
@@ -268,16 +271,18 @@ $Image_PngCopyWith<Image_Png> get copyWith => _$Image_PngCopyWithImpl<Image_Png>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Png&&const DeepCollectionEquality().equals(other.data, data));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Png&&const DeepCollectionEquality().equals(other.data, data));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(data));
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(data));
+}
 
 @override
 String toString() {
-  return 'Image.png(data: $data)';
+    return 'Image.png(data: $data)';
 }
 
 
@@ -334,16 +339,18 @@ $Image_SvgCopyWith<Image_Svg> get copyWith => _$Image_SvgCopyWithImpl<Image_Svg>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Svg&&(identical(other.svg, svg) || other.svg == svg));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Svg&&(identical(other.svg, svg) || other.svg == svg));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,svg);
+int get hashCode {
+    return Object.hash(runtimeType,svg);
+}
 
 @override
 String toString() {
-  return 'Image.svg(svg: $svg)';
+    return 'Image.svg(svg: $svg)';
 }
 
 
@@ -400,16 +407,18 @@ $Image_AssetCopyWith<Image_Asset> get copyWith => _$Image_AssetCopyWithImpl<Imag
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Asset&&(identical(other.path, path) || other.path == path));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Asset&&(identical(other.path, path) || other.path == path));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,path);
+int get hashCode {
+    return Object.hash(runtimeType,path);
+}
 
 @override
 String toString() {
-  return 'Image.asset(path: $path)';
+    return 'Image.asset(path: $path)';
 }
 
 

@@ -181,8 +181,7 @@ void main() {
       expect(
         result,
         isNull,
-        reason:
-            'When forceConversion is not set to true, no conversion of legacy urls should take place on non-mock builds.',
+        reason: 'When forceConversion is not set to true, no conversion of legacy urls should take place on non-mock builds.',
       );
     });
   });

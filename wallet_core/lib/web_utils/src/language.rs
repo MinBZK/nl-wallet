@@ -13,8 +13,15 @@ use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
+/// The language selector's assets, for servers that embed them rather than serving `static/` from disk. The
+/// stylesheet refers to its icons as `../images/down.svg` and `../images/checkmark.svg`.
+pub const LANGUAGE_JS: &str = include_str!("../static/language.js");
+pub const LANGUAGE_SELECTOR_CSS: &str = include_str!("../static/css/language_selector.css");
+pub const LANGUAGE_SELECTOR_DOWN_SVG: &str = include_str!("../static/images/down.svg");
+pub const LANGUAGE_SELECTOR_CHECKMARK_SVG: &str = include_str!("../static/images/checkmark.svg");
+
 pub static LANGUAGE_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../static/language.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(LANGUAGE_JS.as_bytes())));
 
 #[derive(
     Debug,

@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'issuance.dart';
@@ -9,6 +9,7 @@ part of 'issuance.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,16 +21,21 @@ mixin _$IssuanceStartResult {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult&&const DeepCollectionEquality().equals(other.field0, field0));
+  final _this = this as IssuanceStartResult;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult&&const DeepCollectionEquality().equals(other.field0, _this.field0));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(field0));
+int get hashCode {
+  final _this = this as IssuanceStartResult;
+  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.field0));
+}
 
 @override
 String toString() {
-  return 'IssuanceStartResult(field0: $field0)';
+  final _this = this as IssuanceStartResult;
+  return 'IssuanceStartResult(field0: ${_this.field0})';
 }
 
 
@@ -190,16 +196,18 @@ $IssuanceStartResult_AuthorizationUrlCopyWith<IssuanceStartResult_AuthorizationU
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult_AuthorizationUrl&&(identical(other.field0, field0) || other.field0 == field0));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult_AuthorizationUrl&&(identical(other.field0, field0) || other.field0 == field0));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,field0);
+int get hashCode {
+    return Object.hash(runtimeType,field0);
+}
 
 @override
 String toString() {
-  return 'IssuanceStartResult.authorizationUrl(field0: $field0)';
+    return 'IssuanceStartResult.authorizationUrl(field0: $field0)';
 }
 
 
@@ -241,7 +249,7 @@ as String,
 
 
 class IssuanceStartResult_Previews extends IssuanceStartResult {
-  const IssuanceStartResult_Previews(final  List<AttestationPresentation> field0): _field0 = field0,super._();
+  const IssuanceStartResult_Previews( List<AttestationPresentation> field0): _field0 = field0,super._();
   
 
  final  List<AttestationPresentation> _field0;
@@ -262,16 +270,18 @@ $IssuanceStartResult_PreviewsCopyWith<IssuanceStartResult_Previews> get copyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult_Previews&&const DeepCollectionEquality().equals(other._field0, _field0));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult_Previews&&const DeepCollectionEquality().equals(other.field0, _field0));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_field0));
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_field0));
+}
 
 @override
 String toString() {
-  return 'IssuanceStartResult.previews(field0: $field0)';
+    return 'IssuanceStartResult.previews(field0: $field0)';
 }
 
 

@@ -7,7 +7,7 @@ resolution: workspace
 publish_to: 'none'
 
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.13.0
 
 dependencies:
   after_layout: ^1.2.0
@@ -76,7 +76,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
-  freezed: ^3.2.3
+  freezed: ^4.0.0
   get_it: ^9.2.1
   integration_test:
     sdk: flutter
@@ -84,7 +84,6 @@ dev_dependencies:
   mockito: ^5.5.0
   sentry_dart_plugin: ^3.1.1
   test: ^1.26.2
-  translations_cleaner: ^0.2.1
 
 flutter:
   uses-material-design: true

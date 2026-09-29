@@ -1,3 +1,4 @@
+use std::result::Result as StdResult;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
@@ -27,7 +28,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-use tower_http::decompression::RequestDecompressionLayer;
+use tokio::sync::Semaphore;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
@@ -72,9 +73,12 @@ use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
 
+use crate::admin_portal;
+use crate::admin_portal::AdminPortalState;
 use crate::errors::WalletProviderError;
 use crate::internal;
 use crate::router_state::RouterState;
+use crate::settings::AdminPortalSettings;
 
 /// All handlers should return this result. The [`WalletProviderError`] wraps
 /// a [`StatusCode`] and JSON body, all top-level errors should be convertible
@@ -87,21 +91,31 @@ use crate::router_state::RouterState;
 /// and this is not a public API, having error responses in that do not contain
 /// the custom JSON body in those cases is acceptable. The client should still
 /// be able to handle these errors appropriately.
-type Result<T> = std::result::Result<T, WalletProviderError>;
+type Result<T> = StdResult<T, WalletProviderError>;
 
 #[derive(OpenApi)]
 #[openapi(info(title = "Wallet provider API"))]
 struct ApiDocs;
 
-pub fn router<GRC, PIC>(router_state: RouterState<GRC, PIC>, revoke_solution_enabled: bool) -> Router
+pub fn router<GRC, PIC>(
+    router_state: RouterState<GRC, PIC>,
+    revoke_solution_enabled: bool,
+    admin_portal: AdminPortalSettings,
+) -> StdResult<Router, reqwest::Error>
 where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
 {
     let state = Arc::new(router_state);
+    let admin_portal_state = Arc::new(AdminPortalState::try_new(
+        admin_portal,
+        state.user_state.repositories.clone(),
+    )?);
+    let wallet_transfer_permits = Arc::new(Semaphore::new(state.wallet_transfer_concurrency_limit));
     let router = Router::new()
         .merge(health_router(&state.user_state))
         .merge(metrics_router())
+        .nest("/admin-portal", admin_portal::router(admin_portal_state))
         .nest(
             "/api/v1",
             Router::new()
@@ -127,11 +141,20 @@ where
                 .route(
                     &format!("/instructions/hw_signed/{}", SendWalletPayload::NAME),
                     post(handle_hw_signed_instruction::<SendWalletPayload, _, _, _>)
-                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes)),
+                        .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes))
+                        .layer(middleware::from_fn_with_state(
+                            Arc::clone(&wallet_transfer_permits),
+                            wallet_transfer_concurrency_gate,
+                        )),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", ReceiveWalletPayload::NAME),
-                    post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>),
+                    post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>).layer(
+                        middleware::from_fn_with_state(
+                            Arc::clone(&wallet_transfer_permits),
+                            wallet_transfer_concurrency_gate,
+                        ),
+                    ),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", CompleteTransfer::NAME),
@@ -185,7 +208,6 @@ where
                     &format!("/instructions/{}", DeleteKeys::NAME),
                     post(handle_instruction::<DeleteKeys, _, _, _>),
                 )
-                .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))
                 .with_state(Arc::clone(&state)),
@@ -212,7 +234,7 @@ where
     #[cfg(not(feature = "test_internal_ui"))]
     let router = router.route("/openapi.json", get(Json(openapi)));
 
-    router
+    Ok(router)
 }
 
 fn health_router<F, W, S>(user_state: &UserState<Repositories, F, Pkcs11Hsm, W, S>) -> Router {
@@ -243,6 +265,20 @@ async fn metrics_handler(State(handle): State<PrometheusHandle>) -> String {
 
 async fn log_headers(req: Request, next: Next) -> Response {
     tracing::info!("Headers: {:?}", req.headers());
+    next.run(req).await
+}
+
+/// Bounds concurrent in-flight `SendWalletPayload`/`ReceiveWalletPayload` requests. Both
+/// buffer up to `max_transfer_upload_size_in_bytes` in memory, so a caller could otherwise
+/// open enough concurrent requests to exceed the pod's memory limit regardless of that
+/// per-request cap.
+///
+/// Sharing one semaphore between both routes bounds worst-case concurrent memory use to
+/// roughly `wallet_transfer_concurrency_limit * max_transfer_upload_size_in_bytes` combined,
+/// regardless of the send/receive mix; the container memory limit must be sized to cover
+/// that.
+async fn wallet_transfer_concurrency_gate(State(permits): State<Arc<Semaphore>>, req: Request, next: Next) -> Response {
+    let _permit = permits.acquire().await.expect("semaphore is never closed");
     next.run(req).await
 }
 

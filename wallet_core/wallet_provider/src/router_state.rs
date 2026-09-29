@@ -70,6 +70,7 @@ pub struct RouterState<GRC, PIC> {
     pub certificate_signing_key: WalletCertificateSigning,
     pub user_state: ProductionUserState,
     pub max_transfer_upload_size_in_bytes: usize,
+    pub wallet_transfer_concurrency_limit: usize,
     status_list_refresh_task: AbortHandle,
 }
 
@@ -259,6 +260,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             certificate_signing_key,
             pin_policy,
             max_transfer_upload_size_in_bytes: settings.max_transfer_upload_size_in_bytes,
+            wallet_transfer_concurrency_limit: settings.wallet_transfer_concurrency_limit,
             user_state: UserState {
                 repositories,
                 flags,

@@ -45,6 +45,9 @@
   "users": [
     {
       "username": "administrator",
+      "email": "administrator@example.com",
+      "firstName": "Ad",
+      "lastName": "Ministrator",
       "enabled": true,
       "emailVerified": false,
       "credentials": [
@@ -62,6 +65,9 @@
     },
     {
       "username": "manager",
+      "email": "manager@example.com",
+      "firstName": "Ma",
+      "lastName": "Nager",
       "enabled": true,
       "emailVerified": false,
       "credentials": [
@@ -77,6 +83,9 @@
     },
     {
       "username": "destroyer",
+      "email": "destroyer@example.com",
+      "firstName": "De",
+      "lastName": "Stroyer",
       "enabled": true,
       "emailVerified": false,
       "credentials": [
@@ -95,7 +104,7 @@
     {
       "clientId": "wallet-backend",
       "name": "Wallet Backend",
-      "description": "Client registration for the Wallet Backend. redirect_uris must include the /auth/callback endpoint on the WalletBackend.",
+      "description": "Client registration for the Wallet Backend. redirect_uris must include the /admin-portal/auth/callback endpoint on the WalletBackend.",
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,
@@ -104,13 +113,12 @@
       "serviceAccountsEnabled": false,
       "frontchannelLogout": false,
       "redirectUris": [
-        "https://localhost:3000/auth/callback",
-        "http://localhost:3000/auth/callback"
+        "https://localhost:5173/admin-portal/auth/callback",
+        "http://localhost:5173/admin-portal/auth/callback"
       ],
       "webOrigins": [],
       "attributes": {
-        "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:5173/"
+        "pkce.code.challenge.method": "S256"
       }
     }
   ]

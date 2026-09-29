@@ -179,7 +179,6 @@ where
                                 SELECT id
                                 FROM pushed_authorization_request
                                 WHERE expires_at <= $1
-                                ORDER BY expires_at
                                 LIMIT $2
                                 FOR UPDATE SKIP LOCKED
                             )

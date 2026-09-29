@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Hash, PartialEq, Eq, Deserialize),
-    validate(regex = r"^[\w-]+$")
+    validate(regex = r"^[A-Za-z0-9_-]+$")
 )]
 pub struct Kid(String);
 

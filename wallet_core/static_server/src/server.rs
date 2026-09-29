@@ -14,6 +14,7 @@ use http::StatusCode;
 use http::header;
 use http_utils::health::create_health_router;
 use jwt::VerifiedJwt;
+use status_lists::publish::PublishDir;
 use status_lists::serve::StatusListRouteSource;
 use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
@@ -26,12 +27,13 @@ use super::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.port)).await?;
-    let crl_listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.crl_port)).await?;
+    let http_listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.crl_port)).await?;
     let crl_file = settings.crl_file.clone();
+    let wrprc_publish_dir = settings.wrprc_publish_dir.clone();
 
     tokio::try_join!(
         serve_with_listener(listener, settings),
-        serve_crl_with_listener(crl_listener, crl_file),
+        serve_http_with_listener(http_listener, crl_file, wrprc_publish_dir),
     )?;
 
     Ok(())
@@ -47,18 +49,11 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
         .route("/wallet-config", get(configuration))
         .with_state((settings.wallet_config_jwt, config_entity_tag));
 
-    let status_list_router = create_serve_router([
-        StatusListRouteSource {
-            path: "/wia",
-            publish_dir: settings.wua_publish_dir,
-            ttl: None,
-        },
-        StatusListRouteSource {
-            path: "/wrprc",
-            publish_dir: settings.wrprc_publish_dir,
-            ttl: None,
-        },
-    ])?;
+    let status_list_router = create_serve_router([StatusListRouteSource {
+        path: "/wia",
+        publish_dir: settings.wua_publish_dir,
+        ttl: None,
+    }])?;
 
     let app = Router::new()
         .merge(create_health_router([]))
@@ -73,10 +68,25 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
     Ok(())
 }
 
-pub async fn serve_crl_with_listener(listener: TcpListener, crl_file: PathBuf) -> Result<(), Box<dyn Error>> {
-    info!("listening for CRL requests on {}", listener.local_addr()?);
+pub async fn serve_http_with_listener(
+    listener: TcpListener,
+    crl_file: PathBuf,
+    wrprc_publish_dir: PublishDir,
+) -> Result<(), Box<dyn Error>> {
+    info!(
+        "listening for CRL and WRPRC status list requests on {}",
+        listener.local_addr()?
+    );
 
-    let app = Router::new().route("/wrpac.crl.der", get(crl)).with_state(crl_file);
+    let status_list_router = create_serve_router([StatusListRouteSource {
+        path: "/wrprc",
+        publish_dir: wrprc_publish_dir,
+        ttl: None,
+    }])?;
+    let app = Router::new()
+        .route("/wrpac.crl.der", get(crl))
+        .with_state(crl_file)
+        .merge(status_list_router);
 
     axum::serve(listener, app.into_make_service()).await?;
 

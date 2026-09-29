@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'start_issuance_result.dart';
@@ -9,6 +9,7 @@ part of 'start_issuance_result.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$StartIssuanceResult {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceResult);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceResult);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'StartIssuanceResult()';
+    return 'StartIssuanceResult()';
 }
 
 
@@ -202,16 +203,18 @@ $StartIssuanceAuthorizationRequiredCopyWith<StartIssuanceAuthorizationRequired> 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceAuthorizationRequired&&(identical(other.authUrl, authUrl) || other.authUrl == authUrl));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceAuthorizationRequired&&(identical(other.authUrl, authUrl) || other.authUrl == authUrl));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,authUrl);
+int get hashCode {
+    return Object.hash(runtimeType,authUrl);
+}
 
 @override
 String toString() {
-  return 'StartIssuanceResult.authorizationRequired(authUrl: $authUrl)';
+    return 'StartIssuanceResult.authorizationRequired(authUrl: $authUrl)';
 }
 
 
@@ -253,7 +256,7 @@ as String,
 
 
 class StartIssuancePreAuthorizedOffer extends StartIssuanceResult {
-  const StartIssuancePreAuthorizedOffer(final  List<WalletCard> previews): _previews = previews,super._();
+  const StartIssuancePreAuthorizedOffer( List<WalletCard> previews): _previews = previews,super._();
   
 
  final  List<WalletCard> _previews;
@@ -274,16 +277,18 @@ $StartIssuancePreAuthorizedOfferCopyWith<StartIssuancePreAuthorizedOffer> get co
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuancePreAuthorizedOffer&&const DeepCollectionEquality().equals(other._previews, _previews));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuancePreAuthorizedOffer&&const DeepCollectionEquality().equals(other.previews, _previews));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_previews));
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_previews));
+}
 
 @override
 String toString() {
-  return 'StartIssuanceResult.preAuthorizedOffer(previews: $previews)';
+    return 'StartIssuanceResult.preAuthorizedOffer(previews: $previews)';
 }
 
 
@@ -325,7 +330,7 @@ as List<WalletCard>,
 
 
 class StartIssuanceReadyToDisclose extends StartIssuanceResult {
-  const StartIssuanceReadyToDisclose({required this.relyingParty, required final  LocalizedText requestPurpose, required this.sessionType, required final  List<DiscloseCardRequest> cardRequests, required this.policy}): _requestPurpose = requestPurpose,_cardRequests = cardRequests,super._();
+  const StartIssuanceReadyToDisclose({required this.relyingParty, required  LocalizedText requestPurpose, required this.sessionType, required  List<DiscloseCardRequest> cardRequests, required this.policy}): _requestPurpose = requestPurpose,_cardRequests = cardRequests,super._();
   
 
  final  Organization relyingParty;
@@ -356,16 +361,18 @@ $StartIssuanceReadyToDiscloseCopyWith<StartIssuanceReadyToDisclose> get copyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceReadyToDisclose&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other._requestPurpose, _requestPurpose)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other._cardRequests, _cardRequests)&&(identical(other.policy, policy) || other.policy == policy));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceReadyToDisclose&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other.requestPurpose, _requestPurpose)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.cardRequests, _cardRequests)&&(identical(other.policy, policy) || other.policy == policy));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,relyingParty,const DeepCollectionEquality().hash(_requestPurpose),sessionType,const DeepCollectionEquality().hash(_cardRequests),policy);
+int get hashCode {
+    return Object.hash(runtimeType,relyingParty,const DeepCollectionEquality().hash(_requestPurpose),sessionType,const DeepCollectionEquality().hash(_cardRequests),policy);
+}
 
 @override
 String toString() {
-  return 'StartIssuanceResult.readyToDisclose(relyingParty: $relyingParty, requestPurpose: $requestPurpose, sessionType: $sessionType, cardRequests: $cardRequests, policy: $policy)';
+    return 'StartIssuanceResult.readyToDisclose(relyingParty: $relyingParty, requestPurpose: $requestPurpose, sessionType: $sessionType, cardRequests: $cardRequests, policy: $policy)';
 }
 
 
@@ -420,7 +427,7 @@ $OrganizationCopyWith<$Res> get relyingParty {
 
 
 class StartIssuanceMissingAttributes extends StartIssuanceResult {
-  const StartIssuanceMissingAttributes({required this.relyingParty, required this.sessionType, required final  List<MissingAttribute> missingAttributes}): _missingAttributes = missingAttributes,super._();
+  const StartIssuanceMissingAttributes({required this.relyingParty, required this.sessionType, required  List<MissingAttribute> missingAttributes}): _missingAttributes = missingAttributes,super._();
   
 
  final  Organization relyingParty;
@@ -443,16 +450,18 @@ $StartIssuanceMissingAttributesCopyWith<StartIssuanceMissingAttributes> get copy
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceMissingAttributes&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other._missingAttributes, _missingAttributes));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceMissingAttributes&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.missingAttributes, _missingAttributes));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,relyingParty,sessionType,const DeepCollectionEquality().hash(_missingAttributes));
+int get hashCode {
+    return Object.hash(runtimeType,relyingParty,sessionType,const DeepCollectionEquality().hash(_missingAttributes));
+}
 
 @override
 String toString() {
-  return 'StartIssuanceResult.missingAttributes(relyingParty: $relyingParty, sessionType: $sessionType, missingAttributes: $missingAttributes)';
+    return 'StartIssuanceResult.missingAttributes(relyingParty: $relyingParty, sessionType: $sessionType, missingAttributes: $missingAttributes)';
 }
 
 

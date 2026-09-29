@@ -221,9 +221,12 @@ fi
 
 echo -e "${SECTION}Configure keycloak${NC}"
 
+# CA Generated unconditionally (even when SKIP_KEYCLOAK is set), since wallet_provider's admin_portal
+# config always needs a Keycloak CA to pin its OIDC client's TLS connection to.
+generate_or_reuse_root_ca "${DEVENV}/keycloak/certs" "keycloak"
+
 if [[ -z "${SKIP_KEYCLOAK:-}" ]]; then
-  generate_or_reuse_root_ca "${DEVENV}/keycloak/certs" "keycloak"
-  generate_ssl_key_pair_with_san "${DEVENV}/keycloak/certs" "keycloak" "${DEVENV}/keycloak/certs/ca.crt.pem" "${DEVENV}/keycloak/certs/ca.key.pem"
+    generate_ssl_key_pair_with_san "${DEVENV}/keycloak/certs" "keycloak" "${DEVENV}/keycloak/certs/ca.crt.pem" "${DEVENV}/keycloak/certs/ca.key.pem"
 
   # Constructs a shellscript that contains the commands to reproduce a file/directory structure.
   # The shellscript is fed to docker compose, service: keycloak, command: sh, argument: -s.
@@ -323,7 +326,8 @@ else
 fi
 WRPRC_CA_CRT=$(< "${TARGET_DIR}/ca.wrprc.crt.der" ${BASE64})
 export WRPRC_CA_CRT
-WRPRC_STATUS_LIST_URI="https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wrprc/1"
+# Like CRLs, WRPRC status lists are signed and served over HTTP in the local development environment.
+WRPRC_STATUS_LIST_URI="http://${SERVICES_HOST}:${STATIC_SERVER_CRL_PORT}/wrprc/1"
 export WRPRC_STATUS_LIST_URI
 
 # Generate the end-entity certificate used to sign the demo relying parties' WRPRCs.
@@ -754,6 +758,9 @@ export ANDROID_ROOT_EC_PUBKEY
 
 WALLET_VERSION=$(grep '^version:' "${BASE_DIR}/wallet_app/pubspec.yaml" | awk '{print $2}')
 export WALLET_VERSION
+
+KEYCLOAK_CA_CRT=$(< "${DEVENV}/keycloak/certs/ca.crt.der" ${BASE64})
+export KEYCLOAK_CA_CRT
 
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"

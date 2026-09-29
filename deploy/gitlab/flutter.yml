@@ -56,8 +56,10 @@ verify-flutter-localizations:
   script:
     - flutter --version
     - flutter pub get --enforce-lockfile
-    - dart run translations_cleaner list-unused-terms # List any unused keys
-    - dart run translations_cleaner list-unused-terms --abort-on-unused # Fail if unused keys are found
+    # Not a dev_dependency: translations_cleaner 0.2.1 requires analyzer < 11, which conflicts with freezed 4
+    - dart pub global activate translations_cleaner 0.2.1
+    - dart pub global run translations_cleaner list-unused-terms # List any unused keys
+    - dart pub global run translations_cleaner list-unused-terms --abort-on-unused # Fail if unused keys are found
   allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
 
 # Validates the in-app FAQ/help corpus: every YAML topicId resolves to EN+NL markdown,

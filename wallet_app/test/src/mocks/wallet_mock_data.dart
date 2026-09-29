@@ -237,158 +237,130 @@ abstract class WalletMockData {
 
   /// Deletion events
 
-  static DeletionEvent get deletionEvent =>
-      WalletEvent.deletion(
-            dateTime: DateTime(2024, 5, 1),
-            status: EventStatus.success,
-            card: card,
-          )
-          as DeletionEvent;
+  static DeletionEvent get deletionEvent => WalletEvent.deletion(
+    dateTime: DateTime(2024, 5, 1),
+    status: EventStatus.success,
+    card: card,
+  ) as DeletionEvent;
 
   /// Disclosure events
 
-  static DisclosureEvent get disclosureEvent =>
-      WalletEvent.disclosure(
-            dateTime: DateTime(2024, 3, 1),
-            status: EventStatus.success,
-            relyingParty: organization,
-            purpose: 'disclosure'.untranslated,
-            cards: [card],
-            policy: policy,
-            type: DisclosureType.regular,
-          )
-          as DisclosureEvent;
+  static DisclosureEvent get disclosureEvent => WalletEvent.disclosure(
+    dateTime: DateTime(2024, 3, 1),
+    status: EventStatus.success,
+    relyingParty: organization,
+    purpose: 'disclosure'.untranslated,
+    cards: [card],
+    policy: policy,
+    type: DisclosureType.regular,
+  ) as DisclosureEvent;
 
-  static DisclosureEvent get loginEvent =>
-      WalletEvent.disclosure(
-            dateTime: DateTime(2024, 2, 1),
-            status: EventStatus.success,
-            relyingParty: organization,
-            purpose: 'disclosure'.untranslated,
-            cards: [card],
-            policy: policy,
-            type: DisclosureType.login,
-          )
-          as DisclosureEvent;
+  static DisclosureEvent get loginEvent => WalletEvent.disclosure(
+    dateTime: DateTime(2024, 2, 1),
+    status: EventStatus.success,
+    relyingParty: organization,
+    purpose: 'disclosure'.untranslated,
+    cards: [card],
+    policy: policy,
+    type: DisclosureType.login,
+  ) as DisclosureEvent;
 
-  static DisclosureEvent get failedLoginEvent =>
-      WalletEvent.disclosure(
-            dateTime: DateTime(2024, 2, 1),
-            status: EventStatus.error,
-            relyingParty: organization,
-            purpose: 'disclosure'.untranslated,
-            cards: [card],
-            policy: policy,
-            type: DisclosureType.login,
-          )
-          as DisclosureEvent;
+  static DisclosureEvent get failedLoginEvent => WalletEvent.disclosure(
+    dateTime: DateTime(2024, 2, 1),
+    status: EventStatus.error,
+    relyingParty: organization,
+    purpose: 'disclosure'.untranslated,
+    cards: [card],
+    policy: policy,
+    type: DisclosureType.login,
+  ) as DisclosureEvent;
 
-  static DisclosureEvent get failedLoginEventNothingShared =>
-      WalletEvent.disclosure(
-            dateTime: DateTime(2024, 2, 1, 22, 11),
-            status: EventStatus.error,
-            relyingParty: organization,
-            purpose: 'disclosure'.untranslated,
-            cards: const [],
-            policy: policy,
-            type: DisclosureType.login,
-          )
-          as DisclosureEvent;
+  static DisclosureEvent get failedLoginEventNothingShared => WalletEvent.disclosure(
+    dateTime: DateTime(2024, 2, 1, 22, 11),
+    status: EventStatus.error,
+    relyingParty: organization,
+    purpose: 'disclosure'.untranslated,
+    cards: const [],
+    policy: policy,
+    type: DisclosureType.login,
+  ) as DisclosureEvent;
 
-  static DisclosureEvent get failedDisclosureEvent =>
-      WalletEvent.disclosure(
-            dateTime: DateTime(2024, 2, 1),
-            status: EventStatus.error,
-            relyingParty: organization,
-            purpose: 'disclosure'.untranslated,
-            cards: [card],
-            policy: policy,
-            type: DisclosureType.regular,
-          )
-          as DisclosureEvent;
+  static DisclosureEvent get failedDisclosureEvent => WalletEvent.disclosure(
+    dateTime: DateTime(2024, 2, 1),
+    status: EventStatus.error,
+    relyingParty: organization,
+    purpose: 'disclosure'.untranslated,
+    cards: [card],
+    policy: policy,
+    type: DisclosureType.regular,
+  ) as DisclosureEvent;
 
-  static DisclosureEvent get failedDisclosureEventNothingShared =>
-      WalletEvent.disclosure(
-            dateTime: DateTime(2023, 5, 9, 11, 23),
-            status: EventStatus.error,
-            relyingParty: organization,
-            purpose: 'disclosure - nothing shared error'.untranslated,
-            cards: const [],
-            policy: policy,
-            type: DisclosureType.regular,
-          )
-          as DisclosureEvent;
+  static DisclosureEvent get failedDisclosureEventNothingShared => WalletEvent.disclosure(
+    dateTime: DateTime(2023, 5, 9, 11, 23),
+    status: EventStatus.error,
+    relyingParty: organization,
+    purpose: 'disclosure - nothing shared error'.untranslated,
+    cards: const [],
+    policy: policy,
+    type: DisclosureType.regular,
+  ) as DisclosureEvent;
 
-  static DisclosureEvent get cancelledDisclosureEvent =>
-      WalletEvent.disclosure(
-            dateTime: DateTime(2024, 2, 1),
-            status: EventStatus.cancelled,
-            relyingParty: organization,
-            purpose: 'disclosure'.untranslated,
-            cards: [card],
-            policy: policy,
-            type: DisclosureType.regular,
-          )
-          as DisclosureEvent;
+  static DisclosureEvent get cancelledDisclosureEvent => WalletEvent.disclosure(
+    dateTime: DateTime(2024, 2, 1),
+    status: EventStatus.cancelled,
+    relyingParty: organization,
+    purpose: 'disclosure'.untranslated,
+    cards: [card],
+    policy: policy,
+    type: DisclosureType.regular,
+  ) as DisclosureEvent;
 
   /// Sign events
 
-  static SignEvent get signEvent =>
-      WalletEvent.sign(
-            dateTime: DateTime(2024, 1, 1),
-            status: EventStatus.success,
-            relyingParty: organization,
-            policy: policy,
-            document: document,
-          )
-          as SignEvent;
+  static SignEvent get signEvent => WalletEvent.sign(
+    dateTime: DateTime(2024, 1, 1),
+    status: EventStatus.success,
+    relyingParty: organization,
+    policy: policy,
+    document: document,
+  ) as SignEvent;
 
   /// Issuance events
 
-  static IssuanceEvent get issuanceEvent =>
-      WalletEvent.issuance(
-            dateTime: DateTime(2023, 12, 1),
-            status: EventStatus.success,
-            card: card,
-            eventType: IssuanceEventType.cardIssued,
-          )
-          as IssuanceEvent;
+  static IssuanceEvent get issuanceEvent => WalletEvent.issuance(
+    dateTime: DateTime(2023, 12, 1),
+    status: EventStatus.success,
+    card: card,
+    eventType: IssuanceEventType.cardIssued,
+  ) as IssuanceEvent;
 
-  static IssuanceEvent get issuanceEventCardRenewed =>
-      WalletEvent.issuance(
-            dateTime: DateTime(2025, 2, 1),
-            status: EventStatus.success,
-            card: card,
-            eventType: IssuanceEventType.cardRenewed,
-          )
-          as IssuanceEvent;
+  static IssuanceEvent get issuanceEventCardRenewed => WalletEvent.issuance(
+    dateTime: DateTime(2025, 2, 1),
+    status: EventStatus.success,
+    card: card,
+    eventType: IssuanceEventType.cardRenewed,
+  ) as IssuanceEvent;
 
-  static IssuanceEvent get issuanceEventCardStatusExpired =>
-      WalletEvent.issuance(
-            dateTime: DateTime(2025, 2, 1),
-            status: EventStatus.success,
-            card: cardWithStatus(CardStatusExpired(validUntil: validUntil)),
-            eventType: IssuanceEventType.cardStatusExpired,
-          )
-          as IssuanceEvent;
+  static IssuanceEvent get issuanceEventCardStatusExpired => WalletEvent.issuance(
+    dateTime: DateTime(2025, 2, 1),
+    status: EventStatus.success,
+    card: cardWithStatus(CardStatusExpired(validUntil: validUntil)),
+    eventType: IssuanceEventType.cardStatusExpired,
+  ) as IssuanceEvent;
 
-  static IssuanceEvent get issuanceEventCardStatusRevoked =>
-      WalletEvent.issuance(
-            dateTime: DateTime(2025, 2, 1),
-            status: EventStatus.success,
-            card: cardWithStatus(const CardStatusRevoked()),
-            eventType: IssuanceEventType.cardStatusRevoked,
-          )
-          as IssuanceEvent;
+  static IssuanceEvent get issuanceEventCardStatusRevoked => WalletEvent.issuance(
+    dateTime: DateTime(2025, 2, 1),
+    status: EventStatus.success,
+    card: cardWithStatus(const CardStatusRevoked()),
+    eventType: IssuanceEventType.cardStatusRevoked,
+  ) as IssuanceEvent;
 
-  static IssuanceEvent get issuanceEventCardStatusCorrupted =>
-      WalletEvent.issuance(
-            dateTime: DateTime(2025, 2, 1),
-            status: EventStatus.success,
-            card: cardWithStatus(const CardStatusCorrupted()),
-            eventType: IssuanceEventType.cardStatusCorrupted,
-          )
-          as IssuanceEvent;
+  static IssuanceEvent get issuanceEventCardStatusCorrupted => WalletEvent.issuance(
+    dateTime: DateTime(2025, 2, 1),
+    status: EventStatus.success,
+    card: cardWithStatus(const CardStatusCorrupted()),
+    eventType: IssuanceEventType.cardStatusCorrupted,
+  ) as IssuanceEvent;
 
   /// A realistic two-category help fixture with populated subcategories and topics,
   /// suitable for rendering a representative help overview / category / subcategory.

@@ -62,6 +62,8 @@ class GenericIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
 
         cardIssuanceScreen.clickToDashboardButton()
+        dashboardScreen.dismissNotificationsDrawer()
+        assertTrue(dashboardScreen.cardVisible(tasData.getLoyaltyDisplayName()), "Loyalty card not visible on dashboard")
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getLoyaltyDisplayName()), "Loyalty card not visible on dashboard")
     }
@@ -87,6 +89,7 @@ class GenericIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
 
         cardIssuanceScreen.clickToDashboardButton()
+        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceDisplayName()), "Insurance card not visible on dashboard")
     }
@@ -108,6 +111,7 @@ class GenericIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
 
         cardIssuanceScreen.clickToDashboardButton()
+        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(
             dashboardScreen.cardVisible(tasData.getMuseumMaandkaartDisplayName()),
@@ -144,6 +148,7 @@ class GenericIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
 
         cardIssuanceScreen.clickToDashboardButton()
+        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(
             dashboardScreen.cardVisible(tasData.getDrivingLicenseDisplayName()),
@@ -175,6 +180,7 @@ class GenericIssuanceTests : TestBase() {
 
         cardIssuanceScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()
+        dashboardScreen.dismissNotificationsDrawer()
         assertTrue(
             dashboardScreen.cardVisible(tasData.getRegistrationCertificateDisplayName()),
             "Registration certificate card not visible on dashboard"

@@ -92,6 +92,7 @@ async fn test_audit(#[values(true, false)] is_success: bool) {
     assert_eq!(start_record.correlation_id, correlation_id);
     assert_matches!(start_record.operation.as_ref(), Some(operation) if operation == "operation");
     assert_matches!(start_record.params.as_ref(), Some(params) if *params == json!({"param1": "input"}));
+    assert_eq!(start_record.user_id, None);
     assert!(start_record.is_success.is_none());
 
     // Check the second record (operation result)
@@ -100,4 +101,35 @@ async fn test_audit(#[values(true, false)] is_success: bool) {
     assert!(result_record.operation.is_none());
     assert!(result_record.params.is_none());
     assert_eq!(result_record.is_success, Some(is_success));
+}
+
+#[audited]
+async fn operation_with_user(
+    #[auditor] audit_log: &impl AuditLog,
+    #[audit_user] user_id: &str,
+    is_success: bool,
+) -> Result<(), TestError> {
+    if is_success { Ok(()) } else { Err(TestError::Test) }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_audit_records_user_id_when_present() {
+    let correlation_id = Uuid::new_v4();
+    let (db_setup, audit_log) = setup_test_database(correlation_id).await;
+
+    operation_with_user(&audit_log, "user-42", true)
+        .await
+        .expect("should succeed");
+
+    let connection = connection_from_url(db_setup.audit_log_url()).await;
+    let audit_records = entity::audit_log::Entity::find()
+        .filter(entity::audit_log::Column::CorrelationId.eq(correlation_id))
+        .order_by_asc(entity::audit_log::Column::Id)
+        .all(&connection)
+        .await
+        .expect("Failed to query audit records");
+    assert_eq!(audit_records.len(), 2);
+    assert_eq!(audit_records[0].user_id.as_deref(), Some("user-42"));
+    // The result row never carries a user_id, only the start row does.
+    assert_eq!(audit_records[1].user_id, None);
 }

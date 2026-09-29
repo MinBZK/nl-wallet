@@ -18,10 +18,14 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    headers: {
+      // Should be same as in nginx.conf except for the unsafe-inline
+      "Content-Security-Policy": "default-src 'none'; connect-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+    },
     proxy: {
-      // Proxy to the WalletBackend mock so the SPA and WalletBackend share one origin
-      '/api': 'http://localhost:3000',
-      '/auth': 'http://localhost:3000',
+      // Proxy to the wallet_provider (started via scripts/start-devenv.sh) so the SPA and
+      // wallet_provider share one origin. It serves TLS with a self-signed dev cert, hence `secure: false`.
+      "/admin-portal": { target: "https://localhost:3000", secure: false },
     },
   },
 })

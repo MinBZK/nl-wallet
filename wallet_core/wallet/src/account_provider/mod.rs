@@ -1,7 +1,5 @@
 mod client;
 
-use std::io;
-
 use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use reqwest::StatusCode;
@@ -33,14 +31,6 @@ pub enum AccountProviderError {
     #[error("could not parse base URL: {0}")]
     #[category(pd)]
     BaseUrl(#[from] ParseError),
-
-    #[error("could not serialize payload: {0}")]
-    #[category(pd)]
-    PayloadSerialization(#[source] serde_json::Error),
-
-    #[error("could not compress payload: {0}")]
-    #[category(pd)]
-    PayloadCompression(#[source] io::Error),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
