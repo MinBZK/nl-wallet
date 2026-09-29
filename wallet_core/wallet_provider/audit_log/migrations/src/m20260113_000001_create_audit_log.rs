@@ -19,6 +19,7 @@ impl MigrationTrait for Migration {
                     .col(string_null(AuditLog::Operation))
                     .col(json_null(AuditLog::Params))
                     .col(boolean_null(AuditLog::IsSuccess))
+                    .col(string_null(AuditLog::UserId))
                     .to_owned(),
             )
             .await?;
@@ -36,4 +37,5 @@ pub enum AuditLog {
     Operation,
     Params,
     IsSuccess,
+    UserId,
 }
