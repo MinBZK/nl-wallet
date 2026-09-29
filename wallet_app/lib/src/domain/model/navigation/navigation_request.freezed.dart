@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'navigation_request.dart';
@@ -9,6 +9,7 @@ part of 'navigation_request.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 NavigationRequest _$NavigationRequestFromJson(
@@ -23,11 +24,6 @@ NavigationRequest _$NavigationRequestFromJson(
 mixin _$NavigationRequest {
 
  String get destination; String? get removeUntil; Object? get argument; List<NavigationPrerequisite> get navigatePrerequisites; List<PreNavigationAction> get preNavigationActions;
-/// Create a copy of NavigationRequest
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$NavigationRequestCopyWith<NavigationRequest> get copyWith => _$NavigationRequestCopyWithImpl<NavigationRequest>(this as NavigationRequest, _$identity);
 
   /// Serializes this NavigationRequest to a JSON map.
   Map<String, dynamic> toJson();
@@ -35,54 +31,27 @@ $NavigationRequestCopyWith<NavigationRequest> get copyWith => _$NavigationReques
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NavigationRequest&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.removeUntil, removeUntil) || other.removeUntil == removeUntil)&&const DeepCollectionEquality().equals(other.argument, argument)&&const DeepCollectionEquality().equals(other.navigatePrerequisites, navigatePrerequisites)&&const DeepCollectionEquality().equals(other.preNavigationActions, preNavigationActions));
+  final _this = this as NavigationRequest;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NavigationRequest&&(identical(other.destination, _this.destination) || other.destination == _this.destination)&&(identical(other.removeUntil, _this.removeUntil) || other.removeUntil == _this.removeUntil)&&const DeepCollectionEquality().equals(other.argument, _this.argument)&&const DeepCollectionEquality().equals(other.navigatePrerequisites, _this.navigatePrerequisites)&&const DeepCollectionEquality().equals(other.preNavigationActions, _this.preNavigationActions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,destination,removeUntil,const DeepCollectionEquality().hash(argument),const DeepCollectionEquality().hash(navigatePrerequisites),const DeepCollectionEquality().hash(preNavigationActions));
+int get hashCode {
+  final _this = this as NavigationRequest;
+  return Object.hash(runtimeType,_this.destination,_this.removeUntil,const DeepCollectionEquality().hash(_this.argument),const DeepCollectionEquality().hash(_this.navigatePrerequisites),const DeepCollectionEquality().hash(_this.preNavigationActions));
+}
 
 @override
 String toString() {
-  return 'NavigationRequest(destination: $destination, removeUntil: $removeUntil, argument: $argument, navigatePrerequisites: $navigatePrerequisites, preNavigationActions: $preNavigationActions)';
+  final _this = this as NavigationRequest;
+  return 'NavigationRequest(destination: ${_this.destination}, removeUntil: ${_this.removeUntil}, argument: ${_this.argument}, navigatePrerequisites: ${_this.navigatePrerequisites}, preNavigationActions: ${_this.preNavigationActions})';
 }
 
 
 }
 
-/// @nodoc
-abstract mixin class $NavigationRequestCopyWith<$Res>  {
-  factory $NavigationRequestCopyWith(NavigationRequest value, $Res Function(NavigationRequest) _then) = _$NavigationRequestCopyWithImpl;
-@useResult
-$Res call({
- String destination, String? removeUntil, Object? argument, List<NavigationPrerequisite> navigatePrerequisites, List<PreNavigationAction> preNavigationActions
-});
 
-
-
-
-}
-/// @nodoc
-class _$NavigationRequestCopyWithImpl<$Res>
-    implements $NavigationRequestCopyWith<$Res> {
-  _$NavigationRequestCopyWithImpl(this._self, this._then);
-
-  final NavigationRequest _self;
-  final $Res Function(NavigationRequest) _then;
-
-/// Create a copy of NavigationRequest
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? destination = null,Object? removeUntil = freezed,Object? argument = freezed,Object? navigatePrerequisites = null,Object? preNavigationActions = null,}) {
-  return _then(_self.copyWith(
-destination: null == destination ? _self.destination : destination // ignore: cast_nullable_to_non_nullable
-as String,removeUntil: freezed == removeUntil ? _self.removeUntil : removeUntil // ignore: cast_nullable_to_non_nullable
-as String?,argument: freezed == argument ? _self.argument : argument ,navigatePrerequisites: null == navigatePrerequisites ? _self.navigatePrerequisites : navigatePrerequisites // ignore: cast_nullable_to_non_nullable
-as List<NavigationPrerequisite>,preNavigationActions: null == preNavigationActions ? _self.preNavigationActions : preNavigationActions // ignore: cast_nullable_to_non_nullable
-as List<PreNavigationAction>,
-  ));
-}
-
-}
 
 
 /// Adds pattern-matching-related methods to [NavigationRequest].
@@ -219,7 +188,7 @@ return generic(_that.destination,_that.removeUntil,_that.argument,_that.navigate
 @JsonSerializable()
 
 class GenericNavigationRequest extends NavigationRequest {
-  const GenericNavigationRequest(this.destination, {this.removeUntil, this.argument, final  List<NavigationPrerequisite> navigatePrerequisites = const [], final  List<PreNavigationAction> preNavigationActions = const []}): _navigatePrerequisites = navigatePrerequisites,_preNavigationActions = preNavigationActions,super._();
+  const GenericNavigationRequest(this.destination, {this.removeUntil, this.argument,  List<NavigationPrerequisite> navigatePrerequisites = const [],  List<PreNavigationAction> preNavigationActions = const []}): _navigatePrerequisites = navigatePrerequisites,_preNavigationActions = preNavigationActions,super._();
   factory GenericNavigationRequest.fromJson(Map<String, dynamic> json) => _$GenericNavigationRequestFromJson(json);
 
 @override final  String destination;
@@ -240,11 +209,6 @@ class GenericNavigationRequest extends NavigationRequest {
 }
 
 
-/// Create a copy of NavigationRequest
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$GenericNavigationRequestCopyWith<GenericNavigationRequest> get copyWith => _$GenericNavigationRequestCopyWithImpl<GenericNavigationRequest>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
@@ -253,54 +217,24 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GenericNavigationRequest&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.removeUntil, removeUntil) || other.removeUntil == removeUntil)&&const DeepCollectionEquality().equals(other.argument, argument)&&const DeepCollectionEquality().equals(other._navigatePrerequisites, _navigatePrerequisites)&&const DeepCollectionEquality().equals(other._preNavigationActions, _preNavigationActions));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is GenericNavigationRequest&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.removeUntil, removeUntil) || other.removeUntil == removeUntil)&&const DeepCollectionEquality().equals(other.argument, argument)&&const DeepCollectionEquality().equals(other.navigatePrerequisites, _navigatePrerequisites)&&const DeepCollectionEquality().equals(other.preNavigationActions, _preNavigationActions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,destination,removeUntil,const DeepCollectionEquality().hash(argument),const DeepCollectionEquality().hash(_navigatePrerequisites),const DeepCollectionEquality().hash(_preNavigationActions));
+int get hashCode {
+    return Object.hash(runtimeType,destination,removeUntil,const DeepCollectionEquality().hash(argument),const DeepCollectionEquality().hash(_navigatePrerequisites),const DeepCollectionEquality().hash(_preNavigationActions));
+}
 
 @override
 String toString() {
-  return 'NavigationRequest.generic(destination: $destination, removeUntil: $removeUntil, argument: $argument, navigatePrerequisites: $navigatePrerequisites, preNavigationActions: $preNavigationActions)';
+    return 'NavigationRequest.generic(destination: $destination, removeUntil: $removeUntil, argument: $argument, navigatePrerequisites: $navigatePrerequisites, preNavigationActions: $preNavigationActions)';
 }
 
 
 }
 
-/// @nodoc
-abstract mixin class $GenericNavigationRequestCopyWith<$Res> implements $NavigationRequestCopyWith<$Res> {
-  factory $GenericNavigationRequestCopyWith(GenericNavigationRequest value, $Res Function(GenericNavigationRequest) _then) = _$GenericNavigationRequestCopyWithImpl;
-@override @useResult
-$Res call({
- String destination, String? removeUntil, Object? argument, List<NavigationPrerequisite> navigatePrerequisites, List<PreNavigationAction> preNavigationActions
-});
 
 
-
-
-}
-/// @nodoc
-class _$GenericNavigationRequestCopyWithImpl<$Res>
-    implements $GenericNavigationRequestCopyWith<$Res> {
-  _$GenericNavigationRequestCopyWithImpl(this._self, this._then);
-
-  final GenericNavigationRequest _self;
-  final $Res Function(GenericNavigationRequest) _then;
-
-/// Create a copy of NavigationRequest
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? destination = null,Object? removeUntil = freezed,Object? argument = freezed,Object? navigatePrerequisites = null,Object? preNavigationActions = null,}) {
-  return _then(GenericNavigationRequest(
-null == destination ? _self.destination : destination // ignore: cast_nullable_to_non_nullable
-as String,removeUntil: freezed == removeUntil ? _self.removeUntil : removeUntil // ignore: cast_nullable_to_non_nullable
-as String?,argument: freezed == argument ? _self.argument : argument ,navigatePrerequisites: null == navigatePrerequisites ? _self._navigatePrerequisites : navigatePrerequisites // ignore: cast_nullable_to_non_nullable
-as List<NavigationPrerequisite>,preNavigationActions: null == preNavigationActions ? _self._preNavigationActions : preNavigationActions // ignore: cast_nullable_to_non_nullable
-as List<PreNavigationAction>,
-  ));
-}
-
-
-}
 
 // dart format on

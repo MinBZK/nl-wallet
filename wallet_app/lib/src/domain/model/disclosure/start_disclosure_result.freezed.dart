@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'start_disclosure_result.dart';
@@ -9,6 +9,7 @@ part of 'start_disclosure_result.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -25,16 +26,21 @@ $StartDisclosureResultCopyWith<StartDisclosureResult> get copyWith => _$StartDis
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType));
+  final _this = this as StartDisclosureResult;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult&&(identical(other.relyingParty, _this.relyingParty) || other.relyingParty == _this.relyingParty)&&(identical(other.sessionType, _this.sessionType) || other.sessionType == _this.sessionType));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,relyingParty,sessionType);
+int get hashCode {
+  final _this = this as StartDisclosureResult;
+  return Object.hash(runtimeType,_this.relyingParty,_this.sessionType);
+}
 
 @override
 String toString() {
-  return 'StartDisclosureResult(relyingParty: $relyingParty, sessionType: $sessionType)';
+  final _this = this as StartDisclosureResult;
+  return 'StartDisclosureResult(relyingParty: ${_this.relyingParty}, sessionType: ${_this.sessionType})';
 }
 
 
@@ -216,7 +222,7 @@ return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttri
 
 
 class StartDisclosureReadyToDisclose implements StartDisclosureResult {
-  const StartDisclosureReadyToDisclose({required this.relyingParty, required final  LocalizedText requestPurpose, required this.sharedDataWithOrganizationBefore, required this.sessionType, required final  List<DiscloseCardRequest> cardRequests, required this.policy, required this.type}): _requestPurpose = requestPurpose,_cardRequests = cardRequests;
+  const StartDisclosureReadyToDisclose({required this.relyingParty, required  LocalizedText requestPurpose, required this.sharedDataWithOrganizationBefore, required this.sessionType, required  List<DiscloseCardRequest> cardRequests, required this.policy, required this.type}): _requestPurpose = requestPurpose,_cardRequests = cardRequests;
   
 
 @override final  Organization relyingParty;
@@ -249,16 +255,18 @@ $StartDisclosureReadyToDiscloseCopyWith<StartDisclosureReadyToDisclose> get copy
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureReadyToDisclose&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other._requestPurpose, _requestPurpose)&&(identical(other.sharedDataWithOrganizationBefore, sharedDataWithOrganizationBefore) || other.sharedDataWithOrganizationBefore == sharedDataWithOrganizationBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other._cardRequests, _cardRequests)&&(identical(other.policy, policy) || other.policy == policy)&&(identical(other.type, type) || other.type == type));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureReadyToDisclose&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other.requestPurpose, _requestPurpose)&&(identical(other.sharedDataWithOrganizationBefore, sharedDataWithOrganizationBefore) || other.sharedDataWithOrganizationBefore == sharedDataWithOrganizationBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.cardRequests, _cardRequests)&&(identical(other.policy, policy) || other.policy == policy)&&(identical(other.type, type) || other.type == type));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,relyingParty,const DeepCollectionEquality().hash(_requestPurpose),sharedDataWithOrganizationBefore,sessionType,const DeepCollectionEquality().hash(_cardRequests),policy,type);
+int get hashCode {
+    return Object.hash(runtimeType,relyingParty,const DeepCollectionEquality().hash(_requestPurpose),sharedDataWithOrganizationBefore,sessionType,const DeepCollectionEquality().hash(_cardRequests),policy,type);
+}
 
 @override
 String toString() {
-  return 'StartDisclosureResult.readyToDisclose(relyingParty: $relyingParty, requestPurpose: $requestPurpose, sharedDataWithOrganizationBefore: $sharedDataWithOrganizationBefore, sessionType: $sessionType, cardRequests: $cardRequests, policy: $policy, type: $type)';
+    return 'StartDisclosureResult.readyToDisclose(relyingParty: $relyingParty, requestPurpose: $requestPurpose, sharedDataWithOrganizationBefore: $sharedDataWithOrganizationBefore, sessionType: $sessionType, cardRequests: $cardRequests, policy: $policy, type: $type)';
 }
 
 
@@ -315,7 +323,7 @@ $OrganizationCopyWith<$Res> get relyingParty {
 
 
 class StartDisclosureMissingAttributes implements StartDisclosureResult {
-  const StartDisclosureMissingAttributes({required this.relyingParty, required this.sessionType, required final  List<MissingAttribute> missingAttributes}): _missingAttributes = missingAttributes;
+  const StartDisclosureMissingAttributes({required this.relyingParty, required this.sessionType, required  List<MissingAttribute> missingAttributes}): _missingAttributes = missingAttributes;
   
 
 @override final  Organization relyingParty;
@@ -338,16 +346,18 @@ $StartDisclosureMissingAttributesCopyWith<StartDisclosureMissingAttributes> get 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureMissingAttributes&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other._missingAttributes, _missingAttributes));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureMissingAttributes&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.missingAttributes, _missingAttributes));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,relyingParty,sessionType,const DeepCollectionEquality().hash(_missingAttributes));
+int get hashCode {
+    return Object.hash(runtimeType,relyingParty,sessionType,const DeepCollectionEquality().hash(_missingAttributes));
+}
 
 @override
 String toString() {
-  return 'StartDisclosureResult.missingAttributes(relyingParty: $relyingParty, sessionType: $sessionType, missingAttributes: $missingAttributes)';
+    return 'StartDisclosureResult.missingAttributes(relyingParty: $relyingParty, sessionType: $sessionType, missingAttributes: $missingAttributes)';
 }
 
 

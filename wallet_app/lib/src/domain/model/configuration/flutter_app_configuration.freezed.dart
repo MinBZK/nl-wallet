@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'flutter_app_configuration.dart';
@@ -9,6 +9,7 @@ part of 'flutter_app_configuration.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -25,16 +26,21 @@ $FlutterAppConfigurationCopyWith<FlutterAppConfiguration> get copyWith => _$Flut
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterAppConfiguration&&(identical(other.idleLockTimeout, idleLockTimeout) || other.idleLockTimeout == idleLockTimeout)&&(identical(other.idleWarningTimeout, idleWarningTimeout) || other.idleWarningTimeout == idleWarningTimeout)&&(identical(other.backgroundLockTimeout, backgroundLockTimeout) || other.backgroundLockTimeout == backgroundLockTimeout)&&(identical(other.staticAssetsBaseUrl, staticAssetsBaseUrl) || other.staticAssetsBaseUrl == staticAssetsBaseUrl)&&const DeepCollectionEquality().equals(other.pidAttestations, pidAttestations)&&(identical(other.maintenanceWindow, maintenanceWindow) || other.maintenanceWindow == maintenanceWindow)&&(identical(other.version, version) || other.version == version)&&(identical(other.environment, environment) || other.environment == environment));
+  final _this = this as FlutterAppConfiguration;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterAppConfiguration&&(identical(other.idleLockTimeout, _this.idleLockTimeout) || other.idleLockTimeout == _this.idleLockTimeout)&&(identical(other.idleWarningTimeout, _this.idleWarningTimeout) || other.idleWarningTimeout == _this.idleWarningTimeout)&&(identical(other.backgroundLockTimeout, _this.backgroundLockTimeout) || other.backgroundLockTimeout == _this.backgroundLockTimeout)&&(identical(other.staticAssetsBaseUrl, _this.staticAssetsBaseUrl) || other.staticAssetsBaseUrl == _this.staticAssetsBaseUrl)&&const DeepCollectionEquality().equals(other.pidAttestations, _this.pidAttestations)&&(identical(other.maintenanceWindow, _this.maintenanceWindow) || other.maintenanceWindow == _this.maintenanceWindow)&&(identical(other.version, _this.version) || other.version == _this.version)&&(identical(other.environment, _this.environment) || other.environment == _this.environment));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,idleLockTimeout,idleWarningTimeout,backgroundLockTimeout,staticAssetsBaseUrl,const DeepCollectionEquality().hash(pidAttestations),maintenanceWindow,version,environment);
+int get hashCode {
+  final _this = this as FlutterAppConfiguration;
+  return Object.hash(runtimeType,_this.idleLockTimeout,_this.idleWarningTimeout,_this.backgroundLockTimeout,_this.staticAssetsBaseUrl,const DeepCollectionEquality().hash(_this.pidAttestations),_this.maintenanceWindow,_this.version,_this.environment);
+}
 
 @override
 String toString() {
-  return 'FlutterAppConfiguration(idleLockTimeout: $idleLockTimeout, idleWarningTimeout: $idleWarningTimeout, backgroundLockTimeout: $backgroundLockTimeout, staticAssetsBaseUrl: $staticAssetsBaseUrl, pidAttestations: $pidAttestations, maintenanceWindow: $maintenanceWindow, version: $version, environment: $environment)';
+  final _this = this as FlutterAppConfiguration;
+  return 'FlutterAppConfiguration(idleLockTimeout: ${_this.idleLockTimeout}, idleWarningTimeout: ${_this.idleWarningTimeout}, backgroundLockTimeout: ${_this.backgroundLockTimeout}, staticAssetsBaseUrl: ${_this.staticAssetsBaseUrl}, pidAttestations: ${_this.pidAttestations}, maintenanceWindow: ${_this.maintenanceWindow}, version: ${_this.version}, environment: ${_this.environment})';
 }
 
 
@@ -63,7 +69,7 @@ class _$FlutterAppConfigurationCopyWithImpl<$Res>
 /// Create a copy of FlutterAppConfiguration
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? idleLockTimeout = null,Object? idleWarningTimeout = null,Object? backgroundLockTimeout = null,Object? staticAssetsBaseUrl = null,Object? pidAttestations = null,Object? maintenanceWindow = freezed,Object? version = null,Object? environment = null,}) {
-  return _then(_self.copyWith(
+  return _then(FlutterAppConfiguration(
 idleLockTimeout: null == idleLockTimeout ? _self.idleLockTimeout : idleLockTimeout // ignore: cast_nullable_to_non_nullable
 as Duration,idleWarningTimeout: null == idleWarningTimeout ? _self.idleWarningTimeout : idleWarningTimeout // ignore: cast_nullable_to_non_nullable
 as Duration,backgroundLockTimeout: null == backgroundLockTimeout ? _self.backgroundLockTimeout : backgroundLockTimeout // ignore: cast_nullable_to_non_nullable
@@ -225,7 +231,7 @@ return $default(_that.idleLockTimeout,_that.idleWarningTimeout,_that.backgroundL
 
 
 class _FlutterAppConfiguration extends FlutterAppConfiguration {
-  const _FlutterAppConfiguration({required this.idleLockTimeout, required this.idleWarningTimeout, required this.backgroundLockTimeout, required this.staticAssetsBaseUrl, required final  List<PidAttestation> pidAttestations, required this.maintenanceWindow, required this.version, required this.environment}): _pidAttestations = pidAttestations,super._();
+  const _FlutterAppConfiguration({required this.idleLockTimeout, required this.idleWarningTimeout, required this.backgroundLockTimeout, required this.staticAssetsBaseUrl, required  List<PidAttestation> pidAttestations, required this.maintenanceWindow, required this.version, required this.environment}): _pidAttestations = pidAttestations,super._();
   
 
 @override final  Duration idleLockTimeout;
@@ -253,16 +259,18 @@ _$FlutterAppConfigurationCopyWith<_FlutterAppConfiguration> get copyWith => __$F
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FlutterAppConfiguration&&(identical(other.idleLockTimeout, idleLockTimeout) || other.idleLockTimeout == idleLockTimeout)&&(identical(other.idleWarningTimeout, idleWarningTimeout) || other.idleWarningTimeout == idleWarningTimeout)&&(identical(other.backgroundLockTimeout, backgroundLockTimeout) || other.backgroundLockTimeout == backgroundLockTimeout)&&(identical(other.staticAssetsBaseUrl, staticAssetsBaseUrl) || other.staticAssetsBaseUrl == staticAssetsBaseUrl)&&const DeepCollectionEquality().equals(other._pidAttestations, _pidAttestations)&&(identical(other.maintenanceWindow, maintenanceWindow) || other.maintenanceWindow == maintenanceWindow)&&(identical(other.version, version) || other.version == version)&&(identical(other.environment, environment) || other.environment == environment));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FlutterAppConfiguration&&(identical(other.idleLockTimeout, idleLockTimeout) || other.idleLockTimeout == idleLockTimeout)&&(identical(other.idleWarningTimeout, idleWarningTimeout) || other.idleWarningTimeout == idleWarningTimeout)&&(identical(other.backgroundLockTimeout, backgroundLockTimeout) || other.backgroundLockTimeout == backgroundLockTimeout)&&(identical(other.staticAssetsBaseUrl, staticAssetsBaseUrl) || other.staticAssetsBaseUrl == staticAssetsBaseUrl)&&const DeepCollectionEquality().equals(other.pidAttestations, _pidAttestations)&&(identical(other.maintenanceWindow, maintenanceWindow) || other.maintenanceWindow == maintenanceWindow)&&(identical(other.version, version) || other.version == version)&&(identical(other.environment, environment) || other.environment == environment));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,idleLockTimeout,idleWarningTimeout,backgroundLockTimeout,staticAssetsBaseUrl,const DeepCollectionEquality().hash(_pidAttestations),maintenanceWindow,version,environment);
+int get hashCode {
+    return Object.hash(runtimeType,idleLockTimeout,idleWarningTimeout,backgroundLockTimeout,staticAssetsBaseUrl,const DeepCollectionEquality().hash(_pidAttestations),maintenanceWindow,version,environment);
+}
 
 @override
 String toString() {
-  return 'FlutterAppConfiguration(idleLockTimeout: $idleLockTimeout, idleWarningTimeout: $idleWarningTimeout, backgroundLockTimeout: $backgroundLockTimeout, staticAssetsBaseUrl: $staticAssetsBaseUrl, pidAttestations: $pidAttestations, maintenanceWindow: $maintenanceWindow, version: $version, environment: $environment)';
+    return 'FlutterAppConfiguration(idleLockTimeout: $idleLockTimeout, idleWarningTimeout: $idleWarningTimeout, backgroundLockTimeout: $backgroundLockTimeout, staticAssetsBaseUrl: $staticAssetsBaseUrl, pidAttestations: $pidAttestations, maintenanceWindow: $maintenanceWindow, version: $version, environment: $environment)';
 }
 
 

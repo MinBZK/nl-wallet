@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'disclosure.dart';
@@ -9,6 +9,7 @@ part of 'disclosure.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$AcceptDisclosureResult {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AcceptDisclosureResult);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AcceptDisclosureResult);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'AcceptDisclosureResult()';
+    return 'AcceptDisclosureResult()';
 }
 
 
@@ -190,16 +191,18 @@ $AcceptDisclosureResult_OkCopyWith<AcceptDisclosureResult_Ok> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AcceptDisclosureResult_Ok&&(identical(other.returnUrl, returnUrl) || other.returnUrl == returnUrl));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AcceptDisclosureResult_Ok&&(identical(other.returnUrl, returnUrl) || other.returnUrl == returnUrl));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,returnUrl);
+int get hashCode {
+    return Object.hash(runtimeType,returnUrl);
+}
 
 @override
 String toString() {
-  return 'AcceptDisclosureResult.ok(returnUrl: $returnUrl)';
+    return 'AcceptDisclosureResult.ok(returnUrl: $returnUrl)';
 }
 
 
@@ -256,16 +259,18 @@ $AcceptDisclosureResult_InstructionErrorCopyWith<AcceptDisclosureResult_Instruct
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AcceptDisclosureResult_InstructionError&&(identical(other.error, error) || other.error == error));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is AcceptDisclosureResult_InstructionError&&(identical(other.error, error) || other.error == error));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,error);
+int get hashCode {
+    return Object.hash(runtimeType,error);
+}
 
 @override
 String toString() {
-  return 'AcceptDisclosureResult.instructionError(error: $error)';
+    return 'AcceptDisclosureResult.instructionError(error: $error)';
 }
 
 
@@ -321,7 +326,7 @@ mixin _$CloseProximityDisclosureFlutterUpdate {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate);
 }
 
 
@@ -330,7 +335,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'CloseProximityDisclosureFlutterUpdate()';
+    return 'CloseProximityDisclosureFlutterUpdate()';
 }
 
 
@@ -498,7 +503,7 @@ class CloseProximityDisclosureFlutterUpdate_Connected extends CloseProximityDisc
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Connected);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Connected);
 }
 
 
@@ -507,7 +512,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'CloseProximityDisclosureFlutterUpdate.connected()';
+    return 'CloseProximityDisclosureFlutterUpdate.connected()';
 }
 
 
@@ -530,7 +535,7 @@ class CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived extends CloseP
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived);
 }
 
 
@@ -539,7 +544,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'CloseProximityDisclosureFlutterUpdate.deviceRequestReceived()';
+    return 'CloseProximityDisclosureFlutterUpdate.deviceRequestReceived()';
 }
 
 
@@ -562,7 +567,7 @@ class CloseProximityDisclosureFlutterUpdate_Disconnected extends CloseProximityD
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Disconnected);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Disconnected);
 }
 
 
@@ -571,7 +576,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'CloseProximityDisclosureFlutterUpdate.disconnected()';
+    return 'CloseProximityDisclosureFlutterUpdate.disconnected()';
 }
 
 
@@ -599,16 +604,18 @@ $CloseProximityDisclosureFlutterUpdate_ErroredCopyWith<CloseProximityDisclosureF
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Errored&&(identical(other.error, error) || other.error == error));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Errored&&(identical(other.error, error) || other.error == error));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,error);
+int get hashCode {
+    return Object.hash(runtimeType,error);
+}
 
 @override
 String toString() {
-  return 'CloseProximityDisclosureFlutterUpdate.errored(error: $error)';
+    return 'CloseProximityDisclosureFlutterUpdate.errored(error: $error)';
 }
 
 
@@ -660,16 +667,21 @@ $StartDisclosureResultCopyWith<StartDisclosureResult> get copyWith => _$StartDis
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&(identical(other.sharedDataWithRelyingPartyBefore, sharedDataWithRelyingPartyBefore) || other.sharedDataWithRelyingPartyBefore == sharedDataWithRelyingPartyBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.requestPurpose, requestPurpose)&&(identical(other.requestOriginBaseUrl, requestOriginBaseUrl) || other.requestOriginBaseUrl == requestOriginBaseUrl));
+  final _this = this as StartDisclosureResult;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult&&(identical(other.relyingParty, _this.relyingParty) || other.relyingParty == _this.relyingParty)&&(identical(other.sharedDataWithRelyingPartyBefore, _this.sharedDataWithRelyingPartyBefore) || other.sharedDataWithRelyingPartyBefore == _this.sharedDataWithRelyingPartyBefore)&&(identical(other.sessionType, _this.sessionType) || other.sessionType == _this.sessionType)&&const DeepCollectionEquality().equals(other.requestPurpose, _this.requestPurpose)&&(identical(other.requestOriginBaseUrl, _this.requestOriginBaseUrl) || other.requestOriginBaseUrl == _this.requestOriginBaseUrl));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,relyingParty,sharedDataWithRelyingPartyBefore,sessionType,const DeepCollectionEquality().hash(requestPurpose),requestOriginBaseUrl);
+int get hashCode {
+  final _this = this as StartDisclosureResult;
+  return Object.hash(runtimeType,_this.relyingParty,_this.sharedDataWithRelyingPartyBefore,_this.sessionType,const DeepCollectionEquality().hash(_this.requestPurpose),_this.requestOriginBaseUrl);
+}
 
 @override
 String toString() {
-  return 'StartDisclosureResult(relyingParty: $relyingParty, sharedDataWithRelyingPartyBefore: $sharedDataWithRelyingPartyBefore, sessionType: $sessionType, requestPurpose: $requestPurpose, requestOriginBaseUrl: $requestOriginBaseUrl)';
+  final _this = this as StartDisclosureResult;
+  return 'StartDisclosureResult(relyingParty: ${_this.relyingParty}, sharedDataWithRelyingPartyBefore: ${_this.sharedDataWithRelyingPartyBefore}, sessionType: ${_this.sessionType}, requestPurpose: ${_this.requestPurpose}, requestOriginBaseUrl: ${_this.requestOriginBaseUrl})';
 }
 
 
@@ -845,7 +857,7 @@ return requestAttributesMissing(_that.relyingParty,_that.missingAttributes,_that
 
 
 class StartDisclosureResult_Request extends StartDisclosureResult {
-  const StartDisclosureResult_Request({required this.relyingParty, required this.policy, required final  List<DisclosureOptions> disclosureOptions, required this.sharedDataWithRelyingPartyBefore, required this.sessionType, required final  List<LocalizedString> requestPurpose, required this.requestOriginBaseUrl, required this.requestType}): _disclosureOptions = disclosureOptions,_requestPurpose = requestPurpose,super._();
+  const StartDisclosureResult_Request({required this.relyingParty, required this.policy, required  List<DisclosureOptions> disclosureOptions, required this.sharedDataWithRelyingPartyBefore, required this.sessionType, required  List<LocalizedString> requestPurpose, required this.requestOriginBaseUrl, required this.requestType}): _disclosureOptions = disclosureOptions,_requestPurpose = requestPurpose,super._();
   
 
 @override final  Organization relyingParty;
@@ -879,16 +891,18 @@ $StartDisclosureResult_RequestCopyWith<StartDisclosureResult_Request> get copyWi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult_Request&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&(identical(other.policy, policy) || other.policy == policy)&&const DeepCollectionEquality().equals(other._disclosureOptions, _disclosureOptions)&&(identical(other.sharedDataWithRelyingPartyBefore, sharedDataWithRelyingPartyBefore) || other.sharedDataWithRelyingPartyBefore == sharedDataWithRelyingPartyBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other._requestPurpose, _requestPurpose)&&(identical(other.requestOriginBaseUrl, requestOriginBaseUrl) || other.requestOriginBaseUrl == requestOriginBaseUrl)&&(identical(other.requestType, requestType) || other.requestType == requestType));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult_Request&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&(identical(other.policy, policy) || other.policy == policy)&&const DeepCollectionEquality().equals(other.disclosureOptions, _disclosureOptions)&&(identical(other.sharedDataWithRelyingPartyBefore, sharedDataWithRelyingPartyBefore) || other.sharedDataWithRelyingPartyBefore == sharedDataWithRelyingPartyBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.requestPurpose, _requestPurpose)&&(identical(other.requestOriginBaseUrl, requestOriginBaseUrl) || other.requestOriginBaseUrl == requestOriginBaseUrl)&&(identical(other.requestType, requestType) || other.requestType == requestType));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,relyingParty,policy,const DeepCollectionEquality().hash(_disclosureOptions),sharedDataWithRelyingPartyBefore,sessionType,const DeepCollectionEquality().hash(_requestPurpose),requestOriginBaseUrl,requestType);
+int get hashCode {
+    return Object.hash(runtimeType,relyingParty,policy,const DeepCollectionEquality().hash(_disclosureOptions),sharedDataWithRelyingPartyBefore,sessionType,const DeepCollectionEquality().hash(_requestPurpose),requestOriginBaseUrl,requestType);
+}
 
 @override
 String toString() {
-  return 'StartDisclosureResult.request(relyingParty: $relyingParty, policy: $policy, disclosureOptions: $disclosureOptions, sharedDataWithRelyingPartyBefore: $sharedDataWithRelyingPartyBefore, sessionType: $sessionType, requestPurpose: $requestPurpose, requestOriginBaseUrl: $requestOriginBaseUrl, requestType: $requestType)';
+    return 'StartDisclosureResult.request(relyingParty: $relyingParty, policy: $policy, disclosureOptions: $disclosureOptions, sharedDataWithRelyingPartyBefore: $sharedDataWithRelyingPartyBefore, sessionType: $sessionType, requestPurpose: $requestPurpose, requestOriginBaseUrl: $requestOriginBaseUrl, requestType: $requestType)';
 }
 
 
@@ -937,7 +951,7 @@ as DisclosureType,
 
 
 class StartDisclosureResult_RequestAttributesMissing extends StartDisclosureResult {
-  const StartDisclosureResult_RequestAttributesMissing({required this.relyingParty, required final  List<MissingAttribute> missingAttributes, required this.sharedDataWithRelyingPartyBefore, required this.sessionType, required final  List<LocalizedString> requestPurpose, required this.requestOriginBaseUrl}): _missingAttributes = missingAttributes,_requestPurpose = requestPurpose,super._();
+  const StartDisclosureResult_RequestAttributesMissing({required this.relyingParty, required  List<MissingAttribute> missingAttributes, required this.sharedDataWithRelyingPartyBefore, required this.sessionType, required  List<LocalizedString> requestPurpose, required this.requestOriginBaseUrl}): _missingAttributes = missingAttributes,_requestPurpose = requestPurpose,super._();
   
 
 @override final  Organization relyingParty;
@@ -969,16 +983,18 @@ $StartDisclosureResult_RequestAttributesMissingCopyWith<StartDisclosureResult_Re
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult_RequestAttributesMissing&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other._missingAttributes, _missingAttributes)&&(identical(other.sharedDataWithRelyingPartyBefore, sharedDataWithRelyingPartyBefore) || other.sharedDataWithRelyingPartyBefore == sharedDataWithRelyingPartyBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other._requestPurpose, _requestPurpose)&&(identical(other.requestOriginBaseUrl, requestOriginBaseUrl) || other.requestOriginBaseUrl == requestOriginBaseUrl));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult_RequestAttributesMissing&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other.missingAttributes, _missingAttributes)&&(identical(other.sharedDataWithRelyingPartyBefore, sharedDataWithRelyingPartyBefore) || other.sharedDataWithRelyingPartyBefore == sharedDataWithRelyingPartyBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.requestPurpose, _requestPurpose)&&(identical(other.requestOriginBaseUrl, requestOriginBaseUrl) || other.requestOriginBaseUrl == requestOriginBaseUrl));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,relyingParty,const DeepCollectionEquality().hash(_missingAttributes),sharedDataWithRelyingPartyBefore,sessionType,const DeepCollectionEquality().hash(_requestPurpose),requestOriginBaseUrl);
+int get hashCode {
+    return Object.hash(runtimeType,relyingParty,const DeepCollectionEquality().hash(_missingAttributes),sharedDataWithRelyingPartyBefore,sessionType,const DeepCollectionEquality().hash(_requestPurpose),requestOriginBaseUrl);
+}
 
 @override
 String toString() {
-  return 'StartDisclosureResult.requestAttributesMissing(relyingParty: $relyingParty, missingAttributes: $missingAttributes, sharedDataWithRelyingPartyBefore: $sharedDataWithRelyingPartyBefore, sessionType: $sessionType, requestPurpose: $requestPurpose, requestOriginBaseUrl: $requestOriginBaseUrl)';
+    return 'StartDisclosureResult.requestAttributesMissing(relyingParty: $relyingParty, missingAttributes: $missingAttributes, sharedDataWithRelyingPartyBefore: $sharedDataWithRelyingPartyBefore, sessionType: $sessionType, requestPurpose: $requestPurpose, requestOriginBaseUrl: $requestOriginBaseUrl)';
 }
 
 

@@ -211,14 +211,13 @@ class CardDetailScreen extends StatelessWidget {
               widthFactor: 0.6,
               child: Hero(
                 tag: card.hashCode,
-                flightShuttleBuilder:
-                    (
-                      BuildContext flightContext,
-                      Animation<double> animation,
-                      HeroFlightDirection flightDirection,
-                      BuildContext fromHeroContext,
-                      BuildContext toHeroContext,
-                    ) => WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeIn),
+                flightShuttleBuilder: (
+                  BuildContext flightContext,
+                  Animation<double> animation,
+                  HeroFlightDirection flightDirection,
+                  BuildContext fromHeroContext,
+                  BuildContext toHeroContext,
+                ) => WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeIn),
                 child: WalletCardItem.fromWalletCard(context, card),
               ),
             ),

@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'organization.dart';
@@ -9,6 +9,7 @@ part of 'organization.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -28,16 +29,21 @@ $OrganizationCopyWith<Organization> get copyWith => _$OrganizationCopyWithImpl<O
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Organization&&(identical(other.id, id) || other.id == id)&&(identical(other.legalName, legalName) || other.legalName == legalName)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&const DeepCollectionEquality().equals(other.type, type)&&const DeepCollectionEquality().equals(other.description, description)&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.webUri, webUri) || other.webUri == webUri)&&(identical(other.supportUri, supportUri) || other.supportUri == supportUri)&&(identical(other.privacyPolicyUri, privacyPolicyUri) || other.privacyPolicyUri == privacyPolicyUri)&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
+  final _this = this as Organization;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Organization&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.legalName, _this.legalName) || other.legalName == _this.legalName)&&(identical(other.displayName, _this.displayName) || other.displayName == _this.displayName)&&const DeepCollectionEquality().equals(other.type, _this.type)&&const DeepCollectionEquality().equals(other.description, _this.description)&&(identical(other.logo, _this.logo) || other.logo == _this.logo)&&(identical(other.webUri, _this.webUri) || other.webUri == _this.webUri)&&(identical(other.supportUri, _this.supportUri) || other.supportUri == _this.supportUri)&&(identical(other.privacyPolicyUri, _this.privacyPolicyUri) || other.privacyPolicyUri == _this.privacyPolicyUri)&&(identical(other.countryCode, _this.countryCode) || other.countryCode == _this.countryCode)&&(identical(other.organizationId, _this.organizationId) || other.organizationId == _this.organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,legalName,displayName,const DeepCollectionEquality().hash(type),const DeepCollectionEquality().hash(description),logo,webUri,supportUri,privacyPolicyUri,countryCode,organizationId);
+int get hashCode {
+  final _this = this as Organization;
+  return Object.hash(runtimeType,_this.id,_this.legalName,_this.displayName,const DeepCollectionEquality().hash(_this.type),const DeepCollectionEquality().hash(_this.description),_this.logo,_this.webUri,_this.supportUri,_this.privacyPolicyUri,_this.countryCode,_this.organizationId);
+}
 
 @override
 String toString() {
-  return 'Organization(id: $id, legalName: $legalName, displayName: $displayName, type: $type, description: $description, logo: $logo, webUri: $webUri, supportUri: $supportUri, privacyPolicyUri: $privacyPolicyUri, countryCode: $countryCode, organizationId: $organizationId)';
+  final _this = this as Organization;
+  return 'Organization(id: ${_this.id}, legalName: ${_this.legalName}, displayName: ${_this.displayName}, type: ${_this.type}, description: ${_this.description}, logo: ${_this.logo}, webUri: ${_this.webUri}, supportUri: ${_this.supportUri}, privacyPolicyUri: ${_this.privacyPolicyUri}, countryCode: ${_this.countryCode}, organizationId: ${_this.organizationId})';
 }
 
 
@@ -66,7 +72,7 @@ class _$OrganizationCopyWithImpl<$Res>
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? legalName = null,Object? displayName = null,Object? type = freezed,Object? description = freezed,Object? logo = freezed,Object? webUri = freezed,Object? supportUri = freezed,Object? privacyPolicyUri = freezed,Object? countryCode = null,Object? organizationId = null,}) {
-  return _then(_self.copyWith(
+  return _then(Organization(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,legalName: null == legalName ? _self.legalName : legalName // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -219,7 +225,7 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.type,_that.desc
 @JsonSerializable()
 
 class _Organization implements Organization {
-  const _Organization({required this.id, required this.legalName, required this.displayName, @LocalizedTextConverter() final  LocalizedText? type, @LocalizedTextConverter() final  LocalizedText? description, @AppImageDataConverter() this.logo, this.webUri, this.supportUri, this.privacyPolicyUri, required this.countryCode, required this.organizationId}): _type = type,_description = description;
+  const _Organization({required this.id, required this.legalName, required this.displayName, @LocalizedTextConverter()  LocalizedText? type, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter() this.logo, this.webUri, this.supportUri, this.privacyPolicyUri, required this.countryCode, required this.organizationId}): _type = type,_description = description;
   factory _Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);
 
 @override final  String id;
@@ -263,16 +269,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Organization&&(identical(other.id, id) || other.id == id)&&(identical(other.legalName, legalName) || other.legalName == legalName)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&const DeepCollectionEquality().equals(other._type, _type)&&const DeepCollectionEquality().equals(other._description, _description)&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.webUri, webUri) || other.webUri == webUri)&&(identical(other.supportUri, supportUri) || other.supportUri == supportUri)&&(identical(other.privacyPolicyUri, privacyPolicyUri) || other.privacyPolicyUri == privacyPolicyUri)&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Organization&&(identical(other.id, id) || other.id == id)&&(identical(other.legalName, legalName) || other.legalName == legalName)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&const DeepCollectionEquality().equals(other.type, _type)&&const DeepCollectionEquality().equals(other.description, _description)&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.webUri, webUri) || other.webUri == webUri)&&(identical(other.supportUri, supportUri) || other.supportUri == supportUri)&&(identical(other.privacyPolicyUri, privacyPolicyUri) || other.privacyPolicyUri == privacyPolicyUri)&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,legalName,displayName,const DeepCollectionEquality().hash(_type),const DeepCollectionEquality().hash(_description),logo,webUri,supportUri,privacyPolicyUri,countryCode,organizationId);
+int get hashCode {
+    return Object.hash(runtimeType,id,legalName,displayName,const DeepCollectionEquality().hash(_type),const DeepCollectionEquality().hash(_description),logo,webUri,supportUri,privacyPolicyUri,countryCode,organizationId);
+}
 
 @override
 String toString() {
-  return 'Organization(id: $id, legalName: $legalName, displayName: $displayName, type: $type, description: $description, logo: $logo, webUri: $webUri, supportUri: $supportUri, privacyPolicyUri: $privacyPolicyUri, countryCode: $countryCode, organizationId: $organizationId)';
+    return 'Organization(id: $id, legalName: $legalName, displayName: $displayName, type: $type, description: $description, logo: $logo, webUri: $webUri, supportUri: $supportUri, privacyPolicyUri: $privacyPolicyUri, countryCode: $countryCode, organizationId: $organizationId)';
 }
 
 
