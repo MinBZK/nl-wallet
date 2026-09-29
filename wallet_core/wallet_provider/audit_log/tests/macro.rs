@@ -69,6 +69,16 @@ async fn test_operation_invalid_json(#[audit] param: MyMap, #[auditor] auditor: 
     Ok(())
 }
 
+#[audited]
+async fn test_operation_with_user(
+    #[audit] name: &str,
+    #[audit_user] user_id: &str,
+    #[auditor] auditor: &MockAuditLog,
+) -> Result<(), MyError> {
+    tracing::debug!("performed test operation for user {user_id} with input: {name}");
+    Ok(())
+}
+
 #[tokio::test]
 #[tracing_test::traced_test]
 async fn test_macro_no_audit_params() {
@@ -138,4 +148,18 @@ async fn test_macro_operation_invalid_json() {
     });
 
     assert_matches!(error, MyError::Audit(error) if error == "key must be a string");
+}
+
+#[tokio::test]
+#[tracing_test::traced_test]
+async fn test_macro_with_audit_user() {
+    let audit_log = MockAuditLog;
+
+    test_operation_with_user("input", "user-1", &audit_log)
+        .await
+        .expect("success");
+
+    assert!(logs_contain(
+        "performed test operation for user user-1 with input: input"
+    ));
 }
