@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::hash_map::Entry;
 use std::convert::identity;
 use std::num::NonZeroU8;
 
@@ -698,22 +699,22 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 config.type_metadata_uri.as_ref(),
                 config.credential_metadata.as_ref(),
             ) {
-                (CredentialFormat::SdJwt { .. } | CredentialFormat::Other { .. }, Some(uri), _) => {
-                    let vct = config
-                        .format
-                        .attestation_type()
-                        // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
-                        .expect("unsupported format");
-
-                    type_metadata_configs.push((uri, (vct, config_id)));
+                (CredentialFormat::SdJwt { vct, .. }, Some(uri), _) => {
+                    type_metadata_configs.push((uri, (vct.as_str(), config_id)));
                 }
-                (_, _, Some(metadata)) => {
+                (CredentialFormat::SdJwt { .. } | CredentialFormat::MsoMdoc { .. }, _, Some(metadata)) => {
                     credential_metadata.insert(
                         config_id.clone(),
                         OfferedCredentialMetadata::CredentialMetadata(metadata.clone()),
                     );
                 }
-                (_, _, None) => missing_metadata_config_ids.push(config_id.clone()),
+                (CredentialFormat::SdJwt { .. } | CredentialFormat::MsoMdoc { .. }, _, None) => {
+                    missing_metadata_config_ids.push(config_id.clone())
+                }
+                (CredentialFormat::Other { .. }, _, _) => {
+                    // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
+                    panic!("unsupported format");
+                }
             }
         }
 
@@ -803,16 +804,31 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             OfferedCredentials::WithoutIdentifiers(mut configs) => {
                 let (previews_by_config_id, excess_identifiers) =
                     credential_previews.into_iter().partition_map(|preview| {
-                        match configs.remove_entry(&preview.config_id) {
-                            Some((config_id, _)) => Either::Left((config_id, preview)),
-                            None => Either::Right((preview.config_id, preview.credential_id)),
+                        // If both the config_id and format match, remove the Credential Configuration. Otherwise,
+                        // consider this Credential Preview an excess preview.
+                        match configs.entry(preview.config_id.clone()) {
+                            Entry::Occupied(occupied_entry)
+                                if occupied_entry
+                                    .get()
+                                    .format
+                                    .format()
+                                    .is_some_and(|format| format == preview.format) =>
+                            {
+                                let (config_id, _config) = occupied_entry.remove_entry();
+
+                                Either::Left((config_id, preview))
+                            }
+                            _ => Either::Right((preview.config_id, preview.credential_id, preview.format)),
                         }
                     });
 
                 // If there are any offered credential configurations remaining, the preview did not contain everything
                 // that was offered.
                 if !configs.is_empty() {
-                    let missing = configs.into_keys().map(|config_id| (config_id, None)).collect();
+                    let missing = configs
+                        .into_iter()
+                        .map(|(config_id, config)| (config_id, None, config.format.format()))
+                        .collect();
 
                     return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
                 }
@@ -827,12 +843,19 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             OfferedCredentials::WithIdentifiers(mut configs) => {
                 let (previews_by_credential_id, excess_identifiers) =
                     credential_previews.into_iter().partition_map(|preview| {
+                        // If the config_id, credential_id and format all match, remove the credential_id. Otherwise,
+                        // consider this Credential Preview an excess preview.
                         match configs
                             .get_mut(&preview.config_id)
-                            .and_then(|(_config, credential_ids)| credential_ids.take(&preview.credential_id))
-                        {
+                            .and_then(|(config, credential_ids)| {
+                                if config.format.format().is_some_and(|format| format == preview.format) {
+                                    credential_ids.take(&preview.credential_id)
+                                } else {
+                                    None
+                                }
+                            }) {
                             Some(credential_id) => Either::Left((credential_id, preview)),
-                            None => Either::Right((preview.config_id, preview.credential_id)),
+                            None => Either::Right((preview.config_id, preview.credential_id, preview.format)),
                         }
                     });
 
@@ -844,11 +867,12 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 {
                     let missing = configs
                         .into_iter()
-                        .flat_map(|(config_id, (_config, credential_ids))| {
+                        .flat_map(|(config_id, (config, credential_ids))| {
                             let credential_id_count = credential_ids.len();
+                            let format = config.format.format();
                             std::iter::repeat_n(config_id, credential_id_count)
                                 .zip(credential_ids)
-                                .map(|(config_id, credential_id)| (config_id, Some(credential_id)))
+                                .map(move |(config_id, credential_id)| (config_id, Some(credential_id), format))
                         })
                         .collect();
 
@@ -978,10 +1002,19 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     )
                 }
                 (Format::MsoMdoc, OfferedCredentialMetadata::TypeMetadata { .. }) => {
-                    // TODO (PVW-6320): use "impossible" error category
-                    Err(WalletIssuanceError::MetadataMissing(vec![
-                        credential_preview.config_id.clone(),
-                    ]))?
+                    // The combination of an mdoc credential preview and SD-JWT VC Type Metadata being present in
+                    // `IssuanceState` should never occur for the following reasons:
+                    //
+                    // 1. SD-JWT VC Type Metadata is only fetched for Credential Configurations with the SD-JWT format.
+                    // 2. For each credential preview, the format is matched against the Credential Configuration with
+                    //    the same Credential Configuration Identifier. On a mismatch an error is returned.
+                    //
+                    // This means that the metadata stored for a particular preview's Credential Configuration
+                    // Identifier should always be appropriate for its format.
+                    //
+                    // The error variant returned is categorized as `impossible`. Note that this does not include any
+                    // details, as these could reveal personal data.
+                    return Err(WalletIssuanceError::MdocPreviewWithSdJwtVcTypeMetadata);
                 }
             };
 
@@ -2198,10 +2231,11 @@ mod tests {
     #[case::authorization_details(
         TokenResponseFields::AuthorizationDetails(vec![
             ("config_id_1", vec!["credential_id_1"]),
-            ("config_id_2", vec!["credential_id_2"])
+            ("config_id_2", vec!["credential_id_2"]),
+            ("config_id_3", vec!["credential_id_3"])
         ])
     )]
-    #[case::scope(TokenResponseFields::Scope(vec!["config_id_1_scope", "config_id_2_scope"]))]
+    #[case::scope(TokenResponseFields::Scope(vec!["config_id_1_scope", "config_id_2_scope", "config_id_3_scope"]))]
     #[case::no_authorization_details_or_scope(TokenResponseFields::Neither)]
     fn test_start_issuance_error_preview_missing_credential(#[case] token_response_fields: TokenResponseFields) {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -2220,26 +2254,50 @@ mod tests {
                         CredentialConfigurationId::from("config_id_2".to_string()),
                         CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
                     ),
+                    (
+                        CredentialConfigurationId::from("config_id_3".to_string()),
+                        CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
+                    ),
                 ],
             ),
-            vec![(
-                "credential_id_1".to_string().into(),
-                CredentialConfigurationId::from("config_id_1".to_string()),
-                Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
-            )],
+            vec![
+                (
+                    "credential_id_1".to_string().into(),
+                    CredentialConfigurationId::from("config_id_1".to_string()),
+                    Format::SdJwt,
+                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                ),
+                (
+                    "credential_id_3".to_string().into(),
+                    CredentialConfigurationId::from("config_id_3".to_string()),
+                    Format::SdJwt,
+                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                ),
+            ],
             TypeMetadata::pid_example(),
             &token_response_fields,
         )
         .expect_err("starting issuance session should fail");
 
-        let expected_credential_id = match token_response_fields {
-            TokenResponseFields::AuthorizationDetails(_) | TokenResponseFields::Both(_, _) => {
-                Some("credential_id_2".to_string().into())
-            }
-            TokenResponseFields::Scope(_) | TokenResponseFields::Neither => None,
+        let (expected_credential_id_2, expected_credential_id_3) = match token_response_fields {
+            TokenResponseFields::AuthorizationDetails(_) | TokenResponseFields::Both(_, _) => (
+                Some("credential_id_2".to_string().into()),
+                Some("credential_id_3".to_string().into()),
+            ),
+            TokenResponseFields::Scope(_) | TokenResponseFields::Neither => (None, None),
         };
-        let expected_missing = HashSet::from([("config_id_2".to_string().into(), expected_credential_id)]);
+        let expected_missing = HashSet::from([
+            (
+                "config_id_2".to_string().into(),
+                expected_credential_id_2,
+                Some(Format::SdJwt),
+            ),
+            (
+                "config_id_3".to_string().into(),
+                expected_credential_id_3,
+                Some(Format::MsoMdoc),
+            ),
+        ]);
         assert_matches!(
             error,
             WalletIssuanceError::PreviewMissingCredentials(missing) if missing == expected_missing
@@ -2269,6 +2327,12 @@ mod tests {
                 (
                     "credential_id_1_1".to_string().into(),
                     CredentialConfigurationId::from("config_id_1".to_string()),
+                    Format::MsoMdoc,
+                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                ),
+                (
+                    "credential_id_1_1".to_string().into(),
+                    CredentialConfigurationId::from("config_id_1".to_string()),
                     Format::SdJwt,
                     PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
                 ),
@@ -2291,8 +2355,21 @@ mod tests {
         .expect_err("starting issuance session should fail");
 
         let expected_excess = vec![
-            ("config_id_2".to_string().into(), "credential_id_2_1".to_string().into()),
-            ("config_id_1".to_string().into(), "credential_id_1_2".to_string().into()),
+            (
+                "config_id_1".to_string().into(),
+                "credential_id_1_1".to_string().into(),
+                Format::MsoMdoc,
+            ),
+            (
+                "config_id_2".to_string().into(),
+                "credential_id_2_1".to_string().into(),
+                Format::SdJwt,
+            ),
+            (
+                "config_id_1".to_string().into(),
+                "credential_id_1_2".to_string().into(),
+                Format::SdJwt,
+            ),
         ];
         assert_matches!(error, WalletIssuanceError::PreviewExcessCredentials(excess) if excess == expected_excess);
     }
@@ -2872,10 +2949,7 @@ mod tests {
             TypeMetadata::example_with_claim_name(PID_ATTESTATION_TYPE, "family_name"),
         );
         let (normalized, raw) = metadata_documents.into_normalized(PID_ATTESTATION_TYPE).unwrap();
-        metadata.insert(
-            config_id.clone(),
-            OfferedCredentialMetadata::TypeMetadata { normalized, raw },
-        );
+        metadata.insert(config_id, OfferedCredentialMetadata::TypeMetadata { normalized, raw });
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
@@ -2895,10 +2969,7 @@ mod tests {
         .unwrap()
         .expect_err("accepting issuance should not succeed");
 
-        assert_matches!(
-            error,
-            WalletIssuanceError::MetadataMissing(missing_config_ids) if missing_config_ids == vec![config_id]
-        );
+        assert_matches!(error, WalletIssuanceError::MdocPreviewWithSdJwtVcTypeMetadata);
     }
 
     #[test]

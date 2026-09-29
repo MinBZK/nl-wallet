@@ -160,6 +160,10 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     DeferredIssuanceUnsupported,
 
+    #[error("credential preview with mdoc format has credential configuration with SD-JWT VC Type Metadata")]
+    #[category(impossible)]
+    MdocPreviewWithSdJwtVcTypeMetadata,
+
     #[error("received credential response: {actual}, expected type {expected}")]
     #[category(pd)]
     UnexpectedCredentialResponseType { expected: Format, actual: Format },
@@ -323,26 +327,29 @@ pub enum WalletIssuanceError {
     #[error(
         "the received credential preview is missing credentials the issuer offered: {}",
         .0.iter()
-            .map(|(config_id, credential_id)| {
+            .map(|(config_id, credential_id, format)| {
                 format!(
-                    "config id: \"{}\"{}",
+                    "config id: \"{}\"{} format: {}",
                     config_id,
-                    credential_id.as_ref().map(|id| format!(" credential_id: \"{id}\"")).unwrap_or_default()
+                    credential_id.as_ref().map(|id| format!(" credential_id: \"{id}\"")).unwrap_or_default(),
+                    format.as_ref().map(ToString::to_string).unwrap_or("<UNKNOWN>".to_string())
                 )
             })
             .join(", ")
     )]
     #[category(pd)]
-    PreviewMissingCredentials(HashSet<(CredentialConfigurationId, Option<CredentialId>)>),
+    PreviewMissingCredentials(HashSet<(CredentialConfigurationId, Option<CredentialId>, Option<Format>)>),
 
     #[error(
         "the received credential preview contains more credentials than the issuer offered: {}",
         .0.iter()
-            .map(|(config_id, credential_id)| format!("config id: \"{config_id}\" credential id: \"{credential_id}\""))
+            .map(|(config_id, credential_id, format)| {
+                format!("config id: \"{config_id}\" credential id: \"{credential_id}\" format: {format}")
+            })
             .join(", ")
     )]
     #[category(pd)]
-    PreviewExcessCredentials(Vec<(CredentialConfigurationId, CredentialId)>),
+    PreviewExcessCredentials(Vec<(CredentialConfigurationId, CredentialId, Format)>),
 
     #[error("missing query in credential offer URI")]
     #[category(critical)]
