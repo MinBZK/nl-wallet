@@ -73,6 +73,19 @@ verify-help-content:
     - flutter pub get --enforce-lockfile
     - dart run tool/validate_help_content.dart
 
+# FRB output is verified by test-flutter-rust-bridge-codegen; this job covers build_runner output
+# (freezed, json_serializable, mockito) for all workspace packages.
+verify-flutter-codegen:
+  extends: .flutter
+  rules: !reference [.default-or-merge-request, rules]
+  script:
+    - flutter --version
+    - flutter pub get --enforce-lockfile
+    - dart run build_runner build --workspace --delete-conflicting-outputs
+    - dart format . --line-length 120
+    - git diff
+    - if [[ -n $(git status --porcelain) ]]; then echo "Dart code generation results in different files!"; exit 1; fi
+
 test-flutter-rust-bridge-codegen:
   extends: [.rust, .flutter]
   rules: !reference [.default-or-merge-request, rules]
