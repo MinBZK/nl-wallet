@@ -46,14 +46,10 @@ impl RegistrationCertificateStatus {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(untagged)]
 enum RegistrationCertificateStatusWireFormat {
-    StatusList(StatusListClaim),
-    #[serde(untagged)]
-    Direct {
-        idx: StatusListIndex,
-        uri: Url,
-    },
+    NestedStatusList(StatusClaim),
+    Direct { idx: StatusListIndex, uri: Url },
 }
 
 #[derive(Deserialize)]
@@ -87,10 +83,13 @@ impl<'de> Deserialize<'de> for RegistrationCertificateStatus {
     {
         let status = RegistrationCertificateStatusWireFormat::deserialize(deserializer)?;
         let (status_list_claim, input_format) = match status {
-            RegistrationCertificateStatusWireFormat::StatusList(status_list_claim) => (
-                status_list_claim,
-                RegistrationCertificateStatusInputFormat::NestedStatusList,
-            ),
+            RegistrationCertificateStatusWireFormat::NestedStatusList(status_claim) => {
+                let StatusClaim::StatusList(status_list_claim) = status_claim;
+                (
+                    status_list_claim,
+                    RegistrationCertificateStatusInputFormat::NestedStatusList,
+                )
+            }
             RegistrationCertificateStatusWireFormat::Direct { idx, uri } => {
                 let (idx, input_format) = match idx {
                     StatusListIndex::String(value) => (
