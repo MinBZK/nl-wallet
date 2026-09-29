@@ -8,11 +8,13 @@ use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::Wallet;
+use super::lock::RefreshCertificateError;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::ChangePinError;
 use crate::instruction::HwSignedInstructionClient;
 use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
+use crate::instruction::InstructionError;
 use crate::instruction::RemoteWiaClient;
 use crate::pin::change::ChangePinStorage;
 use crate::pin::key::Pin;
@@ -32,7 +34,8 @@ where
 {
     /// Construct an [`InstructionClient`] for this [`Wallet`].
     /// This is the recommended way to obtain an [`InstructionClient`], because this function
-    /// will try to finalize any unfinished PIN change process.
+    /// will try to finalize any unfinished PIN change process and, if needed, refresh the wallet
+    /// certificate before the caller sends its own instruction.
     pub(super) async fn new_instruction_client(
         &mut self,
         pin: Pin,
@@ -52,6 +55,25 @@ where
             Arc::clone(&self.account_provider_client),
             Arc::new(parameters),
         );
+
+        let current_certificate = self
+            .registration
+            .as_key_and_registration_data()
+            .map(|(_, registration_data)| registration_data.wallet_certificate.clone());
+
+        if let Some(current_certificate) = current_certificate {
+            let config = self.config_repository.get();
+
+            // A refresh failure does not stop the caller from obtaining its instruction client, unless it reveals
+            // that the account has been revoked, since that represents a real state change the caller needs to
+            // react to.
+            if let Err(RefreshCertificateError::Instruction(error @ InstructionError::AccountRevoked(_))) = self
+                .refresh_wallet_certificate_if_needed(&client, &current_certificate, &config)
+                .await
+            {
+                return Err(ChangePinError::Instruction(error));
+            }
+        }
 
         Ok(client)
     }

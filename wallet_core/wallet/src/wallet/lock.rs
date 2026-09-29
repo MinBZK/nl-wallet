@@ -69,13 +69,15 @@ pub enum WalletUnlockError {
     ChangePin(#[from] ChangePinError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
-    #[error("error refreshing wallet certificate: {0}")]
-    RefreshCertificate(#[from] RefreshCertificateError),
 }
 
+/// Errors that can occur while refreshing the wallet certificate
+///
+/// Only an `AccountRevoked` error is ever returned, any other error is logged and swallowed, to not fail the action
+/// triggering the refresh.
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
-pub enum RefreshCertificateError {
+pub(super) enum RefreshCertificateError {
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -224,23 +226,42 @@ where
         self.check_result_for_wallet_revocation(remote_instruction.send(CheckPin).await)
             .await?;
 
+        Ok(())
+    }
+
+    /// Refresh the wallet certificate if needed. A failure to refresh is swallowed, unless it reveals that the account
+    /// has been revoked.
+    pub(super) async fn refresh_wallet_certificate_if_needed(
+        &mut self,
+        remote_instruction: &InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>,
+        current_certificate: &WalletCertificate,
+        config: &WalletConfiguration,
+    ) -> Result<(), RefreshCertificateError>
+    where
+        UR: Repository<VersionState>,
+        S: Storage,
+        APC: AccountProviderClient,
+    {
         if certificate_needs_refresh(
-            &current_certificate,
+            current_certificate,
             &config.account_server.certificate_public_keys,
             config.account_server.certificate_refresh_threshold,
             &TimeGenerator,
         ) {
-            // A failure here should not prevent the user from unlocking with a correct PIN, unless it indicates that
-            // the account has been revoked.
             match self
-                .refresh_wallet_certificate(&remote_instruction, &config.account_server.certificate_public_keys)
+                .refresh_wallet_certificate(remote_instruction, &config.account_server.certificate_public_keys)
                 .await
             {
-                Ok(()) => {}
                 Err(error @ RefreshCertificateError::Instruction(InstructionError::AccountRevoked(_))) => {
-                    return Err(error.into());
+                    return Err(error);
                 }
-                Err(error) => warn!("Failed to refresh wallet certificate, will retry on next unlock: {error}"),
+                Err(error) => {
+                    warn!(
+                        "Failed to refresh wallet certificate, will retry after the next PIN-signed instruction: \
+                         {error}"
+                    );
+                }
+                Ok(()) => {}
             }
         }
 
