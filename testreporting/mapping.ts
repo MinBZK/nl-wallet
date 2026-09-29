@@ -13,6 +13,8 @@ const filenameToGroupMapping: Record<string, string> = {
   ios: "Platform Support iOS",
   android: "Platform Support Android",
   rust: "Wallet Core",
+  "revocation-portal": "Revocation Portal",
+  "admin-portal": "Admin Portal",
 }
 
 export function fileNameToGroup(fileName: string) {
