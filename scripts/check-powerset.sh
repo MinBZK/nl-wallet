@@ -24,4 +24,4 @@ fi
 cd "$TARGET_DIR"
 
 echo -e "${INFO}Running cargo hack check --feature-powerset in ${TARGET_DIR}...${NC}"
-cargo hack check --feature-powerset --no-dev-deps
+cargo hack check --feature-powerset --no-dev-deps --keep-going
