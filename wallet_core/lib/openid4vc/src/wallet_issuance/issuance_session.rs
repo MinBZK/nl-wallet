@@ -699,22 +699,22 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 config.type_metadata_uri.as_ref(),
                 config.credential_metadata.as_ref(),
             ) {
-                (CredentialFormat::SdJwt { .. } | CredentialFormat::Other { .. }, Some(uri), _) => {
-                    let vct = config
-                        .format
-                        .attestation_type()
-                        // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
-                        .expect("unsupported format");
-
-                    type_metadata_configs.push((uri, (vct, config_id)));
+                (CredentialFormat::SdJwt { vct, .. }, Some(uri), _) => {
+                    type_metadata_configs.push((uri, (vct.as_str(), config_id)));
                 }
-                (_, _, Some(metadata)) => {
+                (CredentialFormat::SdJwt { .. } | CredentialFormat::MsoMdoc { .. }, _, Some(metadata)) => {
                     credential_metadata.insert(
                         config_id.clone(),
                         OfferedCredentialMetadata::CredentialMetadata(metadata.clone()),
                     );
                 }
-                (_, _, None) => missing_metadata_config_ids.push(config_id.clone()),
+                (CredentialFormat::SdJwt { .. } | CredentialFormat::MsoMdoc { .. }, _, None) => {
+                    missing_metadata_config_ids.push(config_id.clone())
+                }
+                (CredentialFormat::Other { .. }, _, _) => {
+                    // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
+                    panic!("unsupported format");
+                }
             }
         }
 
