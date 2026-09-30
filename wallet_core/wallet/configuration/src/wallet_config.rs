@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ops::Range;
+use std::time::Duration;
 
 use attestation_data::disclosure_type::DisclosureTypeConfig;
 use attestation_types::claim_path::ClaimPath;
@@ -109,6 +110,8 @@ pub struct AccountServerConfiguration {
     pub instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
     #[debug(skip)]
     pub wia_trust_anchors: TrustAnchors,
+    #[serde(rename = "certificate_refresh_threshold_in_days", with = "utils::duration_days")]
+    pub certificate_refresh_threshold: Duration,
 }
 
 #[serde_as]
@@ -117,9 +120,11 @@ pub struct CertificatePublicKey {
     #[serde_as(as = "Base64")]
     pub key: DerVerifyingKey,
 
-    /// The moment at which this key was created and added to the wallet configuration. Used to determine whether the
-    /// wallet should actively update its certificate to the newest available key.
-    pub created_at: DateTimeSeconds,
+    /// The moment from which the wallet provider will actually sign with this key. Keys may be present in the
+    /// wallet configuration before this moment, so that wallets have a chance to trust them ahead of the wallet
+    /// provider's rollover. Used to determine whether the wallet should actively update its certificate to the
+    /// newest key that is already in use.
+    pub used_from: DateTimeSeconds,
 }
 
 impl From<CertificatePublicKey> for PublicKey {

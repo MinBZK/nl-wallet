@@ -250,6 +250,7 @@ impl FlutterApiErrorFields for WalletUnlockError {
             WalletUnlockError::Instruction(InstructionError::AccountRevoked(data)) => {
                 serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
             }
+            WalletUnlockError::ChangePin(e) => e.data(),
             _ => serde_json::Value::Null,
         }
     }

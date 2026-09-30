@@ -52,6 +52,7 @@ use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ReceiveWalletPayloadResult;
+use wallet_account::messages::instructions::RefreshWalletCertificate;
 use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
@@ -225,6 +226,15 @@ impl ValidateInstruction for CheckPin {
     }
 }
 
+impl ValidateInstruction for RefreshWalletCertificate {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        validate_wallet_user_not_revoked(wallet_user)?;
+        validate_wallet_user_not_transferred(wallet_user)?;
+        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_pin_recovery_in_progress(wallet_user)
+    }
+}
+
 impl ValidateInstruction for StartPinRecovery {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         validate_wallet_user_not_revoked(wallet_user)?;
@@ -338,6 +348,7 @@ impl PinChecks for DiscloseRecoveryCodePinRecovery {}
 impl PinChecks for ChangePinCommit {}
 impl PinChecks for ChangePinRollback {}
 impl PinChecks for CheckPin {}
+impl PinChecks for RefreshWalletCertificate {}
 impl PinChecks for Sign {}
 impl PinChecks for ConfirmTransfer {}
 impl PinChecks for DeleteKeys {}
@@ -1554,6 +1565,7 @@ mod tests {
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::ReceiveWalletPayload;
+    use wallet_account::messages::instructions::RefreshWalletCertificate;
     use wallet_account::messages::instructions::ResetTransfer;
     use wallet_account::messages::instructions::SendWalletPayload;
     use wallet_account::messages::instructions::Sign;
@@ -2479,6 +2491,7 @@ mod tests {
 
     #[rstest]
     #[case(Box::new(CheckPin), false)]
+    #[case(Box::new(RefreshWalletCertificate), false)]
     #[case(Box::new(mock_change_pin_start_instruction()), false)]
     #[case(Box::new(ChangePinCommit {}), false)]
     #[case(Box::new(ChangePinRollback {}), false)]
@@ -2510,6 +2523,7 @@ mod tests {
     #[case::change_pin_rollback(Box::new(ChangePinRollback {}))]
     #[case::change_pin_start(Box::new(mock_change_pin_start_instruction()))]
     #[case::check_pin(Box::new(CheckPin))]
+    #[case::refresh_wallet_certificate(Box::new(RefreshWalletCertificate))]
     #[case::start_pin_recovery(Box::new(mock_start_pin_recovery_instruction()))]
     #[case::pair_transfer(Box::new(PairTransfer { transfer_session_id: Uuid::new_v4(), app_version: "0.0.1".parse().unwrap() }))]
     #[case::cancel_transfer(Box::new(CancelTransfer { transfer_session_id: Uuid::new_v4(), error: Default::default() }))]

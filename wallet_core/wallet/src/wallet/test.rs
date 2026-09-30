@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -373,7 +374,7 @@ pub fn create_wallet_configuration() -> WalletConfiguration {
         keys.certificate_signing_key.kid().to_owned(),
         CertificatePublicKey {
             key: (*keys.certificate_signing_key.verifying_key()).into(),
-            created_at: Utc::now().into(),
+            used_from: Utc::now().into(),
         },
     )]);
     config.account_server.instruction_result_public_keys = HashMap::from([(
@@ -403,13 +404,17 @@ pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> 
 pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificateClaims {
     let wallet_id = wallet_id.unwrap_or_else(|| crypto::utils::random_string(32));
 
+    let iat = Utc::now();
     WalletCertificateClaims {
         wallet_id,
         hw_pubkey: DerVerifyingKey::from(hw_pubkey),
         pin_pubkey_hash: crypto::utils::random_bytes(32),
         version: 0,
         iss: "wallet_unit_test".to_string(),
-        iat: Utc::now(),
+        iat,
+        // Comfortably longer than the default test config's `certificate_refresh_threshold`, so unrelated tests
+        // don't unexpectedly trigger a certificate refresh.
+        exp: iat + Duration::from_hours(24 * 30),
     }
 }
 
@@ -489,7 +494,15 @@ where
     }
 
     pub async fn new_registered_and_unlocked(vendor: WalletDeviceVendor) -> Self {
-        let mut wallet = Self::new_unregistered(vendor).await;
+        Self::new_registered_and_unlocked_with_config(vendor, create_wallet_configuration()).await
+    }
+
+    /// Creates a registered and unlocked `Wallet` with mock dependencies, holding the provided configuration.
+    pub async fn new_registered_and_unlocked_with_config(
+        vendor: WalletDeviceVendor,
+        config: WalletConfiguration,
+    ) -> Self {
+        let mut wallet = Self::new_unregistered_with_config(vendor, config).await;
 
         // Generate registration data.
         let (registration_data, attested_key) = wallet.registration_data();

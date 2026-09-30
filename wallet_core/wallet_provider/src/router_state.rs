@@ -178,6 +178,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         let account_server = AccountServer::new(
             "account_server".into(),
             settings.instruction_challenge_timeout,
+            settings.wallet_certificate_validity,
             AccountServerKeys {
                 current_certificate_signing_key: CurrentCertificateSigningKey {
                     kid: settings.current_certificate_kid,

@@ -314,6 +314,7 @@ pub mod mock {
 #[cfg(test)]
 mod test {
     use std::assert_matches;
+    use std::time::Duration;
 
     use chrono::Utc;
     use jwt::KeyWithKid;
@@ -341,7 +342,7 @@ mod test {
             certificate_signing_key.kid().to_owned(),
             CertificatePublicKey {
                 key: (*certificate_signing_key.verifying_key()).into(),
-                created_at: Utc::now().into(),
+                used_from: Utc::now().into(),
             },
         )]);
 
@@ -351,6 +352,7 @@ mod test {
         let pin_salt = crypto::utils::random_bytes(32).into();
         let wallet_id = crypto::utils::random_string(32);
 
+        let iat = Utc::now();
         let certificate_claims = WalletCertificateClaims {
             wallet_id: wallet_id.clone(),
             hw_pubkey: hw_pubkey.into(),
@@ -358,7 +360,8 @@ mod test {
             pin_pubkey_hash: crypto::utils::random_bytes(32),
             version: 0,
             iss: "pin_change_unit_test".to_string(),
-            iat: Utc::now(),
+            iat,
+            exp: iat + Duration::from_secs(3600),
         };
 
         let wallet_certificate = SignedJwt::sign_with_sub_and_kid(certificate_claims, &certificate_signing_key)
@@ -579,7 +582,7 @@ mod test {
             other_key.kid().to_owned(), // same kid, different key
             CertificatePublicKey {
                 key: (*other_key.verifying_key()).into(),
-                created_at: Utc::now().into(),
+                used_from: Utc::now().into(),
             },
         )]);
 

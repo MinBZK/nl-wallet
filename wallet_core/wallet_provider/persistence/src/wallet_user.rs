@@ -659,6 +659,36 @@ where
     update_fields(db, wallet_id, fields).await
 }
 
+pub async fn update_encrypted_pin_pubkey<S, T>(
+    db: &T,
+    wallet_id: &WalletId,
+    encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
+) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    update_fields(
+        db,
+        wallet_id,
+        vec![
+            (
+                wallet_user::Column::EncryptedPinPubkeySec1,
+                Expr::value(encrypted_pin_pubkey.value.data),
+            ),
+            (
+                wallet_user::Column::PinPubkeyIv,
+                Expr::value(encrypted_pin_pubkey.value.iv.0),
+            ),
+            (
+                wallet_user::Column::PinPubkeyKid,
+                Expr::value(encrypted_pin_pubkey.kid.into_inner()),
+            ),
+        ],
+    )
+    .await
+}
+
 pub async fn commit_pin_change<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,
