@@ -165,7 +165,7 @@ async fn disclosure_direct() {
     let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
     let credential_requests = NormalizedCredentialRequests::new_mock_mdoc_pid_example();
     let registration_certificate =
-        MockRegistrationCertificate::new(auth_keypair.certificate(), Query::from(credential_requests.clone()));
+        MockRegistrationCertificate::new_verifier(auth_keypair.certificate(), Query::from(credential_requests.clone()));
     let registration_certificate =
         RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
@@ -366,8 +366,10 @@ impl DirectMockVpMessageClient {
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
 
         let credential_requests = test_credentials.to_normalized_credential_requests(formats.iter().copied());
-        let registration_certificate =
-            MockRegistrationCertificate::new(auth_keypair.certificate(), Query::from(credential_requests.clone()));
+        let registration_certificate = MockRegistrationCertificate::new_verifier(
+            auth_keypair.certificate(),
+            Query::from(credential_requests.clone()),
+        );
         let registration_certificate_envelope =
             RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(

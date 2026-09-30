@@ -5,6 +5,7 @@ use std::num::NonZeroU8;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::Days;
@@ -37,6 +38,7 @@ use sea_orm::DbErr;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_with::TryFromInto;
+use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
@@ -130,6 +132,11 @@ pub struct IssuerSettings {
 
     #[debug(skip)]
     pub credential_metadata_keypair: KeyPair,
+
+    /// Base64url-encoded WRPRC bound to the credential metadata signing WRPAC.
+    #[debug(skip)]
+    #[serde_as(as = "TryFromIntoRef<String>")]
+    pub registration_certificate: RegistrationCertificateEnvelope,
 
     /// Type metadata is optional for mdocs.
     #[debug(skip)]
@@ -560,6 +567,7 @@ impl IssuerSettings {
         let issuer = Issuer::try_new(
             self.public_url,
             metadata_keypair,
+            self.registration_certificate,
             self.batch_size,
             self.wallet_client_ids,
             config_params,
@@ -645,12 +653,15 @@ mod tests {
     use std::num::NonZeroU16;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::x509::CertificateTypeError;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::BorrowingCertificate;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
@@ -659,6 +670,10 @@ mod tests {
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use serde::Serialize;
+    use serde_json::json;
+    use serde_with::base64::Base64;
+    use serde_with::serde_as;
     use server_utils::settings::CertificateVerificationError;
     use server_utils::settings::Server;
     use server_utils::settings::ServerAuth;
@@ -679,8 +694,11 @@ mod tests {
     fn mock_settings(wrpac_ca: &Ca, issuer_ca: &Ca) -> IssuerSettings {
         let wrpac_keypair = wrpac_ca
             .generate_wrpac_issuer_mock()
-            .expect("generate metadata cert failed")
-            .into();
+            .expect("generate metadata cert failed");
+        let registration_certificate = MockRegistrationCertificate::new_issuer(
+            wrpac_keypair.certificate(),
+            [CredentialKind::new(Format::SdJwt, "com.example.pid".to_string())],
+        );
 
         let issuance_keypair = generate_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock())
             .expect("generate issuer cert failed")
@@ -692,7 +710,7 @@ mod tests {
             .into();
 
         // Normally this is its own CA; here we just reuse the issuer_ca.
-        let wia_trust_anchors = vec![issuer_ca.to_borrowing_trust_anchor()].try_into().unwrap();
+        let wia_trust_anchors = TrustAnchors::from(issuer_ca);
 
         IssuerSettings {
             public_url: "https://example.com".parse().unwrap(),
@@ -713,7 +731,11 @@ mod tests {
                 },
             )])
             .into(),
-            credential_metadata_keypair: wrpac_keypair,
+            credential_metadata_keypair: wrpac_keypair.into(),
+            registration_certificate: RegistrationCertificateEnvelope::try_from(
+                registration_certificate.certificate.as_slice(),
+            )
+            .unwrap(),
             type_metadata: TypeMetadataByVct(HashMap::from([{
                 let metadata = UncheckedTypeMetadata::pid_example();
                 let vct = metadata.vct.clone();
@@ -760,6 +782,68 @@ mod tests {
                 serve: true,
             },
             wia_trust_anchors,
+        }
+    }
+
+    #[test]
+    fn test_deserialize_registration_certificate() {
+        #[serde_as]
+        #[derive(Serialize)]
+        struct Certificate<'a>(#[serde_as(as = "Base64")] &'a BorrowingCertificate);
+
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let keypair = ca.generate_wrpac_issuer_mock().unwrap();
+        let registration_certificate = MockRegistrationCertificate::new_issuer(
+            keypair.certificate(),
+            [CredentialKind::new(Format::SdJwt, "com.example.pid".to_string())],
+        );
+        let envelope =
+            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+        let encoded = String::try_from(&envelope).unwrap();
+        let mut settings = json!({
+            "public_url": "https://example.com",
+            "credential_configurations": {},
+            "credential_metadata_keypair": {
+                "certificate": Certificate(keypair.certificate()),
+                "private_key_type": "hsm",
+                "private_key": "test-metadata-key"
+            },
+            "registration_certificate": encoded,
+            "type_metadata": [],
+            "wallet_client_ids": [MOCK_WALLET_CLIENT_ID],
+            "batch_size": 1,
+            "wallet_server": { "ip": "127.0.0.1", "port": 42 },
+            "internal_server": { "ip": "127.0.0.1", "port": 43 },
+            "log_requests": false,
+            "structured_logging": false,
+            "storage": {
+                "url": "memory://",
+                "expiration_minutes": 10,
+                "successful_deletion_minutes": 10,
+                "failed_deletion_minutes": 10
+            },
+            "issuer_trust_anchors": [],
+            "wrpac_trust_anchors": [],
+            "wrprc_trust_anchors": [],
+            "wia_trust_anchors": [],
+            "status_lists": {
+                "list_size": 100_000,
+                "create_threshold_ratio": 0.1,
+                "expiry_in_hours": 24,
+                "refresh_threshold_ratio": 0.25
+            }
+        });
+
+        let parsed: IssuerSettings = serde_json::from_value(settings.clone()).unwrap();
+        assert_eq!(String::try_from(&parsed.registration_certificate).unwrap(), encoded);
+
+        settings.as_object_mut().unwrap().remove("registration_certificate");
+        let error = serde_json::from_value::<IssuerSettings>(settings.clone()).unwrap_err();
+        assert!(error.to_string().contains("missing field `registration_certificate`"));
+
+        for malformed in [json!(null), json!("not base64url!"), json!("e30")] {
+            settings["registration_certificate"] = malformed;
+            assert!(serde_json::from_value::<IssuerSettings>(settings.clone()).is_err());
         }
     }
 

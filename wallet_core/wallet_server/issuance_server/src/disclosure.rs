@@ -163,6 +163,8 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::validity::IssuanceValidity;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
@@ -171,6 +173,7 @@ mod tests {
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use dcql::unique_id_vec::UniqueIdVec;
     use indexmap::IndexMap;
     use oauth::errors::ErrorWithCode;
@@ -255,6 +258,10 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let metadata_keypair = ca.generate_wrpac_issuer_mock().unwrap();
         let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let registration_certificate = MockRegistrationCertificate::new_issuer(
+            metadata_keypair.certificate(),
+            [CredentialKind::new(Format::SdJwt, "com.example.degree".to_string())],
+        );
 
         let mut status_list = MockStatusListService::new();
         status_list
@@ -275,11 +282,12 @@ mod tests {
         };
 
         // Normally this is its own CA; here we just reuse the ca we have.
-        let wia_trust_anchors = vec![ca.to_borrowing_trust_anchor()].try_into().unwrap();
+        let wia_trust_anchors = TrustAnchors::from(&ca);
 
         Issuer::try_new(
             "https://example.com".parse().unwrap(),
             metadata_keypair,
+            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
             NonZeroU8::MIN,
             HashSet::new(),
             [("credential_config_id".to_string().into(), config_params)].into(),

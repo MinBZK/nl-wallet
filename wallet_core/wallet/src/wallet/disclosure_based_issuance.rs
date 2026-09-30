@@ -134,6 +134,7 @@ where
                     selection: &CredentialSelection::All,
                     wia_client: &self.new_remote_wia_client(attested_key, &registration_data, &config),
                     wrpac_trust_anchors: config.wrpac_trust_anchors(),
+                    wrprc_trust_anchors: config.wrprc_trust_anchors(),
                 },
                 config.issuer_trust_anchors(),
             )

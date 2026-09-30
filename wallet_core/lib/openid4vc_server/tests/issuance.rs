@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use attestation_types::credential_format::Format;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -46,6 +47,7 @@ use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
+use openid4vc::metadata::issuer_metadata::IssuerInfo;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::nonce::response::NonceResponse;
@@ -124,6 +126,7 @@ struct AuthCodeFlowServer {
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
     crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+    registration_certificate: MockRegistrationCertificate,
 }
 
 /// Bundle returned by `start_pre_authorized_code_flow_server`.
@@ -133,6 +136,7 @@ struct PreAuthCodeFlowServer {
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
     crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+    registration_certificate: MockRegistrationCertificate,
 }
 
 async fn start_auth_code_flow_server(attestation_count: NonZeroUsize) -> AuthCodeFlowServer {
@@ -159,7 +163,7 @@ async fn start_auth_code_flow_server_with(
     let sessions = Arc::new(MemorySessionStore::default());
 
     let flow = StaticAuthorizingFlow::new(documents_or_error_code);
-    let (authorizing_issuer, trust_anchors, wia_keypair, crl_verifier) =
+    let (authorizing_issuer, trust_anchors, wia_keypair, crl_verifier, registration_certificate) =
         setup_mock_authorizing_issuer_from_sd_jwt_metadata(
             issuer_identifier.clone(),
             type_metadata,
@@ -189,6 +193,7 @@ async fn start_auth_code_flow_server_with(
         wia_keypair,
         tls_trust_anchor,
         crl_verifier,
+        registration_certificate,
     }
 }
 
@@ -201,7 +206,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
     let sessions = Arc::new(MemorySessionStore::default());
 
-    let (issuer, trust_anchors, wia_keypair, crl_verifier) =
+    let (issuer, trust_anchors, wia_keypair, crl_verifier, registration_certificate) =
         setup_mock_issuer(issuer_identifier, attestation_count, sessions);
     let issuer = Arc::new(issuer);
 
@@ -222,6 +227,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
         wia_keypair,
         tls_trust_anchor,
         crl_verifier,
+        registration_certificate,
     }
 }
 
@@ -270,6 +276,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
             .into_certificate()]))
         .unwrap(),
         server.crl_verifier.clone(),
+        server.registration_certificate.status_list_client.clone(),
     );
 
     // Start authorization code flow — fetches metadata and creates an auth session.
@@ -280,6 +287,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
                 &CredentialSelection::All,
                 &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
                 &server.trust_anchors,
+                &server.registration_certificate.trust_anchors,
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
@@ -422,6 +430,7 @@ async fn pre_authorized_code_flow(
         wia_keypair,
         tls_trust_anchor,
         crl_verifier,
+        registration_certificate,
         ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
@@ -432,6 +441,7 @@ async fn pre_authorized_code_flow(
     let discovery = HttpIssuanceDiscovery::new(
         HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
         crl_verifier,
+        registration_certificate.status_list_client,
     );
 
     let flow = discovery
@@ -441,6 +451,7 @@ async fn pre_authorized_code_flow(
                 &CredentialSelection::All,
                 &MockWiaClient::new_with_wia_keypair(wia_keypair),
                 &trust_anchors,
+                &registration_certificate.trust_anchors,
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -480,6 +491,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
         tls_trust_anchor,
         wia_keypair,
         crl_verifier,
+        registration_certificate,
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
@@ -489,6 +501,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     let discovery = HttpIssuanceDiscovery::new(
         HttpClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
         crl_verifier,
+        registration_certificate.status_list_client,
     );
 
     // The `client_id` that determines whether the issuer knows the wallet is the WIA's `sub`.
@@ -501,6 +514,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
                 &CredentialSelection::All,
                 &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
                 &trust_anchors,
+                &registration_certificate.trust_anchors,
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -1814,6 +1828,16 @@ async fn openid_metadata_signed(#[case] accept_header: Option<&str>) {
 
     assert_eq!(&payload.sub.as_ref(), &issuer.issuer_identifier());
     assert_eq!(&payload.metadata.credential_issuer, issuer.issuer_identifier());
+    let issuer_info = payload.metadata.issuer_info.as_ref().unwrap();
+    let [IssuerInfo::RegistrationCertificate { data }] = issuer_info.as_slice() else {
+        panic!("expected exactly one registration certificate");
+    };
+    let IssuerInfo::RegistrationCertificate { data: expected } =
+        issuer.metadata().issuer_info.as_ref().unwrap().first()
+    else {
+        panic!("expected a configured registration certificate");
+    };
+    assert_eq!(String::try_from(data).unwrap(), String::try_from(expected).unwrap());
 }
 
 #[rstest]

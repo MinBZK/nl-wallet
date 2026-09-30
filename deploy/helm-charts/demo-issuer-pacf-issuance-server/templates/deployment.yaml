@@ -73,6 +73,11 @@ spec:
               value: {{ include "common.urls.combineDomainAndContext" (list (first .Values.httpRoute.hostnames) .Values.httpRoute.contextPath) }}
             - name: PACF_ISSUANCE_SERVER__STRUCTURED_LOGGING
               value: "true"
+            - name: PACF_ISSUANCE_SERVER__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pacf-demo-issuer-issuance-server-wrpac
+                  key: registration_certificate
             - name: PACF_ISSUANCE_SERVER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
               valueFrom:
                 secretKeyRef:

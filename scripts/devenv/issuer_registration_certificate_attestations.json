@@ -1,0 +1,42 @@
+{
+  "pid": [
+    {
+      "format": "mso_mdoc",
+      "meta": { "doctype_value": "urn:eudi:pid:nl:1" }
+    },
+    {
+      "format": "dc+sd-jwt",
+      "meta": { "vct_values": ["urn:eudi:pid:nl:1"] }
+    }
+  ],
+  "university": [
+    {
+      "format": "dc+sd-jwt",
+      "meta": { "vct_values": ["com.example.degree", "com.example.housing"] }
+    }
+  ],
+  "insurance": [
+    {
+      "format": "mso_mdoc",
+      "meta": { "doctype_value": "com.example.insurance" }
+    },
+    {
+      "format": "mso_mdoc",
+      "meta": { "doctype_value": "com.example.jum.bonuskaart" }
+    }
+  ],
+  "museum_maandkaart": [
+    {
+      "format": "mso_mdoc",
+      "meta": { "doctype_value": "com.example.museum_maandkaart" }
+    },
+    {
+      "format": "mso_mdoc",
+      "meta": { "doctype_value": "org.iso.18013.5.1.mDL" }
+    },
+    {
+      "format": "mso_mdoc",
+      "meta": { "doctype_value": "org.iso.7367.2.1.mVC" }
+    }
+  ]
+}

@@ -44,7 +44,7 @@ use crate::verifier::SessionType;
 pub struct VpDisclosureClient<H = HttpVpMessageClient, F = HttpCrlFetcher, C = HttpStatusListClient> {
     client: H,
     crl_verifier: CertificateCrlVerifier<F>,
-    registration_certificate_revocation_verifier: RevocationVerifier<C>,
+    wrprc_revocation_verifier: RevocationVerifier<C>,
 }
 
 impl<H, F, C> VpDisclosureClient<H, F, C>
@@ -55,7 +55,7 @@ where
         Self {
             client,
             crl_verifier,
-            registration_certificate_revocation_verifier: RevocationVerifier::new_with_defaults(
+            wrprc_revocation_verifier: RevocationVerifier::new_with_defaults(
                 Arc::new(status_list_client),
                 TimeGenerator,
             ),
@@ -221,7 +221,7 @@ where
                 &dcql_query,
                 &certificate,
                 trust_anchors.wrprc,
-                &self.registration_certificate_revocation_verifier,
+                &self.wrprc_revocation_verifier,
                 &TimeGenerator,
             )
             .await
@@ -305,7 +305,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
     use attestation_data::registration_certificate::RegistrationCertificateValidationError;
-    use attestation_data::registration_certificate::mock::registration_certificate_payload;
+    use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -825,7 +825,7 @@ mod tests {
             None,
             NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
         );
-        let mut payload = registration_certificate_payload(
+        let mut payload = verifier_registration_certificate_payload(
             verifier_session.key_pair.certificate(),
             verifier_session.credential_requests.clone().into(),
         );

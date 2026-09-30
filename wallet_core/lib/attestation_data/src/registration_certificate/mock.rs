@@ -1,3 +1,5 @@
+use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -65,9 +67,66 @@ fn registration_certificate_credentials(query: Query) -> Vec<Credential> {
         .collect()
 }
 
-pub fn registration_certificate_payload(
+pub fn verifier_registration_certificate_payload(
     access_certificate: &BorrowingCertificate,
     query: Query,
+) -> RegistrationCertificateFixture {
+    let mut payload = registration_certificate_subject_payload(access_certificate);
+    payload.0["name"] = json!("Mock verifier");
+    payload.0["srv_description"] = json!([[
+        { "lang": "nl", "value": "Log in om uw persoonlijke gegevens te bekijken en te beheren." },
+        { "lang": "en", "value": "Log in to view and manage your personal details." }
+    ]]);
+    payload.0["entitlements"] = json!(["https://uri.etsi.org/19475/Entitlement/Service_Provider"]);
+    payload.0["credentials"] = json!(registration_certificate_credentials(query));
+    payload.0["purpose"] = json!([
+        {
+            "lang": "nl",
+            "value": "Wij gebruiken uw gegevens om uw identiteit te controleren en u toegang te geven tot uw account."
+        },
+        {
+            "lang": "en",
+            "value": "We use your details to verify your identity and give you access to your account."
+        }
+    ]);
+    payload
+}
+
+pub fn issuer_registration_certificate_payload(
+    access_certificate: &BorrowingCertificate,
+    credential_kinds: impl IntoIterator<Item = CredentialKind>,
+) -> RegistrationCertificateFixture {
+    let mut payload = registration_certificate_subject_payload(access_certificate);
+    payload.0["name"] = json!("Mock issuer");
+    payload.0["srv_description"] = json!([[
+        {
+            "lang": "nl",
+            "value": "Voeg digitale documenten toe aan uw wallet om uw gegevens met andere organisaties te delen."
+        },
+        {
+            "lang": "en",
+            "value": "Add digital documents to your wallet to share your details with other organizations."
+        }
+    ]]);
+    payload.0["entitlements"] = json!(["https://uri.etsi.org/19475/Entitlement/Non_Q_EAA_Provider"]);
+    payload.0["provides_attestations"] = credential_kinds
+        .into_iter()
+        .map(|kind| match kind.format {
+            Format::MsoMdoc => json!({
+                "format": "mso_mdoc",
+                "meta": { "doctype_value": kind.attestation_type },
+            }),
+            Format::SdJwt => json!({
+                "format": "dc+sd-jwt",
+                "meta": { "vct_values": [kind.attestation_type] },
+            }),
+        })
+        .collect();
+    payload
+}
+
+fn registration_certificate_subject_payload(
+    access_certificate: &BorrowingCertificate,
 ) -> RegistrationCertificateFixture {
     let relying_party = RelyingParty::try_from(access_certificate.to_distinguished_name().unwrap()).unwrap();
     let (subject, subject_fields) = match relying_party {
@@ -85,16 +144,11 @@ pub fn registration_certificate_payload(
     };
     let mut payload = json!({
         "id": "mock-registration-certificate",
-        "name": "Mock verifier",
         "sub": subject,
         "country": "NL",
         "registry_uri": "https://example.com/register",
         "support_uri": "support@example.com",
-        "srv_description": [[{ "lang": "en", "value": "Mock verification service" }]],
         "supervisory_authority": {},
-        "entitlements": ["https://uri.etsi.org/19475/Entitlement/Service_Provider"],
-        "credentials": registration_certificate_credentials(query),
-        "purpose": [{ "lang": "en", "value": "Testing" }],
         "iat": TimeGenerator.generate().timestamp(),
         "status": {
             "idx": "0",
@@ -122,9 +176,23 @@ pub struct MockRegistrationCertificate {
 }
 
 impl MockRegistrationCertificate {
-    pub fn new(access_certificate: &BorrowingCertificate, query: Query) -> Self {
+    pub fn new_verifier(access_certificate: &BorrowingCertificate, query: Query) -> Self {
+        Self::from_payload(&verifier_registration_certificate_payload(access_certificate, query))
+    }
+
+    pub fn new_issuer(
+        access_certificate: &BorrowingCertificate,
+        credential_kinds: impl IntoIterator<Item = CredentialKind>,
+    ) -> Self {
+        Self::from_payload(&issuer_registration_certificate_payload(
+            access_certificate,
+            credential_kinds,
+        ))
+    }
+
+    fn from_payload(payload: &RegistrationCertificateFixture) -> Self {
         let authority = MockRegistrationCertificateAuthority::new();
-        let certificate = authority.issue_jwt(access_certificate, query);
+        let certificate = authority.sign_jwt(payload);
 
         Self {
             certificate,
@@ -173,30 +241,30 @@ impl MockRegistrationCertificateAuthority {
     }
 
     pub fn issue_jwt(&self, access_certificate: &BorrowingCertificate, query: Query) -> Vec<u8> {
+        self.sign_jwt(&verifier_registration_certificate_payload(access_certificate, query))
+    }
+
+    pub fn sign_jwt(&self, payload: &RegistrationCertificateFixture) -> Vec<u8> {
         let signing_key_pair = self.ca.generate_issuer_mock().unwrap();
-        SignedJwt::<_, JadesbbHeader>::sign_with_iat(
-            &registration_certificate_payload(access_certificate, query),
-            &signing_key_pair,
-            &TimeGenerator,
-        )
-        .now_or_never()
-        .unwrap()
-        .unwrap()
-        .to_string()
-        .into_bytes()
+        SignedJwt::<_, JadesbbHeader>::sign_with_iat(payload, &signing_key_pair, &TimeGenerator)
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+            .to_string()
+            .into_bytes()
     }
 
     pub fn issue_cwt(&self, access_certificate: &BorrowingCertificate, query: Query) -> Vec<u8> {
+        self.sign_cwt(&verifier_registration_certificate_payload(access_certificate, query))
+    }
+
+    pub fn sign_cwt(&self, payload: &RegistrationCertificateFixture) -> Vec<u8> {
         let signing_key_pair = self.ca.generate_issuer_mock().unwrap();
-        SignedWrprcCwt::sign_with_certificate(
-            &registration_certificate_payload(access_certificate, query),
-            &signing_key_pair,
-            &TimeGenerator,
-        )
-        .now_or_never()
-        .unwrap()
-        .unwrap()
-        .to_vec()
-        .unwrap()
+        SignedWrprcCwt::sign_with_certificate(payload, &signing_key_pair, &TimeGenerator)
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+            .to_vec()
+            .unwrap()
     }
 }

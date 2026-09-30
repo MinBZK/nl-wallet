@@ -535,13 +535,29 @@ function generate_demo_relying_party_key_pair {
 # $3 - WRPAC certificate file
 # $4 - Registration certificate credential sets file
 # $5 - Output file prefix
+# $6 - Entitlement (defaults to Service_Provider for disclosure)
 function generate_registration_certificate {
     local service_provider="$1"
     local status_list_index="$2"
     local wrpac_certificate_file="$3"
     local credential_sets_file="$4"
     local output_file_prefix="$5"
+    local entitlement="${6:-Service_Provider}"
+    local protocol_role
     local subject
+
+    case "$entitlement" in
+        Service_Provider)
+            protocol_role="disclosure"
+            ;;
+        PID_Provider|Non_Q_EAA_Provider)
+            protocol_role="issuance"
+            ;;
+        *)
+            error "Unsupported registration certificate entitlement: $entitlement"
+            return 1
+            ;;
+    esac
 
     if [[ -z ${access_certificates[($service_provider,serial_number)]:-} ]]; then
         subject=$(jq -n \
@@ -559,30 +575,36 @@ function generate_registration_certificate {
     jq -n \
         --arg service_provider "$service_provider" \
         --arg name "${access_certificates[($service_provider,name)]}" \
+        --arg entitlement "$entitlement" \
+        --arg protocol_role "$protocol_role" \
         --arg status_list_index "$status_list_index" \
         --arg status_list_uri "${WRPRC_STATUS_LIST_URI}" \
         --argjson iat "$(date +%s)" \
         --argjson subject "$subject" \
         --slurpfile credential_sets "$credential_sets_file" \
-        '$subject + {
-            id: ("demo-" + $service_provider),
+        '($credential_sets[0][$service_provider] // error("Missing credential set for " + $service_provider)) as $credentials |
+        $subject + {
+            id: ("demo-" + $service_provider + (if $protocol_role == "issuance" then "-issuer" else "" end)),
             name: $name,
             country: "NL",
             registry_uri: "https://register.example.com",
             support_uri: "support@example.com",
             srv_description: [[{
                 lang: "en",
-                value: ("Development disclosure service for " + $name)
+                value: ("Development " + $protocol_role + " service for " + $name)
             }]],
             supervisory_authority: {},
-            entitlements: ["https://uri.etsi.org/19475/Entitlement/Service_Provider"],
-            credentials: $credential_sets[0][$service_provider],
-            purpose: [{ lang: "en", value: "Testing wallet disclosure" }],
+            entitlements: [("https://uri.etsi.org/19475/Entitlement/" + $entitlement)],
             iat: $iat,
             status: { idx: $status_list_index, uri: $status_list_uri },
             policy_id: ["0.4.0.19475.3.1"],
             certificate_policy: "https://register.example.com/certificate-policy"
-        }' > "$output_file_prefix.wrprc.json"
+        } + (if $protocol_role == "disclosure" then {
+            credentials: $credentials,
+            purpose: [{ lang: "en", value: "Testing wallet disclosure" }]
+        } else {
+            provides_attestations: $credentials
+        } end)' > "$output_file_prefix.wrprc.json"
 
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca registration-certificate \
@@ -594,11 +616,11 @@ function generate_registration_certificate {
         > "$output_file_prefix.wrprc"
 }
 
-# Generate a WRPRC bound to a demo relying party's WRPAC.
+# Generate a disclosure WRPRC bound to a demo relying party's WRPAC.
 #
 # $1 - Short name of the relying party
 # $2 - Index in the WRPRC status list
-function generate_demo_relying_party_registration_certificate {
+function generate_demo_relying_party_disclosure_registration_certificate {
     local relying_party="$1"
 
     generate_registration_certificate \
@@ -609,11 +631,11 @@ function generate_demo_relying_party_registration_certificate {
         "${TARGET_DIR}/demo_relying_party/$relying_party"
 }
 
-# Generate a WRPRC bound to a demo issuer's WRPAC.
+# Generate a disclosure WRPRC bound to a demo issuer's WRPAC.
 #
 # $1 - Short name of the issuer
 # $2 - Index in the WRPRC status list
-function generate_demo_issuer_registration_certificate {
+function generate_demo_issuer_disclosure_registration_certificate {
     local issuer="$1"
 
     generate_registration_certificate \
@@ -622,6 +644,25 @@ function generate_demo_issuer_registration_certificate {
         "${TARGET_DIR}/demo_issuer/$issuer.wrpac.crt.pem" \
         "${DEVENV}/demo_issuer_registration_certificate_credentials.json" \
         "${TARGET_DIR}/demo_issuer/$issuer"
+}
+
+# Generate an issuance WRPRC bound to the certificate that signs issuer metadata.
+# Use a separate output prefix (e.g. university.issuance); the generated ID also gets
+# an -issuer suffix so issuance and disclosure registrations for a service can coexist.
+#
+# $1 - Issuer name in access_certificates and issuer_registration_certificate_attestations.json
+# $2 - Index in the WRPRC status list
+# $3 - Metadata-signing WRPAC certificate file
+# $4 - Output file prefix
+# $5 - Entitlement (defaults to Non_Q_EAA_Provider)
+function generate_issuance_registration_certificate {
+    generate_registration_certificate \
+        "$1" \
+        "$2" \
+        "$3" \
+        "${DEVENV}/issuer_registration_certificate_attestations.json" \
+        "$4" \
+        "${5:-Non_Q_EAA_Provider}"
 }
 
 function encrypt_gba_v_responses {

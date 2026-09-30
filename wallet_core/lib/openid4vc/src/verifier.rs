@@ -1647,7 +1647,7 @@ mod tests {
     fn use_case_data(ca: &Ca, session_type_return_url: SessionTypeReturnUrl) -> UseCaseData<SigningKey> {
         let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
         let registration_certificate =
-            MockRegistrationCertificate::new(key_pair.certificate(), Query::new_mock_mdoc_pid_example());
+            MockRegistrationCertificate::new_verifier(key_pair.certificate(), Query::new_mock_mdoc_pid_example());
         let registration_certificate =
             RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
 

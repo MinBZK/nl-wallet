@@ -72,6 +72,7 @@ impl IssuerMetadata {
                 batch_size: AtLeastTwoU64::try_new(10.try_into().unwrap()).unwrap(),
             }),
             display: None,
+            issuer_info: None,
             credential_configurations_supported,
         }
     }

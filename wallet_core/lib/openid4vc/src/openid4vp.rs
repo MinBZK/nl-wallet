@@ -1410,7 +1410,7 @@ mod tests {
         let response_uri = "https://cert.rp.example.com/response_uri".parse().unwrap();
 
         let registration_certificate =
-            MockRegistrationCertificate::new(rp_keypair.certificate(), credential_requests.clone().into());
+            MockRegistrationCertificate::new_verifier(rp_keypair.certificate(), credential_requests.clone().into());
         let registration_certificate =
             RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(

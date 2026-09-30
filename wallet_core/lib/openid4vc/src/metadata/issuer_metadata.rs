@@ -6,6 +6,7 @@ use std::ops::Not;
 
 use attestation_data::metadata::AttestationClaims;
 use attestation_data::metadata::ClaimConstraint;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
@@ -27,6 +28,7 @@ use oauth::scope::Scope;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::MapPreventDuplicates;
+use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -108,6 +110,9 @@ pub struct IssuerMetadata {
     /// certain language.
     pub display: Option<VecNonEmpty<IssuerDisplay>>,
 
+    /// Information about the issuer, including its registration certificate.
+    pub issuer_info: Option<VecNonEmpty<IssuerInfo>>,
+
     /// Object that describes specifics of the Credential that the Credential Issuer supports issuance of. This object
     /// contains a list of name/value pairs, where each name is a unique identifier of the supported Credential being
     /// described. This identifier is used in the Credential Offer as defined in Section 4.1.1 to communicate to the
@@ -115,6 +120,21 @@ pub struct IssuerMetadata {
     /// Credential.
     #[serde_as(as = "MapPreventDuplicates<_, _>")]
     pub credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "format")]
+pub enum IssuerInfo {
+    #[serde(rename = "registration_cert")]
+    RegistrationCertificate {
+        #[serde_as(as = "TryFromIntoRef<String>")]
+        data: RegistrationCertificateEnvelope,
+    },
+
+    // Allow the issuer to announce formats that the wallet does not support.
+    #[serde(other)]
+    Other,
 }
 
 #[skip_serializing_none]
@@ -800,14 +820,19 @@ impl AttestationClaims for CredentialMetadata {
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::borrow::Cow;
     use std::collections::HashMap;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
     use attestation_data::attributes::AttributesError;
     use attestation_data::metadata::AttestationClaims;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_types::claim_path::ClaimPath;
+    use base64::prelude::*;
     use chrono::DateTime;
+    use crypto::server_keys::generate::Ca;
+    use dcql::Query;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;
@@ -815,6 +840,7 @@ mod tests {
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::issuer_identifier::IssuerUrl;
     use rstest::rstest;
+    use serde_json::Value;
     use serde_json::json;
     use utils::vec_nonempty;
 
@@ -824,6 +850,7 @@ mod tests {
     use super::CredentialFormat;
     use super::CredentialMetadata;
     use super::CryptographicBindingMethod;
+    use super::IssuerInfo;
     use super::IssuerMetadata;
     use super::JoinCredentialConfigurationId;
     use super::JwsAlgorithm;
@@ -831,6 +858,123 @@ mod tests {
     use super::NameLocale;
     use super::SignedIssuerMetadataPayload;
     use crate::jwe::JweCompressionAlgorithm;
+
+    #[derive(Clone, Copy)]
+    enum RegistrationCertificateFormat {
+        Jwt,
+        Cwt,
+    }
+
+    fn registration_certificate(format: RegistrationCertificateFormat) -> Vec<u8> {
+        let access_key_pair = Ca::generate_wrpac_mock_ca()
+            .unwrap()
+            .generate_wrpac_issuer_mock()
+            .unwrap();
+        let authority = MockRegistrationCertificateAuthority::new();
+        let query = Query::new_mock_mdoc_pid_example();
+
+        match format {
+            RegistrationCertificateFormat::Jwt => authority.issue_jwt(access_key_pair.certificate(), query),
+            RegistrationCertificateFormat::Cwt => authority.issue_cwt(access_key_pair.certificate(), query),
+        }
+    }
+
+    fn issuer_metadata_json() -> Value {
+        json!({
+            "credential_issuer": "https://issuer.example.com",
+            "credential_endpoint": "https://issuer.example.com/credential",
+            "credential_configurations_supported": {},
+        })
+    }
+
+    #[rstest]
+    #[case::jwt(RegistrationCertificateFormat::Jwt)]
+    #[case::cwt(RegistrationCertificateFormat::Cwt)]
+    fn test_issuer_info_registration_certificate_roundtrip(#[case] format: RegistrationCertificateFormat) {
+        let certificate = registration_certificate(format);
+        let mut expected_json = issuer_metadata_json();
+        expected_json["issuer_info"] = json!([{
+            "format": "registration_cert",
+            "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate),
+        }]);
+
+        let metadata: IssuerMetadata = serde_json::from_value(expected_json.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&metadata).unwrap(), expected_json);
+        assert_matches!(
+            metadata.issuer_info.as_ref().unwrap().first(),
+            IssuerInfo::RegistrationCertificate { data } if data.to_vec().unwrap() == certificate
+        );
+
+        let payload = SignedIssuerMetadataPayload {
+            sub: Cow::Owned(metadata.credential_issuer.clone()),
+            metadata: Cow::Owned(metadata),
+            iss: None,
+            iat: DateTime::from_timestamp_secs(1516239022).unwrap().into(),
+            exp: None,
+        };
+        expected_json["sub"] = expected_json["credential_issuer"].clone();
+        expected_json["iat"] = json!(1516239022);
+        assert_eq!(serde_json::to_value(&payload).unwrap(), expected_json);
+
+        let deserialized: SignedIssuerMetadataPayload = serde_json::from_value(expected_json.clone()).unwrap();
+        assert_eq!(serde_json::to_value(deserialized).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn test_issuer_metadata_without_issuer_info() {
+        let expected_json = issuer_metadata_json();
+        let metadata: IssuerMetadata = serde_json::from_value(expected_json.clone()).unwrap();
+
+        assert!(metadata.issuer_info.is_none());
+        assert_eq!(serde_json::to_value(metadata).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn test_issuer_metadata_rejects_empty_issuer_info() {
+        let mut metadata_json = issuer_metadata_json();
+        metadata_json["issuer_info"] = json!([]);
+
+        assert!(serde_json::from_value::<IssuerMetadata>(metadata_json).is_err());
+    }
+
+    #[test]
+    fn test_issuer_info_accepts_unknown_format_alongside_registration_certificate() {
+        let certificate = registration_certificate(RegistrationCertificateFormat::Jwt);
+        let mut metadata_json = issuer_metadata_json();
+        metadata_json["issuer_info"] = json!([
+            { "format": "other_format", "data": { "future": "data" } },
+            { "format": "registration_cert", "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate) },
+        ]);
+
+        let metadata: IssuerMetadata = serde_json::from_value(metadata_json).unwrap();
+        let mut info = metadata.issuer_info.unwrap().into_iter();
+        assert_matches!(info.next(), Some(IssuerInfo::Other));
+        assert_matches!(
+            info.next(),
+            Some(IssuerInfo::RegistrationCertificate { data }) if data.to_vec().unwrap() == certificate
+        );
+        assert!(info.next().is_none());
+    }
+
+    #[rstest]
+    #[case::missing_data(json!({ "format": "registration_cert" }))]
+    #[case::invalid_data_type(json!({ "format": "registration_cert", "data": 42 }))]
+    #[case::invalid_base64(json!({ "format": "registration_cert", "data": "***" }))]
+    #[case::invalid_envelope(json!({
+        "format": "registration_cert",
+        "data": BASE64_URL_SAFE_NO_PAD.encode(b"not a registration certificate"),
+    }))]
+    fn test_issuer_info_rejects_malformed_registration_certificate(#[case] malformed_entry: Value) {
+        let certificate = registration_certificate(RegistrationCertificateFormat::Jwt);
+        let mut metadata_json = issuer_metadata_json();
+        metadata_json["issuer_info"] = json!([
+            { "format": "other_format", "data": { "future": "data" } },
+            { "format": "registration_cert", "data": BASE64_URL_SAFE_NO_PAD.encode(certificate) },
+            malformed_entry,
+        ]);
+
+        assert!(serde_json::from_value::<IssuerMetadata>(metadata_json).is_err());
+    }
 
     #[test]
     fn test_sd_jwt_issuer_metadata_deserialization() {

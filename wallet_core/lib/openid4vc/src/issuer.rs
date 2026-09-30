@@ -12,6 +12,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::CredentialPayloadIntoSignedMdocError;
 use attestation_data::credential_payload::CredentialPayloadIntoSignedSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use attestation_types::status_claim::StatusClaim;
@@ -64,6 +65,7 @@ use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use uuid::Uuid;
 use wscd::payload::wia::WIA_CLIENT_AUTH_METHOD;
 use wscd::payload::wia::WiaClaims;
@@ -92,6 +94,7 @@ use crate::metadata::issuer_metadata::AtLeastTwoU64;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
+use crate::metadata::issuer_metadata::IssuerInfo;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
@@ -648,6 +651,7 @@ where
     pub fn try_new(
         issuer_identifier: IssuerIdentifier,
         metadata_keypair: KeyPair<K>,
+        registration_certificate: RegistrationCertificateEnvelope,
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
@@ -680,6 +684,9 @@ where
             credential_response_encryption: None,
             batch_credential_issuance,
             display: None,
+            issuer_info: Some(vec_nonempty![IssuerInfo::RegistrationCertificate {
+                data: registration_certificate,
+            }]),
             credential_configurations_supported: credential_configs
                 .to_credential_configurations_supported(&type_metadata_base_url)?,
         };
@@ -1809,7 +1816,7 @@ mod tests {
     #[tokio::test]
     async fn test_signed_metadata() {
         let (_, metadata) = TypeMetadataDocuments::degree_example();
-        let (issuer, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, trust_anchors, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             "https://example.com/".parse().unwrap(),
             vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
             Arc::new(MemorySessionStore::default()),
@@ -1818,13 +1825,28 @@ mod tests {
         let time_generator = MockTimeGenerator::default();
         let ttl = Duration::from_secs(300);
         let now = time_generator.generate();
-        let signed_metadata = issuer.signed_metadata(ttl, time_generator).await.unwrap();
+        let signed_metadata = issuer.signed_metadata(ttl, time_generator.clone()).await.unwrap();
 
-        let (_, payload) = signed_metadata.into_unverified().dangerous_parse_unverified().unwrap();
+        let payload = signed_metadata
+            .into_unverified()
+            .into_verified_against_trust_anchors(
+                &trust_anchors,
+                &time_generator,
+                None,
+                jwt::DEFAULT_VALIDATION.to_owned(),
+            )
+            .unwrap()
+            .into_payload();
         assert_eq!(payload.iss, None);
         assert_eq!(payload.sub.as_ref(), &payload.metadata.credential_issuer);
         assert_eq!(payload.iat, now.into());
         assert_eq!(payload.exp, Some((now + ttl).into()));
+        let issuer_info = payload.metadata.issuer_info.as_ref().unwrap();
+        assert_matches!(issuer_info.as_slice(), [IssuerInfo::RegistrationCertificate { .. }]);
+        assert_eq!(
+            serde_json::to_value(issuer_info).unwrap(),
+            serde_json::to_value(issuer.metadata().issuer_info.as_ref().unwrap()).unwrap()
+        );
     }
 
     #[derive(Debug, Error, Clone, Eq, PartialEq)]
@@ -1835,7 +1857,7 @@ mod tests {
     #[tokio::test]
     async fn test_prepared_credential_try_new() {
         let (_, metadata) = TypeMetadataDocuments::degree_example();
-        let (issuer, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, _, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             "https://example.com/".parse().unwrap(),
             vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
             Arc::new(MemorySessionStore::default()),
@@ -1889,7 +1911,7 @@ mod tests {
             .map(|(format, (attestation_type, metadata_documents))| (format, attestation_type, metadata_documents))
             .collect();
 
-        let (issuer, trust_anchor, wia_keypair, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, trust_anchor, wia_keypair, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             issuer_identifier.clone(),
             attestations,
             Arc::new(MemorySessionStore::default()),
@@ -2843,7 +2865,7 @@ mod tests {
         let (sessions, mock_time) = memory_session_store_with_mock_time();
         let sessions = Arc::new(sessions);
 
-        let (issuer, _, _, _) = setup_mock_issuer(
+        let (issuer, _, _, _, _) = setup_mock_issuer(
             "https://example.com/".parse().unwrap(),
             NonZeroUsize::MIN,
             sessions.clone(),

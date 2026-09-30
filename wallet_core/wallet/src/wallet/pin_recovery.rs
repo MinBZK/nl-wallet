@@ -180,6 +180,7 @@ where
                     &CredentialSelection::ByCredentialKind(credential_kinds),
                     &self.new_remote_wia_client(attested_key.to_owned(), registration_data, config),
                     config.wrpac_trust_anchors(),
+                    config.wrprc_trust_anchors(),
                 ),
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
