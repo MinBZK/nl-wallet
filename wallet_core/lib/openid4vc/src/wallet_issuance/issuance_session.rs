@@ -478,8 +478,6 @@ struct OfferedCredential {
     config_id: CredentialConfigurationId,
 
     /// As specified by the Credential Configuration.
-    // TODO (PVW-5993): Use this instead of the format in the preview when fetching the credential.
-    #[expect(dead_code)]
     format: Format,
 
     /// Received from the Credential Preview endpoint.
@@ -903,8 +901,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     async fn fetch_credential(
         &self,
-        identifier: CredentialRequestIdentifier,
-        credential_preview: &CredentialPreview,
+        offered_credential: &OfferedCredential,
         keys: VecNonEmpty<IssuanceKeyResult>,
         dpop_nonce: Option<DpopNonce>,
         trust_anchors: &TrustAnchors,
@@ -941,7 +938,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .message_client
             .request_credential(
                 url,
-                &CredentialRequest::new(identifier, proofs),
+                &CredentialRequest::new(offered_credential.to_request_identifier(), proofs),
                 &dpop_header,
                 &self.session_state.access_token,
             )
@@ -955,16 +952,16 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let offered_metadata = self
             .session_state
             .metadata
-            .get(&credential_preview.config_id)
+            .get(&offered_credential.config_id)
             .expect("`IssuanceState::metadata` has an entry for every offered configuration");
 
         let (credential_copies, extended_attestation_types, issued_metadata) =
-            match (credential_preview.format, offered_metadata) {
+            match (offered_credential.format, offered_metadata) {
                 (Format::SdJwt, metadata @ OfferedCredentialMetadata::TypeMetadata { normalized, raw }) => {
                     let sd_jwts = credentials.into_issued_sd_jwts(
                         key_ids_and_public_keys,
                         metadata,
-                        credential_preview,
+                        &offered_credential.preview,
                         trust_anchors,
                     )?;
 
@@ -984,7 +981,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     let sd_jwts = credentials.into_issued_sd_jwts(
                         key_ids_and_public_keys,
                         metadata,
-                        credential_preview,
+                        &offered_credential.preview,
                         trust_anchors,
                     )?;
 
@@ -997,7 +994,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 (Format::MsoMdoc, OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
                     let mdocs = credentials.into_issued_mdocs(
                         key_ids_and_public_keys,
-                        credential_preview,
+                        &offered_credential.preview,
                         credential_metadata,
                         trust_anchors,
                     )?;
@@ -1027,9 +1024,9 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let credential_with_metadata = CredentialWithMetadata::new(
             credential_copies,
-            credential_preview.credential_payload.attestation_type.clone(),
-            credential_preview.credential_payload.expires,
-            credential_preview.credential_payload.not_before,
+            offered_credential.preview.credential_payload.attestation_type.clone(),
+            offered_credential.preview.credential_payload.expires,
+            offered_credential.preview.credential_payload.not_before,
             extended_attestation_types,
             issued_metadata,
         );
@@ -1106,13 +1103,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 .zip_eq(key_results)
                 .zip_eq(dpop_nonces)
                 .map(|((offered_credential, keys), dpop_nonce)| {
-                    self.fetch_credential(
-                        offered_credential.to_request_identifier(),
-                        &offered_credential.preview,
-                        keys,
-                        dpop_nonce,
-                        trust_anchors,
-                    )
+                    self.fetch_credential(offered_credential, keys, dpop_nonce, trust_anchors)
                 }),
         )
         .await?;
