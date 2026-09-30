@@ -44,6 +44,8 @@ where
     ) -> Result<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>, ChangePinError> {
         tracing::info!("Try to finalize PIN change if it is in progress");
 
+        // First, try to finalize any unfinished change PIN process before refreshing the wallet certificate (if
+        // needed), as change PIN will update the wallet certificate anyway
         if self.storage.get_change_pin_state().await?.is_some() {
             self.continue_change_pin(&pin).await?;
         }
