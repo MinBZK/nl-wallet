@@ -6,6 +6,7 @@ use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_MDOC_DOCTYPE;
+use pid_issuer::pid::constants::PID_MDOC_NAMESPACE;
 use pid_issuer::pid::constants::PID_NL_SD_JWT_VCT;
 use pid_issuer::pid::constants::PID_RECOVERY_CODE;
 use serial_test::serial;
@@ -72,8 +73,8 @@ fn test_pid_attestation(pid_attestation: &AttestationPresentation) {
     // An mdoc's claim key is namespaced, unlike SD-JWT's flat one.
     let (expected_bsn_key, expected_recovery_code_key): (Vec<&str>, Vec<&str>) = match pid_attestation.format {
         Format::MsoMdoc => (
-            vec![PID_MDOC_DOCTYPE, PID_BSN],
-            vec![PID_MDOC_DOCTYPE, PID_RECOVERY_CODE],
+            vec![PID_MDOC_NAMESPACE, PID_BSN],
+            vec![PID_MDOC_NAMESPACE, PID_RECOVERY_CODE],
         ),
         Format::SdJwt => (vec![PID_BSN], vec![PID_RECOVERY_CODE]),
     };
