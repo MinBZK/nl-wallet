@@ -262,6 +262,7 @@ where
         let pid_preview = Self::pid_preview(
             issuance_session
                 .previews_with_metadata()
+                .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPreviews))?
                 .collect_vec()
                 .into_iter()
                 .map(|(preview, _)| preview),

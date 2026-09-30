@@ -3,7 +3,6 @@ use std::num::NonZeroU8;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
-use derive_more::From;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
@@ -147,9 +146,21 @@ impl AuthorizationSession for MockAuthorizationSession {
     }
 }
 
-/// Helper type that allows `mockall` to return references from a mocked method.
-#[derive(From)]
-pub struct MockIssuanceSessionPreviewsWithMetadata(Vec<(CredentialPreview, OfferedCredentialMetadata)>);
+/// Helper type that allows `mockall` to return references from a mocked method. `None` represents a session without
+/// previews.
+pub struct MockIssuanceSessionPreviewsWithMetadata(Option<Vec<(CredentialPreview, OfferedCredentialMetadata)>>);
+
+impl MockIssuanceSessionPreviewsWithMetadata {
+    pub fn none() -> Self {
+        Self(None)
+    }
+}
+
+impl From<Vec<(CredentialPreview, OfferedCredentialMetadata)>> for MockIssuanceSessionPreviewsWithMetadata {
+    fn from(value: Vec<(CredentialPreview, OfferedCredentialMetadata)>) -> Self {
+        Self(Some(value))
+    }
+}
 
 mockall::mock! {
     #[derive(Debug)]
@@ -175,10 +186,12 @@ impl IssuanceSession for MockIssuanceSession {
         self.accept(max_copy_count)
     }
 
-    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)> {
+    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>> {
         let MockIssuanceSessionPreviewsWithMetadata(inner) = self.previews_with_metadata();
 
-        inner.iter().map(|(preview, metadata)| (preview, metadata))
+        inner
+            .as_ref()
+            .map(|inner| inner.iter().map(|(preview, metadata)| (preview, metadata)))
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {

@@ -363,7 +363,10 @@ async fn authorization_code_flow(
     let server = start_auth_code_flow_server(attestation_count).await;
     let mut session = start_issuance_session(&server).await;
 
-    assert_eq!(session.previews_with_metadata().count(), attestation_count.get());
+    assert_eq!(
+        session.previews_with_metadata().unwrap().count(),
+        attestation_count.get()
+    );
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session
@@ -374,7 +377,7 @@ async fn authorization_code_flow(
     let copy_count = 4;
     verify_issued_credentials(
         issued_creds,
-        session.previews_with_metadata().map(|(preview, _)| preview),
+        session.previews_with_metadata().unwrap().map(|(preview, _)| preview),
         attestation_count.get(),
         copy_count,
     );
@@ -397,7 +400,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let mut session = start_issuance_session(&server).await;
 
-    let Ok((preview, _)) = session.previews_with_metadata().exactly_one() else {
+    let Ok((preview, _)) = session.previews_with_metadata().unwrap().exactly_one() else {
         panic!("issuance session should contain exactly one preview");
     };
 
@@ -413,7 +416,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     verify_issued_credentials(
         issued_creds,
-        session.previews_with_metadata().map(|(preview, _)| preview),
+        session.previews_with_metadata().unwrap().map(|(preview, _)| preview),
         1,
         4,
     );
@@ -476,7 +479,7 @@ async fn pre_authorized_code_flow(
 
     verify_issued_credentials(
         issued_creds,
-        session.previews_with_metadata().map(|(preview, _)| preview),
+        session.previews_with_metadata().unwrap().map(|(preview, _)| preview),
         attestation_count.get(),
         copy_count,
     );

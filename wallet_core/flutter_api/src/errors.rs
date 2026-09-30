@@ -351,6 +351,7 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::RecoveryCodeDisclosure(_)
             | IssuanceError::TransferDataStorage(_)
             | IssuanceError::IssuanceSession(_)
+            | IssuanceError::MissingPreviews
             | IssuanceError::RecoveryCode(_) => FlutterApiErrorType::Generic,
         }
     }

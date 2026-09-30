@@ -1358,7 +1358,7 @@ mod test {
 
         for issuance_session in issuance_sessions {
             // Check that the issuance session contains the expected credential preview.
-            let Ok((preview, _metadata)) = issuance_session.previews_with_metadata().exactly_one() else {
+            let Ok((preview, _metadata)) = issuance_session.previews_with_metadata().unwrap().exactly_one() else {
                 panic!("issuance session should contain exactly one preview")
             };
             assert_eq!(preview.credential_payload.attestation_type, PID_ATTESTATION_TYPE);

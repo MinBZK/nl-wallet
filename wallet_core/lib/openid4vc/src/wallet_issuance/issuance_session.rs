@@ -1107,19 +1107,21 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(credentials)
     }
 
-    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)> {
-        self.session_state
-            .offered_credential_previews
-            .credential_previews()
-            .map(|preview| {
-                let metadata = self
-                    .session_state
-                    .metadata
-                    .get(&preview.config_id)
-                    .expect("`IssuanceState::metadata` has an entry for every offered configuration");
+    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>> {
+        Some(
+            self.session_state
+                .offered_credential_previews
+                .credential_previews()
+                .map(|preview| {
+                    let metadata = self
+                        .session_state
+                        .metadata
+                        .get(&preview.config_id)
+                        .expect("`IssuanceState::metadata` has an entry for every offered configuration");
 
-                (preview, metadata)
-            })
+                    (preview, metadata)
+                }),
+        )
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {
@@ -1734,7 +1736,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok((preview, metadata)) = session.previews_with_metadata().exactly_one() else {
+        let Ok((preview, metadata)) = session.previews_with_metadata().unwrap().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
@@ -2048,7 +2050,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok((_preview, metadata)) = session.previews_with_metadata().exactly_one() else {
+        let Ok((_preview, metadata)) = session.previews_with_metadata().unwrap().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
