@@ -417,6 +417,9 @@ fn certificate_needs_refresh(
         .max_by_key(|(_, key)| -> DateTimeSeconds { key.used_from })
         .map(|(kid, _)| kid)
     else {
+        // if we arrive here, it means the list of public keys in the wallet configuration is empty or all keys are in
+        // the future, this should never happen and means the configuration is invalid
+        tracing::warn!("No valid certificate public key found in the wallet configuration");
         return false;
     };
 
