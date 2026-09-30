@@ -75,7 +75,7 @@ scripts/migrate-db.sh         # run DB migrations
     obligations onto callers when doing so makes the API onerous
 - Imports in 3 groups (std → third-party and workspace → super/crate imports), alphabetically within each
 - Each imported symbol on its own import line
-- Custom error enums per module; use `thiserror`
+- Custom error enums per unit of fallibility; use `thiserror`
 - Async with Tokio; HTTP servers via Axum; DB via Sea-ORM
 - Prefer returning iterators over heap allocated values
 - In `thiserror` enum variants, use `#[source]` instead of `#[from]`
