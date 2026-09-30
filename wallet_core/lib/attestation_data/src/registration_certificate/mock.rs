@@ -73,10 +73,22 @@ pub fn verifier_registration_certificate_payload(
 ) -> RegistrationCertificateFixture {
     let mut payload = registration_certificate_subject_payload(access_certificate);
     payload.0["name"] = json!("Mock verifier");
-    payload.0["srv_description"] = json!([[{ "lang": "en", "value": "Mock verification service" }]]);
+    payload.0["srv_description"] = json!([[
+        { "lang": "nl", "value": "Log in om uw persoonlijke gegevens te bekijken en te beheren." },
+        { "lang": "en", "value": "Log in to view and manage your personal details." }
+    ]]);
     payload.0["entitlements"] = json!(["https://uri.etsi.org/19475/Entitlement/Service_Provider"]);
     payload.0["credentials"] = json!(registration_certificate_credentials(query));
-    payload.0["purpose"] = json!([{ "lang": "en", "value": "Testing" }]);
+    payload.0["purpose"] = json!([
+        {
+            "lang": "nl",
+            "value": "Wij gebruiken uw gegevens om uw identiteit te controleren en u toegang te geven tot uw account."
+        },
+        {
+            "lang": "en",
+            "value": "We use your details to verify your identity and give you access to your account."
+        }
+    ]);
     payload
 }
 
@@ -86,7 +98,16 @@ pub fn issuer_registration_certificate_payload(
 ) -> RegistrationCertificateFixture {
     let mut payload = registration_certificate_subject_payload(access_certificate);
     payload.0["name"] = json!("Mock issuer");
-    payload.0["srv_description"] = json!([[{ "lang": "en", "value": "Mock issuance service" }]]);
+    payload.0["srv_description"] = json!([[
+        {
+            "lang": "nl",
+            "value": "Voeg digitale documenten toe aan uw wallet om uw gegevens met andere organisaties te delen."
+        },
+        {
+            "lang": "en",
+            "value": "Add digital documents to your wallet to share your details with other organizations."
+        }
+    ]]);
     payload.0["entitlements"] = json!(["https://uri.etsi.org/19475/Entitlement/Non_Q_EAA_Provider"]);
     payload.0["provides_attestations"] = credential_kinds
         .into_iter()
