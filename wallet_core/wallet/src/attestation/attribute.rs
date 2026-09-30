@@ -84,9 +84,7 @@ impl AttestationPresentation {
         let PresentationComponents {
             display_metadata,
             claims,
-        } = metadata
-            .into_presentation_components()
-            .map_err(AttestationError::Metadata)?;
+        } = metadata.into_presentation_components();
 
         // For every claim in the metadata, find the correct attribute
         // and convert it to a `AttestationAttribute` value (with optionally Json Schema metadata).

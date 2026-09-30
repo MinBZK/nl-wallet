@@ -20,7 +20,6 @@ use uuid::Uuid;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 use crate::attestation::metadata::AttestationDisplayMetadata;
-use crate::attestation::metadata::AttestationMetadataError;
 use crate::attestation::metadata::ClaimDisplay;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -36,10 +35,6 @@ pub enum AttestationError {
     #[error("error converting to attributes: {0}")]
     #[category(pd)]
     Attributes(#[from] AttributesError),
-
-    #[error("error validating metadata rules for display: {0}")]
-    #[category(pd)]
-    Metadata(#[source] AttestationMetadataError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

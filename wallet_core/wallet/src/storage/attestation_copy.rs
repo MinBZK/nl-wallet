@@ -24,7 +24,6 @@ use crate::AttestationPresentation;
 use crate::attestation::AttestationPresentationConfig;
 use crate::attestation::AttestationValidity;
 use crate::attestation::metadata::AttestationDisplay;
-use crate::attestation::metadata::AttestationMetadataError;
 use crate::attestation::metadata::PresentationComponents;
 
 #[derive(Debug, thiserror::Error)]
@@ -62,7 +61,7 @@ pub enum StoredAttestationMetadata {
 }
 
 impl AttestationDisplay for StoredAttestationMetadata {
-    fn into_presentation_components(self) -> Result<PresentationComponents, AttestationMetadataError> {
+    fn into_presentation_components(self) -> PresentationComponents {
         match self {
             StoredAttestationMetadata::TypeMetadata(type_metadata) => type_metadata.into_presentation_components(),
             StoredAttestationMetadata::CredentialMetadata(credential_metadata) => {

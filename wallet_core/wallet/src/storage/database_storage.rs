@@ -1527,6 +1527,7 @@ pub(crate) mod tests {
     use itertools::Itertools;
     use mdoc::IdentifierListInfo;
     use mdoc::holder::Mdoc;
+    use openid4vc::metadata::issuer_metadata::Logo;
     use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
     use openid4vc::wallet_issuance::credential::SdJwtCopy;
     use p256::ecdsa::SigningKey;
@@ -1550,6 +1551,7 @@ pub(crate) mod tests {
     use crate::attestation::AttestationValidity;
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::storage::data::RegistrationData;
+    use crate::wallet::test::mdoc_from_credential_payload;
     use crate::wallet::test::nl_pid_mdoc_credential_metadata_example;
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
@@ -1557,6 +1559,15 @@ pub(crate) mod tests {
 
         generate_issuer_mock_with_registration(&issuer_ca, &IssuerRegistration::new_mock()).unwrap()
     });
+
+    /// A mock mdoc is never deserialized, so it contains `ProtectedHeader { original_data: None, .. }`. When an
+    /// mdoc is serialized, stored, fetched, and then deserialized again, it will contain
+    /// `ProtectedHeader { original_data: Some(..), .. }`, so a direct equality check against the original value
+    /// would fail. Round-tripping through `cbor_(de)serialize` up front fixes that.
+    fn round_trip_mdoc(mdoc: &Mdoc) -> Mdoc {
+        let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
+        Mdoc::dangerous_parse_unverified(issuer_signed).unwrap()
+    }
 
     #[test]
     fn test_key_file_alias_for_name() {
@@ -1865,13 +1876,7 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let mdoc = Mdoc::new_mock().await;
-
-        // The mock mdoc is never deserialized, so it contains `ProtectedHeader { original_data: None, .. }`.
-        // When this mdoc is serialized, stored, fetched, and then deserialized again, it will contain
-        // `ProtectedHeader { original_data: Some(..), .. }` so the equality check below will fail.
-        // These lines fix that.
-        let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
-        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed).unwrap();
+        let mdoc = round_trip_mdoc(&mdoc);
 
         let mdoc_copy = MdocCopy {
             key_identifier: "mdoc_key_id".to_string(),
@@ -2099,6 +2104,68 @@ pub(crate) mod tests {
         assert!(fetched_unique.is_empty());
     }
 
+    /// Store an mdoc whose Credential Metadata display includes a logo that refers to an external resource. The
+    /// wallet does not support fetching external images, so storing and presenting it should succeed, but the logo
+    /// should not be shown.
+    #[tokio::test]
+    async fn test_mdoc_storage_with_external_logo() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        let (credential_payload, holder_key) = CredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default());
+        let mdoc = mdoc_from_credential_payload(credential_payload.previewable_payload, &ISSUER_KEY, &holder_key);
+        let mdoc = round_trip_mdoc(&mdoc);
+
+        let mut credential_metadata = nl_pid_mdoc_credential_metadata_example();
+
+        // Set the logo to an external URI, so the wallet should remove it from the display metadata when presenting.
+        let display = credential_metadata.display.as_mut().unwrap().iter_mut().next().unwrap();
+        display.logo = Some(Logo {
+            uri: "https://example.com/logo.png".parse().unwrap(),
+            alt_text: Some("a logo".to_owned()),
+        });
+
+        storage
+            .insert_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        IssuedCredentialCopies::Mdoc(vec_nonempty![MdocCopy {
+                            key_identifier: "mdoc_key_id".to_owned(),
+                            mdoc: mdoc.clone(),
+                        }]),
+                        mdoc.doc_type().to_owned(),
+                        None,
+                        None,
+                        Vec::<String>::new(),
+                        IssuedCredentialMetadata::CredentialMetadata(credential_metadata),
+                    ),
+                    AttestationPresentation::new_mock(),
+                )],
+            )
+            .await
+            .expect("could not insert attestation with an externally hosted logo");
+
+        let fetched_unique = storage
+            .fetch_unique_attestations()
+            .await
+            .expect("could not fetch unique attestations");
+        assert_eq!(fetched_unique.len(), 1);
+
+        let presentation = fetched_unique
+            .into_iter()
+            .next()
+            .unwrap()
+            .into_attestation_presentation(&EmptyPresentationConfig);
+        let display = presentation
+            .display_metadata
+            .into_iter()
+            .next()
+            .expect("display should contain one entry");
+
+        // The logo was the only rendering property present, so no rendering info should be shown at all.
+        assert!(display.rendering.is_none());
+    }
+
     #[tokio::test]
     async fn test_mdoc_storage_with_identifier_list_status() {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
@@ -2164,8 +2231,7 @@ pub(crate) mod tests {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         let mdoc = Mdoc::new_mock().await;
-        let issuer_signed = cbor_deserialize(cbor_serialize(mdoc.issuer_signed()).unwrap().as_slice()).unwrap();
-        let mdoc = Mdoc::dangerous_parse_unverified(issuer_signed).unwrap();
+        let mdoc = round_trip_mdoc(&mdoc);
 
         let attestation_type = mdoc.doc_type().to_string();
 
