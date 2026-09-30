@@ -9,7 +9,8 @@ wptl_trust_anchors = ["${WPTL_CA_CRT}"]
 
 type_metadata = [
     "${ISSUER_METADATA_DEGREE_PATH}",
-    "${ISSUER_METADATA_HOUSING_PATH}"
+    "${ISSUER_METADATA_HOUSING_PATH}",
+    "${ISSUER_METADATA_DEZI_PATH}"
 ]
 
 [credential_metadata_keypair]
@@ -122,3 +123,37 @@ publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_HOUSING_TSL}"
 certificate = "${DEMO_ISSUER_CRT_HOUSING_TSL}"
+
+[disclosure_settings.dezi]
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_DEZI_WRPAC}"
+certificate = "${DEMO_ISSUER_CRT_DEZI_WRPAC}"
+registration_certificate = "${DEMO_ISSUER_REGISTRATION_CERTIFICATE_DEZI}"
+
+[[disclosure_settings.dezi.dcql_query.credentials]]
+id = "bsn_sd_jwt"
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid:nl:1"] }
+claims = [
+    { path = ["bsn"] }
+]
+
+[disclosure_settings.dezi.attestation_url_config]
+base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/dezi/"
+trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
+
+[credential_configurations."dezi_verklaring_sd_jwt"]
+format = "dc+sd-jwt"
+attestation_type = "https://www.dezi.nl/vct/v1/deziVerklaringDcSdJwt"
+valid_days = 365
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_DEZI_ISSUER}"
+certificate = "${DEMO_ISSUER_CRT_DEZI_ISSUER}"
+
+[credential_configurations."dezi_verklaring_sd_jwt".status_list]
+group_name = "dezi_verklaring_sd_jwt"
+context_path = "/tsl"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_DEZI_TSL}"
+certificate = "${DEMO_ISSUER_CRT_DEZI_TSL}"

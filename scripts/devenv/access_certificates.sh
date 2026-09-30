@@ -73,4 +73,8 @@ declare -A access_certificates=(
     [(pacf_issuance_server,name)]='Demo Issuer (pre-authorized code)'
     [(pacf_issuance_server,legal_name)]='Demo Issuer (pre-authorized code)'
     [(pacf_issuance_server,oid)]='NTRNL-99876551'
+
+    [(dezi,name)]='CIBG'
+    [(dezi,legal_name)]='Ministerie van Volksgezondheid, Welzijn en Sport'
+    [(dezi,oid)]='NTRNL-99876549'
 )

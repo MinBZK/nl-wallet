@@ -581,6 +581,25 @@ export DEMO_ISSUER_KEY_MVC_TSL
 DEMO_ISSUER_CRT_MVC_TSL=$(< "${TARGET_DIR}/demo_issuer/mvc.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MVC_TSL
 
+generate_demo_issuer_key_pairs dezi
+DEMO_ISSUER_KEY_DEZI_ISSUER=$(< "${TARGET_DIR}/demo_issuer/dezi.issuer.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_DEZI_ISSUER
+DEMO_ISSUER_CRT_DEZI_ISSUER=$(< "${TARGET_DIR}/demo_issuer/dezi.issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_DEZI_ISSUER
+DEMO_ISSUER_KEY_DEZI_TSL=$(< "${TARGET_DIR}/demo_issuer/dezi.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_DEZI_TSL
+DEMO_ISSUER_CRT_DEZI_TSL=$(< "${TARGET_DIR}/demo_issuer/dezi.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_DEZI_TSL
+DEMO_ISSUER_KEY_DEZI_WRPAC=$(< "${TARGET_DIR}/demo_issuer/dezi.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_DEZI_WRPAC
+DEMO_ISSUER_CRT_DEZI_WRPAC=$(< "${TARGET_DIR}/demo_issuer/dezi.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_DEZI_WRPAC
+generate_demo_issuer_disclosure_registration_certificate dezi 11
+DEMO_ISSUER_REGISTRATION_CERTIFICATE_DEZI=$(< "${TARGET_DIR}/demo_issuer/dezi.wrprc")
+export DEMO_ISSUER_REGISTRATION_CERTIFICATE_DEZI
+DEMO_ISSUER_CLIENT_ID_DEZI="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/dezi.wrpac.crt.der" | base64_url_encode)"
+export DEMO_ISSUER_CLIENT_ID_DEZI
+
 # Each issuance service publishes a WRPRC bound to its metadata-signing WRPAC.
 generate_issuance_registration_certificate pid 7 \
     "${TARGET_DIR}/pid_issuer/wrpac.crt.pem" "${TARGET_DIR}/pid_issuer/issuance" PID_Provider
@@ -629,8 +648,8 @@ render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_ind
 
 # Copy the Technical Attestation Schemas
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eudi_pid_nl_1_mdoc.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eudi_pid_nl_1_mdoc.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eudi_pid_nl_1_mdoc.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.housing.json" "${DEVENV}/dezi_verklaring.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${DEVENV}/dezi_verklaring.json" "${ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.museum_maandkaart.mdoc.json" "${DEVENV}/org.iso.18013.5.1.mDL.mdoc.json" "${DEVENV}/org.iso.7367.2.1.mVC.mdoc.json" "${PACF_ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.jum.bonuskaart.sd_jwt.json" "${DEVENV}/com.example.museum_maandkaart.mdoc.json" "${DEVENV}/org.iso.18013.5.1.mDL.mdoc.json" "${DEVENV}/org.iso.7367.2.1.mVC.mdoc.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.jum.bonuskaart.sd_jwt.json" "${ACF_DEMO_ISSUER_DIR}"
@@ -638,6 +657,7 @@ export ISSUER_METADATA_PID_PATH="eudi_pid_1.json"
 export ISSUER_METADATA_PID_NL_PATH="eudi_pid_nl_1.json"
 export ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
 export ISSUER_METADATA_HOUSING_PATH="com.example.housing.json"
+export ISSUER_METADATA_DEZI_PATH="dezi_verklaring.json"
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
@@ -667,12 +687,12 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wrprc"
 
-# All eleven demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
+# All twelve demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca status-list \
     --tsl-key-file "${TARGET_DIR}/wrprc_tsl.key.pem" \
     --tsl-crt-file "${TARGET_DIR}/wrprc_tsl.crt.pem" \
     --uri "${WRPRC_STATUS_LIST_URI}" \
-    --status valid valid valid valid valid valid valid valid valid valid valid \
+    --status valid valid valid valid valid valid valid valid valid valid valid valid \
     --ttl-seconds 3600 \
     > "${WALLET_CORE_DIR}/target/status-lists/wrprc/1.jwt"
 
