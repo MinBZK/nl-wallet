@@ -24,7 +24,7 @@
       "${WP_INSTRUCTION_RESULT_KID}": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}"
     },
     "wia_trust_anchors": ["${WIA_CA_CRT}"],
-    "certificate_refresh_threshold_in_days": 7
+    "certificate_refresh_threshold_in_days": 30
   },
   "pid_attributes": {
     "mso_mdoc": {
