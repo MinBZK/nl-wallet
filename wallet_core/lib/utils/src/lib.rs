@@ -1,5 +1,6 @@
 pub mod built_info;
 pub mod date_time_seconds;
+pub mod duration_days;
 pub mod generator;
 pub mod num;
 pub mod path;

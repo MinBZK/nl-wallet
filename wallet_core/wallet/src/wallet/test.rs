@@ -412,7 +412,9 @@ pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingK
         version: 0,
         iss: "wallet_unit_test".to_string(),
         iat,
-        exp: iat + Duration::from_secs(3600),
+        // Comfortably longer than the default test config's `certificate_refresh_threshold`, so unrelated tests
+        // don't unexpectedly trigger a certificate refresh.
+        exp: iat + Duration::from_hours(24 * 30),
     }
 }
 
