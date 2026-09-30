@@ -8,7 +8,7 @@ use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::Wallet;
-use super::lock::RefreshCertificateError;
+use super::refresh_certificate::RefreshCertificateError;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::ChangePinError;
 use crate::instruction::HwSignedInstructionClient;

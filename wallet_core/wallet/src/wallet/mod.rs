@@ -13,6 +13,7 @@ mod lock;
 mod notifications;
 mod pin_recovery;
 mod recovery_code;
+mod refresh_certificate;
 mod registration;
 mod reset;
 mod revocation;
