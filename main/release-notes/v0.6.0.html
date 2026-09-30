@@ -513,6 +513,10 @@ Credential Metadata from the Credential Issuer Metadata.</p></li>
 <code class="docutils literal notranslate"><span class="pre">identifier_list</span></code> status mechanism instead of a <code class="docutils literal notranslate"><span class="pre">status_list</span></code>. Since
 <code class="docutils literal notranslate"><span class="pre">identifier_list</span></code> is not yet supported, the revocation status of these mdocs
 is treated as undetermined.</p></li>
+<li><p>The wallet no longer rejects SD-JWT VC Type Metadata or Credential Issuer
+Metadata that references a logo or background image hosted externally (i.e. a
+<code class="docutils literal notranslate"><span class="pre">uri</span></code> that does not use the <code class="docutils literal notranslate"><span class="pre">data:</span></code> scheme). Such images are now silently
+ignored, instead of causing the credential’s metadata to be rejected.</p></li>
 </ul>
 </section>
 <section id="bug-fixes">
