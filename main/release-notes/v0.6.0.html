@@ -195,6 +195,11 @@
 <section id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
 <ul>
+<li><p>Issuers now require <code class="docutils literal notranslate"><span class="pre">registration_certificate</span></code>: a base64url-encoded WRPRC
+bound to their metadata-signing WRPAC. Helm deployments require this key in
+each issuer’s WRPAC secret. Before updating wallets, deploy the issuers,
+publish their referenced status lists, and ensure the wallet trusts the WRPRC
+signing chains.</p></li>
 <li><p>OpenID4VP disclosure use cases now require a Wallet Relying Party Registration
 Certificate (WRPRC). Configure each verification server and disclosure-based
 issuance server use case with a <code class="docutils literal notranslate"><span class="pre">registration_certificate</span></code>, configure
