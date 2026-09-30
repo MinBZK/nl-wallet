@@ -55,7 +55,7 @@ const BATCH_SIZE_MAX: NonZeroU8 = NonZeroU8::MAX;
 pub struct HttpIssuanceDiscovery<F = HttpCrlFetcher, C = HttpStatusListClient> {
     http_client: HttpClient,
     crl_verifier: CertificateCrlVerifier<F>,
-    registration_certificate_revocation_verifier: RevocationVerifier<C>,
+    wrprc_revocation_verifier: RevocationVerifier<C>,
 }
 
 impl<F, C> HttpIssuanceDiscovery<F, C>
@@ -66,7 +66,7 @@ where
         Self {
             http_client,
             crl_verifier,
-            registration_certificate_revocation_verifier: RevocationVerifier::new_with_defaults(
+            wrprc_revocation_verifier: RevocationVerifier::new_with_defaults(
                 Arc::new(status_list_client),
                 TimeGenerator,
             ),
@@ -501,7 +501,7 @@ where
             registration_certificate,
             &access_certificate,
             wrprc_trust_anchors,
-            &self.registration_certificate_revocation_verifier,
+            &self.wrprc_revocation_verifier,
             &TimeGenerator,
         )
         .await

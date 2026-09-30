@@ -44,7 +44,7 @@ use crate::verifier::SessionType;
 pub struct VpDisclosureClient<H = HttpVpMessageClient, F = HttpCrlFetcher, C = HttpStatusListClient> {
     client: H,
     crl_verifier: CertificateCrlVerifier<F>,
-    registration_certificate_revocation_verifier: RevocationVerifier<C>,
+    wrprc_revocation_verifier: RevocationVerifier<C>,
 }
 
 impl<H, F, C> VpDisclosureClient<H, F, C>
@@ -55,7 +55,7 @@ where
         Self {
             client,
             crl_verifier,
-            registration_certificate_revocation_verifier: RevocationVerifier::new_with_defaults(
+            wrprc_revocation_verifier: RevocationVerifier::new_with_defaults(
                 Arc::new(status_list_client),
                 TimeGenerator,
             ),
@@ -221,7 +221,7 @@ where
                 &dcql_query,
                 &certificate,
                 trust_anchors.wrprc,
-                &self.registration_certificate_revocation_verifier,
+                &self.wrprc_revocation_verifier,
                 &TimeGenerator,
             )
             .await
