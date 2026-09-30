@@ -955,10 +955,10 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .get(&offered_credential.config_id)
             .expect("`IssuanceState::metadata` has an entry for every offered configuration");
 
-        let (credential_copies, extended_attestation_types, issued_metadata) =
+        let (credential_copies, first_credential_payload, extended_attestation_types, issued_metadata) =
             match (offered_credential.format, offered_metadata) {
                 (Format::SdJwt, metadata @ OfferedCredentialMetadata::TypeMetadata { normalized, raw }) => {
-                    let sd_jwts = credentials.into_issued_sd_jwts(
+                    let (sd_jwts, credential_payloads) = credentials.into_issued_sd_jwts(
                         key_ids_and_public_keys,
                         metadata,
                         &offered_credential.preview,
@@ -973,12 +973,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     // extended attestation types.
                     (
                         IssuedCredentialCopies::SdJwt(sd_jwts),
+                        credential_payloads.into_first(),
                         normalized.extended_vcts().map(String::from).collect(),
                         IssuedCredentialMetadata::TypeMetadata(verified_metadata),
                     )
                 }
                 (Format::SdJwt, metadata @ OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
-                    let sd_jwts = credentials.into_issued_sd_jwts(
+                    let (sd_jwts, credential_payloads) = credentials.into_issued_sd_jwts(
                         key_ids_and_public_keys,
                         metadata,
                         &offered_credential.preview,
@@ -987,12 +988,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
                     (
                         IssuedCredentialCopies::SdJwt(sd_jwts),
+                        credential_payloads.into_first(),
                         Vec::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
                     )
                 }
                 (Format::MsoMdoc, OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
-                    let mdocs = credentials.into_issued_mdocs(
+                    let (mdocs, credential_payloads) = credentials.into_issued_mdocs(
                         key_ids_and_public_keys,
                         &offered_credential.preview,
                         credential_metadata,
@@ -1001,6 +1003,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
                     (
                         IssuedCredentialCopies::Mdoc(mdocs),
+                        credential_payloads.into_first(),
                         Vec::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
                     )
@@ -1024,9 +1027,9 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let credential_with_metadata = CredentialWithMetadata::new(
             credential_copies,
-            offered_credential.preview.credential_payload.attestation_type.clone(),
-            offered_credential.preview.credential_payload.expires,
-            offered_credential.preview.credential_payload.not_before,
+            first_credential_payload.previewable_payload.attestation_type,
+            first_credential_payload.previewable_payload.expires,
+            first_credential_payload.previewable_payload.not_before,
             extended_attestation_types,
             issued_metadata,
         );
@@ -1129,14 +1132,15 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
 }
 
 impl Credentials {
-    /// Create a set of mdoc credentials out of the credential response. This also verifies the credentials.
+    /// Create a set of mdoc credentials out of the credential response, along with the payload of each copy. This also
+    /// verifies the credentials.
     fn into_issued_mdocs(
         self,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         preview: &CredentialPreview,
         credential_metadata: &CredentialMetadata,
         trust_anchors: &TrustAnchors,
-    ) -> Result<VecNonEmpty<MdocCopy>, WalletIssuanceError> {
+    ) -> Result<(VecNonEmpty<MdocCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
         let Self::MsoMdoc(mdoc_credentials) = self else {
             return Err(WalletIssuanceError::UnexpectedCredentialResponseType {
                 expected: Format::MsoMdoc,
@@ -1144,7 +1148,7 @@ impl Credentials {
             });
         };
 
-        let mdocs = mdoc_credentials
+        let mdocs_and_payloads = mdoc_credentials
             .into_nonempty_iter()
             .zip(key_identifiers_and_public_keys)
             .map(|(mdoc_credential, (key_identifier, public_key))| {
@@ -1183,26 +1187,29 @@ impl Credentials {
                 Self::validate_credential(
                     preview,
                     &public_key,
-                    issued_credential_payload,
+                    &issued_credential_payload,
                     &credential_issuer_certificate,
                     credential_metadata,
                 )?;
 
-                Ok(MdocCopy { key_identifier, mdoc })
+                Ok((MdocCopy { key_identifier, mdoc }, issued_credential_payload))
             })
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<VecNonEmpty<_>, _>>()?
+            .into_nonempty_iter()
+            .unzip();
 
-        Ok(mdocs)
+        Ok(mdocs_and_payloads)
     }
 
-    /// Create a set of SD-JWT credentials out of the credential response. This also verifies the credentials.
+    /// Create a set of SD-JWT credentials out of the credential response, along with the payload of each copy. This
+    /// also verifies the credentials.
     fn into_issued_sd_jwts(
         self,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         metadata: &OfferedCredentialMetadata,
         preview: &CredentialPreview,
         trust_anchors: &TrustAnchors,
-    ) -> Result<VecNonEmpty<SdJwtCopy>, WalletIssuanceError> {
+    ) -> Result<(VecNonEmpty<SdJwtCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
         let Self::SdJwt(sd_jwt_credentials) = self else {
             return Err(WalletIssuanceError::UnexpectedCredentialResponseType {
                 expected: Format::SdJwt,
@@ -1210,7 +1217,7 @@ impl Credentials {
             });
         };
 
-        let sd_jwts = sd_jwt_credentials
+        let sd_jwts_and_payloads = sd_jwt_credentials
             .into_nonempty_iter()
             .zip(key_identifiers_and_public_keys)
             .map(|(sd_jwt_credential, (key_identifier, public_key))| {
@@ -1238,22 +1245,24 @@ impl Credentials {
                 Self::validate_credential(
                     preview,
                     &public_key,
-                    issued_credential_payload,
+                    &issued_credential_payload,
                     sd_jwt.issuer_leaf_certificate(),
                     metadata,
                 )?;
 
-                Ok(SdJwtCopy { key_identifier, sd_jwt })
+                Ok((SdJwtCopy { key_identifier, sd_jwt }, issued_credential_payload))
             })
-            .collect::<Result<_, WalletIssuanceError>>()?;
+            .collect::<Result<VecNonEmpty<_>, WalletIssuanceError>>()?
+            .into_nonempty_iter()
+            .unzip();
 
-        Ok(sd_jwts)
+        Ok(sd_jwts_and_payloads)
     }
 
     fn validate_credential(
         preview: &CredentialPreview,
         holder_pubkey: &PublicKey,
-        credential_payload: CredentialPayload,
+        credential_payload: &CredentialPayload,
         credential_issuer_certificate: &BorrowingCertificate,
         metadata: &impl AttestationClaims,
     ) -> Result<(), WalletIssuanceError> {
@@ -1270,7 +1279,7 @@ impl Credentials {
         // Check that the credential contains exactly the attributes the issuer said it would have.
         if credential_payload.previewable_payload != preview.credential_payload {
             return Err(WalletIssuanceError::IssuedCredentialMismatch {
-                actual: Box::new(credential_payload.previewable_payload),
+                actual: Box::new(credential_payload.previewable_payload.clone()),
                 expected: Box::new(preview.credential_payload.clone()),
             });
         }
