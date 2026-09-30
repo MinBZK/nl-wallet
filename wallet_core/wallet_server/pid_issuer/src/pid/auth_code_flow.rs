@@ -600,7 +600,7 @@ mod tests {
 
     /// Claim names for a mock mdoc Credential Metadata matching what
     /// [`crate::pid::brp::data::BrpPerson::into_mdoc_attributes`] actually produces. The real mdoc credential
-    /// metadata is a separate JSON file (`eudi_pid_nl_1_mdoc.json`) not exercised by these unit tests.
+    /// metadata is a separate JSON file (`eu.europa.ec.eudi.pid.1.json`) not exercised by these unit tests.
     const PID_MDOC_CLAIM_NAMES: &[&str] = &[
         "family_name",
         "given_name",

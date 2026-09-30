@@ -18,7 +18,7 @@
   "claims": [
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "family_name"
       ],
       "mandatory": true,
@@ -35,7 +35,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "given_name"
       ],
       "mandatory": true,
@@ -52,7 +52,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "birthdate"
       ],
       "mandatory": true,
@@ -69,7 +69,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "age_over_18"
       ],
       "display": [
@@ -85,7 +85,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "nationalities"
       ],
       "display": [
@@ -101,7 +101,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "bsn"
       ],
       "mandatory": true,
@@ -118,7 +118,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "recovery_code"
       ],
       "mandatory": true,
@@ -135,7 +135,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "street_address"
       ],
       "mandatory": true,
@@ -152,7 +152,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "house_number"
       ],
       "mandatory": true,
@@ -169,7 +169,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "postal_code"
       ],
       "mandatory": true,
@@ -186,7 +186,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "locality"
       ],
       "mandatory": true,
@@ -203,7 +203,7 @@
     },
     {
       "path": [
-        "urn:eudi:pid:nl:1",
+        "eu.europa.ec.eudi.pid.1",
         "country"
       ],
       "mandatory": true,

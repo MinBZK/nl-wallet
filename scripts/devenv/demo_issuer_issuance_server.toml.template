@@ -47,9 +47,9 @@ registration_certificate = "${DEMO_ISSUER_REGISTRATION_CERTIFICATE_UNIVERSITY}"
 [[disclosure_settings.university_mdoc.dcql_query.credentials]]
 id = "bsn_mdoc"
 format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid:nl:1" }
+meta = { doctype_value = "eu.europa.ec.eudi.pid.1" }
 claims = [
-    { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
+    { path = ["eu.europa.ec.eudi.pid.1", "bsn"], intent_to_retain = true }
 ]
 
 [disclosure_settings.university_mdoc.attestation_url_config]
@@ -99,9 +99,9 @@ registration_certificate = "${DEMO_ISSUER_REGISTRATION_CERTIFICATE_HOUSING}"
 [[disclosure_settings.housing.dcql_query.credentials]]
 id = "my_credential"
 format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid:nl:1" }
+meta = { doctype_value = "eu.europa.ec.eudi.pid.1" }
 claims = [
-    { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
+    { path = ["eu.europa.ec.eudi.pid.1", "bsn"], intent_to_retain = true }
 ]
 
 [disclosure_settings.housing.attestation_url_config]
