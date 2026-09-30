@@ -302,10 +302,10 @@ impl VcMessageClient for HttpVcMessageClient {
     }
 }
 
-/// Internal helper type that represents the relevant information about the credentials that the issuer offered to the
-/// holder in the Token Response. The [`CredentialConfiguration`]s are sourced from the Issuer Metadata.
+/// Internal helper type that represents the relevant information about the credential configurations that the issuer
+/// offered to the holder in the Token Response. The [`CredentialConfiguration`]s are sourced from the Issuer Metadata.
 #[derive(Debug)]
-enum OfferedCredentials {
+enum OfferedConfigurations {
     /// The result of a Token Response that did not contain `authorization_details`. Credentials may only be identified
     /// by their Credential Configuration Identifier when the holder calls the Credential Endpoint to fetch the
     /// credentials.
@@ -320,8 +320,8 @@ enum OfferedCredentials {
     WithIdentifiers(HashMap<CredentialConfigurationId, (CredentialConfiguration, HashSet<CredentialId>)>),
 }
 
-impl OfferedCredentials {
-    /// Create [`OfferedCredentials`] by combining the Credential Configurations that were present in the Credential
+impl OfferedConfigurations {
+    /// Create [`OfferedConfigurations`] by combining the Credential Configurations that were present in the Credential
     /// Offer with the `scope` and `authorization_details` fields as received in the Token Response, discarding any
     /// Credential Configurations that the issuer no longer offers.
     fn new_from_token_response(
@@ -601,7 +601,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .await
             .map_err(|error| map_pre_authorized_token_error(error, &token_request))?;
 
-        let offered_credentials = OfferedCredentials::new_from_token_response(
+        let offered_configurations = OfferedConfigurations::new_from_token_response(
             credential_configurations,
             token_response.oauth_response.scope.as_ref(),
             token_response.authorization_details,
@@ -610,7 +610,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         // Request preview and fetch metadata
         let (metadata, credential_previews) = try_join!(
             Self::fetch_metadata(
-                offered_credentials.credential_config_iter(),
+                offered_configurations.credential_config_iter(),
                 &credential_issuer,
                 &message_client
             ),
@@ -638,7 +638,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .map_err(|_| WalletIssuanceError::DifferentIssuers)?;
 
         let offered_credential_previews =
-            Self::match_preview_against_offered_credentials(credential_previews, offered_credentials)?;
+            Self::match_preview_against_offered_configurations(credential_previews, offered_configurations)?;
 
         let session_state = IssuanceState {
             access_token: token_response.oauth_response.access_token,
@@ -794,14 +794,14 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     /// Check that the `CredentialPreview`s exactly match the credentials that were offered by the issuer. This throws
     /// an error when any previews are missing or when excess previews are received.
-    fn match_preview_against_offered_credentials(
+    fn match_preview_against_offered_configurations(
         credential_previews: VecNonEmpty<CredentialPreview>,
-        offered_credentials: OfferedCredentials,
+        offered_configurations: OfferedConfigurations,
     ) -> Result<OfferedCredentialPreviews, WalletIssuanceError> {
-        let (offered_credential_previews, excess_identifiers): (_, Vec<_>) = match offered_credentials {
+        let (offered_credential_previews, excess_identifiers): (_, Vec<_>) = match offered_configurations {
             // If the offered credential configurations did not contain credential identifiers because the issuer did
             // not send `authorization_details`, match every preview against its `config_id` value only.
-            OfferedCredentials::WithoutIdentifiers(mut configs) => {
+            OfferedConfigurations::WithoutIdentifiers(mut configs) => {
                 let (previews_by_config_id, excess_identifiers) =
                     credential_previews.into_iter().partition_map(|preview| {
                         // If both the config_id and format match, remove the Credential Configuration. Otherwise,
@@ -840,7 +840,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             }
             // If the issuer did send `authorization_details`, match every preview exactly against both its `config_id`
             // and `credential_id` values.
-            OfferedCredentials::WithIdentifiers(mut configs) => {
+            OfferedConfigurations::WithIdentifiers(mut configs) => {
                 let (previews_by_credential_id, excess_identifiers) =
                     credential_previews.into_iter().partition_map(|preview| {
                         // If the config_id, credential_id and format all match, remove the credential_id. Otherwise,
