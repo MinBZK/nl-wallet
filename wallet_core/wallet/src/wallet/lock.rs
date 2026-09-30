@@ -205,8 +205,6 @@ where
             .as_key_and_registration_data()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
-        let current_certificate = registration_data.wallet_certificate.clone();
-
         let remote_instruction = self
             .new_instruction_client(
                 pin,
@@ -214,7 +212,7 @@ where
                 InstructionClientParameters::new(
                     registration_data.wallet_id.clone(),
                     registration_data.pin_salt.clone(),
-                    current_certificate.clone(),
+                    registration_data.wallet_certificate.clone(),
                     config.account_server.http_config.clone(),
                     config.account_server.instruction_result_public_keys.clone(),
                 ),
