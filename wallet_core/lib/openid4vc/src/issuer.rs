@@ -1779,6 +1779,8 @@ mod tests {
     use crate::server_state::test::test_memory_store_with_cleanup_task;
     use crate::test::MOCK_ATTESTATION_TYPES;
     use crate::test::MOCK_ATTRS;
+    use crate::test::MetadataSource;
+    use crate::test::MockAttestationType;
     use crate::test::MockIssuer;
     use crate::test::mock_issuable_document_with_attrs;
     use crate::test::mock_issuable_documents;
@@ -1886,7 +1888,10 @@ mod tests {
         let (_, metadata) = TypeMetadataDocuments::degree_example();
         let (issuer, trust_anchors, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             "https://example.com/".parse().unwrap(),
-            vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
+            vec![MockAttestationType::SdJwt {
+                vct: "com.example.degree".to_string(),
+                metadata: MetadataSource::TypeMetadata(metadata),
+            }],
             Arc::new(MemorySessionStore::default()),
         );
 
@@ -1927,7 +1932,10 @@ mod tests {
         let (_, metadata) = TypeMetadataDocuments::degree_example();
         let (issuer, _, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             "https://example.com/".parse().unwrap(),
-            vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
+            vec![MockAttestationType::SdJwt {
+                vct: "com.example.degree".to_string(),
+                metadata: MetadataSource::TypeMetadata(metadata),
+            }],
             Arc::new(MemorySessionStore::default()),
         );
 
@@ -1973,11 +1981,25 @@ mod tests {
 
         let (attestation_type, _, metadata_documents) =
             TypeMetadataDocuments::from_single_example(mock_type_metadata(MOCK_ATTESTATION_TYPES[0]));
-        let attestations = [Format::MsoMdoc, Format::SdJwt]
-            .into_iter()
-            .zip(std::iter::repeat_n((attestation_type, metadata_documents), 2))
-            .map(|(format, (attestation_type, metadata_documents))| (format, attestation_type, metadata_documents))
-            .collect();
+
+        let (normalized, _) = metadata_documents
+            .clone()
+            .into_normalized(&attestation_type)
+            .expect("example type metadata should normalize");
+
+        let attestations = vec![
+            MockAttestationType::MsoMdoc {
+                doc_type: attestation_type.clone(),
+                credential_metadata: CredentialMetadata::new_mdoc_example_from_type_metadata(
+                    &attestation_type,
+                    &normalized,
+                ),
+            },
+            MockAttestationType::SdJwt {
+                vct: attestation_type,
+                metadata: MetadataSource::TypeMetadata(metadata_documents),
+            },
+        ];
 
         let (issuer, trust_anchor, wptl_ca, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             issuer_identifier.clone(),

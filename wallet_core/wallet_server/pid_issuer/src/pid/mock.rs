@@ -15,11 +15,11 @@ use crate::pid::brp::client::BrpError;
 use crate::pid::brp::data::BrpPersons;
 use crate::pid::constants::PID_ADDRESS_GROUP;
 use crate::pid::constants::PID_AGE_OVER_18;
-use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BIRTH_DATE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_FAMILY_NAME;
 use crate::pid::constants::PID_GIVEN_NAME;
+use crate::pid::constants::PID_MDOC_NAMESPACE;
 use crate::pid::constants::PID_NATIONALITY;
 use crate::pid::constants::PID_RECOVERY_CODE;
 use crate::pid::constants::PID_RESIDENT_CITY;
@@ -167,51 +167,51 @@ pub fn mock_pid_example() -> Attributes {
 pub fn mock_pid_mdoc_example() -> Attributes {
     Attributes::example([
         (
-            vec![PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
+            vec![PID_MDOC_NAMESPACE, PID_FAMILY_NAME],
             Attribute::Text("Jansen".to_string()),
         ),
         (
-            vec![PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+            vec![PID_MDOC_NAMESPACE, PID_GIVEN_NAME],
             Attribute::Text("Frouke".to_string()),
         ),
         (
-            vec![PID_ATTESTATION_TYPE, PID_BIRTH_DATE],
+            vec![PID_MDOC_NAMESPACE, PID_BIRTH_DATE],
             Attribute::Text("2000-03-24".to_string()),
         ),
-        (vec![PID_ATTESTATION_TYPE, PID_AGE_OVER_18], Attribute::Bool(true)),
+        (vec![PID_MDOC_NAMESPACE, PID_AGE_OVER_18], Attribute::Bool(true)),
         (
-            vec![PID_ATTESTATION_TYPE, PID_BSN],
+            vec![PID_MDOC_NAMESPACE, PID_BSN],
             Attribute::Text("999991772".to_string()),
         ),
         (
-            vec![PID_ATTESTATION_TYPE, PID_NATIONALITY],
+            vec![PID_MDOC_NAMESPACE, PID_NATIONALITY],
             Attribute::Array(vec![
                 Attribute::Text("Nederlandse".to_string()),
                 Attribute::Text("Belgische".to_string()),
             ]),
         ),
         (
-            vec![PID_ATTESTATION_TYPE, PID_RECOVERY_CODE],
+            vec![PID_MDOC_NAMESPACE, PID_RECOVERY_CODE],
             Attribute::Text("1234567".to_string()),
         ),
         (
-            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_STREET],
+            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_STREET],
             Attribute::Text("Van Wijngaerdenstraat".to_string()),
         ),
         (
-            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_HOUSE_NUMBER],
+            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_HOUSE_NUMBER],
             Attribute::Text("1".to_string()),
         ),
         (
-            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_POSTAL_CODE],
+            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_POSTAL_CODE],
             Attribute::Text("2596TW".to_string()),
         ),
         (
-            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_CITY],
+            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_CITY],
             Attribute::Text("Toetsoog".to_string()),
         ),
         (
-            vec![PID_ATTESTATION_TYPE, PID_RESIDENT_COUNTRY],
+            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_COUNTRY],
             Attribute::Text("Nederland".to_string()),
         ),
     ])
@@ -225,7 +225,6 @@ mod tests {
     use itertools::Either;
 
     use super::*;
-    use crate::pid::constants::PID_ATTESTATION_TYPE;
 
     // Lay out the attributes of a PID for mdoc, which places every attribute in a single namespace named
     // after the attestation type, without nesting.
@@ -240,7 +239,7 @@ mod tests {
             .collect::<IndexMap<_, _>>();
 
         Attributes::from(IndexMap::from([(
-            String::from(PID_ATTESTATION_TYPE),
+            PID_MDOC_NAMESPACE.to_owned(),
             Attribute::Object(entries),
         )]))
     }

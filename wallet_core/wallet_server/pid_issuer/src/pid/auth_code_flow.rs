@@ -52,7 +52,7 @@ use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
 use crate::pid::brp::client::HttpBrpClient;
 use crate::pid::brp::data::BrpPerson;
-use crate::pid::constants::PID_ATTESTATION_TYPE;
+use crate::pid::constants::pid_attestation_type;
 use crate::pid::digid;
 use crate::pid::digid::DigidClient;
 use crate::pid::digid::DigidMetadataClient;
@@ -281,13 +281,14 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             .into_nonempty_iter()
             .zip(utils::vec_at_least::repeat_n((person, recovery_code), format_count))
             .map(|(format, (person, recovery_code))| {
+                let attestation_type = pid_attestation_type(format);
                 let attributes = match format {
                     Format::MsoMdoc => person.into_mdoc_attributes(recovery_code),
                     Format::SdJwt => person.into_sd_jwt_attributes(recovery_code),
                 };
 
                 IssuableDocument::try_new_with_random_id(
-                    CredentialKind::new(format, PID_ATTESTATION_TYPE.to_string()),
+                    CredentialKind::new(format, attestation_type.to_owned()),
                     attributes,
                 )
             })
@@ -313,7 +314,7 @@ where
             .clone()
             .into_iter()
             .partition_map(|credential_kind| {
-                if credential_kind.attestation_type == PID_ATTESTATION_TYPE {
+                if credential_kind.attestation_type == pid_attestation_type(credential_kind.format) {
                     Either::Left(credential_kind.format)
                 } else {
                     Either::Right(credential_kind)
@@ -532,6 +533,7 @@ mod tests {
     use openid4vc::issuer::AuthRequestValues;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
+    use openid4vc::metadata::issuer_metadata::CredentialMetadata;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::server_state::MemorySessionStore;
@@ -539,6 +541,8 @@ mod tests {
     use openid4vc::server_state::SessionToken;
     use openid4vc::store::MemoryStore;
     use openid4vc::store::Store;
+    use openid4vc::test::MetadataSource;
+    use openid4vc::test::MockAttestationType;
     use openid4vc::test::MockObtainingStatusListService;
     use openid4vc::test::setup_mock_issuer_attestation_types_and_metadata;
     use p256::ecdsa::SigningKey;
@@ -558,7 +562,10 @@ mod tests {
     use super::complete_digid_callback;
     use super::recovery_code;
     use crate::pid::brp::client::BrpClient;
-    use crate::pid::constants::PID_ATTESTATION_TYPE;
+    use crate::pid::constants::PID_MDOC_DOCTYPE;
+    use crate::pid::constants::PID_MDOC_NAMESPACE;
+    use crate::pid::constants::PID_NL_SD_JWT_VCT;
+    use crate::pid::constants::pid_attestation_type;
     use crate::pid::mock::MOCK_BSN;
     use crate::pid::mock::MockBrpClient;
     use crate::pid::mock::MockDigidClient;
@@ -590,6 +597,24 @@ mod tests {
             .unwrap()
         ])
     });
+
+    /// Claim names for a mock mdoc Credential Metadata matching what
+    /// [`crate::pid::brp::data::BrpPerson::into_mdoc_attributes`] actually produces. The real mdoc credential
+    /// metadata is a separate JSON file (`eudi_pid_nl_1_mdoc.json`) not exercised by these unit tests.
+    const PID_MDOC_CLAIM_NAMES: &[&str] = &[
+        "family_name",
+        "given_name",
+        "birthdate",
+        "age_over_18",
+        "bsn",
+        "nationalities",
+        "recovery_code",
+        "street_address",
+        "house_number",
+        "postal_code",
+        "locality",
+        "country",
+    ];
 
     fn recovery_code_secret_key() -> SecretKeyVariant {
         SecretKeyVariant::from_settings(
@@ -634,12 +659,14 @@ mod tests {
         let (issuer, _, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap(),
             vec![
-                (Format::SdJwt, PID_ATTESTATION_TYPE.to_string(), NL_PID_METADATA.clone()),
-                (
-                    Format::MsoMdoc,
-                    PID_ATTESTATION_TYPE.to_string(),
-                    NL_PID_METADATA.clone(),
-                ),
+                MockAttestationType::SdJwt {
+                    vct: PID_NL_SD_JWT_VCT.to_owned(),
+                    metadata: MetadataSource::TypeMetadata(NL_PID_METADATA.clone()),
+                },
+                MockAttestationType::MsoMdoc {
+                    doc_type: PID_MDOC_DOCTYPE.to_owned(),
+                    credential_metadata: CredentialMetadata::new_mdoc_example(PID_MDOC_NAMESPACE, PID_MDOC_CLAIM_NAMES),
+                },
             ],
             Arc::clone(&sessions),
         );
@@ -675,16 +702,16 @@ mod tests {
                 state: Some(WALLET_STATE.to_string()),
                 issuer_state: None,
                 credential_kinds: HashSet::from([
-                    CredentialKind::new(Format::MsoMdoc, String::from(PID_ATTESTATION_TYPE)),
-                    CredentialKind::new(Format::SdJwt, String::from(PID_ATTESTATION_TYPE)),
+                    CredentialKind::new(Format::MsoMdoc, PID_MDOC_DOCTYPE.to_owned()),
+                    CredentialKind::new(Format::SdJwt, PID_NL_SD_JWT_VCT.to_owned()),
                 ]),
                 request_values: AuthRequestValues::new(
                     MOCK_WALLET_CLIENT_ID.to_string(),
                     WALLET_REDIRECT_URI.parse().unwrap(),
                     WALLET_CODE_CHALLENGE.to_string(),
                     HashSet::from([
-                        Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::MsoMdoc)).unwrap(),
-                        Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::SdJwt)).unwrap(),
+                        Scope::try_new(format!("{PID_MDOC_DOCTYPE}_{}", Format::MsoMdoc)).unwrap(),
+                        Scope::try_new(format!("{PID_NL_SD_JWT_VCT}_{}", Format::SdJwt)).unwrap(),
                     ]),
                 ),
             },
@@ -733,10 +760,10 @@ mod tests {
         );
 
         let context = wallet_context(HashSet::from([
-            CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
-            CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
+            CredentialKind::new(Format::SdJwt, PID_NL_SD_JWT_VCT.to_owned()),
+            CredentialKind::new(Format::MsoMdoc, PID_MDOC_DOCTYPE.to_owned()),
             // Test deduplication.
-            CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            CredentialKind::new(Format::SdJwt, PID_NL_SD_JWT_VCT.to_owned()),
         ]));
         let wallet_code_challenge = context.request_values.code_challenge.clone();
 
@@ -857,7 +884,9 @@ mod tests {
                 .credential_ids_and_documents
                 .as_ref()
                 .iter()
-                .all(|(_config_id, document)| document.credential_kind.attestation_type == PID_ATTESTATION_TYPE)
+                .all(|(_config_id, document)| {
+                    document.credential_kind.attestation_type == pid_attestation_type(document.credential_kind.format)
+                })
         );
     }
 

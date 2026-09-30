@@ -8,7 +8,7 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::issuable_document::IssuableDocument;
-use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
+use pid_issuer::pid::constants::PID_NL_SD_JWT_VCT;
 use serial_test::serial;
 use status_lists::postgres::revocation_helper::BatchIsRevoked;
 use tests_integration::common::*;
@@ -30,7 +30,7 @@ async fn test_revocation_pid_ok() {
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin).await;
 
-    assert_revokeable(&mut wallet, PID_ATTESTATION_TYPE, issuance_urls.pid_issuer.internal).await;
+    assert_revokeable(&mut wallet, PID_NL_SD_JWT_VCT, issuance_urls.pid_issuer.internal).await;
 
     // Disclosing a revoked attestation should fail
     let err = wallet

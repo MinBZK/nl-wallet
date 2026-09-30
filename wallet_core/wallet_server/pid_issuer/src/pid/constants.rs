@@ -1,6 +1,22 @@
-pub const EUDI_PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:1";
+use attestation_types::credential_format::Format;
 
-pub const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
+pub const PID_BASE_SD_JWT_VCT: &str = "urn:eudi:pid:1";
+
+/// The SD-JWT VC `vct` for the NL PID
+pub const PID_NL_SD_JWT_VCT: &str = "urn:eudi:pid:nl:1";
+
+/// The mdoc `doctype` from the PID Rulebook. Note that ISO/IEC 18013-5 has no `vct`-style extension mechanism for
+/// NL specific claims
+pub const PID_MDOC_DOCTYPE: &str = "eu.europa.ec.eudi.pid.1";
+/// The mdoc `namespace` from the PID Rulebook. Currently equal to [`PID_MDOC_DOCTYPE`].
+pub const PID_MDOC_NAMESPACE: &str = PID_MDOC_DOCTYPE;
+
+pub fn pid_attestation_type(format: Format) -> &'static str {
+    match format {
+        Format::MsoMdoc => PID_MDOC_DOCTYPE,
+        Format::SdJwt => PID_NL_SD_JWT_VCT,
+    }
+}
 
 pub const PID_FAMILY_NAME: &str = "family_name";
 pub const PID_GIVEN_NAME: &str = "given_name";

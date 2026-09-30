@@ -291,13 +291,27 @@ where
     setup_mock_issuer_with_metadata(issuer_identifier, attestations, true, sessions)
 }
 
+pub enum MockAttestationType {
+    SdJwt {
+        vct: String,
+        metadata: MetadataSource,
+    },
+    MsoMdoc {
+        doc_type: String,
+        credential_metadata: CredentialMetadata,
+    },
+}
+
+pub enum MetadataSource {
+    TypeMetadata(TypeMetadataDocuments),
+    CredentialMetadata(CredentialMetadata),
+}
+
 /// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
-/// are based on a list of format / attestation type combinations and the relevant SD-JWT VC Type Metadata documents.
-/// The Type Metadata is also used to generate Credential Metadata from, ensuring the claim names (without namespace)
-/// are identical.
+/// are based on a list of [`MockAttestationType`] values.
 pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
     issuer_identifier: IssuerIdentifier,
-    attestations: Vec<(Format, String, TypeMetadataDocuments)>,
+    attestations: Vec<MockAttestationType>,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
 ) -> (
     MockIssuer<G>,
@@ -311,22 +325,22 @@ where
 {
     let attestations = attestations
         .into_iter()
-        .map(|(format, attestation_type, metadata_documents)| match format {
-            Format::MsoMdoc => {
-                let (normalized, _) = metadata_documents
-                    .clone()
-                    .into_normalized(&attestation_type)
-                    .expect("example type metadata should normalize");
-
-                CredentialConfigurationFormat::new_mdoc(
-                    attestation_type.clone(),
-                    CredentialMetadata::new_mdoc_example_from_type_metadata(&attestation_type, &normalized),
-                )
-            }
-            Format::SdJwt => CredentialConfigurationFormat::new_sd_jwt_type_metadata(
-                CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
-                    .expect("example type metadata should verify"),
-            ),
+        .map(|attestation| match attestation {
+            MockAttestationType::MsoMdoc {
+                doc_type,
+                credential_metadata,
+            } => CredentialConfigurationFormat::new_mdoc(doc_type, credential_metadata),
+            MockAttestationType::SdJwt { vct, metadata } => match metadata {
+                MetadataSource::TypeMetadata(metadata_documents) => {
+                    CredentialConfigurationFormat::new_sd_jwt_type_metadata(
+                        CredentialConfigurationTypeMetadata::try_new(&vct, metadata_documents)
+                            .expect("example type metadata should verify"),
+                    )
+                }
+                MetadataSource::CredentialMetadata(credential_metadata) => {
+                    CredentialConfigurationFormat::new_sd_jwt_credential_metadata(vct, credential_metadata)
+                }
+            },
         })
         .collect();
 

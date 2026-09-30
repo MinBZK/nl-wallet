@@ -5,11 +5,12 @@ use attestation_types::status_claim::StatusClaim;
 use dcql::CredentialQuery;
 use dcql::Query;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
-use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_BIRTH_DATE;
 use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
+use pid_issuer::pid::constants::PID_MDOC_DOCTYPE;
+use pid_issuer::pid::constants::PID_NL_SD_JWT_VCT;
 use pid_issuer::pid::constants::PID_RESIDENT_CITY;
 use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
 use pid_issuer::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
@@ -31,7 +32,7 @@ fn new_nl_pid<'a>(
 
     TestCredential::new(
         PreviewableCredentialPayload::example_with_attributes(
-            PID_ATTESTATION_TYPE,
+            PID_NL_SD_JWT_VCT,
             mock_pid_example(),
             &MockTimeGenerator::default(),
         ),
@@ -49,10 +50,10 @@ pub fn new_nl_pid_all() -> TestCredential {
         "nl_pid_all",
         [[PID_GIVEN_NAME], [PID_FAMILY_NAME], [PID_BIRTH_DATE], [PID_BSN]],
         [
-            [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
-            [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
-            [PID_ATTESTATION_TYPE, PID_BIRTH_DATE],
-            [PID_ATTESTATION_TYPE, PID_BSN],
+            [PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
+            [PID_MDOC_DOCTYPE, PID_FAMILY_NAME],
+            [PID_MDOC_DOCTYPE, PID_BIRTH_DATE],
+            [PID_MDOC_DOCTYPE, PID_BSN],
         ],
     )
 }
@@ -61,10 +62,7 @@ pub fn new_nl_pid_full_name() -> TestCredential {
     new_nl_pid(
         "nl_pid_full_name",
         [[PID_GIVEN_NAME], [PID_FAMILY_NAME]],
-        [
-            [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
-            [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
-        ],
+        [[PID_MDOC_DOCTYPE, PID_GIVEN_NAME], [PID_MDOC_DOCTYPE, PID_FAMILY_NAME]],
     )
 }
 
@@ -72,19 +70,19 @@ pub fn new_nl_pid_given_name() -> TestCredential {
     new_nl_pid(
         "nl_pid_given_name",
         [[PID_GIVEN_NAME]],
-        [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]],
+        [[PID_MDOC_DOCTYPE, PID_GIVEN_NAME]],
     )
 }
 
 pub fn new_nl_pid_given_name_for_query_id(query_id: &str) -> TestCredential {
-    new_nl_pid(query_id, [[PID_GIVEN_NAME]], [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])
+    new_nl_pid(query_id, [[PID_GIVEN_NAME]], [[PID_MDOC_DOCTYPE, PID_GIVEN_NAME]])
 }
 
 pub fn new_nl_pid_family_name() -> TestCredential {
     new_nl_pid(
         "nl_pid_family_name",
         [[PID_FAMILY_NAME]],
-        [[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]],
+        [[PID_MDOC_DOCTYPE, PID_FAMILY_NAME]],
     )
 }
 
@@ -99,11 +97,11 @@ pub fn new_nl_pid_address_all() -> TestCredential {
             [PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
         ],
         [
-            [PID_ATTESTATION_TYPE, PID_RESIDENT_STREET],
-            [PID_ATTESTATION_TYPE, PID_RESIDENT_HOUSE_NUMBER],
-            [PID_ATTESTATION_TYPE, PID_RESIDENT_POSTAL_CODE],
-            [PID_ATTESTATION_TYPE, PID_RESIDENT_CITY],
-            [PID_ATTESTATION_TYPE, PID_RESIDENT_COUNTRY],
+            [PID_MDOC_DOCTYPE, PID_RESIDENT_STREET],
+            [PID_MDOC_DOCTYPE, PID_RESIDENT_HOUSE_NUMBER],
+            [PID_MDOC_DOCTYPE, PID_RESIDENT_POSTAL_CODE],
+            [PID_MDOC_DOCTYPE, PID_RESIDENT_CITY],
+            [PID_MDOC_DOCTYPE, PID_RESIDENT_COUNTRY],
         ],
     )
 }
@@ -117,9 +115,9 @@ pub fn new_nl_pid_address_minimal_address() -> TestCredential {
             [PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
         ],
         [
-            [PID_ATTESTATION_TYPE, PID_RESIDENT_STREET],
-            [PID_ATTESTATION_TYPE, PID_RESIDENT_HOUSE_NUMBER],
-            [PID_ATTESTATION_TYPE, PID_RESIDENT_POSTAL_CODE],
+            [PID_MDOC_DOCTYPE, PID_RESIDENT_STREET],
+            [PID_MDOC_DOCTYPE, PID_RESIDENT_HOUSE_NUMBER],
+            [PID_MDOC_DOCTYPE, PID_RESIDENT_POSTAL_CODE],
         ],
     )
 }
@@ -155,8 +153,8 @@ pub fn nl_pid_address_minimal_address() -> TestCredentials {
 pub fn new_mock_mdoc_pid_example() -> Query {
     Query::new_mock_single(CredentialQuery::new_mock_mdoc(
         "mdoc_pid_example",
-        PID_ATTESTATION_TYPE,
-        PID_ATTESTATION_TYPE,
+        PID_MDOC_DOCTYPE,
+        PID_MDOC_DOCTYPE,
         &["bsn", "given_name", "family_name"],
     ))
 }

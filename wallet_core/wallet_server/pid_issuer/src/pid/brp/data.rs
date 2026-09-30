@@ -8,11 +8,11 @@ use serde_with::skip_serializing_none;
 
 use crate::pid::constants::PID_ADDRESS_GROUP;
 use crate::pid::constants::PID_AGE_OVER_18;
-use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BIRTH_DATE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_FAMILY_NAME;
 use crate::pid::constants::PID_GIVEN_NAME;
+use crate::pid::constants::PID_MDOC_NAMESPACE;
 use crate::pid::constants::PID_NATIONALITY;
 use crate::pid::constants::PID_RECOVERY_CODE;
 use crate::pid::constants::PID_RESIDENT_CITY;
@@ -87,7 +87,7 @@ impl BrpPerson {
         attributes.extend(address_attributes);
 
         Attributes::from(IndexMap::from([(
-            String::from(PID_ATTESTATION_TYPE),
+            PID_MDOC_NAMESPACE.to_owned(),
             Attribute::Object(attributes),
         )]))
     }
