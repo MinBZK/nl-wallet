@@ -370,8 +370,15 @@ instead of <code class="docutils literal notranslate"><span class="pre">instruct
 result signing key.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">certificate_public_key</span></code> field in the Wallet configuration has been
 renamed to <code class="docutils literal notranslate"><span class="pre">certificate_public_keys</span></code> and changed to be a map from key
-identifier (kid) to <code class="docutils literal notranslate"><span class="pre">key,</span> <span class="pre">created_at</span></code>. This allows multiple wallet certificat
-signing keys to be present in the Wallet configuration during key rollover.</p></li>
+identifier (kid) to <code class="docutils literal notranslate"><span class="pre">key,</span> <span class="pre">used_from</span></code>. This allows multiple wallet certificate
+signing keys to be present in the Wallet configuration during key rollover.
+The <code class="docutils literal notranslate"><span class="pre">used_from</span></code> field indicates the moment from which the Wallet Provider
+actually signs with that key, because a key must be added to the Wallet
+configuration ahead of the Wallet Provider’s own rollover.</p></li>
+<li><p>The Wallet configuration’s <code class="docutils literal notranslate"><span class="pre">account_server</span></code> section now requires a
+<code class="docutils literal notranslate"><span class="pre">certificate_refresh_threshold_in_days</span></code> field, specifying how long before a
+wallet certificate’s expiry (<code class="docutils literal notranslate"><span class="pre">exp</span></code>) the wallet should proactively request a
+new one.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">attestation_qualification</span></code> field has been removed from credentials, which
 means it is also removed from the <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> response and from
 issuer credential configuration.</p></li>
@@ -455,6 +462,11 @@ and the PIN public key encryption key. The <code class="docutils literal notrans
 <code class="docutils literal notranslate"><span class="pre">[attestation_wrapping_kid]</span></code> and <code class="docutils literal notranslate"><span class="pre">[pin_pubkey_encryption_kid]</span></code> settings
 sections selects the key used to encrypt new data, while the <code class="docutils literal notranslate"><span class="pre">previous</span></code> field
 still allows already-stored data to be decrypted during a rollover.</p></li>
+<li><p>Wallet Certificates now expire and are automatically renewed by the wallet
+when needed, without requiring a PIN change. Validity is controlled by the
+Wallet Provider setting <code class="docutils literal notranslate"><span class="pre">wallet_certificate_validity_in_days</span></code>, and renewal
+timing by <code class="docutils literal notranslate"><span class="pre">certificate_refresh_threshold_in_days</span></code> in the Wallet
+configuration.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">
