@@ -100,7 +100,7 @@ class WalletMapperProvider extends StatelessWidget {
 
         /// Organization / Relying party mappers
         RepositoryProvider<Mapper<core.Organization, Organization>>(
-          create: (context) => OrganizationMapper(context.read(), context.read()),
+          create: (context) => OrganizationMapper(context.read()),
         ),
 
         /// Card mappers

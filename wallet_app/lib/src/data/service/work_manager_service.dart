@@ -127,7 +127,7 @@ Future<void> performRevocationCheckTask({bool initCore = true}) async {
   final notificationTypeMapper = NotificationTypeMapper(
     CardMapper(
       CardAttributeMapper(CardAttributeValueMapper(imageMapper), ClaimDisplayMetadataMapper()),
-      OrganizationMapper(LocalizedLabelsMapper(), imageMapper),
+      OrganizationMapper(LocalizedLabelsMapper()),
       DisplayMetadataMapper(imageMapper),
       CardStatusMapper(),
     ),

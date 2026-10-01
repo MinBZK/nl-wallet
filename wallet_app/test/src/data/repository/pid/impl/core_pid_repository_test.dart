@@ -33,7 +33,7 @@ void main() {
     when(core.observeConfig()).thenAnswer((_) => Stream.value(CoreMockData.flutterConfiguration));
     cardMapper = CardMapper(
       CardAttributeMapper(CardAttributeValueMapper(ImageMapper()), ClaimDisplayMetadataMapper()),
-      OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
+      OrganizationMapper(LocalizedLabelsMapper()),
       DisplayMetadataMapper(ImageMapper()),
       CardStatusMapper(),
     );

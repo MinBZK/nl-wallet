@@ -2759,28 +2759,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<LocalizedString>? dco_decode_opt_list_localized_string(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_list_localized_string(raw);
-  }
-
-  @protected
   Organization dco_decode_organization(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11) throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return Organization(
       legalName: dco_decode_String(arr[0]),
       displayName: dco_decode_String(arr[1]),
       description: dco_decode_list_localized_string(arr[2]),
-      image: dco_decode_opt_box_autoadd_image(arr[3]),
-      webUrl: dco_decode_opt_String(arr[4]),
-      privacyPolicyUrl: dco_decode_opt_String(arr[5]),
-      identifier: dco_decode_String(arr[6]),
-      city: dco_decode_opt_list_localized_string(arr[7]),
-      category: dco_decode_list_localized_string(arr[8]),
-      department: dco_decode_opt_list_localized_string(arr[9]),
-      countryCode: dco_decode_String(arr[10]),
+      webUrl: dco_decode_opt_String(arr[3]),
+      privacyPolicyUrl: dco_decode_opt_String(arr[4]),
+      identifier: dco_decode_String(arr[5]),
+      countryCode: dco_decode_String(arr[6]),
     );
   }
 
@@ -3956,41 +3946,22 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<LocalizedString>? sse_decode_opt_list_localized_string(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return (sse_decode_list_localized_string(deserializer));
-    } else {
-      return null;
-    }
-  }
-
-  @protected
   Organization sse_decode_organization(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_legalName = sse_decode_String(deserializer);
     var var_displayName = sse_decode_String(deserializer);
     var var_description = sse_decode_list_localized_string(deserializer);
-    var var_image = sse_decode_opt_box_autoadd_image(deserializer);
     var var_webUrl = sse_decode_opt_String(deserializer);
     var var_privacyPolicyUrl = sse_decode_opt_String(deserializer);
     var var_identifier = sse_decode_String(deserializer);
-    var var_city = sse_decode_opt_list_localized_string(deserializer);
-    var var_category = sse_decode_list_localized_string(deserializer);
-    var var_department = sse_decode_opt_list_localized_string(deserializer);
     var var_countryCode = sse_decode_String(deserializer);
     return Organization(
       legalName: var_legalName,
       displayName: var_displayName,
       description: var_description,
-      image: var_image,
       webUrl: var_webUrl,
       privacyPolicyUrl: var_privacyPolicyUrl,
       identifier: var_identifier,
-      city: var_city,
-      category: var_category,
-      department: var_department,
       countryCode: var_countryCode,
     );
   }
@@ -5312,28 +5283,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_opt_list_localized_string(List<LocalizedString>? self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_list_localized_string(self, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_organization(Organization self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.legalName, serializer);
     sse_encode_String(self.displayName, serializer);
     sse_encode_list_localized_string(self.description, serializer);
-    sse_encode_opt_box_autoadd_image(self.image, serializer);
     sse_encode_opt_String(self.webUrl, serializer);
     sse_encode_opt_String(self.privacyPolicyUrl, serializer);
     sse_encode_String(self.identifier, serializer);
-    sse_encode_opt_list_localized_string(self.city, serializer);
-    sse_encode_list_localized_string(self.category, serializer);
-    sse_encode_opt_list_localized_string(self.department, serializer);
     sse_encode_String(self.countryCode, serializer);
   }
 

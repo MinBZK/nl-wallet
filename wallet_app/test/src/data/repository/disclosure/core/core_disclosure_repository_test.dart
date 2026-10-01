@@ -42,7 +42,6 @@ void main() {
           displayName: '',
           description: [],
           identifier: '',
-          category: [],
           countryCode: '',
         ),
         requestOriginBaseUrl: '',

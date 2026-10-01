@@ -105,7 +105,6 @@ void _setupMockitoDummies() {
         displayName: '',
         description: [],
         identifier: '',
-        category: [],
         countryCode: '',
       ),
       missingAttributes: [],

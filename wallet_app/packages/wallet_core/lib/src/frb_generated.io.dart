@@ -293,9 +293,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<AttestationPresentation>? dco_decode_opt_list_attestation_presentation(dynamic raw);
 
   @protected
-  List<LocalizedString>? dco_decode_opt_list_localized_string(dynamic raw);
-
-  @protected
   Organization dco_decode_organization(dynamic raw);
 
   @protected
@@ -619,9 +616,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<AttestationPresentation>? sse_decode_opt_list_attestation_presentation(SseDeserializer deserializer);
-
-  @protected
-  List<LocalizedString>? sse_decode_opt_list_localized_string(SseDeserializer deserializer);
 
   @protected
   Organization sse_decode_organization(SseDeserializer deserializer);
@@ -1139,12 +1133,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_localized_string> cst_encode_opt_list_localized_string(List<LocalizedString>? raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null ? ffi.nullptr : cst_encode_list_localized_string(raw);
-  }
-
-  @protected
   int cst_encode_u_64(BigInt raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw.toSigned(64).toInt();
@@ -1555,13 +1543,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.legal_name = cst_encode_String(apiObj.legalName);
     wireObj.display_name = cst_encode_String(apiObj.displayName);
     wireObj.description = cst_encode_list_localized_string(apiObj.description);
-    wireObj.image = cst_encode_opt_box_autoadd_image(apiObj.image);
     wireObj.web_url = cst_encode_opt_String(apiObj.webUrl);
     wireObj.privacy_policy_url = cst_encode_opt_String(apiObj.privacyPolicyUrl);
     wireObj.identifier = cst_encode_String(apiObj.identifier);
-    wireObj.city = cst_encode_opt_list_localized_string(apiObj.city);
-    wireObj.category = cst_encode_list_localized_string(apiObj.category);
-    wireObj.department = cst_encode_opt_list_localized_string(apiObj.department);
     wireObj.country_code = cst_encode_String(apiObj.countryCode);
   }
 
@@ -2230,9 +2214,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_opt_list_attestation_presentation(List<AttestationPresentation>? self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_opt_list_localized_string(List<LocalizedString>? self, SseSerializer serializer);
 
   @protected
   void sse_encode_organization(Organization self, SseSerializer serializer);
@@ -4037,19 +4018,11 @@ final class wire_cst_organization extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_localized_string> description;
 
-  external ffi.Pointer<wire_cst_image> image;
-
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> web_url;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> privacy_policy_url;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> identifier;
-
-  external ffi.Pointer<wire_cst_list_localized_string> city;
-
-  external ffi.Pointer<wire_cst_list_localized_string> category;
-
-  external ffi.Pointer<wire_cst_list_localized_string> department;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> country_code;
 }

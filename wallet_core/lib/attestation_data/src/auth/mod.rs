@@ -1,13 +1,11 @@
 pub mod issuer_auth;
 
-use attestation_types::image::Image;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::DistinguishedNameError;
 use derive_more::Debug;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 
@@ -21,7 +19,6 @@ type Language = String;
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LocalizedStrings(pub IndexMap<Language, String>);
 
-#[serde_as]
 #[skip_serializing_none]
 // TODO: Check if serde is still necessary when Issuer and Reader registrations are removed (PVW-5870)
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,15 +27,10 @@ pub struct Organization {
     pub display_name: String,
     pub legal_name: String,
     pub description: LocalizedStrings,
-    pub category: LocalizedStrings,
-    #[debug(skip)]
-    pub logo: Option<Image>,
     pub web_url: Option<Url>,
     // TODO: Remove rename when Issuer registration is removed (PVW-5870)
     #[serde(rename = "kvk")]
     pub identifier: String,
-    pub city: Option<LocalizedStrings>,
-    pub department: Option<LocalizedStrings>,
     pub country_code: String,
     pub privacy_policy_url: Option<Url>,
 }
@@ -94,7 +86,6 @@ impl From<&StatusValidatedRegistrationCertificate> for Organization {
             country_code: payload.country.clone(),
             web_url: payload.info_uri.clone(),
             privacy_policy_url: payload.privacy_policy.clone(),
-            ..Self::default()
         }
     }
 }
@@ -124,14 +115,10 @@ pub mod mock {
                     ("en", "Description of My Organization"),
                 ]
                 .into(),
-                category: [("nl", "Categorie"), ("en", "Category")].into(),
                 identifier: "some-identifier".to_owned(),
-                city: Some([("nl", "Den Haag"), ("en", "The Hague")].into()),
-                department: Some([("nl", "Afdeling"), ("en", "Department")].into()),
                 country_code: "NL".to_owned(),
                 web_url: Some(Url::parse("https://organisation.example.com").unwrap()),
                 privacy_policy_url: Some(Url::parse("https://organisation.example.com/privacy").unwrap()),
-                logo: None,
             }
         }
     }
@@ -141,6 +128,7 @@ pub mod mock {
 pub mod test {
     use std::sync::Arc;
 
+    use attestation_types::image::Image;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::DistinguishedName;
     use crypto::x509::NO_SAN;
@@ -150,7 +138,7 @@ pub mod test {
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
 
-    use super::*;
+    use super::Organization;
     use crate::registration_certificate::RegistrationCertificateEnvelope;
     use crate::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use crate::registration_certificate::mock::issuer_registration_certificate_payload;
@@ -224,7 +212,6 @@ pub mod test {
                 country_code: "NL".to_owned(),
                 web_url: has_optional_fields.then(|| "https://example.com/info".parse().unwrap()),
                 privacy_policy_url: has_optional_fields.then(|| "https://example.com/privacy".parse().unwrap()),
-                ..Default::default()
             }
         );
     }

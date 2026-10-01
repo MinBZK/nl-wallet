@@ -45,7 +45,6 @@ abstract class CoreMockData {
     displayName: 'displayName',
     description: [LocalizedString(language: 'en', value: 'description')],
     identifier: 'identifier',
-    category: [LocalizedString(language: 'en', value: 'category')],
     countryCode: 'NL',
   );
 
