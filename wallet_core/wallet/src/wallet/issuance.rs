@@ -19,7 +19,6 @@ use itertools::Itertools;
 use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::token::CredentialPreview;
-use openid4vc::token::CredentialPreviewError;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -148,9 +147,6 @@ pub enum IssuanceError {
 
     #[error("error emtting history event: {0}")]
     Events(#[from] HistoryError),
-
-    #[error("failed to read issuer registration from issuer certificate: {0}")]
-    AttestationPreview(#[from] CredentialPreviewError),
 
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
@@ -435,7 +431,6 @@ where
                 ),
                 String::from(NL_WALLET_CLIENT_ID),
                 redirect_uri,
-                config.issuer_trust_anchors(),
             )
             .await?;
 
@@ -513,7 +508,6 @@ where
         let issuance_session = authorization_session
             .start_issuance(
                 &redirect_uri,
-                config.issuer_trust_anchors(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
             )
             .await
@@ -1452,7 +1446,7 @@ mod tests {
         let mut authorization_session = MockAuthorizationSession::new();
         authorization_session
             .expect_start_issuance_sync()
-            .return_once(|| Err(WalletIssuanceError::IssuerMismatch));
+            .return_once(|| Err(WalletIssuanceError::NoCredentialPreviewEndpoint));
 
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
@@ -2221,7 +2215,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|_| Err(WalletIssuanceError::IssuerMismatch));
+                .return_once(|_| Err(WalletIssuanceError::PublicKeyMismatch));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 

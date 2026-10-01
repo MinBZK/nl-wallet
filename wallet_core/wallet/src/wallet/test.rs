@@ -244,7 +244,6 @@ pub fn create_preview_from_payload(
         config_id,
         format,
         credential_payload: credential_payload.previewable_payload,
-        issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
     }
 }
 

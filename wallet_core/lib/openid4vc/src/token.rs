@@ -1,14 +1,6 @@
-use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_data::x509::CertificateType;
-use attestation_data::x509::CertificateTypeError;
 use attestation_types::credential_format::Format;
-use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
-use crypto::x509::CertificateUsage;
 use derive_more::Debug;
-use error_category::ErrorCategory;
 use oauth::token::AccessToken;
 use oauth::token::AuthorizationCode;
 use oauth::token::TokenRequest;
@@ -17,12 +9,10 @@ use oauth::token::TokenType;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::TryFromInto;
-use serde_with::base64::Base64;
 use serde_with::json::JsonString;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
-use utils::generator::TimeGenerator;
 
 use crate::authorization_details::CredentialId;
 use crate::authorization_details::IssuerAuthorizationDetails;
@@ -152,7 +142,6 @@ impl VciTokenResponse {
     }
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialPreview {
     pub credential_id: CredentialId,
@@ -161,43 +150,6 @@ pub struct CredentialPreview {
     pub format: Format,
 
     pub credential_payload: PreviewableCredentialPayload,
-
-    #[serde_as(as = "Base64")]
-    pub issuer_certificate: BorrowingCertificate,
-}
-
-impl CredentialPreview {
-    pub fn verify(&self, trust_anchors: &TrustAnchors) -> Result<(), CredentialPreviewError> {
-        // Verify the issuer certificates that the issuer presents for each credential to be issued.
-        // NB: this only proves the authenticity of the data inside the certificates (the
-        // [`LegacyIssuerRegistration`]s), but does not authenticate the issuer that presents them.
-        // Anyone that has ever seen these certificates (such as other wallets that received them during
-        // issuance) could present them here in the protocol without needing the corresponding
-        // issuer private key. This is not a problem, because at the end of the issuance
-        // protocol each mdoc is verified against the corresponding certificate in the
-        // credential preview, which implicitly authenticates the issuer because only it could
-        // have produced an mdoc against that certificate.
-        self.issuer_certificate
-            .verify(Some(CertificateUsage::Mdl), &[], &TimeGenerator, trust_anchors)?;
-
-        Ok(())
-    }
-
-    pub fn issuer_registration(&self) -> Result<LegacyIssuerRegistration, CredentialPreviewError> {
-        let CertificateType::Mdl(issuer) = CertificateType::from_certificate(&self.issuer_certificate)?;
-        Ok(issuer)
-    }
-}
-
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum CredentialPreviewError {
-    #[error("certificate error: {0}")]
-    #[category(defer)]
-    Certificate(#[from] CertificateError),
-
-    #[error("certificate type error: {0}")]
-    #[category(defer)]
-    CertificateType(#[from] CertificateTypeError),
 }
 
 #[cfg(test)]

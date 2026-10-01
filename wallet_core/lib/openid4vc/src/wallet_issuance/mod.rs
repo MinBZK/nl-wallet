@@ -28,7 +28,6 @@ use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
 use jwt::error::JwtX5cVerifyError;
-use mdoc::utils::cose::CoseError;
 use oauth::dpop::DpopError;
 use oauth::dpop::DpopNonceInvalid;
 use oauth::errors::RemoteErrorResponse;
@@ -63,7 +62,6 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::registration_certificate::RegistrationCertificateError;
 use crate::token::CredentialPreview;
-use crate::token::CredentialPreviewError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -231,19 +229,6 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataUriMultipleVcts(Box<Vec<(IssuerUrl, Vec<String>)>>),
 
-    #[error("could not read issuer registration from preview: {0}")]
-    PreviewIssuerRegistration(#[source] CredentialPreviewError),
-
-    #[error("error verifying credential preview: {0}")]
-    CredentialPreviewVerification(#[source] CredentialPreviewError),
-
-    #[error("error retrieving issuer certificate from issued mdoc: {0}")]
-    IssuerCertificate(#[source] CoseError),
-
-    #[error("issuer contained in credential not equal to expected value")]
-    #[category(critical)]
-    IssuerMismatch,
-
     #[error("missing metadata integrity digest in SD-JWT payload")]
     #[category(critical)]
     MetadataIntegrityMissing,
@@ -329,10 +314,6 @@ pub enum WalletIssuanceError {
 
     #[error("error converting SD-JWT to a CredentialPayload: {0}")]
     SdJwtCredentialPayloadError(#[from] CredentialPayloadFromSdJwtError),
-
-    #[error("different issuers found in credential previews")]
-    #[category(critical)]
-    DifferentIssuers,
 
     #[error(
         "the received credential preview is missing credentials the issuer offered: {}",
@@ -464,7 +445,6 @@ pub trait IssuanceDiscovery {
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
         client_id: String,
         redirect_uri: Url,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
     where
         W: WiaClient;
@@ -487,7 +467,6 @@ pub trait IssuanceDiscovery {
     async fn start_pre_authorized_code_flow<'a, W>(
         &self,
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>
     where
         W: WiaClient;
@@ -522,7 +501,6 @@ pub trait AuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        trust_anchors: &TrustAnchors,
         wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }

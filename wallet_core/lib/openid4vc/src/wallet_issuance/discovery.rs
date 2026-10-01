@@ -88,7 +88,6 @@ where
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
         client_id: String,
         redirect_uri: Url,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
     where
         W: WiaClient,
@@ -147,7 +146,6 @@ where
                         challenge_endpoint,
                         wia_client,
                         &authorization_server,
-                        issuer_trust_anchors,
                     )
                     .await?;
 
@@ -208,7 +206,6 @@ where
     async fn start_pre_authorized_code_flow<'a, W>(
         &self,
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>
     where
         W: WiaClient,
@@ -246,7 +243,6 @@ where
             challenge_endpoint,
             wia_client,
             &authorization_server,
-            issuer_trust_anchors,
         )
         .await
     }
@@ -671,7 +667,6 @@ where
         challenge_endpoint: Option<Url>,
         wia_client: &impl WiaClient,
         authorization_server: &IssuerIdentifier,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<HttpIssuanceSession, WalletIssuanceError> {
         let message_client = HttpVcMessageClient::new(self.http_client.clone());
 
@@ -694,7 +689,6 @@ where
             token_request,
             wia_client,
             authorization_server,
-            issuer_trust_anchors,
         )
         .await
     }
@@ -708,7 +702,6 @@ mod test {
     use std::collections::HashSet;
     use std::sync::LazyLock;
 
-    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
@@ -716,7 +709,6 @@ mod test {
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_data::registration_certificate::mock::issuer_registration_certificate_payload;
-    use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -1056,8 +1048,6 @@ mod test {
 
         // Create CA and issuer certificate for the credential preview.
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair =
-            generate_pid_issuer_mock_with_registration(&issuer_ca, &LegacyIssuerRegistration::new_mock()).unwrap();
 
         // Create type metadata for the credential preview.
         let (_, _, type_metadata_documents) = TypeMetadataDocuments::from_single_example(
@@ -1071,7 +1061,6 @@ mod test {
             config_id: CONFIG_ID_MDOC.clone(),
             format: Format::MsoMdoc,
             credential_payload,
-            issuer_certificate: issuance_keypair.certificate().clone(),
         };
 
         let preview_response = CredentialPreviewResponse {
@@ -1176,7 +1165,7 @@ mod test {
         let (
             server,
             issuer_identifier,
-            issuer_trust_anchors,
+            _issuer_trust_anchors,
             wrpac_trust_anchors,
             crl_verifier,
             registration_certificate,
@@ -1237,7 +1226,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await
             .expect("starting issuance should succeed");
@@ -1279,16 +1267,13 @@ mod test {
 
                 // Staring issuance while expecting a Pre-Authorized Code flow results in an error.
                 let error = discovery
-                    .start_pre_authorized_code_flow(
-                        IssuanceDiscoveryParameters::new(
-                            &offer_url,
-                            &CredentialSelection::All,
-                            &MockWiaClient::new(),
-                            &wrpac_trust_anchors,
-                            &registration_certificate.trust_anchors,
-                        ),
-                        &issuer_trust_anchors,
-                    )
+                    .start_pre_authorized_code_flow(IssuanceDiscoveryParameters::new(
+                        &offer_url,
+                        &CredentialSelection::All,
+                        &MockWiaClient::new(),
+                        &wrpac_trust_anchors,
+                        &registration_certificate.trust_anchors,
+                    ))
                     .await
                     .expect_err("staring pre-authorized code issuance should fail");
 
@@ -1325,7 +1310,7 @@ mod test {
 
                             // Complete the flow — exchanges the code for a token and fetches credential previews.
                             auth_session
-                                .start_issuance(&received_redirect_uri, &issuer_trust_anchors, &MockWiaClient::new())
+                                .start_issuance(&received_redirect_uri, &MockWiaClient::new())
                                 .await
                         }),
                 )
@@ -1335,16 +1320,13 @@ mod test {
             (IssuanceDiscoveryScenario::PreAuthorizedCode, IssuanceFlow::PreAuthorizedCode { issuance_session }) => {
                 // Start issuance again, this time directly expecting the Pre-Authorized Code flow.
                 let second_issuance_session = discovery
-                    .start_pre_authorized_code_flow(
-                        IssuanceDiscoveryParameters::new(
-                            &offer_url,
-                            &CredentialSelection::All,
-                            &MockWiaClient::new(),
-                            &wrpac_trust_anchors,
-                            &registration_certificate.trust_anchors,
-                        ),
-                        &issuer_trust_anchors,
-                    )
+                    .start_pre_authorized_code_flow(IssuanceDiscoveryParameters::new(
+                        &offer_url,
+                        &CredentialSelection::All,
+                        &MockWiaClient::new(),
+                        &wrpac_trust_anchors,
+                        &registration_certificate.trust_anchors,
+                    ))
                     .await
                     .expect("staring pre-authorized code issuance should succeed");
 
@@ -1416,7 +1398,7 @@ mod test {
         let (
             _server,
             issuer_identifier,
-            issuer_trust_anchors,
+            _issuer_trust_anchors,
             wrpac_trust_anchors,
             crl_verifier,
             registration_certificate,
@@ -1448,7 +1430,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await;
 
@@ -1485,7 +1466,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1508,7 +1488,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1536,7 +1515,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1579,7 +1557,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1631,7 +1608,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1671,7 +1647,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1733,7 +1708,6 @@ mod test {
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.clone(),
-            &TrustAnchors::empty(),
         )
         .await;
         (credential_issuer, result)
@@ -1744,7 +1718,7 @@ mod test {
         let (
             _server,
             issuer_identifier,
-            issuer_trust_anchors,
+            _issuer_trust_anchors,
             wrpac_trust_anchors,
             crl_verifier,
             registration_certificate,
@@ -1775,7 +1749,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await;
 
@@ -1838,7 +1811,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await
             .unwrap_err();
@@ -1913,7 +1885,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await
             .unwrap_err();
@@ -2002,7 +1973,7 @@ mod test {
         let (
             _server,
             issuer_identifier,
-            issuer_trust_anchors,
+            _issuer_trust_anchors,
             wrpac_trust_anchors,
             crl_verifier,
             registration_certificate,
@@ -2040,7 +2011,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await;
 
@@ -2057,7 +2027,7 @@ mod test {
         let (
             _server,
             issuer_identifier,
-            issuer_trust_anchors,
+            _issuer_trust_anchors,
             wrpac_trust_anchors,
             crl_verifier,
             registration_certificate,
@@ -2094,7 +2064,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await;
 
@@ -2112,7 +2081,7 @@ mod test {
         let (
             _server,
             issuer_identifier,
-            issuer_trust_anchors,
+            _issuer_trust_anchors,
             wrpac_trust_anchors,
             crl_verifier,
             registration_certificate,
@@ -2146,7 +2115,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await
             .expect_err("starting issuance should fail");
@@ -2157,7 +2125,7 @@ mod test {
         let (
             _server,
             issuer_identifier,
-            issuer_trust_anchors,
+            _issuer_trust_anchors,
             wrpac_trust_anchors,
             crl_verifier,
             registration_certificate,
@@ -2191,7 +2159,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await
             .expect("starting issuance should succeed");
@@ -2203,7 +2170,7 @@ mod test {
         let (
             _server,
             issuer_identifier,
-            issuer_trust_anchors,
+            _issuer_trust_anchors,
             wrpac_trust_anchors,
             crl_verifier,
             registration_certificate,
@@ -2237,7 +2204,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await
             .expect_err("starting issuance should fail");
@@ -2265,7 +2231,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await
             .expect("starting issuance should succeed");
@@ -2275,7 +2240,7 @@ mod test {
     async fn start_no_attestation_based_client_auth_support_error() {
         // Starting issuance when the Authorization Server metadata does not advertise support for
         // Attestation-Based Client Authentication should fail.
-        let (_server, issuer_identifier, trust_anchor, wrpac_trust_anchors, crl_verifier, registration_certificate) =
+        let (_server, issuer_identifier, _trust_anchor, wrpac_trust_anchors, crl_verifier, registration_certificate) =
             start_httpmock_issuer(IssuerMetadataOptions {
                 has_client_attestation_support: false,
                 ..IssuerMetadataOptions::default()
@@ -2306,7 +2271,6 @@ mod test {
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &trust_anchor,
             )
             .await
             .expect_err("starting issuance should fail");

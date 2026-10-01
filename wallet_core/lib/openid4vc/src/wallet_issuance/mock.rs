@@ -69,7 +69,6 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
         _client_id: String,
         _redirect_uri: Url,
-        _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
     where
         W: WiaClient,
@@ -92,7 +91,6 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
     async fn start_pre_authorized_code_flow<'a, W>(
         &self,
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
-        _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>
     where
         W: WiaClient,
@@ -139,7 +137,6 @@ impl AuthorizationSession for MockAuthorizationSession {
     async fn start_issuance(
         self,
         _received_redirect_uri: &Url,
-        _trust_anchors: &TrustAnchors,
         _wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_issuance_sync()

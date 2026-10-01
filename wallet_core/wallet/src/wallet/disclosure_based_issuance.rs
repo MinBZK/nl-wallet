@@ -128,16 +128,13 @@ where
 
         let issuance_session = self
             .issuance_discovery
-            .start_pre_authorized_code_flow(
-                IssuanceDiscoveryParameters {
-                    offer_uri: &redirect_uri,
-                    selection: &CredentialSelection::All,
-                    wia_client: &self.new_remote_wia_client(attested_key, &registration_data, &config),
-                    wrpac_trust_anchors: config.wrpac_trust_anchors(),
-                    wrprc_trust_anchors: config.wrprc_trust_anchors(),
-                },
-                config.issuer_trust_anchors(),
-            )
+            .start_pre_authorized_code_flow(IssuanceDiscoveryParameters {
+                offer_uri: &redirect_uri,
+                selection: &CredentialSelection::All,
+                wia_client: &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                wrpac_trust_anchors: config.wrpac_trust_anchors(),
+                wrprc_trust_anchors: config.wrprc_trust_anchors(),
+            })
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
 

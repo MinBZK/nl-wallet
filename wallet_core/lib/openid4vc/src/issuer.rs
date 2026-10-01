@@ -934,8 +934,7 @@ where
         &self,
         credential: &PreparedCredential,
     ) -> Result<CredentialPreview, CredentialPreviewError> {
-        let credential_config = self
-            .issuer_data
+        self.issuer_data
             .get_credential_config_for_prepared_credential(credential)
             .ok_or_else(|| {
                 CredentialPreviewError::MissingCredentialConfiguration(credential.credential_configuration_id.clone())
@@ -946,7 +945,6 @@ where
             config_id: credential.credential_configuration_id.clone(),
             format: credential.format,
             credential_payload: credential.credential_payload.clone(),
-            issuer_certificate: credential_config.key_pair.certificate().clone(),
         };
 
         Ok(preview)
@@ -2113,7 +2111,6 @@ mod tests {
             VciTokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::new_with_wia_keypair(wia_keypair),
             &oauth_metadata.oauth_metadata.issuer,
-            &trust_anchors,
         )
         .await
         .unwrap();
@@ -2131,7 +2128,6 @@ mod tests {
     async fn start_token_request_err(
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
-        trust_anchors: TrustAnchors,
         wia_client: &impl WiaClient,
     ) -> WalletIssuanceError {
         let session_token = message_client
@@ -2179,7 +2175,6 @@ mod tests {
             VciTokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,
             &oauth_metadata.oauth_metadata.issuer,
-            &trust_anchors,
         )
         .await
         .err()
@@ -2188,7 +2183,7 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_wia_from_untrusted_issuer() {
-        let (issuer, trust_anchor, issuer_identifier, _wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, _wia_keypair) = setup_simple_mock_issuer();
 
         // WIA signed by a freshly generated CA that is not in the issuer's trust anchors.
         let bad_wia = MockWiaClient::new()
@@ -2201,8 +2196,7 @@ mod tests {
             ..VcMessageClientStub::new(issuer)
         };
 
-        let error =
-            start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
+        let error = start_token_request_err(message_client, issuer_identifier, &MockWiaClient::new()).await;
         assert_matches!(
             error,
             WalletIssuanceError::VciTokenRequest(err)
@@ -2212,7 +2206,7 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_wia_with_wrong_audience() {
-        let (issuer, trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
 
         // WIA signed by the trusted key pair but targeting a different audience.
         let bad_wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
@@ -2225,8 +2219,7 @@ mod tests {
             ..VcMessageClientStub::new(issuer)
         };
 
-        let error =
-            start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
+        let error = start_token_request_err(message_client, issuer_identifier, &MockWiaClient::new()).await;
         assert_matches!(
             error,
             WalletIssuanceError::VciTokenRequest(err)
@@ -2236,7 +2229,7 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_wia_with_disallowed_client_id() {
-        let (issuer, trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
 
         // WIA signed by the trusted key pair, targeting the correct audience, but with a client id that
         // is not among the issuer's accepted wallet client ids.
@@ -2250,8 +2243,7 @@ mod tests {
             ..VcMessageClientStub::new(issuer)
         };
 
-        let error =
-            start_token_request_err(message_client, issuer_identifier, trust_anchor, &MockWiaClient::new()).await;
+        let error = start_token_request_err(message_client, issuer_identifier, &MockWiaClient::new()).await;
         assert_matches!(
             error,
             WalletIssuanceError::VciTokenRequest(err)

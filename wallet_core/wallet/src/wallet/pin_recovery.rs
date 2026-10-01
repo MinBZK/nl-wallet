@@ -245,7 +245,6 @@ where
         let issuance_session = authorization_session
             .start_issuance(
                 &redirect_uri,
-                config.issuer_trust_anchors(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
             )
             .await

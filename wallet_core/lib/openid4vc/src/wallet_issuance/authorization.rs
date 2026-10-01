@@ -3,7 +3,6 @@ use std::num::NonZeroU8;
 
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
@@ -313,7 +312,6 @@ impl AuthorizationSession for HttpAuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        trust_anchors: &TrustAnchors,
         wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
@@ -340,7 +338,6 @@ impl AuthorizationSession for HttpAuthorizationSession {
             token_request,
             wia_client,
             &self.authorization_server,
-            trust_anchors,
         )
         .await
     }
