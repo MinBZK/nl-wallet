@@ -1,15 +1,11 @@
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 
 use crypto::aes_siv::AesSivBackend;
 use crypto::p256_der::verifying_key_sha256;
 use crypto::utils::random_bytes;
 use crypto::utils::sha256;
-use cryptoki::context::CInitializeArgs;
-use cryptoki::context::CInitializeFlags;
-use cryptoki::context::Pkcs11;
 use cryptoki::mechanism::Mechanism;
 use cryptoki::mechanism::MechanismType;
 use cryptoki::mechanism::aead::GcmParams;
@@ -19,7 +15,6 @@ use cryptoki::object::AttributeType;
 use cryptoki::object::KeyType;
 use cryptoki::object::ObjectClass;
 use cryptoki::object::ObjectHandle;
-use cryptoki::types::AuthPin;
 use cryptoki_sys::CK_AES_CTR_PARAMS;
 use derive_more::AsRef;
 use futures::future;
@@ -28,10 +23,6 @@ use p256::NistP256;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::AssociatedOid;
-use r2d2_cryptoki::Pool;
-use r2d2_cryptoki::SessionAuth;
-use r2d2_cryptoki::SessionManager;
-use r2d2_cryptoki::r2d2::LoggingErrorHandler;
 use sec1::EcParameters;
 use sec1::der::Decode;
 use sec1::der::Encode;
@@ -39,6 +30,7 @@ use sec1::der::asn1::OctetStringRef;
 use utils::spawn;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::finalize::Pkcs11FinalizePool;
 use crate::model::Hsm;
 use crate::model::encrypted::Encrypted;
 use crate::model::encrypted::InitializationVector;
@@ -269,20 +261,6 @@ pub trait Pkcs11Client {
     ) -> Result<Signature>;
 }
 
-// Since `cryptoki` 0.12.0, `Pkcs11` no longer finalizes itself on `Drop`, so it has to be finalized explicitly here
-// instead. This must happen only once when every session has been closed. If `C_Finalize` is never called, or is called
-// while sessions are still open, some HSMs (e.g. SoftHSM linked against Botan) may crash during process exit while
-// tearing down state they believe is still in use.
-struct Pkcs11FinalizeGuard(Pkcs11);
-
-impl Drop for Pkcs11FinalizeGuard {
-    fn drop(&mut self) {
-        if let Err(error) = self.0.clone().finalize() {
-            tracing::warn!("failed to finalize PKCS#11 context: {error}");
-        }
-    }
-}
-
 #[cfg(feature = "test")]
 pub trait TestPkcs11Client: Pkcs11Client {
     async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<SecretKeyHandle>;
@@ -292,14 +270,7 @@ pub trait TestPkcs11Client: Pkcs11Client {
 
 #[derive(Clone, AsRef)]
 pub struct Pkcs11Hsm {
-    #[as_ref]
-    pool: Pool,
-
-    // Keep a handle to `Pkcs11FinalizeGuard` to finalize the PKCS#11 context once the last clone of `Pkcs11Hsm`
-    // disappears. Declared after `pool` so that all pooled sessions are closed (via `Pool`'s drop mechanism)
-    // before the PKCS#11 context is finalized.
-    #[expect(dead_code, reason = "only ever dropped, never read")]
-    finalize_handle: Arc<Pkcs11FinalizeGuard>,
+    pool: Pkcs11FinalizePool,
 }
 
 impl Pkcs11Hsm {
@@ -309,30 +280,16 @@ impl Pkcs11Hsm {
         max_sessions: u8,
         max_session_lifetime: Duration,
     ) -> Result<Self> {
-        let pkcs11_client = Pkcs11::new(library_path)?;
-        pkcs11_client.initialize(CInitializeArgs::new(CInitializeFlags::OS_LOCKING_OK))?;
+        let pool = Pkcs11FinalizePool::new(library_path, user_pin, |builder| {
+            builder
+                .max_size(max_sessions.into())
+                .max_lifetime(Some(max_session_lifetime))
+                // This makes a pkcs11 call every time a connection is check out of the pool and should be evaluated in
+                // a future performance test.
+                .test_on_check_out(true)
+        })?;
 
-        let finalize_handle = Arc::new(Pkcs11FinalizeGuard(pkcs11_client.clone()));
-
-        let slot = *pkcs11_client
-            .get_slots_with_initialized_token()?
-            .first()
-            .ok_or(HsmError::NoInitializedSlotAvailable)?;
-
-        let session_auth = SessionAuth::RwUser(AuthPin::from(user_pin));
-        let manager = SessionManager::new(pkcs11_client, slot, &session_auth);
-
-        let pool = Pool::builder()
-            .max_size(max_sessions.into())
-            .max_lifetime(Some(max_session_lifetime))
-            // This makes a pkcs11 call every time a connection is check out of the pool and should be evaluated in a
-            // future performance test.
-            .test_on_check_out(true)
-            .connection_customizer(session_auth.into_customizer())
-            .error_handler(Box::new(LoggingErrorHandler))
-            .build(manager)?;
-
-        Ok(Self { pool, finalize_handle })
+        Ok(Self { pool })
     }
 
     pub fn from_settings(settings: settings::Hsm) -> Result<Self> {
