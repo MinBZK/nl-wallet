@@ -10,6 +10,7 @@ use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
+use derive_more::AsRef;
 use derive_more::Constructor;
 use itertools::Itertools;
 use jwt::Algorithm;
@@ -87,7 +88,7 @@ pub enum KeyAttestationVerificationError {
     UserAuthenticationAttackResistance(HashSet<AttackPotentialResistance>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, AsRef)]
 pub struct KeyAttestation(UnverifiedJwt<KeyAttestationClaims, KeyAttestationHeader>);
 
 /// The JWT claims for an OpenID4VCI Key Attestation, to be used by the wallet as proof of cryptographic key material in

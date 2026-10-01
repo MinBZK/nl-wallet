@@ -836,7 +836,7 @@ fn prepare_example_credential_payload(
     let issuer_keypair = issuer_ca.generate_pid_issuer_mock().unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
-    let holder_privkey = wscd.create_random_key();
+    let holder_privkey = wscd.disclosure.create_random_key();
     let payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
         payload_preview,
         Utc::now(),

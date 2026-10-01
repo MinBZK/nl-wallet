@@ -142,7 +142,7 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::WiaIssuance(_)
                 | InstructionError::HsmError(_)
                 | InstructionError::Poa(_)
-                | InstructionError::PopSigning(_)
+                | InstructionError::KeyAttestationSigning(_)
                 | InstructionError::JwkConversion(_)
                 | InstructionError::StatusClaimBatchIdExists(_)
                 | InstructionError::ObtainStatusClaim(_)

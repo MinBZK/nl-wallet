@@ -395,11 +395,9 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::TooManyCopiesRequested(_) => CredentialErrorCode::InvalidCredentialRequest,
 
-            Self::InvalidProofJwt(_) => CredentialErrorCode::InvalidProof,
+            Self::MultipleAttestationProofs(_) | Self::InvalidAttestationProof(_) => CredentialErrorCode::InvalidProof,
 
             Self::MissingProofNonce => CredentialErrorCode::InvalidNonce,
-
-            Self::ProofKeysNotDistinct => CredentialErrorCode::InvalidProof,
 
             Self::ProofNonceStore(_) => CredentialErrorCode::ServerError,
 

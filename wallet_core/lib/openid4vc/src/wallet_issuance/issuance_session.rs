@@ -19,6 +19,7 @@ use futures::try_join;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
+use jwt::jwk::jwk_to_public_key;
 use jwt::nonce::Nonce;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
@@ -515,7 +516,6 @@ impl OfferedConfigurations {
 #[derive(Debug)]
 struct IssuanceState {
     access_token: AccessToken,
-    credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
     batch_size: NonZeroU8,
     // Keep metadata separate from offered credentials to prevent duplication. Metadata is per credential
@@ -691,7 +691,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let session_state = IssuanceState {
             access_token: token_response.oauth_response.access_token,
-            credential_issuer,
             issuer_endpoints,
             batch_size,
             offered_credentials,
@@ -930,28 +929,32 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn fetch_credential(
         &self,
         offered_credential: &OfferedCredential,
-        keys: VecNonEmpty<IssuanceKeyResult>,
+        key_result: IssuanceKeyResult,
         dpop_nonce: Option<DpopNonce>,
         trust_anchors: &TrustAnchors,
     ) -> Result<CredentialWithMetadata, WalletIssuanceError> {
-        // Extract pairs of key identifiers and public keys and proofs from the WSCD response. Note that the WSCD may
-        // have returned fewer proofs than we requested, which means the issuer will provide us with fewer credential
-        // copies.
-        let (key_ids_and_public_keys, proofs): (VecNonEmpty<_>, _) = keys
+        let IssuanceKeyResult {
+            identifiers: key_identifiers,
+            attestation: key_attestation,
+        } = key_result;
+
+        // We assume here the WP gave us valid a valid key attestation, and leave it up to the issuer to verify its JWT.
+        let (_header, key_attestation_claims) = key_attestation
+            .as_ref()
+            .dangerous_parse_unverified()
+            .map_err(WalletIssuanceError::JwtParse)?;
+
+        // Extract pairs of key identifiers and public keys from the WSCD response. Note that the WSCD may have returned
+        // fewer proofs than we requested, which means the issuer will provide us with fewer credential copies.
+        let key_ids_and_public_keys = key_identifiers
             .into_nonempty_iter()
-            .map(|IssuanceKeyResult { key_identifier, pop }| {
-                // We assume here the WP gave us valid JWTs, and leave it up to the issuer to verify these.
-                let header = pop
-                    .dangerous_parse_header_unverified()
-                    .map_err(WalletIssuanceError::JwtParse)?;
+            .zip(&key_attestation_claims.attested_keys)
+            .map(|(identifier, attested_key)| {
+                let public_key = jwk_to_public_key(attested_key).map_err(WalletIssuanceError::JwkConversion)?;
 
-                let public_key = header.public_key().map_err(WalletIssuanceError::JwkConversion)?;
-
-                Ok(((key_identifier, public_key), pop))
+                Ok((identifier, public_key))
             })
-            .collect::<Result<VecNonEmpty<_>, WalletIssuanceError>>()?
-            .into_nonempty_iter()
-            .unzip();
+            .collect::<Result<VecNonEmpty<_>, WalletIssuanceError>>()?;
 
         // Send the proofs of possession to the issuer in a Credential Request to actually fetch the credential copies.
         let url = self
@@ -966,7 +969,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .message_client
             .request_credential(
                 url,
-                &CredentialRequest::new(offered_credential.to_request_identifier(), proofs),
+                &CredentialRequest::new(offered_credential.to_request_identifier(), key_attestation),
                 &dpop_header,
                 &self.session_state.access_token,
             )
@@ -1114,7 +1117,6 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
 
         // Have the WSCD generate sets of as many private keys and proofs as the number of credential copies for each
         // individual credential.
-        let aud = self.session_state.credential_issuer.as_ref().to_string();
         let key_counts_and_nonces: VecNonEmpty<_> = proof_nonces
             .into_iter()
             .map(|proof_nonce| (copy_count, proof_nonce))
@@ -1123,7 +1125,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             .expect("credential_count is non-zero, which guarantees that proof_nonces is non-empty");
         let credential_count = key_counts_and_nonces.len();
         let key_results = wscd
-            .perform_issuance(aud, key_counts_and_nonces)
+            .perform_issuance(key_counts_and_nonces)
             .await
             .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
 
@@ -1142,8 +1144,8 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 .iter()
                 .zip_eq(key_results)
                 .zip_eq(dpop_nonces)
-                .map(|((offered_credential, keys), dpop_nonce)| {
-                    self.fetch_credential(offered_credential, keys, dpop_nonce, trust_anchors)
+                .map(|((offered_credential, key_result), dpop_nonce)| {
+                    self.fetch_credential(offered_credential, key_result, dpop_nonce, trust_anchors)
                 }),
         )
         .await?;
@@ -1397,7 +1399,6 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use derive_more::Debug;
     use futures::FutureExt;
-    use jwt::SignedJwt;
     use jwt::jwk::jwk_to_public_key;
     use jwt::nonce::Nonce;
     use mdoc::IdentifierListInfo;
@@ -1423,9 +1424,9 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_nonempty;
-    use wscd::mock::MOCK_WALLET_CLIENT_ID;
+    use wscd::mock_remote::MOCK_CERTIFICATION_URL;
     use wscd::mock_remote::MockRemoteWscd;
-    use wscd::payload::jwt_proof::JwtProofClaims;
+    use wscd::payload::key_attestation::KeyAttestation;
     use wscd::wia::mock::MockWiaClient;
 
     use super::*;
@@ -2435,7 +2436,6 @@ mod tests {
 
         IssuanceState {
             access_token: "access_token".to_string().into(),
-            credential_issuer: issuer_identifier,
             issuer_endpoints,
             batch_size,
             offered_credentials,
@@ -2603,10 +2603,17 @@ mod tests {
             };
 
             let holder_pubkeys = match request.proofs.as_ref().unwrap() {
-                CredentialRequestProofs::Jwt(jwts) => jwts
-                    .nonempty_iter()
-                    .map(|jwt| jwk_to_public_key(&jwt.dangerous_parse_header_unverified().unwrap().jwk).unwrap())
-                    .collect::<VecNonEmpty<_>>(),
+                CredentialRequestProofs::Attestation(key_attestations) => {
+                    let (_header, claims) = key_attestations.first().as_ref().dangerous_parse_unverified().unwrap();
+                    claims
+                        .attested_keys
+                        .nonempty_iter()
+                        .map(|jwk| jwk_to_public_key(jwk).unwrap())
+                        .collect::<VecNonEmpty<_>>()
+                }
+                CredentialRequestProofs::Jwt(_) => {
+                    panic!("proof should be of \"attestation\" type");
+                }
             };
 
             self.response_from_holder_pubkeys(credential_id, holder_pubkeys.nonempty_iter())
@@ -2921,31 +2928,46 @@ mod tests {
         assert!(credential_with_metadata.extended_attestation_types.is_empty());
     }
 
-    struct SingleMockRemoteWscd {}
+    struct SingleMockRemoteWscd {
+        attestation_key_pair: KeyPair,
+    }
+
+    impl Default for SingleMockRemoteWscd {
+        fn default() -> Self {
+            let ca = Ca::generate_mock();
+            let attestation_key_pair = ca.generate_wia_mock().unwrap();
+
+            Self { attestation_key_pair }
+        }
+    }
 
     impl IssuanceWscd for SingleMockRemoteWscd {
         type Error = Infallible;
 
         async fn perform_issuance(
             &self,
-            aud: String,
             key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
+        ) -> Result<VecNonEmpty<IssuanceKeyResult>, Self::Error> {
             let (_key_count, nonce) = key_counts_and_nonces.into_first();
 
-            let claims = JwtProofClaims::new(
-                MOCK_WALLET_CLIENT_ID.to_string(),
-                aud,
-                nonce,
-                &MockTimeGenerator::default(),
-            );
-            let pop = SignedJwt::sign_with_jwk(&claims, &SigningKey::generate())
-                .now_or_never()
-                .unwrap()
-                .unwrap()
-                .into();
+            let key = SigningKey::generate();
+            let public_key = PublicKey::from(*key.verifying_key());
 
-            let results = vec_nonempty![vec_nonempty![IssuanceKeyResult::new("the_one_key".to_string(), pop)]];
+            let attestation = KeyAttestation::sign(
+                &vec_nonempty![public_key],
+                MOCK_CERTIFICATION_URL.clone(),
+                nonce,
+                &self.attestation_key_pair,
+                &MockTimeGenerator::default(),
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+            let results = vec_nonempty![IssuanceKeyResult::new(
+                vec_nonempty!["the_one_key".to_string()],
+                attestation
+            )];
 
             Ok(results)
         }
@@ -2968,7 +2990,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &SingleMockRemoteWscd {})
+        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &SingleMockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");

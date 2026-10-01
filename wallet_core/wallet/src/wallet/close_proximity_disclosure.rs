@@ -1994,7 +1994,7 @@ mod tests {
 
         let remote_key1 = MockRemoteEcdsaKey::new(key_id1, key1);
         let remote_key2 = MockRemoteEcdsaKey::new(key_id2, key2);
-        let wscd = MockRemoteWscd::new(vec![remote_key1, remote_key2]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![remote_key1, remote_key2]);
 
         let device_response =
             TestWalletMockStorage::<LocalConfigurationRepository>::create_close_proximity_device_response(

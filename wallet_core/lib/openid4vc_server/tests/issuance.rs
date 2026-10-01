@@ -21,7 +21,6 @@ use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use itertools::Itertools;
-use jwt::SignedJwt;
 use jwt::VerifiedJwt;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
@@ -94,7 +93,6 @@ use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::mock_remote::MockRemoteWscd;
-use wscd::payload::jwt_proof::JwtProofClaims;
 use wscd::payload::wia::WIA_HEADER_NAME;
 use wscd::payload::wia::WIA_POP_HEADER_NAME;
 use wscd::wia::WiaClient;
@@ -361,7 +359,7 @@ async fn authorization_code_flow(
         attestation_count.get()
     );
 
-    let wscd = MockRemoteWscd::new(vec![]);
+    let wscd = MockRemoteWscd::new_with_wptl_ca(&server.wptl_ca);
     let issued_creds = session
         .accept_issuance(NonZeroU8::MAX, &server.trust_anchors, &wscd)
         .await
@@ -401,7 +399,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());
 
-    let wscd = MockRemoteWscd::new(vec![]);
+    let wscd = MockRemoteWscd::new_with_wptl_ca(&server.wptl_ca);
     let issued_creds = session
         .accept_issuance(NonZeroU8::MAX, &server.trust_anchors, &wscd)
         .await
@@ -463,7 +461,7 @@ async fn pre_authorized_code_flow(
     };
 
     let copy_count = 4;
-    let wscd = MockRemoteWscd::new(vec![]);
+    let wscd = MockRemoteWscd::new_with_wptl_ca(&wptl_ca);
     let issued_creds = session
         .accept_issuance(NonZeroU8::MAX, &trust_anchors, &wscd)
         .await
@@ -487,6 +485,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
         wptl_ca,
         crl_verifier,
         registration_certificate,
+        ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
@@ -1668,19 +1667,16 @@ async fn pre_authorized_code_flow_credential_request() {
         .into_iter()
         .next()
         .unwrap();
-    let proof_claims = JwtProofClaims::new(
-        MOCK_WALLET_CLIENT_ID.to_string(),
-        issuer.issuer_identifier().as_ref().to_string(),
+    let wscd = MockRemoteWscd::new_with_wptl_ca(&wptl_ca);
+    let time = MockTimeGenerator::default();
+    let key_attestation = wscd.sign_key_attestation(
+        vec_nonempty![*SigningKey::generate().verifying_key()],
         Some(nonce_response.c_nonce),
-        &MockTimeGenerator::default(),
+        &time,
     );
-    let proof = SignedJwt::sign_with_jwk(&proof_claims, &SigningKey::generate())
-        .await
-        .unwrap()
-        .into();
     let credential_request = CredentialRequest::new(
         CredentialRequestIdentifier::CredentialIdentifier(credential_id.clone()),
-        vec_nonempty![proof],
+        key_attestation,
     );
 
     let credential_url = format!("{base}issuance/{CREDENTIAL_ENDPOINT_PATH}",)
@@ -1733,20 +1729,14 @@ async fn pre_authorized_code_flow_credential_request() {
         .json::<NonceResponse>()
         .await
         .unwrap();
-
-    let proof_claims = JwtProofClaims::new(
-        MOCK_WALLET_CLIENT_ID.to_string(),
-        issuer.issuer_identifier().as_ref().to_string(),
+    let key_attestation = wscd.sign_key_attestation(
+        vec_nonempty![*SigningKey::generate().verifying_key()],
         Some(nonce_response.c_nonce),
-        &MockTimeGenerator::default(),
+        &time,
     );
-    let proof = SignedJwt::sign_with_jwk(&proof_claims, &SigningKey::generate())
-        .await
-        .unwrap()
-        .into();
     let credential_request = CredentialRequest::new(
         CredentialRequestIdentifier::CredentialIdentifier(credential_id),
-        vec_nonempty![proof],
+        key_attestation,
     );
 
     let dpop_header = Dpop::new(

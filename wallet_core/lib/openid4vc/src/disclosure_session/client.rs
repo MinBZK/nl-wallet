@@ -568,7 +568,7 @@ mod tests {
         // Create an attestation and disclose it.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let attestation_key = MockRemoteEcdsaKey::new_random("attestation_key".to_string());
-        let wscd = MockRemoteWscd::new(vec![attestation_key.clone()]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![attestation_key.clone()]);
 
         let attestations = match credential_format {
             Format::MsoMdoc => {

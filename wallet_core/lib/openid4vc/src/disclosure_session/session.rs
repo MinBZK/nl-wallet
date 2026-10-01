@@ -397,7 +397,7 @@ mod tests {
         .try_into()
         .unwrap();
 
-        let wscd = MockRemoteWscd::new(vec![mdoc_key]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![mdoc_key]);
 
         (requests, attestations, wscd)
     }
@@ -413,7 +413,7 @@ mod tests {
         let issuer_key_pair = ca.generate_issuer_mock().unwrap();
         let sd_jwt_key = MockRemoteEcdsaKey::new_random("sd_jwt_key".to_string());
         let sd_jwt_public_key = *sd_jwt_key.verifying_key();
-        let wscd = MockRemoteWscd::new(vec![sd_jwt_key]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![sd_jwt_key]);
 
         let verified_sd_jwt =
             SignedSdJwt::pid_example(&issuer_key_pair, &PublicKey::from(sd_jwt_public_key)).into_verified();

@@ -1059,9 +1059,8 @@ mod tests {
 
         async fn perform_issuance(
             &self,
-            _aud: String,
             _key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
+        ) -> Result<VecNonEmpty<IssuanceKeyResult>, Self::Error> {
             unimplemented!()
         }
     }

@@ -15,7 +15,6 @@ use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use itertools::Itertools;
-use jwt::SignedJwt;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -44,7 +43,7 @@ use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_account::messages::instructions::GetTransferStatus;
-use wallet_account::messages::instructions::IssuanceKeyResult;
+use wallet_account::messages::instructions::IssuanceKeySetResult;
 use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::IssueWiaResult;
 use wallet_account::messages::instructions::PairTransfer;
@@ -70,8 +69,8 @@ use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
-use wscd::payload::jwt_proof::JwtProof;
 use wscd::payload::jwt_proof::JwtProofClaims;
+use wscd::payload::key_attestation::KeyAttestation;
 use wscd::payload::poa::POA_JWT_TYP;
 use wscd::payload::poa::Poa;
 use wscd::payload::wia::WiaDisclosure;
@@ -466,55 +465,52 @@ where
         ));
     }
 
-    let request_count = instruction.key_requests.len();
+    let (set_results, wrapped_keys): (Vec<_>, Vec<_>) = future::try_join_all(instruction.key_requests.into_iter().map(
+        async |request| -> Result<_, InstructionError> {
+            let (identifiers, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
+                .wallet_user_hsm
+                .generate_wrapped_keys(
+                    &attestation_wrapping_key_identifier(&user_state.attestation_wrapping_kids.current),
+                    request.key_count.into(),
+                )
+                .await?
+                .into_nonempty_iter()
+                .unzip();
 
-    let (proofs, wrapped_keys): (Vec<_>, Vec<_>) = future::try_join_all(
-        instruction
-            .key_requests
-            .into_iter()
-            .zip(std::iter::repeat_n(instruction.aud, request_count.get()))
-            .map(async |(request, aud)| -> Result<_, InstructionError> {
-                let (key_identifiers, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
-                    .wallet_user_hsm
-                    .generate_wrapped_keys(
-                        &attestation_wrapping_key_identifier(&user_state.attestation_wrapping_kids.current),
-                        request.key_count.into(),
-                    )
-                    .await?
-                    .into_nonempty_iter()
-                    .unzip();
+            let attested_keys = wrapped_keys
+                .nonempty_iter()
+                .map(|wrapped_key| PublicKey::from(*wrapped_key.public_key()))
+                .collect::<VecNonEmpty<_>>();
 
-                let attestation_keys = wrapped_keys
-                    .nonempty_iter()
-                    .map(|wrapped_key| {
-                        attestation_key(wrapped_key, &user_state.attestation_wrapping_kids.current, user_state)
-                    })
-                    .collect();
+            let attestation = KeyAttestation::sign(
+                attested_keys.nonempty_iter(),
+                user_state.key_attestation_certification.clone(),
+                request.proof_nonce,
+                &user_state.key_attestation_key_pair,
+                time,
+            )
+            .await
+            .map_err(InstructionError::KeyAttestationSigning)?;
 
-                // The JWT claims to be signed in the PoPs.
-                let claims = JwtProofClaims::new(NL_WALLET_CLIENT_ID.to_string(), aud, request.proof_nonce, time);
+            let set_result = IssuanceKeySetResult {
+                identifiers,
+                attestation,
+            };
 
-                let proofs = issuance_pops(&attestation_keys, &claims)
-                    .await?
-                    .into_nonempty_iter()
-                    .zip(key_identifiers)
-                    .map(|(pop, key_identifier)| IssuanceKeyResult { key_identifier, pop })
-                    .collect::<VecNonEmpty<_>>();
-
-                Ok((proofs, wrapped_keys))
-            }),
-    )
+            Ok((set_result, wrapped_keys))
+        },
+    ))
     .await?
     .into_iter()
     .unzip();
 
     let issuance_result = PerformIssuanceResult {
-        keys: proofs
+        key_sets: set_results
             .try_into()
-            .expect("the PerformIssuance instruction contains a non-zero amount of proof requests"),
+            .expect("the PerformIssuance instruction contains a non-zero amount of key requests"),
     };
     let wrapped_keys = wrapped_keys.into_iter().flatten().collect_vec().try_into().expect(
-        "the PerformIssuance instruction contains a non-zero amount of proof requests and the inner vec is non-empty",
+        "the PerformIssuance instruction contains a non-zero amount of key requests and the inner vec is non-empty",
     );
 
     Ok((issuance_result, wrapped_keys))
@@ -610,28 +606,6 @@ where
         .map_err(|e| InstructionError::WiaIssuance(Box::new(e)))?;
 
     Ok(wia_disclosure)
-}
-
-async fn issuance_pops<H>(
-    attestation_keys: &VecNonEmpty<HsmCredentialSigningKey<'_, H>>,
-    claims: &JwtProofClaims,
-) -> Result<VecNonEmpty<JwtProof>, InstructionError>
-where
-    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
-{
-    let pops = future::try_join_all(attestation_keys.iter().map(|attestation_key| async {
-        let jwt = SignedJwt::sign_with_jwk(claims, attestation_key)
-            .await
-            .map_err(InstructionError::PopSigning)?
-            .into();
-
-        Ok::<_, InstructionError>(jwt)
-    }))
-    .await?
-    .try_into()
-    .unwrap(); // Safe because we're iterating over attestation_keys which is VecNonEmpty
-
-    Ok(pops)
 }
 
 fn attestation_key<'a, T, R, H>(
@@ -1545,6 +1519,7 @@ mod tests {
     use strum::IntoEnumIterator;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::generator::UuidV4AndTimeGenerator;
+    use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use uuid::Uuid;
     use wallet_account::NL_WALLET_CLIENT_ID;
@@ -1580,12 +1555,12 @@ mod tests {
     use wallet_provider_domain::model::wallet_user::WithKid;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
-    use wscd::payload::jwt_proof::JwtProof;
     use wscd::payload::wia::WiaDisclosure;
 
     use crate::account_server::InstructionValidationError;
     use crate::account_server::UserState;
     use crate::account_server::mock;
+    use crate::account_server::mock::MOCK_WPTL_CA;
     use crate::account_server::mock::mock_status_list_service;
     use crate::account_server::mock::user_state as mock_user_state;
     use crate::flags::mock::StubWalletFlags;
@@ -2355,12 +2330,6 @@ mod tests {
         validation
     });
 
-    fn validate_issuance_pops<'a>(pops: impl IntoIterator<Item = &'a JwtProof>) {
-        for pop in pops {
-            pop.parse_and_verify_with_jwk(ISSUANCE_VALIDATION.to_owned()).unwrap();
-        }
-    }
-
     fn validate_wia_disclosure(wia_disclosure: &WiaDisclosure) {
         let wia_key = wia_disclosure
             .wia()
@@ -2393,9 +2362,9 @@ mod tests {
     #[case(vec![4, 1, 3, 5])]
     async fn should_handle_perform_issuance(#[case] key_counts: Vec<u8>, #[values(false, true)] include_nonce: bool) {
         let result = handle_issuance_instruction(PerformIssuance {
-            aud: POP_AUD.to_string(),
             key_requests: key_counts
-                .into_iter()
+                .iter()
+                .copied()
                 .map(|key_count| IssuanceKeySetRequest {
                     key_count: key_count.try_into().unwrap(),
                     proof_nonce: include_nonce.then(|| Nonce::from(POP_NONCE.to_string())),
@@ -2407,20 +2376,30 @@ mod tests {
         .await
         .expect("handling PerformIssuance instruction should succeed");
 
-        validate_issuance_pops(
-            result
-                .keys
-                .iter()
-                .flat_map(|proofs| proofs.iter())
-                .map(|proof| &proof.pop),
-        );
+        assert_eq!(result.key_sets.len().get(), key_counts.len());
+
+        let trust_anchors = TrustAnchors::from(LazyLock::force(&MOCK_WPTL_CA));
+
+        for (set_result, key_count) in result.key_sets.into_iter().zip(key_counts) {
+            let verification_result = set_result
+                .attestation
+                .verify(&trust_anchors, &MockTimeGenerator::default())
+                .expect("generated key attestation should verify successfully");
+
+            assert_eq!(verification_result.attested_keys.len().get(), usize::from(key_count));
+
+            if include_nonce {
+                assert!(verification_result.nonce.is_some());
+            } else {
+                assert!(verification_result.nonce.is_none());
+            }
+        }
     }
 
     #[tokio::test]
     async fn should_error_on_perform_issuance_too_many_keys() {
         let key_counts = [100, 200, 200, 150, 50];
         let error = handle_issuance_instruction(PerformIssuance {
-            aud: POP_AUD.to_string(),
             key_requests: key_counts
                 .into_iter()
                 .map(|key_count| IssuanceKeySetRequest {
@@ -2474,7 +2453,6 @@ mod tests {
 
     fn mock_issuance_instruction() -> PerformIssuance {
         PerformIssuance {
-            aud: "aud".to_string(),
             key_requests: vec_nonempty![IssuanceKeySetRequest {
                 key_count: NonZeroU8::MIN,
                 proof_nonce: None

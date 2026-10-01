@@ -235,7 +235,7 @@ async fn disclosure_jwe(
     let (auth_request, encryption_algorithm) = auth_request.normalize_request(&cert, None).unwrap();
 
     // Compute the disclosure.
-    let wscd = MockRemoteWscd::new(vec![mdoc_key]);
+    let wscd = MockRemoteWscd::new_with_keys(vec![mdoc_key]);
     let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.to_string());
     let (device_responses, poa) = DeviceResponse::sign_multiple_from_partial_mdocs(
         partial_mdocs,

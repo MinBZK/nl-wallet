@@ -128,6 +128,7 @@ use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA512;
 use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
+use wscd::payload::key_attestation::KeyAttestationSigningError;
 use wscd::payload::poa::PoaSigning;
 
 use crate::flags::WalletFlags;
@@ -312,8 +313,8 @@ pub enum InstructionError {
     #[error("public key conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
 
-    #[error("error signing PoP: {0}")]
-    PopSigning(#[source] JwtSignError),
+    #[error("could not sign key attestation: {0}")]
+    KeyAttestationSigning(#[source] KeyAttestationSigningError),
 
     #[error("SD JWT error: {0}")]
     SdJwtError(#[from] sd_jwt::error::DecoderError),
@@ -1940,6 +1941,8 @@ pub mod mock {
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
     pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
 
+    pub static MOCK_WPTL_CA: LazyLock<Ca> = LazyLock::new(|| Ca::generate_wptl_mock_ca().unwrap());
+
     pub static RECOVERY_CODE_CONFIG: LazyLock<RecoveryCodeConfig> = LazyLock::new(|| {
         RecoveryCodeConfig(
             [(
@@ -2035,14 +2038,13 @@ pub mod mock {
         pid_issuer_trust_anchors: TrustAnchors,
         status_list_service: S,
     ) -> UserState<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
-        let wp_trusted_list_ca = Ca::generate_wptl_mock_ca().unwrap();
-        let key_attestation_key_pair = wp_trusted_list_ca.generate_key_attestation_mock().unwrap();
+        let key_attestation_key_pair = MOCK_WPTL_CA.generate_key_attestation_mock().unwrap();
 
         UserState::<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
             repositories,
             flags,
             wallet_user_hsm,
-            wia_issuer: MockWiaIssuer::new_mock(&wp_trusted_list_ca),
+            wia_issuer: MockWiaIssuer::new_mock(&MOCK_WPTL_CA),
             wia_status_tracking_validity: Duration::from_hours(24),
             key_attestation_key_pair,
             key_attestation_certification: "https://wallet-provider.example.com/certification".parse().unwrap(),
@@ -3730,7 +3732,6 @@ mod tests {
 
         let instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                aud: "aud".to_string(),
                 key_requests: vec_nonempty![IssuanceKeySetRequest {
                     key_count: NonZeroU8::MIN,
                     proof_nonce: Some(Nonce::from("nonce".to_string())),
@@ -3836,7 +3837,6 @@ mod tests {
 
         let pin_recovery_instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                aud: "aud".to_string(),
                 key_requests: vec_nonempty![IssuanceKeySetRequest {
                     key_count: NonZeroU8::MIN,
                     proof_nonce: Some(Nonce::from("nonce".to_string())),
@@ -4213,7 +4213,6 @@ mod tests {
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
         let instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                aud: "aud".to_string(),
                 key_requests: vec_nonempty![IssuanceKeySetRequest {
                     key_count: NonZeroU8::MIN,
                     proof_nonce: Some(Nonce::from("nonce".to_string())),
