@@ -1,73 +1,73 @@
 <!doctype html>
 <html lang="{{ lang }}">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-        <title>{{ trans.title }}</title>
-        <link rel="stylesheet" href="mock-login/css/language_selector.css" />
-        <link rel="stylesheet" href="mock-login/mock_login.css" />
-        <script src="mock-login/language.js" defer></script>
-        <script src="mock-login/mock_login.js" defer></script>
-    </head>
-    <body>
-        <aside class="lang-bar">
-            <div class="lang-selector">
-                <label tabindex="0" role="navigation" for="lang_toggle">{{ lang|upper }}</label>
-                <input tabindex="-1" id="lang_toggle" type="checkbox" aria-hidden="true" />
-                <form class="lang-modal" method="GET">
-                    <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
-                    {% for (option, name) in language_options %}
-                    <button tabindex="0" type="submit" name="lang" value="{{ option }}" {% if *option == lang %}disabled{% endif %}>{{ name }}</button>
-                    {% endfor %}
-                </form>
-            </div>
-        </aside>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+    <title>{{ trans.title }}</title>
+    <link rel="stylesheet" href="mock-login/css/language_selector.css" />
+    <link rel="stylesheet" href="mock-login/mock_login.css" />
+    <script src="mock-login/language.js" defer></script>
+    <script src="mock-login/mock_login.js" defer></script>
+  </head>
+  <body>
+    <aside class="lang-bar">
+      <div class="lang-selector">
+        <label tabindex="0" role="navigation" for="lang_toggle">{{ lang|upper }}</label>
+        <input tabindex="-1" id="lang_toggle" type="checkbox" aria-hidden="true" />
+        <form class="lang-modal" method="GET">
+          <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
+          {% for (option, name) in language_options %}
+          <button tabindex="0" type="submit" name="lang" value="{{ option }}" {% if *option == lang %}disabled{% endif %}>{{ name }}</button>
+          {% endfor %}
+        </form>
+      </div>
+    </aside>
 
-        <header class="page-header">
-            <div class="logo-row">
-                <span class="digid-badge" aria-hidden="true"></span>
-                <span class="logo-heading">{{ trans.logo_heading }}</span>
-            </div>
-            <h1>{{ trans.title }}</h1>
-            {% for paragraph in trans.paragraphs %}
-            <p class="body">{{ paragraph }}</p>
-            {% endfor %}
-        </header>
+    <header class="page-header">
+      <div class="logo-row">
+        <span class="digid-badge" aria-hidden="true"></span>
+        <span class="logo-heading">{{ trans.logo_heading }}</span>
+      </div>
+      <h1>{{ trans.title }}</h1>
+      {% for paragraph in trans.paragraphs %}
+      <p class="body">{{ paragraph }}</p>
+      {% endfor %}
+    </header>
 
-        <hr class="divider" />
+    <hr class="divider" />
 
-        <section class="items">
-            <h2 class="list-heading">{{ trans.list_heading }}</h2>
-            <div class="grid">
-            {% for subject in subjects %}
-            <form class="card" method="post" action="mock-login/select">
-                <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
-                <input type="hidden" name="bsn" value="{{ subject.bsn }}" />
-                <button type="submit">
-                    <span class="card-text">
-                        <span class="name">{{ subject.name }}</span>
-                        <span class="bsn">BSN {{ subject.bsn }}</span>
-                    </span>
-                    <span class="card-arrow" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-                            <path
-                                d="M4 12h15M13 6l6 6-6 6"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            />
-                        </svg>
-                    </span>
-                </button>
-            </form>
-            {% endfor %}
-            </div>
-        </section>
+    <section class="items">
+      <h2 class="list-heading">{{ trans.list_heading }}</h2>
+      <div class="grid">
+      {% for subject in subjects %}
+      <form class="card" method="post" action="mock-login/select">
+        <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
+        <input type="hidden" name="bsn" value="{{ subject.bsn }}" />
+        <button type="submit">
+          <span class="card-text">
+            <span class="name">{{ subject.name }}</span>
+            <span class="bsn">BSN {{ subject.bsn }}</span>
+          </span>
+          <span class="card-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+              <path
+                d="M4 12h15M13 6l6 6-6 6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+        </button>
+      </form>
+      {% endfor %}
+      </div>
+    </section>
 
-        <div id="overlay" hidden>
-            <span class="spinner"></span>
-            <span>{{ trans.signing_in }}</span>
-        </div>
-    </body>
+    <div id="overlay" hidden>
+      <span class="spinner"></span>
+      <span>{{ trans.signing_in }}</span>
+    </div>
+  </body>
 </html>
