@@ -159,7 +159,7 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
@@ -257,7 +257,8 @@ mod tests {
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let metadata_keypair = ca.generate_wrpac_issuer_mock().unwrap();
-        let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuance_keypair =
+            generate_issuer_mock_with_registration(&ca, &LegacyIssuerRegistration::new_mock()).unwrap();
         let registration_certificate = MockRegistrationCertificate::new_issuer(
             metadata_keypair.certificate(),
             [CredentialKind::new(Format::SdJwt, "com.example.degree".to_string())],

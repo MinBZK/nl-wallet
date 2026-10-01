@@ -3,6 +3,7 @@ mod authorization_endpoints;
 pub mod credential;
 pub mod discovery;
 pub mod issuance_session;
+pub mod issuer_registration;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
@@ -12,7 +13,6 @@ use std::collections::HashSet;
 use std::num::NonZeroU8;
 
 use attestation_data::attributes::AttributesError;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
 use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
@@ -51,6 +51,7 @@ use wscd::wia::WiaClient;
 use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
+use self::issuer_registration::IssuerRegistration;
 use crate::authorization_details::CredentialId;
 use crate::client_auth::ClientAttestationChallengeError;
 use crate::client_auth::ClientAttestationChallengeMechanismError;

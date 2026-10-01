@@ -652,7 +652,7 @@ mod tests {
     use std::num::NonZeroU8;
     use std::num::NonZeroU16;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::x509::CertificateTypeError;
@@ -700,7 +700,7 @@ mod tests {
             [CredentialKind::new(Format::SdJwt, "com.example.pid".to_string())],
         );
 
-        let issuance_keypair = generate_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock())
+        let issuance_keypair = generate_issuer_mock_with_registration(issuer_ca, &LegacyIssuerRegistration::new_mock())
             .expect("generate issuer cert failed")
             .into();
 

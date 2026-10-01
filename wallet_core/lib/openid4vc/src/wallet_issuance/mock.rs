@@ -1,7 +1,6 @@
 use std::cell::RefCell;
 use std::num::NonZeroU8;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
@@ -20,6 +19,7 @@ use super::IssuanceSession;
 use super::OfferedCredentialMetadata;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
+use super::issuer_registration::IssuerRegistration;
 use crate::token::CredentialPreview;
 
 /// A [`WiaClient`] that records the challenge it was given, delegating the actual WIA issuance to a

@@ -8,14 +8,15 @@ use x509_parser::der_parser::oid;
 use crate::auth::Organization;
 use crate::x509::CertificateType;
 
+/// Legacy issuer certificate extension; remove in PVW-5870.
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct IssuerRegistration {
+pub struct LegacyIssuerRegistration {
     pub organization: Box<Organization>,
 }
 
-impl IssuerRegistration {
+impl LegacyIssuerRegistration {
     #[cfg(any(test, feature = "mock"))]
     pub fn to_certificate_configuration(
         &self,
@@ -28,7 +29,7 @@ impl IssuerRegistration {
     }
 }
 
-impl BorrowingCertificateExtension for IssuerRegistration {
+impl BorrowingCertificateExtension for LegacyIssuerRegistration {
     /// oid: 2.1.123.2
     /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
     /// suffix: 2, unofficial id for Issuer Authentication
@@ -36,8 +37,8 @@ impl BorrowingCertificateExtension for IssuerRegistration {
     const OID: Oid<'static> = oid!(2.1.123.2);
 }
 
-impl From<IssuerRegistration> for CertificateType {
-    fn from(source: IssuerRegistration) -> Self {
+impl From<LegacyIssuerRegistration> for CertificateType {
+    fn from(source: LegacyIssuerRegistration) -> Self {
         CertificateType::Mdl(source)
     }
 }
@@ -46,14 +47,14 @@ impl From<IssuerRegistration> for CertificateType {
 pub mod mock {
     use super::*;
 
-    impl IssuerRegistration {
+    impl LegacyIssuerRegistration {
         pub fn new_mock() -> Self {
             let mut organization = Organization::new_mock();
             organization.display_name = "Cert issuer".to_string();
             organization.legal_name = "Cert issuer B.V.".to_string();
             organization.identifier = "NTRNL-50198052".to_string();
 
-            IssuerRegistration {
+            LegacyIssuerRegistration {
                 organization: organization.into(),
             }
         }

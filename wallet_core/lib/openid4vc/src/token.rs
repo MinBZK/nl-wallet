@@ -1,4 +1,4 @@
-use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::CertificateType;
 use attestation_data::x509::CertificateTypeError;
@@ -170,7 +170,7 @@ impl CredentialPreview {
     pub fn verify(&self, trust_anchors: &TrustAnchors) -> Result<(), CredentialPreviewError> {
         // Verify the issuer certificates that the issuer presents for each credential to be issued.
         // NB: this only proves the authenticity of the data inside the certificates (the
-        // [`IssuerRegistration`]s), but does not authenticate the issuer that presents them.
+        // [`LegacyIssuerRegistration`]s), but does not authenticate the issuer that presents them.
         // Anyone that has ever seen these certificates (such as other wallets that received them during
         // issuance) could present them here in the protocol without needing the corresponding
         // issuer private key. This is not a problem, because at the end of the issuance
@@ -183,7 +183,7 @@ impl CredentialPreview {
         Ok(())
     }
 
-    pub fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError> {
+    pub fn issuer_registration(&self) -> Result<LegacyIssuerRegistration, CredentialPreviewError> {
         let CertificateType::Mdl(issuer) = CertificateType::from_certificate(&self.issuer_certificate)?;
         Ok(issuer)
     }

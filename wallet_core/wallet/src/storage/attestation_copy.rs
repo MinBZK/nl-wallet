@@ -1,6 +1,6 @@
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
@@ -159,8 +159,8 @@ impl StoredAttestation {
         }
     }
 
-    /// Extract the [`IssuerRegistration`] from a stored attestation by parsing it from the issuer certificate.
-    fn issuer_registration(&self) -> IssuerRegistration {
+    /// Extract the [`LegacyIssuerRegistration`] from a stored attestation by parsing it from the issuer certificate.
+    fn issuer_registration(&self) -> LegacyIssuerRegistration {
         let issuer_leaf_certificate = match self {
             Self::MsoMdoc(mdoc) => &mdoc
                 .issuer_leaf_certificate()
@@ -168,10 +168,10 @@ impl StoredAttestation {
             Self::SdJwt(sd_jwt) => sd_jwt.issuer_leaf_certificate(),
         };
 
-        // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
-        IssuerRegistration::from_certificate(issuer_leaf_certificate)
-            .expect("a stored attestation should always contain a valid IssuerRegistration")
-            .expect("a stored attestation should always contain an IssuerRegistration")
+        // Note that this means that an `LegacyIssuerRegistration` should ALWAYS be backwards compatible.
+        LegacyIssuerRegistration::from_certificate(issuer_leaf_certificate)
+            .expect("a stored attestation should always contain a valid LegacyIssuerRegistration")
+            .expect("a stored attestation should always contain an LegacyIssuerRegistration")
     }
 }
 
@@ -443,7 +443,7 @@ mod test {
 mod tests {
     use std::sync::LazyLock;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::validity::ValidityWindow;
@@ -554,7 +554,7 @@ mod tests {
     fn test_stored_attestation_copy() {
         let wallet_config = test_wallet_config();
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_registration = IssuerRegistration::new_mock();
+        let issuer_registration = LegacyIssuerRegistration::new_mock();
         let issuer_keypair = generate_issuer_mock_with_registration(&ca, &issuer_registration.clone()).unwrap();
 
         let (full_presentations, disclosable_presentations): (Vec<_>, Vec<_>) = [
@@ -563,7 +563,7 @@ mod tests {
         ]
         .into_iter()
         .map(|(attestation_copy, bsn_path)| {
-            // The retrieved `IssuerRegistration` matches the input.
+            // The retrieved `LegacyIssuerRegistration` matches the input.
             let full_issuer_registration = attestation_copy.attestation.data.issuer_registration();
             assert_eq!(full_issuer_registration, issuer_registration);
 

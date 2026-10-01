@@ -501,7 +501,6 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
@@ -514,6 +513,7 @@ mod tests {
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
     use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;

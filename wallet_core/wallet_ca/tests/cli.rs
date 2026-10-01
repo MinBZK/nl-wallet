@@ -10,7 +10,7 @@ use assert_cmd::prelude::*;
 use assert_fs::TempDir;
 use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
 use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
 use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
 use base64::Engine;
@@ -765,7 +765,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         let issuer_auth_json = temp.child("test-issuer-auth.json");
 
         // Generate issuer registration JSON input file
-        issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
+        issuer_auth_json.write_str(&serde_json::to_string(&LegacyIssuerRegistration::new_mock())?)?;
 
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
@@ -800,7 +800,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         let issuer_auth_json = temp.child("test-issuer-auth.json");
 
         // Generate issuer registration JSON input file
-        issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
+        issuer_auth_json.write_str(&serde_json::to_string(&LegacyIssuerRegistration::new_mock())?)?;
 
         let public_key_path = public_key_path(&temp, "test-mdl-crt");
         generate_public_key(&public_key_path);
@@ -1499,7 +1499,7 @@ fn regenerating_cert() -> Result<()> {
     let issuer_auth_json = temp.child("test-issuer-auth.json");
 
     // Generate issuer JSON input file
-    issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
+    issuer_auth_json.write_str(&serde_json::to_string(&LegacyIssuerRegistration::new_mock())?)?;
 
     // Generate issuer key pair and assert success
     Command::new(assert_cmd::cargo::cargo_bin!())
@@ -1554,7 +1554,7 @@ fn setup_issuer_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath
         .success();
 
     // Generate issuer registration JSON input file
-    issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
+    issuer_auth_json.write_str(&serde_json::to_string(&LegacyIssuerRegistration::new_mock())?)?;
 
     Ok((ca_crt, ca_key, mdl_prefix, issuer_auth_json))
 }

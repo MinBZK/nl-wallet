@@ -10,7 +10,7 @@ pub struct CertificateConfiguration {
     pub not_after: Option<DateTime<Utc>>,
     pub exclude_aki: bool,
     pub usage: Option<CertificateUsage>,
-    /// TODO: PVW-5870 Remove when IssuerRegistration is removed
+    /// TODO: PVW-5870 Remove when LegacyIssuerRegistration is removed
     pub extension: Option<rcgen::CustomExtension>,
     pub crl_distribution_points: Vec<Url>,
 }

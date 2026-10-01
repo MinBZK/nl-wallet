@@ -6,7 +6,7 @@ use std::time::Duration as StdDuration;
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::anyhow;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
 use attestation_data::registration_certificate::ParsedRegistrationCertificate;
 use attestation_data::x509::RelyingParty;
 use attestation_types::claim_path::ClaimPath;
@@ -416,7 +416,7 @@ impl Command {
         };
 
         let extension = issuer_auth_file
-            .map(|auth_file| serde_json::from_reader::<_, IssuerRegistration>(auth_file)?.to_custom_ext())
+            .map(|auth_file| serde_json::from_reader::<_, LegacyIssuerRegistration>(auth_file)?.to_custom_ext())
             .transpose()?;
 
         Ok(CertificateConfiguration {

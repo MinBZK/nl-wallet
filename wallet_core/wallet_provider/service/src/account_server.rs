@@ -1911,7 +1911,7 @@ pub mod mock {
 
     use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
@@ -2169,7 +2169,8 @@ pub mod mock {
     }
 
     pub fn recovery_code_sd_jwt(issuer_ca: &Ca) -> (SigningKey, UnverifiedSdJwt) {
-        let issuer_key = generate_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuer_key =
+            generate_issuer_mock_with_registration(issuer_ca, &LegacyIssuerRegistration::new_mock()).unwrap();
         let holder_key = SigningKey::generate();
         let sd_jwt =
             SignedSdJwt::pid_example(&issuer_key, &PublicKey::from(*holder_key.verifying_key())).into_verified();

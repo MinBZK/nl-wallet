@@ -1812,6 +1812,7 @@ mod tests {
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
+    use crate::wallet_issuance::issuer_registration::IssuerRegistration;
 
     #[tokio::test]
     async fn test_signed_metadata() {
@@ -2100,6 +2101,7 @@ mod tests {
             credential_configs,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
@@ -2165,6 +2167,7 @@ mod tests {
             credential_configs,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(

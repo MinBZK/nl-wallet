@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
@@ -837,7 +837,7 @@ fn prepare_example_credential_payload(
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
     let issuer_keypair =
-        generate_pid_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock()).unwrap();
+        generate_pid_issuer_mock_with_registration(issuer_ca, &LegacyIssuerRegistration::new_mock()).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let holder_privkey = wscd.create_random_key();

@@ -1006,7 +1006,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
@@ -2087,7 +2087,7 @@ mod tests {
 
         // Attestation issued by a CA that does not include AKI in certificates.
         let ca = Ca::generate_issuer_mock_ca_without_aki().unwrap();
-        let issuance_key = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuance_key = generate_issuer_mock_with_registration(&ca, &LegacyIssuerRegistration::new_mock()).unwrap();
 
         wallet_expectations_for_aki_tests(
             &mut wallet,
@@ -2120,7 +2120,7 @@ mod tests {
 
         // Attestation issued by a CA that does not include AKI in certificates.
         let ca = Ca::generate_issuer_mock_ca_without_aki().unwrap();
-        let issuance_key = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuance_key = generate_issuer_mock_with_registration(&ca, &LegacyIssuerRegistration::new_mock()).unwrap();
 
         wallet_expectations_for_aki_tests(
             &mut wallet,

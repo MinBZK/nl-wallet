@@ -573,7 +573,7 @@ where
         );
 
         info!("successfully received token and previews from issuer");
-        let organization = &issuance_session.issuer_registration().organization;
+        let organization = Box::new(issuance_session.issuer_registration().organization().clone());
         let attestations = previews_metadata_and_identity
             .into_iter()
             .map(|(preview_data, metadata, identity)| {
@@ -761,7 +761,7 @@ where
                 }
             }
             _ => IssuanceError::IssuerServer {
-                organization: issuance_session.issuer_registration().organization.clone(),
+                organization: Box::new(issuance_session.issuer_registration().organization().clone()),
                 error,
             },
         }
@@ -889,7 +889,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
@@ -902,6 +902,7 @@ mod tests {
     use openid4vc::wallet_issuance::IssuanceFlow;
     use openid4vc::wallet_issuance::OfferedCredentialMetadata;
     use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1563,7 +1564,8 @@ mod tests {
             .collect_vec();
 
         let ca = Ca::generate_mock();
-        let issuer_key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuer_key_pair =
+            generate_issuer_mock_with_registration(&ca, &LegacyIssuerRegistration::new_mock()).unwrap();
 
         let (payload, stored_metadata) =
             create_example_credential_payload(&time_generator, Format::SdJwt, attestation_type);
@@ -2342,7 +2344,8 @@ mod tests {
     #[test]
     fn test_match_preview_and_stored_attestations() {
         let ca = Ca::generate_mock();
-        let issuer_key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuer_key_pair =
+            generate_issuer_mock_with_registration(&ca, &LegacyIssuerRegistration::new_mock()).unwrap();
 
         let time_generator = MockTimeGenerator::default();
 

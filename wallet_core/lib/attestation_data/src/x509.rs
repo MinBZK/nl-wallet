@@ -9,7 +9,7 @@ use error_category::ErrorCategory;
 
 use crate::auth::Organization;
 use crate::auth::OrganizationError;
-use crate::auth::issuer_auth::IssuerRegistration;
+use crate::auth::issuer_auth::LegacyIssuerRegistration;
 
 /// Relying party of X509 certificates following ETSI EN 319 412-2 and ETSI EN 319 412-3 standard.
 #[derive(Debug, Clone)]
@@ -178,13 +178,13 @@ mod tests {
 
 /// Acts as configuration for the [Certificate::new] function
 ///
-/// TODO: PVW-5870 Remove when IssuerRegistration are removed
+/// TODO: PVW-5870 Remove when LegacyIssuerRegistration is removed
 #[derive(Debug, Clone, PartialEq)]
 pub enum CertificateType {
-    Mdl(IssuerRegistration),
+    Mdl(LegacyIssuerRegistration),
 }
 
-/// TODO: PVW-5870 Remove when IssuerRegistration are removed
+/// TODO: PVW-5870 Remove when LegacyIssuerRegistration is removed
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CertificateTypeError {
     #[error("certificate error: {0}")]
@@ -218,7 +218,7 @@ impl CertificateType {
             .map_err(CertificateTypeError::CertificateUsage)?;
         let result = match usage {
             CertificateUsage::Mdl => {
-                let Some(mut registration) = IssuerRegistration::from_certificate(cert)? else {
+                let Some(mut registration) = LegacyIssuerRegistration::from_certificate(cert)? else {
                     return Err(CertificateTypeError::IssuerRegistrationNotFound);
                 };
 
@@ -247,7 +247,7 @@ impl From<&CertificateType> for CertificateUsage {
     }
 }
 
-/// TODO: PVW-5870 Remove when IssuerRegistration are removed
+/// TODO: PVW-5870 Remove when LegacyIssuerRegistration is removed
 #[cfg(any(test, feature = "generate"))]
 pub mod generate {
     #[cfg(any(test, feature = "mock"))]
@@ -260,11 +260,11 @@ pub mod generate {
         use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
         use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
 
-        use crate::auth::issuer_auth::IssuerRegistration;
+        use crate::auth::issuer_auth::LegacyIssuerRegistration;
 
         pub fn generate_issuer_mock_with_registration(
             ca: &Ca,
-            issuer_registration: &IssuerRegistration,
+            issuer_registration: &LegacyIssuerRegistration,
         ) -> Result<KeyPair, CertificateGenerationError> {
             ca.generate_key_pair(
                 ISSUANCE_CERT_DN.clone(),
@@ -277,7 +277,7 @@ pub mod generate {
 
         pub fn generate_pid_issuer_mock_with_registration(
             ca: &Ca,
-            issuer_registration: &IssuerRegistration,
+            issuer_registration: &LegacyIssuerRegistration,
         ) -> Result<KeyPair, CertificateGenerationError> {
             ca.generate_key_pair(
                 PID_ISSUER_CERT_DN.clone(),

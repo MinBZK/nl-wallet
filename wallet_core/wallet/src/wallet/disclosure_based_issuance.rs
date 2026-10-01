@@ -174,7 +174,6 @@ mod tests {
     use std::assert_matches;
     use std::sync::LazyLock;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
@@ -195,6 +194,7 @@ mod tests {
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;

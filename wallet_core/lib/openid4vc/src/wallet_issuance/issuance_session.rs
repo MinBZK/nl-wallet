@@ -5,7 +5,6 @@ use std::convert::identity;
 use std::num::NonZeroU8;
 
 use attestation_data::attributes::AttributesTraversalBehaviour;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::claim_path::ClaimPath;
@@ -68,6 +67,7 @@ use super::credential::IssuedCredentialCopies;
 use super::credential::IssuedCredentialMetadata;
 use super::credential::MdocCopy;
 use super::credential::SdJwtCopy;
+use super::issuer_registration::IssuerRegistration;
 use crate::authorization_details::CredentialId;
 use crate::authorization_details::IssuerAuthorizationDetails;
 use crate::client_auth::ClientAttestationChallengeMechanism;
@@ -633,6 +633,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
+        issuer_registration: IssuerRegistration,
         batch_size: NonZeroU8,
         token_endpoint: Url,
         client_auth_challenge: ClientAttestationChallengeMechanism,
@@ -693,13 +694,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .map(|preview| preview.issuer_registration())
             .collect::<Result<VecNonEmpty<_>, _>>()
             .map_err(WalletIssuanceError::PreviewIssuerRegistration)?;
-        let issuer_registration = issuer_registrations
+        let _preview_issuer_registration = issuer_registrations
             .into_iter()
-            // Use `dedup()` instead of `unique()`, as `IssuerRegistration` does not implement Hash. The end result is
-            // the same when followed by `.exactly_one()`.
+            // Use `dedup()` instead of `unique()`, as `LegacyIssuerRegistration` does not implement Hash. The end
+            // result is the same when followed by `.exactly_one()`.
             .dedup()
             // Note that this iterator resulting in 0 values will never happen because `issuer_registrations` is
-            // non-empty, so this error only occurs when there are multiple `IssuerRegistration` values.
+            // non-empty, so this error only occurs when there are multiple `LegacyIssuerRegistration` values.
             .exactly_one()
             .map_err(|_| WalletIssuanceError::DifferentIssuers)?;
 
@@ -1426,7 +1427,7 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
@@ -1588,6 +1589,7 @@ mod tests {
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             oauth_metadata.oauth_metadata.token_endpoint,
             mechanism,
@@ -1630,7 +1632,8 @@ mod tests {
         type_metadata: TypeMetadata,
         token_response_fields: &TokenResponseFields,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
-        let issuance_key = generate_pid_issuer_mock_with_registration(ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuance_key =
+            generate_pid_issuer_mock_with_registration(ca, &LegacyIssuerRegistration::new_mock()).unwrap();
 
         let authorization_details = match &token_response_fields {
             TokenResponseFields::AuthorizationDetails(identifiers) | TokenResponseFields::Both(identifiers, _) => {
@@ -1719,6 +1722,7 @@ mod tests {
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
@@ -2550,7 +2554,7 @@ mod tests {
     fn test_start_issuance_error_different_issuer() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
-        let issuer_registration = IssuerRegistration::new_mock();
+        let issuer_registration = LegacyIssuerRegistration::new_mock();
         let issuance_key = generate_pid_issuer_mock_with_registration(&ca, &issuer_registration).unwrap();
         let different_issuance_key = {
             let mut different_dn = PID_ISSUER_CERT_DN.clone();
@@ -2638,6 +2642,7 @@ mod tests {
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
@@ -2783,7 +2788,7 @@ mod tests {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
             let trust_anchors = TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap();
 
-            let issuer_registration = IssuerRegistration::new_mock();
+            let issuer_registration = LegacyIssuerRegistration::new_mock();
             let issuer_key = generate_pid_issuer_mock_with_registration(&ca, &issuer_registration).unwrap();
             let issuer_certificate = issuer_key.certificate().clone();
 
@@ -3496,7 +3501,7 @@ mod tests {
         // public key in the preview than is contained within the response should fail.
         let other_ca = Ca::generate_issuer_mock_ca().unwrap();
         let other_issuance_key =
-            generate_pid_issuer_mock_with_registration(&other_ca, &IssuerRegistration::new_mock()).unwrap();
+            generate_pid_issuer_mock_with_registration(&other_ca, &LegacyIssuerRegistration::new_mock()).unwrap();
         let preview_data = CredentialPreview {
             issuer_certificate: other_issuance_key.certificate().clone(),
             ..preview
