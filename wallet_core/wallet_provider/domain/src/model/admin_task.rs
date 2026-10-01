@@ -87,6 +87,25 @@ pub struct AdminTaskCreate {
     pub task_reason: String,
 }
 
+/// Request model for a review verdict, updates [`AdminTask`]
+#[derive(Debug, Clone)]
+pub struct AdminTaskReview {
+    pub id: Uuid,
+    pub reviewed_at: DateTime<Utc>,
+    pub reviewed_by_user_id: String,
+    pub reviewed_by_display_name: String,
+    pub review_comment: String,
+    pub review_verdict: ReviewVerdict,
+}
+
+/// Request model for task lists
+#[derive(Debug, Clone)]
+pub enum TaskListView {
+    OpenTasks { user_id: String },
+    History { user_id: String },
+    Reviewable { user_id: String },
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
