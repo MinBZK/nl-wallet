@@ -259,7 +259,7 @@ name and location in mind.
 Issuer organization information comes from the Wallet Relying Party Registration
 Certificate (WRPRC), configured in `registration_certificate` and bound to the WRPAC
 in `credential_metadata_keypair`. It is no longer embedded in the credential
-signing certificate. See the [Wallet CA registration-certificate documentation](https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_ca/README.md#registration-certificates)
+signing certificate. See the [Wallet CA documentation](https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_ca/README.md)
 for generating a WRPRC.
 
 ## Creating issuer, TSL and WRPAC certificates
