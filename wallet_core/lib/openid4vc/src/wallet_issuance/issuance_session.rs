@@ -24,6 +24,7 @@ use jwt::nonce::Nonce;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
+use nonempty_collections::NEMap;
 use nonempty_collections::NESet;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;
@@ -324,16 +325,14 @@ impl SupportedConfiguration {
     }
 }
 
-/// Internal helper type that represents the relevant information about the credential configurations that the issuer
-/// offered to the holder in the Token Response. It is generic over the actual credential configuration type: it is
-/// created with the [`CredentialConfiguration`]s from the Issuer Metadata, after which [`Self::into_supported`]
-/// converts these into [`SupportedConfiguration`]s, discarding those with an unsupported format.
+/// Internal helper type that represents the Credential Configurations from the Credential Offer that the issuer granted
+/// to the holder in the Token Response. The [`CredentialConfiguration`]s are sourced from the Issuer Metadata.
 #[derive(Debug)]
-enum OfferedConfigurations<C = SupportedConfiguration> {
+enum GrantedConfigurations {
     /// The result of a Token Response that did not contain `authorization_details`. Credentials may only be identified
     /// by their Credential Configuration Identifier when the holder calls the Credential Endpoint to fetch the
     /// credentials.
-    WithoutIdentifiers(HashMap<CredentialConfigurationId, C>),
+    WithoutIdentifiers(HashMap<CredentialConfigurationId, CredentialConfiguration>),
 
     /// The result of a Token Response that did contain `authorization_details`, where each Credential Configuration
     /// has at least one Credential Identifier of an offered credential. The holder then uses these Credential
@@ -341,10 +340,21 @@ enum OfferedConfigurations<C = SupportedConfiguration> {
     ///
     /// The Credential Identifiers are unique across Credential Configurations, as this is required in order to identify
     /// credentials at the Credential Endpoint.
-    WithIdentifiers(HashMap<CredentialConfigurationId, (C, HashSet<CredentialId>)>),
+    WithIdentifiers(HashMap<CredentialConfigurationId, (CredentialConfiguration, HashSet<CredentialId>)>),
 }
 
-impl OfferedConfigurations<CredentialConfiguration> {
+/// The [`GrantedConfigurations`] that have a supported format, see [`GrantedConfigurations::into_supported`]. There is
+/// always at least one Credential Configuration or at least one Credential Identifier per Credential Configuration.
+#[derive(Debug)]
+enum SupportedConfigurations {
+    /// See [`GrantedConfigurations::WithoutIdentifiers`].
+    WithoutIdentifiers(NEMap<CredentialConfigurationId, SupportedConfiguration>),
+
+    /// See [`GrantedConfigurations::WithIdentifiers`].
+    WithIdentifiers(NEMap<CredentialConfigurationId, (SupportedConfiguration, NESet<CredentialId>)>),
+}
+
+impl GrantedConfigurations {
     /// Filter the Credential Configurations that were present in the Credential Offer based on the
     /// `authorization_details` field from the Token Response.
     fn new_from_authorization_details(
@@ -439,67 +449,65 @@ impl OfferedConfigurations<CredentialConfiguration> {
         Ok(Self::WithoutIdentifiers(offered_configs))
     }
 
-    /// Discard the Credential Configurations with an unsupported format.
-    fn into_supported(self) -> OfferedConfigurations {
+    /// Discard the Credential Configurations with an unsupported format. Returns `None` if no Credential Configurations
+    /// remain.
+    fn into_supported(self) -> Option<SupportedConfigurations> {
         match self {
-            Self::WithoutIdentifiers(configs) => OfferedConfigurations::WithoutIdentifiers(
+            Self::WithoutIdentifiers(configs) => NEMap::try_from_map(
                 configs
                     .into_iter()
                     .filter_map(|(config_id, config)| Some((config_id, SupportedConfiguration::try_new(config)?)))
-                    .collect(),
-            ),
-            Self::WithIdentifiers(configs) => OfferedConfigurations::WithIdentifiers(
+                    .collect::<HashMap<_, _>>(),
+            )
+            .map(SupportedConfigurations::WithoutIdentifiers),
+            Self::WithIdentifiers(configs) => NEMap::try_from_map(
                 configs
                     .into_iter()
                     .filter_map(|(config_id, (config, credential_ids))| {
+                        // A Credential Configuration without any Credential Identifiers does not offer any credentials,
+                        // so it can be discarded as well. Note that this does not occur in practice, as the
+                        // `authorization_details` contain at least one Credential Identifier per configuration.
+                        let credential_ids = NESet::try_from_set(credential_ids)?;
+
                         Some((config_id, (SupportedConfiguration::try_new(config)?, credential_ids)))
                     })
-                    .collect(),
-            ),
+                    .collect::<HashMap<_, _>>(),
+            )
+            .map(SupportedConfigurations::WithIdentifiers),
         }
     }
 }
 
-impl OfferedConfigurations {
-    /// Create [`OfferedConfigurations`] by combining the Credential Configurations that were present in the Credential
-    /// Offer with the `scope` and `authorization_details` fields as received in the Token Response, discarding any
-    /// Credential Configurations that the issuer no longer offers or that have an unsupported format. Returns an error
-    /// if no Credential Configurations remain.
+impl SupportedConfigurations {
+    /// Create [`SupportedConfigurations`] by combining the Credential Configurations that were present in the
+    /// Credential Offer with the `scope` and `authorization_details` fields as received in the Token Response,
+    /// discarding any Credential Configurations that the issuer no longer offers or that have an unsupported
+    /// format. Returns an error if no Credential Configurations remain.
     fn new_from_token_response(
         credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         scope: Option<&HashSet<Scope>>,
         authorization_details: Option<IssuerAuthorizationDetails>,
     ) -> Result<Self, WalletIssuanceError> {
-        let offered_configurations = match (scope, authorization_details) {
+        let granted_configurations = match (scope, authorization_details) {
             // If the Token Response contained `authorization_details`, use that and ignore any `scope` values. Returns
             // an error if any Credential Configuration ID was not present in the Credential Offer.
             (_, Some(authorization_details)) => {
-                OfferedConfigurations::new_from_authorization_details(credential_configurations, authorization_details)?
+                GrantedConfigurations::new_from_authorization_details(credential_configurations, authorization_details)?
             }
 
             // If the Token Response contained `scope` values, select only those Credential Configurations that have
             // this scope. Returns an error if no scope values were provided or if any of the scope values do not refer
             // to Credential Configurations present in the Credential Offer.
-            (Some(scope), None) => OfferedConfigurations::new_from_scope(credential_configurations, scope)?,
+            (Some(scope), None) => GrantedConfigurations::new_from_scope(credential_configurations, scope)?,
 
             // If neither the `authorization_details` nor the `scope` field was present in the Token Response, it means
             // that the issuer offers all of the Credential Configurations from the Credential Offer.
-            (None, None) => OfferedConfigurations::WithoutIdentifiers(credential_configurations),
-        }
-        .into_supported();
+            (None, None) => GrantedConfigurations::WithoutIdentifiers(credential_configurations),
+        };
 
-        if offered_configurations.is_empty() {
-            return Err(WalletIssuanceError::NoSupportedCredentialConfigurations);
-        }
-
-        Ok(offered_configurations)
-    }
-
-    fn is_empty(&self) -> bool {
-        match self {
-            Self::WithoutIdentifiers(credential_configs) => credential_configs.is_empty(),
-            Self::WithIdentifiers(credential_configs) => credential_configs.is_empty(),
-        }
+        granted_configurations
+            .into_supported()
+            .ok_or(WalletIssuanceError::NoSupportedCredentialConfigurations)
     }
 
     fn credential_config_iter(&self) -> impl Iterator<Item = (&CredentialConfigurationId, &SupportedConfiguration)> {
@@ -513,39 +521,29 @@ impl OfferedConfigurations {
         }
     }
 
+    /// Create an [`OfferedCredentials`] without previews, containing an entry for every offered Credential
+    /// Configuration or, if applicable, every offered Credential Identifier.
     fn into_offered_credentials(self) -> OfferedCredentials {
-        match self {
-            Self::WithoutIdentifiers(credential_configs) => OfferedCredentials::WithoutPreviews(
-                NESet::try_from_set(
-                    credential_configs
-                        .iter()
-                        .map(|(config_id, config)| {
-                            OfferedCredential::new_by_config_id(config_id.clone(), config.credential_kind.format)
-                        })
-                        .collect(),
-                )
-                // TODO (PVW-6363): Remove unwrap by expressing non-emptiness in the types of `OfferedConfigurations`.
-                .unwrap(),
-            ),
-            Self::WithIdentifiers(credential_configs) => OfferedCredentials::WithoutPreviews(
-                NESet::try_from_set(
-                    credential_configs
-                        .iter()
-                        .flat_map(|(config_id, (config, credential_ids))| {
-                            credential_ids.iter().map(|credential_id| {
-                                OfferedCredential::new_by_credential_id(
-                                    credential_id.clone(),
-                                    config_id.clone(),
-                                    config.credential_kind.format,
-                                )
-                            })
-                        })
-                        .collect(),
-                )
-                // TODO (PVW-6363): Remove unwrap by expressing non-emptiness in the types of `OfferedConfigurations`.
-                .unwrap(),
-            ),
-        }
+        let offered_credentials = match self {
+            Self::WithoutIdentifiers(configs) => configs
+                .into_nonempty_iter()
+                .map(|(config_id, config)| {
+                    OfferedCredential::new_by_config_id(config_id, config.credential_kind.format)
+                })
+                .collect(),
+            Self::WithIdentifiers(configs) => configs
+                .into_nonempty_iter()
+                .flat_map(|(config_id, (config, credential_ids))| {
+                    let format = config.credential_kind.format;
+
+                    credential_ids.into_nonempty_iter().map(move |credential_id| {
+                        OfferedCredential::new_by_credential_id(credential_id, config_id.clone(), format)
+                    })
+                })
+                .collect(),
+        };
+
+        OfferedCredentials::WithoutPreviews(offered_credentials)
     }
 }
 
@@ -720,7 +718,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .await
             .map_err(|error| map_pre_authorized_token_error(error, &token_request))?;
 
-        let offered_configurations = OfferedConfigurations::new_from_token_response(
+        let offered_configurations = SupportedConfigurations::new_from_token_response(
             credential_configurations,
             token_response.oauth_response.scope.as_ref(),
             token_response.authorization_details,
@@ -900,12 +898,15 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     /// an error when any previews are missing or when excess previews are received.
     fn match_preview_against_offered_configurations(
         credential_previews: VecNonEmpty<CredentialPreview>,
-        offered_configurations: OfferedConfigurations,
+        offered_configurations: SupportedConfigurations,
     ) -> Result<OfferedCredentials, WalletIssuanceError> {
         let (offered_credentials, excess_identifiers): (Vec<_>, Vec<_>) = match offered_configurations {
             // If the offered credential configurations did not contain credential identifiers because the issuer did
             // not send `authorization_details`, match every preview against its `config_id` value only.
-            OfferedConfigurations::WithoutIdentifiers(mut configs) => {
+            SupportedConfigurations::WithoutIdentifiers(configs) => {
+                // Convert to a regular map so that matched configurations can be removed from it.
+                let mut configs = HashMap::from(configs);
+
                 let (offered_credentials, excess_identifiers) =
                     credential_previews.into_iter().partition_map(|preview| {
                         // If both the config_id and format match, remove the Credential Configuration. Otherwise,
@@ -937,7 +938,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             }
             // If the issuer did send `authorization_details`, match every preview exactly against both its `config_id`
             // and `credential_id` values.
-            OfferedConfigurations::WithIdentifiers(mut configs) => {
+            SupportedConfigurations::WithIdentifiers(configs) => {
+                // Convert to regular collections so that matched credential identifiers can be removed from them.
+                let mut configs = configs
+                    .into_iter()
+                    .map(|(config_id, (config, credential_ids))| (config_id, (config, HashSet::from(credential_ids))))
+                    .collect::<HashMap<_, _>>();
+
                 let (offered_credentials, excess_identifiers) =
                     credential_previews.into_iter().partition_map(|preview| {
                         // If the config_id, credential_id and format all match, remove the credential_id. Otherwise,
