@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 use config::Config;
@@ -22,8 +23,6 @@ use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
-
-use crate::pid::digid_mock::MockSubjects;
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
@@ -50,8 +49,10 @@ pub struct Digid {
     /// When non-empty, the pid_issuer serves its own mock DigiD login page (a grid of these identities) instead of
     /// redirecting to nl-rdo-max's. Maps each BSN to a display name; each BSN must resolve in the BRP proxy's dataset.
     /// Leave empty for the real DigiD flow.
+    ///
+    /// This is a HashMap because it is configured via environment variables which do not have a fixed order.
     #[serde(default)]
-    pub mock_subjects: MockSubjects,
+    pub mock_subjects: HashMap<String, String>,
 }
 
 #[serde_as]
