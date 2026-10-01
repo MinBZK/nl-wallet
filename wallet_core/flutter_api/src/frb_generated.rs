@@ -2677,6 +2677,20 @@ impl SseDecode for Vec<(String, Box<crate::models::attestation::AttributeValue>)
     }
 }
 
+impl SseDecode for Vec<crate::models::organization::ServiceDescription> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::models::organization::ServiceDescription>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::models::wallet_event::WalletEvent> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2834,7 +2848,7 @@ impl SseDecode for crate::models::organization::Organization {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_legalName = <String>::sse_decode(deserializer);
         let mut var_displayName = <String>::sse_decode(deserializer);
-        let mut var_description = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
+        let mut var_description = <Vec<crate::models::organization::ServiceDescription>>::sse_decode(deserializer);
         let mut var_webUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_privacyPolicyUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_identifier = <String>::sse_decode(deserializer);
@@ -3001,6 +3015,16 @@ impl SseDecode for crate::models::revocation::RevocationStatus {
             2 => crate::models::revocation::RevocationStatus::Undetermined,
             3 => crate::models::revocation::RevocationStatus::Corrupted,
             _ => unreachable!("Invalid variant for RevocationStatus: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::models::organization::ServiceDescription {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_translations = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
+        return crate::models::organization::ServiceDescription {
+            translations: var_translations,
         };
     }
 }
@@ -4123,6 +4147,20 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::revocation::RevocationStat
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::organization::ServiceDescription {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.translations.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::organization::ServiceDescription {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::organization::ServiceDescription>
+    for crate::models::organization::ServiceDescription
+{
+    fn into_into_dart(self) -> crate::models::organization::ServiceDescription {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosureResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -5104,6 +5142,16 @@ impl SseEncode for Vec<(String, Box<crate::models::attestation::AttributeValue>)
     }
 }
 
+impl SseEncode for Vec<crate::models::organization::ServiceDescription> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::models::organization::ServiceDescription>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::models::wallet_event::WalletEvent> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5238,7 +5286,7 @@ impl SseEncode for crate::models::organization::Organization {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.legal_name, serializer);
         <String>::sse_encode(self.display_name, serializer);
-        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.description, serializer);
+        <Vec<crate::models::organization::ServiceDescription>>::sse_encode(self.description, serializer);
         <Option<String>>::sse_encode(self.web_url, serializer);
         <Option<String>>::sse_encode(self.privacy_policy_url, serializer);
         <String>::sse_encode(self.identifier, serializer);
@@ -5385,6 +5433,13 @@ impl SseEncode for crate::models::revocation::RevocationStatus {
             },
             serializer,
         );
+    }
+}
+
+impl SseEncode for crate::models::organization::ServiceDescription {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.translations, serializer);
     }
 }
 
@@ -6378,6 +6433,16 @@ mod io {
             vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
+    impl CstDecode<Vec<crate::models::organization::ServiceDescription>> for *mut wire_cst_list_service_description {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::organization::ServiceDescription> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
     impl CstDecode<Vec<crate::models::wallet_event::WalletEvent>> for *mut wire_cst_list_wallet_event {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<crate::models::wallet_event::WalletEvent> {
@@ -6541,6 +6606,14 @@ mod io {
                     }
                 }
                 _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::organization::ServiceDescription> for wire_cst_service_description {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::organization::ServiceDescription {
+            crate::models::organization::ServiceDescription {
+                translations: self.translations.cst_decode(),
             }
         }
     }
@@ -7115,6 +7188,18 @@ mod io {
         }
     }
     impl Default for wire_cst_revocation_code_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_service_description {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                translations: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_service_description {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -7947,6 +8032,20 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_service_description(
+        len: i32,
+    ) -> *mut wire_cst_list_service_description {
+        let wrap = wire_cst_list_service_description {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_service_description>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_list_wallet_event(len: i32) -> *mut wire_cst_list_wallet_event {
         let wrap = wire_cst_list_wallet_event {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
@@ -8359,6 +8458,12 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_list_service_description {
+        ptr: *mut wire_cst_service_description,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_list_wallet_event {
         ptr: *mut wire_cst_wallet_event,
         len: i32,
@@ -8409,7 +8514,7 @@ mod io {
     pub struct wire_cst_organization {
         legal_name: *mut wire_cst_list_prim_u_8_strict,
         display_name: *mut wire_cst_list_prim_u_8_strict,
-        description: *mut wire_cst_list_localized_string,
+        description: *mut wire_cst_list_service_description,
         web_url: *mut wire_cst_list_prim_u_8_strict,
         privacy_policy_url: *mut wire_cst_list_prim_u_8_strict,
         identifier: *mut wire_cst_list_prim_u_8_strict,
@@ -8512,6 +8617,11 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_RevocationCodeResult_InstructionError {
         error: *mut wire_cst_wallet_instruction_error,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_service_description {
+        translations: *mut wire_cst_list_localized_string,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

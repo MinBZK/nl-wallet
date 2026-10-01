@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 class Organization {
   final String legalName;
   final String displayName;
-  final List<LocalizedString> description;
+  final List<ServiceDescription> description;
   final String? webUrl;
   final String? privacyPolicyUrl;
   final String identifier;
@@ -48,4 +48,20 @@ class Organization {
           privacyPolicyUrl == other.privacyPolicyUrl &&
           identifier == other.identifier &&
           countryCode == other.countryCode;
+}
+
+class ServiceDescription {
+  final List<LocalizedString> translations;
+
+  const ServiceDescription({
+    required this.translations,
+  });
+
+  @override
+  int get hashCode => translations.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ServiceDescription && runtimeType == other.runtimeType && translations == other.translations;
 }

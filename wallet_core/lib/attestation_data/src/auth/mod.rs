@@ -9,6 +9,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use crate::registration_certificate::MultiLanguageString;
 use crate::registration_certificate::StatusValidatedRegistrationCertificate;
 use crate::registration_certificate::Subject;
 use crate::x509::RelyingParty;
@@ -20,14 +21,18 @@ type Language = String;
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LocalizedStrings(pub IndexMap<Language, String>);
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ServiceDescription {
+    pub translations: Vec<MultiLanguageString>,
+}
+
 #[skip_serializing_none]
-// TODO: Check if serde is still necessary when Issuer and Reader registrations are removed (PVW-5870)
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Organization {
     pub display_name: String,
     pub legal_name: String,
-    pub description: LocalizedStrings,
+    pub description: Vec<ServiceDescription>,
     pub web_url: Option<Url>,
     // TODO: Remove rename when Issuer registration is removed (PVW-5870)
     #[serde(rename = "kvk")]
@@ -68,21 +73,17 @@ impl From<&StatusValidatedRegistrationCertificate> for Organization {
                 family_name,
             } => format!("{given_name} {family_name}"),
         };
-        let mut description = IndexMap::<String, String>::new();
-        for translation in payload.srv_description.iter().flatten() {
-            description
-                .entry(translation.lang.clone())
-                .and_modify(|value| {
-                    value.push('\n');
-                    value.push_str(&translation.value);
-                })
-                .or_insert_with(|| translation.value.clone());
-        }
 
         Self {
             display_name: payload.name.clone().unwrap_or_else(|| legal_name.clone()),
             legal_name,
-            description: LocalizedStrings(description),
+            description: payload
+                .srv_description
+                .iter()
+                .map(|description| ServiceDescription {
+                    translations: description.iter().cloned().collect(),
+                })
+                .collect(),
             identifier: payload.sub.clone(),
             country_code: payload.country.clone(),
             web_url: payload.info_uri.clone(),
@@ -106,16 +107,32 @@ pub mod mock {
         }
     }
 
+    impl<'a, I: IntoIterator<Item = (&'a str, &'a str)>> From<I> for ServiceDescription {
+        fn from(source: I) -> Self {
+            Self {
+                translations: source
+                    .into_iter()
+                    .map(|(lang, value)| MultiLanguageString {
+                        lang: lang.to_owned(),
+                        value: value.to_owned(),
+                    })
+                    .collect(),
+            }
+        }
+    }
+
     impl Organization {
         pub fn new_mock() -> Self {
             Organization {
                 display_name: "Mijn Organisatienaam".to_owned(),
                 legal_name: "Organisatie".to_owned(),
-                description: [
-                    ("nl", "Beschrijving van Mijn Organisatie"),
-                    ("en", "Description of My Organization"),
-                ]
-                .into(),
+                description: vec![
+                    [
+                        ("nl", "Beschrijving van Mijn Organisatie"),
+                        ("en", "Description of My Organization"),
+                    ]
+                    .into(),
+                ],
                 identifier: "some-identifier".to_owned(),
                 country_code: "NL".to_owned(),
                 web_url: Some(Url::parse("https://organisation.example.com").unwrap()),
@@ -175,7 +192,11 @@ pub mod test {
         payload.0["info_uri"] = json!(has_optional_fields.then_some("https://example.com/info"));
         payload.0["privacy_policy"] = json!(has_optional_fields.then_some("https://example.com/privacy"));
         payload.0["srv_description"] = json!([
-            [{ "lang": "en", "value": "First service" }, { "lang": "nl", "value": "Eerste dienst" }],
+            [
+                { "lang": "en", "value": "First service" },
+                { "lang": "nl", "value": "Eerste dienst" },
+                { "lang": "en", "value": "Extra details" },
+            ],
             [{ "lang": "en", "value": "Second service" }],
         ]);
 
@@ -198,8 +219,13 @@ pub mod test {
             .await
             .unwrap();
 
+        let organization = Organization::from(&certificate);
         assert_eq!(
-            Organization::from(&certificate),
+            serde_json::from_value::<Organization>(serde_json::to_value(&organization).unwrap()).unwrap(),
+            organization,
+        );
+        assert_eq!(
+            organization,
             Organization {
                 display_name: if has_optional_fields {
                     "Issuer service"
@@ -208,7 +234,15 @@ pub mod test {
                 }
                 .to_owned(),
                 legal_name: legal_name.to_owned(),
-                description: [("en", "First service\nSecond service"), ("nl", "Eerste dienst")].into(),
+                description: vec![
+                    [
+                        ("en", "First service"),
+                        ("nl", "Eerste dienst"),
+                        ("en", "Extra details")
+                    ]
+                    .into(),
+                    [("en", "Second service")].into(),
+                ],
                 identifier: certificate.payload().sub.clone(),
                 country_code: "NL".to_owned(),
                 web_url: has_optional_fields.then(|| "https://example.com/info".parse().unwrap()),

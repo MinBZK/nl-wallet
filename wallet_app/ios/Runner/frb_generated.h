@@ -177,10 +177,19 @@ typedef struct wire_cst_list_localized_string {
   int32_t len;
 } wire_cst_list_localized_string;
 
+typedef struct wire_cst_service_description {
+  struct wire_cst_list_localized_string *translations;
+} wire_cst_service_description;
+
+typedef struct wire_cst_list_service_description {
+  struct wire_cst_service_description *ptr;
+  int32_t len;
+} wire_cst_list_service_description;
+
 typedef struct wire_cst_organization {
   struct wire_cst_list_prim_u_8_strict *legal_name;
   struct wire_cst_list_prim_u_8_strict *display_name;
-  struct wire_cst_list_localized_string *description;
+  struct wire_cst_list_service_description *description;
   struct wire_cst_list_prim_u_8_strict *web_url;
   struct wire_cst_list_prim_u_8_strict *privacy_policy_url;
   struct wire_cst_list_prim_u_8_strict *identifier;
@@ -854,6 +863,8 @@ struct wire_cst_list_record_i_32_notification_type *frbgen_wallet_core_cst_new_l
 
 struct wire_cst_list_record_string_box_attribute_value *frbgen_wallet_core_cst_new_list_record_string_box_attribute_value(int32_t len);
 
+struct wire_cst_list_service_description *frbgen_wallet_core_cst_new_list_service_description(int32_t len);
+
 struct wire_cst_list_wallet_event *frbgen_wallet_core_cst_new_list_wallet_event(int32_t len);
 static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
@@ -886,6 +897,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_8_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_i_32_notification_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_string_box_attribute_value);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_service_description);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_wallet_event);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg);

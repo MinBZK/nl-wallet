@@ -55,8 +55,8 @@ pub use crate::wallet::WalletState;
 
 pub mod attestation_data {
     pub use attestation_data::attributes::Attribute;
-    pub use attestation_data::auth::LocalizedStrings;
     pub use attestation_data::auth::Organization;
+    pub use attestation_data::auth::ServiceDescription;
     pub use attestation_data::disclosure_type::DisclosureType;
     pub use attestation_data::validity::ValidityWindow;
 }

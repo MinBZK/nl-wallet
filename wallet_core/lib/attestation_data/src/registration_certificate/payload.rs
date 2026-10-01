@@ -10,7 +10,7 @@ use utils::vec_at_least::VecNonEmpty;
 use super::status::RegistrationCertificateStatus;
 use super::validation::RegistrationCertificateValidationError;
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MultiLanguageString {
     pub lang: String,
     pub value: String,
