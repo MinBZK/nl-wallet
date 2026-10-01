@@ -5420,6 +5420,7 @@ dependencies = [
  "mdoc",
  "mime",
  "mockall",
+ "nonempty-collections",
  "nutype",
  "oauth",
  "p256 0.14.0",
