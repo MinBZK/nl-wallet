@@ -378,6 +378,7 @@ mod tests {
         repository.sessions.lock().unwrap().insert(
             session_id.clone(),
             AdminPortalUserSession {
+                user_id: "user_id".to_string(),
                 display_name: "Jane Doe".to_string(),
                 roles: vec!["privilege_admin".to_string(), "offline_access".to_string()],
                 id_token: "the-id-token".to_string(),

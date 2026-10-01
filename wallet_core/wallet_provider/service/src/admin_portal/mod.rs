@@ -417,6 +417,7 @@ where
             .insert_user_session(
                 session_id.clone(),
                 AdminPortalUserSession {
+                    user_id: id_token.sub,
                     display_name: id_token.name,
                     roles,
                     id_token: token_response.id_token,
@@ -480,6 +481,7 @@ fn to_privileges(roles: &[String]) -> Vec<String> {
 
 #[derive(Deserialize)]
 struct IdTokenClaims {
+    sub: String,
     name: String,
     nonce: Option<String>,
 }
@@ -658,6 +660,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     fn user_session(roles: impl IntoIterator<Item = String>) -> AdminPortalUserSession {
         AdminPortalUserSession {
+            user_id: "user_id".to_string(),
             display_name: "Jane Doe".to_string(),
             roles: roles.into_iter().collect(),
             id_token: "the-id-token".to_string(),

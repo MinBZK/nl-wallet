@@ -115,6 +115,7 @@ async fn test_user_session_and_take() {
         &db,
         session_id.clone(),
         AdminPortalUserSession {
+            user_id: "user_id".to_string(),
             display_name: "Jane Doe".to_string(),
             roles: vec!["privilege_admin".to_string()],
             id_token: "id_token".to_string(),
@@ -151,6 +152,7 @@ async fn test_fetch_user_session() {
         &db,
         session_id.clone(),
         AdminPortalUserSession {
+            user_id: "user_id".to_string(),
             display_name: "Jane Doe".to_string(),
             roles: vec!["privilege_admin".to_string()],
             id_token: "id_token".to_string(),
@@ -214,6 +216,7 @@ async fn test_cleanup_expired_user_sessions() {
         &db,
         expired_id.clone(),
         AdminPortalUserSession {
+            user_id: "user_id".to_string(),
             display_name: "Expired".to_string(),
             roles: vec![],
             id_token: "id_token".to_string(),
@@ -226,6 +229,7 @@ async fn test_cleanup_expired_user_sessions() {
         &db,
         active_id.clone(),
         AdminPortalUserSession {
+            user_id: "user_id".to_string(),
             display_name: "Active".to_string(),
             roles: vec![],
             id_token: "id_token".to_string(),
