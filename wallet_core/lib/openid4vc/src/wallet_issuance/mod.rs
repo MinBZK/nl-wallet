@@ -522,7 +522,7 @@ pub trait AuthorizationSession {
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
-/// Represents an active credential issuance session for which previews are available.
+/// Represents an active credential issuance session.
 pub trait IssuanceSession {
     /// Accept all of the credentials the issuer offered. Cap the amount of copies of each credential the issuer offers
     /// to `max_copy_count`.
@@ -535,7 +535,8 @@ pub trait IssuanceSession {
     where
         W: IssuanceWscd;
 
-    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>;
+    /// Returns the credential previews with their metadata, or `None` if the issuer does not provide previews.
+    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

@@ -182,6 +182,10 @@ pub enum IssuanceError {
 
     #[error("recovery code error: {0}")]
     RecoveryCode(#[from] RecoveryCodeError),
+
+    #[error("issuance session contains no previews")]
+    #[category(critical)]
+    MissingPreviews,
 }
 
 #[derive(Debug)]
@@ -527,8 +531,13 @@ where
         issuance_session: CID::Issuance,
         pid_purpose: Option<PidIssuancePurpose>,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
-        let preview_attestation_types_and_formats = issuance_session
+        let previews_with_metadata = issuance_session
             .previews_with_metadata()
+            .ok_or(IssuanceError::MissingPreviews)?
+            .collect_vec();
+
+        let preview_attestation_types_and_formats = previews_with_metadata
+            .iter()
             .map(|(preview, _)| {
                 CredentialKind::new(preview.format, preview.credential_payload.attestation_type.clone())
             })
@@ -537,7 +546,7 @@ where
         let config = self.config_repository.get();
         if pid_purpose.is_some() {
             let pid_preview = Self::pid_preview(
-                issuance_session.previews_with_metadata().map(|(preview, _)| preview),
+                previews_with_metadata.iter().map(|(preview, _)| *preview),
                 &config.pid_attributes,
             )?;
 
@@ -557,7 +566,7 @@ where
         // there are more candidates, the algorithm matches the first one based on the ascending order of the Uuidv7 of
         // the list of stored attestations. This means the oldest attestation is matched first.
         let previews_metadata_and_identity = match_preview_and_stored_attestations(
-            issuance_session.previews_with_metadata(),
+            previews_with_metadata.into_iter(),
             stored,
             &TimeGenerator,
             pid_purpose.is_some().then_some(&config.pid_attributes),
@@ -896,6 +905,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+    use openid4vc::wallet_issuance::mock::MockIssuanceSessionPreviewsWithMetadata;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use rstest::rstest;
@@ -1669,6 +1679,23 @@ mod tests {
                 .iter()
                 .all(|attestation| matches!(attestation.identity, AttestationIdentity::Ephemeral))
         );
+    }
+
+    #[tokio::test]
+    async fn test_issuance_process_previews_error_missing_previews() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let mut issuance_session = MockIssuanceSession::new();
+        issuance_session
+            .expect_previews_with_metadata()
+            .return_const(MockIssuanceSessionPreviewsWithMetadata::none());
+
+        let error = wallet
+            .issuance_process_previews(issuance_session, None)
+            .await
+            .expect_err("processing issuance previews should not succeed");
+
+        assert_matches!(error, IssuanceError::MissingPreviews);
     }
 
     const OFFER_URI: &str =

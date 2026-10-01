@@ -180,6 +180,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let previews = issuance_session
         .previews_with_metadata()
+        .expect("issuance session should have previews")
         .map(|(preview, _)| preview)
         .collect_vec();
     assert_eq!(previews.len(), 2);
