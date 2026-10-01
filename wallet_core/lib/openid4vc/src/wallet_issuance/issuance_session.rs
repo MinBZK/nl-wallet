@@ -10,6 +10,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
@@ -32,6 +33,7 @@ use oauth::dpop::DpopNonce;
 use oauth::errors::RemoteErrorCode;
 use oauth::errors::RemoteErrorResponse;
 use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::issuer_identifier::IssuerUrl;
 use oauth::scope::Scope;
 use oauth::token::AccessToken;
 use p256::ecdsa::SigningKey;
@@ -81,7 +83,6 @@ use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
-use crate::metadata::issuer_metadata::CredentialFormat;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::nonce::response::NonceResponse;
@@ -301,14 +302,37 @@ impl VcMessageClient for HttpVcMessageClient {
     }
 }
 
-/// Internal helper type that represents the relevant information about the credential configurations that the issuer
-/// offered to the holder in the Token Response. The [`CredentialConfiguration`]s are sourced from the Issuer Metadata.
+/// The parts of a [`CredentialConfiguration`] with a supported format that are relevant to an issuance session.
 #[derive(Debug)]
-enum OfferedConfigurations {
+struct SupportedConfiguration {
+    credential_kind: CredentialKind,
+    credential_metadata: Option<CredentialMetadata>,
+    type_metadata_uri: Option<IssuerUrl>,
+}
+
+impl SupportedConfiguration {
+    /// Returns `None` if the format of the [`CredentialConfiguration`] is not supported.
+    fn try_new(config: CredentialConfiguration) -> Option<Self> {
+        let credential_kind = config.format.credential_kind()?;
+
+        Some(Self {
+            credential_kind,
+            credential_metadata: config.credential_metadata,
+            type_metadata_uri: config.type_metadata_uri,
+        })
+    }
+}
+
+/// Internal helper type that represents the relevant information about the credential configurations that the issuer
+/// offered to the holder in the Token Response. It is generic over the actual credential configuration type: it is
+/// created with the [`CredentialConfiguration`]s from the Issuer Metadata, after which [`Self::into_supported`]
+/// converts these into [`SupportedConfiguration`]s, discarding those with an unsupported format.
+#[derive(Debug)]
+enum OfferedConfigurations<C = SupportedConfiguration> {
     /// The result of a Token Response that did not contain `authorization_details`. Credentials may only be identified
     /// by their Credential Configuration Identifier when the holder calls the Credential Endpoint to fetch the
     /// credentials.
-    WithoutIdentifiers(HashMap<CredentialConfigurationId, CredentialConfiguration>),
+    WithoutIdentifiers(HashMap<CredentialConfigurationId, C>),
 
     /// The result of a Token Response that did contain `authorization_details`, where each Credential Configuration
     /// has at least one Credential Identifier of an offered credential. The holder then uses these Credential
@@ -316,34 +340,10 @@ enum OfferedConfigurations {
     ///
     /// The Credential Identifiers are unique across Credential Configurations, as this is required in order to identify
     /// credentials at the Credential Endpoint.
-    WithIdentifiers(HashMap<CredentialConfigurationId, (CredentialConfiguration, HashSet<CredentialId>)>),
+    WithIdentifiers(HashMap<CredentialConfigurationId, (C, HashSet<CredentialId>)>),
 }
 
-impl OfferedConfigurations {
-    /// Create [`OfferedConfigurations`] by combining the Credential Configurations that were present in the Credential
-    /// Offer with the `scope` and `authorization_details` fields as received in the Token Response, discarding any
-    /// Credential Configurations that the issuer no longer offers.
-    fn new_from_token_response(
-        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
-        scope: Option<&HashSet<Scope>>,
-        authorization_details: Option<IssuerAuthorizationDetails>,
-    ) -> Result<Self, WalletIssuanceError> {
-        match (scope, authorization_details) {
-            // If the Token Response contained `authorization_details`, use that and ignore any `scope` values. Returns
-            // an error if any Credential Configuration ID was not present in the Credential Offer.
-            (_, Some(authorization_details)) => {
-                Self::new_from_authorization_details(credential_configurations, authorization_details)
-            }
-            // If the Token Response contained `scope` values, select only those Credential Configurations that have
-            // this scope. Returns an error if no scope values were provided or if any of the scope values do not refer
-            // to Credential Configurations present in the Credential Offer.
-            (Some(scope), None) => Self::new_from_scope(credential_configurations, scope),
-            // If neither the `authorization_details` nor the `scope` field was present in the Token Response, it means
-            // that the issuer offers all of the Credential Configurations from the Credential Offer.
-            (None, None) => Ok(Self::WithoutIdentifiers(credential_configurations)),
-        }
-    }
-
+impl OfferedConfigurations<CredentialConfiguration> {
     /// Filter the Credential Configurations that were present in the Credential Offer based on the
     /// `authorization_details` field from the Token Response.
     fn new_from_authorization_details(
@@ -438,7 +438,70 @@ impl OfferedConfigurations {
         Ok(Self::WithoutIdentifiers(offered_configs))
     }
 
-    fn credential_config_iter(&self) -> impl Iterator<Item = (&CredentialConfigurationId, &CredentialConfiguration)> {
+    /// Discard the Credential Configurations with an unsupported format.
+    fn into_supported(self) -> OfferedConfigurations {
+        match self {
+            Self::WithoutIdentifiers(configs) => OfferedConfigurations::WithoutIdentifiers(
+                configs
+                    .into_iter()
+                    .filter_map(|(config_id, config)| Some((config_id, SupportedConfiguration::try_new(config)?)))
+                    .collect(),
+            ),
+            Self::WithIdentifiers(configs) => OfferedConfigurations::WithIdentifiers(
+                configs
+                    .into_iter()
+                    .filter_map(|(config_id, (config, credential_ids))| {
+                        Some((config_id, (SupportedConfiguration::try_new(config)?, credential_ids)))
+                    })
+                    .collect(),
+            ),
+        }
+    }
+}
+
+impl OfferedConfigurations {
+    /// Create [`OfferedConfigurations`] by combining the Credential Configurations that were present in the Credential
+    /// Offer with the `scope` and `authorization_details` fields as received in the Token Response, discarding any
+    /// Credential Configurations that the issuer no longer offers or that have an unsupported format. Returns an error
+    /// if no Credential Configurations remain.
+    fn new_from_token_response(
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+        scope: Option<&HashSet<Scope>>,
+        authorization_details: Option<IssuerAuthorizationDetails>,
+    ) -> Result<Self, WalletIssuanceError> {
+        let offered_configurations = match (scope, authorization_details) {
+            // If the Token Response contained `authorization_details`, use that and ignore any `scope` values. Returns
+            // an error if any Credential Configuration ID was not present in the Credential Offer.
+            (_, Some(authorization_details)) => {
+                OfferedConfigurations::new_from_authorization_details(credential_configurations, authorization_details)?
+            }
+
+            // If the Token Response contained `scope` values, select only those Credential Configurations that have
+            // this scope. Returns an error if no scope values were provided or if any of the scope values do not refer
+            // to Credential Configurations present in the Credential Offer.
+            (Some(scope), None) => OfferedConfigurations::new_from_scope(credential_configurations, scope)?,
+
+            // If neither the `authorization_details` nor the `scope` field was present in the Token Response, it means
+            // that the issuer offers all of the Credential Configurations from the Credential Offer.
+            (None, None) => OfferedConfigurations::WithoutIdentifiers(credential_configurations),
+        }
+        .into_supported();
+
+        if offered_configurations.is_empty() {
+            return Err(WalletIssuanceError::NoSupportedCredentialConfigurations);
+        }
+
+        Ok(offered_configurations)
+    }
+
+    fn is_empty(&self) -> bool {
+        match self {
+            Self::WithoutIdentifiers(credential_configs) => credential_configs.is_empty(),
+            Self::WithIdentifiers(credential_configs) => credential_configs.is_empty(),
+        }
+    }
+
+    fn credential_config_iter(&self) -> impl Iterator<Item = (&CredentialConfigurationId, &SupportedConfiguration)> {
         match self {
             Self::WithoutIdentifiers(credential_configs) => Either::Left(credential_configs.iter()),
             Self::WithIdentifiers(credential_configs) => Either::Right(
@@ -688,7 +751,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     // Credential Metadata in the Credential Issuer metadata: an SD-JWT without a `type_metadata_uri` and mdocs. Any
     // `type_metadata_uri` on an mdoc is ignored. Missing metadata is an error.
     async fn fetch_metadata(
-        credential_configurations: impl IntoIterator<Item = (&CredentialConfigurationId, &CredentialConfiguration)>,
+        credential_configurations: impl IntoIterator<Item = (&CredentialConfigurationId, &SupportedConfiguration)>,
         credential_issuer: &IssuerIdentifier,
         message_client: &H,
     ) -> Result<HashMap<CredentialConfigurationId, OfferedCredentialMetadata>, WalletIssuanceError> {
@@ -698,26 +761,20 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         for (config_id, config) in credential_configurations {
             match (
-                &config.format,
+                config.credential_kind.format,
                 config.type_metadata_uri.as_ref(),
                 config.credential_metadata.as_ref(),
             ) {
-                (CredentialFormat::SdJwt { vct, .. }, Some(uri), _) => {
-                    type_metadata_configs.push((uri, (vct.as_str(), config_id)));
+                (Format::SdJwt, Some(uri), _) => {
+                    type_metadata_configs.push((uri, (config.credential_kind.attestation_type.as_str(), config_id)));
                 }
-                (CredentialFormat::SdJwt { .. } | CredentialFormat::MsoMdoc { .. }, _, Some(metadata)) => {
+                (Format::SdJwt | Format::MsoMdoc, _, Some(metadata)) => {
                     credential_metadata.insert(
                         config_id.clone(),
                         OfferedCredentialMetadata::CredentialMetadata(metadata.clone()),
                     );
                 }
-                (CredentialFormat::SdJwt { .. } | CredentialFormat::MsoMdoc { .. }, _, None) => {
-                    missing_metadata_config_ids.push(config_id.clone())
-                }
-                (CredentialFormat::Other { .. }, _, _) => {
-                    // TODO (PVW-6161): Handle unsupported formats earlier and more consistently.
-                    panic!("unsupported format");
-                }
+                (Format::SdJwt | Format::MsoMdoc, _, None) => missing_metadata_config_ids.push(config_id.clone()),
             }
         }
 
@@ -811,11 +868,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         // consider this Credential Preview an excess preview.
                         match configs.entry(preview.config_id.clone()) {
                             Entry::Occupied(occupied_entry)
-                                if occupied_entry
-                                    .get()
-                                    .format
-                                    .format()
-                                    .is_some_and(|format| format == preview.format) =>
+                                if occupied_entry.get().credential_kind.format == preview.format =>
                             {
                                 let (config_id, _config) = occupied_entry.remove_entry();
 
@@ -830,7 +883,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 if !configs.is_empty() {
                     let missing = configs
                         .into_iter()
-                        .map(|(config_id, config)| (config_id, None, config.format.format()))
+                        .map(|(config_id, config)| (config_id, None, config.credential_kind.format))
                         .collect();
 
                     return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
@@ -848,7 +901,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         match configs
                             .get_mut(&preview.config_id)
                             .and_then(|(config, credential_ids)| {
-                                if config.format.format().is_some_and(|format| format == preview.format) {
+                                if config.credential_kind.format == preview.format {
                                     credential_ids.take(&preview.credential_id)
                                 } else {
                                     None
@@ -874,7 +927,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         .into_iter()
                         .flat_map(|(config_id, (config, credential_ids))| {
                             let credential_id_count = credential_ids.len();
-                            let format = config.format.format();
+                            let format = config.credential_kind.format;
                             std::iter::repeat_n(config_id, credential_id_count)
                                 .zip(credential_ids)
                                 .map(move |(config_id, credential_id)| (config_id, Some(credential_id), format))
@@ -1377,7 +1430,6 @@ mod tests {
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
-    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::status_claim::StatusListClaim;
@@ -1400,7 +1452,6 @@ mod tests {
     use oauth::errors::ErrorResponse;
     use oauth::errors::RemoteErrorCode;
     use oauth::issuer_identifier::IssuerIdentifier;
-    use oauth::issuer_identifier::IssuerUrl;
     use oauth::metadata::well_known::WellKnownMetadata;
     use oauth::token::TokenType;
     use rstest::rstest;
@@ -1422,6 +1473,7 @@ mod tests {
     use super::*;
     use crate::authorization_details::AuthorizationDetails;
     use crate::credential::CredentialRequestProofs;
+    use crate::metadata::issuer_metadata::CredentialFormat;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
     use crate::preview::CredentialPreviewResponse;
@@ -2021,6 +2073,109 @@ mod tests {
         );
     }
 
+    /// Create mock issuer metadata where the configurations with the specified IDs have an unsupported format.
+    fn issuer_metadata_with_unsupported_formats(
+        config_ids: Vec<CredentialConfigurationId>,
+        unsupported_config_ids: &[CredentialConfigurationId],
+    ) -> IssuerMetadata {
+        let mut issuer_metadata = IssuerMetadata::new_mock(
+            "https://example.com".parse().unwrap(),
+            config_ids
+                .into_iter()
+                .map(|config_id| {
+                    (
+                        config_id,
+                        CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+                    )
+                })
+                .collect(),
+        );
+
+        for config_id in unsupported_config_ids {
+            issuer_metadata
+                .credential_configurations_supported
+                .get_mut(config_id)
+                .unwrap()
+                .format = CredentialFormat::Other {
+                format: "jwt_vc_json".to_string(),
+            };
+        }
+
+        issuer_metadata
+    }
+
+    #[rstest]
+    #[case::authorization_details(TokenResponseFields::AuthorizationDetails(vec![
+        ("config_id", vec!["credential_id"]),
+        ("unsupported_config_id", vec!["unsupported_credential_id"]),
+    ]))]
+    #[case::scope(TokenResponseFields::Scope(vec!["config_id_scope", "unsupported_config_id_scope"]))]
+    #[case::no_authorization_details_or_scope(TokenResponseFields::Neither)]
+    fn test_start_issuance_unsupported_format_discarded(#[case] token_response_fields: TokenResponseFields) {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        let config_id = CredentialConfigurationId::from("config_id".to_string());
+        let unsupported_config_id = CredentialConfigurationId::from("unsupported_config_id".to_string());
+        let issuer_metadata = issuer_metadata_with_unsupported_formats(
+            vec![config_id.clone(), unsupported_config_id.clone()],
+            &[unsupported_config_id],
+        );
+
+        // The issuer only provides a preview for the configuration with a supported format.
+        let session = test_start_issuance(
+            &ca,
+            &TrustAnchors::from(&ca),
+            issuer_metadata,
+            vec![(
+                "credential_id".to_string().into(),
+                config_id.clone(),
+                Format::SdJwt,
+                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            )],
+            TypeMetadata::pid_example(),
+            &token_response_fields,
+        )
+        .expect("starting issuance session should succeed");
+
+        let Ok(offered_credential) = session.session_state.offered_credentials.iter().exactly_one() else {
+            panic!("issuance session should contain exactly one offered credential")
+        };
+        assert_eq!(offered_credential.config_id, config_id);
+    }
+
+    #[rstest]
+    #[case::authorization_details(
+        TokenResponseFields::AuthorizationDetails(vec![("unsupported_config_id", vec!["unsupported_credential_id"])])
+    )]
+    #[case::scope(TokenResponseFields::Scope(vec!["unsupported_config_id_scope"]))]
+    #[case::no_authorization_details_or_scope(TokenResponseFields::Neither)]
+    fn test_start_issuance_error_no_supported_format(#[case] token_response_fields: TokenResponseFields) {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        let unsupported_config_id = CredentialConfigurationId::from("unsupported_config_id".to_string());
+        let issuer_metadata = issuer_metadata_with_unsupported_formats(
+            vec![unsupported_config_id.clone()],
+            std::slice::from_ref(&unsupported_config_id),
+        );
+
+        let error = test_start_issuance(
+            &ca,
+            &TrustAnchors::from(&ca),
+            issuer_metadata,
+            vec![(
+                "unsupported_credential_id".to_string().into(),
+                unsupported_config_id,
+                Format::SdJwt,
+                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            )],
+            TypeMetadata::pid_example(),
+            &token_response_fields,
+        )
+        .expect_err("starting issuance session should not succeed");
+
+        assert_matches!(error, WalletIssuanceError::NoSupportedCredentialConfigurations);
+    }
+
     #[test]
     fn test_start_issuance_sd_jwt_credential_metadata_fallback() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -2124,11 +2279,14 @@ mod tests {
                 CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
             )],
         );
-        let config = issuer_metadata
-            .credential_configurations_supported
-            .get(&pid_config_id)
-            .unwrap()
-            .clone();
+        let config = SupportedConfiguration::try_new(
+            issuer_metadata
+                .credential_configurations_supported
+                .get(&pid_config_id)
+                .unwrap()
+                .clone(),
+        )
+        .unwrap();
 
         // The metadata should be fetched only once.
         let mut mock_msg_client = MockVcMessageClient::new();
@@ -2304,12 +2462,12 @@ mod tests {
             (
                 "config_id_2".to_string().into(),
                 expected_credential_id_2,
-                Some(Format::SdJwt),
+                Format::SdJwt,
             ),
             (
                 "config_id_3".to_string().into(),
                 expected_credential_id_3,
-                Some(Format::MsoMdoc),
+                Format::MsoMdoc,
             ),
         ]);
         assert_matches!(

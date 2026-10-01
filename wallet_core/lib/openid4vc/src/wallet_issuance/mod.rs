@@ -209,6 +209,10 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     MetadataMissing(Vec<CredentialConfigurationId>),
 
+    #[error("none of the offered credential configurations has a supported format")]
+    #[category(critical)]
+    NoSupportedCredentialConfigurations,
+
     #[error(
         "type metadata URI(s) found in Issuer Metadata with issuer identifier \"{}\" that have a different host: {}",
         .0,
@@ -337,13 +341,13 @@ pub enum WalletIssuanceError {
                     "config id: \"{}\"{} format: {}",
                     config_id,
                     credential_id.as_ref().map(|id| format!(" credential_id: \"{id}\"")).unwrap_or_default(),
-                    format.as_ref().map(ToString::to_string).unwrap_or("<UNKNOWN>".to_string())
+                    format
                 )
             })
             .join(", ")
     )]
     #[category(pd)]
-    PreviewMissingCredentials(HashSet<(CredentialConfigurationId, Option<CredentialId>, Option<Format>)>),
+    PreviewMissingCredentials(HashSet<(CredentialConfigurationId, Option<CredentialId>, Format)>),
 
     #[error(
         "the received credential preview contains more credentials than the issuer offered: {}",
