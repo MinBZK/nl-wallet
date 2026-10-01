@@ -74,14 +74,7 @@ impl AttestationDisplay for StoredAttestationMetadata {
 /// that particular copy and the foreign key id for its attestation parent.
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(derive_more::Constructor))]
-#[cfg_attr(
-    test,
-    allow(
-        clippy::allow_attributes,
-        clippy::too_many_arguments,
-        reason = "expect is not fulfilled for this derived constructor"
-    )
-)]
+#[cfg_attr(test, allow(clippy::allow_attributes, clippy::too_many_arguments))]
 pub struct StoredAttestationCopy {
     pub(super) attestation_id: Uuid,
     pub(super) attestation_copy_id: Uuid,
