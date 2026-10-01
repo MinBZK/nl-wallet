@@ -11,6 +11,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use crate::registration_certificate::StatusValidatedRegistrationCertificate;
 use crate::x509::RelyingParty;
 use crate::x509::RelyingPartyError;
 
@@ -64,6 +65,40 @@ impl TryFrom<&BorrowingCertificate> for Organization {
     }
 }
 
+impl From<&StatusValidatedRegistrationCertificate> for Organization {
+    fn from(certificate: &StatusValidatedRegistrationCertificate) -> Self {
+        let payload = certificate.payload();
+        let legal_name = payload.sub_ln.clone().unwrap_or_else(|| {
+            [payload.sub_gn.as_deref(), payload.sub_fn.as_deref()]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+                .join(" ")
+        });
+        let mut description = IndexMap::<String, String>::new();
+        for translation in payload.srv_description.iter().flatten() {
+            description
+                .entry(translation.lang.clone())
+                .and_modify(|value| {
+                    value.push('\n');
+                    value.push_str(&translation.value);
+                })
+                .or_insert_with(|| translation.value.clone());
+        }
+
+        Self {
+            display_name: payload.name.clone().unwrap_or_else(|| legal_name.clone()),
+            legal_name,
+            description: LocalizedStrings(description),
+            identifier: payload.sub.clone(),
+            country_code: payload.country.clone(),
+            web_url: payload.info_uri.clone(),
+            privacy_policy_url: payload.privacy_policy.clone(),
+            ..Self::default()
+        }
+    }
+}
+
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use super::*;
@@ -104,10 +139,23 @@ pub mod mock {
 
 #[cfg(test)]
 pub mod test {
+    use std::sync::Arc;
+
+    use crypto::server_keys::generate::Ca;
+    use crypto::x509::DistinguishedName;
+    use crypto::x509::NO_SAN;
     use rstest::rstest;
     use serde_json::json;
+    use token_status_list::verification::verifier::RevocationVerifier;
+    use utils::generator::Generator;
+    use utils::generator::TimeGenerator;
 
     use super::*;
+    use crate::registration_certificate::RegistrationCertificateEnvelope;
+    use crate::registration_certificate::mock::MockRegistrationCertificateAuthority;
+    use crate::registration_certificate::mock::issuer_registration_certificate_payload;
+    use crate::registration_certificate::verify_registration_certificate_envelope;
+    use crate::x509::RelyingParty;
 
     #[rstest]
     #[case("image/svg+xml", "<svg></svg>", Image::Svg("<svg></svg>".to_owned()))]
@@ -118,5 +166,66 @@ pub mod test {
             serde_json::from_value::<Image>(json!({"mimeType": mime_type ,"imageData": image_data})).unwrap(),
             expected,
         )
+    }
+
+    #[rstest]
+    #[case::legal_person(DistinguishedName::create_legal_person_mock("Example"), "Example B.V.")]
+    #[case::natural_person(DistinguishedName::create_natural_person_mock("Jane", "Doe"), "Jane Doe")]
+    #[tokio::test]
+    async fn maps_registration_certificate_to_organization(
+        #[case] subject: DistinguishedName,
+        #[case] legal_name: &str,
+        #[values(false, true)] has_optional_fields: bool,
+    ) {
+        let access_key = Ca::generate_wrpac_mock_ca()
+            .unwrap()
+            .generate_key_pair(subject, Default::default(), NO_SAN)
+            .unwrap();
+        let mut payload = issuer_registration_certificate_payload(access_key.certificate(), []);
+        payload.0["name"] = json!(has_optional_fields.then_some("Issuer service"));
+        payload.0["info_uri"] = json!(has_optional_fields.then_some("https://example.com/info"));
+        payload.0["privacy_policy"] = json!(has_optional_fields.then_some("https://example.com/privacy"));
+        payload.0["srv_description"] = json!([
+            [{ "lang": "en", "value": "First service" }, { "lang": "nl", "value": "Eerste dienst" }],
+            [{ "lang": "en", "value": "Second service" }],
+        ]);
+
+        let authority = MockRegistrationCertificateAuthority::new();
+        let envelope = RegistrationCertificateEnvelope::try_from(authority.sign_jwt(&payload).as_slice()).unwrap();
+        let (payload, signing_subject) =
+            verify_registration_certificate_envelope(&envelope, &authority.trust_anchors, &TimeGenerator)
+                .unwrap()
+                .into_parts();
+        let relying_party = RelyingParty::try_from(access_key.certificate().to_distinguished_name().unwrap()).unwrap();
+        let certificate = payload
+            .validate_binding_and_time(&relying_party, TimeGenerator.generate())
+            .unwrap()
+            .validate_status(
+                &RevocationVerifier::new_with_defaults(Arc::new(authority.status_list_client), TimeGenerator),
+                &authority.trust_anchors,
+                signing_subject,
+                &TimeGenerator,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            Organization::from(&certificate),
+            Organization {
+                display_name: if has_optional_fields {
+                    "Issuer service"
+                } else {
+                    legal_name
+                }
+                .to_owned(),
+                legal_name: legal_name.to_owned(),
+                description: [("en", "First service\nSecond service"), ("nl", "Eerste dienst")].into(),
+                identifier: certificate.payload().sub.clone(),
+                country_code: "NL".to_owned(),
+                web_url: has_optional_fields.then(|| "https://example.com/info".parse().unwrap()),
+                privacy_policy_url: has_optional_fields.then(|| "https://example.com/privacy".parse().unwrap()),
+                ..Default::default()
+            }
+        );
     }
 }
