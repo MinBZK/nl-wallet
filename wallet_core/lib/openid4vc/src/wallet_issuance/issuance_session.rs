@@ -1086,6 +1086,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             first_credential_payload.previewable_payload.not_before,
             extended_attestation_types,
             issued_metadata,
+            self.session_state.issuer_registration.clone(),
         );
 
         Ok(credential_with_metadata)
@@ -3044,6 +3045,7 @@ mod tests {
         };
 
         let session_state = new_session_state(previews, metadata, batch_size, has_nonce_endpoint);
+        let expected_issuer_registration = serde_json::to_value(&session_state.issuer_registration).unwrap();
 
         let dpop_signing_key = session_state.dpop_signing_key.clone();
         mock_msg_client
@@ -3074,6 +3076,10 @@ mod tests {
 
         let expected_copy_count = std::cmp::min(batch_size, max_copy_count).into();
         for credential in &credentials {
+            assert_eq!(
+                serde_json::to_value(&credential.issuer_registration).unwrap(),
+                expected_issuer_registration
+            );
             let copy_count = match &credential.copies {
                 IssuedCredentialCopies::Mdoc(mdoc_copies) => mdoc_copies.len(),
                 IssuedCredentialCopies::SdJwt(sd_jwt_copies) => sd_jwt_copies.len(),

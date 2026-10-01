@@ -719,13 +719,7 @@ where
             self.storage
                 .write()
                 .await
-                .update_credentials(
-                    Utc::now(),
-                    existing
-                        .into_iter()
-                        .map(|(credential, preview)| (credential.copies, preview))
-                        .collect_vec(),
-                )
+                .update_credentials(Utc::now(), existing)
                 .await
                 .map_err(IssuanceError::AttestationStorage)?;
         }
@@ -1282,6 +1276,7 @@ mod tests {
                 },
                 StoredAttestationMetadata::TypeMetadata(metadata),
                 None,
+                IssuerRegistration::new_mock(),
             )
         };
         // The stored PID is fetched both when matching the previews against it and when comparing its recovery code.
@@ -1593,6 +1588,7 @@ mod tests {
             },
             StoredAttestationMetadata::TypeMetadata(type_metadata),
             None,
+            IssuerRegistration::new_mock(),
         );
 
         let attestation_id = stored.attestation_id();
@@ -1912,6 +1908,7 @@ mod tests {
                     stored_attestation.clone(),
                     stored_metadata,
                     None,
+                    IssuerRegistration::new_mock(),
                 );
 
                 ((stored_attestation, issued_metadata), stored_copy)
@@ -2374,6 +2371,7 @@ mod tests {
             },
             StoredAttestationMetadata::TypeMetadata(type_metadata),
             None,
+            IssuerRegistration::new_mock(),
         );
 
         // When the attestation already exists in the database, we expect the identity to be known.

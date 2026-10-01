@@ -658,6 +658,7 @@ mod tests {
                     },
                     StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
                     None,
+                    IssuerRegistration::new_mock(),
                 )])
             });
 
@@ -964,6 +965,7 @@ mod tests {
                     },
                     StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
                     None,
+                    IssuerRegistration::new_mock(),
                 )])
             });
 

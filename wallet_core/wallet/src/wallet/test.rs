@@ -36,7 +36,6 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use futures::future::FutureExt;
@@ -655,19 +654,13 @@ pub fn mock_issuance_session(
 
                         let exp = Some((&mso.validity_info.valid_until).try_into().unwrap());
                         let nbf = Some((&mso.validity_info.valid_from).try_into().unwrap());
-                        let issuer_registration = match LegacyIssuerRegistration::from_certificate(
-                            &mdoc.issuer_leaf_certificate().unwrap(),
-                        ) {
-                            Ok(Some(registration)) => registration,
-                            _ => LegacyIssuerRegistration::new_mock(),
-                        };
                         let attestation_type = mdoc.doc_type().to_string();
 
                         let attestation_presentation = AttestationPresentation::create_from_mdoc(
                             AttestationIdentity::Ephemeral,
                             attestation_type.clone(),
                             credential_metadata.clone(),
-                            issuer_registration.organization.clone(),
+                            Box::new(issuer_context.organization().clone()),
                             AttestationValidity {
                                 revocation_status: None,
                                 validity_window: ValidityWindow {
@@ -702,11 +695,6 @@ pub fn mock_issuance_session(
                         let exp = claims.exp;
                         let nbf = claims.nbf;
                         let attestation_type = claims.vct.clone();
-                        let issuer_registration =
-                            match LegacyIssuerRegistration::from_certificate(sd_jwt.issuer_leaf_certificate()) {
-                                Ok(Some(registration)) => registration,
-                                _ => LegacyIssuerRegistration::new_mock(),
-                            };
 
                         let (attestation_presentation, extended_vcts) = match metadata {
                             IssuedCredentialMetadata::TypeMetadata(metadata_documents) => {
@@ -716,7 +704,7 @@ pub fn mock_issuance_session(
                                     AttestationIdentity::Ephemeral,
                                     normalized_type_metadata.vct().to_string(),
                                     normalized_type_metadata.clone(),
-                                    issuer_registration.organization.clone(),
+                                    Box::new(issuer_context.organization().clone()),
                                     AttestationValidity {
                                         revocation_status: None,
                                         validity_window: ValidityWindow {
@@ -739,7 +727,7 @@ pub fn mock_issuance_session(
                                     AttestationIdentity::Ephemeral,
                                     attestation_type.clone(),
                                     credential_metadata.clone(),
-                                    issuer_registration.organization.clone(),
+                                    Box::new(issuer_context.organization().clone()),
                                     AttestationValidity {
                                         revocation_status: None,
                                         validity_window: ValidityWindow {
@@ -769,8 +757,15 @@ pub fn mock_issuance_session(
                     }
                 };
 
-            let credential_with_metadata =
-                CredentialWithMetadata::new(copies, attestation_type, exp, nbf, extended_attestation_types, metadata);
+            let credential_with_metadata = CredentialWithMetadata::new(
+                copies,
+                attestation_type,
+                exp,
+                nbf,
+                extended_attestation_types,
+                metadata,
+                issuer_context.clone(),
+            );
 
             (credential_with_metadata, attestation_presentation)
         })
@@ -848,6 +843,7 @@ fn example_stored_attestation_copy_with_issuer_keypair(
         },
         metadata,
         None,
+        IssuerRegistration::new_mock(),
     )
 }
 

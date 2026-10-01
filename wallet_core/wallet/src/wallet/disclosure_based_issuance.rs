@@ -347,6 +347,7 @@ mod tests {
             },
             StoredAttestationMetadata::CredentialMetadata(credential_metadata),
             None,
+            IssuerRegistration::new_mock(),
         );
 
         let expectation_attestation_copy = stored_attestation_copy.clone();
