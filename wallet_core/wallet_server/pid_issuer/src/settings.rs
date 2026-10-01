@@ -53,6 +53,10 @@ pub struct Digid {
     /// This is a HashMap because it is configured via environment variables which do not have a fixed order.
     #[serde(default)]
     pub mock_subjects: HashMap<String, String>,
+
+    /// Whether a custom BSN input field is shown for the mock DigiD login page.
+    #[serde(default)]
+    pub mock_custom_bsn: bool,
 }
 
 #[serde_as]

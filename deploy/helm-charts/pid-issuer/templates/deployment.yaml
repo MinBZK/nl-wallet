@@ -106,6 +106,8 @@ spec:
             - name: PID_ISSUER__DIGID__MOCK_SUBJECTS__{{ $bsn }}
               value: {{ $name | quote }}
             {{- end }}
+            - name: PID_ISSUER__DIGID__MOCK_CUSTOM_BSN
+              value: {{ .Values.mockCustomBsn | quote }}
             - name: PID_ISSUER__BRP_SERVER
               value: "http://brpproxy/"
             - name: PID_ISSUER__WIA_TRUST_ANCHORS

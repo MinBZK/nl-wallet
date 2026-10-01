@@ -198,14 +198,16 @@ pub fn build_mock_login_csp(wallet_redirect_uris: &VecNonEmpty<Url>) -> String {
 pub struct MockLoginState {
     client: reqwest::Client,
     subjects: Arc<MockSubjects>,
+    custom_bsn: bool,
     csp: &'static str,
 }
 
 impl MockLoginState {
-    pub fn new(client: reqwest::Client, subjects: MockSubjects, csp: &'static str) -> Self {
+    pub fn new(client: reqwest::Client, subjects: MockSubjects, custom_bsn: bool, csp: &'static str) -> Self {
         Self {
             client,
             subjects: Arc::new(subjects),
+            custom_bsn,
             csp,
         }
     }
@@ -266,6 +268,10 @@ struct Translations {
     list_heading: &'static str,
     // Overlay shown (via JS) once a card has been submitted.
     signing_in: &'static str,
+    // The "enter custom BSN" card, for BSNs not in the configured list.
+    custom_heading: &'static str,
+    custom_placeholder: &'static str,
+    custom_submit: &'static str,
 }
 
 fn translations(language: Language) -> Translations {
@@ -281,6 +287,9 @@ fn translations(language: Language) -> Translations {
             ],
             list_heading: "Kies een test-ID om verder te gaan.",
             signing_in: "Bezig met inloggen…",
+            custom_heading: "Ander test BSN",
+            custom_placeholder: "Voer een BSN in",
+            custom_submit: "Inloggen",
         },
         Language::En => Translations {
             logo_heading: "Test-IDs",
@@ -293,6 +302,9 @@ fn translations(language: Language) -> Translations {
             ],
             list_heading: "Choose a test ID to continue.",
             signing_in: "Signing in…",
+            custom_heading: "Custom test BSN",
+            custom_placeholder: "Enter a BSN",
+            custom_submit: "Sign in",
         },
     }
 }
@@ -313,6 +325,7 @@ struct MockLoginTemplate {
     /// switching the language keeps it.
     authorize_url: String,
     subjects: Vec<Subject>,
+    custom_bsn: bool,
     language_options: &'static [(Language, &'static str)],
 }
 
@@ -342,6 +355,7 @@ async fn mock_login_page(
     MockLoginTemplate {
         lang: language,
         trans: translations(language),
+        custom_bsn: state.custom_bsn,
         authorize_url,
         subjects,
         language_options: LANGUAGE_OPTIONS,
@@ -388,7 +402,7 @@ mod tests {
     #[tokio::test]
     async fn mock_login_assets_send_no_store_cache_control() {
         let router = add_cache_control_no_store_layer(
-            MockLoginState::new(reqwest::Client::new(), MockSubjects::new(), "default-src 'self'").router(),
+            MockLoginState::new(reqwest::Client::new(), MockSubjects::new(), false, "default-src 'self'").router(),
         );
 
         for path in [MOCK_LOGIN_CSS_PATH, MOCK_LOGIN_JS_PATH, MOCK_LOGIN_LOGO_PATH] {

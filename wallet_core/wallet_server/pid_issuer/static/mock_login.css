@@ -154,6 +154,67 @@ h1 {
     line-height: 1.43;
     font-variant-numeric: tabular-nums;
 }
+/* The "enter custom BSN" card: same frame as a selectable card, but holding an input + submit. */
+.card-custom {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 0.5rem 1rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--card-bg);
+    transition: border-color 0.15s ease;
+}
+.card-custom:focus-within {
+    border-color: var(--accent);
+}
+.card-custom .name {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+/* Second line inside the custom card: the BSN input grows, the submit button sits beside it. */
+.card-custom > div {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+.card-custom .bsn-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: inherit;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+}
+.card-custom .bsn-input:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+}
+.card-custom button {
+    flex: none;
+    padding: 0.55rem 1.35rem;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--card-bg);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+.card-custom button:hover,
+.card-custom button:focus-visible {
+    opacity: 0.9;
+    outline: none;
+}
+.card-custom button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
 .card-arrow {
     flex: none;
     display: inline-flex;
