@@ -18,15 +18,9 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
-use p256::pkcs8::der::Decode;
-use p256::pkcs8::der::SliceReader;
-use p256::pkcs8::der::asn1::Utf8StringRef;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use rustls_pki_types::pem::PemObject;
-use serde::Deserialize;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::CertRevocationList;
@@ -41,7 +35,6 @@ use webpki::UnknownStatusPolicy;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
-use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
 use x509_parser::nom::AsBytes;
 use x509_parser::prelude::FromDer;
@@ -99,12 +92,6 @@ pub enum CertificateError {
 
     #[error("PEM decoding error: {0}")]
     Pem(#[from] x509_parser::nom::Err<PEMError>),
-
-    #[error("DER coding error: {0}")]
-    DerEncodingError(#[source] Box<p256::pkcs8::der::Error>),
-
-    #[error("JSON coding error: {0}")]
-    JsonEncodingError(#[from] serde_json::Error),
 
     #[error("X509 coding error: {0}")]
     X509Error(#[from] X509Error),
@@ -388,23 +375,6 @@ impl BorrowingCertificate {
             aki.key_identifier.as_ref().map(|ki| ki.0.to_vec().into())
         })
     }
-
-    pub(crate) fn parse_and_extract_custom_ext<'a, T: Deserialize<'a>>(
-        &'a self,
-        oid: &Oid,
-    ) -> Result<Option<T>, CertificateError> {
-        let x509_cert = self.x509_certificate();
-        let ext = x509_cert.iter_extensions().find(|ext| ext.oid == *oid);
-        ext.map(|ext| {
-            let mut reader =
-                SliceReader::new(ext.value).map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?;
-            let json = Utf8StringRef::decode(&mut reader)
-                .map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?;
-            let registration = serde_json::from_str(json.as_str())?;
-            Ok::<_, CertificateError>(registration)
-        })
-        .transpose()
-    }
 }
 
 impl Clone for BorrowingCertificate {
@@ -453,38 +423,6 @@ fn x509_common_names<'a>(x509name: &'a X509Name) -> Result<Vec<&'a str>, Certifi
         .iter_common_name()
         .map(|cn| cn.as_str().map_err(CertificateError::X509Error))
         .collect()
-}
-
-pub trait BorrowingCertificateExtension
-where
-    Self: Serialize + DeserializeOwned + Sized,
-{
-    const OID: Oid<'static>;
-
-    fn from_certificate(source: &BorrowingCertificate) -> Result<Option<Self>, CertificateError> {
-        source.parse_and_extract_custom_ext(&Self::OID)
-    }
-
-    #[cfg(any(test, feature = "generate"))]
-    fn to_custom_ext(&self) -> Result<rcgen::CustomExtension, CertificateError> {
-        use p256::pkcs8::der::Encode;
-
-        let json_string = serde_json::to_string(self)?;
-        let string =
-            Utf8StringRef::new(&json_string).map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?;
-
-        let sub_identifiers = Self::OID
-            .iter()
-            .expect("oid sub identifier does not fit in u64")
-            .collect::<Vec<_>>();
-        let ext = rcgen::CustomExtension::from_oid_content(
-            sub_identifiers.as_slice(),
-            string
-                .to_der()
-                .map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?,
-        );
-        Ok(ext)
-    }
 }
 
 #[cfg(test)]

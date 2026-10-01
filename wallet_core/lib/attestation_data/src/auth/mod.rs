@@ -1,9 +1,6 @@
-pub mod issuer_auth;
-
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::DistinguishedNameError;
 use derive_more::Debug;
-use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -16,12 +13,6 @@ use crate::registration_certificate::Subject;
 use crate::registration_certificate::UncheckedRegistrationCertificate;
 use crate::x509::RelyingParty;
 use crate::x509::RelyingPartyError;
-
-type Language = String;
-
-/// Holds multiple translations of the same field
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LocalizedStrings(pub IndexMap<Language, String>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServiceDescription {
@@ -36,7 +27,6 @@ pub struct Organization {
     pub legal_name: String,
     pub description: Vec<ServiceDescription>,
     pub web_url: Option<Url>,
-    // TODO: Remove rename when Issuer registration is removed (PVW-5870)
     #[serde(rename = "kvk")]
     pub identifier: String,
     pub country_code: String,
@@ -108,17 +98,6 @@ impl Organization {
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use super::*;
-
-    /// Allows convenient definitions of [`LocalizedStrings`] in Rust code.
-    impl<'a, I: IntoIterator<Item = (&'a str, &'a str)>> From<I> for LocalizedStrings {
-        fn from(source: I) -> Self {
-            let map = source
-                .into_iter()
-                .map(|(language, value)| (language.to_owned(), value.to_owned()))
-                .collect();
-            LocalizedStrings(map)
-        }
-    }
 
     impl<'a, I: IntoIterator<Item = (&'a str, &'a str)>> From<I> for ServiceDescription {
         fn from(source: I) -> Self {

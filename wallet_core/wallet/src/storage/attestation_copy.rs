@@ -544,7 +544,7 @@ mod tests {
     #[test]
     fn test_stored_attestation_copy() {
         let wallet_config = test_wallet_config();
-        // The credential signing certificate deliberately has no LegacyIssuerRegistration extension.
+        // Issuer information comes from the WRPRC, not the credential signing certificate.
         let issuer_keypair = Ca::generate_issuer_mock_ca().unwrap().generate_issuer_mock().unwrap();
 
         let (full_presentations, disclosable_presentations): (Vec<_>, Vec<_>) = [

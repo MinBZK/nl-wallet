@@ -652,11 +652,8 @@ mod tests {
     use std::num::NonZeroU8;
     use std::num::NonZeroU16;
 
-    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
-    use attestation_data::x509::CertificateTypeError;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use crypto::server_keys::generate::Ca;
@@ -668,7 +665,6 @@ mod tests {
     use crypto::x509::DistinguishedName;
     use crypto::x509::SubjectAltNameUri;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
-    use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use serde::Serialize;
     use serde_json::json;
@@ -700,7 +696,8 @@ mod tests {
             [CredentialKind::new(Format::SdJwt, "com.example.pid".to_string())],
         );
 
-        let issuance_keypair = generate_issuer_mock_with_registration(issuer_ca, &LegacyIssuerRegistration::new_mock())
+        let issuance_keypair = issuer_ca
+            .generate_issuer_mock()
             .expect("generate issuer cert failed")
             .into();
 
@@ -848,7 +845,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate() {
+    fn test_validate_without_legacy_issuer_registration() {
         let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
         mock_settings(&wrpac_ca, &issuer_ca).validate().unwrap();
@@ -883,69 +880,30 @@ mod tests {
     }
 
     #[test]
-    fn test_no_issuer_registration() {
-        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
-        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+    fn test_invalid_issuer_subject() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
-
-        let issuer_cert_no_registration = issuer_ca
-            .generate_issuer_mock()
-            .expect("generate issuer cert without issuer registration");
-
-        let status_list_keypair = issuer_ca
-            .generate_issuer_status_list_mock()
-            .expect("generate tsl cert failed")
+        settings
+            .credential_configurations
+            .0
+            .values_mut()
+            .next()
+            .unwrap()
+            .keypair = issuer_ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("Issuer without organization"),
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                crypto::x509::NO_SAN,
+            )
+            .unwrap()
             .into();
 
-        settings.server_settings.issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
-        settings.credential_configurations = HashMap::from([(
-            "no_registration_sdjwt".to_string().into(),
-            CredentialConfigurationSettings {
-                credential_kind: CredentialKind::new(Format::SdJwt, "com.example.no_registration".to_string()),
-                credential_metadata: None,
-                keypair: issuer_cert_no_registration.into(),
-                valid_days: 365,
-                status_list: StatusListAttestationSettings {
-                    group_name: "no_registration_sdjwt".to_string(),
-                    base_url: None,
-                    context_path: "tsl".to_string(),
-                    keypair: status_list_keypair,
-                    publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
-                },
-            },
-        )])
-        .into();
-
-        let no_registration_metadata = UncheckedTypeMetadata {
-            vct: "com.example.no_registration".to_string(),
-            ..UncheckedTypeMetadata::empty_example()
-        };
-        let no_registration_metadata_json = serde_json::to_vec(&no_registration_metadata).unwrap();
-        let pid_metadata = TypeMetadata::pid_example().into_inner();
-        let pid_metadata_json = serde_json::to_vec(&pid_metadata).unwrap();
-
-        settings.type_metadata = TypeMetadataByVct(HashMap::from([
-            (
-                no_registration_metadata.vct.clone(),
-                JsonFile {
-                    contents: no_registration_metadata,
-                    json: no_registration_metadata_json,
-                },
-            ),
-            (
-                pid_metadata.vct.clone(),
-                JsonFile {
-                    contents: pid_metadata,
-                    json: pid_metadata_json,
-                },
-            ),
-        ]));
-
         assert_matches!(
-            settings.validate().expect_err("should fail"),
+            settings.validate().unwrap_err(),
             IssuerSettingsValidationError::CertificateVerification(
-                CertificateVerificationError::NoCertificateType(CertificateTypeError::IssuerRegistrationNotFound, key)
-            ) if key == "no_registration_sdjwt"
+                CertificateVerificationError::InvalidIssuerOrganization(_, _)
+            )
         );
     }
 

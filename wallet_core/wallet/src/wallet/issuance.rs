@@ -877,9 +877,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::validity::ValidityWindow;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Duration;
@@ -1553,8 +1551,7 @@ mod tests {
             .collect_vec();
 
         let ca = Ca::generate_mock();
-        let issuer_key_pair =
-            generate_issuer_mock_with_registration(&ca, &LegacyIssuerRegistration::new_mock()).unwrap();
+        let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
         let (payload, stored_metadata) =
             create_example_credential_payload(&time_generator, Format::SdJwt, attestation_type);
@@ -2335,8 +2332,7 @@ mod tests {
     #[test]
     fn test_match_preview_and_stored_attestations() {
         let ca = Ca::generate_mock();
-        let issuer_key_pair =
-            generate_issuer_mock_with_registration(&ca, &LegacyIssuerRegistration::new_mock()).unwrap();
+        let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
         let time_generator = MockTimeGenerator::default();
 

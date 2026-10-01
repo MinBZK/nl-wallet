@@ -1377,9 +1377,7 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
-    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
-    use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -2520,8 +2518,7 @@ mod tests {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
             let trust_anchors = TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap();
 
-            let issuer_registration = LegacyIssuerRegistration::new_mock();
-            let issuer_key = generate_pid_issuer_mock_with_registration(&ca, &issuer_registration).unwrap();
+            let issuer_key = ca.generate_pid_issuer_mock().unwrap();
 
             let (attestation_type, metadata_integrity, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(type_metadata);

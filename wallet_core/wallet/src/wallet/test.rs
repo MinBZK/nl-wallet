@@ -8,11 +8,9 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
-use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
-use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_AGE_OVER_18;
@@ -174,7 +172,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = generate_issuer_mock_with_registration(&ca, &LegacyIssuerRegistration::new_mock()).unwrap();
+    let issuance_key = ca.generate_issuer_mock().unwrap();
     let trust_anchor = ca.to_borrowing_trust_anchor();
 
     IssuerKey {

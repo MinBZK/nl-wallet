@@ -1533,10 +1533,8 @@ pub(crate) mod tests {
     use std::ops::Sub;
     use std::sync::LazyLock;
 
-    use attestation_data::auth::issuer_auth::LegacyIssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::validity::ValidityWindow;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Days;
@@ -1583,7 +1581,7 @@ pub(crate) mod tests {
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
 
-        generate_issuer_mock_with_registration(&issuer_ca, &LegacyIssuerRegistration::new_mock()).unwrap()
+        issuer_ca.generate_issuer_mock().unwrap()
     });
 
     /// A mock mdoc is never deserialized, so it contains `ProtectedHeader { original_data: None, .. }`. When an
