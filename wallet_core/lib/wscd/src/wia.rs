@@ -45,25 +45,22 @@ pub mod mock {
 
     impl MockWiaClient {
         pub fn new() -> Self {
-            Self {
-                wia_keypair: None,
-                client_id: None,
-            }
+            Self::default()
         }
 
-        pub fn new_with_wia_keypair(wia_keypair: KeyPair) -> Self {
+        pub fn from_ca(ca: &Ca) -> Self {
             Self {
-                wia_keypair: Some(wia_keypair),
+                wia_keypair: Some(ca.generate_wia_mock().unwrap()),
                 client_id: None,
             }
         }
 
         /// Issue a WIA whose `sub` (and PoP `iss`) claim is the given `client_id`, instead of the default
         /// [`MOCK_WALLET_CLIENT_ID`].
-        pub fn new_with_client_id(wia_keypair: KeyPair, client_id: String) -> Self {
+        pub fn from_ca_with_client_id(ca: &Ca, client_id: String) -> Self {
             Self {
-                wia_keypair: Some(wia_keypair),
                 client_id: Some(client_id),
+                ..Self::from_ca(ca)
             }
         }
     }

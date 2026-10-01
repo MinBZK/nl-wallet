@@ -1753,7 +1753,7 @@ mod tests {
 
     use attestation_types::status_claim::StatusClaim;
     use chrono::Timelike;
-    use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_string;
     use derive_more::Debug;
@@ -1900,7 +1900,7 @@ mod tests {
 
     // Error injection tests
 
-    fn setup_simple_mock_issuer() -> (MockIssuer, TrustAnchors, IssuerIdentifier, KeyPair) {
+    fn setup_simple_mock_issuer() -> (MockIssuer, TrustAnchors, IssuerIdentifier, Ca) {
         let issuer_identifier: IssuerIdentifier = "https://example.com/".parse().unwrap();
 
         let (attestation_type, _, metadata_documents) =
@@ -1911,13 +1911,13 @@ mod tests {
             .map(|(format, (attestation_type, metadata_documents))| (format, attestation_type, metadata_documents))
             .collect();
 
-        let (issuer, trust_anchor, wia_keypair, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, trust_anchor, wptl_ca, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             issuer_identifier.clone(),
             attestations,
             Arc::new(MemorySessionStore::default()),
         );
 
-        (issuer, trust_anchor, issuer_identifier, wia_keypair)
+        (issuer, trust_anchor, issuer_identifier, wptl_ca)
     }
 
     /// An implementation of [`VcMessageClient`] that dispatches messages directly to the contained
@@ -2063,7 +2063,7 @@ mod tests {
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
         trust_anchors: TrustAnchors,
-        wia_keypair: KeyPair,
+        wptl_ca: &Ca,
     ) -> WalletIssuanceError {
         let credential_offer = message_client
             .issuer
@@ -2110,7 +2110,7 @@ mod tests {
                     .unwrap(),
             ),
             VciTokenRequest::new_mock_with_pre_authorized_code(code),
-            &MockWiaClient::new_with_wia_keypair(wia_keypair),
+            &MockWiaClient::from_ca(wptl_ca),
             &oauth_metadata.oauth_metadata.issuer,
         )
         .await
@@ -2184,7 +2184,7 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_wia_from_untrusted_issuer() {
-        let (issuer, _trust_anchor, issuer_identifier, _wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, _wptl_ca) = setup_simple_mock_issuer();
 
         // WIA signed by a freshly generated CA that is not in the issuer's trust anchors.
         let bad_wia = MockWiaClient::new()
@@ -2207,10 +2207,10 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_wia_with_wrong_audience() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
         // WIA signed by the trusted key pair but targeting a different audience.
-        let bad_wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let bad_wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia("https://wrong-issuer.example.com".to_string(), None)
             .await
             .unwrap();
@@ -2230,11 +2230,11 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_wia_with_disallowed_client_id() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
         // WIA signed by the trusted key pair, targeting the correct audience, but with a client id that
         // is not among the issuer's accepted wallet client ids.
-        let bad_wia = MockWiaClient::new_with_client_id(wia_keypair, "not-an-accepted-client".to_string())
+        let bad_wia = MockWiaClient::from_ca_with_client_id(&wptl_ca, "not-an-accepted-client".to_string())
             .issue_wia(issuer_identifier.to_string(), None)
             .await
             .unwrap();
@@ -2280,11 +2280,11 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_accepts_valid_wia_nonce() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
 
         let nonce = issuer.generate_nonce().await.unwrap();
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(issuer_identifier.to_string(), Some(nonce))
             .await
             .unwrap();
@@ -2294,10 +2294,10 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_missing_wia_nonce() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
 
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(issuer_identifier.to_string(), None)
             .await
             .unwrap();
@@ -2311,11 +2311,11 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_unknown_wia_nonce() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
 
         // This nonce was never issued by (and thus never stored in) the issuer.
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(issuer_identifier.to_string(), Some(Nonce::new_random()))
             .await
             .unwrap();
@@ -2329,10 +2329,10 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_replayed_wia_nonce() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
         let nonce = issuer.generate_nonce().await.unwrap();
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(issuer_identifier.to_string(), Some(nonce))
             .await
             .unwrap();
@@ -2355,13 +2355,13 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_access_token() {
-        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             wrong_access_token: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, &wptl_ca).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err)
@@ -2371,13 +2371,13 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_dpop() {
-        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             invalidate_dpop: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, &wptl_ca).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err)
@@ -2387,13 +2387,13 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_pop() {
-        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             invalidate_pop: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, &wptl_ca).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err)
@@ -2421,7 +2421,7 @@ mod tests {
         copy_count: NonZeroUsize,
         failure: CredentialRequestFailure,
     ) -> (MockIssuer, TrustAnchors, AccessToken, Dpop, CredentialRequest) {
-        let (issuer, trust_anchors, issuer_identifier, _wia_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchors, issuer_identifier, _wptl_ca) = setup_simple_mock_issuer();
 
         // Create tokens and DPoP variables.
         let session_token = SessionToken::new_random();

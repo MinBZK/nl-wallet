@@ -9,7 +9,6 @@ use std::time::Duration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use attestation_types::credential_format::Format;
-use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
@@ -122,7 +121,7 @@ struct AuthCodeFlowServer {
     authorizing_issuer: Arc<MockAuthorizingIssuer>,
     trust_anchors: TrustAnchors,
     issuer_identifier: IssuerIdentifier,
-    wia_keypair: KeyPair,
+    wptl_ca: Ca,
     tls_trust_anchor: ReqwestTrustAnchor,
     crl_verifier: MockCertificateCrlVerifier,
     registration_certificate: MockRegistrationCertificate,
@@ -132,7 +131,7 @@ struct AuthCodeFlowServer {
 struct PreAuthCodeFlowServer {
     issuer: Arc<MockIssuer<TimeGenerator>>,
     trust_anchors: TrustAnchors,
-    wia_keypair: KeyPair,
+    wptl_ca: Ca,
     tls_trust_anchor: ReqwestTrustAnchor,
     crl_verifier: MockCertificateCrlVerifier,
     registration_certificate: MockRegistrationCertificate,
@@ -162,7 +161,7 @@ async fn start_auth_code_flow_server_with(
     let sessions = Arc::new(MemorySessionStore::default());
 
     let flow = StaticAuthorizingFlow::new(documents_or_error_code);
-    let (authorizing_issuer, trust_anchors, wia_keypair, crl_verifier, registration_certificate) =
+    let (authorizing_issuer, trust_anchors, wptl_ca, crl_verifier, registration_certificate) =
         setup_mock_authorizing_issuer_from_sd_jwt_metadata(
             issuer_identifier.clone(),
             type_metadata,
@@ -189,7 +188,7 @@ async fn start_auth_code_flow_server_with(
         authorizing_issuer,
         trust_anchors,
         issuer_identifier,
-        wia_keypair,
+        wptl_ca,
         tls_trust_anchor,
         crl_verifier,
         registration_certificate,
@@ -205,7 +204,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
     let sessions = Arc::new(MemorySessionStore::default());
 
-    let (issuer, trust_anchors, wia_keypair, crl_verifier, registration_certificate) =
+    let (issuer, trust_anchors, wptl_ca, crl_verifier, registration_certificate) =
         setup_mock_issuer(issuer_identifier, attestation_count, sessions);
     let issuer = Arc::new(issuer);
 
@@ -223,7 +222,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
     PreAuthCodeFlowServer {
         issuer,
         trust_anchors,
-        wia_keypair,
+        wptl_ca,
         tls_trust_anchor,
         crl_verifier,
         registration_certificate,
@@ -284,7 +283,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
             IssuanceDiscoveryParameters::new(
                 &credential_offer_url,
                 &CredentialSelection::All,
-                &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
+                &MockWiaClient::from_ca(&server.wptl_ca),
                 &server.trust_anchors,
                 &server.registration_certificate.trust_anchors,
             ),
@@ -344,10 +343,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     assert_eq!(redirect_params.get("state"), Some(&state));
 
     auth_session
-        .start_issuance(
-            &received_redirect,
-            &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
-        )
+        .start_issuance(&received_redirect, &MockWiaClient::from_ca(&server.wptl_ca))
         .await
         .unwrap()
 }
@@ -427,7 +423,7 @@ async fn pre_authorized_code_flow(
     let PreAuthCodeFlowServer {
         issuer,
         trust_anchors,
-        wia_keypair,
+        wptl_ca,
         tls_trust_anchor,
         crl_verifier,
         registration_certificate,
@@ -449,7 +445,7 @@ async fn pre_authorized_code_flow(
             IssuanceDiscoveryParameters::new(
                 &credential_offer_url,
                 &CredentialSelection::All,
-                &MockWiaClient::new_with_wia_keypair(wia_keypair),
+                &MockWiaClient::from_ca(&wptl_ca),
                 &trust_anchors,
                 &registration_certificate.trust_anchors,
             ),
@@ -488,7 +484,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
         issuer,
         trust_anchors,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         crl_verifier,
         registration_certificate,
     } = start_pre_authorized_code_flow_server(attestation_count).await;
@@ -511,7 +507,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
             IssuanceDiscoveryParameters::new(
                 &credential_offer_url,
                 &CredentialSelection::All,
-                &MockWiaClient::new_with_client_id(wia_keypair, "unknown_client_id".to_string()),
+                &MockWiaClient::from_ca_with_client_id(&wptl_ca, "unknown_client_id".to_string()),
                 &trust_anchors,
                 &registration_certificate.trust_anchors,
             ),
@@ -573,7 +569,7 @@ async fn par_rejects_client_id_not_matching_wia_sub() {
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -585,7 +581,7 @@ async fn par_rejects_client_id_not_matching_wia_sub() {
 
     // The WIA's `sub` is the known wallet client ID, but the PAR's `client_id` is something else. Even though
     // `client_id` is itself a known wallet client ID, the mismatch with the WIA should be rejected.
-    let wia = MockWiaClient::new_with_client_id(wia_keypair, "some_other_known_client_id".to_string())
+    let wia = MockWiaClient::from_ca_with_client_id(&wptl_ca, "some_other_known_client_id".to_string())
         .issue_wia(issuer_identifier.to_string(), None)
         .await
         .unwrap();
@@ -616,7 +612,7 @@ async fn par_rejects_missing_code_challenge() {
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -626,7 +622,7 @@ async fn par_rejects_missing_code_challenge() {
 
     let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
 
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), None)
         .await
         .unwrap();
@@ -715,7 +711,7 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -732,7 +728,7 @@ async fn authorize_rejects_unsupported_code_challenge_method() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -805,7 +801,7 @@ async fn authorize_forwards_auth_code_flow_error_codes() {
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server_with(
         vec![mock_type_metadata(MOCK_ATTESTATION_TYPES[0])],
@@ -826,7 +822,7 @@ async fn authorize_forwards_auth_code_flow_error_codes() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -938,7 +934,7 @@ async fn token_ok() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -968,7 +964,7 @@ async fn token_ok() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1018,7 +1014,7 @@ async fn token_rejects_missing_code_verifier() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1048,7 +1044,7 @@ async fn token_rejects_missing_code_verifier() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1075,7 +1071,7 @@ async fn token_rejects_unknown_code_verifier() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1105,7 +1101,7 @@ async fn token_rejects_unknown_code_verifier() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1132,7 +1128,7 @@ async fn token_rejects_grant_type_mismatch() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1167,7 +1163,7 @@ async fn token_rejects_grant_type_mismatch() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1194,7 +1190,7 @@ async fn token_rejects_authorization_details() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1232,7 +1228,7 @@ async fn token_rejects_authorization_details() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1259,7 +1255,7 @@ async fn token_rejects_scope_mismatch() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1290,7 +1286,7 @@ async fn token_rejects_scope_mismatch() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1333,7 +1329,7 @@ async fn token_rejects_scope_mismatch() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1358,7 +1354,7 @@ async fn pre_authorized_code_flow_rejects_token_request_scope() {
     let PreAuthCodeFlowServer {
         issuer,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
@@ -1398,7 +1394,7 @@ async fn pre_authorized_code_flow_rejects_token_request_scope() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer.issuer_identifier().to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1425,7 +1421,7 @@ async fn token_rejects_differing_client_id() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1452,7 +1448,7 @@ async fn token_rejects_differing_client_id() {
         authorization_details: None,
     };
 
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), None)
         .await
         .unwrap();
@@ -1479,7 +1475,7 @@ async fn token_rejects_differing_redirect_uri() {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
@@ -1510,7 +1506,7 @@ async fn token_rejects_differing_redirect_uri() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1551,7 +1547,7 @@ async fn token_rejects_differing_redirect_uri() {
     )
     .await
     .unwrap();
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer_identifier.to_string(), Some(challenge))
         .await
         .unwrap();
@@ -1579,7 +1575,7 @@ async fn pre_authorized_code_flow_credential_request() {
     let PreAuthCodeFlowServer {
         issuer,
         tls_trust_anchor,
-        wia_keypair,
+        wptl_ca,
         ..
     } = start_pre_authorized_code_flow_server(attestation_count).await;
 
@@ -1600,7 +1596,7 @@ async fn pre_authorized_code_flow_credential_request() {
     .unwrap();
 
     // Build the TokenRequest and send it to the issuer to get the TokenResponse and DPoP nonce.
-    let wia = MockWiaClient::new_with_wia_keypair(wia_keypair.clone())
+    let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer.issuer_identifier().to_string(), Some(challenge))
         .await
         .unwrap();
