@@ -1360,7 +1360,7 @@ mod test {
             let context = issuance_session.issuer_registration();
             assert_eq!(context.organization().display_name, "Mock issuer");
             assert_eq!(
-                context.organization().description.0["en"],
+                context.organization().description[0].translations[1].value,
                 "Add digital documents to your wallet to share your details with other organizations."
             );
             assert_eq!(

@@ -10,8 +10,10 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use crate::registration_certificate::MultiLanguageString;
+use crate::registration_certificate::ParsedRegistrationCertificate;
 use crate::registration_certificate::StatusValidatedRegistrationCertificate;
 use crate::registration_certificate::Subject;
+use crate::registration_certificate::UncheckedRegistrationCertificate;
 use crate::x509::RelyingParty;
 use crate::x509::RelyingPartyError;
 
@@ -65,8 +67,19 @@ impl TryFrom<&BorrowingCertificate> for Organization {
 
 impl From<&StatusValidatedRegistrationCertificate> for Organization {
     fn from(certificate: &StatusValidatedRegistrationCertificate) -> Self {
-        let payload = certificate.payload();
-        let legal_name = match certificate.subject() {
+        Self::from_registration_certificate(certificate.payload(), certificate.subject())
+    }
+}
+
+impl From<&ParsedRegistrationCertificate> for Organization {
+    fn from(certificate: &ParsedRegistrationCertificate) -> Self {
+        Self::from_registration_certificate(certificate.payload(), certificate.subject())
+    }
+}
+
+impl Organization {
+    fn from_registration_certificate(payload: &UncheckedRegistrationCertificate, subject: &Subject) -> Self {
+        let legal_name = match subject {
             Subject::LegalPerson { legal_name } => legal_name.clone(),
             Subject::NaturalPerson {
                 given_name,

@@ -4,7 +4,9 @@ use attestation_data::registration_certificate::StatusValidatedRegistrationCerti
 use crypto::x509::BorrowingCertificate;
 use derive_more::Debug;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
+use serde::de::Error;
 use serde_with::TryFromIntoRef;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
@@ -14,7 +16,7 @@ use serde_with::serde_as;
 /// Serialization is for trusted wallet storage, including an authorization session interrupted by an app restart.
 /// This is a snapshot of validation at discovery time, not proof of current validity or issuer authorization.
 #[serde_as]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct IssuerRegistration {
     #[debug(skip)]
     #[serde_as(as = "TryFromIntoRef<String>")]
@@ -22,7 +24,37 @@ pub struct IssuerRegistration {
     #[debug(skip)]
     #[serde_as(as = "Base64")]
     access_certificate: BorrowingCertificate,
+    #[serde(skip_serializing)]
     organization: Box<Organization>,
+}
+
+impl<'de> Deserialize<'de> for IssuerRegistration {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[serde_as]
+        #[derive(Deserialize)]
+        struct Stored {
+            #[serde_as(as = "TryFromIntoRef<String>")]
+            registration_certificate: RegistrationCertificateEnvelope,
+            #[serde_as(as = "Base64")]
+            access_certificate: BorrowingCertificate,
+        }
+
+        let stored = Stored::deserialize(deserializer)?;
+        // Trusted wallet storage: recover the organization without requiring the certificate to still be valid.
+        let parsed = match &stored.registration_certificate {
+            RegistrationCertificateEnvelope::Jwt(jwt) => jwt
+                .dangerous_parse_unverified()
+                .map(|(_, payload)| payload)
+                .map_err(D::Error::custom)?,
+            RegistrationCertificateEnvelope::Cwt(cwt) => cwt.dangerous_parse_unverified().map_err(D::Error::custom)?,
+        };
+
+        Ok(Self {
+            registration_certificate: stored.registration_certificate,
+            access_certificate: stored.access_certificate,
+            organization: Box::new(Organization::from(&parsed)),
+        })
+    }
 }
 
 impl IssuerRegistration {
@@ -83,5 +115,53 @@ impl IssuerRegistration {
         .unwrap()
         .unwrap();
         Self::new(envelope, access_certificate, &validated)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
+    use attestation_data::registration_certificate::mock::RegistrationCertificateFixture;
+    use attestation_data::registration_certificate::mock::issuer_registration_certificate_payload;
+    use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
+    use chrono::Duration;
+    use chrono::Utc;
+    use rstest::rstest;
+    use serde_json::json;
+
+    use super::*;
+
+    #[rstest]
+    #[case::jwt(MockRegistrationCertificateAuthority::sign_jwt)]
+    #[case::cwt(MockRegistrationCertificateAuthority::sign_cwt)]
+    fn test_persist_and_restore(
+        #[case] sign: fn(&MockRegistrationCertificateAuthority, &RegistrationCertificateFixture) -> Vec<u8>,
+    ) {
+        let mut registration = IssuerRegistration::new_mock();
+        let authority = MockRegistrationCertificateAuthority::new();
+        let mut payload = issuer_registration_certificate_payload(
+            registration.access_certificate(),
+            [CredentialKind::new(Format::SdJwt, "urn:example:credential".to_string())],
+        );
+        // Stored issuer information must remain available after its WRPRC expires.
+        payload.0["iat"] = json!((Utc::now() - Duration::hours(2)).timestamp());
+        payload.0["exp"] = json!((Utc::now() - Duration::hours(1)).timestamp());
+        registration.registration_certificate =
+            RegistrationCertificateEnvelope::try_from(sign(&authority, &payload).as_slice()).unwrap();
+
+        let mut stored = serde_json::to_value(&registration).unwrap();
+        assert_eq!(stored.as_object().unwrap().len(), 2);
+        assert!(stored.get("organization").is_none());
+        let restored: IssuerRegistration = serde_json::from_value(stored.clone()).unwrap();
+        assert_eq!(restored.organization(), registration.organization());
+        assert_eq!(serde_json::to_value(restored).unwrap(), stored);
+
+        // Reject malformed stored payloads instead of accepting an independent organization snapshot.
+        payload.0["sub"] = json!(null);
+        let invalid = RegistrationCertificateEnvelope::try_from(sign(&authority, &payload).as_slice()).unwrap();
+        stored["registration_certificate"] = json!(String::try_from(&invalid).unwrap());
+        stored["organization"] = serde_json::to_value(registration.organization()).unwrap();
+        assert!(serde_json::from_value::<IssuerRegistration>(stored).is_err());
     }
 }
