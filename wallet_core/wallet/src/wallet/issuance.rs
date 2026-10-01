@@ -699,6 +699,8 @@ where
                 .map_err(IssuanceError::TransferDataStorage)?;
         }
 
+        // `IssuanceSession::accept_issuance` returns the credentials in the same order as the previews, from which
+        // `preview_attestations` were created, so they can be paired by position.
         let all_previews = issued_credentials_with_metadata
             .into_iter()
             .zip_eq(preview_attestations)
@@ -1444,7 +1446,7 @@ mod tests {
         let mut authorization_session = MockAuthorizationSession::new();
         authorization_session
             .expect_start_issuance_sync()
-            .return_once(|| Err(WalletIssuanceError::NoCredentialPreviewEndpoint));
+            .return_once(|| Err(WalletIssuanceError::AuthorizationCodeNotSupported));
 
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,

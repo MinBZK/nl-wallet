@@ -285,10 +285,6 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     OAuth(#[from] OAuthError),
 
-    #[error("issuer has no credential preview endpoint")]
-    #[category(critical)]
-    NoCredentialPreviewEndpoint, // TODO (PVW-5559): skip preview when no credential preview endpoint
-
     #[error("issuer has no nonce endpoint, yet one of the credential configurations require cryptographic binding")]
     #[category(critical)]
     NoNonceEndpoint,
@@ -509,6 +505,9 @@ pub trait AuthorizationSession {
 pub trait IssuanceSession {
     /// Accept all of the credentials the issuer offered. Cap the amount of copies of each credential the issuer offers
     /// to `max_copy_count`.
+    ///
+    /// If the issuer provides previews, the credentials are returned in the same order as the previews returned by
+    /// [`Self::previews_with_metadata`]. If not, the order of the credentials is not relevant.
     async fn accept_issuance<W>(
         &mut self,
         max_copy_count: NonZeroU8,

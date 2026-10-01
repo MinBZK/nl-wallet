@@ -512,6 +512,41 @@ impl OfferedConfigurations {
             ),
         }
     }
+
+    fn into_offered_credentials(self) -> OfferedCredentials {
+        match self {
+            Self::WithoutIdentifiers(credential_configs) => OfferedCredentials::WithoutPreviews(
+                NESet::try_from_set(
+                    credential_configs
+                        .iter()
+                        .map(|(config_id, config)| {
+                            OfferedCredential::new_by_config_id(config_id.clone(), config.credential_kind.format)
+                        })
+                        .collect(),
+                )
+                // TODO (PVW-6363): Remove unwrap by expressing non-emptiness in the types of `OfferedConfigurations`.
+                .unwrap(),
+            ),
+            Self::WithIdentifiers(credential_configs) => OfferedCredentials::WithoutPreviews(
+                NESet::try_from_set(
+                    credential_configs
+                        .iter()
+                        .flat_map(|(config_id, (config, credential_ids))| {
+                            credential_ids.iter().map(|credential_id| {
+                                OfferedCredential::new_by_credential_id(
+                                    credential_id.clone(),
+                                    config_id.clone(),
+                                    config.credential_kind.format,
+                                )
+                            })
+                        })
+                        .collect(),
+                )
+                // TODO (PVW-6363): Remove unwrap by expressing non-emptiness in the types of `OfferedConfigurations`.
+                .unwrap(),
+            ),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -538,10 +573,6 @@ enum OfferedCredentials {
     WithPreviews(VecNonEmpty<(OfferedCredential, CredentialPreview)>),
 
     /// The issuer does not have a Credential Preview endpoint. The offered credentials have no meaningful order.
-    #[expect(
-        dead_code,
-        reason = "TODO (PVW-6363): used once issuers without a preview endpoint are handled"
-    )]
     WithoutPreviews(NESet<OfferedCredential>),
 }
 
@@ -569,7 +600,7 @@ impl OfferedCredentials {
 }
 
 /// A single credential offered by the issuer.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 struct OfferedCredential {
     /// Present when the Token Response contained `authorization_details`.
     credential_id: Option<CredentialId>,
@@ -668,11 +699,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         wia_client: &impl WiaClient,
         auth_server_identifier: &IssuerIdentifier,
     ) -> Result<Self, WalletIssuanceError> {
-        let credential_preview_endpoint = issuer_endpoints
-            .credential_preview_endpoint
-            .as_ref()
-            .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
-
         let dpop_signing_key = SigningKey::generate();
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
@@ -700,22 +726,37 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             token_response.authorization_details,
         )?;
 
-        // Request preview and fetch metadata
-        let (metadata, credential_previews) = try_join!(
-            Self::fetch_metadata(
-                offered_configurations.credential_config_iter(),
-                &credential_issuer,
-                &message_client
-            ),
-            Self::request_previews(
-                credential_preview_endpoint.as_url().clone(),
-                &token_response.oauth_response.access_token,
-                &message_client
-            )
-        )?;
+        let (metadata, offered_credentials) = match issuer_endpoints.credential_preview_endpoint.as_ref() {
+            Some(preview_endpoint) => {
+                let (metadata, credential_previews) = try_join!(
+                    Self::fetch_metadata(
+                        offered_configurations.credential_config_iter(),
+                        &credential_issuer,
+                        &message_client
+                    ),
+                    Self::request_previews(
+                        preview_endpoint.as_url().clone(),
+                        &token_response.oauth_response.access_token,
+                        &message_client
+                    )
+                )?;
 
-        let offered_credentials =
-            Self::match_preview_against_offered_configurations(credential_previews, offered_configurations)?;
+                (
+                    metadata,
+                    Self::match_preview_against_offered_configurations(credential_previews, offered_configurations)?,
+                )
+            }
+            None => {
+                let metadata = Self::fetch_metadata(
+                    offered_configurations.credential_config_iter(),
+                    &credential_issuer,
+                    &message_client,
+                )
+                .await?;
+
+                (metadata, offered_configurations.into_offered_credentials())
+            }
+        };
 
         let session_state = IssuanceState {
             access_token: token_response.oauth_response.access_token,
@@ -1069,15 +1110,16 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     )
                 }
                 (Format::MsoMdoc, OfferedCredentialMetadata::TypeMetadata { .. }) => {
-                    // The combination of an mdoc credential preview and SD-JWT VC Type Metadata being present in
+                    // The combination of an offered mdoc credential and SD-JWT VC Type Metadata being present in
                     // `IssuanceState` should never occur for the following reasons:
                     //
                     // 1. SD-JWT VC Type Metadata is only fetched for Credential Configurations with the SD-JWT format.
-                    // 2. For each credential preview, the format is matched against the Credential Configuration with
+                    // 2. The format of each offered credential is that of its Credential Configuration. When previews
+                    //    are received, the format of each preview is matched against the Credential Configuration with
                     //    the same Credential Configuration Identifier. On a mismatch an error is returned.
                     //
-                    // This means that the metadata stored for a particular preview's Credential Configuration
-                    // Identifier should always be appropriate for its format.
+                    // This means that the metadata stored for a particular offered credential's Credential
+                    // Configuration Identifier should always be appropriate for its format.
                     //
                     // The error variant returned is categorized as `impossible`. Note that this does not include any
                     // details, as these could reveal personal data.
