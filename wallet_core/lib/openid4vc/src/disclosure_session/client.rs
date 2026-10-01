@@ -315,8 +315,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::crl::CertificateCrlVerifier;
-    use crypto::x509::crl::mock::MockCrlFetcher;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
@@ -889,7 +888,7 @@ mod tests {
         // Calling `VpDisclosureClient::start()` with an invalid request URI object should result in an error.
         let client = VpDisclosureClient::new(
             MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
             status_list_client(),
         );
 
@@ -913,7 +912,7 @@ mod tests {
     fn test_vp_disclosure_client_start_error_unsupported_request_object_as_value() {
         let client = VpDisclosureClient::new(
             MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
             status_list_client(),
         );
 
@@ -952,7 +951,7 @@ mod tests {
     fn test_vp_disclosure_client_start_error_unsupported_request_object_as_query_parameters() {
         let client = VpDisclosureClient::new(
             MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
             status_list_client(),
         );
 
@@ -1113,7 +1112,7 @@ mod tests {
 
         let client = VpDisclosureClient::new(
             error_client,
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
             status_list_client(),
         );
         let error = client

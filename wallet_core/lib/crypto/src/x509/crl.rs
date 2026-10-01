@@ -422,6 +422,8 @@ pub mod mock {
     pub static MOCK_CRL_DISTRIBUTION_POINT: LazyLock<Url> =
         LazyLock::new(|| "https://example.com/crl.der".parse().unwrap());
 
+    pub type MockCertificateCrlVerifier = CertificateCrlVerifier<MockCrlFetcher>;
+
     #[derive(Clone, Debug, Default)]
     pub struct MockCrlFetcher {
         crls: Arc<HashMap<Url, Vec<u8>>>,

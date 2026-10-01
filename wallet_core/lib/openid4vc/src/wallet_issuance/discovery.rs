@@ -716,7 +716,7 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::CertificateCrlVerifier;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCrlFetcher;
     use futures::future::try_join_all;
     use http::header;
@@ -787,7 +787,7 @@ mod test {
     fn mock_discovery() -> HttpIssuanceDiscovery<MockCrlFetcher, MockStatusListClient> {
         HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
             MockStatusListClient::default(),
         )
     }
@@ -827,7 +827,7 @@ mod test {
     ) -> (
         IssuerIdentifier,
         TrustAnchors,
-        CertificateCrlVerifier<MockCrlFetcher>,
+        MockCertificateCrlVerifier,
         MockRegistrationCertificate,
     ) {
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
@@ -836,7 +836,7 @@ mod test {
         } else {
             ca.generate_wrpac_issuer_mock().unwrap()
         };
-        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
         let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
@@ -1041,7 +1041,7 @@ mod test {
         IssuerIdentifier,
         TrustAnchors,
         TrustAnchors,
-        CertificateCrlVerifier<MockCrlFetcher>,
+        MockCertificateCrlVerifier,
         MockRegistrationCertificate,
     ) {
         let server = MockServer::start_async().await;

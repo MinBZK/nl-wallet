@@ -18,8 +18,7 @@ use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::crl::CertificateCrlVerifier;
-use crypto::x509::crl::mock::MockCrlFetcher;
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use derive_more::Constructor;
 use indexmap::IndexMap;
 use oauth::errors::AuthorizationErrorCode;
@@ -244,7 +243,7 @@ pub fn setup_mock_issuer<G>(
     MockIssuer<G>,
     TrustAnchors,
     KeyPair,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    MockCertificateCrlVerifier,
     MockRegistrationCertificate,
 )
 where
@@ -268,7 +267,7 @@ pub fn setup_mock_issuer_from_sd_jwt_metadata<G>(
     MockIssuer<G>,
     TrustAnchors,
     KeyPair,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    MockCertificateCrlVerifier,
     MockRegistrationCertificate,
 )
 where
@@ -298,7 +297,7 @@ pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
     MockIssuer<G>,
     TrustAnchors,
     KeyPair,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    MockCertificateCrlVerifier,
     MockRegistrationCertificate,
 )
 where
@@ -370,7 +369,7 @@ where
     )
     .unwrap();
 
-    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
     (
         issuer,
@@ -393,7 +392,7 @@ pub fn setup_mock_authorizing_issuer_from_sd_jwt_metadata<G>(
     MockAuthorizingIssuer<G>,
     TrustAnchors,
     KeyPair,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    MockCertificateCrlVerifier,
     MockRegistrationCertificate,
 )
 where

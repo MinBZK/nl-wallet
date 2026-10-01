@@ -12,8 +12,7 @@ use attestation_types::credential_format::Format;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::crl::CertificateCrlVerifier;
-use crypto::x509::crl::mock::MockCrlFetcher;
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use http::header;
 use http::header::ACCEPT;
 use http::header::AUTHORIZATION;
@@ -125,7 +124,7 @@ struct AuthCodeFlowServer {
     issuer_identifier: IssuerIdentifier,
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
-    crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+    crl_verifier: MockCertificateCrlVerifier,
     registration_certificate: MockRegistrationCertificate,
 }
 
@@ -135,7 +134,7 @@ struct PreAuthCodeFlowServer {
     trust_anchors: TrustAnchors,
     wia_keypair: KeyPair,
     tls_trust_anchor: ReqwestTrustAnchor,
-    crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+    crl_verifier: MockCertificateCrlVerifier,
     registration_certificate: MockRegistrationCertificate,
 }
 

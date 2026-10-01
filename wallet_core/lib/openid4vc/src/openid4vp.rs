@@ -1214,8 +1214,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::CertificateCrlVerifier;
-    use crypto::x509::crl::mock::MockCrlFetcher;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::CredentialQueryIdentifier;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequest;
@@ -1477,7 +1476,7 @@ mod tests {
     async fn test_authorization_request_jwt() {
         let (ca, rp_keypair, _, mut auth_request) = setup_mdoc();
         let trust_anchor = TrustAnchors::from(&ca);
-        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
         auth_request.state = Some("authorization_state".to_string());
 
         let auth_request_jwt =
@@ -1502,7 +1501,7 @@ mod tests {
                 .await
                 .unwrap();
 
-        let verifier = CertificateCrlVerifier::<MockCrlFetcher>::default();
+        let verifier = MockCertificateCrlVerifier::default();
         let result =
             VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
 

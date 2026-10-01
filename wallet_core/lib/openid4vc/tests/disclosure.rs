@@ -36,7 +36,7 @@ use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::crl::CertificateCrlVerifier;
-use crypto::x509::crl::mock::MockCrlFetcher;
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
@@ -157,7 +157,7 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
 async fn disclosure_direct() {
     let ca = Ca::generate_mock();
     let auth_keypair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
-    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = Nonce::from("nonce".to_string());
@@ -217,7 +217,7 @@ async fn disclosure_direct() {
 async fn disclosure_jwe(
     auth_request: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
     trust_anchors: &TrustAnchors,
-    crl_verifier: &CertificateCrlVerifier<MockCrlFetcher>,
+    crl_verifier: &MockCertificateCrlVerifier,
     issuer_ca: &Ca,
     status: MdocStatus,
 ) -> String {
@@ -304,7 +304,7 @@ async fn disclosure_using_message_client(
     // Perform the first part, which creates the disclosure session.
     let client = VpDisclosureClient::new(
         message_client,
-        CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca),
+        MockCertificateCrlVerifier::new_for_ca(&ca),
         registration_certificate_status_list_client,
     );
     let session = client
@@ -1085,7 +1085,7 @@ async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
 
 struct WalletValidationContext {
     access_certificate_trust_anchors: TrustAnchors,
-    access_certificate_crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+    access_certificate_crl_verifier: MockCertificateCrlVerifier,
     registration_certificate_trust_anchors: TrustAnchors,
     registration_certificate_status_list_client: StaticStatusListClient,
 }
