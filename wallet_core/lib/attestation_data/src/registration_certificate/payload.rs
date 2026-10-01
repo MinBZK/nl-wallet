@@ -9,7 +9,6 @@ use utils::vec_at_least::VecNonEmpty;
 
 use super::status::RegistrationCertificateStatus;
 use super::validation::RegistrationCertificateValidationError;
-use super::validation::SubjectType;
 
 #[derive(Deserialize)]
 pub struct MultiLanguageString {
@@ -79,6 +78,12 @@ impl jwt::JwtTyp for UncheckedRegistrationCertificate {
     const TYP: &'static str = jwt::jades_b_b::JADES_B_B_JWT_TYP;
 }
 
+#[derive(Debug)]
+pub enum Subject {
+    LegalPerson { legal_name: String },
+    NaturalPerson { given_name: String, family_name: String },
+}
+
 /// A payload whose intrinsic field and cross-field rules have been checked during parsing.
 ///
 /// This does not establish signature trust, WRPAC binding, current validity, revocation status, or query authorization.
@@ -87,16 +92,16 @@ impl jwt::JwtTyp for UncheckedRegistrationCertificate {
 #[serde(try_from = "UncheckedRegistrationCertificate")]
 pub struct ParsedRegistrationCertificate {
     payload: UncheckedRegistrationCertificate,
-    subject_type: SubjectType,
+    subject: Subject,
 }
 
 impl TryFrom<UncheckedRegistrationCertificate> for ParsedRegistrationCertificate {
     type Error = RegistrationCertificateValidationError;
 
     fn try_from(payload: UncheckedRegistrationCertificate) -> Result<Self, Self::Error> {
-        let subject_type = payload.parse_structure()?;
+        let subject = payload.parse_structure()?;
 
-        Ok(Self { payload, subject_type })
+        Ok(Self { payload, subject })
     }
 }
 
@@ -105,8 +110,8 @@ impl ParsedRegistrationCertificate {
         &self.payload
     }
 
-    pub(super) fn subject_type(&self) -> SubjectType {
-        self.subject_type
+    pub fn subject(&self) -> &Subject {
+        &self.subject
     }
 }
 

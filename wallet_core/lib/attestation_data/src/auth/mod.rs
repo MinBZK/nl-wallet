@@ -10,6 +10,7 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use crate::registration_certificate::StatusValidatedRegistrationCertificate;
+use crate::registration_certificate::Subject;
 use crate::x509::RelyingParty;
 use crate::x509::RelyingPartyError;
 
@@ -60,13 +61,13 @@ impl TryFrom<&BorrowingCertificate> for Organization {
 impl From<&StatusValidatedRegistrationCertificate> for Organization {
     fn from(certificate: &StatusValidatedRegistrationCertificate) -> Self {
         let payload = certificate.payload();
-        let legal_name = payload.sub_ln.clone().unwrap_or_else(|| {
-            [payload.sub_gn.as_deref(), payload.sub_fn.as_deref()]
-                .into_iter()
-                .flatten()
-                .collect::<Vec<_>>()
-                .join(" ")
-        });
+        let legal_name = match certificate.subject() {
+            Subject::LegalPerson { legal_name } => legal_name.clone(),
+            Subject::NaturalPerson {
+                given_name,
+                family_name,
+            } => format!("{given_name} {family_name}"),
+        };
         let mut description = IndexMap::<String, String>::new();
         for translation in payload.srv_description.iter().flatten() {
             description
