@@ -1,17 +1,17 @@
 {% macro attributes(attributes) %}
 <dl class="attributes">
 {% for attestation in attributes %}
-    {% for (key, value) in attestation.attributes.flattened() %}
-        <dt>{{ base.trans[key.into_last()] }}</dt>
-        <dd>
-        {% match value %}
-        {% when Attribute::Bool(bool) %}
-            {{ base.trans[format!("{bool:?}").as_str()] }}
-        {% else %}
-            {{ value }}
-        {% endmatch %}
-        </dd>
-    {% endfor %}
+  {% for (key, value) in attestation.attributes.flattened() %}
+    <dt>{{ base.trans[key.into_last()] }}</dt>
+    <dd>
+    {% match value %}
+    {% when Attribute::Bool(bool) %}
+      {{ base.trans[format!("{bool:?}").as_str()] }}
+    {% else %}
+      {{ value }}
+    {% endmatch %}
+    </dd>
+  {% endfor %}
 {% endfor %}
 </dl>
 {% endmacro %}

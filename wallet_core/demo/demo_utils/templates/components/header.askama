@@ -1,21 +1,21 @@
 {% macro header(title, title_span = None, username = None) %}
 <header>
-    <div>
-        <h1 aria-label="{{ title }}">
-          <span>
-            {{ title -}}
-            {%- match title_span -%}
-            {%- when Some with (part) -%}
-            <span class="part">{{- part -}}</span>
-            {% else %}
-            {% endmatch %}
-          </span>
-        </h1>
-        {% match username %}
-        {% when Some with (name) %}
-        <span class="username">{{ name }}</span>
-        {% else %}
-        {% endmatch %}
-    </div>
+  <div>
+    <h1 aria-label="{{ title }}">
+     <span>
+      {{ title -}}
+      {%- match title_span -%}
+      {%- when Some with (part) -%}
+      <span class="part">{{- part -}}</span>
+      {% else %}
+      {% endmatch %}
+     </span>
+    </h1>
+    {% match username %}
+    {% when Some with (name) %}
+    <span class="username">{{ name }}</span>
+    {% else %}
+    {% endmatch %}
+  </div>
 </header>
 {% endmacro %}

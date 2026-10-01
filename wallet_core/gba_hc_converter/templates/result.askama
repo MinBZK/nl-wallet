@@ -2,14 +2,14 @@
 
 {% block content %}
 <main>
-    <section>
-        <h1>GBA-V preloading for NL Wallet</h1>
-    </section>
+  <section>
+    <h1>GBA-V preloading for NL Wallet</h1>
+  </section>
 
-    <section class="info">
-        <h2>Result</h2>
-        <p><output id="result">{{ msg }}</output></p>
-        <a href="/">Go back</a>
-    </section>
+  <section class="info">
+    <h2>Result</h2>
+    <p><output id="result">{{ msg }}</output></p>
+    <a href="/">Go back</a>
+  </section>
 </main>
 {% endblock %}

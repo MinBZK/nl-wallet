@@ -2,15 +2,15 @@
 
 {% macro demo_bar(text, url, url_text, selected_lang, trans, available_languages, session_token, nonce) %}
 <aside>
-    <div class="demo-bar">
-        <div class="text">
-            <b>{{ base.trans.demo_bar_text }}</b>
-            <p>
-                {{ text }}
-                <a href="{{ url }}">{{ url_text }}</a>
-            </p>
-        </div>
+  <div class="demo-bar">
+    <div class="text">
+      <b>{{ base.trans.demo_bar_text }}</b>
+      <p>
+        {{ text }}
+        <a href="{{ url }}">{{ url_text }}</a>
+      </p>
     </div>
-    {% call languages::lang_selector(selected_lang, trans, available_languages, session_token, nonce) %}
+  </div>
+  {% call languages::lang_selector(selected_lang, trans, available_languages, session_token, nonce) %}
 </aside >
 {% endmacro %}
