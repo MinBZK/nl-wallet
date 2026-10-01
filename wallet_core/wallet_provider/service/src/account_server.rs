@@ -1919,7 +1919,6 @@ pub mod mock {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
-    use crypto::x509::DistinguishedName;
     use hsm::model::mock::MockPkcs11Client;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
@@ -2036,11 +2035,7 @@ pub mod mock {
         pid_issuer_trust_anchors: TrustAnchors,
         status_list_service: S,
     ) -> UserState<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
-        let wp_trusted_list_ca = Ca::generate(
-            DistinguishedName::create_mock("wptl.ca.example.com"),
-            Default::default(),
-        )
-        .unwrap();
+        let wp_trusted_list_ca = Ca::generate_wptl_mock_ca().unwrap();
         let key_attestation_key_pair = wp_trusted_list_ca.generate_key_attestation_mock().unwrap();
 
         UserState::<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {

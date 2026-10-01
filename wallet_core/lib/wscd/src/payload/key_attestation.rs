@@ -319,7 +319,7 @@ mod tests {
     use super::VALIDITY_TIME;
 
     static KEY_PAIR_AND_TRUST_ANCHORS: LazyLock<(KeyPair, TrustAnchors)> = LazyLock::new(|| {
-        let ca = Ca::generate_mock();
+        let ca = Ca::generate_wptl_mock_ca().unwrap();
         let key_pair = ca.generate_key_attestation_mock().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
 

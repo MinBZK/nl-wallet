@@ -78,7 +78,7 @@ pub mod mock {
             let wia_keypair = self
                 .wia_keypair
                 .clone()
-                .unwrap_or_else(|| Ca::generate_issuer_mock_ca().unwrap().generate_wia_mock().unwrap());
+                .unwrap_or_else(|| Ca::generate_wptl_mock_ca().unwrap().generate_wia_mock().unwrap());
 
             let client_id = self
                 .client_id

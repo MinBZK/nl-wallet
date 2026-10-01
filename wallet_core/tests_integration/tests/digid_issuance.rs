@@ -61,7 +61,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     // `MockWiaClient` creates its own WIA below rather than obtaining one from a real wallet_provider, so the
     // pid_issuer must be told to trust the CA it is created with.
-    let wptl_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
     let wia_keypair = wptl_ca.generate_wia_mock().unwrap();
     let mut pid_settings = pid_issuer_settings(db_setup.pid_issuer_url(), Some(&wptl_ca));
     let (static_settings, _) = static_server_settings();

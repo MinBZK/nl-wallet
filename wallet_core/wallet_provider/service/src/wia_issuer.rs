@@ -152,7 +152,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_wptl_mock_ca().unwrap();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let sub = "sub";
 
