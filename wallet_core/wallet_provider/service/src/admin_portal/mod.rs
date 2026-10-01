@@ -65,6 +65,7 @@ static ADMIN_SCOPES: LazyLock<HashSet<Scope>> = LazyLock::new(|| {
 /// The logged-in user, as reported to the Admin Portal frontend.
 #[derive(Debug)]
 pub struct LoggedInUser {
+    pub user_id: String,
     pub display_name: String,
     pub privileges: Vec<String>,
 }
@@ -460,6 +461,7 @@ where
             .inspect_err(|error| warn!("failed to extend admin portal session: {error}"))?;
 
         Ok(session.map(|session| LoggedInUser {
+            user_id: session.user_id,
             display_name: session.display_name,
             privileges: to_privileges(&session.roles),
         }))

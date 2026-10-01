@@ -199,6 +199,7 @@ impl From<LoggedInUser> for MeResponse {
         LoggedInUser {
             display_name,
             privileges,
+            ..
         }: LoggedInUser,
     ) -> Self {
         Self {
