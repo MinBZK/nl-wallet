@@ -73,6 +73,8 @@ impl AttestationDisplay for StoredAttestationMetadata {
 /// An instance of an attestation copy as it is contained in the wallet database, which contains both the column id for
 /// that particular copy and the foreign key id for its attestation parent.
 #[derive(Debug, Clone)]
+#[cfg_attr(test, derive(derive_more::Constructor))]
+#[cfg_attr(test, allow(clippy::too_many_arguments))]
 pub struct StoredAttestationCopy {
     pub(super) attestation_id: Uuid,
     pub(super) attestation_copy_id: Uuid,
@@ -415,30 +417,6 @@ mod test {
     use super::*;
 
     impl StoredAttestationCopy {
-        #[expect(
-            clippy::too_many_arguments,
-            reason = "test constructor mirrors the stored attestation"
-        )]
-        pub fn new(
-            attestation_id: Uuid,
-            attestation_copy_id: Uuid,
-            validity_window: ValidityWindow,
-            attestation: WithKeyIdentifier<StoredAttestation>,
-            metadata: StoredAttestationMetadata,
-            revocation_status: Option<RevocationStatus>,
-            issuer_registration: IssuerRegistration,
-        ) -> Self {
-            Self {
-                attestation_id,
-                attestation_copy_id,
-                validity_window,
-                attestation,
-                metadata,
-                revocation_status,
-                issuer_registration,
-            }
-        }
-
         pub fn private_key_id(&self) -> &str {
             self.attestation.key_identifier.as_str()
         }
