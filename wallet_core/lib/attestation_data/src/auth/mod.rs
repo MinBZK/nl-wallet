@@ -27,7 +27,6 @@ pub struct Organization {
     pub legal_name: String,
     pub description: Vec<ServiceDescription>,
     pub web_url: Option<Url>,
-    #[serde(rename = "kvk")]
     pub identifier: String,
     pub country_code: String,
     pub privacy_policy_url: Option<Url>,
