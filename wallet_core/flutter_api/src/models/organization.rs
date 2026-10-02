@@ -22,7 +22,7 @@ impl From<wallet::attestation_data::ServiceDescription> for ServiceDescription {
 pub struct Organization {
     pub legal_name: String,
     pub display_name: String,
-    pub description: Vec<ServiceDescription>,
+    pub service_description: Vec<ServiceDescription>,
     pub web_url: Option<String>,
     pub privacy_policy_url: Option<String>,
     pub identifier: String,
@@ -34,7 +34,7 @@ impl From<wallet::attestation_data::Organization> for Organization {
         Organization {
             legal_name: value.legal_name,
             display_name: value.display_name,
-            description: value.description.into_iter().map(Into::into).collect(),
+            service_description: value.description.into_iter().map(Into::into).collect(),
             identifier: value.identifier,
             country_code: value.country_code,
             web_url: value.web_url.map(|url| url.to_string()),

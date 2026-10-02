@@ -46,7 +46,7 @@ final _kRvigOrganization = const Organization(
   //id: kRvigId,
   legalName: _kRvigOrganizationName,
   displayName: _kRvigOrganizationName,
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations: [
         LocalizedString(
@@ -70,7 +70,7 @@ final _kRdwOrganization = Organization(
   //id: kRdwId,
   legalName: 'Rijksdienst voor het Wegverkeer (RDW)',
   displayName: 'RDW',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations:
           'De Rijksdienst voor het Wegverkeer (RDW) draagt bij aan een veilig, schoon, economisch en geordend wegverkeer.'
@@ -85,7 +85,7 @@ final _kDuoOrganization = Organization(
   //id: kDuoId,
   legalName: 'Dienst Uitvoering Onderwijs (DUO)',
   displayName: 'DUO',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations:
           'Dienst Uitvoering Onderwijs (DUO) verzorgt onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.'
@@ -100,7 +100,7 @@ final _kEmployerOrganization = Organization(
   //id: kEmployerId,
   legalName: 'Werken voor Nederland',
   displayName: 'Werken voor Nederland',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations:
           'Werken voor Nederland (onderdeel van De Rijksoverheid) is één van de grootste werkgevers van ons land. De kans dat jij jouw baan bij de Rijksoverheid vindt is dan ook behoorlijk groot.'
@@ -115,7 +115,7 @@ final _kJustisOrganization = Organization(
   //id: kJusticeId,
   legalName: 'Ministerie van Justitie en Veiligheid',
   displayName: 'Justis',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations:
           'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.'
@@ -130,7 +130,7 @@ const _kMarketPlaceOrganization = Organization(
   //id: kMarketplaceId,
   legalName: 'Marktplek B.V.',
   displayName: 'Marktplek',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations: [
         LocalizedString(language: 'en', value: 'Easily sell your second-hand items online at Marktplek.'),
@@ -148,7 +148,7 @@ final _kBarOrganization = Organization(
   //id: kBarId,
   legalName: 'Cafe de Dobbelaar',
   displayName: 'Cafe de Dobbelaar',
-  description: [ServiceDescription(translations: 'Familiecafe sinds 1984.'.untranslated)],
+  serviceDescription: [ServiceDescription(translations: 'Familiecafe sinds 1984.'.untranslated)],
   identifier: 'NTRNL-98765420',
   countryCode: 'NL',
 );
@@ -157,7 +157,7 @@ final _kHealthInsurerOrganization = Organization(
   //id: kHealthInsuranceId,
   legalName: 'Zorgverzekeraar Z',
   displayName: 'Zorgverzekeraar Z',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations:
           'Of het nu gaat om het regelen van zorg, het betalen van zorg of een gezond leven. Zorgverzekeraar Z zet zich elke dag in voor de gezondheid van haar klanten.'
@@ -172,7 +172,7 @@ final _kHousingCorporationOrganization = Organization(
   //id: kHousingCorpId,
   legalName: 'BeterWonen',
   displayName: 'BeterWonen',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations: 'Moderne woningen voor iedereen in de Gemeente Den Haag en omstreken.'.untranslated,
     ),
@@ -186,7 +186,7 @@ final _kCarRentalOrganization = Organization(
   //id: kCarRentalId,
   legalName: 'CarRental',
   displayName: 'CarRental',
-  description: [ServiceDescription(translations: 'Betrouwbaar huren.'.untranslated)],
+  serviceDescription: [ServiceDescription(translations: 'Betrouwbaar huren.'.untranslated)],
   identifier: 'NTRNL-98765423',
   countryCode: 'NL',
 );
@@ -195,7 +195,7 @@ final _kFirstAidOrganization = Organization(
   //id: 'first_aid',
   legalName: 'Healthcare Facility',
   displayName: 'Healthcare Facility',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations:
           'Deze Healthcare Facility is fictief ter invulling van de Demo. Dit kan een zorginstelling zijn in Nederland of in het buitenland.'
@@ -210,7 +210,7 @@ const _kMunicipalityAmsterdamOrganization = Organization(
   //id: kMunicipalityAmsterdamId,
   legalName: 'Gemeente Amsterdam',
   displayName: 'Gemeente Amsterdam',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations: [
         LocalizedString(language: 'en', value: 'Everything we do, we do for the city and the people of Amsterdam.'),
@@ -228,7 +228,7 @@ final _kMunicipalityTheHagueOrganization = Organization(
   //id: kMunicipalityTheHagueId,
   legalName: "Gemeente 's-Gravenhage",
   displayName: 'Gemeente Den Haag',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations:
           'Den Haag is een unieke stad waar we allemaal trots op zijn. Nieuwsgierig, divers en vol vertrouwen. Vrede en Recht.'
@@ -244,7 +244,7 @@ const _kBankOrganization = Organization(
   //id: kBankId,
   legalName: 'XYZ Bank N.V.',
   displayName: 'XYZ Bank',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations: [
         LocalizedString(language: 'en', value: 'The accessible bank for paying, saving and investing.'),
@@ -261,7 +261,7 @@ const _kMonkeyBikeOrganization = Organization(
   //id: kMonkeyBikeId,
   legalName: 'MonkeyBike Bezorgdiensten B.V.',
   displayName: 'MonkeyBike',
-  description: [
+  serviceDescription: [
     ServiceDescription(
       translations: [
         LocalizedString(language: 'en', value: 'Your groceries delivered to your home within 10 minutes.'),
@@ -281,7 +281,7 @@ final _kPharmacyOrganization = Organization(
   //id: kPharmacyId,
   legalName: 'De Noord Apotheek',
   displayName: 'Apotheek',
-  description: [ServiceDescription(translations: 'Al meer dan 25 jaar jouw betrouwbare apotheek.'.untranslated)],
+  serviceDescription: [ServiceDescription(translations: 'Al meer dan 25 jaar jouw betrouwbare apotheek.'.untranslated)],
   identifier: 'NTRNL-1234-1234',
   countryCode: 'NL',
   webUrl: 'https://denoordapotheek.nl',
@@ -290,7 +290,9 @@ final _kPharmacyOrganization = Organization(
 final _kSupermarket = Organization(
   legalName: 'De Buurt Super',
   displayName: 'BuurtSuper',
-  description: [ServiceDescription(translations: 'Al meer dan 25 jaar jouw betrouwbare supermarkt.'.untranslated)],
+  serviceDescription: [
+    ServiceDescription(translations: 'Al meer dan 25 jaar jouw betrouwbare supermarkt.'.untranslated),
+  ],
   identifier: 'NTRNL-1337-1337',
   countryCode: 'NL',
   webUrl: 'https://example.org',

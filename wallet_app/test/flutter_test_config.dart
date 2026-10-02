@@ -103,7 +103,7 @@ void _setupMockitoDummies() {
       relyingParty: core.Organization(
         legalName: '',
         displayName: '',
-        description: [],
+        serviceDescription: [],
         identifier: '',
         countryCode: '',
       ),

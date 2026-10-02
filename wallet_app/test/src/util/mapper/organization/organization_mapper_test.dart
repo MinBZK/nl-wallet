@@ -12,7 +12,9 @@ void main() {
         core.Organization(
           legalName: 'Issuer',
           displayName: 'Issuer',
-          description: descriptions.map((translations) => core.ServiceDescription(translations: translations)).toList(),
+          serviceDescription: descriptions
+              .map((translations) => core.ServiceDescription(translations: translations))
+              .toList(),
           identifier: 'issuer',
           countryCode: 'NL',
         ),

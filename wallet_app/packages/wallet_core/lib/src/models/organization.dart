@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 class Organization {
   final String legalName;
   final String displayName;
-  final List<ServiceDescription> description;
+  final List<ServiceDescription> serviceDescription;
   final String? webUrl;
   final String? privacyPolicyUrl;
   final String identifier;
@@ -19,7 +19,7 @@ class Organization {
   const Organization({
     required this.legalName,
     required this.displayName,
-    required this.description,
+    required this.serviceDescription,
     this.webUrl,
     this.privacyPolicyUrl,
     required this.identifier,
@@ -30,7 +30,7 @@ class Organization {
   int get hashCode =>
       legalName.hashCode ^
       displayName.hashCode ^
-      description.hashCode ^
+      serviceDescription.hashCode ^
       webUrl.hashCode ^
       privacyPolicyUrl.hashCode ^
       identifier.hashCode ^
@@ -43,7 +43,7 @@ class Organization {
           runtimeType == other.runtimeType &&
           legalName == other.legalName &&
           displayName == other.displayName &&
-          description == other.description &&
+          serviceDescription == other.serviceDescription &&
           webUrl == other.webUrl &&
           privacyPolicyUrl == other.privacyPolicyUrl &&
           identifier == other.identifier &&

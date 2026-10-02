@@ -2848,7 +2848,8 @@ impl SseDecode for crate::models::organization::Organization {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_legalName = <String>::sse_decode(deserializer);
         let mut var_displayName = <String>::sse_decode(deserializer);
-        let mut var_description = <Vec<crate::models::organization::ServiceDescription>>::sse_decode(deserializer);
+        let mut var_serviceDescription =
+            <Vec<crate::models::organization::ServiceDescription>>::sse_decode(deserializer);
         let mut var_webUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_privacyPolicyUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_identifier = <String>::sse_decode(deserializer);
@@ -2856,7 +2857,7 @@ impl SseDecode for crate::models::organization::Organization {
         return crate::models::organization::Organization {
             legal_name: var_legalName,
             display_name: var_displayName,
-            description: var_description,
+            service_description: var_serviceDescription,
             web_url: var_webUrl,
             privacy_policy_url: var_privacyPolicyUrl,
             identifier: var_identifier,
@@ -3971,7 +3972,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::organization::Organization
         [
             self.legal_name.into_into_dart().into_dart(),
             self.display_name.into_into_dart().into_dart(),
-            self.description.into_into_dart().into_dart(),
+            self.service_description.into_into_dart().into_dart(),
             self.web_url.into_into_dart().into_dart(),
             self.privacy_policy_url.into_into_dart().into_dart(),
             self.identifier.into_into_dart().into_dart(),
@@ -5286,7 +5287,7 @@ impl SseEncode for crate::models::organization::Organization {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.legal_name, serializer);
         <String>::sse_encode(self.display_name, serializer);
-        <Vec<crate::models::organization::ServiceDescription>>::sse_encode(self.description, serializer);
+        <Vec<crate::models::organization::ServiceDescription>>::sse_encode(self.service_description, serializer);
         <Option<String>>::sse_encode(self.web_url, serializer);
         <Option<String>>::sse_encode(self.privacy_policy_url, serializer);
         <String>::sse_encode(self.identifier, serializer);
@@ -6503,7 +6504,7 @@ mod io {
             crate::models::organization::Organization {
                 legal_name: self.legal_name.cst_decode(),
                 display_name: self.display_name.cst_decode(),
-                description: self.description.cst_decode(),
+                service_description: self.service_description.cst_decode(),
                 web_url: self.web_url.cst_decode(),
                 privacy_policy_url: self.privacy_policy_url.cst_decode(),
                 identifier: self.identifier.cst_decode(),
@@ -7073,7 +7074,7 @@ mod io {
             Self {
                 legal_name: core::ptr::null_mut(),
                 display_name: core::ptr::null_mut(),
-                description: core::ptr::null_mut(),
+                service_description: core::ptr::null_mut(),
                 web_url: core::ptr::null_mut(),
                 privacy_policy_url: core::ptr::null_mut(),
                 identifier: core::ptr::null_mut(),
@@ -8514,7 +8515,7 @@ mod io {
     pub struct wire_cst_organization {
         legal_name: *mut wire_cst_list_prim_u_8_strict,
         display_name: *mut wire_cst_list_prim_u_8_strict,
-        description: *mut wire_cst_list_service_description,
+        service_description: *mut wire_cst_list_service_description,
         web_url: *mut wire_cst_list_prim_u_8_strict,
         privacy_policy_url: *mut wire_cst_list_prim_u_8_strict,
         identifier: *mut wire_cst_list_prim_u_8_strict,

@@ -88,7 +88,7 @@ void main() {
             issuer: core.Organization(
               legalName: '',
               displayName: '',
-              description: [],
+              serviceDescription: [],
               identifier: '',
               countryCode: '',
             ),
@@ -148,7 +148,7 @@ void main() {
             issuer: core.Organization(
               legalName: '',
               displayName: '',
-              description: [],
+              serviceDescription: [],
               identifier: '',
               countryCode: '',
             ),
@@ -235,7 +235,7 @@ void main() {
             issuer: core.Organization(
               legalName: '',
               displayName: '',
-              description: [],
+              serviceDescription: [],
               identifier: '',
               countryCode: '',
             ),
@@ -315,7 +315,7 @@ void main() {
             issuer: core.Organization(
               legalName: '',
               displayName: '',
-              description: [],
+              serviceDescription: [],
               identifier: '',
               countryCode: '',
             ),
@@ -374,7 +374,7 @@ void main() {
               issuer: core.Organization(
                 legalName: '',
                 displayName: '',
-                description: [],
+                serviceDescription: [],
                 identifier: '',
                 countryCode: '',
               ),

@@ -189,7 +189,7 @@ typedef struct wire_cst_list_service_description {
 typedef struct wire_cst_organization {
   struct wire_cst_list_prim_u_8_strict *legal_name;
   struct wire_cst_list_prim_u_8_strict *display_name;
-  struct wire_cst_list_service_description *description;
+  struct wire_cst_list_service_description *service_description;
   struct wire_cst_list_prim_u_8_strict *web_url;
   struct wire_cst_list_prim_u_8_strict *privacy_policy_url;
   struct wire_cst_list_prim_u_8_strict *identifier;

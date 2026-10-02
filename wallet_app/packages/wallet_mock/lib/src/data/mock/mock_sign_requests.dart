@@ -13,7 +13,7 @@ final kRentalRequest = SignRequest(
   trustProvider: Organization(
     legalName: 'Veilig Ondertekenen B.V.',
     displayName: 'Veilig Ondertekenen B.V.',
-    description: [ServiceDescription(translations: ''.untranslated)],
+    serviceDescription: [ServiceDescription(translations: ''.untranslated)],
     identifier: 'NTRNL-98765411',
     countryCode: 'NL',
   ),

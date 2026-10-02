@@ -2772,7 +2772,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return Organization(
       legalName: dco_decode_String(arr[0]),
       displayName: dco_decode_String(arr[1]),
-      description: dco_decode_list_service_description(arr[2]),
+      serviceDescription: dco_decode_list_service_description(arr[2]),
       webUrl: dco_decode_opt_String(arr[3]),
       privacyPolicyUrl: dco_decode_opt_String(arr[4]),
       identifier: dco_decode_String(arr[5]),
@@ -3978,7 +3978,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_legalName = sse_decode_String(deserializer);
     var var_displayName = sse_decode_String(deserializer);
-    var var_description = sse_decode_list_service_description(deserializer);
+    var var_serviceDescription = sse_decode_list_service_description(deserializer);
     var var_webUrl = sse_decode_opt_String(deserializer);
     var var_privacyPolicyUrl = sse_decode_opt_String(deserializer);
     var var_identifier = sse_decode_String(deserializer);
@@ -3986,7 +3986,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return Organization(
       legalName: var_legalName,
       displayName: var_displayName,
-      description: var_description,
+      serviceDescription: var_serviceDescription,
       webUrl: var_webUrl,
       privacyPolicyUrl: var_privacyPolicyUrl,
       identifier: var_identifier,
@@ -5331,7 +5331,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.legalName, serializer);
     sse_encode_String(self.displayName, serializer);
-    sse_encode_list_service_description(self.description, serializer);
+    sse_encode_list_service_description(self.serviceDescription, serializer);
     sse_encode_opt_String(self.webUrl, serializer);
     sse_encode_opt_String(self.privacyPolicyUrl, serializer);
     sse_encode_String(self.identifier, serializer);

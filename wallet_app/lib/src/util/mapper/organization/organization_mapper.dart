@@ -14,7 +14,7 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
     id: input.hashCode.toString(),
     legalName: input.legalName,
     displayName: input.displayName,
-    description: _mapDescription(input.description),
+    description: _mapDescription(input.serviceDescription),
     organizationId: input.identifier,
     countryCode: input.countryCode,
     webUri: input.webUrl,

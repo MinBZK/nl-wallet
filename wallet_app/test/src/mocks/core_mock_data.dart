@@ -43,7 +43,7 @@ abstract class CoreMockData {
   static const Organization organization = Organization(
     legalName: 'legalName',
     displayName: 'displayName',
-    description: [
+    serviceDescription: [
       ServiceDescription(
         translations: [LocalizedString(language: 'en', value: 'description')],
       ),

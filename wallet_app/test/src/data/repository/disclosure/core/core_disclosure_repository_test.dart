@@ -40,7 +40,7 @@ void main() {
         relyingParty: Organization(
           legalName: '',
           displayName: '',
-          description: [],
+          serviceDescription: [],
           identifier: '',
           countryCode: '',
         ),
