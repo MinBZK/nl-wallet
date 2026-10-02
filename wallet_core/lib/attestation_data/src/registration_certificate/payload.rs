@@ -10,6 +10,8 @@ use utils::vec_at_least::VecNonEmpty;
 use super::status::RegistrationCertificateStatus;
 use super::validation::RegistrationCertificateValidationError;
 
+/// Persisted in wallet events as part of [`Organization`](crate::organization::Organization).
+/// Events are retained, so changes must preserve deserialization of existing records.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MultiLanguageString {
     pub lang: String,
