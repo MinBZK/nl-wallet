@@ -154,8 +154,10 @@ digidBaseUrl:
 ## instead of redirecting to nl-rdo-max's. Maps each BSN to a display name; each BSN must resolve in
 ## the BRP proxy's dataset.
 ## @param mockSubjects [object] Selectable mock identities, as a `bsn: name` map
+## @param mockCustomBsn Whether the mock DigiD login has a custom bsn option
 mockSubjects: {}
 ##  "999991772": "Frouke Jansen"
+mockCustomBsn: false
 
 ## @section Wallet redirect uris
 ## Exact-match allowlist of `redirect_uri` values the wallet may use in a Pushed Authorization Request.
