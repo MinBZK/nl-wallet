@@ -272,6 +272,7 @@ struct Translations {
     custom_heading: &'static str,
     custom_placeholder: &'static str,
     custom_submit: &'static str,
+    custom_invalid_bsn: &'static str,
 }
 
 fn translations(language: Language) -> Translations {
@@ -290,6 +291,7 @@ fn translations(language: Language) -> Translations {
             custom_heading: "Ander test BSN",
             custom_placeholder: "Voer een BSN in",
             custom_submit: "Inloggen",
+            custom_invalid_bsn: "Geen geldig BSN",
         },
         Language::En => Translations {
             logo_heading: "Test-IDs",
@@ -305,6 +307,7 @@ fn translations(language: Language) -> Translations {
             custom_heading: "Custom test BSN",
             custom_placeholder: "Enter a BSN",
             custom_submit: "Sign in",
+            custom_invalid_bsn: "Invalid BSN",
         },
     }
 }

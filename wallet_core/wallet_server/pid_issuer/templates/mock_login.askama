@@ -73,11 +73,12 @@
                 id="custom-bsn"
                 name="bsn"
                 inputmode="numeric"
-                pattern="[0-9]{8,9}"
+                pattern="[0-9]{9}"
                 maxlength="9"
                 autocomplete="off"
                 placeholder="{{ trans.custom_placeholder }}"
                 required
+                data-invalid-bsn="{{ trans.custom_invalid_bsn }}"
             />
             <button id="custom-bsn-submit" type="submit">{{ trans.custom_submit }}</button>
           </div>
