@@ -46,7 +46,7 @@ async fn test_pre_authorized_code_issuance() {
         panic!("expected Previews, got authorization redirect");
     };
 
-    assert_eq!(previews.len(), 1);
+    assert_eq!(previews.len().get(), 1);
 
     // Accept the issuance with the wallet PIN.
     wallet.accept_issuance(pin).await.expect("should accept issuance");

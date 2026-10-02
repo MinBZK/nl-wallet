@@ -261,7 +261,7 @@ where
         let pid_preview = Self::pid_preview(
             issuance_session
                 .credential_previews()
-                .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPreviews))?
+                .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPidPreviews))?
                 .collect_vec()
                 .into_iter(),
             pid_config,

@@ -3,6 +3,7 @@ use crate::models::attestation::AttestationPresentation;
 pub enum IssuanceStartResult {
     AuthorizationUrl(String),
     Previews(Vec<AttestationPresentation>),
+    NoPreviews,
 }
 
 impl From<wallet::IssuanceStartResult> for IssuanceStartResult {
@@ -13,6 +14,7 @@ impl From<wallet::IssuanceStartResult> for IssuanceStartResult {
             Previews(previews) => {
                 IssuanceStartResult::Previews(previews.into_iter().map(AttestationPresentation::from).collect())
             }
+            NoPreviews => IssuanceStartResult::NoPreviews,
         }
     }
 }

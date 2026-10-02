@@ -23,4 +23,5 @@ sealed class IssuanceStartResult with _$IssuanceStartResult {
   const factory IssuanceStartResult.previews(
     List<AttestationPresentation> field0,
   ) = IssuanceStartResult_Previews;
+  const factory IssuanceStartResult.noPreviews() = IssuanceStartResult_NoPreviews;
 }

@@ -149,7 +149,7 @@ abstract class WalletCoreApi extends BaseApi {
     required String pin,
   });
 
-  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri});
+  Future<List<AttestationPresentation>?> crateApiFullContinueIssuance({required String uri});
 
   Future<void> crateApiFullContinuePinRecovery({required String uri});
 
@@ -853,7 +853,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri}) {
+  Future<List<AttestationPresentation>?> crateApiFullContinueIssuance({required String uri}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -861,7 +861,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           return wire.wire__crate__api__full__continue_issuance(port_, arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_attestation_presentation,
+          decodeSuccessData: dco_decode_opt_list_attestation_presentation,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullContinueIssuanceConstMeta,
@@ -2560,6 +2560,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return IssuanceStartResult_Previews(
           dco_decode_list_attestation_presentation(raw[1]),
         );
+      case 2:
+        return IssuanceStartResult_NoPreviews();
       default:
         throw Exception("unreachable");
     }
@@ -3658,6 +3660,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 1:
         var var_field0 = sse_decode_list_attestation_presentation(deserializer);
         return IssuanceStartResult_Previews(var_field0);
+      case 2:
+        return IssuanceStartResult_NoPreviews();
       default:
         throw UnimplementedError('');
     }
@@ -5093,6 +5097,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case IssuanceStartResult_Previews(field0: final field0):
         sse_encode_i_32(1, serializer);
         sse_encode_list_attestation_presentation(field0, serializer);
+      case IssuanceStartResult_NoPreviews():
+        sse_encode_i_32(2, serializer);
     }
   }
 

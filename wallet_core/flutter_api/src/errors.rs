@@ -350,7 +350,7 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::RecoveryCodeDisclosure(_)
             | IssuanceError::TransferDataStorage(_)
             | IssuanceError::IssuanceSession(_)
-            | IssuanceError::MissingPreviews
+            | IssuanceError::MissingPidPreviews
             | IssuanceError::RecoveryCode(_) => FlutterApiErrorType::Generic,
         }
     }
@@ -548,7 +548,9 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
             Self::CheckPreconditions(error) => error.typ(),
             Self::Disclosure(error) => error.typ(),
             Self::Issuance(error) => error.typ(),
-            Self::MissingRedirectUri(_) | Self::UnexpectedScheme(_, _) => FlutterApiErrorType::Issuer,
+            Self::MissingRedirectUri(_) | Self::UnexpectedScheme(_, _) | Self::MissingPreviews(_) => {
+                FlutterApiErrorType::Issuer
+            }
         }
     }
 
@@ -557,12 +559,12 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
             Self::CheckPreconditions(error) => error.data(),
             Self::Disclosure(error) => error.data(),
             Self::Issuance(error) => error.data(),
-            Self::MissingRedirectUri(organization) | Self::UnexpectedScheme(_, organization) => {
-                serde_json::to_value(DisclosureBasedIssuanceErrorData {
-                    organization_name: organization.display_name.clone(),
-                })
-                .unwrap()
-            }
+            Self::MissingRedirectUri(organization)
+            | Self::UnexpectedScheme(_, organization)
+            | Self::MissingPreviews(organization) => serde_json::to_value(DisclosureBasedIssuanceErrorData {
+                organization_name: organization.display_name.clone(),
+            })
+            .unwrap(),
         }
     }
 }

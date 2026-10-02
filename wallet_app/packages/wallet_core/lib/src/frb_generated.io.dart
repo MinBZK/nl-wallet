@@ -1553,6 +1553,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Previews.field0 = pre_field0;
       return;
     }
+    if (apiObj is IssuanceStartResult_NoPreviews) {
+      wireObj.tag = 2;
+      return;
+    }
   }
 
   @protected

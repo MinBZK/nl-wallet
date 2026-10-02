@@ -403,16 +403,14 @@ pub async fn cancel_issuance() -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
-pub async fn continue_issuance(uri: String) -> anyhow::Result<Vec<AttestationPresentation>> {
+pub async fn continue_issuance(uri: String) -> anyhow::Result<Option<Vec<AttestationPresentation>>> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;
 
     let wallet_attestations = wallet.continue_issuance(url).await?;
-    let attestations = wallet_attestations
-        .into_iter()
-        .map(AttestationPresentation::from)
-        .collect();
+    let attestations =
+        wallet_attestations.map(|attestations| attestations.into_iter().map(AttestationPresentation::from).collect());
 
     Ok(attestations)
 }

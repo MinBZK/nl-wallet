@@ -173,8 +173,8 @@ async fn test_acf_demo_issuer_wallet_issuance() {
         .await
         .expect("should continue issuance after consent");
 
-    assert_eq!(previews.len(), 1);
-    assert_eq!(previews.first().unwrap().attestation_type, "com.example.insurance");
+    assert_eq!(previews.as_ref().unwrap().len().get(), 1);
+    assert_eq!(previews.unwrap().first().attestation_type, "com.example.insurance");
 
     wallet.accept_issuance(pin).await.expect("should accept issuance");
 
@@ -218,8 +218,8 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
         .await
         .expect("should continue issuance after immediate authorization");
 
-    assert_eq!(previews.len(), 1);
-    assert_eq!(previews.first().unwrap().attestation_type, "com.example.jum.bonuskaart");
+    assert_eq!(previews.as_ref().unwrap().len().get(), 1);
+    assert_eq!(previews.unwrap().first().attestation_type, "com.example.jum.bonuskaart");
 
     wallet.accept_issuance(pin).await.expect("should accept issuance");
 

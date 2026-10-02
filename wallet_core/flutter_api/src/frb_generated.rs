@@ -2490,6 +2490,9 @@ impl SseDecode for crate::models::issuance::IssuanceStartResult {
                     <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
                 return crate::models::issuance::IssuanceStartResult::Previews(var_field0);
             }
+            2 => {
+                return crate::models::issuance::IssuanceStartResult::NoPreviews;
+            }
             _ => {
                 unimplemented!("");
             }
@@ -3919,6 +3922,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceStartRes
             crate::models::issuance::IssuanceStartResult::Previews(field0) => {
                 [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
+            crate::models::issuance::IssuanceStartResult::NoPreviews => [2.into_dart()].into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -5025,6 +5029,9 @@ impl SseEncode for crate::models::issuance::IssuanceStartResult {
             crate::models::issuance::IssuanceStartResult::Previews(field0) => {
                 <i32>::sse_encode(1, serializer);
                 <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
+            }
+            crate::models::issuance::IssuanceStartResult::NoPreviews => {
+                <i32>::sse_encode(2, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -6327,6 +6334,7 @@ mod io {
                     let ans = unsafe { self.kind.Previews };
                     crate::models::issuance::IssuanceStartResult::Previews(ans.field0.cst_decode())
                 }
+                2 => crate::models::issuance::IssuanceStartResult::NoPreviews,
                 _ => unreachable!(),
             }
         }

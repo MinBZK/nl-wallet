@@ -15,27 +15,22 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$IssuanceStartResult {
 
- Object get field0;
+
 
 
 
 @override
 bool operator ==(Object other) {
-  final _this = this as IssuanceStartResult;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult&&const DeepCollectionEquality().equals(other.field0, _this.field0));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult);
 }
 
 
 @override
-int get hashCode {
-  final _this = this as IssuanceStartResult;
-  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.field0));
-}
+int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  final _this = this as IssuanceStartResult;
-  return 'IssuanceStartResult(field0: ${_this.field0})';
+    return 'IssuanceStartResult()';
 }
 
 
@@ -61,12 +56,13 @@ extension IssuanceStartResultPatterns on IssuanceStartResult {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( IssuanceStartResult_AuthorizationUrl value)?  authorizationUrl,TResult Function( IssuanceStartResult_Previews value)?  previews,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( IssuanceStartResult_AuthorizationUrl value)?  authorizationUrl,TResult Function( IssuanceStartResult_Previews value)?  previews,TResult Function( IssuanceStartResult_NoPreviews value)?  noPreviews,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case IssuanceStartResult_AuthorizationUrl() when authorizationUrl != null:
 return authorizationUrl(_that);case IssuanceStartResult_Previews() when previews != null:
-return previews(_that);case _:
+return previews(_that);case IssuanceStartResult_NoPreviews() when noPreviews != null:
+return noPreviews(_that);case _:
   return orElse();
 
 }
@@ -84,12 +80,13 @@ return previews(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( IssuanceStartResult_AuthorizationUrl value)  authorizationUrl,required TResult Function( IssuanceStartResult_Previews value)  previews,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( IssuanceStartResult_AuthorizationUrl value)  authorizationUrl,required TResult Function( IssuanceStartResult_Previews value)  previews,required TResult Function( IssuanceStartResult_NoPreviews value)  noPreviews,}){
 final _that = this;
 switch (_that) {
 case IssuanceStartResult_AuthorizationUrl():
 return authorizationUrl(_that);case IssuanceStartResult_Previews():
-return previews(_that);}
+return previews(_that);case IssuanceStartResult_NoPreviews():
+return noPreviews(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -103,12 +100,13 @@ return previews(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( IssuanceStartResult_AuthorizationUrl value)?  authorizationUrl,TResult? Function( IssuanceStartResult_Previews value)?  previews,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( IssuanceStartResult_AuthorizationUrl value)?  authorizationUrl,TResult? Function( IssuanceStartResult_Previews value)?  previews,TResult? Function( IssuanceStartResult_NoPreviews value)?  noPreviews,}){
 final _that = this;
 switch (_that) {
 case IssuanceStartResult_AuthorizationUrl() when authorizationUrl != null:
 return authorizationUrl(_that);case IssuanceStartResult_Previews() when previews != null:
-return previews(_that);case _:
+return previews(_that);case IssuanceStartResult_NoPreviews() when noPreviews != null:
+return noPreviews(_that);case _:
   return null;
 
 }
@@ -125,11 +123,12 @@ return previews(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String field0)?  authorizationUrl,TResult Function( List<AttestationPresentation> field0)?  previews,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String field0)?  authorizationUrl,TResult Function( List<AttestationPresentation> field0)?  previews,TResult Function()?  noPreviews,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case IssuanceStartResult_AuthorizationUrl() when authorizationUrl != null:
 return authorizationUrl(_that.field0);case IssuanceStartResult_Previews() when previews != null:
-return previews(_that.field0);case _:
+return previews(_that.field0);case IssuanceStartResult_NoPreviews() when noPreviews != null:
+return noPreviews();case _:
   return orElse();
 
 }
@@ -147,11 +146,12 @@ return previews(_that.field0);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String field0)  authorizationUrl,required TResult Function( List<AttestationPresentation> field0)  previews,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String field0)  authorizationUrl,required TResult Function( List<AttestationPresentation> field0)  previews,required TResult Function()  noPreviews,}) {final _that = this;
 switch (_that) {
 case IssuanceStartResult_AuthorizationUrl():
 return authorizationUrl(_that.field0);case IssuanceStartResult_Previews():
-return previews(_that.field0);}
+return previews(_that.field0);case IssuanceStartResult_NoPreviews():
+return noPreviews();}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -165,11 +165,12 @@ return previews(_that.field0);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String field0)?  authorizationUrl,TResult? Function( List<AttestationPresentation> field0)?  previews,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String field0)?  authorizationUrl,TResult? Function( List<AttestationPresentation> field0)?  previews,TResult? Function()?  noPreviews,}) {final _that = this;
 switch (_that) {
 case IssuanceStartResult_AuthorizationUrl() when authorizationUrl != null:
 return authorizationUrl(_that.field0);case IssuanceStartResult_Previews() when previews != null:
-return previews(_that.field0);case _:
+return previews(_that.field0);case IssuanceStartResult_NoPreviews() when noPreviews != null:
+return noPreviews();case _:
   return null;
 
 }
@@ -184,7 +185,7 @@ class IssuanceStartResult_AuthorizationUrl extends IssuanceStartResult {
   const IssuanceStartResult_AuthorizationUrl(this.field0): super._();
   
 
-@override final  String field0;
+ final  String field0;
 
 /// Create a copy of IssuanceStartResult
 /// with the given fields replaced by the non-null parameter values.
@@ -253,7 +254,7 @@ class IssuanceStartResult_Previews extends IssuanceStartResult {
   
 
  final  List<AttestationPresentation> _field0;
-@override List<AttestationPresentation> get field0 {
+ List<AttestationPresentation> get field0 {
   if (_field0 is EqualUnmodifiableListView) return _field0;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_field0);
@@ -318,5 +319,37 @@ as List<AttestationPresentation>,
 
 
 }
+
+/// @nodoc
+
+
+class IssuanceStartResult_NoPreviews extends IssuanceStartResult {
+  const IssuanceStartResult_NoPreviews(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult_NoPreviews);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+    return 'IssuanceStartResult.noPreviews()';
+}
+
+
+}
+
+
+
 
 // dart format on

@@ -151,7 +151,7 @@ class TypedWalletCore {
     runnable: () => core.identifyUri(uri: uri),
   );
 
-  Future<List<core.AttestationPresentation>> continueIssuance(String uri) => _callWithFlowBreadcrumb(
+  Future<List<core.AttestationPresentation>?> continueIssuance(String uri) => _callWithFlowBreadcrumb(
     'issuance.continue',
     failureCode: 'issuance.fail.continue',
     runnable: () => core.continueIssuance(uri: uri),

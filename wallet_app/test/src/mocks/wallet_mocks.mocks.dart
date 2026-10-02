@@ -3239,17 +3239,13 @@ class MockTypedWalletCore extends _i1.Mock implements _i69.TypedWalletCore {
   ) as _i9.Future<_i14.IdentifyUriResult>);
 
   @override
-  _i9.Future<List<_i14.AttestationPresentation>> continueIssuance(
+  _i9.Future<List<_i14.AttestationPresentation>?> continueIssuance(
     String? uri,
   ) => (super.noSuchMethod(
     Invocation.method(#continueIssuance, [uri]),
-    returnValue: _i9.Future<List<_i14.AttestationPresentation>>.value(
-      <_i14.AttestationPresentation>[],
-    ),
-    returnValueForMissingStub: _i9.Future<List<_i14.AttestationPresentation>>.value(
-      <_i14.AttestationPresentation>[],
-    ),
-  ) as _i9.Future<List<_i14.AttestationPresentation>>);
+    returnValue: _i9.Future<List<_i14.AttestationPresentation>?>.value(),
+    returnValueForMissingStub: _i9.Future<List<_i14.AttestationPresentation>?>.value(),
+  ) as _i9.Future<List<_i14.AttestationPresentation>?>);
 
   @override
   _i9.Future<_i14.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(
@@ -4062,17 +4058,13 @@ class MockWalletCoreApi extends _i1.Mock implements _i14.WalletCoreApi {
   ) as _i9.Future<_i14.DisclosureBasedIssuanceResult>);
 
   @override
-  _i9.Future<List<_i14.AttestationPresentation>> crateApiFullContinueIssuance({
+  _i9.Future<List<_i14.AttestationPresentation>?> crateApiFullContinueIssuance({
     required String? uri,
   }) => (super.noSuchMethod(
     Invocation.method(#crateApiFullContinueIssuance, [], {#uri: uri}),
-    returnValue: _i9.Future<List<_i14.AttestationPresentation>>.value(
-      <_i14.AttestationPresentation>[],
-    ),
-    returnValueForMissingStub: _i9.Future<List<_i14.AttestationPresentation>>.value(
-      <_i14.AttestationPresentation>[],
-    ),
-  ) as _i9.Future<List<_i14.AttestationPresentation>>);
+    returnValue: _i9.Future<List<_i14.AttestationPresentation>?>.value(),
+    returnValueForMissingStub: _i9.Future<List<_i14.AttestationPresentation>?>.value(),
+  ) as _i9.Future<List<_i14.AttestationPresentation>?>);
 
   @override
   _i9.Future<void> crateApiFullContinuePinRecovery({required String? uri}) => (super.noSuchMethod(

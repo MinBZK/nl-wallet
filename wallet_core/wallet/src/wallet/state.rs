@@ -768,7 +768,7 @@ mod tests {
         Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
-                preview_attestations: attestations,
+                preview_attestations: Some(attestations),
                 protocol_state: pid_issuer,
             },
         })
