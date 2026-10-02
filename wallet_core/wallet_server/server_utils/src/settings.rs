@@ -19,7 +19,6 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
-use crypto::x509::CertificateUsageError;
 use dcql::Query;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
@@ -189,8 +188,6 @@ pub enum CertificateVerificationError {
     InvalidCertificate(#[source] CertificateError, String),
     #[error("invalid key pair `{1}`: {0}")]
     InvalidKeyPair(#[source] CertificateError, String),
-    #[error("invalid usage in certificate `{1}`: {0}")]
-    InvalidCertificateUsage(#[source] CertificateUsageError, String),
     #[error("invalid issuer organization in certificate `{1}`: {0}")]
     InvalidIssuerOrganization(#[source] OrganizationError, String),
 }
@@ -247,8 +244,6 @@ pub fn verify_key_pairs(
             .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
         if usage == Some(CertificateUsage::Mdl) {
-            CertificateUsage::from_certificate(key_pair.certificate.x509_certificate())
-                .map_err(|e| CertificateVerificationError::InvalidCertificateUsage(e, key_pair_id.to_string()))?;
             Organization::try_from(&key_pair.certificate)
                 .map_err(|e| CertificateVerificationError::InvalidIssuerOrganization(e, key_pair_id.to_string()))?;
         }

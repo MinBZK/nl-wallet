@@ -908,6 +908,22 @@ mod tests {
     }
 
     #[test]
+    fn test_issuer_invalid_usage() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
+        let config = settings.credential_configurations.0.values_mut().next().unwrap();
+        config.keypair = config.status_list.keypair.clone();
+
+        assert_matches!(
+            settings.validate().unwrap_err(),
+            IssuerSettingsValidationError::CertificateVerification(
+                CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)
+            ) if key == "pid_sdjwt"
+        );
+    }
+
+    #[test]
     fn test_status_list_invalid_usage() {
         let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
