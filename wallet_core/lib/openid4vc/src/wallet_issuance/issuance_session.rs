@@ -931,7 +931,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         offered_credential: &OfferedCredential,
         key_result: IssuanceKeyResult,
         dpop_nonce: Option<DpopNonce>,
-        trust_anchors: &TrustAnchors,
+        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<CredentialWithMetadata, WalletIssuanceError> {
         let IssuanceKeyResult {
             identifiers: key_identifiers,
@@ -993,7 +993,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         key_ids_and_public_keys,
                         metadata,
                         &offered_credential.preview,
-                        trust_anchors,
+                        issuer_trust_anchors,
                     )?;
 
                     // Verify that all credentials contain the same metadata integrity value and validate this against
@@ -1014,7 +1014,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         key_ids_and_public_keys,
                         metadata,
                         &offered_credential.preview,
-                        trust_anchors,
+                        issuer_trust_anchors,
                     )?;
 
                     (
@@ -1029,7 +1029,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         key_ids_and_public_keys,
                         &offered_credential.preview,
                         credential_metadata,
-                        trust_anchors,
+                        issuer_trust_anchors,
                     )?;
 
                     (
@@ -1074,7 +1074,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     async fn accept_issuance<W>(
         &mut self,
         max_copy_count: NonZeroU8,
-        trust_anchors: &TrustAnchors,
+        issuer_trust_anchors: &TrustAnchors,
         wscd: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
@@ -1145,7 +1145,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 .zip_eq(key_results)
                 .zip_eq(dpop_nonces)
                 .map(|((offered_credential, key_result), dpop_nonce)| {
-                    self.fetch_credential(offered_credential, key_result, dpop_nonce, trust_anchors)
+                    self.fetch_credential(offered_credential, key_result, dpop_nonce, issuer_trust_anchors)
                 }),
         )
         .await?;
@@ -1178,7 +1178,7 @@ impl Credentials {
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         preview: &CredentialPreview,
         credential_metadata: &CredentialMetadata,
-        trust_anchors: &TrustAnchors,
+        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<(VecNonEmpty<MdocCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
         let Self::MsoMdoc(mdoc_credentials) = self else {
             return Err(WalletIssuanceError::UnexpectedCredentialResponseType {
@@ -1212,7 +1212,7 @@ impl Credentials {
                 }
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
-                let mdoc = Mdoc::new(issuer_signed, &TimeGenerator, trust_anchors)
+                let mdoc = Mdoc::new(issuer_signed, &TimeGenerator, issuer_trust_anchors)
                     .map_err(WalletIssuanceError::MdocVerification)?;
 
                 let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone())?;
@@ -1235,7 +1235,7 @@ impl Credentials {
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         metadata: &OfferedCredentialMetadata,
         preview: &CredentialPreview,
-        trust_anchors: &TrustAnchors,
+        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<(VecNonEmpty<SdJwtCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
         let Self::SdJwt(sd_jwt_credentials) = self else {
             return Err(WalletIssuanceError::UnexpectedCredentialResponseType {
@@ -1253,7 +1253,7 @@ impl Credentials {
                 } = sd_jwt_credential;
 
                 let sd_jwt = unverified_sd_jwt
-                    .into_verified_against_trust_anchors(trust_anchors, &TimeGenerator)
+                    .into_verified_against_trust_anchors(issuer_trust_anchors, &TimeGenerator)
                     .map_err(WalletIssuanceError::SdJwtVerification)?;
 
                 let issued_credential_payload = CredentialPayload::from_sd_jwt(sd_jwt.clone())
@@ -2468,7 +2468,7 @@ mod tests {
     #[derive(Debug, Clone)]
     struct MockCredentialSigner {
         formats_by_credential_id: HashMap<CredentialId, Format>,
-        pub trust_anchors: TrustAnchors,
+        pub issuer_trust_anchors: TrustAnchors,
         issuer_key: KeyPair,
         metadata_integrity: Integrity,
         /// mdoc attributes, namespaced (namespace, element).
@@ -2528,7 +2528,7 @@ mod tests {
             HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         ) {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
-            let trust_anchors = TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap();
+            let issuer_trust_anchors = TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap();
 
             let issuer_key = ca.generate_pid_issuer_mock().unwrap();
 
@@ -2575,7 +2575,7 @@ mod tests {
 
             let signer = Self {
                 formats_by_credential_id,
-                trust_anchors,
+                issuer_trust_anchors,
                 issuer_key,
                 metadata_integrity,
                 first_metadata_integrity_random: false,
@@ -2772,7 +2772,7 @@ mod tests {
             formats_by_credential_id,
             SdJwtMetadataUsage::TypeMetadata,
         );
-        let trust_anchors = signer.trust_anchors.clone();
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
         let wscd = MockRemoteWscd::default();
 
         let (mut mock_msg_client, has_nonce_endpoint, expected_dpop_nonce) = match nonce_endpoint {
@@ -2812,7 +2812,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(max_copy_count, &trust_anchors, &wscd)
+        .accept_issuance(max_copy_count, &issuer_trust_anchors, &wscd)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
@@ -2840,7 +2840,7 @@ mod tests {
             HashMap::from([("credential_id".to_owned().into(), Format::MsoMdoc)]),
             SdJwtMetadataUsage::CredentialMetadata,
         );
-        let trust_anchors = signer.trust_anchors.clone();
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
@@ -2880,7 +2880,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MIN, &trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MIN, &issuer_trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect("accepting issuance of an mdoc with an identifier list status should succeed");
@@ -2898,7 +2898,7 @@ mod tests {
             HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
             SdJwtMetadataUsage::CredentialMetadata,
         );
-        let trust_anchors = signer.trust_anchors.clone();
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
@@ -2912,7 +2912,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
@@ -2982,7 +2982,7 @@ mod tests {
             ]),
             SdJwtMetadataUsage::TypeMetadata,
         );
-        let trust_anchors = signer.trust_anchors.clone();
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
         let mock_msg_client = mock_openid_message_client_nonce(None, 2);
 
@@ -2990,7 +2990,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &SingleMockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &SingleMockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -3008,7 +3008,7 @@ mod tests {
             HashMap::from([("credential_id".to_string().into(), Format::MsoMdoc)]),
             SdJwtMetadataUsage::TypeMetadata,
         );
-        let trust_anchors = signer.trust_anchors.clone();
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
         // Replace the mdoc configuration's Credential Metadata with Type Metadata for the same attestation type.
         let config_id = MockCredentialSigner::config_id_for_format(Format::MsoMdoc);
@@ -3031,7 +3031,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -3045,7 +3045,7 @@ mod tests {
             HashMap::from([("credential_id_1".to_string().into(), Format::SdJwt)]),
             SdJwtMetadataUsage::TypeMetadata,
         );
-        let trust_anchors = signer.trust_anchors.clone();
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
         // Prepare one of the returned SD-JWT copies to have an incorrect resource integrity in its payload.
         signer.first_metadata_integrity_random = true;
@@ -3064,7 +3064,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), true),
         }
-        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -3079,7 +3079,7 @@ mod tests {
             HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
             SdJwtMetadataUsage::TypeMetadata,
         );
-        let trust_anchors = signer.trust_anchors.clone();
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
         // Include a random resource integrity in the returned SD-JWT.
         signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
@@ -3096,7 +3096,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -3131,7 +3131,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &signer.trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(NonZeroU8::MAX, &signer.issuer_trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -3168,7 +3168,13 @@ mod tests {
             .expect("a single format is described by a single credential configuration")
             .1;
 
-        (credentials, preview, metadata, holder_pubkey, signer.trust_anchors)
+        (
+            credentials,
+            preview,
+            metadata,
+            holder_pubkey,
+            signer.issuer_trust_anchors,
+        )
     }
 
     /// Convert issued credentials using the provided metadata.
@@ -3177,7 +3183,7 @@ mod tests {
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         metadata: &OfferedCredentialMetadata,
         preview: &CredentialPreview,
-        trust_anchors: &TrustAnchors,
+        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<(), WalletIssuanceError> {
         match (&credentials, metadata) {
             (Credentials::MsoMdoc(_), OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
@@ -3186,12 +3192,12 @@ mod tests {
                         key_identifiers_and_public_keys,
                         preview,
                         credential_metadata,
-                        trust_anchors,
+                        issuer_trust_anchors,
                     )
                     .map(|_| ())
             }
             (Credentials::SdJwt(_), metadata) => credentials
-                .into_issued_sd_jwts(key_identifiers_and_public_keys, metadata, preview, trust_anchors)
+                .into_issued_sd_jwts(key_identifiers_and_public_keys, metadata, preview, issuer_trust_anchors)
                 .map(|_| ()),
             _ => panic!("illegal credential format and metadata combination"),
         }

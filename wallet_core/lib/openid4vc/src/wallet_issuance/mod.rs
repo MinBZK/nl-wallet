@@ -523,7 +523,7 @@ pub trait IssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
         max_copy_count: NonZeroU8,
-        trust_anchors: &TrustAnchors,
+        issuer_trust_anchors: &TrustAnchors,
         wscd: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where

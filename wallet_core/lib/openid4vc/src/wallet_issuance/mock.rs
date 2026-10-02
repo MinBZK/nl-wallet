@@ -177,8 +177,8 @@ impl IssuanceSession for MockIssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
         max_copy_count: NonZeroU8,
-        _: &TrustAnchors,
-        _: &W,
+        _issuer_trust_anchors: &TrustAnchors,
+        _wscd: &W,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
         self.accept(max_copy_count)
     }

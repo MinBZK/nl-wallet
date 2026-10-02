@@ -2066,7 +2066,7 @@ mod tests {
     async fn start_and_accept_err(
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
-        trust_anchors: TrustAnchors,
+        issuer_trust_anchors: TrustAnchors,
         wptl_ca: &Ca,
     ) -> WalletIssuanceError {
         let credential_offer = message_client
@@ -2122,7 +2122,7 @@ mod tests {
 
         let wscd = MockRemoteWscd::default();
         session
-            .accept_issuance(NonZeroU8::MIN, &trust_anchors, &wscd)
+            .accept_issuance(NonZeroU8::MIN, &issuer_trust_anchors, &wscd)
             .await
             .unwrap_err()
     }

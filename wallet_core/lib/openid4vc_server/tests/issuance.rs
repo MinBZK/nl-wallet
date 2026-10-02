@@ -117,7 +117,7 @@ fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
 /// can plant `AuthCodeIssued` sessions directly via [`MockAuthorizingIssuer::complete_authorization`].
 struct AuthCodeFlowServer {
     authorizing_issuer: Arc<MockAuthorizingIssuer>,
-    trust_anchors: TrustAnchors,
+    issuer_trust_anchors: TrustAnchors,
     issuer_identifier: IssuerIdentifier,
     wptl_ca: Ca,
     tls_trust_anchor: ReqwestTrustAnchor,
@@ -128,7 +128,7 @@ struct AuthCodeFlowServer {
 /// Bundle returned by `start_pre_authorized_code_flow_server`.
 struct PreAuthCodeFlowServer {
     issuer: Arc<MockIssuer<TimeGenerator>>,
-    trust_anchors: TrustAnchors,
+    issuer_trust_anchors: TrustAnchors,
     wptl_ca: Ca,
     tls_trust_anchor: ReqwestTrustAnchor,
     crl_verifier: MockCertificateCrlVerifier,
@@ -159,7 +159,7 @@ async fn start_auth_code_flow_server_with(
     let sessions = Arc::new(MemorySessionStore::default());
 
     let flow = StaticAuthorizingFlow::new(documents_or_error_code);
-    let (authorizing_issuer, trust_anchors, wptl_ca, crl_verifier, registration_certificate) =
+    let (authorizing_issuer, issuer_trust_anchors, wptl_ca, crl_verifier, registration_certificate) =
         setup_mock_authorizing_issuer_from_sd_jwt_metadata(
             issuer_identifier.clone(),
             type_metadata,
@@ -184,7 +184,7 @@ async fn start_auth_code_flow_server_with(
 
     AuthCodeFlowServer {
         authorizing_issuer,
-        trust_anchors,
+        issuer_trust_anchors,
         issuer_identifier,
         wptl_ca,
         tls_trust_anchor,
@@ -202,7 +202,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
     let sessions = Arc::new(MemorySessionStore::default());
 
-    let (issuer, trust_anchors, wptl_ca, crl_verifier, registration_certificate) =
+    let (issuer, issuer_trust_anchors, wptl_ca, crl_verifier, registration_certificate) =
         setup_mock_issuer(issuer_identifier, attestation_count, sessions);
     let issuer = Arc::new(issuer);
 
@@ -219,7 +219,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
     PreAuthCodeFlowServer {
         issuer,
-        trust_anchors,
+        issuer_trust_anchors,
         wptl_ca,
         tls_trust_anchor,
         crl_verifier,
@@ -282,7 +282,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
                 &credential_offer_url,
                 &CredentialSelection::All,
                 &MockWiaClient::from_ca(&server.wptl_ca),
-                &server.trust_anchors,
+                &server.issuer_trust_anchors,
                 &server.registration_certificate.trust_anchors,
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
@@ -361,7 +361,7 @@ async fn authorization_code_flow(
 
     let wscd = MockRemoteWscd::new_with_wptl_ca(&server.wptl_ca);
     let issued_creds = session
-        .accept_issuance(NonZeroU8::MAX, &server.trust_anchors, &wscd)
+        .accept_issuance(NonZeroU8::MAX, &server.issuer_trust_anchors, &wscd)
         .await
         .unwrap();
 
@@ -401,7 +401,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let wscd = MockRemoteWscd::new_with_wptl_ca(&server.wptl_ca);
     let issued_creds = session
-        .accept_issuance(NonZeroU8::MAX, &server.trust_anchors, &wscd)
+        .accept_issuance(NonZeroU8::MAX, &server.issuer_trust_anchors, &wscd)
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
@@ -420,7 +420,7 @@ async fn pre_authorized_code_flow(
 ) {
     let PreAuthCodeFlowServer {
         issuer,
-        trust_anchors,
+        issuer_trust_anchors,
         wptl_ca,
         tls_trust_anchor,
         crl_verifier,
@@ -444,7 +444,7 @@ async fn pre_authorized_code_flow(
                 &credential_offer_url,
                 &CredentialSelection::All,
                 &MockWiaClient::from_ca(&wptl_ca),
-                &trust_anchors,
+                &issuer_trust_anchors,
                 &registration_certificate.trust_anchors,
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
@@ -463,7 +463,7 @@ async fn pre_authorized_code_flow(
     let copy_count = 4;
     let wscd = MockRemoteWscd::new_with_wptl_ca(&wptl_ca);
     let issued_creds = session
-        .accept_issuance(NonZeroU8::MAX, &trust_anchors, &wscd)
+        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &wscd)
         .await
         .unwrap();
 
@@ -480,7 +480,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
     let attestation_count = NonZeroUsize::MIN;
     let PreAuthCodeFlowServer {
         issuer,
-        trust_anchors,
+        issuer_trust_anchors,
         tls_trust_anchor,
         wptl_ca,
         crl_verifier,
@@ -507,7 +507,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
                 &credential_offer_url,
                 &CredentialSelection::All,
                 &MockWiaClient::from_ca_with_client_id(&wptl_ca, "unknown_client_id".to_string()),
-                &trust_anchors,
+                &issuer_trust_anchors,
                 &registration_certificate.trust_anchors,
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
