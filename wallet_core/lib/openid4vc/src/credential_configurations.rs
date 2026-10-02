@@ -261,8 +261,9 @@ impl<K, L> CredentialConfigurations<K, L> {
                 let attestation_type = config.credential_kind.attestation_type.clone();
                 let scope = config.scope.clone();
 
-                // TODO (PVW-5548): Add "attestation" proof type.
-                let proof_types = vec![ProofType::Jwt];
+                // Note that we decide to only support the `attestation` proof type in the Issuer, as the `jwt` poof
+                // type does not add significant additional benefits.
+                let proof_types = vec![ProofType::Attestation];
                 let credential_metadata = config.credential_metadata.clone();
                 let type_metadata_uri = type_metadata_base_url.join_config_id(config_id);
 
@@ -422,7 +423,7 @@ mod tests {
                 .keys()
                 .cloned()
                 .collect::<HashSet<_>>();
-            assert_eq!(proof_types, HashSet::from([ProofType::Jwt]));
+            assert_eq!(proof_types, HashSet::from([ProofType::Attestation]));
         }
 
         let mdoc_config = metadata_configs
