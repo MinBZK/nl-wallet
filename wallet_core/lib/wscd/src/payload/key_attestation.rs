@@ -340,7 +340,7 @@ mod tests {
         LazyLock::new(|| "https://wallet-provider.example.com/certification".parse().unwrap());
 
     #[test]
-    fn test_key_attestation_claims_example_deserialization() {
+    fn test_key_attestation_claims_openid4vci_example_deserialization() {
         // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-D.1-6>
         let json = json!({
             "iss": "<identifier of the issuer of this key attestation>",
@@ -378,6 +378,76 @@ mod tests {
         assert_eq!(
             claims.user_authentication,
             HashSet::from([AttackPotentialResistance::Iso18045Moderate])
+        );
+    }
+
+    #[test]
+    fn test_key_attestation_claims_ts3_example_deserialization() {
+        // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-D.1-6>
+        let json = json!({
+            "iat": 1516247022,
+            "exp": 1541493724,
+            "certification": "https://example.org/certification/wscd/GlobalPlatform/",
+            "key_storage_status": {
+                "status": {
+                "status_list": {
+                    "idx": 7,
+                    "uri": "https://revocation_url/wua-type-statuslists/3"
+                }
+                },
+                "exp": 1544172124
+            },
+            "attested_keys": [
+                {
+                "kty": "EC",
+                "crv": "P-256",
+                "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
+                "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
+                }
+            ],
+            "key_storage": [
+                "iso_18045_high"
+            ],
+            "user_authentication": [
+                "iso_18045_high",
+                "iso_18045_moderate"
+            ]
+        });
+
+        let claims = serde_json::from_value::<KeyAttestationClaims>(json)
+            .expect("example JSON should deserialize to KeyAttestationClaims");
+
+        assert!(claims.exp.is_some_and(|exp| exp.as_ref() > claims.iat.as_ref()));
+
+        assert_eq!(
+            claims.certification,
+            Some(
+                "https://example.org/certification/wscd/GlobalPlatform/"
+                    .parse()
+                    .unwrap()
+            )
+        );
+
+        // TODO (PVW-6239): Check `key_storage_status` field contents.
+
+        let jwk = claims
+            .attested_keys
+            .iter()
+            .exactly_one()
+            .expect("claims should contain exactly one attested key");
+        let public_key = jwk_to_public_key(jwk).expect("attested key should contain a valid public key");
+        assert_matches!(public_key, PublicKey::ESP256(_));
+
+        assert_eq!(
+            claims.key_storage,
+            HashSet::from([AttackPotentialResistance::Iso18045High])
+        );
+        assert_eq!(
+            claims.user_authentication,
+            HashSet::from([
+                AttackPotentialResistance::Iso18045Moderate,
+                AttackPotentialResistance::Iso18045High
+            ])
         );
     }
 
