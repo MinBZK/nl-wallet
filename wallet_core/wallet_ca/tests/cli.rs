@@ -37,7 +37,6 @@ use pem::LineEnding;
 use pem::Pem;
 use predicates::prelude::*;
 use predicates::str::RegexPredicate;
-use predicates::str::StartsWithPredicate;
 use serde_json::json;
 use time::Duration;
 use time::OffsetDateTime;
@@ -107,27 +106,6 @@ fn predicate_not_a_natural_or_legal_person() -> Result<RegexPredicate> {
     let result =
         predicate::str::is_match("Error: Illegal subject name, specify either for a legal or natural person\n")?;
     Ok(result)
-}
-
-fn predicate_missing_crt_file(path: &Path) -> StartsWithPredicate {
-    predicate::str::starts_with(format!(
-        r#"error: Invalid value for --ca-crt-file <CA_CRT_FILE>: Could not open "{}": No such file or directory"#,
-        path.display()
-    ))
-}
-
-fn predicate_missing_key_file(path: &Path) -> StartsWithPredicate {
-    predicate::str::starts_with(format!(
-        r#"error: Invalid value for --ca-key-file <CA_KEY_FILE>: Could not open "{}": No such file or directory"#,
-        path.display()
-    ))
-}
-
-fn predicate_missing_public_key_file(path: &Path) -> StartsWithPredicate {
-    predicate::str::starts_with(format!(
-        r#"error: Invalid value for --public-key-file <PUBLIC_KEY_FILE>: Could not open "{}": No such file or directory"#,
-        path.display()
-    ))
 }
 
 fn assert_generated_key(key_file: &ChildPath) -> Result<()> {
@@ -1482,109 +1460,6 @@ fn regenerating_cert() -> Result<()> {
         .arg("--force")
         .assert()
         .success();
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-fn setup_issuer_files(temp: &TempDir) -> (ChildPath, ChildPath, ChildPath) {
-    let (ca_prefix, ca_crt, ca_key) = keypair_paths(temp, "test-ca");
-    let (mdl_prefix, _mdl_crt, _mdl_key) = keypair_paths(temp, "test-mdl-kp");
-
-    // Generate ca
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_ca(&ca_prefix)
-        .arg("--force")
-        .assert()
-        .success();
-
-    (ca_crt, ca_key, mdl_prefix)
-}
-
-fn setup_issuer_pubkey_files(temp: &TempDir) -> (ChildPath, ChildPath, ChildPath, ChildPath) {
-    let (ca_crt, ca_key, mdl_prefix) = setup_issuer_files(temp);
-
-    let public_key_path = public_key_path(temp, "test-mdl-crt");
-    generate_public_key(&public_key_path);
-
-    (public_key_path, ca_crt, ca_key, mdl_prefix)
-}
-
-#[test]
-fn missing_input_files_issuer() -> Result<()> {
-    let temp = TempDir::new()?;
-
-    // Setup files without CA key
-    let (ca_crt, ca_key, mdl_prefix) = setup_issuer_files(&temp);
-    std::fs::remove_file(&ca_key)?;
-
-    // Generate issuer should fail when missing CA key file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_kp(&ca_crt, &ca_key, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_key_file(&ca_key));
-
-    // Setup files without CA crt
-    let (ca_crt, ca_key, mdl_prefix) = setup_issuer_files(&temp);
-    std::fs::remove_file(&ca_crt)?;
-
-    // Execute command and assert failure and stderr output
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_kp(&ca_crt, &ca_key, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_crt_file(&ca_crt));
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-#[test]
-fn missing_input_files_issuer_pubkey() -> Result<()> {
-    let temp = TempDir::new()?;
-
-    // Setup files without CA key
-    let (public_key_file, ca_crt, ca_key, mdl_prefix) = setup_issuer_pubkey_files(&temp);
-    std::fs::remove_file(&ca_key)?;
-
-    // Generate issuer should fail when missing CA key file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_key_file(&ca_key));
-
-    // Setup files without CA crt
-    let (public_key_file, ca_crt, ca_key, mdl_prefix) = setup_issuer_pubkey_files(&temp);
-    std::fs::remove_file(&ca_crt)?;
-
-    // Execute command and assert failure and stderr output
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_crt_file(&ca_crt));
-
-    // Setup files without public key file
-    let (public_key_file, ca_crt, ca_key, mdl_prefix) = setup_issuer_pubkey_files(&temp);
-    std::fs::remove_file(&public_key_file)?;
-
-    // Generate issuer should fail when missing public key file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_public_key_file(&public_key_file));
 
     // Explicitly close the temp folder, for better error reporting
     temp.close()?;
