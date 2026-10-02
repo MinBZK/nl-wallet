@@ -70,8 +70,10 @@ class DashboardScreen : MobileActions() {
         clickElementContainingText(cardRevocationBannerTitle.replace("{card}", cardDisplayName))
     }
 
+    // TODO: Remove conditions for click after PVW-6367
     fun dismissNotificationsDrawer() {
-        elementWithTextVisible(requestNotificationPermissionSheetNegativeCta, 15)
-        clickElementContainingText(requestNotificationPermissionSheetNegativeCta)
+        if (elementWithTextVisible(requestNotificationPermissionSheetNegativeCta, 5)) {
+            clickElementContainingText(requestNotificationPermissionSheetNegativeCta)
+        }
     }
 }

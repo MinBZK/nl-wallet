@@ -103,19 +103,19 @@ class TasDataHelper {
         return findClaimLabel(insuranceTAS, pathValue = pathValue)
     }
 
-    private fun getInsuranceCardMetadataPath() = getProjectFile("scripts/devenv/com.example.insurance.json")
+    private fun getInsuranceCardMetadataPath() = getProjectFile("scripts/devenv/com.example.insurance.mdoc.json")
 
     //Loyalty functions
     fun getLoyaltyDisplayName() = findDisplayName(loyaltyTAS)
 
-    private fun getLoyaltyCardMetadataPath() = getProjectFile("scripts/devenv/com.example.jum.bonuskaart.json")
+    private fun getLoyaltyCardMetadataPath() = getProjectFile("scripts/devenv/com.example.jum.bonuskaart.mdoc.json")
 
     //Museum Maandkaart functions
 
     fun getMuseumMaandkaartDisplayName() = findDisplayName(museumMaandkaartTAS)
 
     private fun getMuseumMaandkaartCardMetadataPath() =
-        getProjectFile("scripts/devenv/com.example.museum_maandkaart.json")
+        getProjectFile("scripts/devenv/com.example.museum_maandkaart.mdoc.json")
 
     //Driving License functions and values
     fun getDrivingLicenseDisplayName() = findDisplayName(drivingLicenseTAS)
@@ -125,7 +125,7 @@ class TasDataHelper {
     }
 
     private fun getDrivingLicenseMetadataPath() =
-        getProjectFile("scripts/devenv/org.iso.18013.5.1.mDL.json")
+        getProjectFile("scripts/devenv/org.iso.18013.5.1.mDL.mdoc.json")
 
     //Registration certificate functions
     fun getRegistrationCertificateDisplayName() = findDisplayName(registrationCertificateTAS)
@@ -135,7 +135,7 @@ class TasDataHelper {
     }
 
     private fun getRegistrationCertificateMetadataPath() =
-        getProjectFile("scripts/devenv/org.iso.7367.2.1.mVC.json")
+        getProjectFile("scripts/devenv/org.iso.7367.2.1.mVC.mdoc.json")
 
     //Generic functions for handling TAS files, to be used for all cards.
     private fun findDisplayName(vararg tasFiles: JSONObject): String {
