@@ -24,6 +24,8 @@ pub struct IssuerRegistration {
     #[debug(skip)]
     #[serde_as(as = "Base64")]
     access_certificate: BorrowingCertificate,
+    // Preserve the original certificate bytes in storage. Derive the organization
+    // during deserialization so parsing errors are handled before callers use it.
     #[serde(skip_serializing)]
     organization: Box<Organization>,
 }
