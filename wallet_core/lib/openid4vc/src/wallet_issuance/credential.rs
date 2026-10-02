@@ -27,10 +27,7 @@ pub struct CredentialWithMetadata {
 }
 
 impl CredentialWithMetadata {
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "credential and issuer metadata are persisted together"
-    )]
+    #[expect(clippy::too_many_arguments, reason = "constructor method")]
     pub fn new(
         copies: IssuedCredentialCopies,
         attestation_type: String,
