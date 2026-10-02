@@ -1252,10 +1252,10 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(credentials)
     }
 
-    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
+    fn credential_previews(&self) -> Option<impl NonEmptyIterator<Item = OfferedCredentialPreview<'_>>> {
         match &self.session_state.offered_credentials {
             OfferedCredentials::WithPreviews(creds) => {
-                Some(creds.iter().map(|(offered_credential, credential_payload)| {
+                Some(creds.nonempty_iter().map(|(offered_credential, credential_payload)| {
                     let metadata = self
                         .session_state
                         .metadata
@@ -1854,7 +1854,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
+        let Ok(preview) = session.credential_previews().unwrap().into_iter().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
@@ -2276,7 +2276,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
+        let Ok(preview) = session.credential_previews().unwrap().into_iter().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
@@ -2319,6 +2319,7 @@ mod tests {
         let Ok(credential_preview) = session
             .credential_previews()
             .expect("issuance session should contain previews")
+            .into_iter()
             .exactly_one()
         else {
             panic!("issuance session should contain exactly one preview")

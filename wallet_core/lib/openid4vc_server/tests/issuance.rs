@@ -93,6 +93,7 @@ use tokio::net::TcpListener;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::mock_remote::MockRemoteWscd;
@@ -233,7 +234,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
 fn verify_issued_credentials<'a>(
     issued_creds: Vec<CredentialWithMetadata>,
-    credential_previews: impl Iterator<Item = OfferedCredentialPreview<'a>>,
+    credential_previews: impl NonEmptyIterator<Item = OfferedCredentialPreview<'a>>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
@@ -334,7 +335,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
 
     let received_redirect: Url = authorize_response
         .headers()
-        .get(reqwest::header::LOCATION)
+        .get(header::LOCATION)
         .expect("authorize response should carry a Location header")
         .to_str()
         .unwrap()
@@ -361,7 +362,7 @@ async fn authorization_code_flow(
     let server = start_auth_code_flow_server(attestation_count).await;
     let mut session = start_issuance_session(&server).await;
 
-    assert_eq!(session.credential_previews().unwrap().count(), attestation_count.get());
+    assert_eq!(session.credential_previews().unwrap().count(), attestation_count);
 
     let wscd = MockRemoteWscd::new(vec![]);
     let issued_creds = session
@@ -395,7 +396,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let mut session = start_issuance_session(&server).await;
 
-    let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
+    let Ok(preview) = session.credential_previews().unwrap().into_iter().exactly_one() else {
         panic!("issuance session should contain exactly one preview");
     };
 

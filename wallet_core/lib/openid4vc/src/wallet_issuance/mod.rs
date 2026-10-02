@@ -43,6 +43,7 @@ use sd_jwt_vc_metadata::TypeMetadataChainError;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::issuance::IssuanceWscd;
 use wscd::wia::WiaClient;
@@ -527,7 +528,7 @@ pub trait IssuanceSession {
         W: IssuanceWscd;
 
     /// Returns the credential previews with their metadata, or `None` if the issuer does not provide previews.
-    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>>;
+    fn credential_previews(&self) -> Option<impl NonEmptyIterator<Item = OfferedCredentialPreview<'_>>>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

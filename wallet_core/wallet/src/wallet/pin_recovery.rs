@@ -262,7 +262,6 @@ where
             issuance_session
                 .credential_previews()
                 .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPidPreviews))?
-                .collect_vec()
                 .into_iter(),
             pid_config,
         )?;
@@ -627,7 +626,7 @@ mod tests {
             client
                 .expect_credential_previews()
                 .once()
-                .return_const(vec![(preview, normalized_metadata)].into());
+                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -884,7 +883,7 @@ mod tests {
             client
                 .expect_credential_previews()
                 .once()
-                .return_const(vec![(preview, normalized_metadata)].into());
+                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -935,7 +934,7 @@ mod tests {
                 client
                     .expect_credential_previews()
                     .once()
-                    .return_const(vec![(preview, normalized_metadata)].into());
+                    .return_const(vec_nonempty![(preview, normalized_metadata)].into());
 
                 Ok(client)
             });
