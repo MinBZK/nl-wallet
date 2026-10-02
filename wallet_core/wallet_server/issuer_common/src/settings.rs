@@ -845,7 +845,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_without_legacy_issuer_registration() {
+    fn test_validate() {
         let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
         mock_settings(&wrpac_ca, &issuer_ca).validate().unwrap();
