@@ -1,11 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/localized_text.dart';
-import 'package:wallet/src/util/mapper/card/attribute/localized_labels_mapper.dart';
 import 'package:wallet/src/util/mapper/organization/organization_mapper.dart';
 import 'package:wallet_core/core.dart' as core;
 
 void main() {
-  final mapper = OrganizationMapper(LocalizedLabelsMapper());
+  final mapper = OrganizationMapper();
 
   LocalizedText? mapDescription(List<List<core.LocalizedString>> descriptions) => mapper
       .map(

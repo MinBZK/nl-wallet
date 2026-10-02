@@ -18,7 +18,6 @@ import '../../util/extension/locale_extension.dart';
 import '../../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../../util/mapper/card/attribute/card_attribute_value_mapper.dart';
 import '../../util/mapper/card/attribute/claim_display_metadata_mapper.dart';
-import '../../util/mapper/card/attribute/localized_labels_mapper.dart';
 import '../../util/mapper/card/card_mapper.dart';
 import '../../util/mapper/card/metadata_mapper.dart';
 import '../../util/mapper/card/status/card_status_mapper.dart';
@@ -127,7 +126,7 @@ Future<void> performRevocationCheckTask({bool initCore = true}) async {
   final notificationTypeMapper = NotificationTypeMapper(
     CardMapper(
       CardAttributeMapper(CardAttributeValueMapper(imageMapper), ClaimDisplayMetadataMapper()),
-      OrganizationMapper(LocalizedLabelsMapper()),
+      OrganizationMapper(),
       DisplayMetadataMapper(imageMapper),
       CardStatusMapper(),
     ),

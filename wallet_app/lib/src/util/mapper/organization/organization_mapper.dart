@@ -3,12 +3,10 @@ import 'package:wallet_core/core.dart' hide Organization;
 
 import '../../../domain/model/localized_text.dart';
 import '../../../domain/model/organization.dart';
+import '../../extension/locale_extension.dart';
 import '../mapper.dart';
 
 class OrganizationMapper extends Mapper<core.Organization, Organization> {
-  final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
-  OrganizationMapper(this._localizedStringMapper);
-
   // TODO(Anyone): PVW-6101 Remove unused logo/type fields from the domain model and UI.
   @override
   Organization map(core.Organization input) => Organization(
@@ -26,9 +24,8 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
   LocalizedText? _mapDescription(List<ServiceDescription> descriptions) {
     final result = <Locale, String>{};
     for (final translation in descriptions.expand((description) => description.translations)) {
-      for (final entry in _localizedStringMapper.map([translation]).entries) {
-        result.update(entry.key, (value) => '$value\n${entry.value}', ifAbsent: () => entry.value);
-      }
+      final locale = LocaleExtension.parseLocale(translation.language);
+      result.update(locale, (value) => '$value\n${translation.value}', ifAbsent: () => translation.value);
     }
     return result.isEmpty ? null : result;
   }
