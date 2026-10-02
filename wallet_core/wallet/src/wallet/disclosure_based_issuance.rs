@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use attestation_data::auth::Organization;
+use attestation_data::organization::Organization;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;

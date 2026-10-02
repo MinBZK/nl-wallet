@@ -1,7 +1,7 @@
 use crypto::x509::DistinguishedName;
 use derive_more::Debug;
 
-use crate::auth::Organization;
+use crate::organization::Organization;
 
 /// Relying party of X509 certificates following ETSI EN 319 412-2 and ETSI EN 319 412-3 standard.
 #[derive(Debug, Clone)]

@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 
-use attestation_data::auth::Organization;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_kind::CredentialKind;

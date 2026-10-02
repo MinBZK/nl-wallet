@@ -1,6 +1,6 @@
 use attestation_data::attributes::Attributes;
-use attestation_data::auth::Organization;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;

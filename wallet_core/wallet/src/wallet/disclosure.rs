@@ -4,10 +4,10 @@ use std::hash::Hash;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
-use attestation_data::auth::Organization;
-use attestation_data::auth::OrganizationError;
 use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
+use attestation_data::organization::OrganizationError;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use chrono::Utc;
@@ -1005,9 +1005,9 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
-    use attestation_data::auth::Organization;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::organization::Organization;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;

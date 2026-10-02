@@ -1,4 +1,4 @@
-use attestation_data::auth::Organization;
+use attestation_data::organization::Organization;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::StatusValidatedRegistrationCertificate;
 use crypto::x509::BorrowingCertificate;

@@ -11,8 +11,8 @@ use std::array::TryFromSliceError;
 use std::collections::HashSet;
 use std::io;
 
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;

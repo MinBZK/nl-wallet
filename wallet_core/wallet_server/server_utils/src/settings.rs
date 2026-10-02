@@ -3,8 +3,8 @@ use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::time::Duration;
 
-use attestation_data::auth::Organization;
-use attestation_data::auth::OrganizationError;
+use attestation_data::organization::Organization;
+use attestation_data::organization::OrganizationError;
 use attestation_data::registration_certificate::BoundRegistrationCertificate;
 use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
