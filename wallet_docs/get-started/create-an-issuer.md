@@ -28,7 +28,7 @@ We'll start with a paragraph about the related architecture, with links to the
 relevant architecture documents.
 
 We'll then cover the creation of the technical attestation schema, the creation
-of issuer authentication documents and the corresponding issuer certificates,
+of issuer registration certificates and the corresponding issuer certificates,
 which are essential for identifying your service within the NL Wallet ecosystem.
 
 Next, we'll guide you through setting up the `issuance_server`. This includes
@@ -94,7 +94,8 @@ a production environment, more stringent rules might apply.
 If you plan to eventually bring your issuer into production readiness, you might
 want to consider our [onboarding][10] process. When you are a member of the NL
 Wallet community, you have access to community resources that can help with
-validation of your TAS, registration certificate and `issuance_server` configuration files.
+validation of your TAS, registration certificate and `issuance_server`
+configuration files.
 </div>
 
 ### Decide on required metadata for your TAS
@@ -254,15 +255,7 @@ the [previous section](#decide-on-required-metadata-for-your-tas)). Modified or
 not, make sure you save it somewhere, keeping our earlier warnings about file
 name and location in mind.
 
-## Issuer organization information
-
-Issuer organization information comes from the Wallet Relying Party Registration
-Certificate (WRPRC), configured in `registration_certificate` and bound to the WRPAC
-in `credential_metadata_keypair`. It is no longer embedded in the credential
-signing certificate. See the [Wallet CA documentation](https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_ca/README.md)
-for generating a WRPRC.
-
-## Creating issuer, TSL and WRPAC certificates
+## Creating issuer, TSL, WRPAC and WRPRC certificates
 
 In this guide, we assume you have [onboarded succesfully][10] - i.e., you are
 running your own CA and the public key of that CA has been shared with the
@@ -322,7 +315,7 @@ cd nl-wallet
 
 # Set and create target directory, identifier for your certificates.
 export CA_DIR=target/ca-cert
-export TARGET_DIR=target/vs-config
+export TARGET_DIR=target/is-config
 export IDENTIFIER=foocorp
 export WRPAC_CRL_URL=https://foocorp.example/wrpac.crl.der
 mkdir -p "${CA_DIR}" "${TARGET_DIR}"
@@ -397,10 +390,82 @@ clients receive either the previous or new complete CRL, never a partially
 written file. The wallet rejects a WRPAC when its CRL is unavailable, invalid,
 expired, or lists that certificate.
 
-The used CA public certificate (referenced in the previous `wallet_ca` command)
-needs to be in the list of various so-called trust anchors. Specifically,
-issuers and verifiers, and the NL Wallet app itself need to know if this CA is a
-trusted CA, and our software "knows" that by checking its trust anchors.
+The Wallet Relying Party Registration Certificate (WRPRC) provides the issuer
+organization information shown in the wallet. It is bound to the WRPAC that
+signs issuer metadata. The following example uses the WRPRC CA created by
+`scripts/setup-devenv.sh`; for another environment, arrange the WRPRC and its
+status list with the registration authority trusted by that environment.
+
+Create separate WRPRC and status-list signing certificates with the same
+subject. Then create a registration payload for the insurance credential, using
+the organization identifier and legal name from the WRPAC above:
+
+```shell
+export WRPRC_CA_DIR=scripts/devenv/target
+export WRPRC_STATUS_LIST_URL=https://foocorp.example/wrprc-status-list
+
+for CERT_TYPE in wrprc tsl; do
+    cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert \
+        --type "${CERT_TYPE}" \
+        --ca-key-file "${WRPRC_CA_DIR}/ca.wrprc.key.pem" \
+        --ca-crt-file "${WRPRC_CA_DIR}/ca.wrprc.crt.pem" \
+        --common-name "Development Registrar" \
+        --organization-name "Development Registrar" \
+        --organization-id "NTRNL-00000001" \
+        --file-prefix "${TARGET_DIR}/${CERT_TYPE}-registrar.${IDENTIFIER}"
+done
+
+cat <<EOF > "${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc.json"
+{
+    "id": "${IDENTIFIER}-issuer",
+    "sub": "NTRNL-00000002",
+    "sub_ln": "${IDENTIFIER}",
+    "name": "${IDENTIFIER}",
+    "country": "NL",
+    "registry_uri": "https://register.example.com",
+    "support_uri": "support@foocorp.example",
+    "srv_description": [[{"lang": "en", "value": "Issuing insurance credentials"}]],
+    "supervisory_authority": {},
+    "entitlements": ["https://uri.etsi.org/19475/Entitlement/Non_Q_EAA_Provider"],
+    "provides_attestations": [
+        {"format": "dc+sd-jwt", "meta": {"vct_values": ["com.example.insurance"]}}
+    ],
+    "iat": $(date +%s),
+    "status": {"idx": "0", "uri": "${WRPRC_STATUS_LIST_URL}"},
+    "policy_id": ["0.4.0.19475.3.1"],
+    "certificate_policy": "https://register.example.com/certificate-policy"
+}
+EOF
+
+cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- \
+    registration-certificate \
+    --wrprc-key-file "${TARGET_DIR}/wrprc-registrar.${IDENTIFIER}.key.pem" \
+    --wrprc-crt-file "${TARGET_DIR}/wrprc-registrar.${IDENTIFIER}.crt.pem" \
+    --wrpac-crt-file "${TARGET_DIR}/wrpac.${IDENTIFIER}.crt.pem" \
+    --payload-file "${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc.json" \
+    --format cwt \
+    > "${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc"
+
+cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- \
+    status-list \
+    --tsl-key-file "${TARGET_DIR}/tsl-registrar.${IDENTIFIER}.key.pem" \
+    --tsl-crt-file "${TARGET_DIR}/tsl-registrar.${IDENTIFIER}.crt.pem" \
+    --uri "${WRPRC_STATUS_LIST_URL}" \
+    --status valid \
+    --valid-for-days 7 \
+    --ttl-seconds 3600 \
+    > "${TARGET_DIR}/wrprc-status-list.jwt"
+```
+
+Publish `wrprc-status-list.jwt` at `WRPRC_STATUS_LIST_URL` with content type
+`application/statuslist+jwt`, and renew it before its seven-day expiry. The
+payload's status index `0` refers to the first entry, marked `valid` above. The
+wallet must trust the WRPRC CA through its `wrprc_trust_anchors`; local
+development setup configures this for the generated CA.
+
+The CA public certificates used above need to be in the relevant trust anchor
+lists. Issuers, verifiers and the NL Wallet app use these lists to determine
+which CAs they trust.
 
 When you run locally, when using `setup-devenv.sh` and `start-devenv.sh`, the
 generated CA certificate is automatically added to the trust anchors within the
@@ -622,7 +687,7 @@ with the `RUST_LOG` environment variable: `RUST_LOG=debug ./issuance_server`
 
 #### Configuring trust anchors
 
-[When you created the issuer, TSL and WRPAC certificates](#creating-issuer-tsl-and-wrpac-certificates),
+[When you created the issuer, TSL, WRPAC and WRPRC certificates](#creating-issuer-tsl-wrpac-and-wrprc-certificates),
 you signed those certificates using a CA, either generated by the development
 setup script or specifically [created by you][19] as part of the (optional)
 [community onboarding process][10].
@@ -748,7 +813,7 @@ EOF
 unset IS_WALLET_CLIENT_IDS
 ```
 
-#### Configuring metadata document references
+#### Configuring metadata and issuer registration
 
 We [previously](#creating-the-technical-attestation-schema-json-document) made a
 technical attestation schema JSON document. The `issuance_server` needs to know
@@ -759,14 +824,25 @@ followed the instructions, was copied to `target/is-config` within the
 `nl-wallet` directory, where the `issuance_server` will find it using the below
 configuration (provided it is started from the `target/is-config` directory):
 
+Set `registration_certificate` to the generated WRPRC string and configure
+`credential_metadata_keypair` with the same WRPAC used when creating it. The
+WRPRC file is already base64url encoded; do not encode it again.
+
 ```shell
 cd nl-wallet
+export IDENTIFIER=foocorp
 export IS_WALLET_METADATA_FILES=("insurance_metadata.json")
 export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/08-wallet-metadata-files.toml"
+registration_certificate = "$(cat "${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc")"
 type_metadata = [$(printf '"%s",' "${IS_WALLET_METADATA_FILES[@]}" | sed 's/,$//')]
+
+[credential_metadata_keypair]
+private_key_type = "software"
+private_key = "$(openssl base64 -e -A -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der")"
+certificate = "$(openssl base64 -e -A -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.crt.der")"
 EOF
-unset IS_WALLET_METADATA_FILES
+unset IS_WALLET_METADATA_FILES IDENTIFIER
 ```
 
 <div class="admonition note">
@@ -1006,7 +1082,8 @@ unset TRUST_ANCHORS
 We're now going to base64 encode the issuer key and certificate within the
 `private_key` and `certificate` fields of the `credential_configurations`. This
 is the credential signing certificate. Note that this makes `insurance` the
-Credential Configuration identifier that is presented in the Issuer Metadata. Let's create the section:
+Credential Configuration identifier that is presented in the Issuer Metadata.
+Let's create the section:
 
 ```shell
 cd nl-wallet
