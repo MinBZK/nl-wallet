@@ -9,6 +9,7 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
   final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
   OrganizationMapper(this._localizedStringMapper);
 
+  // TODO(Anyone): PVW-6101 Remove unused logo/type fields from the domain model and UI.
   @override
   Organization map(core.Organization input) => Organization(
     id: input.hashCode.toString(),
