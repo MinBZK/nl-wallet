@@ -28,7 +28,6 @@ required-features = ["integration_test"]
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
 test = [
     "attestation_data/example_credential_payloads",
-    "attestation_data/generate",
     "attestation_data/mock",
     "attestation_types/test_pid_constants",
     "chrono/now",
