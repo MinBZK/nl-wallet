@@ -17,6 +17,7 @@ use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
+use openid4vc::wallet_issuance::AcceptIssuanceTrustAnchors;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -70,6 +71,10 @@ impl WalletConfiguration {
 
     pub fn wrprc_trust_anchors(&self) -> &TrustAnchors {
         &self.wrprc_trust_anchors
+    }
+
+    pub fn accept_issuance_anchors(&self) -> AcceptIssuanceTrustAnchors<'_> {
+        AcceptIssuanceTrustAnchors::new(&self.issuer_trust_anchors, &self.account_server.wptl_trust_anchors)
     }
 }
 

@@ -10,6 +10,8 @@ use attestation_data::metadata::AttestationClaims;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
@@ -19,7 +21,6 @@ use futures::try_join;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
-use jwt::jwk::jwk_to_public_key;
 use jwt::nonce::Nonce;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
@@ -48,17 +49,20 @@ use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use url::Url;
+use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::issuance::IssuanceKeyResult;
 use wscd::issuance::IssuanceWscd;
+use wscd::payload::key_attestation::KeyAttestationVerificationResult;
 use wscd::payload::wia::WIA_HEADER_NAME;
 use wscd::payload::wia::WIA_POP_HEADER_NAME;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::wia::WiaClient;
 
+use super::AcceptIssuanceTrustAnchors;
 use super::IssuanceSession;
 use super::OfferedCredentialMetadata;
 use super::WalletIssuanceError;
@@ -926,35 +930,31 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         }
     }
 
-    async fn fetch_credential(
+    async fn fetch_credential<'a, G>(
         &self,
         offered_credential: &OfferedCredential,
         key_result: IssuanceKeyResult,
         dpop_nonce: Option<DpopNonce>,
-        issuer_trust_anchors: &TrustAnchors,
-    ) -> Result<CredentialWithMetadata, WalletIssuanceError> {
+        trust_anchors: AcceptIssuanceTrustAnchors<'a>,
+        time: &G,
+    ) -> Result<CredentialWithMetadata, WalletIssuanceError>
+    where
+        G: Generator<DateTime<Utc>>,
+    {
         let IssuanceKeyResult {
             identifiers: key_identifiers,
             attestation: key_attestation,
         } = key_result;
 
-        // We assume here the WP gave us valid a valid key attestation, and leave it up to the issuer to verify its JWT.
-        let (_header, key_attestation_claims) = key_attestation
-            .as_ref()
-            .dangerous_parse_unverified()
-            .map_err(WalletIssuanceError::JwtParse)?;
+        // Make sure that the received Key Attestation JWT is valid, contains a set of public keys that are distinct
+        // from one another and that the attack potential resistance is sufficient.
+        let KeyAttestationVerificationResult { attested_keys, .. } = key_attestation
+            .verify(trust_anchors.wptl_trust_anchors, time)
+            .map_err(WalletIssuanceError::InvalidKeyAttestation)?;
 
-        // Extract pairs of key identifiers and public keys from the WSCD response. Note that the WSCD may have returned
+        // Collect pairs of key identifiers and public keys from the WSCD response. Note that the WSCD may have returned
         // fewer proofs than we requested, which means the issuer will provide us with fewer credential copies.
-        let key_ids_and_public_keys = key_identifiers
-            .into_nonempty_iter()
-            .zip(&key_attestation_claims.attested_keys)
-            .map(|(identifier, attested_key)| {
-                let public_key = jwk_to_public_key(attested_key).map_err(WalletIssuanceError::JwkConversion)?;
-
-                Ok((identifier, public_key))
-            })
-            .collect::<Result<VecNonEmpty<_>, WalletIssuanceError>>()?;
+        let key_ids_and_public_keys = key_identifiers.into_nonempty_iter().zip(attested_keys).collect();
 
         // Send the proofs of possession to the issuer in a Credential Request to actually fetch the credential copies.
         let url = self
@@ -993,7 +993,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         key_ids_and_public_keys,
                         metadata,
                         &offered_credential.preview,
-                        issuer_trust_anchors,
+                        trust_anchors.issuer_trust_anchors,
                     )?;
 
                     // Verify that all credentials contain the same metadata integrity value and validate this against
@@ -1014,7 +1014,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         key_ids_and_public_keys,
                         metadata,
                         &offered_credential.preview,
-                        issuer_trust_anchors,
+                        trust_anchors.issuer_trust_anchors,
                     )?;
 
                     (
@@ -1029,7 +1029,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         key_ids_and_public_keys,
                         &offered_credential.preview,
                         credential_metadata,
-                        issuer_trust_anchors,
+                        trust_anchors.issuer_trust_anchors,
                     )?;
 
                     (
@@ -1071,14 +1071,16 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 }
 
 impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
-    async fn accept_issuance<W>(
+    async fn accept_issuance<'a, W, G>(
         &mut self,
         max_copy_count: NonZeroU8,
-        issuer_trust_anchors: &TrustAnchors,
+        trust_anchors: AcceptIssuanceTrustAnchors<'a>,
         wscd: &W,
+        time: &G,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd,
+        G: Generator<DateTime<Utc>>,
     {
         // Request as many copies as the Issuer Metadata will allow, capped by `max_copy_count`.
         let copy_count = std::cmp::min(self.session_state.batch_size, max_copy_count);
@@ -1145,7 +1147,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 .zip_eq(key_results)
                 .zip_eq(dpop_nonces)
                 .map(|((offered_credential, key_result), dpop_nonce)| {
-                    self.fetch_credential(offered_credential, key_result, dpop_nonce, issuer_trust_anchors)
+                    self.fetch_credential(offered_credential, key_result, dpop_nonce, trust_anchors, time)
                 }),
         )
         .await?;
@@ -1427,6 +1429,7 @@ mod tests {
     use wscd::mock_remote::MOCK_CERTIFICATION_URL;
     use wscd::mock_remote::MockRemoteWscd;
     use wscd::payload::key_attestation::KeyAttestation;
+    use wscd::payload::key_attestation::KeyAttestationVerificationError;
     use wscd::wia::mock::MockWiaClient;
 
     use super::*;
@@ -2722,6 +2725,14 @@ mod tests {
             .unwrap();
     }
 
+    fn create_mock_wscd() -> (MockRemoteWscd, TrustAnchors) {
+        let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
+        let wscd = MockRemoteWscd::new_with_wptl_ca(&wptl_ca);
+        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+
+        (wscd, wptl_trust_anchors)
+    }
+
     enum TestNonceEndpoint {
         Absent,
         Present,
@@ -2773,7 +2784,6 @@ mod tests {
             SdJwtMetadataUsage::TypeMetadata,
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
-        let wscd = MockRemoteWscd::default();
 
         let (mut mock_msg_client, has_nonce_endpoint, expected_dpop_nonce) = match nonce_endpoint {
             TestNonceEndpoint::Absent => (MockVcMessageClient::new(), false, "dpop_nonce".parse().unwrap()),
@@ -2808,11 +2818,18 @@ mod tests {
                 Ok(signer.response_from_request(credential_request))
             });
 
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
         let credentials = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(max_copy_count, &issuer_trust_anchors, &wscd)
+        .accept_issuance(
+            max_copy_count,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
@@ -2876,11 +2893,18 @@ mod tests {
             },
         );
 
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
         let credentials = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MIN, &issuer_trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(
+            NonZeroU8::MIN,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect("accepting issuance of an mdoc with an identifier list status should succeed");
@@ -2908,11 +2932,18 @@ mod tests {
             },
         );
 
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
         let credential_copies = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
@@ -2928,20 +2959,25 @@ mod tests {
         assert!(credential_with_metadata.extended_attestation_types.is_empty());
     }
 
-    struct SingleMockRemoteWscd {
+    /// An implementation of [`IssuanceWscd`] that always returns a single set of key results, which contains
+    /// `key_count` duplicate keys.
+    struct DuplicateKeyMockRemoteWscd {
         attestation_key_pair: KeyPair,
+        key_count: NonZeroU8,
     }
 
-    impl Default for SingleMockRemoteWscd {
-        fn default() -> Self {
-            let ca = Ca::generate_mock();
-            let attestation_key_pair = ca.generate_wia_mock().unwrap();
+    impl DuplicateKeyMockRemoteWscd {
+        fn new(wptl_ca: &Ca, key_count: NonZeroU8) -> Self {
+            let attestation_key_pair = wptl_ca.generate_key_attestation_mock().unwrap();
 
-            Self { attestation_key_pair }
+            Self {
+                attestation_key_pair,
+                key_count,
+            }
         }
     }
 
-    impl IssuanceWscd for SingleMockRemoteWscd {
+    impl IssuanceWscd for DuplicateKeyMockRemoteWscd {
         type Error = Infallible;
 
         async fn perform_issuance(
@@ -2953,8 +2989,10 @@ mod tests {
             let key = SigningKey::generate();
             let public_key = PublicKey::from(*key.verifying_key());
 
+            let attested_keys =
+                utils::vec_at_least::repeat_n(public_key, self.key_count.into()).collect::<VecNonEmpty<_>>();
             let attestation = KeyAttestation::sign(
-                &vec_nonempty![public_key],
+                &attested_keys,
                 MOCK_CERTIFICATION_URL.clone(),
                 nonce,
                 &self.attestation_key_pair,
@@ -2986,11 +3024,22 @@ mod tests {
 
         let mock_msg_client = mock_openid_message_client_nonce(None, 2);
 
+        // Prepare a WSCD that returns a single key for a single credential, even though we request one key each for two
+        // credentials.
+        let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
+        let single_wscd = DuplicateKeyMockRemoteWscd::new(&wptl_ca, NonZeroU8::MIN);
+        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &SingleMockRemoteWscd::default())
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &single_wscd,
+            &MockTimeGenerator::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -2999,6 +3048,44 @@ mod tests {
             error,
             WalletIssuanceError::PrivateKeyCredentialCount { expected, received }
                 if expected.get() == 2 && received.get() == 1
+        );
+    }
+
+    #[test]
+    fn test_accept_issuance_error_invalid_key_attestation() {
+        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+            HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
+            SdJwtMetadataUsage::TypeMetadata,
+        );
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
+
+        let mock_msg_client = mock_openid_message_client_nonce(None, 1);
+
+        // Prepare a WSCD that returns two duplicate keys for a credential, which should result in the returned Key
+        // Attestation not validating.
+        let key_count = 2.try_into().unwrap();
+
+        let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
+        let duplicate_wscd = DuplicateKeyMockRemoteWscd::new(&wptl_ca, key_count);
+        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, key_count, true),
+        }
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &duplicate_wscd,
+            &MockTimeGenerator::default(),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(
+            error,
+            WalletIssuanceError::InvalidKeyAttestation(KeyAttestationVerificationError::AttestedKeysNotDistinct)
         );
     }
 
@@ -3027,11 +3114,18 @@ mod tests {
             },
         );
 
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -3060,11 +3154,18 @@ mod tests {
             },
         );
 
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), true),
         }
-        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -3092,11 +3193,18 @@ mod tests {
             },
         );
 
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -3127,11 +3235,18 @@ mod tests {
             },
         );
 
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
         }
-        .accept_issuance(NonZeroU8::MAX, &signer.issuer_trust_anchors, &MockRemoteWscd::default())
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&signer.issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");

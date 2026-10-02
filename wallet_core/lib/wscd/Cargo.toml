@@ -38,6 +38,7 @@ url.workspace = true
 
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
+error_category.path = "../error_category"
 jwt.path = "../jwt"
 utils.path = "../utils"
 

@@ -12,6 +12,7 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
 use derive_more::Constructor;
+use error_category::ErrorCategory;
 use itertools::Itertools;
 use jwt::Algorithm;
 use jwt::JwtTyp;
@@ -70,7 +71,8 @@ pub enum KeyAttestationSigningError {
     SignJwt(#[source] JwtSignError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum KeyAttestationVerificationError {
     #[error("invalid key attestation JWT: {0}")]
     InvalidJwt(#[source] JwtX5cVerifyError),
@@ -79,12 +81,15 @@ pub enum KeyAttestationVerificationError {
     InvalidJwk(#[source] JwkConversionError),
 
     #[error("attested keys contain duplicate values")]
+    #[category(critical)]
     AttestedKeysNotDistinct,
 
     #[error("key storage attack potential resistance not sufficient, found: {}", .0.iter().join(", "))]
+    #[category(critical)]
     KeyStorageAttackResistance(HashSet<AttackPotentialResistance>),
 
     #[error("user authentication attack potential resistance not sufficient, found: {}", .0.iter().join(", "))]
+    #[category(critical)]
     UserAuthenticationAttackResistance(HashSet<AttackPotentialResistance>),
 }
 

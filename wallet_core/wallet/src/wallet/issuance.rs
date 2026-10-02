@@ -643,7 +643,12 @@ where
 
         // Request as many copies per credential as the issuer will allow.
         let issuance_result = protocol_state
-            .accept_issuance(NonZeroU8::MAX, config.issuer_trust_anchors(), &remote_wscd)
+            .accept_issuance(
+                NonZeroU8::MAX,
+                config.accept_issuance_anchors(),
+                &remote_wscd,
+                &TimeGenerator,
+            )
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, protocol_state));
 

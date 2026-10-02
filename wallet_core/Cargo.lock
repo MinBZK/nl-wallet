@@ -11100,6 +11100,7 @@ dependencies = [
  "chrono",
  "crypto",
  "derive_more",
+ "error_category",
  "futures",
  "itertools 0.14.0",
  "jwt",

@@ -1810,6 +1810,7 @@ mod tests {
     use crate::test::setup_mock_issuer_attestation_types_and_metadata;
     use crate::token::VciTokenRequest;
     use crate::token::VciTokenResponse;
+    use crate::wallet_issuance::AcceptIssuanceTrustAnchors;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
@@ -2120,9 +2121,16 @@ mod tests {
         .await
         .unwrap();
 
-        let wscd = MockRemoteWscd::default();
+        let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
+        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+
         session
-            .accept_issuance(NonZeroU8::MIN, &issuer_trust_anchors, &wscd)
+            .accept_issuance(
+                NonZeroU8::MIN,
+                AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+                &MockRemoteWscd::new_with_wptl_ca(&wptl_ca),
+                &MockTimeGenerator::default(),
+            )
             .await
             .unwrap_err()
     }

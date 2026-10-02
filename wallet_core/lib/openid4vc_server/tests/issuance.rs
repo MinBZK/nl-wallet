@@ -64,6 +64,7 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::token::VciTokenRequest;
 use openid4vc::token::VciTokenResponse;
+use openid4vc::wallet_issuance::AcceptIssuanceTrustAnchors;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -361,7 +362,12 @@ async fn authorization_code_flow(
 
     let wscd = MockRemoteWscd::new_with_wptl_ca(&server.wptl_ca);
     let issued_creds = session
-        .accept_issuance(NonZeroU8::MAX, &server.issuer_trust_anchors, &wscd)
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&server.issuer_trust_anchors, &TrustAnchors::from(&server.wptl_ca)),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .await
         .unwrap();
 
@@ -401,7 +407,12 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let wscd = MockRemoteWscd::new_with_wptl_ca(&server.wptl_ca);
     let issued_creds = session
-        .accept_issuance(NonZeroU8::MAX, &server.issuer_trust_anchors, &wscd)
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&server.issuer_trust_anchors, &TrustAnchors::from(&server.wptl_ca)),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
@@ -463,7 +474,12 @@ async fn pre_authorized_code_flow(
     let copy_count = 4;
     let wscd = MockRemoteWscd::new_with_wptl_ca(&wptl_ca);
     let issued_creds = session
-        .accept_issuance(NonZeroU8::MAX, &issuer_trust_anchors, &wscd)
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &TrustAnchors::from(&wptl_ca)),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
         .await
         .unwrap();
 
