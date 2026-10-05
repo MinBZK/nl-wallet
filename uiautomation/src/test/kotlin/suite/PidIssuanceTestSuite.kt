@@ -6,10 +6,8 @@ import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectClasses(
     feature.issuance.PidIssuanceTests::class,
-    feature.issuance.DisclosureBasedIssuanceTests::class,
     feature.issuance.RenewCardTests::class,
-    feature.issuance.GenericIssuanceTests::class,
 )
 @Suite
-@SuiteDisplayName("Issuance Test Suite")
-object IssuanceTestSuite
+@SuiteDisplayName("PID Issuance Test Suite")
+object PidIssuanceTestSuite

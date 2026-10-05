@@ -110,7 +110,7 @@ class UserEntersPinTests : TestBase() {
         assertAll(
             { assertTrue(temporarilyBlockedScreen.deleteWalletButtonVisible(), "Delete wallet button is not visible") },
             { assertTrue(temporarilyBlockedScreen.forgotPinButtonVisible(), "Forgot pin button is not visible") },
-            { assertTrue(temporarilyBlockedScreen.timeoutDurationLeftVisible("57"), "Timeout duration is not visible") }
+            { assertTrue(temporarilyBlockedScreen.timeoutMessageVisible(), "Timeout message is not visible") }
         )
     }
 

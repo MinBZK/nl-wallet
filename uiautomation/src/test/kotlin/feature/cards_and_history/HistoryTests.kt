@@ -80,7 +80,7 @@ class HistoryTests : TestBase() {
         setUp(testInfo)
         dashboardScreen.clickMenuButton()
         menuScreen.clickBrowserTestButton()
-        overviewWebPage.switchToWebViewContext()
+        overviewWebPage.switchToIndexPage()
         overviewWebPage.clickAmsterdamMdocButton()
         amsterdamWebPage.openSameDeviceWalletFlow()
 

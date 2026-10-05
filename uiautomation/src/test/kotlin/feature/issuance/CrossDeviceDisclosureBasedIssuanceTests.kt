@@ -68,7 +68,7 @@ class CrossDeviceDisclosureBasedIssuanceTests : TwoDeviceTestBase() {
             targetIndexWebPage = DemoIndexWebPage()
             targetIssuerWebPage = IssuerWebPage()
             targetIndexWebPage.openUrlInBrowser(DEMO_INDEX_URL)
-            targetIndexWebPage.switchToWebViewContext()
+            targetIndexWebPage.switchToIndexPage()
         }
     }
 

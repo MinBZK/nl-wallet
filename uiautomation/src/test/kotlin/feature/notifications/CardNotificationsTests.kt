@@ -71,7 +71,7 @@ class CardNotificationsTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickLoyaltyButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.acceptOpenWalletDialog()

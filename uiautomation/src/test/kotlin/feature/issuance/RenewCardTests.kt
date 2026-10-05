@@ -88,7 +88,7 @@ class RenewCardTests : TestBase() {
         setUp(testInfo)
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
@@ -101,7 +101,7 @@ class RenewCardTests : TestBase() {
 
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.switchToNativeContext()
@@ -148,6 +148,8 @@ class RenewCardTests : TestBase() {
         personalizePidPreviewScreen.clickAcceptPidRenewalButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
+        //Todo remove after PVW-6367
+        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.clickCard(tasData.getPidDisplayName())
 
         cardDetailScreen.clickCardHistoryButton()
