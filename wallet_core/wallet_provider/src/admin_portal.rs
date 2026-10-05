@@ -505,5 +505,6 @@ mod tests {
         let json: Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["displayName"], "Jane Doe");
         assert_eq!(json["privileges"], serde_json::json!(["admin"]));
+        assert_eq!(json["user_id"], serde_json::json!(null));
     }
 }
