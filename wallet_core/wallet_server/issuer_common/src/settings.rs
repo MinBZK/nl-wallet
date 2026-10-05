@@ -424,11 +424,8 @@ fn resolve_credential_configuration_format(
             attestation_type,
             credential_metadata,
         } => {
-            let type_metadata = metadata_by_vct
-                .filter(|metadata| metadata.as_ref().contains_key(attestation_type.as_str()))
-                .map(|metadata| metadata.to_metadata_documents(&attestation_type))
-                .transpose()
-                .map_err(CredentialConfigurationFormatError::TypeMetadataChain)?;
+            let type_metadata =
+                metadata_by_vct.filter(|metadata| metadata.as_ref().contains_key(attestation_type.as_str()));
 
             match (type_metadata, credential_metadata) {
                 (Some(_), Some(_)) => Err(CredentialConfigurationFormatError::DuplicateSdJwtMetadata(
@@ -437,7 +434,10 @@ fn resolve_credential_configuration_format(
                 (None, None) => Err(CredentialConfigurationFormatError::MissingSdJwtMetadata(
                     config_id.clone(),
                 )),
-                (Some(documents), None) => {
+                (Some(metadata_by_vct), None) => {
+                    let documents = metadata_by_vct
+                        .to_metadata_documents(&attestation_type)
+                        .map_err(CredentialConfigurationFormatError::TypeMetadataChain)?;
                     let type_metadata = CredentialConfigurationTypeMetadata::try_new(&attestation_type, documents)
                         .map_err(|error| {
                             CredentialConfigurationFormatError::TypeMetadataVerification(config_id.clone(), error)
