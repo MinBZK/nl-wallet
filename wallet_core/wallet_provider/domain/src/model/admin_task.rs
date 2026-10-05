@@ -6,7 +6,8 @@ use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
 /// Administrator action that can be proposed and reviewed in the admin_portal.
-/// For each of these task types there exists a corresponding privilege. These are named the same as the task types but underscored with privilege_.
+/// For each of these task types there exists a corresponding privilege. These are named the same as the task types but
+/// underscored with privilege_.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, strum::Display, strum::EnumString, strum::EnumIter,
 )]
