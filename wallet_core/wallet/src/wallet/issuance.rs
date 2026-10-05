@@ -646,9 +646,12 @@ where
 
         let pid_purpose = issuance_session.pid_purpose();
 
-        let protocol_state = match issuance_session.session_state_mut() {
-            SessionState::Issuance { protocol_state, .. } => protocol_state,
-            _ => return Err(IssuanceError::SessionState),
+        let SessionState::Issuance {
+            protocol_state,
+            preview_attestations,
+        } = issuance_session.session_state_mut()
+        else {
+            return Err(IssuanceError::SessionState);
         };
 
         info!("Signing nonce using Wallet Provider");
@@ -674,16 +677,11 @@ where
             _ => issuance_result?,
         };
 
+        let organization = protocol_state.issuer_registration().organization().clone();
+        let preview_attestations = preview_attestations.take();
+
         info!("Issuance succeeded; removing issuance session state");
-        let preview_attestations = match self.session.take() {
-            Some(Session::Issuance(session)) => match session.into_session_state() {
-                SessionState::Issuance {
-                    preview_attestations, ..
-                } => preview_attestations,
-                _ => unreachable!(),
-            },
-            _ => return Err(IssuanceError::SessionState),
-        };
+        self.session = None;
 
         let transfer_session_id = if pid_purpose.is_some() {
             info!("This is a PID issuance session, therefore disclosing recovery code");
@@ -711,16 +709,36 @@ where
                 .map_err(IssuanceError::TransferDataStorage)?;
         }
 
-        // `IssuanceSession::accept_issuance` returns the credentials in the same order as the previews, from which
-        // `preview_attestations` were created, so they can be paired by position.
-        let all_previews = issued_credentials_with_metadata
-            .into_iter()
-            .zip_eq(preview_attestations.unwrap()) // TODO
-            .collect_vec();
+        let (existing, new): (Vec<_>, Vec<_>) = match preview_attestations {
+            // `IssuanceSession::accept_issuance` returns the credentials in the same order as the previews, from which
+            // `preview_attestations` were created, so they can be paired by position.
+            Some(preview_attestations) => issued_credentials_with_metadata
+                .into_iter()
+                .zip_eq(preview_attestations)
+                .partition(|(_, preview)| matches!(preview.identity, AttestationIdentity::Fixed { .. })),
+            // Without previews, there is no stored attestation identity to match against, so every credential is
+            // stored as a new attestation.
+            None => {
+                let new = issued_credentials_with_metadata
+                    .into_iter()
+                    .map(|credential| {
+                        let attestation = AttestationPresentation::create_from_issued(
+                            &credential,
+                            Box::new(organization.clone()),
+                            &config.pid_attributes,
+                        )
+                        .map_err(|error| IssuanceError::Attestation {
+                            organization: Box::new(organization.clone()),
+                            error,
+                        })?;
 
-        let (existing, new): (Vec<_>, Vec<_>) = all_previews
-            .into_iter()
-            .partition(|(_, preview)| matches!(preview.identity, AttestationIdentity::Fixed { .. }));
+                        Ok((credential, attestation))
+                    })
+                    .collect::<Result<_, IssuanceError>>()?;
+
+                (vec![], new)
+            }
+        };
 
         info!("Attestations accepted, storing credentials in database");
         if !existing.is_empty() {
@@ -1481,9 +1499,13 @@ mod tests {
 
     #[rstest]
     // An attestation that is identical to one that the wallet already has should overwrite the old one.
-    #[case::non_pid_identical(None, vec_nonempty![Format::SdJwt], "some_attestation_type", Some(0), |preview| {preview})]
+    #[case::non_pid_identical(
+        None, vec_nonempty![Format::SdJwt], "some_attestation_type", Some(0), |preview| {preview}
+    )]
     // An attestation that has a different format but is otherwise identical should not overwrite the existing one.
-    #[case::non_pid_identical_mdoc(None, vec_nonempty![Format::MsoMdoc], "some_attestation_type", None, |preview| {preview})]
+    #[case::non_pid_identical_mdoc(
+        None, vec_nonempty![Format::MsoMdoc], "some_attestation_type", None, |preview| {preview}
+    )]
     // Given two identical previews, onle the first one should overwerite an existing credential.
     #[case::non_pid_multiple_previews(
         None, vec_nonempty![Format::SdJwt, Format::SdJwt], "some_attestation_type", Some(0), |preview| {preview}
@@ -2059,6 +2081,85 @@ mod tests {
             .expect_instruction()
             .once()
             .return_once(move |_, _: Instruction<DiscloseRecoveryCode>| Ok(wp_result));
+    }
+
+    #[tokio::test]
+    async fn test_accept_issuance_without_previews() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let (sd_jwt, sd_jwt_issued_metadata, _) = sd_jwt_pid();
+        let (mdoc, mdoc_issued_metadata, _) = mdoc_pid();
+        let (issuance_session, expected_attestations) = mock_issuance_session(
+            [(sd_jwt, sd_jwt_issued_metadata), (mdoc, mdoc_issued_metadata)],
+            Some(NonZeroU8::MAX),
+        );
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Generic {
+            session_state: SessionState::Issuance {
+                preview_attestations: None,
+                protocol_state: issuance_session,
+            },
+        }));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        // Without previews, every issued credential should be stored as a new attestation.
+        let inserted_attestations = Arc::new(parking_lot::Mutex::new(Vec::new()));
+        wallet.mut_storage().expect_insert_credentials().times(1).returning({
+            let inserted_attestations = Arc::clone(&inserted_attestations);
+            move |_, credentials| {
+                *inserted_attestations.lock() = credentials.into_iter().map(|(_, attestation)| attestation).collect();
+                Ok(())
+            }
+        });
+        wallet.mut_storage().expect_update_credentials().never();
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .returning(|| Ok(vec![]));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(|| Ok(vec![]));
+
+        let result = wallet
+            .accept_issuance(PIN.clone())
+            .await
+            .expect("accepting issuance without previews should succeed");
+
+        assert!(result.transfer_session_id.is_none());
+        assert!(wallet.session.is_none());
+
+        // The attestation presentations are created from the issued credentials, without the PID recovery code.
+        let expected_attestations = expected_attestations
+            .into_iter()
+            .map(|mut attestation| {
+                attestation
+                    .attributes
+                    .retain(|attribute| attribute.key.last() != "recovery_code");
+                attestation
+            })
+            .collect_vec();
+        assert_eq!(*inserted_attestations.lock(), expected_attestations);
     }
 
     #[tokio::test]

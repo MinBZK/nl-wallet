@@ -7,6 +7,7 @@ use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use openid4vc::metadata::issuer_metadata::Logo as CredentialLogo;
 use openid4vc::metadata::issuer_metadata::NameLocale;
 use openid4vc::wallet_issuance::OfferedCredentialMetadata;
+use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
 use sd_jwt_vc_metadata::BackgroundImageMetadata;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
@@ -15,6 +16,7 @@ use sd_jwt_vc_metadata::LogoMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
 use sd_jwt_vc_metadata::SvgId;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -75,6 +77,29 @@ impl AttestationDisplay for NormalizedTypeMetadata {
             display_metadata,
             claims,
         }
+    }
+}
+
+impl TryFrom<&IssuedCredentialMetadata> for PresentationComponents {
+    type Error = TypeMetadataChainError;
+
+    fn try_from(metadata: &IssuedCredentialMetadata) -> Result<Self, Self::Error> {
+        let components = match metadata {
+            IssuedCredentialMetadata::TypeMetadata(documents) => {
+                documents.to_normalized()?.into_presentation_components()
+            }
+            IssuedCredentialMetadata::CredentialMetadata(credential_metadata) => {
+                credential_metadata.clone().into_presentation_components()
+            }
+        };
+
+        Ok(components)
+    }
+}
+
+impl AttestationDisplay for PresentationComponents {
+    fn into_presentation_components(self) -> PresentationComponents {
+        self
     }
 }
 

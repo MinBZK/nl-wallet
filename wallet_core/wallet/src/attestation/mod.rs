@@ -12,6 +12,8 @@ use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
 use error_category::ErrorCategory;
+use sd_jwt::error::DecoderError;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
 use serde::Deserialize;
 use serde::Serialize;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -35,6 +37,14 @@ pub enum AttestationError {
     #[error("error converting to attributes: {0}")]
     #[category(pd)]
     Attributes(#[from] AttributesError),
+
+    #[error("could not normalize type metadata: {0}")]
+    #[category(pd)]
+    TypeMetadata(#[source] TypeMetadataChainError),
+
+    #[error("could not decode SD-JWT claims: {0}")]
+    #[category(pd)]
+    SdJwtClaims(#[source] DecoderError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
