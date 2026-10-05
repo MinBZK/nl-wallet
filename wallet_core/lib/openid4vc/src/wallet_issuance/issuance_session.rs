@@ -355,6 +355,32 @@ enum SupportedConfigurations {
 }
 
 impl GrantedConfigurations {
+    /// Create [`GrantedConfigurations`] by combining the Credential Configurations that were present in the Credential
+    /// Offer with the `scope` and `authorization_details` fields as received in the Token Response, discarding any
+    /// Credential Configurations that the issuer no longer offers.
+    fn new_from_token_response(
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+        scope: Option<&HashSet<Scope>>,
+        authorization_details: Option<IssuerAuthorizationDetails>,
+    ) -> Result<Self, WalletIssuanceError> {
+        match (scope, authorization_details) {
+            // If the Token Response contained `authorization_details`, use that and ignore any `scope` values. Returns
+            // an error if any Credential Configuration ID was not present in the Credential Offer.
+            (_, Some(authorization_details)) => {
+                Self::new_from_authorization_details(credential_configurations, authorization_details)
+            }
+
+            // If the Token Response contained `scope` values, select only those Credential Configurations that have
+            // this scope. Returns an error if no scope values were provided or if any of the scope values do not refer
+            // to Credential Configurations present in the Credential Offer.
+            (Some(scope), None) => Self::new_from_scope(credential_configurations, scope),
+
+            // If neither the `authorization_details` nor the `scope` field was present in the Token Response, it means
+            // that the issuer offers all of the Credential Configurations from the Credential Offer.
+            (None, None) => Ok(Self::WithoutIdentifiers(credential_configurations)),
+        }
+    }
+
     /// Filter the Credential Configurations that were present in the Credential Offer based on the
     /// `authorization_details` field from the Token Response.
     fn new_from_authorization_details(
@@ -479,37 +505,6 @@ impl GrantedConfigurations {
 }
 
 impl SupportedConfigurations {
-    /// Create [`SupportedConfigurations`] by combining the Credential Configurations that were present in the
-    /// Credential Offer with the `scope` and `authorization_details` fields as received in the Token Response,
-    /// discarding any Credential Configurations that the issuer no longer offers or that have an unsupported
-    /// format. Returns an error if no Credential Configurations remain.
-    fn new_from_token_response(
-        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
-        scope: Option<&HashSet<Scope>>,
-        authorization_details: Option<IssuerAuthorizationDetails>,
-    ) -> Result<Self, WalletIssuanceError> {
-        let granted_configurations = match (scope, authorization_details) {
-            // If the Token Response contained `authorization_details`, use that and ignore any `scope` values. Returns
-            // an error if any Credential Configuration ID was not present in the Credential Offer.
-            (_, Some(authorization_details)) => {
-                GrantedConfigurations::new_from_authorization_details(credential_configurations, authorization_details)?
-            }
-
-            // If the Token Response contained `scope` values, select only those Credential Configurations that have
-            // this scope. Returns an error if no scope values were provided or if any of the scope values do not refer
-            // to Credential Configurations present in the Credential Offer.
-            (Some(scope), None) => GrantedConfigurations::new_from_scope(credential_configurations, scope)?,
-
-            // If neither the `authorization_details` nor the `scope` field was present in the Token Response, it means
-            // that the issuer offers all of the Credential Configurations from the Credential Offer.
-            (None, None) => GrantedConfigurations::WithoutIdentifiers(credential_configurations),
-        };
-
-        granted_configurations
-            .into_supported()
-            .ok_or(WalletIssuanceError::NoSupportedCredentialConfigurations)
-    }
-
     fn credential_config_iter(&self) -> impl Iterator<Item = (&CredentialConfigurationId, &SupportedConfiguration)> {
         match self {
             Self::WithoutIdentifiers(credential_configs) => Either::Left(credential_configs.iter()),
@@ -831,11 +826,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .await
             .map_err(|error| map_pre_authorized_token_error(error, &token_request))?;
 
-        let offered_configurations = SupportedConfigurations::new_from_token_response(
+        let offered_configurations = GrantedConfigurations::new_from_token_response(
             credential_configurations,
             token_response.oauth_response.scope.as_ref(),
             token_response.authorization_details,
-        )?;
+        )?
+        .into_supported()
+        .ok_or(WalletIssuanceError::NoSupportedCredentialConfigurations)?;
 
         let (metadata, offered_credentials) = match issuer_endpoints.credential_preview_endpoint.as_ref() {
             Some(preview_endpoint) => {
