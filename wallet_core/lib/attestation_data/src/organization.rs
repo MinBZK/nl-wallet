@@ -208,19 +208,15 @@ pub mod test {
         #[case] subject: DistinguishedName,
         #[case] legal_name: &str,
         #[case] person_type: SubjectType,
+        #[values(false, true)] has_optional_fields: bool,
         #[values(None, Some(false), Some(true))] public_body: Option<bool>,
+        #[values("https://example.com/support", "support@example.com")] support_uri: &str,
     ) {
         let access_key = Ca::generate_wrpac_mock_ca()
             .unwrap()
             .generate_key_pair(subject, Default::default(), NO_SAN)
             .unwrap();
         let mut payload = issuer_registration_certificate_payload(access_key.certificate(), []);
-        let has_optional_fields = public_body.is_some();
-        let support_uri = if has_optional_fields {
-            "https://example.com/support"
-        } else {
-            "support@example.com"
-        };
         payload.0["support_uri"] = json!(support_uri);
         payload.0["public_body"] = json!(public_body);
         payload.0["name"] = json!(has_optional_fields.then_some("Issuer service"));
