@@ -120,9 +120,33 @@ impl From<wallet::attestation_data::DisclosureType> for DisclosureType {
     }
 }
 
+pub(super) fn request_purpose(organization: &wallet::attestation_data::Organization) -> Vec<LocalizedString> {
+    match &organization.purpose {
+        Some(purpose) => purpose
+            .iter()
+            .map(|translation| LocalizedString {
+                language: translation.lang.clone(),
+                value: translation.value.clone(),
+            })
+            .collect(),
+        // Older history and proximity disclosure do not yet contain a WRPRC purpose.
+        None => vec![
+            LocalizedString {
+                language: "en".into(),
+                value: "Disclosure".into(),
+            },
+            LocalizedString {
+                language: "nl".into(),
+                value: "Onthullen".into(),
+            },
+        ],
+    }
+}
+
 impl From<DisclosureProposalPresentation> for StartDisclosureResult {
     fn from(proposal: DisclosureProposalPresentation) -> Self {
         StartDisclosureResult::Request {
+            request_purpose: request_purpose(&proposal.organization),
             relying_party: proposal.organization.into(),
             // TODO (PVW-6111): Replace with fields from registration certificate
             policy: RequestPolicy {
@@ -138,17 +162,6 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
                 .collect(),
             shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
             session_type: proposal.session_type.into(),
-            // TODO (PVW-6111): Replace with fields from registration certificate
-            request_purpose: vec![
-                LocalizedString {
-                    language: "en".into(),
-                    value: "Disclosure".into(),
-                },
-                LocalizedString {
-                    language: "nl".into(),
-                    value: "Onthullen".into(),
-                },
-            ],
             // TODO (PVW-6111): Replace with fields from registration certificate
             request_origin_base_url: "https://example.com".into(),
             request_type: proposal.disclosure_type.into(),
@@ -170,21 +183,11 @@ impl From<AttributesNotAvailable> for StartDisclosureResult {
             .collect();
 
         StartDisclosureResult::RequestAttributesMissing {
+            request_purpose: request_purpose(&value.organization),
             relying_party: (*value.organization).into(),
             missing_attributes,
             shared_data_with_relying_party_before: value.shared_data_with_relying_party_before,
             session_type: value.session_type.into(),
-            // TODO (PVW-6111): Replace with fields from registration certificate
-            request_purpose: vec![
-                LocalizedString {
-                    language: "en".into(),
-                    value: "Disclosure".into(),
-                },
-                LocalizedString {
-                    language: "nl".into(),
-                    value: "Onthullen".into(),
-                },
-            ],
             request_origin_base_url: "https://example.com".into(),
         }
     }

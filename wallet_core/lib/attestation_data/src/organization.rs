@@ -7,6 +7,7 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use crate::registration_certificate::MultiLanguageString;
+use crate::registration_certificate::MultiLanguageStringSet;
 use crate::registration_certificate::ParsedRegistrationCertificate;
 use crate::registration_certificate::StatusValidatedRegistrationCertificate;
 use crate::registration_certificate::Subject;
@@ -30,6 +31,7 @@ pub struct Organization {
     pub identifier: String,
     pub country_code: String,
     pub privacy_policy_url: Option<Url>,
+    pub purpose: Option<MultiLanguageStringSet>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -90,6 +92,7 @@ impl Organization {
             country_code: payload.country.clone(),
             web_url: payload.info_uri.clone(),
             privacy_policy_url: payload.privacy_policy.clone(),
+            purpose: payload.purpose.clone(),
         }
     }
 }
@@ -128,6 +131,10 @@ pub mod mock {
                 country_code: "NL".to_owned(),
                 web_url: Some(Url::parse("https://organisation.example.com").unwrap()),
                 privacy_policy_url: Some(Url::parse("https://organisation.example.com/privacy").unwrap()),
+                purpose: Some(utils::vec_nonempty![MultiLanguageString {
+                    lang: "en".to_owned(),
+                    value: "Verify your identity".to_owned(),
+                }]),
             }
         }
     }
@@ -178,7 +185,14 @@ pub mod test {
             .unwrap()
             .generate_key_pair(subject, Default::default(), NO_SAN)
             .unwrap();
+        let purpose = has_optional_fields.then(|| {
+            utils::vec_nonempty![super::MultiLanguageString {
+                lang: "en".to_owned(),
+                value: "Verify your identity".to_owned(),
+            }]
+        });
         let mut payload = issuer_registration_certificate_payload(access_key.certificate(), []);
+        payload.0["purpose"] = json!(purpose);
         payload.0["name"] = json!(has_optional_fields.then_some("Issuer service"));
         payload.0["info_uri"] = json!(has_optional_fields.then_some("https://example.com/info"));
         payload.0["privacy_policy"] = json!(has_optional_fields.then_some("https://example.com/privacy"));
@@ -238,6 +252,7 @@ pub mod test {
                 country_code: "NL".to_owned(),
                 web_url: has_optional_fields.then(|| "https://example.com/info".parse().unwrap()),
                 privacy_policy_url: has_optional_fields.then(|| "https://example.com/privacy".parse().unwrap()),
+                purpose,
             }
         );
     }
