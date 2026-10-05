@@ -12,8 +12,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
 use error_category::ErrorCategory;
-use http_utils::urls::HttpsUri;
-use http_utils::urls::HttpsUriError;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
@@ -22,7 +20,6 @@ use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use rustls_pki_types::pem::PemObject;
 use utils::generator::Generator;
-use utils::vec_at_least::VecNonEmpty;
 use webpki::CertRevocationList;
 use webpki::EndEntityCert;
 use webpki::Error;
@@ -35,7 +32,6 @@ use webpki::UnknownStatusPolicy;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
-use x509_parser::extensions::GeneralName;
 use x509_parser::nom::AsBytes;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
@@ -99,15 +95,6 @@ pub enum CertificateError {
 
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-
-    #[error("missing SAN extension")]
-    MissingSan,
-
-    #[error("missing SAN DNS name or URI")]
-    MissingSanDnsNameOrUri,
-
-    #[error("SAN DNS name is not a URI: {0}")]
-    SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriError),
 
     #[error("could not serialize to DER: {0}")]
     DerSerialization(#[from] SerializeError),
@@ -339,28 +326,6 @@ impl BorrowingCertificate {
             .try_collect()?;
 
         Ok(CanonicalDistinguishedName::new(encoded_attrs.join(",")))
-    }
-
-    /// Returns the SAN DNS names and URIs from the certificate, as an HTTPS URI.
-    pub fn san_dns_name_or_uris(&self) -> Result<VecNonEmpty<HttpsUri>, CertificateError> {
-        let san_ext = self
-            .x509_certificate()
-            .subject_alternative_name()?
-            .ok_or(CertificateError::MissingSan)?;
-
-        let san_dns_name_or_uri = san_ext.value.general_names.iter().filter_map(|name| match name {
-            GeneralName::DNSName(name) => Some(format!("https://{name}")),
-            GeneralName::URI(uri) => Some(uri.to_string()),
-            _ => None,
-        });
-
-        let san_https_uris = san_dns_name_or_uri
-            .map(|san| san.parse().map_err(CertificateError::SanDnsNameOrUriIsNotAnHttpsUri))
-            .collect::<Result<Vec<_>, _>>()?
-            .try_into()
-            .map_err(|_| CertificateError::MissingSanDnsNameOrUri)?;
-
-        Ok(san_https_uris)
     }
 
     /// From the AuthorityKeyIdentifier in the certificate, if present, return the key identifier field:
