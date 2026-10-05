@@ -15,7 +15,6 @@ abstract class Organization with _$Organization {
     required String legalName,
     required String displayName,
     @LocalizedTextConverter() LocalizedText? type,
-    bool? publicBody,
     @LocalizedTextConverter() LocalizedText? description,
     @AppImageDataConverter() AppImageData? logo,
     String? webUri,

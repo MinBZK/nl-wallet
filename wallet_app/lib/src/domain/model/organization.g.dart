@@ -14,7 +14,6 @@ _Organization _$OrganizationFromJson(Map<String, dynamic> json) => _Organization
     json['type'],
     const LocalizedTextConverter().fromJson,
   ),
-  publicBody: json['publicBody'] as bool?,
   description: _$JsonConverterFromJson<Map<String, dynamic>, Map<Locale, String>>(
     json['description'],
     const LocalizedTextConverter().fromJson,
@@ -38,7 +37,6 @@ Map<String, dynamic> _$OrganizationToJson(_Organization instance) => <String, dy
     instance.type,
     const LocalizedTextConverter().toJson,
   ),
-  'publicBody': instance.publicBody,
   'description': _$JsonConverterToJson<Map<String, dynamic>, Map<Locale, String>>(
     instance.description,
     const LocalizedTextConverter().toJson,
