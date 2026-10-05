@@ -133,6 +133,11 @@ impl CredentialConfigurationFormat {
         }
     }
 
+    /// The combination of the attestation type and the format it is expressed in.
+    pub fn credential_kind(&self) -> CredentialKind {
+        CredentialKind::new(self.format(), self.attestation_type().to_string())
+    }
+
     /// The SD-JWT VC Type Metadata, if this configuration is described by it.
     pub fn type_metadata(&self) -> Option<&CredentialConfigurationTypeMetadata> {
         match self {
@@ -208,13 +213,6 @@ pub struct CredentialConfiguration<K, L> {
     pub format: CredentialConfigurationFormat,
 }
 
-impl<K, L> CredentialConfiguration<K, L> {
-    /// The combination of the attestation type and the format it is expressed in.
-    pub(crate) fn credential_kind(&self) -> CredentialKind {
-        CredentialKind::new(self.format.format(), self.format.attestation_type().to_string())
-    }
-}
-
 /// Static credential configurations indexed by their identifier.
 #[derive(Debug)]
 pub(crate) struct CredentialConfigurations<K, L> {
@@ -243,7 +241,7 @@ impl<K, L> CredentialConfigurations<K, L> {
             }
 
             ids_by_credential_kind
-                .entry(config.credential_kind())
+                .entry(config.format.credential_kind())
                 .or_default()
                 .push(config_id.clone());
         }

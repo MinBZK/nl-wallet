@@ -358,9 +358,7 @@ where
 
     let registration_certificate = MockRegistrationCertificate::new_issuer(
         metadata_keypair.certificate(),
-        attestations
-            .iter()
-            .map(|format| CredentialKind::new(format.format(), format.attestation_type().to_string())),
+        attestations.iter().map(CredentialConfigurationFormat::credential_kind),
     );
 
     let credential_configs = attestations
