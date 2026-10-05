@@ -220,57 +220,51 @@ issuer/verstrekkende-voorziening.</p>
 <li><p><a class="reference internal" href="#creating-the-technical-attestation-schema-json-document" id="id6">Creating the technical attestation schema JSON document</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#creating-an-issuer-authentication-document" id="id7">Creating an issuer authentication document</a></p>
+<li><p><a class="reference internal" href="#creating-issuer-tsl-wrpac-and-wrprc-certificates" id="id7">Creating issuer, TSL, WRPAC and WRPRC certificates</a></p></li>
+<li><p><a class="reference internal" href="#issuance-server-setup" id="id8">Issuance server setup</a></p>
 <ul>
-<li><p><a class="reference internal" href="#decide-on-required-metadata-for-your-issuer-auth" id="id8">Decide on required metadata for your issuer_auth</a></p></li>
-<li><p><a class="reference internal" href="#creating-the-issuer-auth-json-document" id="id9">Creating the issuer_auth JSON document</a></p></li>
+<li><p><a class="reference internal" href="#obtaining-the-software" id="id9">Obtaining the software</a></p></li>
+<li><p><a class="reference internal" href="#using-a-database-backend" id="id10">Using a database backend</a></p>
+<ul>
+<li><p><a class="reference internal" href="#setting-up-postgresql" id="id11">Setting up PostgreSQL</a></p></li>
+<li><p><a class="reference internal" href="#create-user-and-database" id="id12">Create user and database</a></p></li>
+<li><p><a class="reference internal" href="#apply-database-schema" id="id13">Apply database schema</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#creating-issuer-tsl-and-wrpac-certificates" id="id10">Creating issuer, TSL and WRPAC certificates</a></p></li>
-<li><p><a class="reference internal" href="#issuance-server-setup" id="id11">Issuance server setup</a></p>
+<li><p><a class="reference internal" href="#creating-a-configuration" id="id14">Creating a configuration</a></p>
 <ul>
-<li><p><a class="reference internal" href="#obtaining-the-software" id="id12">Obtaining the software</a></p></li>
-<li><p><a class="reference internal" href="#using-a-database-backend" id="id13">Using a database backend</a></p>
+<li><p><a class="reference internal" href="#logging-settings-optional" id="id15">Logging settings (optional)</a></p></li>
+<li><p><a class="reference internal" href="#configuring-trust-anchors" id="id16">Configuring trust anchors</a></p></li>
+<li><p><a class="reference internal" href="#determine-public-url" id="id17">Determine public URL</a></p></li>
+<li><p><a class="reference internal" href="#universal-link-base-url" id="id18">Universal link base URL</a></p></li>
+<li><p><a class="reference internal" href="#configuring-allowed-client-ids" id="id19">Configuring allowed client IDs</a></p></li>
+<li><p><a class="reference internal" href="#configuring-metadata-and-issuer-registration" id="id20">Configuring metadata and issuer registration</a></p></li>
+<li><p><a class="reference internal" href="#configuring-listener-address-and-port" id="id21">Configuring listener address and port</a></p></li>
+<li><p><a class="reference internal" href="#the-storage-settings-optional" id="id22">The storage settings (optional)</a></p>
 <ul>
-<li><p><a class="reference internal" href="#setting-up-postgresql" id="id14">Setting up PostgreSQL</a></p></li>
-<li><p><a class="reference internal" href="#create-user-and-database" id="id15">Create user and database</a></p></li>
-<li><p><a class="reference internal" href="#apply-database-schema" id="id16">Apply database schema</a></p></li>
+<li><p><a class="reference internal" href="#using-in-memory-session-state" id="id23">Using in-memory session state</a></p></li>
+<li><p><a class="reference internal" href="#using-database-persisted-session-state" id="id24">Using database persisted session state</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#creating-a-configuration" id="id17">Creating a configuration</a></p>
+<li><p><a class="reference internal" href="#configuring-a-hardware-security-module-optional" id="id25">Configuring a hardware security module (optional)</a></p></li>
+<li><p><a class="reference internal" href="#configuring-the-status-list-settings-optional" id="id26">Configuring the status list settings (optional)</a></p></li>
+<li><p><a class="reference internal" href="#configuring-disclosure-based-issuance-elements" id="id27">Configuring disclosure-based issuance elements</a></p>
 <ul>
-<li><p><a class="reference internal" href="#logging-settings-optional" id="id18">Logging settings (optional)</a></p></li>
-<li><p><a class="reference internal" href="#configuring-trust-anchors" id="id19">Configuring trust anchors</a></p></li>
-<li><p><a class="reference internal" href="#determine-public-url" id="id20">Determine public URL</a></p></li>
-<li><p><a class="reference internal" href="#universal-link-base-url" id="id21">Universal link base URL</a></p></li>
-<li><p><a class="reference internal" href="#configuring-allowed-client-ids" id="id22">Configuring allowed client IDs</a></p></li>
-<li><p><a class="reference internal" href="#configuring-metadata-document-references" id="id23">Configuring metadata document references</a></p></li>
-<li><p><a class="reference internal" href="#configuring-listener-address-and-port" id="id24">Configuring listener address and port</a></p></li>
-<li><p><a class="reference internal" href="#the-storage-settings-optional" id="id25">The storage settings (optional)</a></p>
-<ul>
-<li><p><a class="reference internal" href="#using-in-memory-session-state" id="id26">Using in-memory session state</a></p></li>
-<li><p><a class="reference internal" href="#using-database-persisted-session-state" id="id27">Using database persisted session state</a></p></li>
+<li><p><a class="reference internal" href="#the-disclosure-settings" id="id28">The disclosure settings</a></p></li>
+<li><p><a class="reference internal" href="#the-dcql-query-credentials" id="id29">The DCQL query credentials</a></p></li>
+<li><p><a class="reference internal" href="#the-attestation-url-configuration" id="id30">The attestation URL configuration</a></p></li>
+<li><p><a class="reference internal" href="#the-attestation-settings" id="id31">The attestation settings</a></p></li>
+<li><p><a class="reference internal" href="#the-attestation-settings-associated-status-list-settings" id="id32">The attestation settings associated status list settings</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#configuring-a-hardware-security-module-optional" id="id28">Configuring a hardware security module (optional)</a></p></li>
-<li><p><a class="reference internal" href="#configuring-the-status-list-settings-optional" id="id29">Configuring the status list settings (optional)</a></p></li>
-<li><p><a class="reference internal" href="#configuring-disclosure-based-issuance-elements" id="id30">Configuring disclosure-based issuance elements</a></p>
-<ul>
-<li><p><a class="reference internal" href="#the-disclosure-settings" id="id31">The disclosure settings</a></p></li>
-<li><p><a class="reference internal" href="#the-dcql-query-credentials" id="id32">The DCQL query credentials</a></p></li>
-<li><p><a class="reference internal" href="#the-attestation-url-configuration" id="id33">The attestation URL configuration</a></p></li>
-<li><p><a class="reference internal" href="#the-attestation-settings" id="id34">The attestation settings</a></p></li>
-<li><p><a class="reference internal" href="#the-attestation-settings-associated-status-list-settings" id="id35">The attestation settings associated status list settings</a></p></li>
+<li><p><a class="reference internal" href="#writing-the-configuration-file" id="id33">Writing the configuration file</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#writing-the-configuration-file" id="id36">Writing the configuration file</a></p></li>
+<li><p><a class="reference internal" href="#running-the-server-for-the-first-time" id="id34">Running the server for the first time</a></p></li>
+<li><p><a class="reference internal" href="#validating-your-setup" id="id35">Validating your setup</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#running-the-server-for-the-first-time" id="id37">Running the server for the first time</a></p></li>
-<li><p><a class="reference internal" href="#validating-your-setup" id="id38">Validating your setup</a></p></li>
-</ul>
-</li>
-<li><p><a class="reference internal" href="#integrating-your-app-with-your-issuance-server" id="id39">Integrating your app with your issuance server</a></p></li>
+<li><p><a class="reference internal" href="#integrating-your-app-with-your-issuance-server" id="id36">Integrating your app with your issuance server</a></p></li>
 </ul>
 </nav>
 <section id="what-we-re-going-to-cover">
@@ -278,7 +272,7 @@ issuer/verstrekkende-voorziening.</p>
 <p>We’ll start with a paragraph about the related architecture, with links to the
 relevant architecture documents.</p>
 <p>We’ll then cover the creation of the technical attestation schema, the creation
-of issuer authentication documents and the corresponding issuer certificates,
+of issuer registration certificates and the corresponding issuer certificates,
 which are essential for identifying your service within the NL Wallet ecosystem.</p>
 <p>Next, we’ll guide you through setting up the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>. This includes
 obtaining the software, configuring it (with an optional database backend), and
@@ -338,7 +332,8 @@ a production environment, more stringent rules might apply.</p>
 <p>If you plan to eventually bring your issuer into production readiness, you might
 want to consider our <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process. When you are a member of the NL
 Wallet community, you have access to community resources that can help with
-validation of your TAS, <code class="docutils literal notranslate"><span class="pre">issuer_auth</span></code> and <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> configuration files.</p>
+validation of your TAS, registration certificate and <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>
+configuration files.</p>
 </div>
 <section id="decide-on-required-metadata-for-your-tas">
 <h3>Decide on required metadata for your TAS<a class="headerlink" href="#decide-on-required-metadata-for-your-tas" title="Link to this heading"></a></h3>
@@ -491,13 +486,8 @@ not, make sure you save it somewhere, keeping our earlier warnings about file
 name and location in mind.</p>
 </section>
 </section>
-<section id="creating-an-issuer-authentication-document">
-<h2>Creating an issuer authentication document<a class="headerlink" href="#creating-an-issuer-authentication-document" title="Link to this heading"></a></h2>
-<p>We’re first going to create a so-called <code class="docutils literal notranslate"><span class="pre">issuer_auth</span></code> document.</p>
-<p>The subsections below describe the decisions you need to make as an issuer with
-regards to attributes you want to issue, what data we require from you, how to
-create an issuer certificate for your disclosure-based issuance setup (which is
-configured for usage within the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> configuration).</p>
+<section id="creating-issuer-tsl-wrpac-and-wrprc-certificates">
+<h2>Creating issuer, TSL, WRPAC and WRPRC certificates<a class="headerlink" href="#creating-issuer-tsl-wrpac-and-wrprc-certificates" title="Link to this heading"></a></h2>
 <p>In this guide, we assume you have <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarded succesfully</span></a> - i.e., you are
 running your own CA and the public key of that CA has been shared with the
 operations team who will need to add your CA public key to the trust anchors of
@@ -510,162 +500,6 @@ but when you want to test your issuer with the NL Wallet platform (i.e., our
 backend and mobile apps in our acceptance and pre-production environments), you
 do need to be onboarded to get access to those environments.</p>
 </div>
-<section id="decide-on-required-metadata-for-your-issuer-auth">
-<h3>Decide on required metadata for your issuer_auth<a class="headerlink" href="#decide-on-required-metadata-for-your-issuer-auth" title="Link to this heading"></a></h3>
-<p>An issuer certificate contains a bunch of metadata, which we store as a part of
-the certificate in a so-called X.509v3 extension. We use this data to present a
-view of you, the issuer, in the NL Wallet app GUI.</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p><strong>ROOT</strong></p></th>
-<th class="head"><p>Key</p></th>
-<th class="head"><p>Languages</p></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p></p></th>
-<th class="head"><p>——————————-</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">organization.displayName</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Name of the verifier as shown in the</p></td>
-<td><p></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>app app.</p></td>
-<td><p></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">organization.legalName</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Legal name of the verifier.</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization.description</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Short one-sentence description or</p></td>
-<td><p></p></td>
-<td><p></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>mission statement of the verifier.</p></td>
-<td><p></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">organization.webUrl</span></code></p></td>
-<td><p>-</p></td>
-<td><p>The home URL</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>of the verifier.</p></td>
-<td><p></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">organization.city</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>The home city of the</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>verifier.</p></td>
-<td><p></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">organization.category</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">nl+en</span></code></p></td>
-<td><p>Bank, Municipality, Trading,</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>Delivery Service, etc.</p></td>
-<td><p></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">organization.logo.mimeType</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Logo mimetype, can</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>be image/svg+xml, image/png or image/jpeg</p></td>
-<td><p></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">organization.logo.imageData</span></code></p></td>
-<td><p>-</p></td>
-<td><p></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>Logo image data. When SVG, an escaped XML string, else base64</p></td>
-<td><p></p></td>
-<td><p></p></td>
-<td><p></p></td>
-<td><p></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.countryCode</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Two-letter country code of verifier residence.</p></td>
-<td><p></p></td>
-<td><p></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">organization.kvk</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Chamber of commerce number of verifier.</p></td>
-<td><p></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">organization.privacyPolicyUrl</span></code></p></td>
-<td><p>-</p></td>
-<td><p>Link to verifier’s privacy policy.</p></td>
-<td><p></p></td>
-<td><p></p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-<p>Note: In the <code class="docutils literal notranslate"><span class="pre">Languages</span></code> column where it says <code class="docutils literal notranslate"><span class="pre">nl+en</span></code> for example, please
-provide both Dutch and English values.</p>
-</section>
-<section id="creating-the-issuer-auth-json-document">
-<h3>Creating the issuer_auth JSON document<a class="headerlink" href="#creating-the-issuer-auth-json-document" title="Link to this heading"></a></h3>
-<p>When you’ve collected all the required metadata, you are ready to create the
-<code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code> file. Here is an example for our insurance company:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;organization&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;displayName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VerzekerAar&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;InsurAnce&quot;</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;legalName&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VerzekerAar N.V.&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VerzekerAar N.V.&quot;</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;VerzekerAar is een voorbeeld-verzekeraar.&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;InsurAnce is an exemplar insurance company.&quot;</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;webUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://insurance.example.com&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;city&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Den Haag&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The Hague&quot;</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;nl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Verzekeringen&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;en&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Insurance&quot;</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;logo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;mimeType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;image/svg+xml&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;imageData&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;svg xmlns=\&quot;http://www.w3.org/2000/svg\&quot; width=\&quot;64\&quot; height=\&quot;64\&quot; fill=\&quot;none\&quot;&gt;&lt;rect width=\&quot;64\&quot; height=\&quot;64\&quot; y=\&quot;-.002\&quot; fill=\&quot;#3A839A\&quot; rx=\&quot;12\&quot;/&gt;&lt;path fill=\&quot;#FCFCFC\&quot; d=\&quot;M29.563 33.6H25.5v-4.8h4.063v-4h4.875v4H38.5v4.8h-4.062v4h-4.876zM32 16l-13 4.8v9.744C19 38.624 24.541 46.16 32 48c7.459-1.84 13-9.376 13-17.456V20.8zm9.75 14.544c0 6.4-4.144 12.32-9.75 14.128-5.606-1.808-9.75-7.712-9.75-14.128v-7.52l9.75-3.6 9.75 3.6z\&quot;/&gt;&lt;/svg&gt;&quot;</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;countryCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nl&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;kvk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;99876543&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;privacyPolicyUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://insurance.example.com/privacy&quot;</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Take the above example, make sure you’ve read the previous sections which
-explain what the different key/values mean, and (optionally) construct your own
-<code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code> file (or copy it verbatim if you’re just testing). When we
-are going to be creating the issuer certificate in the next sections, we are
-going to need it at a specific location, so save it (inside the <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> git
-directory):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">target</span><span class="o">/</span><span class="ow">is</span><span class="o">-</span><span class="n">config</span><span class="o">/</span><span class="n">issuer_auth</span><span class="o">.</span><span class="n">json</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="creating-issuer-tsl-and-wrpac-certificates">
-<h2>Creating issuer, TSL and WRPAC certificates<a class="headerlink" href="#creating-issuer-tsl-and-wrpac-certificates" title="Link to this heading"></a></h2>
 <p>Let’s create the issuer, TSL and WRPAC certificates. We’re going to clone the NL
 Wallet repository, enter its directory, set a target directory and specify an
 identifier (this identifies your organization, and should be in lowercase
@@ -680,12 +514,6 @@ format.</p>
 <p>Make sure you have a working toolchain as documented in our GitHub project root
 <code class="docutils literal notranslate"><span class="pre">README.md</span></code> <a class="reference external" href="https://github.com/MinBZK/nl-wallet#user-content-development-requirements">here</a>. Specifically, you need to have <code class="docutils literal notranslate"><span class="pre">rust</span></code> and <code class="docutils literal notranslate"><span class="pre">openssl</span></code>
 installed and working.</p>
-</div>
-<div class="admonition caution">
-<p class="admonition-title">Did you create an issuer_auth.json?</p>
-<p>You need valid <code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code> document, which you should have, if you
-followed along with the previous sections where we created
-<a class="reference internal" href="#creating-the-issuer-auth-json-document">issuer</a></p>
 </div>
 <div class="admonition caution">
 <p class="admonition-title">Did you create your own CA?</p>
@@ -710,7 +538,7 @@ git<span class="w"> </span>clone<span class="w"> </span>https://github.com/MinBZ
 
 <span class="c1"># Set and create target directory, identifier for your certificates.</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">CA_DIR</span><span class="o">=</span>target/ca-cert
-<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/vs-config
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/is-config
 <span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span>foocorp
 <span class="nb">export</span><span class="w"> </span><span class="nv">WRPAC_CRL_URL</span><span class="o">=</span>https://foocorp.example/wrpac.crl.der
 mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CA_DIR</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -730,7 +558,6 @@ cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span cla
 <span class="w">    </span>--common-name<span class="w"> </span><span class="s2">&quot;issuer.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--organization-name<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--organization-id<span class="w"> </span><span class="s2">&quot;NTRNL-00000002&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--issuer-auth-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer_auth.json&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
 
 <span class="c1"># Create the TSL certificate using wallet_ca.</span>
@@ -785,10 +612,78 @@ certificate, regenerate the CRL with its hex serial number supplied through
 clients receive either the previous or new complete CRL, never a partially
 written file. The wallet rejects a WRPAC when its CRL is unavailable, invalid,
 expired, or lists that certificate.</p>
-<p>The used CA public certificate (referenced in the previous <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> command)
-needs to be in the list of various so-called trust anchors. Specifically,
-issuers and verifiers, and the NL Wallet app itself need to know if this CA is a
-trusted CA, and our software “knows” that by checking its trust anchors.</p>
+<p>The Wallet Relying Party Registration Certificate (WRPRC) provides the issuer
+organization information shown in the wallet. It is bound to the WRPAC that
+signs issuer metadata. The following example uses the WRPRC CA created by
+<code class="docutils literal notranslate"><span class="pre">scripts/setup-devenv.sh</span></code>; for another environment, arrange the WRPRC and its
+status list with the registration authority trusted by that environment.</p>
+<p>Create separate WRPRC and status-list signing certificates with the same
+subject. Then create a registration payload for the insurance credential, using
+the organization identifier and legal name from the WRPAC above:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">WRPRC_CA_DIR</span><span class="o">=</span>scripts/devenv/target
+<span class="nb">export</span><span class="w"> </span><span class="nv">WRPRC_STATUS_LIST_URL</span><span class="o">=</span>https://foocorp.example/wrprc-status-list
+
+<span class="k">for</span><span class="w"> </span>CERT_TYPE<span class="w"> </span><span class="k">in</span><span class="w"> </span>wrprc<span class="w"> </span>tsl<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span>cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span>wallet_core/Cargo.toml<span class="w"> </span>--bin<span class="w"> </span>wallet_ca<span class="w"> </span>--<span class="w"> </span>cert<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--type<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CERT_TYPE</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--ca-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">WRPRC_CA_DIR</span><span class="si">}</span><span class="s2">/ca.wrprc.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--ca-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">WRPRC_CA_DIR</span><span class="si">}</span><span class="s2">/ca.wrprc.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--common-name<span class="w"> </span><span class="s2">&quot;Development Registrar&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--organization-name<span class="w"> </span><span class="s2">&quot;Development Registrar&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--organization-id<span class="w"> </span><span class="s2">&quot;NTRNL-00000001&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--file-prefix<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CERT_TYPE</span><span class="si">}</span><span class="s2">-registrar.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="k">done</span>
+
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc.json&quot;</span>
+<span class="s">{</span>
+<span class="s">    &quot;id&quot;: &quot;${IDENTIFIER}-issuer&quot;,</span>
+<span class="s">    &quot;sub&quot;: &quot;NTRNL-00000002&quot;,</span>
+<span class="s">    &quot;sub_ln&quot;: &quot;${IDENTIFIER}&quot;,</span>
+<span class="s">    &quot;name&quot;: &quot;${IDENTIFIER}&quot;,</span>
+<span class="s">    &quot;country&quot;: &quot;NL&quot;,</span>
+<span class="s">    &quot;registry_uri&quot;: &quot;https://register.example.com&quot;,</span>
+<span class="s">    &quot;support_uri&quot;: &quot;support@foocorp.example&quot;,</span>
+<span class="s">    &quot;srv_description&quot;: [[{&quot;lang&quot;: &quot;en&quot;, &quot;value&quot;: &quot;Issuing insurance credentials&quot;}]],</span>
+<span class="s">    &quot;supervisory_authority&quot;: {},</span>
+<span class="s">    &quot;entitlements&quot;: [&quot;https://uri.etsi.org/19475/Entitlement/Non_Q_EAA_Provider&quot;],</span>
+<span class="s">    &quot;provides_attestations&quot;: [</span>
+<span class="s">        {&quot;format&quot;: &quot;dc+sd-jwt&quot;, &quot;meta&quot;: {&quot;vct_values&quot;: [&quot;com.example.insurance&quot;]}}</span>
+<span class="s">    ],</span>
+<span class="s">    &quot;iat&quot;: $(date +%s),</span>
+<span class="s">    &quot;status&quot;: {&quot;idx&quot;: &quot;0&quot;, &quot;uri&quot;: &quot;${WRPRC_STATUS_LIST_URL}&quot;},</span>
+<span class="s">    &quot;policy_id&quot;: [&quot;0.4.0.19475.3.1&quot;],</span>
+<span class="s">    &quot;certificate_policy&quot;: &quot;https://register.example.com/certificate-policy&quot;</span>
+<span class="s">}</span>
+<span class="s">EOF</span>
+
+cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span>wallet_core/Cargo.toml<span class="w"> </span>--bin<span class="w"> </span>wallet_ca<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>registration-certificate<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--wrprc-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrprc-registrar.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--wrprc-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrprc-registrar.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--wrpac-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--payload-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.wrprc.json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--format<span class="w"> </span>cwt<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/issuer.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.wrprc&quot;</span>
+
+cargo<span class="w"> </span>run<span class="w"> </span>--manifest-path<span class="w"> </span>wallet_core/Cargo.toml<span class="w"> </span>--bin<span class="w"> </span>wallet_ca<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>status-list<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--tsl-key-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/tsl-registrar.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--tsl-crt-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/tsl-registrar.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.crt.pem&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--uri<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">WRPRC_STATUS_LIST_URL</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--status<span class="w"> </span>valid<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--valid-for-days<span class="w"> </span><span class="m">7</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ttl-seconds<span class="w"> </span><span class="m">3600</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrprc-status-list.jwt&quot;</span>
+</pre></div>
+</div>
+<p>Publish <code class="docutils literal notranslate"><span class="pre">wrprc-status-list.jwt</span></code> at <code class="docutils literal notranslate"><span class="pre">WRPRC_STATUS_LIST_URL</span></code> with content type
+<code class="docutils literal notranslate"><span class="pre">application/statuslist+jwt</span></code>, and renew it before its seven-day expiry. The
+payload’s status index <code class="docutils literal notranslate"><span class="pre">0</span></code> refers to the first entry, marked <code class="docutils literal notranslate"><span class="pre">valid</span></code> above. The
+wallet must trust the WRPRC CA through its <code class="docutils literal notranslate"><span class="pre">wrprc_trust_anchors</span></code>; local
+development setup configures this for the generated CA.</p>
+<p>The CA public certificates used above need to be in the relevant trust anchor
+lists. Issuers, verifiers and the NL Wallet app use these lists to determine
+which CAs they trust.</p>
 <p>When you run locally, when using <code class="docutils literal notranslate"><span class="pre">setup-devenv.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">start-devenv.sh</span></code>, the
 generated CA certificate is automatically added to the trust anchors within the
 configuration files of <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">demo_issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>,
@@ -984,7 +879,7 @@ with the <code class="docutils literal notranslate"><span class="pre">RUST_LOG</
 </section>
 <section id="configuring-trust-anchors">
 <h4>Configuring trust anchors<a class="headerlink" href="#configuring-trust-anchors" title="Link to this heading"></a></h4>
-<p><a class="reference internal" href="#creating-issuer-tsl-and-wrpac-certificates">When you created the issuer, TSL and WRPAC certificates</a>,
+<p><a class="reference internal" href="#creating-issuer-tsl-wrpac-and-wrprc-certificates">When you created the issuer, TSL, WRPAC and WRPRC certificates</a>,
 you signed those certificates using a CA, either generated by the development
 setup script or specifically <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">created by you</span></a> as part of the (optional)
 <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">community onboarding process</span></a>.</p>
@@ -1099,8 +994,8 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 </pre></div>
 </div>
 </section>
-<section id="configuring-metadata-document-references">
-<h4>Configuring metadata document references<a class="headerlink" href="#configuring-metadata-document-references" title="Link to this heading"></a></h4>
+<section id="configuring-metadata-and-issuer-registration">
+<h4>Configuring metadata and issuer registration<a class="headerlink" href="#configuring-metadata-and-issuer-registration" title="Link to this heading"></a></h4>
 <p>We <a class="reference internal" href="#creating-the-technical-attestation-schema-json-document">previously</a> made a
 technical attestation schema JSON document. The <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> needs to know
 about these schemas. We can tell the server about available schemas through the
@@ -1109,13 +1004,23 @@ previously created JSON document <code class="docutils literal notranslate"><spa
 followed the instructions, was copied to <code class="docutils literal notranslate"><span class="pre">target/is-config</span></code> within the
 <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> directory, where the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> will find it using the below
 configuration (provided it is started from the <code class="docutils literal notranslate"><span class="pre">target/is-config</span></code> directory):</p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">registration_certificate</span></code> to the generated WRPRC string and configure
+<code class="docutils literal notranslate"><span class="pre">credential_metadata_keypair</span></code> with the same WRPAC used when creating it. The
+WRPRC file is already base64url encoded; do not encode it again.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span>foocorp
 <span class="nb">export</span><span class="w"> </span><span class="nv">IS_WALLET_METADATA_FILES</span><span class="o">=(</span><span class="s2">&quot;insurance_metadata.json&quot;</span><span class="o">)</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/is-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
 cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/08-wallet-metadata-files.toml&quot;</span>
+<span class="s">registration_certificate = &quot;$(cat &quot;${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc&quot;)&quot;</span>
 <span class="s">type_metadata = [$(printf &#39;&quot;%s&quot;,&#39; &quot;${IS_WALLET_METADATA_FILES[@]}&quot; | sed &#39;s/,$//&#39;)]</span>
+
+<span class="s">[credential_metadata_keypair]</span>
+<span class="s">private_key_type = &quot;software&quot;</span>
+<span class="s">private_key = &quot;$(openssl base64 -e -A -in &quot;${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der&quot;)&quot;</span>
+<span class="s">certificate = &quot;$(openssl base64 -e -A -in &quot;${TARGET_DIR}/wrpac.${IDENTIFIER}.crt.der&quot;)&quot;</span>
 <span class="s">EOF</span>
-<span class="nb">unset</span><span class="w"> </span>IS_WALLET_METADATA_FILES
+<span class="nb">unset</span><span class="w"> </span>IS_WALLET_METADATA_FILES<span class="w"> </span>IDENTIFIER
 </pre></div>
 </div>
 <div class="admonition note">
@@ -1341,9 +1246,9 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 <h5>The attestation settings<a class="headerlink" href="#the-attestation-settings" title="Link to this heading"></a></h5>
 <p>We’re now going to base64 encode the issuer key and certificate within the
 <code class="docutils literal notranslate"><span class="pre">private_key</span></code> and <code class="docutils literal notranslate"><span class="pre">certificate</span></code> fields of the <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code>. This
-is the certificate that embedded the previously created <code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code>. Note
-that this makes <code class="docutils literal notranslate"><span class="pre">insurance</span></code> the Credential Configuration identifier that is
-presented in the Issuer Metadata. Let’s create the section:</p>
+is the credential signing certificate. Note that this makes <code class="docutils literal notranslate"><span class="pre">insurance</span></code> the
+Credential Configuration identifier that is presented in the Issuer Metadata.
+Let’s create the section:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
 <span class="nb">export</span><span class="w"> </span><span class="nv">BASE64</span><span class="o">=</span><span class="s2">&quot;openssl base64 -e -A&quot;</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span><span class="s2">&quot;foocorp&quot;</span>
@@ -1441,8 +1346,7 @@ are valid;</p></li>
 <li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> certificates
 are signed by any of the <code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code> and <code class="docutils literal notranslate"><span class="pre">wrpac_trust_anchors</span></code>;</p></li>
 <li><p>Verify all <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> certificates are valid
-issuer-certificates, and contain the necessary Extended Key Usages and the
-<code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code>;</p></li>
+issuer-certificates and contain the necessary Extended Key Usages;</p></li>
 <li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> key-pairs are
 valid, i.e., the public and private keys should belong together;</p></li>
 </ul>
