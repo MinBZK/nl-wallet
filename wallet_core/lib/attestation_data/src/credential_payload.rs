@@ -752,7 +752,9 @@ mod test {
     use mdoc::verifier::ValidityRequirement;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
+    use rstest::rstest;
     use sd_jwt::builder::SdJwtBuilder;
+    use sd_jwt::claims::ClaimValue;
     use sd_jwt::key_binding_jwt::KbVerificationOptions;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
     use sd_jwt::sd_jwt::SdJwtVcClaims;
@@ -912,12 +914,31 @@ mod test {
         );
     }
 
+    #[rstest]
+    #[case::with_type_metadata(true)]
+    #[case::without_type_metadata(false)]
     #[tokio::test]
-    async fn test_into_signed_sd_jwt() {
+    async fn test_into_signed_sd_jwt(#[case] with_type_metadata: bool) {
         let (payload_preview, credential_payload, metadata, metadata_integrity, ca, issuance_key) = setup_into_signed();
 
+        let (type_metadata, vct_integrity) = if with_type_metadata {
+            (Some(&metadata), Some(metadata_integrity))
+        } else {
+            (None, None)
+        };
+        let credential_payload = CredentialPayload {
+            vct_integrity: vct_integrity.clone(),
+            ..credential_payload
+        };
+
+        let claim_count = credential_payload
+            .previewable_payload
+            .attributes
+            .claim_paths(AttributesTraversalBehaviour::AllPaths)
+            .len();
+
         let signed_sd_jwt = credential_payload
-            .into_signed_sd_jwt(Some(&metadata), &issuance_key)
+            .into_signed_sd_jwt(type_metadata, &issuance_key)
             .await
             .unwrap();
 
@@ -935,28 +956,60 @@ mod test {
         assert_eq!(claims.vct, payload_preview.attestation_type);
         assert_eq!(claims.nbf, payload_preview.not_before);
         assert_eq!(claims.exp, payload_preview.expires);
-        assert_eq!(claims.vct_integrity, Some(metadata_integrity));
+        assert_eq!(claims.vct_integrity, vct_integrity);
+
+        // All claims should be selectively disclosable, either because the Type Metadata allows it or because it is
+        // absent.
+        assert_eq!(verified_sd_jwt.disclosures().len(), claim_count);
     }
 
+    /// Claims are selectively disclosable, unless the Type Metadata describes them as never selectively disclosable.
     #[tokio::test]
-    async fn test_into_signed_sd_jwt_without_type_metadata() {
-        let (_, credential_payload, _, _, ca, issuance_key) = setup_into_signed();
+    async fn test_into_signed_sd_jwt_selective_disclosability() {
+        let (payload_preview, credential_payload, _, _, ca, issuance_key) = setup_into_signed();
 
-        let claim_count = credential_payload
-            .previewable_payload
-            .attributes
-            .claim_paths(AttributesTraversalBehaviour::AllPaths)
-            .len();
+        // `first_name` is described as always selectively disclosable, `family_name` as never and `nickname` is not
+        // described at all.
+        let mut type_metadata =
+            UncheckedTypeMetadata::example_with_claim_names(PID_ATTESTATION_TYPE, &["first_name", "family_name"]);
+        type_metadata.claims[1].sd = ClaimSelectiveDisclosureMetadata::Never;
+        let type_metadata = NormalizedTypeMetadata::from_single_example(type_metadata);
+
+        let credential_payload = CredentialPayload {
+            previewable_payload: PreviewableCredentialPayload {
+                attributes: Attributes::example([
+                    (["first_name"], Attribute::Text("John".to_string())),
+                    (["family_name"], Attribute::Text("Doe".to_string())),
+                    (["nickname"], Attribute::Text("Johnny".to_string())),
+                ]),
+                ..payload_preview
+            },
+            ..credential_payload
+        };
 
         let verified_sd_jwt = credential_payload
-            .into_signed_sd_jwt(None, &issuance_key)
+            .into_signed_sd_jwt(Some(&type_metadata), &issuance_key)
             .await
-            .expect("a credential without Type Metadata should sign")
+            .unwrap()
             .into_unverified()
             .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator)
             .expect("the signed SD-JWT should be valid");
 
-        assert_eq!(verified_sd_jwt.disclosures().len(), claim_count);
+        let concealed_claims = verified_sd_jwt
+            .disclosures()
+            .iter()
+            .map(|(digest, disclosure)| {
+                let (_, name, _) = disclosure.content.try_as_object_property(digest).unwrap();
+                name.as_str()
+            })
+            .sorted()
+            .collect_vec();
+        assert_eq!(concealed_claims, ["first_name", "nickname"]);
+
+        assert_matches!(
+            &verified_sd_jwt.claims().claims,
+            ClaimValue::Object(object) if object.claims.keys().any(|name| name.as_str() == "family_name")
+        );
     }
 
     /// The attributes of an mdoc are always exactly two levels deep: the namespace, then the element identifier.
