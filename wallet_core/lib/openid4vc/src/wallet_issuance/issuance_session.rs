@@ -1137,6 +1137,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 }
             };
 
+        // TODO (PVW-6364): Only the payload of the first copy is used below. Without previews, all copies should be
+        //                  checked that they are identical.
         let credential_with_metadata = CredentialWithMetadata::new(
             credential_copies,
             first_credential_payload.previewable_payload.attestation_type,
