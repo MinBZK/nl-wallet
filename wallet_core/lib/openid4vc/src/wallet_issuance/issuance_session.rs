@@ -10,7 +10,6 @@ use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
@@ -305,26 +304,44 @@ impl VcMessageClient for HttpVcMessageClient {
 
 /// The parts of a [`CredentialConfiguration`] with a supported format that are relevant to an issuance session.
 #[derive(Debug)]
-struct SupportedConfiguration {
-    credential_kind: CredentialKind,
-    credential_metadata: Option<CredentialMetadata>,
-    type_metadata_uri: Option<IssuerUrl>,
+enum SupportedConfiguration {
+    MsoMdoc {
+        credential_metadata: Option<CredentialMetadata>,
+    },
+    SdJwt {
+        vct: String,
+        credential_metadata: Option<CredentialMetadata>,
+        type_metadata_uri: Option<IssuerUrl>,
+    },
 }
 
 impl SupportedConfiguration {
     /// Returns `None` if the format of the [`CredentialConfiguration`] is not supported.
     fn try_new(config: CredentialConfiguration) -> Option<Self> {
-        let credential_kind = config.format.credential_kind()?;
-        let type_metadata_uri = match config.format {
-            CredentialFormat::SdJwt { type_metadata_uri, .. } => type_metadata_uri,
-            CredentialFormat::MsoMdoc { .. } | CredentialFormat::Other { .. } => None,
-        };
+        let CredentialConfiguration {
+            format,
+            credential_metadata,
+            ..
+        } = config;
 
-        Some(Self {
-            credential_kind,
-            credential_metadata: config.credential_metadata,
-            type_metadata_uri,
-        })
+        match format {
+            CredentialFormat::MsoMdoc { .. } => Some(Self::MsoMdoc { credential_metadata }),
+            CredentialFormat::SdJwt {
+                vct, type_metadata_uri, ..
+            } => Some(Self::SdJwt {
+                vct,
+                credential_metadata,
+                type_metadata_uri,
+            }),
+            CredentialFormat::Other { .. } => None,
+        }
+    }
+
+    fn format(&self) -> Format {
+        match self {
+            Self::MsoMdoc { .. } => Format::MsoMdoc,
+            Self::SdJwt { .. } => Format::SdJwt,
+        }
     }
 }
 
@@ -761,25 +778,30 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         message_client: &H,
     ) -> Result<HashMap<CredentialConfigurationId, OfferedCredentialMetadata>, WalletIssuanceError> {
         let mut type_metadata_configs = Vec::new();
-        let mut credential_metadata = HashMap::new();
+        let mut credential_metadata_by_config_id = HashMap::new();
         let mut missing_metadata_config_ids = Vec::new();
 
         for (config_id, config) in credential_configurations {
-            match (
-                config.credential_kind.format,
-                config.type_metadata_uri.as_ref(),
-                config.credential_metadata.as_ref(),
-            ) {
-                (Format::SdJwt, Some(uri), _) => {
-                    type_metadata_configs.push((uri, (config.credential_kind.attestation_type.as_str(), config_id)));
+            match config {
+                SupportedConfiguration::SdJwt {
+                    vct,
+                    type_metadata_uri: Some(uri),
+                    ..
+                } => {
+                    type_metadata_configs.push((uri, (vct.as_str(), config_id)));
                 }
-                (Format::SdJwt | Format::MsoMdoc, _, Some(metadata)) => {
-                    credential_metadata.insert(
-                        config_id.clone(),
-                        OfferedCredentialMetadata::CredentialMetadata(metadata.clone()),
-                    );
-                }
-                (Format::SdJwt | Format::MsoMdoc, _, None) => missing_metadata_config_ids.push(config_id.clone()),
+                SupportedConfiguration::MsoMdoc { credential_metadata }
+                | SupportedConfiguration::SdJwt {
+                    credential_metadata, ..
+                } => match credential_metadata {
+                    Some(metadata) => {
+                        credential_metadata_by_config_id.insert(
+                            config_id.clone(),
+                            OfferedCredentialMetadata::CredentialMetadata(metadata.clone()),
+                        );
+                    }
+                    None => missing_metadata_config_ids.push(config_id.clone()),
+                },
             }
         }
 
@@ -851,7 +873,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         .await?
         .into_iter()
         .flatten()
-        .chain(credential_metadata)
+        .chain(credential_metadata_by_config_id)
         .collect();
 
         Ok(metadata_per_config_id)
@@ -872,9 +894,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         // If both the config_id and format match, remove the Credential Configuration. Otherwise,
                         // consider this Credential Preview an excess preview.
                         match configs.entry(preview.config_id.clone()) {
-                            Entry::Occupied(occupied_entry)
-                                if occupied_entry.get().credential_kind.format == preview.format =>
-                            {
+                            Entry::Occupied(occupied_entry) if occupied_entry.get().format() == preview.format => {
                                 let (config_id, _config) = occupied_entry.remove_entry();
 
                                 Either::Left(OfferedCredential::new_by_config_id(config_id, preview.format, preview))
@@ -888,7 +908,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 if !configs.is_empty() {
                     let missing = configs
                         .into_iter()
-                        .map(|(config_id, config)| (config_id, None, config.credential_kind.format))
+                        .map(|(config_id, config)| (config_id, None, config.format()))
                         .collect();
 
                     return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
@@ -906,7 +926,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         match configs
                             .get_mut(&preview.config_id)
                             .and_then(|(config, credential_ids)| {
-                                if config.credential_kind.format == preview.format {
+                                if config.format() == preview.format {
                                     credential_ids.take(&preview.credential_id)
                                 } else {
                                     None
@@ -932,7 +952,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         .into_iter()
                         .flat_map(|(config_id, (config, credential_ids))| {
                             let credential_id_count = credential_ids.len();
-                            let format = config.credential_kind.format;
+                            let format = config.format();
                             std::iter::repeat_n(config_id, credential_id_count)
                                 .zip(credential_ids)
                                 .map(move |(config_id, credential_id)| (config_id, Some(credential_id), format))
@@ -1435,6 +1455,7 @@ mod tests {
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::status_claim::StatusListClaim;
