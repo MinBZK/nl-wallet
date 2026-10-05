@@ -12,8 +12,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
 use error_category::ErrorCategory;
-use http_utils::urls::HttpsUri;
-use http_utils::urls::HttpsUriError;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
@@ -22,7 +20,6 @@ use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use rustls_pki_types::pem::PemObject;
 use utils::generator::Generator;
-use utils::vec_at_least::VecNonEmpty;
 use webpki::CertRevocationList;
 use webpki::EndEntityCert;
 use webpki::Error;
@@ -35,7 +32,6 @@ use webpki::UnknownStatusPolicy;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
-use x509_parser::extensions::GeneralName;
 use x509_parser::nom::AsBytes;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
@@ -63,8 +59,6 @@ pub use dn::DistinguishedName;
 pub use dn::DistinguishedNameError;
 pub use key_identifier::KeyIdentifier;
 #[cfg(any(test, feature = "generate"))]
-pub use san::NO_SAN;
-#[cfg(any(test, feature = "generate"))]
 pub use san::SubjectAltNameUri;
 pub use usage::CertificateUsage;
 pub use usage::CertificateUsageError;
@@ -82,19 +76,19 @@ pub enum CertificateError {
     EndEntityCertificateParsing(#[source] Box<webpki::Error>),
 
     #[error("certificate content parsing failed: {0}")]
-    X509CertificateParsing(#[from] x509_parser::nom::Err<X509Error>),
+    X509CertificateParsing(#[source] x509_parser::nom::Err<X509Error>),
 
     #[error("pem parsing failed: {0}")]
-    PemParsing(#[from] rustls_pki_types::pem::Error),
+    PemParsing(#[source] rustls_pki_types::pem::Error),
 
     #[error("failed to parse certificate public key: {0}")]
     PublicKeyParsing(#[source] Box<p256::pkcs8::spki::Error>),
 
     #[error("PEM decoding error: {0}")]
-    Pem(#[from] x509_parser::nom::Err<PEMError>),
+    Pem(#[source] x509_parser::nom::Err<PEMError>),
 
     #[error("X509 coding error: {0}")]
-    X509Error(#[from] X509Error),
+    X509Error(#[source] X509Error),
 
     #[error("private key does not belong to public key from certificate")]
     KeyMismatch,
@@ -102,17 +96,8 @@ pub enum CertificateError {
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
-    #[error("missing SAN extension")]
-    MissingSan,
-
-    #[error("missing SAN DNS name or URI")]
-    MissingSanDnsNameOrUri,
-
-    #[error("SAN DNS name is not a URI: {0}")]
-    SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriError),
-
     #[error("could not serialize to DER: {0}")]
-    DerSerialization(#[from] SerializeError),
+    DerSerialization(#[source] SerializeError),
 
     #[error("certificate chain must not contain the trust anchor")]
     #[category(critical)]
@@ -301,7 +286,7 @@ impl BorrowingCertificate {
                 Ok((
                     x509_parser::objects::oid2abbrev(attr.attr_type(), x509_parser::objects::oid_registry())
                         .map_or(attr.attr_type().to_id_string(), String::from),
-                    attr.as_str()?,
+                    attr.as_str().map_err(CertificateError::X509Error)?,
                 ))
             })
             .collect::<Result<_, _>>()
@@ -335,34 +320,17 @@ impl BorrowingCertificate {
             .iter_attributes()
             .map(|attr| {
                 let r#type = attr.attr_type().to_id_string();
-                let value = BASE64_STANDARD_NO_PAD.encode(&attr.attr_value().to_der_vec()?);
+                let value = BASE64_STANDARD_NO_PAD.encode(
+                    &attr
+                        .attr_value()
+                        .to_der_vec()
+                        .map_err(CertificateError::DerSerialization)?,
+                );
                 Ok::<_, CertificateError>(format!("{}={}", r#type, value))
             })
             .try_collect()?;
 
         Ok(CanonicalDistinguishedName::new(encoded_attrs.join(",")))
-    }
-
-    /// Returns the SAN DNS names and URIs from the certificate, as an HTTPS URI.
-    pub fn san_dns_name_or_uris(&self) -> Result<VecNonEmpty<HttpsUri>, CertificateError> {
-        let san_ext = self
-            .x509_certificate()
-            .subject_alternative_name()?
-            .ok_or(CertificateError::MissingSan)?;
-
-        let san_dns_name_or_uri = san_ext.value.general_names.iter().filter_map(|name| match name {
-            GeneralName::DNSName(name) => Some(format!("https://{name}")),
-            GeneralName::URI(uri) => Some(uri.to_string()),
-            _ => None,
-        });
-
-        let san_https_uris = san_dns_name_or_uri
-            .map(|san| san.parse().map_err(CertificateError::SanDnsNameOrUriIsNotAnHttpsUri))
-            .collect::<Result<Vec<_>, _>>()?
-            .try_into()
-            .map_err(|_| CertificateError::MissingSanDnsNameOrUri)?;
-
-        Ok(san_https_uris)
     }
 
     /// From the AuthorityKeyIdentifier in the certificate, if present, return the key identifier field:
@@ -533,7 +501,6 @@ mod tests {
                     usage,
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
         let key_usage = key_pair.certificate().x509_certificate().key_usage().unwrap();
@@ -556,7 +523,6 @@ mod tests {
             .generate_key_pair(
                 DistinguishedName::create_mock("mycert"),
                 CertificateConfiguration::with_usage(CertificateUsage::Wia),
-                NO_SAN,
             )
             .unwrap();
 
@@ -594,7 +560,7 @@ mod tests {
         // Create a CA and a leaf certificate
         let ca = Ca::generate_mock();
         let leaf = ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default())
             .unwrap();
         let leaf_certificate = leaf.certificate();
 
@@ -642,7 +608,7 @@ mod tests {
         };
 
         let issuer_key_pair = ca
-            .generate_key_pair(DistinguishedName::create_mock("mycert"), config, NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("mycert"), config)
             .unwrap();
         issuer_key_pair
             .certificate()
@@ -744,7 +710,7 @@ mod tests {
 
         // Both leaves are signed by the new CA key (same key in cross-cert and self-signed cert).
         let leaf = new_ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default())
             .unwrap();
 
         // Phase 1: leaf verified against old CA with the cross-cert as intermediate.
@@ -795,7 +761,7 @@ mod tests {
 
         // Leaf
         let leaf_key_pair = intermediate_ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default())
             .unwrap();
 
         // Verify whole chain with leaf, intermediate and ca trust anchor

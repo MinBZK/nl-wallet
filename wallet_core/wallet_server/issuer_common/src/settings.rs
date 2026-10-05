@@ -663,7 +663,6 @@ mod tests {
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use crypto::x509::DistinguishedName;
-    use crypto::x509::SubjectAltNameUri;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use serde::Serialize;
@@ -888,7 +887,6 @@ mod tests {
             .generate_key_pair(
                 DistinguishedName::create_mock("Issuer without organization"),
                 Default::default(),
-                crypto::x509::NO_SAN,
             )
             .unwrap()
             .into();
@@ -916,7 +914,6 @@ mod tests {
             .generate_key_pair(
                 DistinguishedName::create_mock("Issuer without organization"),
                 CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-                crypto::x509::NO_SAN,
             )
             .unwrap()
             .into();
@@ -976,7 +973,6 @@ mod tests {
             .generate_key_pair(
                 DistinguishedName::create_legal_person_mock("different"),
                 CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
-                ["https://different.example.com/".parse::<SubjectAltNameUri>().unwrap()],
             )
             .expect("generate tsl cert failed");
 
