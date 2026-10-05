@@ -45,6 +45,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         .into_iter()
         .sorted_by(|(k1, v1), (k2, v2)| (v1, k1).cmp(&(v2, k2)))
         .collect::<IndexMap<_, _>>();
+    let mock_custom_bsn = settings.digid.mock_custom_bsn;
 
     let digid_metadata_client = DigidMetadataClient::try_new(settings.digid.client_settings)?;
     let brp_client = HttpBrpClient::new(settings.brp_server);
@@ -80,7 +81,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             build_mock_login_csp(&settings.authorizing_issuer_settings.wallet_redirect_uris).into_boxed_str(),
         );
 
-        Some(MockLoginState::new(client, mock_subjects, csp))
+        Some(MockLoginState::new(client, mock_subjects, mock_custom_bsn, csp))
     };
     let mock_login_uri = mock_login.as_ref().map(|_| callback_base_url.join(MOCK_LOGIN_PATH));
 
