@@ -25,6 +25,7 @@ class DemoIndexWebPage : MobileActions() {
     private val drivingLicenseButtonLocator = By.id("mdl")
     private val registrationCertificateButtonLocator = By.id("mvc")
 
+    fun switchToIndexPage() = switchToWebViewWindowContaining(headerTextLocator)
 
     fun visible() = isWebElementVisible(findWebElement(headerTextLocator))
 

@@ -240,7 +240,8 @@ run-automation-tests-publish-results-android:
     - { job: run-automation-card-and-history-tests-android }
     - { job: run-automation-disclosure-tests-android }
     - { job: run-automation-introduction-tests-android }
-    - { job: run-automation-issuance-tests-android }
+    - { job: run-automation-pid-issuance-tests-android }
+    - { job: run-automation-card-issuance-tests-android }
     - { job: run-automation-menu-and-settings-tests-android }
     - { job: run-automation-open-app-tests-android }
     - { job: run-automation-security-tests-android }
@@ -260,7 +261,8 @@ run-automation-tests-publish-results-ios:
     - { job: run-automation-card-and-history-tests-ios }
     - { job: run-automation-disclosure-tests-ios }
     - { job: run-automation-introduction-tests-ios }
-    - { job: run-automation-issuance-tests-ios }
+    - { job: run-automation-pid-issuance-tests-ios }
+    - { job: run-automation-card-issuance-tests-ios }
     - { job: run-automation-menu-and-settings-tests-ios }
     - { job: run-automation-open-app-tests-ios }
     - { job: run-automation-security-tests-ios }
@@ -290,10 +292,15 @@ run-automation-introduction-tests-android:
   variables:
     TESTS: "suite.IntroductionTestSuite"
 
-run-automation-issuance-tests-android:
+run-automation-pid-issuance-tests-android:
   extends: .run-automation-tests-default
   variables:
-    TESTS: "suite.IssuanceTestSuite"
+    TESTS: "suite.PidIssuanceTestSuite"
+
+run-automation-card-issuance-tests-android:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "suite.CardIssuanceTestSuite"
 
 run-automation-menu-and-settings-tests-android:
   extends: .run-automation-tests-default
@@ -341,10 +348,15 @@ run-automation-introduction-tests-ios:
   variables:
     TEST_SUITE: "suite.IntroductionTestSuite"
 
-run-automation-issuance-tests-ios:
+run-automation-pid-issuance-tests-ios:
   extends: .run-automation-tests-ios-default
   variables:
-    TEST_SUITE: "suite.IssuanceTestSuite"
+    TEST_SUITE: "suite.PidIssuanceTestSuite"
+
+run-automation-card-issuance-tests-ios:
+  extends: .run-automation-tests-ios-default
+  variables:
+    TEST_SUITE: "suite.CardIssuanceTestSuite"
 
 run-automation-menu-and-settings-tests-ios:
   extends: .run-automation-tests-ios-default

@@ -199,6 +199,40 @@ open class MobileActions {
         }
     }
 
+    fun scrollToElementContainingTextExcludingText(includeText: String, excludeText: String): WebElement {
+        return when (platform()) {
+            Platform.ANDROID -> {
+                val escapedInclude = Regex.escape(includeText)
+                val escapedExclude = Regex.escape(excludeText)
+                val regexPattern = "(?s)^(?!.*$escapedExclude).*$escapedInclude.*$"
+                val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
+                driver.findElement(
+                    AppiumBy.androidUIAutomator(
+                        "new UiScrollable(new UiSelector().scrollable(true))" +
+                            ".scrollIntoView(new UiSelector().descriptionMatches($quotedPattern))"
+                    )
+                )
+            }
+            Platform.IOS -> {
+                val locator = By.xpath("//*[contains(@name, ${quoteForIos(includeText)})]")
+
+                for (direction in listOf("up", "down")) {
+                    repeat(8) {
+                        if (driver.findElements(locator).any { it.isDisplayed }) {
+                            Thread.sleep(SCREEN_TRANSITION_MILLIS)
+                            driver.findElements(locator).firstOrNull { it.isDisplayed }?.let { return it }
+                        }
+                        (driver as JavascriptExecutor).executeScript(
+                            "mobile: swipe",
+                            iosSwipeArgs(direction)
+                        )
+                    }
+                }
+                throw NoSuchElementException("Couldn't bring element containing '$includeText' into view")
+            }
+        }
+    }
+
     fun scrollDown(pixels: Int, durationMs: Int = 300) {
         val driver = when (platform()) {
             Platform.ANDROID -> driver as AndroidDriver
@@ -559,9 +593,10 @@ open class MobileActions {
     }
 
     fun getTextFromAllChildElementsFromElementWithText(parentText: String): String {
+        val parent = findElementByText(parentText, timeoutInSeconds = 15)
         return when (platform()) {
             Platform.ANDROID ->
-                findElementByText(parentText).findElements(By.xpath(".//*"))
+                parent.findElements(By.xpath(".//*"))
                     .joinToString("") { it.getAttribute("contentDescription") ?: "" }
             Platform.IOS ->
                 driver.findElements(

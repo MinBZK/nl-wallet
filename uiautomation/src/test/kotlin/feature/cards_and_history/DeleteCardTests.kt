@@ -70,7 +70,7 @@ class DeleteCardTests : TestBase() {
         setUp(testInfo)
 
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickMuseumMaandkaartButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.acceptOpenWalletDialog()
