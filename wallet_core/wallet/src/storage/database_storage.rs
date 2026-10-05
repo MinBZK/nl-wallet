@@ -3056,6 +3056,11 @@ pub(crate) mod tests {
         // Cancel event should exist
         assert_eq!(fetched_events.len(), 1);
         assert_eq!(fetched_events.first().unwrap().timestamp(), &timestamp);
+        assert_matches!(
+            &fetched_events[0],
+            WalletEvent::Disclosure { organization: stored_organization, .. }
+                if stored_organization.as_ref() == &organization
+        );
 
         // Still no data shared with RP
         assert!(!storage.did_share_data_with_relying_party(&organization).await.unwrap());

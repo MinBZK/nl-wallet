@@ -452,11 +452,12 @@ where
             }
         };
 
+        let organization = Organization::try_from(&verifier_certificate).map_err(DisclosureError::Organization)?;
         let (candidate_attestations, shared_data_with_relying_party_before) = self
             .prepare_disclosure(
                 &device_request.items_requests().collect_vec(),
                 &wallet_config.pid_attributes,
-                &verifier_certificate,
+                &organization,
             )
             .await?;
 
@@ -465,7 +466,6 @@ where
             .flatten() // remove entries for which no suitable candidates were found
             .collect::<Vec<_>>();
 
-        let organization = Organization::try_from(&verifier_certificate).map_err(DisclosureError::Organization)?;
         let session_type = SessionType::CrossDevice; // all close proximity disclosure sessions are cross-device
         let disclosure_type = DisclosureType::Regular; // all close proximity disclosure sessions are regular
         let purpose = RedirectUriPurpose::Browser; // irrelevant for close proximity disclosure sessions

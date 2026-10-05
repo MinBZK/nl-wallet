@@ -90,7 +90,7 @@ where
             return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
         };
 
-        let organization = Box::new(Organization::try_from(session.protocol_state.certificate()).unwrap());
+        let organization = Box::new(session.protocol_state.organization().clone());
 
         let redirect_uri = match self
             .perform_disclosure(
@@ -228,7 +228,9 @@ mod tests {
         let certificate = key_pair.certificate().clone();
 
         let mut disclosure_session = MockDisclosureSession::new();
-        disclosure_session.expect_certificate().return_const(certificate);
+        disclosure_session
+            .expect_organization()
+            .return_const(super::Organization::try_from(&certificate).unwrap());
 
         let disclosable_attestation = match requested_format {
             Format::MsoMdoc => {

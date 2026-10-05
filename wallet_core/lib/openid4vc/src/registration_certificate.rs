@@ -83,7 +83,7 @@ pub async fn validate_registration_certificate_and_query<C>(
     registration_certificate_trust_anchors: &TrustAnchors,
     revocation_verifier: &RevocationVerifier<C>,
     time: &impl Generator<chrono::DateTime<chrono::Utc>>,
-) -> Result<(), RegistrationCertificateError>
+) -> Result<StatusValidatedRegistrationCertificate, RegistrationCertificateError>
 where
     C: StatusListClient,
 {
@@ -98,7 +98,9 @@ where
 
     certificate
         .validate_query_authorization(query)
-        .map_err(RegistrationCertificateError::Authorization)
+        .map_err(RegistrationCertificateError::Authorization)?;
+
+    Ok(certificate)
 }
 
 #[cfg(test)]
@@ -164,6 +166,7 @@ mod tests {
             &TimeGenerator,
         )
         .await
+        .map(|_| ())
     }
 
     #[rstest]
