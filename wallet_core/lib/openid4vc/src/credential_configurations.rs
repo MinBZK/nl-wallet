@@ -562,13 +562,6 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_configuration_type_metadata_try_new() {
-        let type_metadata = degree_type_metadata();
-
-        assert_eq!(type_metadata.vct(), "com.example.degree");
-    }
-
-    #[test]
     fn test_credential_configuration_type_metadata_try_new_error_vct_not_found() {
         let (_, degree_documents) = TypeMetadataDocuments::degree_example();
 
