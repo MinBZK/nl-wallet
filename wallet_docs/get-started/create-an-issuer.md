@@ -28,7 +28,7 @@ We'll start with a paragraph about the related architecture, with links to the
 relevant architecture documents.
 
 We'll then cover the creation of the technical attestation schema, the creation
-of issuer authentication documents and the corresponding issuer certificates,
+of issuer registration certificates and the corresponding issuer certificates,
 which are essential for identifying your service within the NL Wallet ecosystem.
 
 Next, we'll guide you through setting up the `issuance_server`. This includes
@@ -94,7 +94,8 @@ a production environment, more stringent rules might apply.
 If you plan to eventually bring your issuer into production readiness, you might
 want to consider our [onboarding][10] process. When you are a member of the NL
 Wallet community, you have access to community resources that can help with
-validation of your TAS, `issuer_auth` and `issuance_server` configuration files.
+validation of your TAS, registration certificate and `issuance_server`
+configuration files.
 </div>
 
 ### Decide on required metadata for your TAS
@@ -254,14 +255,7 @@ the [previous section](#decide-on-required-metadata-for-your-tas)). Modified or
 not, make sure you save it somewhere, keeping our earlier warnings about file
 name and location in mind.
 
-## Creating an issuer authentication document
-
-We're first going to create a so-called `issuer_auth` document.
-
-The subsections below describe the decisions you need to make as an issuer with
-regards to attributes you want to issue, what data we require from you, how to
-create an issuer certificate for your disclosure-based issuance setup (which is
-configured for usage within the `issuance_server` configuration).
+## Creating issuer, TSL, WRPAC and WRPRC certificates
 
 In this guide, we assume you have [onboarded succesfully][10] - i.e., you are
 running your own CA and the public key of that CA has been shared with the
@@ -275,83 +269,6 @@ but when you want to test your issuer with the NL Wallet platform (i.e., our
 backend and mobile apps in our acceptance and pre-production environments), you
 do need to be onboarded to get access to those environments.
 </div>
-
-### Decide on required metadata for your issuer_auth
-
-An issuer certificate contains a bunch of metadata, which we store as a part of
-the certificate in a so-called X.509v3 extension. We use this data to present a
-view of you, the issuer, in the NL Wallet app GUI.
-
-| **ROOT**                                                      | Key                        | Languages                                      | Description                             |                              | ------------------------------- |
-| ------------------------------------------------------------- | -------------------------- | ---------------------------------------------- | --------------------------------------- | ---------------------------- | ------------------------------- |
-|                                                               | `organization.displayName` | `nl+en`                                        | Name of the verifier as shown in the    |
-| app app.                                                      |                            | `organization.legalName`                       | `nl+en`                                 | Legal name of the verifier.  |
-| `organization.description`                                    | `nl+en`                    | Short one-sentence description or              |
-| mission statement of the verifier.                            |                            | `organization.webUrl`                          | -                                       | The home URL                 |
-| of the verifier.                                              |                            | `organization.city`                            | `nl+en`                                 | The home city of the         |
-| verifier.                                                     |                            | `organization.category`                        | `nl+en`                                 | Bank, Municipality, Trading, |
-| Delivery Service, etc.                                        |                            | `organization.logo.mimeType`                   | -                                       | Logo mimetype, can           |
-| be image/svg+xml, image/png or image/jpeg                     |                            | `organization.logo.imageData`                  | -                                       |
-| Logo image data. When SVG, an escaped XML string, else base64 |                            |
-| `organization.countryCode`                                    | -                          | Two-letter country code of verifier residence. |
-|                                                               | `organization.kvk`         | -                                              | Chamber of commerce number of verifier. |                              |
-| `organization.privacyPolicyUrl`                               | -                          | Link to verifier's privacy policy.             |
-
-Note: In the `Languages` column where it says `nl+en` for example, please
-provide both Dutch and English values.
-
-### Creating the issuer_auth JSON document
-
-When you've collected all the required metadata, you are ready to create the
-`issuer_auth.json` file. Here is an example for our insurance company:
-
-```json
-{
-    "organization": {
-        "displayName": {
-            "nl": "VerzekerAar",
-            "en": "InsurAnce"
-        },
-        "legalName": {
-            "nl": "VerzekerAar N.V.",
-            "en": "VerzekerAar N.V."
-        },
-        "description": {
-            "nl": "VerzekerAar is een voorbeeld-verzekeraar.",
-            "en": "InsurAnce is an exemplar insurance company."
-        },
-        "webUrl": "https://insurance.example.com",
-        "city": {
-            "nl": "Den Haag",
-            "en": "The Hague"
-        },
-        "category": {
-            "nl": "Verzekeringen",
-            "en": "Insurance"
-        },
-        "logo": {
-            "mimeType": "image/svg+xml",
-            "imageData": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\" fill=\"none\"><rect width=\"64\" height=\"64\" y=\"-.002\" fill=\"#3A839A\" rx=\"12\"/><path fill=\"#FCFCFC\" d=\"M29.563 33.6H25.5v-4.8h4.063v-4h4.875v4H38.5v4.8h-4.062v4h-4.876zM32 16l-13 4.8v9.744C19 38.624 24.541 46.16 32 48c7.459-1.84 13-9.376 13-17.456V20.8zm9.75 14.544c0 6.4-4.144 12.32-9.75 14.128-5.606-1.808-9.75-7.712-9.75-14.128v-7.52l9.75-3.6 9.75 3.6z\"/></svg>"
-        },
-        "countryCode": "nl",
-        "kvk": "99876543",
-        "privacyPolicyUrl": "https://insurance.example.com/privacy"
-    }
-}
-```
-
-Take the above example, make sure you've read the previous sections which
-explain what the different key/values mean, and (optionally) construct your own
-`issuer_auth.json` file (or copy it verbatim if you're just testing). When we
-are going to be creating the issuer certificate in the next sections, we are
-going to need it at a specific location, so save it (inside the `nl-wallet` git
-directory):
-
-```
-target/is-config/issuer_auth.json
-```
-
-## Creating issuer, TSL and WRPAC certificates
 
 Let's create the issuer, TSL and WRPAC certificates. We're going to clone the NL
 Wallet repository, enter its directory, set a target directory and specify an
@@ -371,12 +288,6 @@ Make sure you have a working toolchain as documented in our GitHub project root
 `README.md` [here][12]. Specifically, you need to have `rust` and `openssl`
 installed and working.
 </div>
-
-<div class="admonition caution">
-<p class="title">Did you create an issuer_auth.json?</p>
-You need valid `issuer_auth.json` document, which you should have, if you
-followed along with the previous sections where we created
-[issuer](#creating-the-issuer_auth-json-document)</div>
 
 <div class="admonition caution">
 <p class="title">Did you create your own CA?</p>
@@ -404,7 +315,7 @@ cd nl-wallet
 
 # Set and create target directory, identifier for your certificates.
 export CA_DIR=target/ca-cert
-export TARGET_DIR=target/vs-config
+export TARGET_DIR=target/is-config
 export IDENTIFIER=foocorp
 export WRPAC_CRL_URL=https://foocorp.example/wrpac.crl.der
 mkdir -p "${CA_DIR}" "${TARGET_DIR}"
@@ -424,7 +335,6 @@ cargo run --manifest-path "wallet_core/Cargo.toml" --bin "wallet_ca" cert \
     --common-name "issuer.${IDENTIFIER}" \
     --organization-name "${IDENTIFIER}" \
     --organization-id "NTRNL-00000002" \
-    --issuer-auth-file "${TARGET_DIR}/issuer_auth.json" \
     --file-prefix "${TARGET_DIR}/issuer.${IDENTIFIER}"
 
 # Create the TSL certificate using wallet_ca.
@@ -480,10 +390,82 @@ clients receive either the previous or new complete CRL, never a partially
 written file. The wallet rejects a WRPAC when its CRL is unavailable, invalid,
 expired, or lists that certificate.
 
-The used CA public certificate (referenced in the previous `wallet_ca` command)
-needs to be in the list of various so-called trust anchors. Specifically,
-issuers and verifiers, and the NL Wallet app itself need to know if this CA is a
-trusted CA, and our software "knows" that by checking its trust anchors.
+The Wallet Relying Party Registration Certificate (WRPRC) provides the issuer
+organization information shown in the wallet. It is bound to the WRPAC that
+signs issuer metadata. The following example uses the WRPRC CA created by
+`scripts/setup-devenv.sh`; for another environment, arrange the WRPRC and its
+status list with the registration authority trusted by that environment.
+
+Create separate WRPRC and status-list signing certificates with the same
+subject. Then create a registration payload for the insurance credential, using
+the organization identifier and legal name from the WRPAC above:
+
+```shell
+export WRPRC_CA_DIR=scripts/devenv/target
+export WRPRC_STATUS_LIST_URL=https://foocorp.example/wrprc-status-list
+
+for CERT_TYPE in wrprc tsl; do
+    cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert \
+        --type "${CERT_TYPE}" \
+        --ca-key-file "${WRPRC_CA_DIR}/ca.wrprc.key.pem" \
+        --ca-crt-file "${WRPRC_CA_DIR}/ca.wrprc.crt.pem" \
+        --common-name "Development Registrar" \
+        --organization-name "Development Registrar" \
+        --organization-id "NTRNL-00000001" \
+        --file-prefix "${TARGET_DIR}/${CERT_TYPE}-registrar.${IDENTIFIER}"
+done
+
+cat <<EOF > "${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc.json"
+{
+    "id": "${IDENTIFIER}-issuer",
+    "sub": "NTRNL-00000002",
+    "sub_ln": "${IDENTIFIER}",
+    "name": "${IDENTIFIER}",
+    "country": "NL",
+    "registry_uri": "https://register.example.com",
+    "support_uri": "support@foocorp.example",
+    "srv_description": [[{"lang": "en", "value": "Issuing insurance credentials"}]],
+    "supervisory_authority": {},
+    "entitlements": ["https://uri.etsi.org/19475/Entitlement/Non_Q_EAA_Provider"],
+    "provides_attestations": [
+        {"format": "dc+sd-jwt", "meta": {"vct_values": ["com.example.insurance"]}}
+    ],
+    "iat": $(date +%s),
+    "status": {"idx": "0", "uri": "${WRPRC_STATUS_LIST_URL}"},
+    "policy_id": ["0.4.0.19475.3.1"],
+    "certificate_policy": "https://register.example.com/certificate-policy"
+}
+EOF
+
+cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- \
+    registration-certificate \
+    --wrprc-key-file "${TARGET_DIR}/wrprc-registrar.${IDENTIFIER}.key.pem" \
+    --wrprc-crt-file "${TARGET_DIR}/wrprc-registrar.${IDENTIFIER}.crt.pem" \
+    --wrpac-crt-file "${TARGET_DIR}/wrpac.${IDENTIFIER}.crt.pem" \
+    --payload-file "${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc.json" \
+    --format cwt \
+    > "${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc"
+
+cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- \
+    status-list \
+    --tsl-key-file "${TARGET_DIR}/tsl-registrar.${IDENTIFIER}.key.pem" \
+    --tsl-crt-file "${TARGET_DIR}/tsl-registrar.${IDENTIFIER}.crt.pem" \
+    --uri "${WRPRC_STATUS_LIST_URL}" \
+    --status valid \
+    --valid-for-days 7 \
+    --ttl-seconds 3600 \
+    > "${TARGET_DIR}/wrprc-status-list.jwt"
+```
+
+Publish `wrprc-status-list.jwt` at `WRPRC_STATUS_LIST_URL` with content type
+`application/statuslist+jwt`, and renew it before its seven-day expiry. The
+payload's status index `0` refers to the first entry, marked `valid` above. The
+wallet must trust the WRPRC CA through its `wrprc_trust_anchors`; local
+development setup configures this for the generated CA.
+
+The CA public certificates used above need to be in the relevant trust anchor
+lists. Issuers, verifiers and the NL Wallet app use these lists to determine
+which CAs they trust.
 
 When you run locally, when using `setup-devenv.sh` and `start-devenv.sh`, the
 generated CA certificate is automatically added to the trust anchors within the
@@ -705,7 +687,7 @@ with the `RUST_LOG` environment variable: `RUST_LOG=debug ./issuance_server`
 
 #### Configuring trust anchors
 
-[When you created the issuer, TSL and WRPAC certificates](#creating-issuer-tsl-and-wrpac-certificates),
+[When you created the issuer, TSL, WRPAC and WRPRC certificates](#creating-issuer-tsl-wrpac-and-wrprc-certificates),
 you signed those certificates using a CA, either generated by the development
 setup script or specifically [created by you][19] as part of the (optional)
 [community onboarding process][10].
@@ -831,7 +813,7 @@ EOF
 unset IS_WALLET_CLIENT_IDS
 ```
 
-#### Configuring metadata document references
+#### Configuring metadata and issuer registration
 
 We [previously](#creating-the-technical-attestation-schema-json-document) made a
 technical attestation schema JSON document. The `issuance_server` needs to know
@@ -842,14 +824,25 @@ followed the instructions, was copied to `target/is-config` within the
 `nl-wallet` directory, where the `issuance_server` will find it using the below
 configuration (provided it is started from the `target/is-config` directory):
 
+Set `registration_certificate` to the generated WRPRC string and configure
+`credential_metadata_keypair` with the same WRPAC used when creating it. The
+WRPRC file is already base64url encoded; do not encode it again.
+
 ```shell
 cd nl-wallet
+export IDENTIFIER=foocorp
 export IS_WALLET_METADATA_FILES=("insurance_metadata.json")
 export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/08-wallet-metadata-files.toml"
+registration_certificate = "$(cat "${TARGET_DIR}/issuer.${IDENTIFIER}.wrprc")"
 type_metadata = [$(printf '"%s",' "${IS_WALLET_METADATA_FILES[@]}" | sed 's/,$//')]
+
+[credential_metadata_keypair]
+private_key_type = "software"
+private_key = "$(openssl base64 -e -A -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der")"
+certificate = "$(openssl base64 -e -A -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.crt.der")"
 EOF
-unset IS_WALLET_METADATA_FILES
+unset IS_WALLET_METADATA_FILES IDENTIFIER
 ```
 
 <div class="admonition note">
@@ -1088,9 +1081,9 @@ unset TRUST_ANCHORS
 
 We're now going to base64 encode the issuer key and certificate within the
 `private_key` and `certificate` fields of the `credential_configurations`. This
-is the certificate that embedded the previously created `issuer_auth.json`. Note
-that this makes `insurance` the Credential Configuration identifier that is
-presented in the Issuer Metadata. Let's create the section:
+is the credential signing certificate. Note that this makes `insurance` the
+Credential Configuration identifier that is presented in the Issuer Metadata.
+Let's create the section:
 
 ```shell
 cd nl-wallet
@@ -1196,8 +1189,7 @@ performed:
 - Verify all `disclosure_settings` and `credential_configurations` certificates
   are signed by any of the `issuer_trust_anchors` and `wrpac_trust_anchors`;
 - Verify all `credential_configurations` certificates are valid
-  issuer-certificates, and contain the necessary Extended Key Usages and the
-  `issuer_auth.json`;
+  issuer-certificates and contain the necessary Extended Key Usages;
 - Verify all `disclosure_settings` and `credential_configurations` key-pairs are
   valid, i.e., the public and private keys should belong together;
 

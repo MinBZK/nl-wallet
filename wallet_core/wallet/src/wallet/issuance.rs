@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 
-use attestation_data::auth::Organization;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_kind::CredentialKind;
@@ -19,7 +19,6 @@ use itertools::Itertools;
 use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::token::CredentialPreview;
-use openid4vc::token::CredentialPreviewError;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::CredentialSelection;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -148,9 +147,6 @@ pub enum IssuanceError {
 
     #[error("error emtting history event: {0}")]
     Events(#[from] HistoryError),
-
-    #[error("failed to read issuer registration from issuer certificate: {0}")]
-    AttestationPreview(#[from] CredentialPreviewError),
 
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
@@ -435,7 +431,6 @@ where
                 ),
                 String::from(NL_WALLET_CLIENT_ID),
                 redirect_uri,
-                config.issuer_trust_anchors(),
             )
             .await?;
 
@@ -513,7 +508,6 @@ where
         let issuance_session = authorization_session
             .start_issuance(
                 &redirect_uri,
-                config.issuer_trust_anchors(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
             )
             .await
@@ -573,7 +567,7 @@ where
         );
 
         info!("successfully received token and previews from issuer");
-        let organization = &issuance_session.issuer_registration().organization;
+        let organization = Box::new(issuance_session.issuer_registration().organization().clone());
         let attestations = previews_metadata_and_identity
             .into_iter()
             .map(|(preview_data, metadata, identity)| {
@@ -719,13 +713,7 @@ where
             self.storage
                 .write()
                 .await
-                .update_credentials(
-                    Utc::now(),
-                    existing
-                        .into_iter()
-                        .map(|(credential, preview)| (credential.copies, preview))
-                        .collect_vec(),
-                )
+                .update_credentials(Utc::now(), existing)
                 .await
                 .map_err(IssuanceError::AttestationStorage)?;
         }
@@ -761,7 +749,7 @@ where
                 }
             }
             _ => IssuanceError::IssuerServer {
-                organization: issuance_session.issuer_registration().organization.clone(),
+                organization: Box::new(issuance_session.issuer_registration().organization().clone()),
                 error,
             },
         }
@@ -889,9 +877,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Duration;
@@ -902,6 +888,7 @@ mod tests {
     use openid4vc::wallet_issuance::IssuanceFlow;
     use openid4vc::wallet_issuance::OfferedCredentialMetadata;
     use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1281,6 +1268,7 @@ mod tests {
                 },
                 StoredAttestationMetadata::TypeMetadata(metadata),
                 None,
+                IssuerRegistration::new_mock(),
             )
         };
         // The stored PID is fetched both when matching the previews against it and when comparing its recovery code.
@@ -1456,7 +1444,7 @@ mod tests {
         let mut authorization_session = MockAuthorizationSession::new();
         authorization_session
             .expect_start_issuance_sync()
-            .return_once(|| Err(WalletIssuanceError::IssuerMismatch));
+            .return_once(|| Err(WalletIssuanceError::NoCredentialPreviewEndpoint));
 
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
@@ -1563,7 +1551,7 @@ mod tests {
             .collect_vec();
 
         let ca = Ca::generate_mock();
-        let issuer_key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
         let (payload, stored_metadata) =
             create_example_credential_payload(&time_generator, Format::SdJwt, attestation_type);
@@ -1591,6 +1579,7 @@ mod tests {
             },
             StoredAttestationMetadata::TypeMetadata(type_metadata),
             None,
+            IssuerRegistration::new_mock(),
         );
 
         let attestation_id = stored.attestation_id();
@@ -1910,6 +1899,7 @@ mod tests {
                     stored_attestation.clone(),
                     stored_metadata,
                     None,
+                    IssuerRegistration::new_mock(),
                 );
 
                 ((stored_attestation, issued_metadata), stored_copy)
@@ -2222,7 +2212,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|_| Err(WalletIssuanceError::IssuerMismatch));
+                .return_once(|_| Err(WalletIssuanceError::PublicKeyMismatch));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -2342,7 +2332,7 @@ mod tests {
     #[test]
     fn test_match_preview_and_stored_attestations() {
         let ca = Ca::generate_mock();
-        let issuer_key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
         let time_generator = MockTimeGenerator::default();
 
@@ -2371,6 +2361,7 @@ mod tests {
             },
             StoredAttestationMetadata::TypeMetadata(type_metadata),
             None,
+            IssuerRegistration::new_mock(),
         );
 
         // When the attestation already exists in the database, we expect the identity to be known.

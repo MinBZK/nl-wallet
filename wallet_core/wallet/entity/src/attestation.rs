@@ -25,6 +25,7 @@ pub struct Model {
     pub attestation_format: AttestationFormat,
     pub extended_types: ExtendedTypesModel,
     pub metadata: AttestationMetadataModel,
+    pub issuer_registration: Json,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]

@@ -335,7 +335,6 @@ function generate_pid_issuer_hsm_key_pair {
         --organization-name "${access_certificates[(pid,legal_name)]}" \
         --organization-id "${access_certificates[(pid,oid)]}" \
         --san-uri "https://pid.example.com" \
-        --issuer-auth-file "${DEVENV}/rvig_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
         --force
 
@@ -463,9 +462,6 @@ function generate_demo_issuer_issuance_key_pairs {
 # $3 - Short name of the CA (default to type of certificate)
 function generate_demo_issuer_issuance_key_pair {
     local ca_args=()
-    if [[ ${2:-} == 'issuer' ]]; then
-        ca_args+=(--issuer-auth-file "${DEVENV}/$1_issuer_auth.json")
-    fi
     if [[ ${2:-} == 'wrpac' ]]; then
         ca_args+=(--crl-distribution-point "${WRPAC_CRL_DISTRIBUTION_POINT}")
     fi

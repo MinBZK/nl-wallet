@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use attestation_data::attributes::Attributes;
-use attestation_data::auth::Organization;
+use attestation_data::organization::Organization;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use indexmap::IndexMap;
@@ -159,7 +159,7 @@ pub mod test {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
-    use attestation_data::auth::Organization;
+    use attestation_data::organization::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;

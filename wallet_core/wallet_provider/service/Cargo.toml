@@ -38,7 +38,6 @@ mock_secure_keys = ["crypto/mock_secure_keys", "jwt/test"]
 mock = [
     "dep:anyhow",
     "apple_app_attest/mock",
-    "attestation_data/generate",
     "attestation_data/mock",
     "attestation_types/test_pid_constants",
     "crypto/generate",
@@ -134,7 +133,7 @@ tracing-test.workspace = true
 
 android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
-attestation_data = { path = "../../lib/attestation_data", features = ["mock", "generate"] }
+attestation_data = { path = "../../lib/attestation_data", features = ["mock"] }
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 http_utils = { path = "../../lib/http_utils", features = ["httpmock"] }

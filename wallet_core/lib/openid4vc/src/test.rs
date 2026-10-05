@@ -6,10 +6,8 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use attestation_data::attributes::Attribute;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
-use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
@@ -308,7 +306,7 @@ where
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let metadata_keypair = ca.generate_wrpac_issuer_mock_with_crl().unwrap();
-    let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+    let issuance_keypair = ca.generate_issuer_mock().unwrap();
     let trust_anchors = TrustAnchors::from(&ca);
     let wia_keypair = ca.generate_wia_mock().unwrap();
 

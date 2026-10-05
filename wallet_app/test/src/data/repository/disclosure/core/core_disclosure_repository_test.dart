@@ -40,9 +40,8 @@ void main() {
         relyingParty: Organization(
           legalName: '',
           displayName: '',
-          description: [],
+          serviceDescription: [],
           identifier: '',
-          category: [],
           countryCode: '',
         ),
         requestOriginBaseUrl: '',

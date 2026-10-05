@@ -8,6 +8,7 @@ use url::Url;
 use super::payload::Credential;
 use super::payload::MultiLanguageStringSet;
 use super::payload::ParsedRegistrationCertificate;
+use super::payload::Subject;
 use super::payload::UncheckedRegistrationCertificate;
 use crate::x509::RelyingParty;
 
@@ -44,6 +45,10 @@ pub struct BoundRegistrationCertificate(ParsedRegistrationCertificate);
 impl BoundRegistrationCertificate {
     pub fn payload(&self) -> &UncheckedRegistrationCertificate {
         self.0.payload()
+    }
+
+    pub fn subject(&self) -> &Subject {
+        self.0.subject()
     }
 }
 
@@ -175,7 +180,7 @@ fn validate_credential_set(value: &[Credential]) -> Result<(), CredentialSetVali
 }
 
 impl UncheckedRegistrationCertificate {
-    pub(super) fn parse_structure(&self) -> Result<SubjectType, RegistrationCertificateValidationError> {
+    pub(super) fn parse_structure(&self) -> Result<Subject, RegistrationCertificateValidationError> {
         let id = self
             .id
             .as_deref()
@@ -189,7 +194,7 @@ impl UncheckedRegistrationCertificate {
             validate_non_empty("name", name)?;
         }
 
-        let subject_type = self.parse_subject_type()?;
+        let subject = self.parse_subject()?;
 
         if self.country.len() != 2 || !self.country.bytes().all(|byte| byte.is_ascii_alphabetic()) {
             return Err(RegistrationCertificateValidationError::InvalidCountry);
@@ -254,19 +259,24 @@ impl UncheckedRegistrationCertificate {
             return Err(RegistrationCertificateValidationError::MissingPolicyIdentifier);
         }
 
-        Ok(subject_type)
+        Ok(subject)
     }
 
-    fn parse_subject_type(&self) -> Result<SubjectType, RegistrationCertificateValidationError> {
-        let subject_type = match (self.sub_ln.as_deref(), self.sub_gn.as_deref(), self.sub_fn.as_deref()) {
+    fn parse_subject(&self) -> Result<Subject, RegistrationCertificateValidationError> {
+        let subject = match (self.sub_ln.as_deref(), self.sub_gn.as_deref(), self.sub_fn.as_deref()) {
             (Some(sub_ln), None, None) => {
                 validate_non_empty("sub_ln", sub_ln)?;
-                SubjectType::LegalPerson
+                Subject::LegalPerson {
+                    legal_name: sub_ln.to_owned(),
+                }
             }
             (None, Some(sub_gn), Some(sub_fn)) => {
                 validate_non_empty("sub_gn", sub_gn)?;
                 validate_non_empty("sub_fn", sub_fn)?;
-                SubjectType::NaturalPerson
+                Subject::NaturalPerson {
+                    given_name: sub_gn.to_owned(),
+                    family_name: sub_fn.to_owned(),
+                }
             }
             (Some(_), Some(_), _) | (Some(_), _, Some(_)) => {
                 return Err(RegistrationCertificateValidationError::AmbiguousSubjectType);
@@ -274,7 +284,7 @@ impl UncheckedRegistrationCertificate {
             _ => return Err(RegistrationCertificateValidationError::UndeterminedSubjectType),
         };
 
-        Ok(subject_type)
+        Ok(subject)
     }
 
     fn validate_supervisory_authority(&self) -> Result<(), RegistrationCertificateValidationError> {
@@ -328,7 +338,10 @@ impl ParsedRegistrationCertificate {
         access_certificate_subject: &RelyingParty,
         now: DateTime<Utc>,
     ) -> Result<BoundRegistrationCertificate, RegistrationCertificateValidationError> {
-        let subject_type = self.subject_type();
+        let subject_type = match self.subject() {
+            Subject::LegalPerson { .. } => SubjectType::LegalPerson,
+            Subject::NaturalPerson { .. } => SubjectType::NaturalPerson,
+        };
         let (subject_field, access_identifier) = match (subject_type, access_certificate_subject) {
             (
                 SubjectType::LegalPerson,
@@ -423,6 +436,7 @@ mod tests {
     use super::ParsedRegistrationCertificate;
     use super::RegistrationCertificateValidationError;
     use super::SERVICE_PROVIDER_ENTITLEMENT;
+    use super::Subject;
     use super::SubjectType;
     use crate::x509::RelyingParty;
 
@@ -434,6 +448,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+        assert_matches!(certificate.subject(), Subject::LegalPerson { legal_name } if legal_name == "Example Company GmbH");
     }
 
     #[test]
@@ -458,7 +473,10 @@ mod tests {
             .unwrap()
             .validate_binding_and_time(&access_subject, validation_time())
             .unwrap();
-        assert_eq!(certificate.payload().sub_gn.as_deref(), Some("Jane"));
+        assert_matches!(
+            certificate.subject(),
+            Subject::NaturalPerson { given_name, family_name } if given_name == "Jane" && family_name == "Doe"
+        );
     }
 
     #[rstest]

@@ -5,7 +5,7 @@ use std::collections::HashSet;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributesError;
-use attestation_data::auth::Organization;
+use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
 use chrono::DateTime;
@@ -157,7 +157,7 @@ impl ValidityStatus {
 
 #[cfg(test)]
 pub mod mock {
-    use attestation_data::auth::Organization;
+    use attestation_data::organization::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
 

@@ -6,7 +6,6 @@ use std::time::Duration as StdDuration;
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::anyhow;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::registration_certificate::ParsedRegistrationCertificate;
 use attestation_data::x509::RelyingParty;
 use attestation_types::claim_path::ClaimPath;
@@ -21,7 +20,6 @@ use clio::CachedInput;
 use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate;
-use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
@@ -73,7 +71,7 @@ struct Cli {
 
 #[derive(Clone, Copy, ValueEnum)]
 enum CertType {
-    /// Mdoc/mdl issuer certificate; requires --issuer-auth-file
+    /// Mdoc/mdl issuer certificate
     Issuer,
     /// Token Status List signing certificate
     Tsl,
@@ -173,9 +171,6 @@ enum Command {
         /// Certificate type in EDI
         #[arg(short = 't', long = "type", value_parser)]
         cert_type: CertType,
-        /// Path to Issuer Authentication file in JSON format
-        #[arg(short, long, value_parser)]
-        issuer_auth_file: Option<CachedInput>,
         /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
@@ -229,9 +224,6 @@ enum Command {
         /// Certificate type in EDI
         #[arg(short = 't', long = "type", value_parser)]
         cert_type: CertType,
-        /// Path to Issuer Authentication file in JSON format
-        #[arg(short, long, value_parser)]
-        issuer_auth_file: Option<CachedInput>,
         /// Prefix to use for the generated files: <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
@@ -404,10 +396,9 @@ impl Command {
 
     fn get_certificate_configuration(
         cert_type: CertType,
-        issuer_auth_file: Option<CachedInput>,
         days: u32,
         crl_distribution_points: Vec<Url>,
-    ) -> Result<CertificateConfiguration> {
+    ) -> CertificateConfiguration {
         let usage = match cert_type {
             CertType::Issuer => Some(CertificateUsage::Mdl),
             CertType::Tsl => Some(CertificateUsage::StatusListSigning),
@@ -415,16 +406,11 @@ impl Command {
             CertType::Wrpac | CertType::Wrprc => None,
         };
 
-        let extension = issuer_auth_file
-            .map(|auth_file| serde_json::from_reader::<_, IssuerRegistration>(auth_file)?.to_custom_ext())
-            .transpose()?;
-
-        Ok(CertificateConfiguration {
+        CertificateConfiguration {
             usage,
-            extension,
             crl_distribution_points,
             ..Self::get_ca_configuration(days)
-        })
+        }
     }
 
     fn execute(self) -> Result<()> {
@@ -458,7 +444,6 @@ impl Command {
                 organization_id,
                 san_uris,
                 cert_type,
-                issuer_auth_file,
                 file_prefix,
                 days,
                 force,
@@ -474,8 +459,7 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config =
-                    Self::get_certificate_configuration(cert_type, issuer_auth_file, days, crl_distribution_points)?;
+                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points);
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let key_pair = ca.generate_key_pair(distinguished_name, config, san_uris)?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
@@ -495,7 +479,6 @@ impl Command {
                 given_name,
                 san_uris,
                 cert_type,
-                issuer_auth_file,
                 file_prefix,
                 days,
                 force,
@@ -512,8 +495,7 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config =
-                    Self::get_certificate_configuration(cert_type, issuer_auth_file, days, crl_distribution_points)?;
+                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points);
                 let san_uris = Self::get_san_uris(san_uris)?;
                 let certificate =
                     ca.generate_certificate(public_key.contents(), distinguished_name, config, san_uris)?;

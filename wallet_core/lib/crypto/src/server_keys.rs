@@ -398,9 +398,6 @@ pub mod generate {
                 result.key_usages = usage.key_usages();
                 result.extended_key_usages.push(usage.to_key_usage_purpose());
             }
-            if let Some(extension) = source.extension {
-                result.custom_extensions.push(extension);
-            }
             result.crl_distribution_points = source
                 .crl_distribution_points
                 .into_iter()

@@ -3,7 +3,6 @@ use std::num::NonZeroU8;
 
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
@@ -30,6 +29,7 @@ use super::WalletIssuanceError;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
+use super::issuer_registration::IssuerRegistration;
 use crate::authorization::VciAuthorizationRequest;
 use crate::client_auth::ClientAttestationChallengeMechanism;
 use crate::client_auth::fetch_client_auth_challenge;
@@ -81,6 +81,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
+    issuer_registration: IssuerRegistration,
     batch_size: NonZeroU8,
     token_endpoint: Url,
     client_attestation_challenge: ClientAttestationChallengeMechanism,
@@ -98,6 +99,7 @@ pub struct HttpAuthorizationSessionData {
     credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
     credential_issuer: IssuerIdentifier,
     issuer_endpoints: IssuerEndpoints,
+    issuer_registration: IssuerRegistration,
     batch_size: NonZeroU8,
     token_endpoint: Url,
     client_attestation_challenge: ClientAttestationChallengeMechanism,
@@ -118,6 +120,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
+        issuer_registration: IssuerRegistration,
         batch_size: NonZeroU8,
         auth_endpoints: AuthorizationEndpoints,
         client_id: String,
@@ -206,6 +209,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             credential_configurations,
             credential_issuer,
             issuer_endpoints,
+            issuer_registration,
             batch_size,
             token_endpoint: auth_endpoints.token_endpoint,
             client_attestation_challenge: client_auth_challenge,
@@ -262,6 +266,7 @@ impl HttpAuthorizationSession {
             credential_configurations: data.credential_configurations,
             credential_issuer: data.credential_issuer,
             issuer_endpoints: data.issuer_endpoints,
+            issuer_registration: data.issuer_registration,
             batch_size: data.batch_size,
             token_endpoint: data.token_endpoint,
             client_attestation_challenge: data.client_attestation_challenge,
@@ -292,6 +297,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             credential_configurations: self.credential_configurations.clone(),
             credential_issuer: self.credential_issuer.clone(),
             issuer_endpoints: self.issuer_endpoints.clone(),
+            issuer_registration: self.issuer_registration.clone(),
             batch_size: self.batch_size,
             token_endpoint: self.token_endpoint.clone(),
             client_attestation_challenge: self.client_attestation_challenge.clone(),
@@ -306,7 +312,6 @@ impl AuthorizationSession for HttpAuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        trust_anchors: &TrustAnchors,
         wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
@@ -326,13 +331,13 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.credential_configurations,
             self.credential_issuer,
             self.issuer_endpoints,
+            self.issuer_registration,
             self.batch_size,
             self.token_endpoint,
             self.client_attestation_challenge,
             token_request,
             wia_client,
             &self.authorization_server,
-            trust_anchors,
         )
         .await
     }
@@ -376,6 +381,7 @@ mod tests {
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::wallet_issuance::authorization_endpoints::AuthorizationEndpoints;
+    use crate::wallet_issuance::issuer_registration::IssuerRegistration;
     use crate::wallet_issuance::mock::RecordingWiaClient;
 
     const ISSUER_URL: &str = "https://example.com";
@@ -412,6 +418,7 @@ mod tests {
             credential_configurations: issuer_metadata.credential_configurations_supported,
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
+            issuer_registration: IssuerRegistration::new_mock(),
             batch_size,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             client_attestation_challenge: ClientAttestationChallengeMechanism::ChallengeEndpoint(
@@ -534,6 +541,7 @@ mod tests {
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
@@ -638,6 +646,7 @@ mod tests {
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
@@ -711,6 +720,7 @@ mod tests {
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer.clone(),
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
@@ -822,6 +832,7 @@ mod tests {
             credential_configurations: issuer_metadata.credential_configurations_supported,
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
+            issuer_registration: IssuerRegistration::new_mock(),
             batch_size,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             client_attestation_challenge: ClientAttestationChallengeMechanism::ChallengeEndpoint(
@@ -838,6 +849,7 @@ mod tests {
             credential_configurations: persisted.credential_configurations,
             credential_issuer: persisted.credential_issuer,
             issuer_endpoints: persisted.issuer_endpoints,
+            issuer_registration: persisted.issuer_registration.clone(),
             token_endpoint: persisted.token_endpoint,
             batch_size: persisted.batch_size,
             client_attestation_challenge: persisted.client_attestation_challenge,
@@ -851,10 +863,30 @@ mod tests {
 
         let restored = HttpAuthorizationSession::restore(
             HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
-            session.persist(),
+            serde_json::from_value(serde_json::to_value(session.persist()).unwrap()).unwrap(),
         );
         let restored_persisted = restored.persist();
 
+        assert_eq!(
+            restored_persisted.issuer_registration.organization(),
+            persisted.issuer_registration.organization(),
+        );
+        assert_eq!(
+            restored_persisted
+                .issuer_registration
+                .registration_certificate()
+                .to_vec()
+                .unwrap(),
+            persisted
+                .issuer_registration
+                .registration_certificate()
+                .to_vec()
+                .unwrap(),
+        );
+        assert_eq!(
+            restored_persisted.issuer_registration.access_certificate(),
+            persisted.issuer_registration.access_certificate(),
+        );
         assert_eq!(restored_persisted.auth_url, persisted.auth_url);
         assert_eq!(restored_persisted.redirect_uri, persisted.redirect_uri);
         assert_eq!(restored_persisted.code_verifier, persisted.code_verifier);

@@ -5,7 +5,6 @@ use std::convert::identity;
 use std::num::NonZeroU8;
 
 use attestation_data::attributes::AttributesTraversalBehaviour;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::claim_path::ClaimPath;
@@ -13,7 +12,6 @@ use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::BorrowingCertificate;
 use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
@@ -68,6 +66,7 @@ use super::credential::IssuedCredentialCopies;
 use super::credential::IssuedCredentialMetadata;
 use super::credential::MdocCopy;
 use super::credential::SdJwtCopy;
+use super::issuer_registration::IssuerRegistration;
 use crate::authorization_details::CredentialId;
 use crate::authorization_details::IssuerAuthorizationDetails;
 use crate::client_auth::ClientAttestationChallengeMechanism;
@@ -633,13 +632,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
+        issuer_registration: IssuerRegistration,
         batch_size: NonZeroU8,
         token_endpoint: Url,
         client_auth_challenge: ClientAttestationChallengeMechanism,
         token_request: VciTokenRequest,
         wia_client: &impl WiaClient,
         auth_server_identifier: &IssuerIdentifier,
-        trust_anchors: &TrustAnchors,
     ) -> Result<Self, WalletIssuanceError> {
         let credential_preview_endpoint = issuer_endpoints
             .credential_preview_endpoint
@@ -683,25 +682,9 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             Self::request_previews(
                 credential_preview_endpoint.as_url().clone(),
                 &token_response.oauth_response.access_token,
-                trust_anchors,
                 &message_client
             )
         )?;
-
-        let issuer_registrations = credential_previews
-            .nonempty_iter()
-            .map(|preview| preview.issuer_registration())
-            .collect::<Result<VecNonEmpty<_>, _>>()
-            .map_err(WalletIssuanceError::PreviewIssuerRegistration)?;
-        let issuer_registration = issuer_registrations
-            .into_iter()
-            // Use `dedup()` instead of `unique()`, as `IssuerRegistration` does not implement Hash. The end result is
-            // the same when followed by `.exactly_one()`.
-            .dedup()
-            // Note that this iterator resulting in 0 values will never happen because `issuer_registrations` is
-            // non-empty, so this error only occurs when there are multiple `IssuerRegistration` values.
-            .exactly_one()
-            .map_err(|_| WalletIssuanceError::DifferentIssuers)?;
 
         let offered_credentials =
             Self::match_preview_against_offered_configurations(credential_previews, offered_configurations)?;
@@ -729,19 +712,11 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn request_previews(
         preview_endpoint: Url,
         access_token: &AccessToken,
-        trust_anchors: &TrustAnchors,
         message_client: &H,
     ) -> Result<VecNonEmpty<CredentialPreview>, WalletIssuanceError> {
         let CredentialPreviewResponse { credential_previews } = message_client
             .request_credential_preview(preview_endpoint, access_token)
             .await?;
-
-        // Verify the preview issuer certificates against the trust anchors.
-        for preview in &credential_previews {
-            preview
-                .verify(trust_anchors)
-                .map_err(WalletIssuanceError::CredentialPreviewVerification)?;
-        }
 
         Ok(credential_previews)
     }
@@ -1085,6 +1060,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             first_credential_payload.previewable_payload.not_before,
             extended_attestation_types,
             issued_metadata,
+            self.session_state.issuer_registration.clone(),
         );
 
         Ok(credential_with_metadata)
@@ -1225,25 +1201,13 @@ impl Credentials {
                     return Err(WalletIssuanceError::AttributeRandomLength(min, ATTR_RANDOM_LENGTH));
                 }
 
-                let credential_issuer_certificate = issuer_signed
-                    .issuer_auth
-                    .x5chain()
-                    .map_err(WalletIssuanceError::IssuerCertificate)?
-                    .into_first();
-
                 // Construct the new mdoc; this also verifies it against the trust anchors.
                 let mdoc = Mdoc::new(issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(WalletIssuanceError::MdocVerification)?;
 
                 let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone())?;
 
-                Self::validate_credential(
-                    preview,
-                    &public_key,
-                    &issued_credential_payload,
-                    &credential_issuer_certificate,
-                    credential_metadata,
-                )?;
+                Self::validate_credential(preview, &public_key, &issued_credential_payload, credential_metadata)?;
 
                 Ok((MdocCopy { key_identifier, mdoc }, issued_credential_payload))
             })
@@ -1295,13 +1259,7 @@ impl Credentials {
                     Self::verify_selective_disclosability(&sd_jwt, issued_claims, normalized)?;
                 }
 
-                Self::validate_credential(
-                    preview,
-                    &public_key,
-                    &issued_credential_payload,
-                    sd_jwt.issuer_leaf_certificate(),
-                    metadata,
-                )?;
+                Self::validate_credential(preview, &public_key, &issued_credential_payload, metadata)?;
 
                 Ok((SdJwtCopy { key_identifier, sd_jwt }, issued_credential_payload))
             })
@@ -1316,17 +1274,10 @@ impl Credentials {
         preview: &CredentialPreview,
         holder_pubkey: &PublicKey,
         credential_payload: &CredentialPayload,
-        credential_issuer_certificate: &BorrowingCertificate,
         metadata: &impl AttestationClaims,
     ) -> Result<(), WalletIssuanceError> {
         if credential_payload.confirmation_key.try_to_public_key()? != *holder_pubkey {
             return Err(WalletIssuanceError::PublicKeyMismatch);
-        }
-
-        // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
-        // in the credential preview.
-        if credential_issuer_certificate != &preview.issuer_certificate {
-            return Err(WalletIssuanceError::IssuerMismatch);
         }
 
         // Check that the credential contains exactly the attributes the issuer said it would have.
@@ -1426,9 +1377,7 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
-    use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -1437,9 +1386,6 @@ mod tests {
     use cose::TypedCose;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
-    use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
-    use crypto::x509::CertificateError;
     use derive_more::Debug;
     use futures::FutureExt;
     use jwt::jwk::jwk_to_public_key;
@@ -1478,7 +1424,6 @@ mod tests {
     use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
-    use crate::token::CredentialPreviewError;
     use crate::token::VciTokenRequest;
     use crate::token::VciTokenResponse;
     use crate::wallet_issuance::TypeMetadataChainError;
@@ -1580,21 +1525,19 @@ mod tests {
         }
 
         let wia_client = RecordingWiaClient::default();
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let trust_anchors = TrustAnchors::from(&ca);
 
         let error = HttpIssuanceSession::create(
             mock_msg_client,
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             oauth_metadata.oauth_metadata.token_endpoint,
             mechanism,
             VciTokenRequest::new_mock(),
             &wia_client,
             &oauth_metadata.oauth_metadata.issuer,
-            &trust_anchors,
         )
         .now_or_never()
         .unwrap()
@@ -1618,8 +1561,6 @@ mod tests {
     }
 
     fn test_start_issuance(
-        ca: &Ca,
-        trust_anchors: &TrustAnchors,
         issuer_metadata: IssuerMetadata,
         preview_payloads: Vec<(
             CredentialId,
@@ -1630,8 +1571,6 @@ mod tests {
         type_metadata: TypeMetadata,
         token_response_fields: &TokenResponseFields,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
-        let issuance_key = generate_pid_issuer_mock_with_registration(ca, &IssuerRegistration::new_mock()).unwrap();
-
         let authorization_details = match &token_response_fields {
             TokenResponseFields::AuthorizationDetails(identifiers) | TokenResponseFields::Both(identifiers, _) => {
                 let (config_ids, credential_ids): (Vec<_>, Vec<_>) = identifiers
@@ -1699,7 +1638,6 @@ mod tests {
                             config_id,
                             format,
                             credential_payload: preview_payload,
-                            issuer_certificate: issuance_key.certificate().clone(),
                         },
                     )
                     .collect_vec()
@@ -1719,6 +1657,7 @@ mod tests {
             issuer_metadata.credential_configurations_supported,
             issuer_metadata.credential_issuer,
             issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
             batch_size,
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
@@ -1730,7 +1669,6 @@ mod tests {
             VciTokenRequest::new_mock(),
             &MockWiaClient::new(),
             &oauth_metadata.oauth_metadata.issuer,
-            trust_anchors,
         )
         .now_or_never()
         .unwrap()
@@ -1766,8 +1704,6 @@ mod tests {
         #[case] token_response_fields: TokenResponseFields,
         #[case] has_extra_credential_configs: bool,
     ) {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let config_id = CredentialConfigurationId::from("config_id".to_string());
         let mut credential_configs = vec![(
             config_id.clone(),
@@ -1782,8 +1718,6 @@ mod tests {
         }
 
         let session = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), credential_configs),
             vec![(
                 "credential_id".to_string().into(),
@@ -1820,11 +1754,7 @@ mod tests {
 
     #[test]
     fn test_start_issuance_authorization_details_duplicate_credential_ids() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock(
                 "https://example.com".parse().unwrap(),
                 vec![
@@ -1876,11 +1806,7 @@ mod tests {
 
     #[test]
     fn test_start_issuance_authorization_details_unknown_credential_config_ids() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock(
                 "https://example.com".parse().unwrap(),
                 vec![(
@@ -1908,11 +1834,7 @@ mod tests {
 
     #[test]
     fn test_start_issuance_token_response_empty_scope() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock(
                 "https://example.com".parse().unwrap(),
                 vec![(
@@ -1936,11 +1858,7 @@ mod tests {
 
     #[test]
     fn test_start_issuance_token_response_unknown_scope() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock(
                 "https://example.com".parse().unwrap(),
                 vec![(
@@ -1967,48 +1885,9 @@ mod tests {
     }
 
     #[test]
-    fn test_start_issuance_untrusted_credential_preview() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let other_ca = Ca::generate_issuer_mock_ca().unwrap();
-
-        let config_id = CredentialConfigurationId::from("config_id".to_string());
-        let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&other_ca),
-            IssuerMetadata::new_mock(
-                "https://example.com".parse().unwrap(),
-                vec![(
-                    config_id.clone(),
-                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
-                )],
-            ),
-            vec![(
-                "credential_id".to_string().into(),
-                config_id,
-                Format::SdJwt,
-                PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default()),
-            )],
-            TypeMetadata::pid_example(),
-            &TokenResponseFields::Neither,
-        )
-        .expect_err("starting issuance session should not succeed");
-
-        assert_matches!(
-            error,
-            WalletIssuanceError::CredentialPreviewVerification(CredentialPreviewError::Certificate(
-                CertificateError::Verification(_)
-            ))
-        );
-    }
-
-    #[test]
     fn test_start_issuance_type_metadata_verification_error() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let config_id = CredentialConfigurationId::from("config_id".to_string());
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock(
                 "https://example.com".parse().unwrap(),
                 vec![(
@@ -2032,8 +1911,6 @@ mod tests {
 
     #[test]
     fn test_start_issuance_metadata_missing() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         // Create issuer metadata for an SD-JWT configuration that has neither a type metadata URI nor Credential
         // Metadata to fall back on.
         let config_id = CredentialConfigurationId::from("config_id".to_string());
@@ -2053,8 +1930,6 @@ mod tests {
             });
 
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![(
                 "credential_id".to_string().into(),
@@ -2112,8 +1987,6 @@ mod tests {
     #[case::scope(TokenResponseFields::Scope(vec!["config_id_scope", "unsupported_config_id_scope"]))]
     #[case::no_authorization_details_or_scope(TokenResponseFields::Neither)]
     fn test_start_issuance_unsupported_format_discarded(#[case] token_response_fields: TokenResponseFields) {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let config_id = CredentialConfigurationId::from("config_id".to_string());
         let unsupported_config_id = CredentialConfigurationId::from("unsupported_config_id".to_string());
         let issuer_metadata = issuer_metadata_with_unsupported_formats(
@@ -2123,8 +1996,6 @@ mod tests {
 
         // The issuer only provides a preview for the configuration with a supported format.
         let session = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![(
                 "credential_id".to_string().into(),
@@ -2150,8 +2021,6 @@ mod tests {
     #[case::scope(TokenResponseFields::Scope(vec!["unsupported_config_id_scope"]))]
     #[case::no_authorization_details_or_scope(TokenResponseFields::Neither)]
     fn test_start_issuance_error_no_supported_format(#[case] token_response_fields: TokenResponseFields) {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let unsupported_config_id = CredentialConfigurationId::from("unsupported_config_id".to_string());
         let issuer_metadata = issuer_metadata_with_unsupported_formats(
             vec![unsupported_config_id.clone()],
@@ -2159,8 +2028,6 @@ mod tests {
         );
 
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![(
                 "unsupported_credential_id".to_string().into(),
@@ -2178,8 +2045,6 @@ mod tests {
 
     #[test]
     fn test_start_issuance_sd_jwt_credential_metadata_fallback() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         // Create issuer metadata for an SD-JWT configuration that has no type metadata URI, but does have
         // Credential Metadata to fall back on.
         let config_id = CredentialConfigurationId::from("config_id".to_string());
@@ -2199,8 +2064,6 @@ mod tests {
             });
 
         let session = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![(
                 "credential_id".to_string().into(),
@@ -2223,8 +2086,6 @@ mod tests {
 
     #[test]
     fn test_start_issuance_type_metadata_host_mismatch() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         // Create issuer metadata with incorrect type_metadata_uri.
         let config_id = CredentialConfigurationId::from("config_id".to_string());
         let issuer_metadata = IssuerMetadata::new_mock(
@@ -2244,8 +2105,6 @@ mod tests {
 
         let configured_issuer_identifier = issuer_metadata.credential_issuer.clone();
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![(
                 "credential_id".to_string().into(),
@@ -2333,8 +2192,6 @@ mod tests {
 
     #[test]
     fn test_start_issuance_type_metadata_multiple_vcts() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         // Create issuer metadata with a type_metadata_uri that is used by two distinct credential configurations.
         let pid_config_id = CredentialConfigurationId::from("pid_config_id".to_string());
         let address_config_id = CredentialConfigurationId::from("address_config_id".to_string());
@@ -2361,8 +2218,6 @@ mod tests {
             .insert(address_config_id.clone(), address_credential_config);
 
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![
                 (
@@ -2410,11 +2265,7 @@ mod tests {
     #[case::scope(TokenResponseFields::Scope(vec!["config_id_1_scope", "config_id_2_scope", "config_id_3_scope"]))]
     #[case::no_authorization_details_or_scope(TokenResponseFields::Neither)]
     fn test_start_issuance_error_preview_missing_credential(#[case] token_response_fields: TokenResponseFields) {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock(
                 "https://example.com".parse().unwrap(),
                 vec![
@@ -2483,11 +2334,7 @@ mod tests {
     #[case::scope(TokenResponseFields::Scope(vec!["config_id_1_scope"]))]
     #[case::no_authorization_details_or_scope(TokenResponseFields::Neither)]
     fn test_start_issuance_error_preview_excess_credentials(#[case] token_response_fields: TokenResponseFields) {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
         let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock(
                 "https://example.com".parse().unwrap(),
                 vec![(
@@ -2544,118 +2391,6 @@ mod tests {
             ),
         ];
         assert_matches!(error, WalletIssuanceError::PreviewExcessCredentials(excess) if excess == expected_excess);
-    }
-
-    #[test]
-    fn test_start_issuance_error_different_issuer() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
-        let issuer_registration = IssuerRegistration::new_mock();
-        let issuance_key = generate_pid_issuer_mock_with_registration(&ca, &issuer_registration).unwrap();
-        let different_issuance_key = {
-            let mut different_dn = PID_ISSUER_CERT_DN.clone();
-            different_dn.organization_name = Some("Different B.V.".to_string());
-            ca.generate_key_pair(
-                different_dn,
-                issuer_registration.to_certificate_configuration().unwrap(),
-                [PID_ISSUER_CERT_SAN_URI.clone()],
-            )
-            .unwrap()
-        };
-
-        let credential_id_mdoc = CredentialId::from("credential_id_mdoc".to_string());
-        let config_id_mdoc: CredentialConfigurationId = "config_id_mdoc".to_string().into();
-        let credential_id_sd_jwt = CredentialId::from("credential_id_sd_jwt".to_string());
-        let config_id_sd_jwt: CredentialConfigurationId = "config_id_sd_jwt".to_string().into();
-        let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
-        let issuer_metadata = IssuerMetadata::new_mock(
-            issuer_identifier.clone(),
-            vec![
-                (
-                    config_id_mdoc.clone(),
-                    CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
-                ),
-                (
-                    config_id_sd_jwt.clone(),
-                    CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
-                ),
-            ],
-        );
-        let oauth_metadata = IssuerAuthorizationServerMetadata::new_mock(issuer_identifier);
-
-        let authorization_details = AuthorizationDetails::from_credential_ids_and_identifiers(vec_nonempty![
-            (&config_id_mdoc, credential_id_mdoc.clone()),
-            (&config_id_sd_jwt, credential_id_sd_jwt.clone())
-        ]);
-        let preview_payload =
-            PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default());
-
-        let mut mock_msg_client = MockVcMessageClient::new();
-        mock_msg_client.expect_request_token().return_once(
-            move |_url, _token_request, _dpop_header, _wia_disclosure| {
-                let token_response =
-                    VciTokenResponse::new_vci("access_token".to_string().into(), Some(authorization_details));
-
-                Ok((token_response, None))
-            },
-        );
-        mock_msg_client
-            .expect_request_challenge()
-            .return_once(move |_url| Ok("challenge".to_string().into()));
-        mock_msg_client
-            .expect_request_type_metadata()
-            .returning(|_url| Ok(TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example()).2));
-        mock_msg_client
-            .expect_request_credential_preview()
-            .return_once(move |_url, _access_token| {
-                let (_, _, _type_metadata) = TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example());
-
-                let previews = vec_nonempty![
-                    CredentialPreview {
-                        credential_id: credential_id_mdoc,
-                        config_id: config_id_mdoc.clone(),
-                        format: Format::MsoMdoc,
-                        credential_payload: preview_payload.clone(),
-                        issuer_certificate: issuance_key.certificate().clone(),
-                    },
-                    CredentialPreview {
-                        credential_id: credential_id_sd_jwt,
-                        config_id: config_id_sd_jwt.clone(),
-                        format: Format::SdJwt,
-                        credential_payload: preview_payload,
-                        issuer_certificate: different_issuance_key.certificate().clone(),
-                    },
-                ];
-
-                Ok(CredentialPreviewResponse {
-                    credential_previews: previews,
-                })
-            });
-
-        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
-        let error = HttpIssuanceSession::create(
-            mock_msg_client,
-            issuer_metadata.credential_configurations_supported,
-            issuer_metadata.credential_issuer,
-            issuer_metadata.endpoints,
-            batch_size,
-            oauth_metadata.oauth_metadata.token_endpoint,
-            ClientAttestationChallengeMechanism::ChallengeEndpoint(
-                oauth_metadata
-                    .client_attestation_metadata_extension
-                    .challenge_endpoint
-                    .unwrap(),
-            ),
-            VciTokenRequest::new_mock(),
-            &MockWiaClient::new(),
-            &oauth_metadata.oauth_metadata.issuer,
-            &TrustAnchors::from(&ca),
-        )
-        .now_or_never()
-        .unwrap()
-        .expect_err("starting issuance session should not succeed");
-
-        assert_matches!(error, WalletIssuanceError::DifferentIssuers);
     }
 
     /// Return a new session ready for `accept_issuance()`.
@@ -2783,9 +2518,7 @@ mod tests {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
             let trust_anchors = TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap();
 
-            let issuer_registration = IssuerRegistration::new_mock();
-            let issuer_key = generate_pid_issuer_mock_with_registration(&ca, &issuer_registration).unwrap();
-            let issuer_certificate = issuer_key.certificate().clone();
+            let issuer_key = ca.generate_pid_issuer_mock().unwrap();
 
             let (attestation_type, metadata_integrity, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(type_metadata);
@@ -2801,7 +2534,6 @@ mod tests {
                         Format::MsoMdoc => mdoc_previewable_payload.clone(),
                         Format::SdJwt => sd_jwt_previewable_payload.clone(),
                     },
-                    issuer_certificate: issuer_certificate.clone(),
                 })
                 .collect_vec();
 
@@ -3039,6 +2771,7 @@ mod tests {
         };
 
         let session_state = new_session_state(previews, metadata, batch_size, has_nonce_endpoint);
+        let expected_issuer_registration = serde_json::to_value(&session_state.issuer_registration).unwrap();
 
         let dpop_signing_key = session_state.dpop_signing_key.clone();
         mock_msg_client
@@ -3069,6 +2802,10 @@ mod tests {
 
         let expected_copy_count = std::cmp::min(batch_size, max_copy_count).into();
         for credential in &credentials {
+            assert_eq!(
+                serde_json::to_value(&credential.issuer_registration).unwrap(),
+                expected_issuer_registration
+            );
             let copy_count = match &credential.copies {
                 IssuedCredentialCopies::Mdoc(mdoc_copies) => mdoc_copies.len(),
                 IssuedCredentialCopies::SdJwt(sd_jwt_copies) => sd_jwt_copies.len(),
@@ -3483,35 +3220,6 @@ mod tests {
         .expect_err("should not be able to convert CredentialResponse into credential");
 
         assert_matches!(error, WalletIssuanceError::PublicKeyMismatch);
-    }
-
-    #[rstest]
-    fn test_credential_response_into_mdoc_issuer_certificate_mismatch_error(
-        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
-    ) {
-        let (credentials, preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
-
-        // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
-        // public key in the preview than is contained within the response should fail.
-        let other_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let other_issuance_key =
-            generate_pid_issuer_mock_with_registration(&other_ca, &IssuerRegistration::new_mock()).unwrap();
-        let preview_data = CredentialPreview {
-            issuer_certificate: other_issuance_key.certificate().clone(),
-            ..preview
-        };
-
-        let error = test_convert_credentials_into_issued_credential(
-            credentials,
-            vec_nonempty![("key_id".to_string(), holder_public_key)],
-            &metadata,
-            &preview_data,
-            &trust_anchor,
-        )
-        .expect_err("should not be able to convert CredentialResponse into Mdoc");
-
-        assert_matches!(error, WalletIssuanceError::IssuerMismatch);
     }
 
     #[test]

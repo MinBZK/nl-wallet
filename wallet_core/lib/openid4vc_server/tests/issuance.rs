@@ -291,7 +291,6 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
-            &server.trust_anchors,
         )
         .await
         .unwrap();
@@ -348,7 +347,6 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
     auth_session
         .start_issuance(
             &received_redirect,
-            &server.trust_anchors,
             &MockWiaClient::new_with_wia_keypair(server.wia_keypair.clone()),
         )
         .await
@@ -458,7 +456,6 @@ async fn pre_authorized_code_flow(
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
         )
         .await
         .unwrap();
@@ -521,7 +518,6 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
             ),
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
-            &trust_anchors,
         )
         .await
         .expect_err("starting pre-authorized issuance should fail");

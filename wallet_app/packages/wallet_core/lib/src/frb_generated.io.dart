@@ -257,6 +257,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<(String, AttributeValue)> dco_decode_list_record_string_box_attribute_value(dynamic raw);
 
   @protected
+  List<ServiceDescription> dco_decode_list_service_description(dynamic raw);
+
+  @protected
   List<WalletEvent> dco_decode_list_wallet_event(dynamic raw);
 
   @protected
@@ -293,9 +296,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<AttestationPresentation>? dco_decode_opt_list_attestation_presentation(dynamic raw);
 
   @protected
-  List<LocalizedString>? dco_decode_opt_list_localized_string(dynamic raw);
-
-  @protected
   Organization dco_decode_organization(dynamic raw);
 
   @protected
@@ -327,6 +327,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RevocationStatus dco_decode_revocation_status(dynamic raw);
+
+  @protected
+  ServiceDescription dco_decode_service_description(dynamic raw);
 
   @protected
   StartDisclosureResult dco_decode_start_disclosure_result(dynamic raw);
@@ -585,6 +588,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<(String, AttributeValue)> sse_decode_list_record_string_box_attribute_value(SseDeserializer deserializer);
 
   @protected
+  List<ServiceDescription> sse_decode_list_service_description(SseDeserializer deserializer);
+
+  @protected
   List<WalletEvent> sse_decode_list_wallet_event(SseDeserializer deserializer);
 
   @protected
@@ -621,9 +627,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   List<AttestationPresentation>? sse_decode_opt_list_attestation_presentation(SseDeserializer deserializer);
 
   @protected
-  List<LocalizedString>? sse_decode_opt_list_localized_string(SseDeserializer deserializer);
-
-  @protected
   Organization sse_decode_organization(SseDeserializer deserializer);
 
   @protected
@@ -655,6 +658,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RevocationStatus sse_decode_revocation_status(SseDeserializer deserializer);
+
+  @protected
+  ServiceDescription sse_decode_service_description(SseDeserializer deserializer);
 
   @protected
   StartDisclosureResult sse_decode_start_disclosure_result(SseDeserializer deserializer);
@@ -1079,6 +1085,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_list_service_description> cst_encode_list_service_description(List<ServiceDescription> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_service_description(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_service_description(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
   ffi.Pointer<wire_cst_list_wallet_event> cst_encode_list_wallet_event(List<WalletEvent> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_wallet_event(raw.length);
@@ -1136,12 +1152,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_list_attestation_presentation(raw);
-  }
-
-  @protected
-  ffi.Pointer<wire_cst_list_localized_string> cst_encode_opt_list_localized_string(List<LocalizedString>? raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null ? ffi.nullptr : cst_encode_list_localized_string(raw);
   }
 
   @protected
@@ -1554,14 +1564,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_api_fill_to_wire_organization(Organization apiObj, wire_cst_organization wireObj) {
     wireObj.legal_name = cst_encode_String(apiObj.legalName);
     wireObj.display_name = cst_encode_String(apiObj.displayName);
-    wireObj.description = cst_encode_list_localized_string(apiObj.description);
-    wireObj.image = cst_encode_opt_box_autoadd_image(apiObj.image);
+    wireObj.service_description = cst_encode_list_service_description(apiObj.serviceDescription);
     wireObj.web_url = cst_encode_opt_String(apiObj.webUrl);
     wireObj.privacy_policy_url = cst_encode_opt_String(apiObj.privacyPolicyUrl);
     wireObj.identifier = cst_encode_String(apiObj.identifier);
-    wireObj.city = cst_encode_opt_list_localized_string(apiObj.city);
-    wireObj.category = cst_encode_list_localized_string(apiObj.category);
-    wireObj.department = cst_encode_opt_list_localized_string(apiObj.department);
     wireObj.country_code = cst_encode_String(apiObj.countryCode);
   }
 
@@ -1656,6 +1662,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.InstructionError.error = pre_error;
       return;
     }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_service_description(ServiceDescription apiObj, wire_cst_service_description wireObj) {
+    wireObj.translations = cst_encode_list_localized_string(apiObj.translations);
   }
 
   @protected
@@ -2196,6 +2207,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_list_record_string_box_attribute_value(List<(String, AttributeValue)> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_service_description(List<ServiceDescription> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_wallet_event(List<WalletEvent> self, SseSerializer serializer);
 
   @protected
@@ -2232,9 +2246,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_opt_list_attestation_presentation(List<AttestationPresentation>? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_list_localized_string(List<LocalizedString>? self, SseSerializer serializer);
-
-  @protected
   void sse_encode_organization(Organization self, SseSerializer serializer);
 
   @protected
@@ -2266,6 +2277,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_revocation_status(RevocationStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_service_description(ServiceDescription self, SseSerializer serializer);
 
   @protected
   void sse_encode_start_disclosure_result(StartDisclosureResult self, SseSerializer serializer);
@@ -3787,6 +3801,17 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_list_record_string_box_attribute_value = _cst_new_list_record_string_box_attribute_valuePtr
       .asFunction<ffi.Pointer<wire_cst_list_record_string_box_attribute_value> Function(int)>();
 
+  ffi.Pointer<wire_cst_list_service_description> cst_new_list_service_description(int len) {
+    return _cst_new_list_service_description(len);
+  }
+
+  late final _cst_new_list_service_descriptionPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_service_description> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_list_service_description',
+      );
+  late final _cst_new_list_service_description = _cst_new_list_service_descriptionPtr
+      .asFunction<ffi.Pointer<wire_cst_list_service_description> Function(int)>();
+
   ffi.Pointer<wire_cst_list_wallet_event> cst_new_list_wallet_event(int len) {
     return _cst_new_list_wallet_event(len);
   }
@@ -4030,26 +4055,29 @@ final class wire_cst_list_localized_string extends ffi.Struct {
   external int len;
 }
 
+final class wire_cst_service_description extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_localized_string> translations;
+}
+
+final class wire_cst_list_service_description extends ffi.Struct {
+  external ffi.Pointer<wire_cst_service_description> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
 final class wire_cst_organization extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> legal_name;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> display_name;
 
-  external ffi.Pointer<wire_cst_list_localized_string> description;
-
-  external ffi.Pointer<wire_cst_image> image;
+  external ffi.Pointer<wire_cst_list_service_description> service_description;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> web_url;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> privacy_policy_url;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> identifier;
-
-  external ffi.Pointer<wire_cst_list_localized_string> city;
-
-  external ffi.Pointer<wire_cst_list_localized_string> category;
-
-  external ffi.Pointer<wire_cst_list_localized_string> department;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> country_code;
 }

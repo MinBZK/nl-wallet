@@ -299,8 +299,6 @@ mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use chrono::Days;
@@ -327,7 +325,7 @@ mod tests {
             .map(|format| {
                 let id = format!("degree_{format}").into();
 
-                let key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+                let key_pair = ca.generate_issuer_mock().unwrap();
                 let (_, degree_documents) = TypeMetadataDocuments::degree_example();
                 let type_metadata = matches!(format, Format::SdJwt).then_some(degree_documents);
 

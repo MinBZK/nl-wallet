@@ -5,6 +5,7 @@ use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
+use super::issuer_registration::IssuerRegistration;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 
 /// The metadata that describes an issued credential, which is persisted along with it.
@@ -22,9 +23,11 @@ pub struct CredentialWithMetadata {
     pub not_before: Option<DateTimeSeconds>,
     pub extended_attestation_types: Vec<String>,
     pub metadata: IssuedCredentialMetadata,
+    pub issuer_registration: IssuerRegistration,
 }
 
 impl CredentialWithMetadata {
+    #[expect(clippy::too_many_arguments, reason = "constructor method")]
     pub fn new(
         copies: IssuedCredentialCopies,
         attestation_type: String,
@@ -32,6 +35,7 @@ impl CredentialWithMetadata {
         not_before: Option<DateTimeSeconds>,
         extended_attestation_types: impl IntoIterator<Item = impl Into<String>>,
         metadata: IssuedCredentialMetadata,
+        issuer_registration: IssuerRegistration,
     ) -> Self {
         Self {
             copies,
@@ -40,6 +44,7 @@ impl CredentialWithMetadata {
             not_before,
             extended_attestation_types: extended_attestation_types.into_iter().map(Into::into).collect(),
             metadata,
+            issuer_registration,
         }
     }
 }

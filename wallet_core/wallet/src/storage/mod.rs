@@ -11,8 +11,8 @@ use std::array::TryFromSliceError;
 use std::collections::HashSet;
 use std::io;
 
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
@@ -23,7 +23,6 @@ use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
-use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sea_orm::DbErr;
 use serde::Deserialize;
@@ -179,7 +178,7 @@ pub trait Storage: Send {
     async fn update_credentials(
         &mut self,
         timestamp: DateTime<Utc>,
-        credentials: Vec<(IssuedCredentialCopies, AttestationPresentation)>,
+        credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
     ) -> StorageResult<()>;
 
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;

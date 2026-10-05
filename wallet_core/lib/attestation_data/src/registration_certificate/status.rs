@@ -13,6 +13,7 @@ use token_status_list::verification::verifier::RevocationVerifier;
 use url::Url;
 use utils::generator::Generator;
 
+use super::payload::Subject;
 use super::payload::UncheckedRegistrationCertificate;
 use super::validation::BoundRegistrationCertificate;
 
@@ -152,6 +153,10 @@ pub struct StatusValidatedRegistrationCertificate(BoundRegistrationCertificate);
 impl StatusValidatedRegistrationCertificate {
     pub fn payload(&self) -> &UncheckedRegistrationCertificate {
         self.0.payload()
+    }
+
+    pub fn subject(&self) -> &Subject {
+        self.0.subject()
     }
 }
 

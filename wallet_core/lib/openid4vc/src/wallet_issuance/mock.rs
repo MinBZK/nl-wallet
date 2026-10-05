@@ -1,7 +1,6 @@
 use std::cell::RefCell;
 use std::num::NonZeroU8;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
@@ -20,6 +19,7 @@ use super::IssuanceSession;
 use super::OfferedCredentialMetadata;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
+use super::issuer_registration::IssuerRegistration;
 use crate::token::CredentialPreview;
 
 /// A [`WiaClient`] that records the challenge it was given, delegating the actual WIA issuance to a
@@ -69,7 +69,6 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
         _client_id: String,
         _redirect_uri: Url,
-        _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
     where
         W: WiaClient,
@@ -92,7 +91,6 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
     async fn start_pre_authorized_code_flow<'a, W>(
         &self,
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
-        _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>
     where
         W: WiaClient,
@@ -139,7 +137,6 @@ impl AuthorizationSession for MockAuthorizationSession {
     async fn start_issuance(
         self,
         _received_redirect_uri: &Url,
-        _trust_anchors: &TrustAnchors,
         _wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_issuance_sync()

@@ -1,15 +1,7 @@
-use crypto::x509::BorrowingCertificate;
-use crypto::x509::BorrowingCertificateExtension;
-use crypto::x509::CertificateError;
-use crypto::x509::CertificateUsage;
-use crypto::x509::CertificateUsageError;
 use crypto::x509::DistinguishedName;
 use derive_more::Debug;
-use error_category::ErrorCategory;
 
-use crate::auth::Organization;
-use crate::auth::OrganizationError;
-use crate::auth::issuer_auth::IssuerRegistration;
+use crate::organization::Organization;
 
 /// Relying party of X509 certificates following ETSI EN 319 412-2 and ETSI EN 319 412-3 standard.
 #[derive(Debug, Clone)]
@@ -81,12 +73,8 @@ impl From<RelyingParty> for Organization {
                 display_name: common_name,
                 legal_name: organization_name,
                 description: Default::default(),
-                category: Default::default(),
-                logo: None,
                 web_url: None,
                 identifier: organization_identifier,
-                city: None,
-                department: None,
                 country_code: country_name,
                 privacy_policy_url: None,
             },
@@ -100,12 +88,8 @@ impl From<RelyingParty> for Organization {
                 display_name: common_name,
                 legal_name: format!("{}, {}", surname, given_name),
                 description: Default::default(),
-                category: Default::default(),
-                logo: None,
                 web_url: None,
                 identifier: serial_number,
-                city: None,
-                department: None,
                 country_code: country_name,
                 privacy_policy_url: None,
             },
@@ -173,119 +157,5 @@ mod tests {
         let dn = DistinguishedName::create_mock("Test");
         let err = RelyingParty::try_from(dn.clone()).unwrap_err();
         assert_matches!(err, RelyingPartyError(err_dn) if *err_dn == dn);
-    }
-}
-
-/// Acts as configuration for the [Certificate::new] function
-///
-/// TODO: PVW-5870 Remove when IssuerRegistration are removed
-#[derive(Debug, Clone, PartialEq)]
-pub enum CertificateType {
-    Mdl(IssuerRegistration),
-}
-
-/// TODO: PVW-5870 Remove when IssuerRegistration are removed
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum CertificateTypeError {
-    #[error("certificate error: {0}")]
-    #[category(defer)]
-    Certificate(#[from] CertificateError),
-
-    #[error("organization error: {0}")]
-    #[category(critical)]
-    Organization(#[source] OrganizationError),
-
-    #[error("certificate usage error: {0}")]
-    #[category(critical)]
-    CertificateUsage(#[source] CertificateUsageError),
-
-    #[error("unknown usage: {0}")]
-    #[category(critical)]
-    UnknownUsage(CertificateUsage),
-
-    #[error("issuer registration not found")]
-    #[category(critical)]
-    IssuerRegistrationNotFound,
-}
-
-impl CertificateType {
-    pub fn has_certificate_type(usage: CertificateUsage) -> bool {
-        matches!(usage, CertificateUsage::Mdl)
-    }
-
-    pub fn from_certificate(cert: &BorrowingCertificate) -> Result<Self, CertificateTypeError> {
-        let usage = CertificateUsage::from_certificate(cert.x509_certificate())
-            .map_err(CertificateTypeError::CertificateUsage)?;
-        let result = match usage {
-            CertificateUsage::Mdl => {
-                let Some(mut registration) = IssuerRegistration::from_certificate(cert)? else {
-                    return Err(CertificateTypeError::IssuerRegistrationNotFound);
-                };
-
-                // TODO: PVW-5870 PVW-6111 Temporarily hack to fill in access certification fields into organization
-                let org = Organization::try_from(cert).map_err(CertificateTypeError::Organization)?;
-                registration.organization.display_name = org.display_name;
-                registration.organization.legal_name = org.legal_name;
-                registration.organization.identifier = org.identifier;
-                registration.organization.country_code = org.country_code;
-
-                CertificateType::Mdl(registration)
-            }
-            _ => return Err(CertificateTypeError::UnknownUsage(usage)),
-        };
-
-        Ok(result)
-    }
-}
-
-impl From<&CertificateType> for CertificateUsage {
-    fn from(source: &CertificateType) -> Self {
-        use CertificateType::*;
-        match source {
-            Mdl(_) => Self::Mdl,
-        }
-    }
-}
-
-/// TODO: PVW-5870 Remove when IssuerRegistration are removed
-#[cfg(any(test, feature = "generate"))]
-pub mod generate {
-    #[cfg(any(test, feature = "mock"))]
-    pub mod mock {
-        use crypto::server_keys::KeyPair;
-        use crypto::server_keys::generate::Ca;
-        use crypto::server_keys::generate::CertificateGenerationError;
-        use crypto::server_keys::generate::mock::ISSUANCE_CERT_DN;
-        use crypto::server_keys::generate::mock::ISSUANCE_CERT_SAN_URI;
-        use crypto::server_keys::generate::mock::PID_ISSUER_CERT_DN;
-        use crypto::server_keys::generate::mock::PID_ISSUER_CERT_SAN_URI;
-
-        use crate::auth::issuer_auth::IssuerRegistration;
-
-        pub fn generate_issuer_mock_with_registration(
-            ca: &Ca,
-            issuer_registration: &IssuerRegistration,
-        ) -> Result<KeyPair, CertificateGenerationError> {
-            ca.generate_key_pair(
-                ISSUANCE_CERT_DN.clone(),
-                issuer_registration
-                    .to_certificate_configuration()
-                    .map_err(CertificateGenerationError::Certificate)?,
-                [ISSUANCE_CERT_SAN_URI.clone()],
-            )
-        }
-
-        pub fn generate_pid_issuer_mock_with_registration(
-            ca: &Ca,
-            issuer_registration: &IssuerRegistration,
-        ) -> Result<KeyPair, CertificateGenerationError> {
-            ca.generate_key_pair(
-                PID_ISSUER_CERT_DN.clone(),
-                issuer_registration
-                    .to_certificate_configuration()
-                    .map_err(CertificateGenerationError::Certificate)?,
-                [PID_ISSUER_CERT_SAN_URI.clone()],
-            )
-        }
     }
 }
