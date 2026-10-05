@@ -25,17 +25,11 @@ const AES_GCM_IV_BYTES_SIZE: usize = 12;
 #[derive(Debug, thiserror::Error)]
 pub enum PublicKeyError {
     #[error("invalid RSA key size: {0}")]
-    UnsupportedRsaKeySize(usize),
+    UnsupportedRsaKeySize(RsaMin2048PublicKeyError),
 }
 
-#[nutype(derive(Debug, Clone, AsRef, TryFrom, Into, PartialEq, Eq, Hash, Serialize, Deserialize), validate(predicate = |k| k.size() == 256))]
-struct Rsa2048PublicKey(rsa::RsaPublicKey);
-
-#[nutype(derive(Debug, Clone, AsRef, TryFrom, Into, PartialEq, Eq, Hash, Serialize, Deserialize), validate(predicate = |k| k.size() == 384))]
-struct Rsa3072PublicKey(rsa::RsaPublicKey);
-
-#[nutype(derive(Debug, Clone, AsRef, TryFrom, Into, PartialEq, Eq, Hash, Serialize, Deserialize), validate(predicate = |k| k.size() == 512))]
-struct Rsa4096PublicKey(rsa::RsaPublicKey);
+#[nutype(derive(Debug, Clone, AsRef, TryFrom, Into, PartialEq, Eq, Hash, Serialize, Deserialize), validate(predicate = |k| k.size() >= 256))]
+struct RsaMin2048PublicKey(rsa::RsaPublicKey);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PublicKey {
@@ -43,10 +37,8 @@ pub enum PublicKey {
     ESP256(p256::ecdsa::VerifyingKey),
     ESP384(p384::ecdsa::VerifyingKey),
 
-    // RSA keys, with specific key sizes
-    RSA2048(Rsa2048PublicKey),
-    RSA3072(Rsa3072PublicKey),
-    RSA4096(Rsa4096PublicKey),
+    // RSA key
+    RSA(RsaMin2048PublicKey),
 }
 
 impl Hash for PublicKey {
@@ -55,9 +47,7 @@ impl Hash for PublicKey {
         match self {
             PublicKey::ESP256(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
             PublicKey::ESP384(verifying_key) => verifying_key.to_sec1_bytes().hash(state),
-            PublicKey::RSA2048(rsa_public_key) => rsa_public_key.as_ref().hash(state),
-            PublicKey::RSA3072(rsa_public_key) => rsa_public_key.as_ref().hash(state),
-            PublicKey::RSA4096(rsa_public_key) => rsa_public_key.as_ref().hash(state),
+            PublicKey::RSA(rsa_public_key) => rsa_public_key.as_ref().hash(state),
         }
     }
 }
@@ -84,19 +74,9 @@ impl TryFrom<rsa::RsaPublicKey> for PublicKey {
     type Error = PublicKeyError;
 
     fn try_from(key: rsa::RsaPublicKey) -> Result<Self, Self::Error> {
-        // size is in bytes
-        match key.size() {
-            256 => Ok(Self::RSA2048(
-                Rsa2048PublicKey::try_from(key).expect("should be 2048 bits"),
-            )),
-            384 => Ok(Self::RSA3072(
-                Rsa3072PublicKey::try_from(key).expect("should be 3072 bits"),
-            )),
-            512 => Ok(Self::RSA4096(
-                Rsa4096PublicKey::try_from(key).expect("should be 4096 bits"),
-            )),
-            n => Err(PublicKeyError::UnsupportedRsaKeySize(n)),
-        }
+        RsaMin2048PublicKey::try_from(key)
+            .map_err(PublicKeyError::UnsupportedRsaKeySize)
+            .map(Self::RSA)
     }
 }
 
@@ -255,6 +235,7 @@ mod mock_secure_keys {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::hash_map::DefaultHasher;
     use std::hash::Hash;
     use std::hash::Hasher;
@@ -264,7 +245,8 @@ mod tests {
     use rsa::pkcs8::DecodePrivateKey;
     use rstest::rstest;
 
-    use super::PublicKey;
+    use crate::PublicKey;
+    use crate::PublicKeyError;
 
     fn hash(key: &PublicKey) -> u64 {
         let mut hasher = DefaultHasher::new();
@@ -293,15 +275,25 @@ mod tests {
     }
 
     #[test]
-    fn different_rsa_variants_are_not_equal() {
-        let rsa2048_key = PublicKey::RSA2048(
+    fn reject_rsa_1024_key() {
+        let rsa_public_key = RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa1024.pem"))
+            .unwrap()
+            .to_public_key();
+
+        let err = PublicKey::try_from(rsa_public_key).unwrap_err();
+        assert_matches!(err, PublicKeyError::UnsupportedRsaKeySize(_))
+    }
+
+    #[test]
+    fn different_rsa_keys_are_not_equal() {
+        let rsa2048_key = PublicKey::RSA(
             RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem"))
                 .unwrap()
                 .to_public_key()
                 .try_into()
                 .unwrap(),
         );
-        let rsa4096_key = PublicKey::RSA4096(
+        let rsa4096_key = PublicKey::RSA(
             RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem"))
                 .unwrap()
                 .to_public_key()

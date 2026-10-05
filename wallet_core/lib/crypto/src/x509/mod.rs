@@ -15,7 +15,7 @@ use error_category::ErrorCategory;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
-use p256::elliptic_curve::pkcs8::DecodePublicKey;
+use p256::pkcs8::DecodePublicKey;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use rustls_pki_types::pem::PemObject;
