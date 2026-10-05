@@ -179,6 +179,14 @@ pub struct ParsedCredentialConfigurationsSettings(
 pub struct ParsedCredentialConfigurationSettings {
     pub format: CredentialConfigurationFormat,
 
+    pub signing: CredentialSigningSettings,
+}
+
+/// The settings that determine how the credentials of a credential configuration are signed, how long they are valid
+/// and how their status is published.
+#[derive(Debug, Clone, Deserialize)]
+pub struct CredentialSigningSettings {
+    #[serde(flatten)]
     #[debug(skip)]
     pub keypair: KeyPair,
 
@@ -207,11 +215,7 @@ struct CredentialConfigurationSettings {
     format: CredentialFormatSettings,
 
     #[serde(flatten)]
-    keypair: KeyPair,
-
-    valid_days: u64,
-
-    status_list: StatusListAttestationSettings,
+    signing: CredentialSigningSettings,
 }
 
 /// The credential format of a credential configuration as it appears in the settings, together with the settings that
@@ -256,9 +260,7 @@ impl TryFrom<CredentialConfigurationsSettings> for ParsedCredentialConfiguration
 
                 let settings = ParsedCredentialConfigurationSettings {
                     format,
-                    keypair: settings.keypair,
-                    valid_days: settings.valid_days,
-                    status_list: settings.status_list,
+                    signing: settings.signing,
                 };
 
                 Ok((config_id, settings))
@@ -485,12 +487,14 @@ impl ParsedCredentialConfigurationsSettings {
                 .map(
                     |((config_id, settings), (status_list_connection, public_url, hsm))| async move {
                         let key_pair = settings
+                            .signing
                             .keypair
                             .parse(hsm.clone())
                             .await
                             .map_err(CredentialConfigurationsSettingsError::PrivateKey)?;
 
                         let status_list = settings
+                            .signing
                             .status_list
                             .into_service(status_list_connection, public_url, hsm, status_list_settings)
                             .await
@@ -505,7 +509,7 @@ impl ParsedCredentialConfigurationsSettings {
                             format: settings.format,
                             key_pair,
                             status_list,
-                            valid_days: Days::new(settings.valid_days),
+                            valid_days: Days::new(settings.signing.valid_days),
                         };
 
                         Ok::<_, CredentialConfigurationsSettingsError>((config_id, config))
@@ -588,7 +592,7 @@ impl IssuerSettings {
             .credential_configurations
             .as_ref()
             .iter()
-            .map(|(typ, attestation)| (typ.as_ref(), &attestation.keypair))
+            .map(|(typ, attestation)| (typ.as_ref(), &attestation.signing.keypair))
             .collect();
 
         verify_key_pairs(&key_pairs, trust_anchors, Some(CertificateUsage::Mdl), &time)?;
@@ -597,7 +601,7 @@ impl IssuerSettings {
             .credential_configurations
             .as_ref()
             .iter()
-            .map(|(typ, attestation)| (typ.as_ref(), &attestation.status_list.keypair))
+            .map(|(typ, attestation)| (typ.as_ref(), &attestation.signing.status_list.keypair))
             .collect();
 
         verify_key_pairs(
@@ -608,8 +612,13 @@ impl IssuerSettings {
         )?;
 
         for (config_id, attestation) in self.credential_configurations.as_ref() {
-            let attestation_dn = attestation.keypair.certificate.to_canonical_distinguished_name()?;
+            let attestation_dn = attestation
+                .signing
+                .keypair
+                .certificate
+                .to_canonical_distinguished_name()?;
             let status_list_dn = attestation
+                .signing
                 .status_list
                 .keypair
                 .certificate
@@ -818,6 +827,7 @@ mod tests {
     use super::CredentialConfigurationFormat;
     use super::CredentialFormatSettings;
     use super::CredentialMetadata;
+    use super::CredentialSigningSettings;
     use super::IssuerSettings;
     use super::JsonFile;
     use super::ParsedCredentialConfigurationSettings;
@@ -855,14 +865,16 @@ mod tests {
                 "pid_sdjwt".to_string().into(),
                 ParsedCredentialConfigurationSettings {
                     format: sd_jwt_format("com.example.pid"),
-                    keypair: issuance_keypair,
-                    valid_days: 365,
-                    status_list: StatusListAttestationSettings {
-                        group_name: "pid_sdjwt".to_string(),
-                        base_url: None,
-                        context_path: "tsl".to_string(),
-                        keypair: status_list_keypair,
-                        publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
+                    signing: CredentialSigningSettings {
+                        keypair: issuance_keypair,
+                        valid_days: 365,
+                        status_list: StatusListAttestationSettings {
+                            group_name: "pid_sdjwt".to_string(),
+                            base_url: None,
+                            context_path: "tsl".to_string(),
+                            keypair: status_list_keypair,
+                            publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
+                        },
                     },
                 },
             )])
@@ -1026,14 +1038,16 @@ mod tests {
             "no_registration_sdjwt".to_string().into(),
             ParsedCredentialConfigurationSettings {
                 format: sd_jwt_format("com.example.no_registration"),
-                keypair: issuer_cert_no_registration.into(),
-                valid_days: 365,
-                status_list: StatusListAttestationSettings {
-                    group_name: "no_registration_sdjwt".to_string(),
-                    base_url: None,
-                    context_path: "tsl".to_string(),
-                    keypair: status_list_keypair,
-                    publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
+                signing: CredentialSigningSettings {
+                    keypair: issuer_cert_no_registration.into(),
+                    valid_days: 365,
+                    status_list: StatusListAttestationSettings {
+                        group_name: "no_registration_sdjwt".to_string(),
+                        base_url: None,
+                        context_path: "tsl".to_string(),
+                        keypair: status_list_keypair,
+                        publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
+                    },
                 },
             },
         )])
@@ -1055,7 +1069,7 @@ mod tests {
 
         let (typ, attestation_settings) = settings.credential_configurations.as_ref().iter().next().unwrap();
         let mut attestation_settings = attestation_settings.clone();
-        attestation_settings.status_list.keypair = attestation_settings.keypair.clone();
+        attestation_settings.signing.status_list.keypair = attestation_settings.signing.keypair.clone();
         settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
         let error = settings.validate().expect_err("should fail");
@@ -1083,7 +1097,7 @@ mod tests {
 
         let (typ, attestation_settings) = settings.credential_configurations.as_ref().iter().next().unwrap();
         let mut attestation_settings = attestation_settings.clone();
-        attestation_settings.status_list.keypair = status_list_keypair.into();
+        attestation_settings.signing.status_list.keypair = status_list_keypair.into();
         settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
         let error = settings.validate().expect_err("should fail");

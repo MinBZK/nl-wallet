@@ -407,6 +407,7 @@ async fn test_disclosure_aki_ok() {
         })
         .unwrap()
         .1
+        .signing
         .keypair
         .certificate
         .authority_key_id()
