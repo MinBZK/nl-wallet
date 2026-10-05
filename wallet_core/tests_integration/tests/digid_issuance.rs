@@ -32,6 +32,7 @@ use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use utils::vec_nonempty;
+use wallet::attestation_types::Format;
 use wallet::test::default_wallet_config;
 use wscd::mock::MOCK_WALLET_CLIENT_ID;
 use wscd::wia::mock::MockWiaClient;
@@ -184,7 +185,12 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .collect_vec();
     assert_eq!(previews.len(), 2);
 
-    let payload = &previews[0].credential_payload;
+    let payload = &previews
+        .into_iter()
+        .find(|preview| preview.format == Format::SdJwt)
+        .expect("previews should include SD-JWT PID")
+        .credential_payload;
+
     assert_eq!(payload.attestation_type, PID_ATTESTATION_TYPE);
 
     let attributes = payload.attributes.as_ref();
