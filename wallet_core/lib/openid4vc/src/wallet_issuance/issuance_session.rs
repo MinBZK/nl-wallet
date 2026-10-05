@@ -523,7 +523,7 @@ impl SupportedConfigurations {
 
     /// Create an [`OfferedCredentials`] without previews, containing an entry for every offered Credential
     /// Configuration or, if applicable, every offered Credential Identifier.
-    fn into_offered_credentials(self) -> OfferedCredentials {
+    fn into_offered_credentials_without_previews(self) -> OfferedCredentials {
         let offered_credentials = match self {
             Self::WithoutIdentifiers(configs) => configs
                 .into_nonempty_iter()
@@ -865,7 +865,10 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 )
                 .await?;
 
-                (metadata, offered_configurations.into_offered_credentials())
+                (
+                    metadata,
+                    offered_configurations.into_offered_credentials_without_previews(),
+                )
             }
         };
 
