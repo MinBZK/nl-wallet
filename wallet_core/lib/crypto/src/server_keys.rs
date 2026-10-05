@@ -441,10 +441,8 @@ pub mod generate {
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("PID"));
         pub static WIA_CERT_DN: LazyLock<DistinguishedName> = LazyLock::new(|| DistinguishedName::create_mock("WIA"));
 
-        pub static RP_CA_DN: LazyLock<DistinguishedName> =
-            LazyLock::new(|| DistinguishedName::create_mock("CA relying party"));
-        pub static RP_CERT_DN: LazyLock<DistinguishedName> =
-            LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert relying party"));
+        pub static VERIFIER_CERT_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert verifier"));
 
         impl Ca {
             pub fn generate_mock() -> Self {
@@ -488,12 +486,12 @@ pub mod generate {
             }
 
             pub fn generate_wrpac_verifier_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(RP_CERT_DN.clone(), Default::default())
+                self.generate_key_pair(VERIFIER_CERT_DN.clone(), Default::default())
             }
 
             pub fn generate_wrpac_verifier_mock_with_crl(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
-                    RP_CERT_DN.clone(),
+                    VERIFIER_CERT_DN.clone(),
                     CertificateConfiguration {
                         crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
                         ..Default::default()
