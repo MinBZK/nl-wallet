@@ -1,5 +1,20 @@
 use super::localize::LocalizedString;
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum PersonType {
+    NaturalPerson,
+    LegalPerson,
+}
+
+impl From<wallet::attestation_data::SubjectType> for PersonType {
+    fn from(value: wallet::attestation_data::SubjectType) -> Self {
+        match value {
+            wallet::attestation_data::SubjectType::NaturalPerson => Self::NaturalPerson,
+            wallet::attestation_data::SubjectType::LegalPerson => Self::LegalPerson,
+        }
+    }
+}
+
 pub struct ServiceDescription {
     pub translations: Vec<LocalizedString>,
 }
@@ -29,6 +44,7 @@ pub struct Organization {
     pub country_code: String,
     pub support_uri: Option<String>,
     pub public_body: Option<bool>,
+    pub person_type: Option<PersonType>,
 }
 
 impl From<wallet::attestation_data::Organization> for Organization {
@@ -43,6 +59,37 @@ impl From<wallet::attestation_data::Organization> for Organization {
             privacy_policy_url: value.privacy_policy_url.map(|url| url.to_string()),
             support_uri: value.support_uri,
             public_body: value.public_body,
+            person_type: value.person_type.map(Into::into),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::Organization;
+    use super::PersonType;
+
+    #[rstest]
+    #[case::unknown(None, None)]
+    #[case::natural_person(
+        Some(wallet::attestation_data::SubjectType::NaturalPerson),
+        Some(PersonType::NaturalPerson)
+    )]
+    #[case::legal_person(
+        Some(wallet::attestation_data::SubjectType::LegalPerson),
+        Some(PersonType::LegalPerson)
+    )]
+    fn maps_organization_person_type(
+        #[case] person_type: Option<wallet::attestation_data::SubjectType>,
+        #[case] expected: Option<PersonType>,
+    ) {
+        let organization = Organization::from(wallet::attestation_data::Organization {
+            person_type,
+            ..Default::default()
+        });
+
+        assert_eq!(organization.person_type, expected);
     }
 }

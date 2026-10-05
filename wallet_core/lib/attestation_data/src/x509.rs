@@ -2,6 +2,7 @@ use crypto::x509::DistinguishedName;
 use derive_more::Debug;
 
 use crate::organization::Organization;
+use crate::registration_certificate::SubjectType;
 
 /// Relying party of X509 certificates following ETSI EN 319 412-2 and ETSI EN 319 412-3 standard.
 #[derive(Debug, Clone)]
@@ -79,6 +80,7 @@ impl From<RelyingParty> for Organization {
                 privacy_policy_url: None,
                 support_uri: None,
                 public_body: None,
+                person_type: Some(SubjectType::LegalPerson),
             },
             RelyingParty::NaturalPerson {
                 common_name,
@@ -96,6 +98,7 @@ impl From<RelyingParty> for Organization {
                 privacy_policy_url: None,
                 support_uri: None,
                 public_body: None,
+                person_type: Some(SubjectType::NaturalPerson),
             },
         }
     }
@@ -105,7 +108,22 @@ impl From<RelyingParty> for Organization {
 mod tests {
     use std::assert_matches;
 
+    use rstest::rstest;
+
     use super::*;
+
+    #[rstest]
+    #[case::legal_person(DistinguishedName::create_legal_person_mock("Example"), SubjectType::LegalPerson)]
+    #[case::natural_person(
+        DistinguishedName::create_natural_person_mock("Jane", "Doe"),
+        SubjectType::NaturalPerson
+    )]
+    fn maps_relying_party_person_type(#[case] subject: DistinguishedName, #[case] person_type: SubjectType) {
+        let relying_party = RelyingParty::try_from(subject).unwrap();
+        let organization = Organization::from(relying_party);
+
+        assert_eq!(organization.person_type, Some(person_type));
+    }
 
     #[test]
     fn parse_legal_person_name() {

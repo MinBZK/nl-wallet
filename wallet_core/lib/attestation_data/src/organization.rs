@@ -10,6 +10,7 @@ use crate::registration_certificate::MultiLanguageString;
 use crate::registration_certificate::ParsedRegistrationCertificate;
 use crate::registration_certificate::StatusValidatedRegistrationCertificate;
 use crate::registration_certificate::Subject;
+use crate::registration_certificate::SubjectType;
 use crate::registration_certificate::UncheckedRegistrationCertificate;
 use crate::x509::RelyingParty;
 use crate::x509::RelyingPartyError;
@@ -32,6 +33,7 @@ pub struct Organization {
     pub privacy_policy_url: Option<Url>,
     pub support_uri: Option<String>,
     pub public_body: Option<bool>,
+    pub person_type: Option<SubjectType>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -70,12 +72,12 @@ impl From<&ParsedRegistrationCertificate> for Organization {
 
 impl Organization {
     fn from_registration_certificate(payload: &UncheckedRegistrationCertificate, subject: &Subject) -> Self {
-        let legal_name = match subject {
-            Subject::LegalPerson { legal_name } => legal_name.clone(),
+        let (legal_name, person_type) = match subject {
+            Subject::LegalPerson { legal_name } => (legal_name.clone(), SubjectType::LegalPerson),
             Subject::NaturalPerson {
                 given_name,
                 family_name,
-            } => format!("{given_name} {family_name}"),
+            } => (format!("{given_name} {family_name}"), SubjectType::NaturalPerson),
         };
 
         Self {
@@ -94,6 +96,7 @@ impl Organization {
             privacy_policy_url: payload.privacy_policy.clone(),
             support_uri: Some(payload.support_uri.clone()),
             public_body: payload.public_body,
+            person_type: Some(person_type),
         }
     }
 }
@@ -134,6 +137,7 @@ pub mod mock {
                 privacy_policy_url: Some(Url::parse("https://organisation.example.com/privacy").unwrap()),
                 support_uri: None,
                 public_body: None,
+                person_type: Some(SubjectType::LegalPerson),
             }
         }
     }
@@ -155,6 +159,7 @@ pub mod test {
 
     use super::Organization;
     use crate::registration_certificate::RegistrationCertificateEnvelope;
+    use crate::registration_certificate::SubjectType;
     use crate::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use crate::registration_certificate::mock::issuer_registration_certificate_payload;
     use crate::registration_certificate::verify_registration_certificate_envelope;
@@ -184,15 +189,25 @@ pub mod test {
 
         assert_eq!(organization.support_uri, None);
         assert_eq!(organization.public_body, None);
+        assert_eq!(organization.person_type, None);
     }
 
     #[rstest]
-    #[case::legal_person(DistinguishedName::create_legal_person_mock("Example"), "Example B.V.")]
-    #[case::natural_person(DistinguishedName::create_natural_person_mock("Jane", "Doe"), "Jane Doe")]
+    #[case::legal_person(
+        DistinguishedName::create_legal_person_mock("Example"),
+        "Example B.V.",
+        SubjectType::LegalPerson
+    )]
+    #[case::natural_person(
+        DistinguishedName::create_natural_person_mock("Jane", "Doe"),
+        "Jane Doe",
+        SubjectType::NaturalPerson
+    )]
     #[tokio::test]
     async fn maps_registration_certificate_to_organization(
         #[case] subject: DistinguishedName,
         #[case] legal_name: &str,
+        #[case] person_type: SubjectType,
         #[values(None, Some(false), Some(true))] public_body: Option<bool>,
     ) {
         let access_key = Ca::generate_wrpac_mock_ca()
@@ -269,6 +284,7 @@ pub mod test {
                 privacy_policy_url: has_optional_fields.then(|| "https://example.com/privacy".parse().unwrap()),
                 support_uri: Some(support_uri.to_owned()),
                 public_body,
+                person_type: Some(person_type),
             }
         );
     }

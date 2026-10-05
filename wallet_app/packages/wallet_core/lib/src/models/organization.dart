@@ -17,6 +17,7 @@ class Organization {
   final String countryCode;
   final String? supportUri;
   final bool? publicBody;
+  final PersonType? personType;
 
   const Organization({
     required this.legalName,
@@ -28,6 +29,7 @@ class Organization {
     required this.countryCode,
     this.supportUri,
     this.publicBody,
+    this.personType,
   });
 
   @override
@@ -40,7 +42,8 @@ class Organization {
       identifier.hashCode ^
       countryCode.hashCode ^
       supportUri.hashCode ^
-      publicBody.hashCode;
+      publicBody.hashCode ^
+      personType.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -55,7 +58,13 @@ class Organization {
           identifier == other.identifier &&
           countryCode == other.countryCode &&
           supportUri == other.supportUri &&
-          publicBody == other.publicBody;
+          publicBody == other.publicBody &&
+          personType == other.personType;
+}
+
+enum PersonType {
+  NaturalPerson,
+  LegalPerson,
 }
 
 class ServiceDescription {
