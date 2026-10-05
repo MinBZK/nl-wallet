@@ -244,7 +244,7 @@ enum CredentialFormatSettings {
 }
 
 impl TryFrom<CredentialConfigurationsSettings> for ParsedCredentialConfigurationsSettings {
-    type Error = CredentialConfigurationFormatError;
+    type Error = CredentialConfigurationParseError;
 
     fn try_from(value: CredentialConfigurationsSettings) -> Result<Self, Self::Error> {
         let CredentialConfigurationsSettings {
@@ -255,8 +255,8 @@ impl TryFrom<CredentialConfigurationsSettings> for ParsedCredentialConfiguration
         let configurations = credential_configurations
             .into_iter()
             .map(|(config_id, settings)| {
-                let format =
-                    resolve_credential_configuration_format(&config_id, settings.format, type_metadata.as_ref())?;
+                let format = resolve_credential_configuration_format(settings.format, type_metadata.as_ref())
+                    .map_err(|error| CredentialConfigurationParseError(config_id.clone(), error))?;
 
                 let settings = ParsedCredentialConfigurationSettings {
                     format,
@@ -382,22 +382,24 @@ impl TypeMetadataByVct {
     }
 }
 
+/// Failure to parse the settings of a single credential configuration.
+#[derive(Debug, thiserror::Error)]
+#[error("invalid credential configuration \"{0}\": {1}")]
+pub struct CredentialConfigurationParseError(CredentialConfigurationId, #[source] CredentialConfigurationFormatError);
+
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationFormatError {
     #[error("could not compile SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadataChain(#[source] TypeMetadataDocumentsError),
 
-    #[error("could not verify SD-JWT VC Type Metadata chain for credential configuration \"{0}\": {1}")]
-    TypeMetadataVerification(CredentialConfigurationId, #[source] TypeMetadataChainError),
+    #[error("could not verify SD-JWT VC Type Metadata chain: {0}")]
+    TypeMetadataVerification(#[source] TypeMetadataChainError),
 
-    #[error(
-        "both SD-JWT VC Type Metadata and Credential Metadata are configured for SD-JWT credential configuration \
-         \"{0}\", expected exactly one"
-    )]
-    DuplicateSdJwtMetadata(CredentialConfigurationId),
+    #[error("both SD-JWT VC Type Metadata and Credential Metadata are configured, expected exactly one")]
+    DuplicateSdJwtMetadata,
 
-    #[error("no metadata is configured for SD-JWT credential configuration \"{0}\"")]
-    MissingSdJwtMetadata(CredentialConfigurationId),
+    #[error("neither SD-JWT VC Type Metadata nor Credential Metadata is configured")]
+    MissingSdJwtMetadata,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -414,7 +416,6 @@ pub enum CredentialConfigurationsSettingsError {
 
 /// Determine the format of a single credential configuration, including the metadata that describes it.
 fn resolve_credential_configuration_format(
-    config_id: &CredentialConfigurationId,
     format: CredentialFormatSettings,
     metadata_by_vct: Option<&TypeMetadataByVct>,
 ) -> Result<CredentialConfigurationFormat, CredentialConfigurationFormatError> {
@@ -434,20 +435,14 @@ fn resolve_credential_configuration_format(
                 metadata_by_vct.filter(|metadata| metadata.as_ref().contains_key(attestation_type.as_str()));
 
             match (type_metadata, credential_metadata) {
-                (Some(_), Some(_)) => Err(CredentialConfigurationFormatError::DuplicateSdJwtMetadata(
-                    config_id.clone(),
-                )),
-                (None, None) => Err(CredentialConfigurationFormatError::MissingSdJwtMetadata(
-                    config_id.clone(),
-                )),
+                (Some(_), Some(_)) => Err(CredentialConfigurationFormatError::DuplicateSdJwtMetadata),
+                (None, None) => Err(CredentialConfigurationFormatError::MissingSdJwtMetadata),
                 (Some(metadata_by_vct), None) => {
                     let documents = metadata_by_vct
                         .to_metadata_documents(&attestation_type)
                         .map_err(CredentialConfigurationFormatError::TypeMetadataChain)?;
                     let type_metadata = CredentialConfigurationTypeMetadata::try_new(&attestation_type, documents)
-                        .map_err(|error| {
-                            CredentialConfigurationFormatError::TypeMetadataVerification(config_id.clone(), error)
-                        })?;
+                        .map_err(CredentialConfigurationFormatError::TypeMetadataVerification)?;
 
                     Ok(CredentialConfigurationFormat::new_sd_jwt_type_metadata(type_metadata))
                 }
@@ -1163,7 +1158,7 @@ mod tests {
             credential_metadata: credential_metadata_file(),
         };
 
-        let resolved = resolve_credential_configuration_format(&"cfg".to_string().into(), format, Some(&metadata))
+        let resolved = resolve_credential_configuration_format(format, Some(&metadata))
             .expect("an mdoc sharing its attestation type with an SD-JWT should resolve");
 
         assert!(matches!(resolved, CredentialConfigurationFormat::MsoMdoc { .. }));
@@ -1175,24 +1170,18 @@ mod tests {
             "com.example.a",
         )]);
 
-        let with_type_metadata = resolve_credential_configuration_format(
-            &"cfg_a".to_string().into(),
-            sd_jwt_settings("com.example.a", false),
-            Some(&metadata),
-        )
-        .expect("a configuration with Type Metadata should resolve");
+        let with_type_metadata =
+            resolve_credential_configuration_format(sd_jwt_settings("com.example.a", false), Some(&metadata))
+                .expect("a configuration with Type Metadata should resolve");
         assert_matches!(
             with_type_metadata,
             CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(type_metadata))
                 if type_metadata.vct() == "com.example.a"
         );
 
-        let falls_back = resolve_credential_configuration_format(
-            &"cfg_b".to_string().into(),
-            sd_jwt_settings("com.example.b", true),
-            Some(&metadata),
-        )
-        .expect("a configuration without Type Metadata should fall back to its Credential Metadata");
+        let falls_back =
+            resolve_credential_configuration_format(sd_jwt_settings("com.example.b", true), Some(&metadata))
+                .expect("a configuration without Type Metadata should fall back to its Credential Metadata");
         assert_matches!(
             falls_back,
             CredentialConfigurationFormat::SdJwt(SdJwtMetadata::CredentialMetadata { vct, .. })
@@ -1206,18 +1195,13 @@ mod tests {
             "com.example.a",
         )]);
 
-        let Err(error) = resolve_credential_configuration_format(
-            &"cfg_a".to_string().into(),
-            sd_jwt_settings("com.example.a", true),
-            Some(&metadata),
-        ) else {
+        let Err(error) =
+            resolve_credential_configuration_format(sd_jwt_settings("com.example.a", true), Some(&metadata))
+        else {
             panic!("configuring both kinds of metadata should not be allowed")
         };
 
-        assert_matches!(
-            error,
-            CredentialConfigurationFormatError::DuplicateSdJwtMetadata(config_id) if config_id.as_ref() == "cfg_a"
-        );
+        assert_matches!(error, CredentialConfigurationFormatError::DuplicateSdJwtMetadata);
     }
 
     #[test]
@@ -1231,18 +1215,13 @@ mod tests {
         ];
 
         for metadata in cases {
-            let Err(error) = resolve_credential_configuration_format(
-                &"cfg_a".to_string().into(),
-                sd_jwt_settings("com.example.a", false),
-                metadata.as_ref(),
-            ) else {
+            let Err(error) =
+                resolve_credential_configuration_format(sd_jwt_settings("com.example.a", false), metadata.as_ref())
+            else {
                 panic!("configuring neither kind of metadata should not be allowed")
             };
 
-            assert_matches!(
-                error,
-                CredentialConfigurationFormatError::MissingSdJwtMetadata(config_id) if config_id.as_ref() == "cfg_a"
-            );
+            assert_matches!(error, CredentialConfigurationFormatError::MissingSdJwtMetadata);
         }
     }
 
@@ -1257,7 +1236,6 @@ mod tests {
         let extending: UncheckedTypeMetadata = serde_json::from_value(json).unwrap();
 
         let Err(error) = resolve_credential_configuration_format(
-            &"cfg_a".to_string().into(),
             sd_jwt_settings("com.example.a", false),
             Some(&type_metadata_by_vct([extending])),
         ) else {
@@ -1285,7 +1263,6 @@ mod tests {
         let extended = UncheckedTypeMetadata::empty_example_with_attestation_type("com.example.b");
 
         let Err(error) = resolve_credential_configuration_format(
-            &"cfg_a".to_string().into(),
             sd_jwt_settings("com.example.a", false),
             Some(&type_metadata_by_vct([extending, extended])),
         ) else {
@@ -1294,10 +1271,7 @@ mod tests {
 
         assert_matches!(
             error,
-            CredentialConfigurationFormatError::TypeMetadataVerification(
-                config_id,
-                TypeMetadataChainError::ResourceIntegrity(_)
-            ) if config_id.as_ref() == "cfg_a"
+            CredentialConfigurationFormatError::TypeMetadataVerification(TypeMetadataChainError::ResourceIntegrity(_))
         );
     }
 }
