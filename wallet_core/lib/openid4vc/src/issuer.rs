@@ -1759,7 +1759,6 @@ mod tests {
     use crate::client_auth::ClientAttestationChallengeMechanism;
     use crate::credential::CredentialResponse;
     use crate::credential_configurations::CredentialConfigurationFormat;
-    use crate::credential_configurations::SdJwtMetadata;
     use crate::errors::CredentialErrorCode;
     use crate::errors::CredentialPreviewErrorCode;
     use crate::errors::VciTokenErrorCode;
@@ -1793,11 +1792,9 @@ mod tests {
 
         let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
             "https://example.com/".parse().unwrap(),
-            vec![CredentialConfigurationFormat::SdJwt(
-                SdJwtMetadata::CredentialMetadata {
-                    vct: attestation_type.to_string(),
-                    credential_metadata: CredentialMetadata::new_example(&claim_names),
-                },
+            vec![CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+                attestation_type.to_string(),
+                CredentialMetadata::new_example(&claim_names),
             )],
             Arc::new(MemorySessionStore::default()),
         );
@@ -1818,11 +1815,9 @@ mod tests {
 
         let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
             "https://example.com/".parse().unwrap(),
-            vec![CredentialConfigurationFormat::SdJwt(
-                SdJwtMetadata::CredentialMetadata {
-                    vct: attestation_type.to_string(),
-                    credential_metadata: CredentialMetadata::new_example(&["first_name"]),
-                },
+            vec![CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+                attestation_type.to_string(),
+                CredentialMetadata::new_example(&["first_name"]),
             )],
             Arc::new(MemorySessionStore::default()),
         );

@@ -96,6 +96,27 @@ impl AttestationClaims for CredentialConfigurationFormat {
 }
 
 impl CredentialConfigurationFormat {
+    /// An mdoc, described by Credential Metadata.
+    pub fn new_mdoc(doc_type: String, credential_metadata: CredentialMetadata) -> Self {
+        Self::MsoMdoc {
+            doc_type,
+            credential_metadata,
+        }
+    }
+
+    /// An SD-JWT, described by SD-JWT VC Type Metadata.
+    pub fn new_sd_jwt_type_metadata(type_metadata: CredentialConfigurationTypeMetadata) -> Self {
+        Self::SdJwt(SdJwtMetadata::TypeMetadata(type_metadata))
+    }
+
+    /// An SD-JWT, described by Credential Metadata.
+    pub fn new_sd_jwt_credential_metadata(vct: String, credential_metadata: CredentialMetadata) -> Self {
+        Self::SdJwt(SdJwtMetadata::CredentialMetadata {
+            vct,
+            credential_metadata,
+        })
+    }
+
     /// The credential format that corresponds to this configuration.
     pub fn format(&self) -> Format {
         match self {
@@ -356,7 +377,6 @@ mod tests {
     use super::CredentialConfigurationTypeMetadata;
     use super::CredentialConfigurations;
     use super::CredentialConfigurationsError;
-    use super::SdJwtMetadata;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::CredentialFormat;
     use crate::metadata::issuer_metadata::CredentialMetadata;
@@ -380,16 +400,14 @@ mod tests {
 
                 let key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
                 let format = match format {
-                    Format::MsoMdoc => CredentialConfigurationFormat::MsoMdoc {
-                        doc_type: "com.example.degree".to_string(),
-                        credential_metadata: CredentialMetadata::new_mdoc_example(
+                    Format::MsoMdoc => CredentialConfigurationFormat::new_mdoc(
+                        "com.example.degree".to_string(),
+                        CredentialMetadata::new_mdoc_example(
                             "com.example.degree",
                             &["university", "education", "graduation_date", "grade", "cum_laude"],
                         ),
-                    },
-                    Format::SdJwt => {
-                        CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(degree_type_metadata()))
-                    }
+                    ),
+                    Format::SdJwt => CredentialConfigurationFormat::new_sd_jwt_type_metadata(degree_type_metadata()),
                 };
 
                 let config = CredentialConfiguration {
@@ -508,10 +526,10 @@ mod tests {
     fn test_credential_configurations_sd_jwt_described_by_credential_metadata() {
         let mut configs = credential_configurations_by_id();
         configs.get_mut("degree_dc+sd-jwt").unwrap().format =
-            CredentialConfigurationFormat::SdJwt(SdJwtMetadata::CredentialMetadata {
-                vct: "com.example.degree".to_string(),
-                credential_metadata: CredentialMetadata::new_example(&["university", "education"]),
-            });
+            CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+                "com.example.degree".to_string(),
+                CredentialMetadata::new_example(&["university", "education"]),
+            );
 
         let configs = CredentialConfigurations::try_new(configs)
             .expect("an SD-JWT described by Credential Metadata should create credential configurations");
@@ -582,7 +600,7 @@ mod tests {
     fn test_credential_configurations_try_new_error_duplicate_credential_kind() {
         let mut configs = credential_configurations_by_id();
         for config in configs.values_mut() {
-            config.format = CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(degree_type_metadata()));
+            config.format = CredentialConfigurationFormat::new_sd_jwt_type_metadata(degree_type_metadata());
         }
 
         let error =

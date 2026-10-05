@@ -55,7 +55,6 @@ use crate::authorizing_issuer::AuthorizingIssuer;
 use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationFormat;
 use crate::credential_configurations::CredentialConfigurationTypeMetadata;
-use crate::credential_configurations::SdJwtMetadata;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
@@ -284,10 +283,10 @@ where
         .map(|metadata| {
             let (attestation_type, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
 
-            CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(
+            CredentialConfigurationFormat::new_sd_jwt_type_metadata(
                 CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
                     .expect("example type metadata should verify"),
-            ))
+            )
         })
         .collect();
 
@@ -321,18 +320,15 @@ where
                     .into_normalized(&attestation_type)
                     .expect("example type metadata should normalize");
 
-                CredentialConfigurationFormat::MsoMdoc {
-                    doc_type: attestation_type.clone(),
-                    credential_metadata: CredentialMetadata::new_mdoc_example_from_type_metadata(
-                        &attestation_type,
-                        &normalized,
-                    ),
-                }
+                CredentialConfigurationFormat::new_mdoc(
+                    attestation_type.clone(),
+                    CredentialMetadata::new_mdoc_example_from_type_metadata(&attestation_type, &normalized),
+                )
             }
-            Format::SdJwt => CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(
+            Format::SdJwt => CredentialConfigurationFormat::new_sd_jwt_type_metadata(
                 CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
                     .expect("example type metadata should verify"),
-            )),
+            ),
         })
         .collect();
 

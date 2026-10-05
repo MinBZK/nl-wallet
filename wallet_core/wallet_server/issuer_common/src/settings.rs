@@ -29,7 +29,6 @@ use openid4vc::credential_configurations::CredentialConfiguration;
 use openid4vc::credential_configurations::CredentialConfigurationFormat;
 use openid4vc::credential_configurations::CredentialConfigurationTypeMetadata;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
-use openid4vc::credential_configurations::SdJwtMetadata;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
@@ -421,10 +420,10 @@ fn resolve_credential_configuration_format(
         RawCredentialFormatSettings::MsoMdoc {
             attestation_type,
             credential_metadata,
-        } => Ok(CredentialConfigurationFormat::MsoMdoc {
-            doc_type: attestation_type,
-            credential_metadata: credential_metadata.into_contents(),
-        }),
+        } => Ok(CredentialConfigurationFormat::new_mdoc(
+            attestation_type,
+            credential_metadata.into_contents(),
+        )),
         RawCredentialFormatSettings::SdJwt {
             attestation_type,
             credential_metadata,
@@ -448,15 +447,11 @@ fn resolve_credential_configuration_format(
                             CredentialConfigurationFormatError::TypeMetadataVerification(config_id.clone(), error)
                         })?;
 
-                    Ok(CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(
-                        type_metadata,
-                    )))
+                    Ok(CredentialConfigurationFormat::new_sd_jwt_type_metadata(type_metadata))
                 }
-                (None, Some(credential_metadata)) => Ok(CredentialConfigurationFormat::SdJwt(
-                    SdJwtMetadata::CredentialMetadata {
-                        vct: attestation_type,
-                        credential_metadata: credential_metadata.into_contents(),
-                    },
+                (None, Some(credential_metadata)) => Ok(CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+                    attestation_type,
+                    credential_metadata.into_contents(),
                 )),
             }
         }
@@ -802,6 +797,7 @@ mod tests {
     use crypto::x509::CertificateUsage;
     use crypto::x509::DistinguishedName;
     use crypto::x509::SubjectAltNameUri;
+    use openid4vc::credential_configurations::SdJwtMetadata;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::TypeMetadataChainError;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -825,7 +821,6 @@ mod tests {
     use super::IssuerSettings;
     use super::JsonFile;
     use super::RawCredentialFormatSettings;
-    use super::SdJwtMetadata;
     use super::StatusListAttestationSettings;
     use super::TypeMetadataByVct;
     use crate::settings::CredentialConfigurationFormatError;
@@ -1127,10 +1122,7 @@ mod tests {
     }
 
     fn sd_jwt_format(vct: &str) -> CredentialConfigurationFormat {
-        CredentialConfigurationFormat::SdJwt(SdJwtMetadata::CredentialMetadata {
-            vct: vct.to_string(),
-            credential_metadata: credential_metadata(),
-        })
+        CredentialConfigurationFormat::new_sd_jwt_credential_metadata(vct.to_string(), credential_metadata())
     }
 
     fn credential_metadata_file() -> JsonFile<CredentialMetadata> {

@@ -180,7 +180,6 @@ mod tests {
     use openid4vc::credential_configurations::CredentialConfiguration;
     use openid4vc::credential_configurations::CredentialConfigurationFormat;
     use openid4vc::credential_configurations::CredentialConfigurationTypeMetadata;
-    use openid4vc::credential_configurations::SdJwtMetadata;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::issuable_document::IssuableDocument;
@@ -273,13 +272,13 @@ mod tests {
 
         let credential_config = CredentialConfiguration {
             scope: "credential_config_id".parse().unwrap(),
-            format: CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(
+            format: CredentialConfigurationFormat::new_sd_jwt_type_metadata(
                 CredentialConfigurationTypeMetadata::try_new(
                     "com.example.degree",
                     TypeMetadataDocuments::degree_example().1,
                 )
                 .unwrap(),
-            )),
+            ),
             key_pair: KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),
                 issuance_keypair.certificate().to_owned(),
