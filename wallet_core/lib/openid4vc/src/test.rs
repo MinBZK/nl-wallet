@@ -52,8 +52,8 @@ use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::authorizing_issuer::AuthorizingIssuer;
+use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationFormat;
-use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurationTypeMetadata;
 use crate::credential_configurations::SdJwtMetadata;
 use crate::issuable_document::IssuableDocument;
@@ -367,7 +367,7 @@ where
             .map(|format| CredentialKind::new(format.format(), format.attestation_type().to_string())),
     );
 
-    let config_params = attestations
+    let credential_configs = attestations
         .into_iter()
         .map(|format| {
             let config_id = format!("{}_{}", format.attestation_type(), format.format());
@@ -379,7 +379,8 @@ where
                     .unwrap(),
             );
 
-            let params = CredentialConfigurationParameters {
+            let config = CredentialConfiguration {
+                scope: config_id.parse().unwrap(),
                 format,
                 key_pair: KeyPair::new_from_signing_key(
                     issuance_keypair.private_key().clone(),
@@ -390,7 +391,7 @@ where
                 status_list,
             };
 
-            (config_id.into(), params)
+            (config_id.into(), config)
         })
         .collect();
 
@@ -400,7 +401,7 @@ where
         RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
-        config_params,
+        credential_configs,
         trust_anchors.clone(),
         sessions,
         MemoryNonceStore::new(),

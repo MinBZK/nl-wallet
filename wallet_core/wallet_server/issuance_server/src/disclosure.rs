@@ -177,8 +177,8 @@ mod tests {
     use dcql::unique_id_vec::UniqueIdVec;
     use indexmap::IndexMap;
     use oauth::errors::ErrorWithCode;
+    use openid4vc::credential_configurations::CredentialConfiguration;
     use openid4vc::credential_configurations::CredentialConfigurationFormat;
-    use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_configurations::CredentialConfigurationTypeMetadata;
     use openid4vc::credential_configurations::SdJwtMetadata;
     use openid4vc::credential_offer::CredentialOffer;
@@ -271,7 +271,8 @@ mod tests {
             .expect_start_refresh_job()
             .return_once(|| tokio::task::spawn(async {}).abort_handle());
 
-        let config_params = CredentialConfigurationParameters {
+        let credential_config = CredentialConfiguration {
+            scope: "credential_config_id".parse().unwrap(),
             format: CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(
                 CredentialConfigurationTypeMetadata::try_new(
                     "com.example.degree",
@@ -297,7 +298,7 @@ mod tests {
             RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
             NonZeroU8::MIN,
             HashSet::new(),
-            [("credential_config_id".to_string().into(), config_params)].into(),
+            [("credential_config_id".to_string().into(), credential_config)].into(),
             wia_trust_anchors,
             sessions,
             MemoryNonceStore::new(),

@@ -84,7 +84,6 @@ use crate::credential::Credentials;
 use crate::credential::MdocCredential;
 use crate::credential::SdJwtCredential;
 use crate::credential_configurations::CredentialConfiguration;
-use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurationTypeMetadata;
 use crate::credential_configurations::CredentialConfigurations;
 use crate::credential_configurations::CredentialConfigurationsError;
@@ -647,12 +646,12 @@ where
         registration_certificate: RegistrationCertificateEnvelope,
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
-        credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
+        credential_configs: HashMap<CredentialConfigurationId, CredentialConfiguration<K, L>>,
         wia_trust_anchors: TrustAnchors,
         sessions: Arc<S>,
         nonce_store: N,
     ) -> Result<Self, CredentialConfigurationsError> {
-        let credential_configs = CredentialConfigurations::try_new(credential_config_params)?;
+        let credential_configs = CredentialConfigurations::try_new(credential_configs)?;
 
         let server_url = issuer_identifier.as_issuer_url().join_issuer_url("/issuance");
         let credential_endpoint = server_url.join_issuer_url(&format!("/{CREDENTIAL_ENDPOINT_PATH}"));

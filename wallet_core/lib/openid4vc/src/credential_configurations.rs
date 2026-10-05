@@ -12,7 +12,6 @@ use itertools::Either;
 use itertools::Itertools;
 use oauth::issuer_identifier::IssuerUrl;
 use oauth::scope::Scope;
-use oauth::scope::ScopeInvalid;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -27,11 +26,14 @@ use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsError {
-    #[error("no credential configuration parameters provided")]
+    #[error("no credential configurations provided")]
     NoConfigurations,
 
-    #[error("could not use credential configuration ID as scope: {0}")]
-    Scope(#[source] ScopeInvalid),
+    #[error("scope \"{scope}\" does not match credential configuration ID \"{config_id}\"")]
+    ScopeMismatch {
+        config_id: CredentialConfigurationId,
+        scope: Scope,
+    },
 
     #[error(
         "multiple credential configurations for the same combination of format and attestation type: {}",
@@ -170,22 +172,13 @@ impl CredentialConfigurationTypeMetadata {
     }
 }
 
-#[derive(Debug)]
-pub struct CredentialConfigurationParameters<K, L> {
-    pub format: CredentialConfigurationFormat,
-    #[debug(skip)]
-    pub key_pair: KeyPair<K>,
-    pub status_list: L,
-    pub valid_days: Days,
-}
-
 /// Static attestation data shared across all instances of an attestation type for a particular format. Parts of this
 /// configuration are represented in the `credential_configurations_supported` section of the issuer metadata.
 ///
 /// When performing issuance, the issuer augments the [`CredentialConfiguration`] with an [`IssuableDocument`] to form
 /// the attestation.
 #[derive(Debug)]
-pub(crate) struct CredentialConfiguration<K, L> {
+pub struct CredentialConfiguration<K, L> {
     pub scope: Scope,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
@@ -195,29 +188,6 @@ pub(crate) struct CredentialConfiguration<K, L> {
 }
 
 impl<K, L> CredentialConfiguration<K, L> {
-    fn try_new(
-        config_id: &CredentialConfigurationId,
-        CredentialConfigurationParameters {
-            format,
-            key_pair,
-            status_list,
-            valid_days,
-        }: CredentialConfigurationParameters<K, L>,
-    ) -> Result<Self, CredentialConfigurationsError> {
-        // Use the Credential Configuration ID as the scope value.
-        let scope = Scope::try_new(config_id.as_ref()).map_err(CredentialConfigurationsError::Scope)?;
-
-        let config = Self {
-            scope,
-            status_list,
-            key_pair,
-            valid_days,
-            format,
-        };
-
-        Ok(config)
-    }
-
     /// The combination of the attestation type and the format it is expressed in.
     pub(crate) fn credential_kind(&self) -> CredentialKind {
         CredentialKind::new(self.format.format(), self.format.attestation_type().to_string())
@@ -232,30 +202,30 @@ pub(crate) struct CredentialConfigurations<K, L> {
 }
 
 impl<K, L> CredentialConfigurations<K, L> {
+    /// Create the configurations. The scope of each configuration has to equal its Credential Configuration ID, which
+    /// allows [`Self::get_by_scope()`] to look up a configuration by scope without a separate index.
     pub fn try_new(
-        config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
+        configs_by_id: HashMap<CredentialConfigurationId, CredentialConfiguration<K, L>>,
     ) -> Result<Self, CredentialConfigurationsError> {
-        if config_params.is_empty() {
+        if configs_by_id.is_empty() {
             return Err(CredentialConfigurationsError::NoConfigurations);
         }
 
         let mut ids_by_credential_kind = HashMap::<_, Vec<_>>::new();
 
-        let configs_by_id = config_params
-            .into_iter()
-            .map(|(config_id, params)| {
-                let credential_kind =
-                    CredentialKind::new(params.format.format(), params.format.attestation_type().to_string());
-                ids_by_credential_kind
-                    .entry(credential_kind)
-                    .or_default()
-                    .push(config_id.clone());
+        for (config_id, config) in &configs_by_id {
+            if config.scope.as_ref() != config_id.as_ref() {
+                return Err(CredentialConfigurationsError::ScopeMismatch {
+                    config_id: config_id.clone(),
+                    scope: config.scope.clone(),
+                });
+            }
 
-                let config = CredentialConfiguration::try_new(&config_id, params)?;
-
-                Ok((config_id, config))
-            })
-            .try_collect()?;
+            ids_by_credential_kind
+                .entry(config.credential_kind())
+                .or_default()
+                .push(config_id.clone());
+        }
 
         let (ids_by_credential_kind, duplicate_credential_kind) = ids_by_credential_kind
             .into_iter()
@@ -299,7 +269,7 @@ impl<K, L> CredentialConfigurations<K, L> {
 
     pub fn get_by_scope(&self, scope: &Scope) -> Option<(&CredentialConfigurationId, &CredentialConfiguration<K, L>)> {
         // The `CredentialConfigurations::try_new()` constructor (which is the only way to create
-        // `CredentialConfigurations`) guarantees that the Credential Configuration ID is used as the scope, so we can
+        // `CredentialConfigurations`) guarantees that the Credential Configuration ID is equal to the scope, so we can
         // use it as a shortcut.
         self.configs_by_id.get_key_value(scope.as_ref())
     }
@@ -381,8 +351,8 @@ mod tests {
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use token_status_list::status_list_service::mock::MockStatusListService;
 
+    use super::CredentialConfiguration;
     use super::CredentialConfigurationFormat;
-    use super::CredentialConfigurationParameters;
     use super::CredentialConfigurationTypeMetadata;
     use super::CredentialConfigurations;
     use super::CredentialConfigurationsError;
@@ -399,14 +369,14 @@ mod tests {
             .expect("example type metadata should verify")
     }
 
-    fn credential_configuration_parameters()
-    -> HashMap<CredentialConfigurationId, CredentialConfigurationParameters<SigningKey, MockStatusListService>> {
+    fn credential_configurations_by_id()
+    -> HashMap<CredentialConfigurationId, CredentialConfiguration<SigningKey, MockStatusListService>> {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
         [Format::MsoMdoc, Format::SdJwt]
             .into_iter()
             .map(|format| {
-                let id = format!("degree_{format}").into();
+                let id = format!("degree_{format}");
 
                 let key_pair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
                 let format = match format {
@@ -422,24 +392,25 @@ mod tests {
                     }
                 };
 
-                let params = CredentialConfigurationParameters {
+                let config = CredentialConfiguration {
+                    scope: id.parse().unwrap(),
                     format,
                     key_pair,
                     status_list: MockStatusListService::new(),
                     valid_days: Days::new(1),
                 };
 
-                (id, params)
+                (id.into(), config)
             })
             .collect()
     }
 
     #[test]
     fn test_credential_configurations() {
-        let params = credential_configuration_parameters();
+        let configs = credential_configurations_by_id();
 
-        let configs = CredentialConfigurations::try_new(params)
-            .expect("creating credential configurations from parameters should succeed");
+        let configs =
+            CredentialConfigurations::try_new(configs).expect("creating credential configurations should succeed");
 
         let config = configs
             .get_by_configuration_id(&"degree_mso_mdoc".to_string().into())
@@ -535,14 +506,14 @@ mod tests {
 
     #[test]
     fn test_credential_configurations_sd_jwt_described_by_credential_metadata() {
-        let mut params = credential_configuration_parameters();
-        params.get_mut("degree_dc+sd-jwt").unwrap().format =
+        let mut configs = credential_configurations_by_id();
+        configs.get_mut("degree_dc+sd-jwt").unwrap().format =
             CredentialConfigurationFormat::SdJwt(SdJwtMetadata::CredentialMetadata {
                 vct: "com.example.degree".to_string(),
                 credential_metadata: CredentialMetadata::new_example(&["university", "education"]),
             });
 
-        let configs = CredentialConfigurations::try_new(params)
+        let configs = CredentialConfigurations::try_new(configs)
             .expect("an SD-JWT described by Credential Metadata should create credential configurations");
 
         let metadata_configs = configs.to_credential_configurations_supported(&"https://example.com".parse().unwrap());
@@ -564,12 +535,10 @@ mod tests {
 
     #[test]
     fn test_credential_configurations_try_new_error_no_configurations() {
-        let params = HashMap::<
-            CredentialConfigurationId,
-            CredentialConfigurationParameters<SigningKey, MockStatusListService>,
-        >::new();
-        let error = CredentialConfigurations::try_new(params)
-            .expect_err("creating credential configurations from parameters should fail");
+        let configs =
+            HashMap::<CredentialConfigurationId, CredentialConfiguration<SigningKey, MockStatusListService>>::new();
+        let error =
+            CredentialConfigurations::try_new(configs).expect_err("creating credential configurations should fail");
 
         assert_matches!(error, CredentialConfigurationsError::NoConfigurations);
     }
@@ -592,28 +561,32 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_configurations_try_new_error_scope() {
-        let mut params = credential_configuration_parameters();
+    fn test_credential_configurations_try_new_error_scope_mismatch() {
+        let mut configs = credential_configurations_by_id();
 
-        // Change one of the Credential Configuration IDs to an empty string.
-        let config = params.remove("degree_mso_mdoc").unwrap();
-        params.insert("".to_string().into(), config);
+        // Change one of the Credential Configuration IDs so that it no longer equals the scope.
+        let config = configs.remove("degree_mso_mdoc").unwrap();
+        configs.insert("other_id".to_string().into(), config);
 
-        let error = CredentialConfigurations::try_new(params)
-            .expect_err("creating credential configurations from parameters should fail");
+        let error =
+            CredentialConfigurations::try_new(configs).expect_err("creating credential configurations should fail");
 
-        assert_matches!(error, CredentialConfigurationsError::Scope(_));
+        assert_matches!(
+            error,
+            CredentialConfigurationsError::ScopeMismatch { config_id, scope }
+                if config_id.as_ref() == "other_id" && scope.as_ref() == "degree_mso_mdoc"
+        );
     }
 
     #[test]
     fn test_credential_configurations_try_new_error_duplicate_credential_kind() {
-        let mut params = credential_configuration_parameters();
-        for params in params.values_mut() {
-            params.format = CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(degree_type_metadata()));
+        let mut configs = credential_configurations_by_id();
+        for config in configs.values_mut() {
+            config.format = CredentialConfigurationFormat::SdJwt(SdJwtMetadata::TypeMetadata(degree_type_metadata()));
         }
 
-        let error = CredentialConfigurations::try_new(params)
-            .expect_err("creating credential configurations from parameters should fail");
+        let error =
+            CredentialConfigurations::try_new(configs).expect_err("creating credential configurations should fail");
 
         let duplicate_configs = HashMap::from([(
             CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()),

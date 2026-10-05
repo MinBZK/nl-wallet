@@ -22,9 +22,11 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use oauth::issuer_identifier::IssuerIdentifier;
+use oauth::scope::Scope;
+use oauth::scope::ScopeInvalid;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
+use openid4vc::credential_configurations::CredentialConfiguration;
 use openid4vc::credential_configurations::CredentialConfigurationFormat;
-use openid4vc::credential_configurations::CredentialConfigurationParameters;
 use openid4vc::credential_configurations::CredentialConfigurationTypeMetadata;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::credential_configurations::SdJwtMetadata;
@@ -404,6 +406,9 @@ pub enum CredentialConfigurationsSettingsError {
 
     #[error("could not initialize status: {0}")]
     StatusList(#[source] StatusListAttestationSettingsError),
+
+    #[error("could not use credential configuration ID as scope: {0}")]
+    Scope(#[source] ScopeInvalid),
 }
 
 /// Determine the format of a single credential configuration, including the metadata that describes it.
@@ -459,7 +464,7 @@ fn resolve_credential_configuration_format(
 }
 
 impl CredentialConfigurationsSettings {
-    pub async fn into_params(
+    pub async fn into_credential_configurations(
         self,
         status_list_connection: DatabaseConnection,
         public_url: BaseUrl,
@@ -468,17 +473,14 @@ impl CredentialConfigurationsSettings {
     ) -> Result<
         HashMap<
             CredentialConfigurationId,
-            CredentialConfigurationParameters<
-                PrivateKeyVariant,
-                PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
-            >,
+            CredentialConfiguration<PrivateKeyVariant, PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>>,
         >,
         CredentialConfigurationsSettingsError,
     > {
         let Self(inner) = self;
 
         let config_count = inner.len();
-        let config_params = try_join_all(
+        let credential_configs = try_join_all(
             inner
                 .into_iter()
                 .zip_eq(std::iter::repeat_n(
@@ -499,14 +501,19 @@ impl CredentialConfigurationsSettings {
                             .await
                             .map_err(CredentialConfigurationsSettingsError::StatusList)?;
 
-                        let params = CredentialConfigurationParameters {
+                        // Use the Credential Configuration ID as the scope value.
+                        let scope =
+                            Scope::try_new(config_id.as_ref()).map_err(CredentialConfigurationsSettingsError::Scope)?;
+
+                        let config = CredentialConfiguration {
+                            scope,
                             format: settings.format,
                             key_pair,
                             status_list,
                             valid_days: Days::new(settings.valid_days),
                         };
 
-                        Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
+                        Ok::<_, CredentialConfigurationsSettingsError>((config_id, config))
                     },
                 ),
         )
@@ -514,7 +521,7 @@ impl CredentialConfigurationsSettings {
         .into_iter()
         .collect();
 
-        Ok(config_params)
+        Ok(credential_configs)
     }
 }
 
@@ -542,8 +549,8 @@ pub enum IssuerSettingsError {
     #[error("invalid metadata private key: {0}")]
     MetadataPrivateKey(#[source] PrivateKeySettingsError),
 
-    #[error("could not initialize credential configuration parameters: {0}")]
-    CredentialConfigurationParameters(#[source] CredentialConfigurationsSettingsError),
+    #[error("could not initialize credential configurations from settings: {0}")]
+    CredentialConfigurationsSettings(#[source] CredentialConfigurationsSettingsError),
 
     #[error("could not initialize storage: {0}")]
     Storage(#[source] StoreError),
@@ -681,16 +688,16 @@ impl IssuerSettings {
             .await
             .map_err(IssuerSettingsError::MetadataPrivateKey)?;
 
-        let config_params = self
+        let credential_configs = self
             .credential_configurations
-            .into_params(
+            .into_credential_configurations(
                 status_list_connection,
                 self.public_url.as_base_url().clone(),
                 hsm,
                 &self.status_lists,
             )
             .await
-            .map_err(IssuerSettingsError::CredentialConfigurationParameters)?;
+            .map_err(IssuerSettingsError::CredentialConfigurationsSettings)?;
 
         let issuer = Issuer::try_new(
             self.public_url,
@@ -698,7 +705,7 @@ impl IssuerSettings {
             self.registration_certificate,
             self.batch_size,
             self.wallet_client_ids,
-            config_params,
+            credential_configs,
             self.wia_trust_anchors,
             Arc::new(sessions),
             proof_nonce_store,
