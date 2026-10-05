@@ -76,19 +76,19 @@ pub enum CertificateError {
     EndEntityCertificateParsing(#[source] Box<webpki::Error>),
 
     #[error("certificate content parsing failed: {0}")]
-    X509CertificateParsing(#[from] x509_parser::nom::Err<X509Error>),
+    X509CertificateParsing(#[source] x509_parser::nom::Err<X509Error>),
 
     #[error("pem parsing failed: {0}")]
-    PemParsing(#[from] rustls_pki_types::pem::Error),
+    PemParsing(#[source] rustls_pki_types::pem::Error),
 
     #[error("failed to parse certificate public key: {0}")]
     PublicKeyParsing(#[source] Box<p256::pkcs8::spki::Error>),
 
     #[error("PEM decoding error: {0}")]
-    Pem(#[from] x509_parser::nom::Err<PEMError>),
+    Pem(#[source] x509_parser::nom::Err<PEMError>),
 
     #[error("X509 coding error: {0}")]
-    X509Error(#[from] X509Error),
+    X509Error(#[source] X509Error),
 
     #[error("private key does not belong to public key from certificate")]
     KeyMismatch,
@@ -97,7 +97,7 @@ pub enum CertificateError {
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
     #[error("could not serialize to DER: {0}")]
-    DerSerialization(#[from] SerializeError),
+    DerSerialization(#[source] SerializeError),
 
     #[error("certificate chain must not contain the trust anchor")]
     #[category(critical)]
@@ -286,7 +286,7 @@ impl BorrowingCertificate {
                 Ok((
                     x509_parser::objects::oid2abbrev(attr.attr_type(), x509_parser::objects::oid_registry())
                         .map_or(attr.attr_type().to_id_string(), String::from),
-                    attr.as_str()?,
+                    attr.as_str().map_err(CertificateError::X509Error)?,
                 ))
             })
             .collect::<Result<_, _>>()
@@ -320,7 +320,12 @@ impl BorrowingCertificate {
             .iter_attributes()
             .map(|attr| {
                 let r#type = attr.attr_type().to_id_string();
-                let value = BASE64_STANDARD_NO_PAD.encode(&attr.attr_value().to_der_vec()?);
+                let value = BASE64_STANDARD_NO_PAD.encode(
+                    &attr
+                        .attr_value()
+                        .to_der_vec()
+                        .map_err(CertificateError::DerSerialization)?,
+                );
                 Ok::<_, CertificateError>(format!("{}={}", r#type, value))
             })
             .try_collect()?;
