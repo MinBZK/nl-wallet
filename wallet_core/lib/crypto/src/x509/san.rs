@@ -11,7 +11,7 @@ pub struct SubjectAltNameUri(HttpsUri);
 
 impl From<&SubjectAltNameUri> for SanType {
     fn from(san_uri: &SubjectAltNameUri) -> Self {
-        let uri = Ia5String::try_from(san_uri.0.to_string()).expect("url is a valid uri");
+        let uri = Ia5String::try_from(san_uri.0.as_ref()).expect("url is a valid uri");
         SanType::URI(uri)
     }
 }
