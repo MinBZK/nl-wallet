@@ -7,19 +7,28 @@ import '../../extension/locale_extension.dart';
 import '../mapper.dart';
 
 class OrganizationMapper extends Mapper<core.Organization, Organization> {
-  // TODO(Anyone): PVW-6101 Remove unused logo/type fields from the domain model and UI.
+  // TODO(Anyone): PVW-6101 Display publicBody as the organization type and remove the old logo/type fields.
   @override
   Organization map(core.Organization input) => Organization(
     id: input.hashCode.toString(),
     legalName: input.legalName,
     displayName: input.displayName,
+    publicBody: input.publicBody,
     description: _mapDescription(input.serviceDescription),
     organizationId: input.identifier,
     countryCode: input.countryCode,
     webUri: input.webUrl,
-    supportUri: null, // TODO(Anyone): PVW-6111
+    supportUri: _mapSupportUri(input.supportUri),
     privacyPolicyUri: input.privacyPolicyUrl,
   );
+
+  String? _mapSupportUri(String? value) {
+    if (value == null) return null;
+    final trimmedValue = value.trim();
+    return Uri.tryParse(trimmedValue)?.hasScheme == true
+        ? trimmedValue
+        : Uri(scheme: 'mailto', path: trimmedValue).toString();
+  }
 
   LocalizedText? _mapDescription(List<ServiceDescription> descriptions) {
     final result = <Locale, String>{};

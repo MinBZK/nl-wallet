@@ -15,6 +15,8 @@ class Organization {
   final String? privacyPolicyUrl;
   final String identifier;
   final String countryCode;
+  final String? supportUri;
+  final bool? publicBody;
 
   const Organization({
     required this.legalName,
@@ -24,6 +26,8 @@ class Organization {
     this.privacyPolicyUrl,
     required this.identifier,
     required this.countryCode,
+    this.supportUri,
+    this.publicBody,
   });
 
   @override
@@ -34,7 +38,9 @@ class Organization {
       webUrl.hashCode ^
       privacyPolicyUrl.hashCode ^
       identifier.hashCode ^
-      countryCode.hashCode;
+      countryCode.hashCode ^
+      supportUri.hashCode ^
+      publicBody.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -47,7 +53,9 @@ class Organization {
           webUrl == other.webUrl &&
           privacyPolicyUrl == other.privacyPolicyUrl &&
           identifier == other.identifier &&
-          countryCode == other.countryCode;
+          countryCode == other.countryCode &&
+          supportUri == other.supportUri &&
+          publicBody == other.publicBody;
 }
 
 class ServiceDescription {

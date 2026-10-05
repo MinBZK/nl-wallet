@@ -30,6 +30,8 @@ pub struct Organization {
     pub identifier: String,
     pub country_code: String,
     pub privacy_policy_url: Option<Url>,
+    pub support_uri: Option<String>,
+    pub public_body: Option<bool>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -90,6 +92,8 @@ impl Organization {
             country_code: payload.country.clone(),
             web_url: payload.info_uri.clone(),
             privacy_policy_url: payload.privacy_policy.clone(),
+            support_uri: Some(payload.support_uri.clone()),
+            public_body: payload.public_body,
         }
     }
 }
@@ -128,6 +132,8 @@ pub mod mock {
                 country_code: "NL".to_owned(),
                 web_url: Some(Url::parse("https://organisation.example.com").unwrap()),
                 privacy_policy_url: Some(Url::parse("https://organisation.example.com/privacy").unwrap()),
+                support_uri: None,
+                public_body: None,
             }
         }
     }
@@ -165,6 +171,21 @@ pub mod test {
         )
     }
 
+    #[test]
+    fn deserialize_organization_without_registration_fields() {
+        let organization: Organization = serde_json::from_value(json!({
+            "displayName": "Example",
+            "legalName": "Example B.V.",
+            "description": [],
+            "identifier": "example",
+            "countryCode": "NL",
+        }))
+        .unwrap();
+
+        assert_eq!(organization.support_uri, None);
+        assert_eq!(organization.public_body, None);
+    }
+
     #[rstest]
     #[case::legal_person(DistinguishedName::create_legal_person_mock("Example"), "Example B.V.")]
     #[case::natural_person(DistinguishedName::create_natural_person_mock("Jane", "Doe"), "Jane Doe")]
@@ -172,13 +193,21 @@ pub mod test {
     async fn maps_registration_certificate_to_organization(
         #[case] subject: DistinguishedName,
         #[case] legal_name: &str,
-        #[values(false, true)] has_optional_fields: bool,
+        #[values(None, Some(false), Some(true))] public_body: Option<bool>,
     ) {
         let access_key = Ca::generate_wrpac_mock_ca()
             .unwrap()
             .generate_key_pair(subject, Default::default(), NO_SAN)
             .unwrap();
         let mut payload = issuer_registration_certificate_payload(access_key.certificate(), []);
+        let has_optional_fields = public_body.is_some();
+        let support_uri = if has_optional_fields {
+            "https://example.com/support"
+        } else {
+            "support@example.com"
+        };
+        payload.0["support_uri"] = json!(support_uri);
+        payload.0["public_body"] = json!(public_body);
         payload.0["name"] = json!(has_optional_fields.then_some("Issuer service"));
         payload.0["info_uri"] = json!(has_optional_fields.then_some("https://example.com/info"));
         payload.0["privacy_policy"] = json!(has_optional_fields.then_some("https://example.com/privacy"));
@@ -238,6 +267,8 @@ pub mod test {
                 country_code: "NL".to_owned(),
                 web_url: has_optional_fields.then(|| "https://example.com/info".parse().unwrap()),
                 privacy_policy_url: has_optional_fields.then(|| "https://example.com/privacy".parse().unwrap()),
+                support_uri: Some(support_uri.to_owned()),
+                public_body,
             }
         );
     }

@@ -77,6 +77,8 @@ impl From<RelyingParty> for Organization {
                 identifier: organization_identifier,
                 country_code: country_name,
                 privacy_policy_url: None,
+                support_uri: None,
+                public_body: None,
             },
             RelyingParty::NaturalPerson {
                 common_name,
@@ -92,6 +94,8 @@ impl From<RelyingParty> for Organization {
                 identifier: serial_number,
                 country_code: country_name,
                 privacy_policy_url: None,
+                support_uri: None,
+                public_body: None,
             },
         }
     }

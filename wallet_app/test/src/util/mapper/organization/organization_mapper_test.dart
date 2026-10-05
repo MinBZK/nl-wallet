@@ -20,6 +20,32 @@ void main() {
       )
       .description;
 
+  for (final (publicBody, supportUri, expectedSupportUri) in [
+    (null, null, null),
+    (true, 'https://example.com/support', 'https://example.com/support'),
+    (false, 'support@example.com', 'mailto:support@example.com'),
+    (null, 'mailto:support@example.com', 'mailto:support@example.com'),
+    (null, ' https://example.com/support ', 'https://example.com/support'),
+    (null, '"help:desk"@example.com', 'mailto:%22help:desk%22@example.com'),
+  ]) {
+    test('should map publicBody=$publicBody and supportUri=$supportUri', () {
+      final organization = mapper.map(
+        core.Organization(
+          legalName: 'Issuer',
+          displayName: 'Issuer',
+          serviceDescription: [],
+          identifier: 'issuer',
+          countryCode: 'NL',
+          publicBody: publicBody,
+          supportUri: supportUri,
+        ),
+      );
+
+      expect(organization.publicBody, publicBody);
+      expect(organization.supportUri, expectedSupportUri);
+    });
+  }
+
   test('should return null when no descriptions are available', () {
     expect(mapDescription([]), isNull);
   });

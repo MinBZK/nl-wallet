@@ -119,6 +119,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AttestationPresentation dco_decode_box_autoadd_attestation_presentation(dynamic raw);
 
   @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw);
+
+  @protected
   Image dco_decode_box_autoadd_image(dynamic raw);
 
   @protected
@@ -273,6 +276,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
   Image? dco_decode_opt_box_autoadd_image(dynamic raw);
@@ -448,6 +454,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AttestationPresentation sse_decode_box_autoadd_attestation_presentation(SseDeserializer deserializer);
 
   @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
   Image sse_decode_box_autoadd_image(SseDeserializer deserializer);
 
   @protected
@@ -604,6 +613,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
   Image? sse_decode_opt_box_autoadd_image(SseDeserializer deserializer);
@@ -820,6 +832,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     final ptr = wire.cst_new_box_autoadd_attestation_presentation();
     cst_api_fill_to_wire_attestation_presentation(raw, ptr.ref);
     return ptr;
+  }
+
+  @protected
+  ffi.Pointer<ffi.Bool> cst_encode_box_autoadd_bool(bool raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return wire.cst_new_box_autoadd_bool(cst_encode_bool(raw));
   }
 
   @protected
@@ -1108,6 +1126,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_opt_String(String? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_String(raw);
+  }
+
+  @protected
+  ffi.Pointer<ffi.Bool> cst_encode_opt_box_autoadd_bool(bool? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_bool(raw);
   }
 
   @protected
@@ -1569,6 +1593,8 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.privacy_policy_url = cst_encode_opt_String(apiObj.privacyPolicyUrl);
     wireObj.identifier = cst_encode_String(apiObj.identifier);
     wireObj.country_code = cst_encode_String(apiObj.countryCode);
+    wireObj.support_uri = cst_encode_opt_String(apiObj.supportUri);
+    wireObj.public_body = cst_encode_opt_box_autoadd_bool(apiObj.publicBody);
   }
 
   @protected
@@ -2066,6 +2092,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_attestation_presentation(AttestationPresentation self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_image(Image self, SseSerializer serializer);
 
   @protected
@@ -2223,6 +2252,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_image(Image? self, SseSerializer serializer);
@@ -3467,6 +3499,16 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_attestation_presentation = _cst_new_box_autoadd_attestation_presentationPtr
       .asFunction<ffi.Pointer<wire_cst_attestation_presentation> Function()>();
 
+  ffi.Pointer<ffi.Bool> cst_new_box_autoadd_bool(bool value) {
+    return _cst_new_box_autoadd_bool(value);
+  }
+
+  late final _cst_new_box_autoadd_boolPtr = _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Bool> Function(ffi.Bool)>>(
+    'frbgen_wallet_core_cst_new_box_autoadd_bool',
+  );
+  late final _cst_new_box_autoadd_bool = _cst_new_box_autoadd_boolPtr
+      .asFunction<ffi.Pointer<ffi.Bool> Function(bool)>();
+
   ffi.Pointer<wire_cst_image> cst_new_box_autoadd_image() {
     return _cst_new_box_autoadd_image();
   }
@@ -4080,6 +4122,10 @@ final class wire_cst_organization extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> identifier;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> country_code;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> support_uri;
+
+  external ffi.Pointer<ffi.Bool> public_body;
 }
 
 final class wire_cst_ValidityStatus_NotYetValid extends ffi.Struct {
