@@ -130,6 +130,7 @@ async fn test_user_session_and_take() {
         .await
         .unwrap()
         .expect("session should be present");
+    assert_eq!(session.user_id, "user_id");
     assert_eq!(session.id_token, "id_token");
     assert_eq!(session.display_name, "Jane Doe");
     assert_eq!(session.roles, vec!["privilege_admin".to_string()]);
@@ -167,6 +168,7 @@ async fn test_fetch_user_session() {
         .await
         .unwrap()
         .expect("session should be present and not expired");
+    assert_eq!(session.user_id, "user_id");
     assert_eq!(session.display_name, "Jane Doe");
     assert_eq!(session.roles, vec!["privilege_admin".to_string()]);
     assert_eq!(session.expires_at, old_expires_at);
