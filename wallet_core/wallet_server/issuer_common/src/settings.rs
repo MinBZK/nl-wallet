@@ -133,7 +133,7 @@ pub struct IssuerSettings {
 
     /// Parsed from the `credential_configurations` and `type_metadata` settings together.
     #[serde(flatten)]
-    pub credential_configurations: CredentialConfigurationsSettings,
+    pub credential_configurations: ParsedCredentialConfigurationsSettings,
 
     #[debug(skip)]
     pub credential_metadata_keypair: KeyPair,
@@ -170,13 +170,13 @@ pub struct TypeMetadataByVct(HashMap<String, JsonFile<UncheckedTypeMetadata>>);
 /// The credential configurations of an issuer, each of which is guaranteed to be described by exactly one kind of
 /// metadata that is appropriate for its format.
 #[derive(Debug, Clone, Deserialize, From, IntoIterator, AsRef)]
-#[serde(try_from = "RawCredentialConfigurationsSettings")]
-pub struct CredentialConfigurationsSettings(
-    #[into_iterator(owned, ref)] HashMap<CredentialConfigurationId, CredentialConfigurationSettings>,
+#[serde(try_from = "CredentialConfigurationsSettings")]
+pub struct ParsedCredentialConfigurationsSettings(
+    #[into_iterator(owned, ref)] HashMap<CredentialConfigurationId, ParsedCredentialConfigurationSettings>,
 );
 
 #[derive(Debug, Clone)]
-pub struct CredentialConfigurationSettings {
+pub struct ParsedCredentialConfigurationSettings {
     pub format: CredentialConfigurationFormat,
 
     #[debug(skip)]
@@ -191,8 +191,8 @@ pub struct CredentialConfigurationSettings {
 /// separately from the credential configurations, so these can only be matched to each other in a second pass.
 #[serde_as]
 #[derive(Deserialize)]
-struct RawCredentialConfigurationsSettings {
-    credential_configurations: HashMap<CredentialConfigurationId, RawCredentialConfigurationSettings>,
+struct CredentialConfigurationsSettings {
+    credential_configurations: HashMap<CredentialConfigurationId, CredentialConfigurationSettings>,
 
     /// Type metadata is optional for mdocs.
     #[serde(default)]
@@ -202,9 +202,9 @@ struct RawCredentialConfigurationsSettings {
 
 #[serde_as]
 #[derive(Deserialize)]
-struct RawCredentialConfigurationSettings {
+struct CredentialConfigurationSettings {
     #[serde(flatten)]
-    format: RawCredentialFormatSettings,
+    format: CredentialFormatSettings,
 
     #[serde(flatten)]
     keypair: KeyPair,
@@ -219,7 +219,7 @@ struct RawCredentialConfigurationSettings {
 #[serde_as]
 #[derive(Deserialize)]
 #[serde(tag = "format")]
-enum RawCredentialFormatSettings {
+enum CredentialFormatSettings {
     #[serde(rename = "mso_mdoc")]
     MsoMdoc {
         attestation_type: String,
@@ -239,11 +239,11 @@ enum RawCredentialFormatSettings {
     },
 }
 
-impl TryFrom<RawCredentialConfigurationsSettings> for CredentialConfigurationsSettings {
+impl TryFrom<CredentialConfigurationsSettings> for ParsedCredentialConfigurationsSettings {
     type Error = CredentialConfigurationFormatError;
 
-    fn try_from(value: RawCredentialConfigurationsSettings) -> Result<Self, Self::Error> {
-        let RawCredentialConfigurationsSettings {
+    fn try_from(value: CredentialConfigurationsSettings) -> Result<Self, Self::Error> {
+        let CredentialConfigurationsSettings {
             credential_configurations,
             type_metadata,
         } = value;
@@ -254,7 +254,7 @@ impl TryFrom<RawCredentialConfigurationsSettings> for CredentialConfigurationsSe
                 let format =
                     resolve_credential_configuration_format(&config_id, settings.format, type_metadata.as_ref())?;
 
-                let settings = CredentialConfigurationSettings {
+                let settings = ParsedCredentialConfigurationSettings {
                     format,
                     keypair: settings.keypair,
                     valid_days: settings.valid_days,
@@ -413,18 +413,18 @@ pub enum CredentialConfigurationsSettingsError {
 /// Determine the format of a single credential configuration, including the metadata that describes it.
 fn resolve_credential_configuration_format(
     config_id: &CredentialConfigurationId,
-    format: RawCredentialFormatSettings,
+    format: CredentialFormatSettings,
     metadata_by_vct: Option<&TypeMetadataByVct>,
 ) -> Result<CredentialConfigurationFormat, CredentialConfigurationFormatError> {
     match format {
-        RawCredentialFormatSettings::MsoMdoc {
+        CredentialFormatSettings::MsoMdoc {
             attestation_type,
             credential_metadata,
         } => Ok(CredentialConfigurationFormat::new_mdoc(
             attestation_type,
             credential_metadata.into_contents(),
         )),
-        RawCredentialFormatSettings::SdJwt {
+        CredentialFormatSettings::SdJwt {
             attestation_type,
             credential_metadata,
         } => {
@@ -458,7 +458,7 @@ fn resolve_credential_configuration_format(
     }
 }
 
-impl CredentialConfigurationsSettings {
+impl ParsedCredentialConfigurationsSettings {
     pub async fn into_credential_configurations(
         self,
         status_list_connection: DatabaseConnection,
@@ -816,11 +816,11 @@ mod tests {
     use utils::num::Ratio;
 
     use super::CredentialConfigurationFormat;
-    use super::CredentialConfigurationSettings;
+    use super::CredentialFormatSettings;
     use super::CredentialMetadata;
     use super::IssuerSettings;
     use super::JsonFile;
-    use super::RawCredentialFormatSettings;
+    use super::ParsedCredentialConfigurationSettings;
     use super::StatusListAttestationSettings;
     use super::TypeMetadataByVct;
     use crate::settings::CredentialConfigurationFormatError;
@@ -853,7 +853,7 @@ mod tests {
             public_url: "https://example.com".parse().unwrap(),
             credential_configurations: HashMap::from([(
                 "pid_sdjwt".to_string().into(),
-                CredentialConfigurationSettings {
+                ParsedCredentialConfigurationSettings {
                     format: sd_jwt_format("com.example.pid"),
                     keypair: issuance_keypair,
                     valid_days: 365,
@@ -1024,7 +1024,7 @@ mod tests {
         settings.server_settings.issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
         settings.credential_configurations = HashMap::from([(
             "no_registration_sdjwt".to_string().into(),
-            CredentialConfigurationSettings {
+            ParsedCredentialConfigurationSettings {
                 format: sd_jwt_format("com.example.no_registration"),
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
@@ -1132,8 +1132,8 @@ mod tests {
         JsonFile { contents, json }
     }
 
-    fn sd_jwt_settings(vct: &str, with_credential_metadata: bool) -> RawCredentialFormatSettings {
-        RawCredentialFormatSettings::SdJwt {
+    fn sd_jwt_settings(vct: &str, with_credential_metadata: bool) -> CredentialFormatSettings {
+        CredentialFormatSettings::SdJwt {
             attestation_type: vct.to_string(),
             credential_metadata: with_credential_metadata.then(credential_metadata_file),
         }
@@ -1144,7 +1144,7 @@ mod tests {
         let metadata = type_metadata_by_vct([UncheckedTypeMetadata::empty_example_with_attestation_type(
             "com.example.a",
         )]);
-        let format = RawCredentialFormatSettings::MsoMdoc {
+        let format = CredentialFormatSettings::MsoMdoc {
             attestation_type: "com.example.a".to_string(),
             credential_metadata: credential_metadata_file(),
         };
