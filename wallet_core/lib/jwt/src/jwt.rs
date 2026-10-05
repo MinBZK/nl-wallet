@@ -272,8 +272,8 @@ where
         leaf_certificate: &BorrowingCertificate,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let pubkey = PublicKey::from(*leaf_certificate.public_key());
-        let validation = validation.into_validation(&pubkey);
+        let pubkey = leaf_certificate.public_key();
+        let validation = validation.into_validation(pubkey);
         self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
             .map_err(JwtX5cVerifyError::JwtVerify)
     }

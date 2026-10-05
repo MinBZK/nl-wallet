@@ -14,8 +14,8 @@ use derive_more::Debug;
 use error_category::ErrorCategory;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use p256::ecdsa::VerifyingKey;
-use p256::pkcs8::DecodePublicKey;
+use rsa::BigUint;
+use rsa::RsaPublicKey;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use rustls_pki_types::pem::PemObject;
@@ -41,7 +41,10 @@ use x509_parser::x509::X509Name;
 use yoke::Yoke;
 use yoke::Yokeable;
 
+use crate::PublicKey;
+use crate::PublicKeyError;
 use crate::trust_anchor::TrustAnchors;
+
 #[cfg(any(test, feature = "generate"))]
 mod config;
 pub mod crl;
@@ -88,8 +91,26 @@ pub enum CertificateParseError {
     #[error("pem parsing failed: {0}")]
     PemParsing(#[source] rustls_pki_types::pem::Error),
 
-    #[error("failed to parse certificate public key: {0}")]
-    PublicKeyParsing(#[source] Box<p256::pkcs8::spki::Error>),
+    #[error("unsupported public key algorithm")]
+    UnsupportedPublicKeyAlgorithm,
+
+    #[error("EC P256 public key parse error: {0}")]
+    EcP256PublicKeyParseError(#[source] p256::ecdsa::Error),
+
+    #[error("EC P384 public key parse error: {0}")]
+    EcP384PublicKeyParseError(#[source] p384::ecdsa::Error),
+
+    #[error("EC unsupported key size: {0}")]
+    UnsupportedEcKeySize(usize),
+
+    #[error("RSA error: {0}")]
+    RsaError(#[source] rsa::Error),
+
+    #[error("unsupported RSA key size: {0}")]
+    UnsupportedRsaKeySize(#[source] PublicKeyError),
+
+    #[error("X509 coding error: {0}")]
+    X509Error(#[source] X509Error),
 }
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
@@ -119,7 +140,7 @@ struct ParsedCertificate<'a> {
     #[debug("subject: {}, issuer: {}, serial: {}", x509_cert.subject(), x509_cert.issuer(), x509_cert.tbs_certificate.raw_serial_as_string())]
     x509_cert: X509Certificate<'a>,
     #[debug(skip)]
-    public_key: VerifyingKey,
+    public_key: PublicKey,
 }
 
 type YokedCertificate = Yoke<ParsedCertificate<'static>, Arc<CertificateDer<'static>>>;
@@ -169,8 +190,31 @@ impl BorrowingCertificate {
                 .map_err(|error| CertificateParseError::EndEntityCertificateParsing(Box::new(error)))?;
             let (_, x509_cert) =
                 X509Certificate::from_der(cert.as_bytes()).map_err(CertificateParseError::X509CertificateParsing)?;
-            let public_key = VerifyingKey::from_public_key_der(x509_cert.public_key().raw)
-                .map_err(|error| CertificateParseError::PublicKeyParsing(Box::new(error)))?;
+
+            let public_key = match x509_cert
+                .public_key()
+                .parsed()
+                .map_err(CertificateParseError::X509Error)?
+            {
+                x509_parser::public_key::PublicKey::RSA(public_key) => {
+                    let modulus = BigUint::from_bytes_be(public_key.modulus);
+                    let exponent = BigUint::from_bytes_be(public_key.exponent);
+                    let public_key = RsaPublicKey::new(modulus, exponent).map_err(CertificateParseError::RsaError)?;
+                    PublicKey::try_from(public_key).map_err(CertificateParseError::UnsupportedRsaKeySize)?
+                }
+                x509_parser::public_key::PublicKey::EC(public_key) => match public_key.key_size() {
+                    256 => PublicKey::ESP256(
+                        p256::ecdsa::VerifyingKey::from_sec1_bytes(public_key.data())
+                            .map_err(CertificateParseError::EcP256PublicKeyParseError)?,
+                    ),
+                    384 => PublicKey::ESP384(
+                        p384::ecdsa::VerifyingKey::from_sec1_bytes(public_key.data())
+                            .map_err(CertificateParseError::EcP384PublicKeyParseError)?,
+                    ),
+                    size => Err(CertificateParseError::UnsupportedEcKeySize(size))?,
+                },
+                _ => Err(CertificateParseError::UnsupportedPublicKeyAlgorithm)?,
+            };
 
             Ok::<_, CertificateParseError>(ParsedCertificate {
                 end_entity_cert,
@@ -268,8 +312,7 @@ impl BorrowingCertificate {
         &self.0.get().x509_cert
     }
 
-    // TODO change to PublicKey (PVW-6023)
-    pub fn public_key(&self) -> &VerifyingKey {
+    pub fn public_key(&self) -> &PublicKey {
         &self.0.get().public_key
     }
 
@@ -405,6 +448,8 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use rcgen::CertificateParams;
+    use rcgen::PKCS_ECDSA_P384_SHA384;
     use rcgen::RevocationReason;
     use rcgen::RevokedCertParams;
     use rcgen::SerialNumber;
@@ -440,6 +485,27 @@ mod tests {
         let public_key_pem = encode_pem("PUBLIC KEY", ca.certificate().as_ref());
 
         BorrowingCertificate::from_pem(public_key_pem).expect_err("non-certificate PEM block should be rejected");
+    }
+
+    #[rstest]
+    fn borrowing_certificate_works_with_p384() {
+        let key_pair = rcgen::KeyPair::generate_for(&PKCS_ECDSA_P384_SHA384).unwrap();
+        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+
+        assert_matches!(certificate.public_key(), PublicKey::ESP384(_));
+    }
+
+    #[rstest]
+    #[case::rsa2048(include_str!("../../test/rsa2048.pem"))]
+    #[case::rsa3072(include_str!("../../test/rsa3072.pem"))]
+    #[case::rsa4096(include_str!("../../test/rsa4096.pem"))]
+    fn borrowing_certificate_works_with_rsa(#[case] private_key_pem: &str) {
+        let key_pair = rcgen::KeyPair::from_pem(private_key_pem).unwrap();
+        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+
+        assert_matches!(certificate.public_key(), PublicKey::RSA(_));
     }
 
     fn assert_ca_key_usage(certificate: &X509Certificate<'_>) {

@@ -3,6 +3,7 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 
+use crate::PublicKey;
 use crate::keys::EcdsaKey;
 use crate::x509::BorrowingCertificate;
 
@@ -10,6 +11,9 @@ use crate::x509::BorrowingCertificate;
 pub enum KeyPairError {
     #[error("private key does not belong to public key from certificate")]
     KeyMismatch,
+
+    #[error("unsupported key algorithm")]
+    UnsupportedKeyAlgorithm,
 
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -27,27 +31,34 @@ impl KeyPair {
         private_key: SigningKey,
         certificate: BorrowingCertificate,
     ) -> Result<KeyPair, KeyPairError> {
-        if certificate.public_key() != private_key.verifying_key() {
-            return Err(KeyPairError::KeyMismatch);
-        }
+        Self::check_verifying_key(private_key.verifying_key(), &certificate)?;
 
         Ok(KeyPair {
             private_key,
             certificate,
         })
     }
+
+    fn check_verifying_key(public_key: &VerifyingKey, certificate: &BorrowingCertificate) -> Result<(), KeyPairError> {
+        match certificate.public_key() {
+            PublicKey::ESP256(cert_public_key) => {
+                if public_key != cert_public_key {
+                    return Err(KeyPairError::KeyMismatch);
+                }
+            }
+            _ => Err(KeyPairError::UnsupportedKeyAlgorithm)?,
+        };
+        Ok(())
+    }
 }
 
 impl<S: EcdsaKey> KeyPair<S> {
     pub async fn new(private_key: S, certificate: BorrowingCertificate) -> Result<KeyPair<S>, KeyPairError> {
-        if certificate.public_key()
-            != &private_key
-                .verifying_key()
-                .await
-                .map_err(|e| KeyPairError::PublicKeyFromPrivate(Box::new(e)))?
-        {
-            return Err(KeyPairError::KeyMismatch);
-        }
+        let public_key_from_private = private_key
+            .verifying_key()
+            .await
+            .map_err(|e| KeyPairError::PublicKeyFromPrivate(Box::new(e)))?;
+        KeyPair::check_verifying_key(&public_key_from_private, &certificate)?;
 
         Ok(KeyPair {
             private_key,
@@ -81,6 +92,60 @@ impl<S: EcdsaKey> EcdsaKey for KeyPair<S> {
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         self.private_key.try_sign(msg).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::assert_matches;
+
+    use p256::elliptic_curve::Generate;
+    use p256::pkcs8::DecodePrivateKey;
+    use rcgen::CertificateParams;
+    use rcgen::PKCS_ECDSA_P384_SHA384;
+
+    use super::KeyPair;
+    use crate::server_keys::KeyPairError;
+    use crate::x509::BorrowingCertificate;
+
+    #[test]
+    fn test_keypair_new() {
+        let key_pair = rcgen::KeyPair::generate().unwrap();
+
+        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+
+        let private_key = p256::ecdsa::SigningKey::from_pkcs8_der(key_pair.serialized_der()).unwrap();
+
+        let result = KeyPair::new_from_signing_key(private_key.clone(), certificate.clone()).unwrap();
+        assert_eq!(result.certificate, certificate);
+        assert_eq!(result.private_key, private_key);
+    }
+
+    #[test]
+    fn test_keypair_new_mismatch() {
+        let key_pair = rcgen::KeyPair::generate().unwrap();
+
+        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+
+        let private_key = p256::ecdsa::SigningKey::generate();
+
+        let err = KeyPair::new_from_signing_key(private_key.clone(), certificate.clone()).unwrap_err();
+        assert_matches!(err, KeyPairError::KeyMismatch);
+    }
+
+    #[test]
+    fn test_keypair_new_unsupported() {
+        let key_pair = rcgen::KeyPair::generate_for(&PKCS_ECDSA_P384_SHA384).unwrap();
+
+        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+
+        let private_key = p256::ecdsa::SigningKey::generate();
+
+        let err = KeyPair::new_from_signing_key(private_key.clone(), certificate.clone()).unwrap_err();
+        assert_matches!(err, KeyPairError::UnsupportedKeyAlgorithm);
     }
 }
 
