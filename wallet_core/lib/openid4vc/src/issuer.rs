@@ -1808,9 +1808,8 @@ mod tests {
         assert_eq!(validated.len().get(), 1);
     }
 
-    /// The Credential Metadata is actually applied, rather than validation being skipped for want of Type Metadata.
     #[tokio::test]
-    async fn test_validate_issuable_documents_sd_jwt_credential_metadata_mismatch() {
+    async fn test_validate_issuable_documents_sd_jwt_credential_metadata_attribute_without_claim() {
         let attestation_type = MOCK_ATTESTATION_TYPES[0];
 
         let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
@@ -1829,7 +1828,44 @@ mod tests {
             .validate_issuable_documents(vec_nonempty![document])
             .expect_err("attributes not described by the Credential Metadata should not validate");
 
-        assert_matches!(error, IssuableDocumentError::AttributesError(_));
+        assert_matches!(
+            error,
+            IssuableDocumentError::AttributesError(AttributesError::AttributesWithoutClaim(_))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_validate_issuable_documents_sd_jwt_credential_metadata_missing_mandatory_claim() {
+        let attestation_type = MOCK_ATTESTATION_TYPES[0];
+
+        let credential_metadata = serde_json::from_value(serde_json::json!({
+            "claims": [
+                { "path": ["first_name"] },
+                { "path": ["family_name"], "mandatory": true },
+            ]
+        }))
+        .unwrap();
+
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
+            "https://example.com/".parse().unwrap(),
+            vec![CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+                attestation_type.to_string(),
+                credential_metadata,
+            )],
+            Arc::new(MemorySessionStore::default()),
+        );
+
+        // The document does not contain `family_name`, which the Credential Metadata describes as mandatory.
+        let document = mock_issuable_document_with_attrs(Format::SdJwt, attestation_type, &MOCK_ATTRS[..1]);
+
+        let error = issuer
+            .validate_issuable_documents(vec_nonempty![document])
+            .expect_err("a document without a mandatory claim of the Credential Metadata should not validate");
+
+        assert_matches!(
+            error,
+            IssuableDocumentError::AttributesError(AttributesError::MissingMandatoryAttribute(_))
+        );
     }
 
     #[tokio::test]
