@@ -133,6 +133,7 @@ pub struct IssuerSettings {
 
     /// Parsed from the `credential_configurations` and `type_metadata` settings together.
     #[serde(flatten)]
+    #[serde_as(as = "TryFromInto<CredentialConfigurationsSettings>")]
     pub credential_configurations: ParsedCredentialConfigurationsSettings,
 
     #[debug(skip)]
@@ -169,8 +170,7 @@ pub struct TypeMetadataByVct(HashMap<String, JsonFile<UncheckedTypeMetadata>>);
 
 /// The credential configurations of an issuer, each of which is guaranteed to be described by exactly one kind of
 /// metadata that is appropriate for its format.
-#[derive(Debug, Clone, Deserialize, From, IntoIterator, AsRef)]
-#[serde(try_from = "CredentialConfigurationsSettings")]
+#[derive(Debug, Clone, From, IntoIterator, AsRef)]
 pub struct ParsedCredentialConfigurationsSettings(
     #[into_iterator(owned, ref)] HashMap<CredentialConfigurationId, ParsedCredentialConfigurationSettings>,
 );
