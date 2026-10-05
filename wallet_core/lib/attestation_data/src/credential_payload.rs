@@ -299,11 +299,13 @@ impl CredentialPayload {
             return Err(CredentialPayloadIntoSignedSdJwtError::MissingStatusClaim);
         }
 
-        let sd_by_claims = type_metadata
-            .into_iter()
-            .flat_map(|type_metadata| type_metadata.claims())
-            .map(|claim| (&claim.path, claim.sd))
-            .collect::<HashMap<_, _>>();
+        let sd_by_claims = type_metadata.map(|type_metadata| {
+            type_metadata
+                .claims()
+                .iter()
+                .map(|claim| (&claim.path, claim.sd))
+                .collect::<HashMap<_, _>>()
+        });
 
         let sd_jwt = self
             .previewable_payload
@@ -316,12 +318,14 @@ impl CredentialPayload {
                         .map_err(CredentialPayloadIntoSignedSdJwtError::InvalidClaimValue)?,
                 ),
                 |builder, claims| {
-                    let should_be_selectively_disclosable = match sd_by_claims.get(&claims) {
-                        Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
-                        None => true,
-                    };
+                    // Without Type Metadata, all claims are assumed to be selectively disclosable, as are the claims
+                    // that the Type Metadata does not describe.
+                    let is_never_selectively_disclosable = sd_by_claims
+                        .as_ref()
+                        .and_then(|sd_by_claims| sd_by_claims.get(&claims))
+                        .is_some_and(|sd| matches!(sd, ClaimSelectiveDisclosureMetadata::Never));
 
-                    if !should_be_selectively_disclosable {
+                    if is_never_selectively_disclosable {
                         return Ok(builder);
                     }
 
