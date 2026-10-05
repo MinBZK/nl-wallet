@@ -148,17 +148,17 @@ impl AuthorizationSession for MockAuthorizationSession {
 
 /// Helper type that allows `mockall` to return references from a mocked method. `None` represents a session without
 /// previews.
-pub struct MockIssuanceSessionPreviewsWithMetadata(
+pub struct MockIssuanceSessionCredentialPreviews(
     Option<Vec<(Format, PreviewableCredentialPayload, OfferedCredentialMetadata)>>,
 );
 
-impl MockIssuanceSessionPreviewsWithMetadata {
+impl MockIssuanceSessionCredentialPreviews {
     pub fn none() -> Self {
         Self(None)
     }
 }
 
-impl From<Vec<(CredentialPreview, OfferedCredentialMetadata)>> for MockIssuanceSessionPreviewsWithMetadata {
+impl From<Vec<(CredentialPreview, OfferedCredentialMetadata)>> for MockIssuanceSessionCredentialPreviews {
     fn from(value: Vec<(CredentialPreview, OfferedCredentialMetadata)>) -> Self {
         Self(Some(
             value
@@ -177,7 +177,7 @@ mockall::mock! {
             max_copy_count: NonZeroU8,
         ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
 
-        pub fn previews_with_metadata(&self) -> &MockIssuanceSessionPreviewsWithMetadata;
+        pub fn credential_previews(&self) -> &MockIssuanceSessionCredentialPreviews;
 
         pub fn issuer(&self) -> &IssuerRegistration;
     }
@@ -193,8 +193,8 @@ impl IssuanceSession for MockIssuanceSession {
         self.accept(max_copy_count)
     }
 
-    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
-        let MockIssuanceSessionPreviewsWithMetadata(inner) = self.previews_with_metadata();
+    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
+        let MockIssuanceSessionCredentialPreviews(inner) = self.credential_previews();
 
         inner.as_ref().map(|inner| {
             inner

@@ -516,7 +516,7 @@ pub trait IssuanceSession {
     /// to `max_copy_count`.
     ///
     /// If the issuer provides previews, the credentials are returned in the same order as the previews returned by
-    /// [`Self::previews_with_metadata`]. If not, the order of the credentials is not relevant.
+    /// [`Self::credential_previews`]. If not, the order of the credentials is not relevant.
     async fn accept_issuance<W>(
         &mut self,
         max_copy_count: NonZeroU8,
@@ -527,7 +527,7 @@ pub trait IssuanceSession {
         W: IssuanceWscd;
 
     /// Returns the credential previews with their metadata, or `None` if the issuer does not provide previews.
-    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>>;
+    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

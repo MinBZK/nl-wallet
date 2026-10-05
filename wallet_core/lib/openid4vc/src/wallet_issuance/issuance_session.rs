@@ -1227,7 +1227,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(credentials)
     }
 
-    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
+    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
         match &self.session_state.offered_credentials {
             OfferedCredentials::WithPreviews(creds) => {
                 Some(creds.iter().map(|(offered_credential, credential_payload)| {
@@ -1832,7 +1832,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok(preview) = session.previews_with_metadata().unwrap().exactly_one() else {
+        let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
@@ -1900,7 +1900,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        assert!(session.previews_with_metadata().is_none());
+        assert!(session.credential_previews().is_none());
 
         // Without previews, the offered credentials are determined by the Credential Configurations and the Token
         // Response only.
@@ -2244,7 +2244,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok(preview) = session.previews_with_metadata().unwrap().exactly_one() else {
+        let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
@@ -2977,7 +2977,7 @@ mod tests {
             session_state,
         };
 
-        assert_eq!(session.previews_with_metadata().is_some(), has_previews);
+        assert_eq!(session.credential_previews().is_some(), has_previews);
 
         let credentials = session
             .accept_issuance(max_copy_count, &trust_anchors, &wscd)
