@@ -63,8 +63,6 @@ pub use dn::DistinguishedName;
 pub use dn::DistinguishedNameError;
 pub use key_identifier::KeyIdentifier;
 #[cfg(any(test, feature = "generate"))]
-pub use san::NO_SAN;
-#[cfg(any(test, feature = "generate"))]
 pub use san::SubjectAltNameUri;
 pub use usage::CertificateUsage;
 pub use usage::CertificateUsageError;
@@ -533,7 +531,6 @@ mod tests {
                     usage,
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
         let key_usage = key_pair.certificate().x509_certificate().key_usage().unwrap();
@@ -556,7 +553,6 @@ mod tests {
             .generate_key_pair(
                 DistinguishedName::create_mock("mycert"),
                 CertificateConfiguration::with_usage(CertificateUsage::Wia),
-                NO_SAN,
             )
             .unwrap();
 
@@ -594,7 +590,7 @@ mod tests {
         // Create a CA and a leaf certificate
         let ca = Ca::generate_mock();
         let leaf = ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default())
             .unwrap();
         let leaf_certificate = leaf.certificate();
 
@@ -642,7 +638,7 @@ mod tests {
         };
 
         let issuer_key_pair = ca
-            .generate_key_pair(DistinguishedName::create_mock("mycert"), config, NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("mycert"), config)
             .unwrap();
         issuer_key_pair
             .certificate()
@@ -744,7 +740,7 @@ mod tests {
 
         // Both leaves are signed by the new CA key (same key in cross-cert and self-signed cert).
         let leaf = new_ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default())
             .unwrap();
 
         // Phase 1: leaf verified against old CA with the cross-cert as intermediate.
@@ -795,7 +791,7 @@ mod tests {
 
         // Leaf
         let leaf_key_pair = intermediate_ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default())
             .unwrap();
 
         // Verify whole chain with leaf, intermediate and ca trust anchor

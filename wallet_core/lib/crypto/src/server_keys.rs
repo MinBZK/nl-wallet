@@ -303,12 +303,10 @@ pub mod generate {
             pk: &impl PublicKeyData,
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
-            subject_alt_names: impl IntoIterator<Item = impl Into<SanType>>,
         ) -> Result<BorrowingCertificate, CertificateGenerationError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
             params.distinguished_name = distinguished_name.into();
-            params.subject_alt_names = subject_alt_names.into_iter().map(Into::into).collect();
 
             let certificate = params
                 .signed_by(pk, &self.issuer)
@@ -323,11 +321,10 @@ pub mod generate {
             &self,
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
-            subject_alt_names: impl IntoIterator<Item = impl Into<SanType>>,
         ) -> Result<KeyPair, CertificateGenerationError> {
             let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
             let private_key = rcgen_cert_privkey(&key_pair)?;
-            let certificate = self.certificate_for(&key_pair, distinguished_name, configuration, subject_alt_names)?;
+            let certificate = self.certificate_for(&key_pair, distinguished_name, configuration)?;
 
             let key_pair = KeyPair {
                 private_key,
@@ -343,11 +340,10 @@ pub mod generate {
             public_key: &[u8],
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
-            subject_alt_names: impl IntoIterator<Item = impl Into<SanType>>,
         ) -> Result<BorrowingCertificate, CertificateGenerationError> {
             let public_key =
                 SubjectPublicKeyInfo::from_der(public_key).map_err(CertificateGenerationError::GeneratingFailed)?;
-            self.certificate_for(&public_key, distinguished_name, configuration, subject_alt_names)
+            self.certificate_for(&public_key, distinguished_name, configuration)
         }
 
         /// Generate a new key pair and return both a self-signed root `Ca` for it and a
@@ -405,6 +401,8 @@ pub mod generate {
                     uris: vec![uri.to_string()],
                 })
                 .collect();
+            result.subject_alt_names = source.subject_alt_names.iter().map(Into::into).collect();
+
             result
         }
     }
@@ -416,8 +414,6 @@ pub mod generate {
 
         use super::*;
         use crate::x509::CertificateUsage;
-        use crate::x509::NO_SAN;
-        use crate::x509::SubjectAltNameUri;
         use crate::x509::crl::mock::MOCK_CRL_DISTRIBUTION_POINT;
 
         pub static WRPAC_CA_DN: LazyLock<DistinguishedName> =
@@ -427,20 +423,14 @@ pub mod generate {
             LazyLock::new(|| DistinguishedName::create_mock("CA issuer"));
         pub static ISSUANCE_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert issuer"));
-        pub static ISSUANCE_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
-            LazyLock::new(|| "https://issuer.example.com".parse().unwrap());
         pub static PID_ISSUER_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("PID"));
-        pub static PID_ISSUER_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
-            LazyLock::new(|| "https://pid.example.com".parse().unwrap());
         pub static WIA_CERT_DN: LazyLock<DistinguishedName> = LazyLock::new(|| DistinguishedName::create_mock("WIA"));
 
         pub static RP_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA relying party"));
         pub static RP_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert relying party"));
-        pub static RP_CERT_SAN_URI: LazyLock<SubjectAltNameUri> =
-            LazyLock::new(|| "https://cert.rp.example.com".parse().unwrap());
 
         impl Ca {
             pub fn generate_mock() -> Self {
@@ -470,7 +460,7 @@ pub mod generate {
             }
 
             pub fn generate_wrpac_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(ISSUANCE_CERT_DN.clone(), Default::default(), NO_SAN)
+                self.generate_key_pair(ISSUANCE_CERT_DN.clone(), Default::default())
             }
 
             pub fn generate_wrpac_issuer_mock_with_crl(&self) -> Result<KeyPair, CertificateGenerationError> {
@@ -480,12 +470,11 @@ pub mod generate {
                         crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
                         ..Default::default()
                     },
-                    NO_SAN,
                 )
             }
 
             pub fn generate_wrpac_verifier_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(RP_CERT_DN.clone(), Default::default(), NO_SAN)
+                self.generate_key_pair(RP_CERT_DN.clone(), Default::default())
             }
 
             pub fn generate_wrpac_verifier_mock_with_crl(&self) -> Result<KeyPair, CertificateGenerationError> {
@@ -495,7 +484,6 @@ pub mod generate {
                         crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
                         ..Default::default()
                     },
-                    NO_SAN,
                 )
             }
 
@@ -503,7 +491,6 @@ pub mod generate {
                 self.generate_key_pair(
                     PID_ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-                    [PID_ISSUER_CERT_SAN_URI.clone()],
                 )
             }
 
@@ -511,7 +498,6 @@ pub mod generate {
                 self.generate_key_pair(
                     ISSUANCE_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-                    [ISSUANCE_CERT_SAN_URI.clone()],
                 )
             }
 
@@ -519,7 +505,6 @@ pub mod generate {
                 self.generate_key_pair(
                     WIA_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Wia),
-                    NO_SAN,
                 )
             }
 
@@ -527,7 +512,6 @@ pub mod generate {
                 self.generate_key_pair(
                     ISSUANCE_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
-                    [ISSUANCE_CERT_SAN_URI.clone()],
                 )
             }
 
@@ -535,7 +519,6 @@ pub mod generate {
                 self.generate_key_pair(
                     PID_ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
-                    [PID_ISSUER_CERT_SAN_URI.clone()],
                 )
             }
 

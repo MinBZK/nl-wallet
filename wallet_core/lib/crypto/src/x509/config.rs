@@ -3,6 +3,7 @@ use chrono::Utc;
 use url::Url;
 
 use super::CertificateUsage;
+use super::SubjectAltNameUri;
 
 #[derive(Debug, Clone, Default)]
 pub struct CertificateConfiguration {
@@ -11,6 +12,7 @@ pub struct CertificateConfiguration {
     pub exclude_aki: bool,
     pub usage: Option<CertificateUsage>,
     pub crl_distribution_points: Vec<Url>,
+    pub subject_alt_names: Vec<SubjectAltNameUri>,
 }
 
 impl CertificateConfiguration {
