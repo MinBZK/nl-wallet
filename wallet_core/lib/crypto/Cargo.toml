@@ -34,7 +34,7 @@ indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 moka = { workspace = true, features = ["future"] }
 nutype.workspace = true
-p256 = { workspace = true, features = ["pem", "serde"] }
+p256 = { workspace = true, features = ["pkcs8", "serde"] }
 p384 = { workspace = true, features = ["pkcs8", "serde"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
