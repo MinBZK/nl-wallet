@@ -880,6 +880,28 @@ mod tests {
     }
 
     #[test]
+    fn test_invalid_wrpac_subject() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
+        settings.credential_metadata_keypair = wrpac_ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("Issuer without organization"),
+                Default::default(),
+                crypto::x509::NO_SAN,
+            )
+            .unwrap()
+            .into();
+
+        assert_matches!(
+            settings.validate().unwrap_err(),
+            IssuerSettingsValidationError::CertificateVerification(
+                CertificateVerificationError::InvalidOrganization(_, key)
+            ) if key == "credential_metadata"
+        );
+    }
+
+    #[test]
     fn test_invalid_issuer_subject() {
         let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -901,9 +923,10 @@ mod tests {
 
         assert_matches!(
             settings.validate().unwrap_err(),
-            IssuerSettingsValidationError::CertificateVerification(
-                CertificateVerificationError::InvalidIssuerOrganization(_, _)
-            )
+            IssuerSettingsValidationError::CertificateVerification(CertificateVerificationError::InvalidOrganization(
+                _,
+                _
+            ))
         );
     }
 

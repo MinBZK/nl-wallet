@@ -188,8 +188,8 @@ pub enum CertificateVerificationError {
     InvalidCertificate(#[source] CertificateError, String),
     #[error("invalid key pair `{1}`: {0}")]
     InvalidKeyPair(#[source] CertificateError, String),
-    #[error("invalid issuer organization in certificate `{1}`: {0}")]
-    InvalidIssuerOrganization(#[source] OrganizationError, String),
+    #[error("invalid organization in certificate `{1}`: {0}")]
+    InvalidOrganization(#[source] OrganizationError, String),
 }
 
 pub struct VerifierUseCase<'a> {
@@ -243,10 +243,8 @@ pub fn verify_key_pairs(
             .verify(usage, &[], time, trust_anchors)
             .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
-        if usage == Some(CertificateUsage::Mdl) {
-            Organization::try_from(&key_pair.certificate)
-                .map_err(|e| CertificateVerificationError::InvalidIssuerOrganization(e, key_pair_id.to_string()))?;
-        }
+        Organization::try_from(&key_pair.certificate)
+            .map_err(|e| CertificateVerificationError::InvalidOrganization(e, key_pair_id.to_string()))?;
     }
 
     Ok(())
