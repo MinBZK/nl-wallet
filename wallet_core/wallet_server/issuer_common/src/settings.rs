@@ -10,8 +10,8 @@ use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::Days;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::CanocalizationError;
 use crypto::x509::CanonicalDistinguishedName;
-use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
 use derive_more::Debug;
@@ -392,7 +392,7 @@ impl CredentialConfigurationsSettings {
 #[derive(Debug, thiserror::Error)]
 pub enum IssuerSettingsValidationError {
     #[error("certificate error: {0}")]
-    Certificate(#[from] CertificateError),
+    CertificateCanonicalization(#[from] CanocalizationError),
     #[error("error verifying certificate: {0}")]
     CertificateVerification(#[from] CertificateVerificationError),
     #[error(
@@ -660,8 +660,8 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::CertificateConfiguration;
-    use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
+    use crypto::x509::CertificateVerifyError;
     use crypto::x509::DistinguishedName;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -938,7 +938,7 @@ mod tests {
         assert_matches!(
             settings.validate().unwrap_err(),
             IssuerSettingsValidationError::CertificateVerification(
-                CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)
+                CertificateVerificationError::InvalidCertificate(CertificateVerifyError::Verification(_), key)
             ) if key == "pid_sdjwt"
         );
     }
@@ -958,7 +958,7 @@ mod tests {
         assert_matches!(
             error,
             IssuerSettingsValidationError::CertificateVerification(
-                CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)
+                CertificateVerificationError::InvalidCertificate(CertificateVerifyError::Verification(_), key)
             ) if key == "pid_sdjwt"
         );
     }

@@ -11,7 +11,7 @@ use crypto::CredentialEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -240,7 +240,7 @@ pub enum CloseProximityDisclosureError {
     InvalidDocRequest(#[from] mdoc::Error),
 
     #[error("reader access certificate validation failed")]
-    InvalidReaderCertificate(#[source] CertificateError),
+    InvalidReaderCertificate(#[source] CertificateVerifyError),
 
     #[error("reader access certificate CRL verification failed")]
     ReaderCertificateCrlVerification(#[source] CertificateCrlVerificationError),
@@ -803,7 +803,7 @@ async fn verify_device_request_with_crl(
                 .verify_with_crl(session_transcript, time, trust_anchors, crl_verifier)
                 .await
                 .map_err(|error| match error {
-                    mdoc::Error::Cose(CoseError::Certificate(error)) => {
+                    mdoc::Error::Cose(CoseError::CertificateVerify(error)) => {
                         CloseProximityDisclosureError::InvalidReaderCertificate(error)
                     }
                     mdoc::Error::Cose(CoseError::CertificateCrl(error)) => {
