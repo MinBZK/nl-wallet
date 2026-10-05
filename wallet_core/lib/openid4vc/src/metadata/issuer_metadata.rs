@@ -403,14 +403,14 @@ impl CredentialConfiguration {
         vct: String,
         scope: Scope,
         proof_types: Vec<ProofType>,
-        credential_metadata: Option<CredentialMetadata>,
+        credential_metadata: CredentialMetadata,
         type_metadata_uri: Option<IssuerUrl>,
     ) -> Self {
         Self {
             format: CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct, type_metadata_uri),
             scope: Some(scope),
             cryptographic_binding: Some(CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types)),
-            credential_metadata,
+            credential_metadata: Some(credential_metadata),
         }
     }
 }

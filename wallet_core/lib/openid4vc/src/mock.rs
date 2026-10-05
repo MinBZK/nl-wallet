@@ -53,7 +53,7 @@ impl IssuerMetadata {
                         credential_kind.attestation_type,
                         scope,
                         vec![ProofType::Jwt],
-                        None,
+                        CredentialMetadata::new_example(&[]),
                         Some(type_metadata_uri),
                     ),
                 };

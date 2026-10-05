@@ -342,7 +342,7 @@ impl<K, L> CredentialConfigurations<K, L> {
                             type_metadata.vct().to_string(),
                             scope,
                             proof_types,
-                            Some(CredentialMetadata::from(type_metadata.normalized())),
+                            CredentialMetadata::from(type_metadata.normalized()),
                             Some(type_metadata_base_url.join_config_id(config_id)),
                         )
                     }
@@ -353,7 +353,7 @@ impl<K, L> CredentialConfigurations<K, L> {
                         vct.clone(),
                         scope,
                         proof_types,
-                        Some(credential_metadata.clone()),
+                        credential_metadata.clone(),
                         None,
                     ),
                 };
