@@ -63,7 +63,6 @@ use openid4vc::test::mock_type_metadata;
 use openid4vc::test::mock_type_metadata_with_required_attr;
 use openid4vc::test::setup_mock_authorizing_issuer_from_sd_jwt_metadata;
 use openid4vc::test::setup_mock_issuer;
-use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::token::VciTokenRequest;
 use openid4vc::token::VciTokenResponse;
@@ -73,6 +72,7 @@ use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
+use openid4vc::wallet_issuance::OfferedCredentialPreview;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
@@ -233,7 +233,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
 fn verify_issued_credentials<'a>(
     issued_creds: Vec<CredentialWithMetadata>,
-    credential_previews: impl Iterator<Item = &'a CredentialPreview>,
+    credential_previews: impl Iterator<Item = OfferedCredentialPreview<'a>>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
@@ -249,14 +249,14 @@ fn verify_issued_credentials<'a>(
     issued_creds
         .into_iter()
         .zip(credential_previews)
-        .for_each(|(credential, preview_data)| match credential.copies {
+        .for_each(|(credential, preview)| match credential.copies {
             IssuedCredentialCopies::Mdoc(_) => {
                 panic!("mdoc should not be issued");
             }
             IssuedCredentialCopies::SdJwt(sd_jwts) => {
                 sd_jwts.into_iter().for_each(|sd_jwt_copy| {
                     let payload = CredentialPayload::from_sd_jwt(sd_jwt_copy.sd_jwt).unwrap();
-                    assert_eq!(payload.previewable_payload, preview_data.credential_payload);
+                    assert_eq!(&payload.previewable_payload, preview.credential_payload);
                 });
             }
         });
@@ -375,7 +375,7 @@ async fn authorization_code_flow(
     let copy_count = 4;
     verify_issued_credentials(
         issued_creds,
-        session.previews_with_metadata().unwrap().map(|(preview, _)| preview),
+        session.previews_with_metadata().unwrap(),
         attestation_count.get(),
         copy_count,
     );
@@ -398,7 +398,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let mut session = start_issuance_session(&server).await;
 
-    let Ok((preview, _)) = session.previews_with_metadata().unwrap().exactly_one() else {
+    let Ok(preview) = session.previews_with_metadata().unwrap().exactly_one() else {
         panic!("issuance session should contain exactly one preview");
     };
 
@@ -412,12 +412,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
-    verify_issued_credentials(
-        issued_creds,
-        session.previews_with_metadata().unwrap().map(|(preview, _)| preview),
-        1,
-        4,
-    );
+    verify_issued_credentials(issued_creds, session.previews_with_metadata().unwrap(), 1, 4);
 }
 
 #[rstest]
@@ -476,7 +471,7 @@ async fn pre_authorized_code_flow(
 
     verify_issued_credentials(
         issued_creds,
-        session.previews_with_metadata().unwrap().map(|(preview, _)| preview),
+        session.previews_with_metadata().unwrap(),
         attestation_count.get(),
         copy_count,
     );

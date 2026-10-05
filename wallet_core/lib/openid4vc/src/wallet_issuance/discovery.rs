@@ -1389,7 +1389,7 @@ mod test {
                 Some(previews_with_metadata) => {
                     assert!(has_credential_preview_endpoint);
 
-                    let Ok((preview, _metadata)) = previews_with_metadata.exactly_one() else {
+                    let Ok(preview) = previews_with_metadata.exactly_one() else {
                         panic!("issuance session should contain exactly one preview")
                     };
                     assert_eq!(preview.credential_payload.attestation_type, PID_ATTESTATION_TYPE);

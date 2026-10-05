@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::num::NonZeroU8;
 
+use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
@@ -17,6 +19,7 @@ use super::IssuanceDiscoveryParameters;
 use super::IssuanceFlow;
 use super::IssuanceSession;
 use super::OfferedCredentialMetadata;
+use super::OfferedCredentialPreview;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::issuer_registration::IssuerRegistration;
@@ -145,7 +148,9 @@ impl AuthorizationSession for MockAuthorizationSession {
 
 /// Helper type that allows `mockall` to return references from a mocked method. `None` represents a session without
 /// previews.
-pub struct MockIssuanceSessionPreviewsWithMetadata(Option<Vec<(CredentialPreview, OfferedCredentialMetadata)>>);
+pub struct MockIssuanceSessionPreviewsWithMetadata(
+    Option<Vec<(Format, PreviewableCredentialPayload, OfferedCredentialMetadata)>>,
+);
 
 impl MockIssuanceSessionPreviewsWithMetadata {
     pub fn none() -> Self {
@@ -155,7 +160,12 @@ impl MockIssuanceSessionPreviewsWithMetadata {
 
 impl From<Vec<(CredentialPreview, OfferedCredentialMetadata)>> for MockIssuanceSessionPreviewsWithMetadata {
     fn from(value: Vec<(CredentialPreview, OfferedCredentialMetadata)>) -> Self {
-        Self(Some(value))
+        Self(Some(
+            value
+                .into_iter()
+                .map(|(preview, metadata)| (preview.format, preview.credential_payload, metadata))
+                .collect(),
+        ))
     }
 }
 
@@ -183,12 +193,18 @@ impl IssuanceSession for MockIssuanceSession {
         self.accept(max_copy_count)
     }
 
-    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>> {
+    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
         let MockIssuanceSessionPreviewsWithMetadata(inner) = self.previews_with_metadata();
 
-        inner
-            .as_ref()
-            .map(|inner| inner.iter().map(|(preview, metadata)| (preview, metadata)))
+        inner.as_ref().map(|inner| {
+            inner
+                .iter()
+                .map(|(format, credential_payload, metadata)| OfferedCredentialPreview {
+                    format: *format,
+                    credential_payload,
+                    metadata,
+                })
+        })
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {

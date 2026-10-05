@@ -181,11 +181,10 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let previews = issuance_session
         .previews_with_metadata()
         .expect("issuance session should have previews")
-        .map(|(preview, _)| preview)
         .collect_vec();
     assert_eq!(previews.len(), 2);
 
-    let payload = &previews
+    let payload = previews
         .into_iter()
         .find(|preview| preview.format == Format::SdJwt)
         .expect("previews should include SD-JWT PID")

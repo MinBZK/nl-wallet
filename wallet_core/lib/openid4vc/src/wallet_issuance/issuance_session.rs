@@ -7,6 +7,7 @@ use std::num::NonZeroUsize;
 
 use attestation_data::attributes::AttributesTraversalBehaviour;
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
@@ -63,6 +64,7 @@ use wscd::wia::WiaClient;
 
 use super::IssuanceSession;
 use super::OfferedCredentialMetadata;
+use super::OfferedCredentialPreview;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
@@ -565,7 +567,7 @@ impl SupportedConfigurations {
                             {
                                 let (config_id, _config) = occupied_entry.remove_entry();
                                 let offered_credential = OfferedCredential::new_by_config_id(config_id, preview.format);
-                                Either::Left((offered_credential, preview))
+                                Either::Left((offered_credential, preview.credential_payload))
                             }
                             _ => Either::Right((preview.config_id, preview.credential_id, preview.format)),
                         }
@@ -613,7 +615,7 @@ impl SupportedConfigurations {
                                     preview.format,
                                 );
 
-                                Either::Left((offered_credential, preview))
+                                Either::Left((offered_credential, preview.credential_payload))
                             }
                             None => Either::Right((preview.config_id, preview.credential_id, preview.format)),
                         }
@@ -676,7 +678,7 @@ struct IssuanceState {
 enum OfferedCredentials {
     /// The issuer provided a preview for each offered credential. Maintains the order as received from the Credential
     /// Preview endpoint.
-    WithPreviews(VecNonEmpty<(OfferedCredential, CredentialPreview)>),
+    WithPreviews(VecNonEmpty<(OfferedCredential, PreviewableCredentialPayload)>),
 
     /// The issuer does not have a Credential Preview endpoint. The offered credentials have no meaningful order.
     WithoutPreviews(NESet<OfferedCredential>),
@@ -691,7 +693,7 @@ impl OfferedCredentials {
     }
 
     /// Iterate over the offered credentials and optional previews.
-    fn iter(&self) -> impl Iterator<Item = (&OfferedCredential, Option<&CredentialPreview>)> {
+    fn iter(&self) -> impl Iterator<Item = (&OfferedCredential, Option<&PreviewableCredentialPayload>)> {
         match self {
             OfferedCredentials::WithPreviews(creds) => Either::Left(
                 creds
@@ -1010,7 +1012,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn fetch_credential(
         &self,
         offered_credential: &OfferedCredential,
-        credential_preview: Option<&CredentialPreview>,
+        credential_preview: Option<&PreviewableCredentialPayload>,
         keys: VecNonEmpty<IssuanceKeyResult>,
         dpop_nonce: Option<DpopNonce>,
         trust_anchors: &TrustAnchors,
@@ -1225,17 +1227,23 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(credentials)
     }
 
-    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>> {
+    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
         match &self.session_state.offered_credentials {
-            OfferedCredentials::WithPreviews(creds) => Some(creds.iter().map(|(offered_credential, preview)| {
-                let metadata = self
-                    .session_state
-                    .metadata
-                    .get(&offered_credential.config_id)
-                    .expect("`IssuanceState::metadata` has an entry for every offered configuration");
+            OfferedCredentials::WithPreviews(creds) => {
+                Some(creds.iter().map(|(offered_credential, credential_payload)| {
+                    let metadata = self
+                        .session_state
+                        .metadata
+                        .get(&offered_credential.config_id)
+                        .expect("`IssuanceState::metadata` has an entry for every offered configuration");
 
-                (preview, metadata)
-            })),
+                    OfferedCredentialPreview {
+                        format: offered_credential.format,
+                        credential_payload,
+                        metadata,
+                    }
+                }))
+            }
             OfferedCredentials::WithoutPreviews(_) => None,
         }
     }
@@ -1251,7 +1259,7 @@ impl Credentials {
     fn into_issued_mdocs(
         self,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
-        preview: Option<&CredentialPreview>,
+        preview: Option<&PreviewableCredentialPayload>,
         credential_metadata: &CredentialMetadata,
         trust_anchors: &TrustAnchors,
     ) -> Result<(VecNonEmpty<MdocCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
@@ -1309,7 +1317,7 @@ impl Credentials {
         self,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         metadata: &OfferedCredentialMetadata,
-        preview: Option<&CredentialPreview>,
+        preview: Option<&PreviewableCredentialPayload>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(VecNonEmpty<SdJwtCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
         let Self::SdJwt(sd_jwt_credentials) = self else {
@@ -1356,7 +1364,7 @@ impl Credentials {
     }
 
     fn validate_credential(
-        preview: Option<&CredentialPreview>,
+        preview: Option<&PreviewableCredentialPayload>,
         holder_pubkey: &PublicKey,
         credential_payload: &CredentialPayload,
         metadata: &impl AttestationClaims,
@@ -1367,10 +1375,10 @@ impl Credentials {
 
         if let Some(preview) = preview {
             // Check that the credential contains exactly the attributes the issuer said it would have.
-            if credential_payload.previewable_payload != preview.credential_payload {
+            if credential_payload.previewable_payload != *preview {
                 return Err(WalletIssuanceError::IssuedCredentialMismatch {
                     actual: Box::new(credential_payload.previewable_payload.clone()),
-                    expected: Box::new(preview.credential_payload.clone()),
+                    expected: Box::new(preview.clone()),
                 });
             }
         }
@@ -1824,7 +1832,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok((preview, metadata)) = session.previews_with_metadata().unwrap().exactly_one() else {
+        let Ok(preview) = session.previews_with_metadata().unwrap().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
@@ -1832,7 +1840,7 @@ mod tests {
                 &preview.credential_payload.attributes.as_ref()["family_name"],
                 Attribute::Text(v) if v == "De Bruijn");
 
-        let OfferedCredentialMetadata::TypeMetadata { normalized, .. } = metadata else {
+        let OfferedCredentialMetadata::TypeMetadata { normalized, .. } = preview.metadata else {
             panic!("session should contain type metadata for the credential configuration");
         };
 
@@ -2236,12 +2244,12 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok((_preview, metadata)) = session.previews_with_metadata().unwrap().exactly_one() else {
+        let Ok(preview) = session.previews_with_metadata().unwrap().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
         // The SD-JWT configuration has no type metadata URI, so it should fall back to its Credential Metadata.
-        assert_matches!(metadata, OfferedCredentialMetadata::CredentialMetadata(_));
+        assert_matches!(preview.metadata, OfferedCredentialMetadata::CredentialMetadata(_));
     }
 
     #[test]
@@ -2579,7 +2587,7 @@ mod tests {
                 preview.format,
             );
 
-            (offered_credential, preview)
+            (offered_credential, preview.credential_payload)
         });
 
         let offered_credentials = if has_previews {
@@ -3230,7 +3238,7 @@ mod tests {
         sd_jwt_uses_credential_metadata: SdJwtMetadataUsage,
     ) -> (
         Credentials,
-        CredentialPreview,
+        PreviewableCredentialPayload,
         OfferedCredentialMetadata,
         PublicKey,
         TrustAnchors,
@@ -3247,7 +3255,7 @@ mod tests {
             .into_immediate_credentials()
             .unwrap();
 
-        let preview = previews.into_iter().exactly_one().unwrap();
+        let preview = previews.into_iter().exactly_one().unwrap().credential_payload;
         let metadata = metadata
             .into_iter()
             .exactly_one()
@@ -3262,7 +3270,7 @@ mod tests {
         credentials: Credentials,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         metadata: &OfferedCredentialMetadata,
-        preview: Option<&CredentialPreview>,
+        preview: Option<&PreviewableCredentialPayload>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(), WalletIssuanceError> {
         match (&credentials, metadata) {
@@ -3434,7 +3442,7 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail. Note that these stay laid out in the
         // mdoc name space, so that the extra attribute is the only difference.
-        preview.credential_payload.attributes = Attributes::example([
+        preview.attributes = Attributes::example([
             ([PID_ATTESTATION_TYPE, "new"], Attribute::Bool(true)),
             (
                 [PID_ATTESTATION_TYPE, "family_name"],
@@ -3463,7 +3471,7 @@ mod tests {
 
         // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
         // within the response should fail.
-        preview.credential_payload.attestation_type = String::from("other.attestation_type");
+        preview.attestation_type = String::from("other.attestation_type");
 
         let error = test_convert_credentials_into_issued_credential(
             credentials,
@@ -3487,7 +3495,7 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` with different expiration information in the preview than
         // contained within the response should fail.
 
-        preview.credential_payload.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
+        preview.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
 
         let error = test_convert_credentials_into_issued_credential(
             credentials,

@@ -263,15 +263,14 @@ where
                 .previews_with_metadata()
                 .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPreviews))?
                 .collect_vec()
-                .into_iter()
-                .map(|(preview, _)| preview),
+                .into_iter(),
             pid_config,
         )?;
 
         self.compare_recovery_code_against_stored(pid_preview, pid_config)
             .await?;
 
-        let pid_attestation_type = pid_preview.credential_payload.attestation_type.clone();
+        let pid_attestation_type = pid_preview.attestation_type.clone();
         let recovery_code_path = pid_config.recovery_code_path(&pid_attestation_type)?;
 
         self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
