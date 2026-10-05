@@ -73,6 +73,7 @@ sea-orm = { workspace = true, features = [
     "sqlx-postgres",
     "with-chrono",
     "with-uuid",
+    "with-json",
 ] }
 semver.workspace = true
 tokio = { workspace = true, features = ["rt"] }
