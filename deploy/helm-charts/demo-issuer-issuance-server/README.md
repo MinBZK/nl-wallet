@@ -114,6 +114,12 @@
 | ----------- | ------------------------------------------------------------------ | ----- |
 | `batchSize` | The maximum amount of credentials a holder will be able to request | `4`   |
 
+### Metadata parameters
+
+| Name           | Description                                                               | Value                                                    |
+| -------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `typeMetadata` | List of SD-JWT VC Type Metadata filenames to mount and pass to the server | `["com.example.degree.json","com.example.housing.json"]` |
+
 ### Urls
 
 | Name                   | Description                  | Value |
