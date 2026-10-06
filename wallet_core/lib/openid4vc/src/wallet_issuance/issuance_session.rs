@@ -1667,6 +1667,7 @@ mod tests {
         )>,
         type_metadata: TypeMetadata,
         token_response_fields: &TokenResponseFields,
+        expect_preview_request: bool,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
         let authorization_details = match &token_response_fields {
             TokenResponseFields::AuthorizationDetails(identifiers) | TokenResponseFields::Both(identifiers, _) => {
@@ -1724,15 +1725,9 @@ mod tests {
             Ok(metadata_documents)
         });
 
-        // The Credential Preview endpoint should never be called if the issuer does not have one.
-        let preview_call_count = if issuer_metadata.endpoints.credential_preview_endpoint.is_some() {
-            0..=1
-        } else {
-            0..=0
-        };
         mock_msg_client
             .expect_request_credential_preview()
-            .times(preview_call_count)
+            .times(usize::from(expect_preview_request))
             .return_once(move |_url, _access_token| {
                 let previews = preview_payloads
                     .into_iter()
@@ -1831,6 +1826,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            true,
         )
         .expect("starting issuance session should succeed");
 
@@ -1899,6 +1895,7 @@ mod tests {
             vec![],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            false,
         )
         .expect("starting issuance session should succeed");
 
@@ -1957,6 +1954,7 @@ mod tests {
                 ("mdoc_config_id", vec!["credential_id"]),
                 ("sd_jwt_config_id", vec!["credential_id"]),
             ]),
+            false,
         )
         .expect_err("starting issuance session should fail");
 
@@ -1992,6 +1990,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::AuthorizationDetails(vec![("unknown_config_id", vec!["credential_id"])]),
+            false,
         )
         .expect_err("starting issuance session should fail");
 
@@ -2020,6 +2019,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Scope(vec![]),
+            false,
         )
         .expect_err("starting issuance session should fail");
 
@@ -2044,6 +2044,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Scope(vec!["unknown_config_id_scope"]),
+            false,
         )
         .expect_err("starting issuance session should fail");
 
@@ -2073,6 +2074,7 @@ mod tests {
             )],
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
             &TokenResponseFields::Neither,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2109,6 +2111,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2175,6 +2178,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            true,
         )
         .expect("starting issuance session should succeed");
 
@@ -2207,6 +2211,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2243,6 +2248,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
+            true,
         )
         .expect("starting issuance session should succeed");
 
@@ -2284,6 +2290,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2405,6 +2412,7 @@ mod tests {
             ],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2469,6 +2477,7 @@ mod tests {
             ],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            true,
         )
         .expect_err("starting issuance session should fail");
 
@@ -2540,6 +2549,7 @@ mod tests {
             ],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            true,
         )
         .expect_err("starting issuance session should fail");
 
