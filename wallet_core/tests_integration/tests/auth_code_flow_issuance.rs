@@ -27,6 +27,7 @@ use tests_integration::common::*;
 use url::Url;
 use utils::vec_at_least::VecNonEmptyUnique;
 use utils::vec_nonempty;
+use wallet::IssuanceContinueResult;
 use wallet::IssuanceStartResult;
 use wallet::Pin;
 use wscd::mock::MOCK_WALLET_CLIENT_ID;
@@ -168,13 +169,16 @@ async fn test_acf_demo_issuer_wallet_issuance() {
 
     // Drive the consent page, then hand the wallet the resulting redirect to exchange for previews.
     let redirect_uri = fake_consent_auth(authorization_url).await;
-    let previews = wallet
+    let IssuanceContinueResult::Previews(previews) = wallet
         .continue_issuance(redirect_uri)
         .await
-        .expect("should continue issuance after consent");
+        .expect("should continue issuance after consent")
+    else {
+        panic!("expected previews");
+    };
 
-    assert_eq!(previews.as_ref().unwrap().len().get(), 1);
-    assert_eq!(previews.unwrap().first().attestation_type, "com.example.insurance");
+    assert_eq!(previews.len().get(), 1);
+    assert_eq!(previews.first().attestation_type, "com.example.insurance");
 
     wallet.accept_issuance(pin).await.expect("should accept issuance");
 
@@ -213,13 +217,16 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
 
     // For Immediate usecases, /authorize skips the consent page and redirects straight to the wallet.
     let redirect_uri = follow_authorization_redirects(authorization_url).await;
-    let previews = wallet
+    let IssuanceContinueResult::Previews(previews) = wallet
         .continue_issuance(redirect_uri)
         .await
-        .expect("should continue issuance after immediate authorization");
+        .expect("should continue issuance after immediate authorization")
+    else {
+        panic!("expected previews");
+    };
 
-    assert_eq!(previews.as_ref().unwrap().len().get(), 1);
-    assert_eq!(previews.unwrap().first().attestation_type, "com.example.jum.bonuskaart");
+    assert_eq!(previews.len().get(), 1);
+    assert_eq!(previews.first().attestation_type, "com.example.jum.bonuskaart");
 
     wallet.accept_issuance(pin).await.expect("should accept issuance");
 

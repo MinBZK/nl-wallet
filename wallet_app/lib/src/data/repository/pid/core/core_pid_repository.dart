@@ -36,9 +36,12 @@ class CorePidRepository extends PidRepository with PidFilterMixin {
   @override
   Future<List<DataAttribute>> continuePidIssuance(String uri) async {
     final result = await _walletCore.continueIssuance(uri);
-    // The core rejects PID issuance without previews, so this should never happen.
-    if (result == null) throw StateError('PID issuance session contains no previews');
-    final cards = result.map(_cardMapper.map).toList();
+    final attestations = switch (result) {
+      core.IssuanceContinueResult_Previews(field0: final attestations) => attestations,
+      // The core rejects PID issuance without previews, so this should never happen.
+      core.IssuanceContinueResult_NoPreviews() => throw StateError('PID issuance session contains no previews'),
+    };
+    final cards = attestations.map(_cardMapper.map).toList();
     final filteredCards = await filterDuplicatePidCards(cards);
     return filteredCards.map((attestation) => attestation.attributes).flattened.toList();
   }

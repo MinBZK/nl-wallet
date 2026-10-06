@@ -117,7 +117,7 @@ Future<IssuanceStartResult> startIssuanceFromOffer({required String offerUri}) =
 
 Future<void> cancelIssuance() => WalletCore.instance.api.crateApiFullCancelIssuance();
 
-Future<List<AttestationPresentation>?> continueIssuance({required String uri}) =>
+Future<IssuanceContinueResult> continueIssuance({required String uri}) =>
     WalletCore.instance.api.crateApiFullContinueIssuance(uri: uri);
 
 Future<WalletInstructionResult> acceptIssuance({required String pin}) =>

@@ -89,8 +89,12 @@ class CoreIssuanceRepository implements IssuanceRepository {
   @override
   Future<List<WalletCard>> continueIssuance(String uri) async {
     final result = await _walletCore.continueIssuance(uri);
-    if (result == null) throw UnsupportedError('Issuance without previews is not supported yet');
-    return _attestationMapper.mapList(result);
+    switch (result) {
+      case core.IssuanceContinueResult_Previews(field0: final cards):
+        return _attestationMapper.mapList(cards);
+      case core.IssuanceContinueResult_NoPreviews():
+        throw UnsupportedError('Issuance without previews is not supported yet');
+    }
   }
 
   @override

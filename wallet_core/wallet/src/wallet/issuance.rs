@@ -255,7 +255,22 @@ pub struct IssuanceResult {
 pub enum IssuanceStartResult {
     AuthorizationUrl(Url),
     Previews(VecNonEmpty<AttestationPresentation>),
-    NoPreviews,
+    NoPreviews { organization: Box<Organization> },
+}
+
+#[derive(Debug)]
+pub enum IssuanceContinueResult {
+    Previews(VecNonEmpty<AttestationPresentation>),
+    NoPreviews { organization: Box<Organization> },
+}
+
+impl From<IssuanceContinueResult> for IssuanceStartResult {
+    fn from(value: IssuanceContinueResult) -> Self {
+        match value {
+            IssuanceContinueResult::Previews(attestations) => Self::Previews(attestations),
+            IssuanceContinueResult::NoPreviews { organization } => Self::NoPreviews { organization },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -458,21 +473,15 @@ where
                 Ok(authorization_url)
             }
             IssuanceFlow::PreAuthorizedCode { issuance_session } => {
-                let attestations = self.prepare_issuance_acceptance(issuance_session, None).await?;
-                match attestations {
-                    Some(attestations) => Ok(IssuanceStartResult::Previews(attestations)),
-                    None => Ok(IssuanceStartResult::NoPreviews),
-                }
+                let result = self.prepare_issuance_acceptance(issuance_session, None).await?;
+                Ok(result.into())
             }
         }
     }
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn continue_issuance(
-        &mut self,
-        redirect_uri: Url,
-    ) -> Result<Option<VecNonEmpty<AttestationPresentation>>, IssuanceError>
+    pub async fn continue_issuance(&mut self, redirect_uri: Url) -> Result<IssuanceContinueResult, IssuanceError>
     where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
@@ -530,7 +539,7 @@ where
         &mut self,
         issuance_session: CID::Issuance,
         pid_purpose: Option<PidIssuancePurpose>,
-    ) -> Result<Option<VecNonEmpty<AttestationPresentation>>, IssuanceError> {
+    ) -> Result<IssuanceContinueResult, IssuanceError> {
         let preview_attestations = match (pid_purpose, issuance_session.credential_previews()) {
             (Some(_), None) => return Err(IssuanceError::MissingPidPreviews),
             (_, None) => None,
@@ -541,6 +550,7 @@ where
                 Some(self.process_previews(previews, organization, pid_purpose).await?)
             }
         };
+        let organization = Box::new(issuance_session.issuer_registration().organization().clone());
 
         self.session.replace(Session::Issuance(WalletIssuanceSession::new(
             pid_purpose,
@@ -550,7 +560,12 @@ where
             },
         )));
 
-        Ok(preview_attestations)
+        let result = match preview_attestations {
+            Some(attestations) => IssuanceContinueResult::Previews(attestations),
+            None => IssuanceContinueResult::NoPreviews { organization },
+        };
+
+        Ok(result)
     }
 
     async fn process_previews(
@@ -1313,8 +1328,10 @@ mod tests {
         let attestations = wallet
             .continue_issuance(redirect_uri)
             .await
-            .expect("Could not continue PID issuance")
-            .expect("issuance session should contain previews");
+            .expect("Could not continue PID issuance");
+        let IssuanceContinueResult::Previews(attestations) = attestations else {
+            panic!("issuance session should contain previews");
+        };
 
         assert_eq!(attestations.len().get(), 1);
 
@@ -1641,10 +1658,13 @@ mod tests {
             .prepare_issuance_acceptance(issuance_session, purpose)
             .await
             .expect("Could not continue issuance");
+        let IssuanceContinueResult::Previews(attestations) = attestations else {
+            panic!("issuance session should contain previews");
+        };
 
-        assert_eq!(attestations.as_ref().unwrap().len(), preview_count);
+        assert_eq!(attestations.len(), preview_count);
 
-        for (index, attestation) in attestations.unwrap().iter().enumerate() {
+        for (index, attestation) in attestations.iter().enumerate() {
             if expect_fixed_index.is_some_and(|expected_index| expected_index == index) {
                 assert_matches!(&attestation.identity, AttestationIdentity::Fixed { id } if *id == attestation_id);
             } else {
@@ -1698,11 +1718,13 @@ mod tests {
             .prepare_issuance_acceptance(issuance_session, None)
             .await
             .expect("Could not process issuance previews");
+        let IssuanceContinueResult::Previews(attestations) = attestations else {
+            panic!("issuance session should contain previews");
+        };
 
-        assert_eq!(attestations.as_ref().unwrap().len().get(), 2);
+        assert_eq!(attestations.len().get(), 2);
         assert!(
             attestations
-                .unwrap()
                 .iter()
                 .all(|attestation| matches!(attestation.identity, AttestationIdentity::Ephemeral))
         );
@@ -1716,13 +1738,20 @@ mod tests {
         issuance_session
             .expect_credential_previews()
             .return_const(MockIssuanceSessionCredentialPreviews::none());
+        issuance_session
+            .expect_issuer()
+            .return_const(IssuerRegistration::new_mock());
 
         let result = wallet
             .prepare_issuance_acceptance(issuance_session, None)
             .await
             .expect("Could not prepare issuance acceptance");
 
-        assert!(result.is_none());
+        assert_matches!(
+            result,
+            IssuanceContinueResult::NoPreviews { organization }
+                if &*organization == IssuerRegistration::new_mock().organization()
+        );
     }
 
     #[rstest]

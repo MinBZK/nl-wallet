@@ -14,6 +14,18 @@ import 'revocation.dart';
 part 'issuance.freezed.dart';
 
 @freezed
+sealed class IssuanceContinueResult with _$IssuanceContinueResult {
+  const IssuanceContinueResult._();
+
+  const factory IssuanceContinueResult.previews(
+    List<AttestationPresentation> field0,
+  ) = IssuanceContinueResult_Previews;
+  const factory IssuanceContinueResult.noPreviews({
+    required Organization organization,
+  }) = IssuanceContinueResult_NoPreviews;
+}
+
+@freezed
 sealed class IssuanceStartResult with _$IssuanceStartResult {
   const IssuanceStartResult._();
 
@@ -23,5 +35,7 @@ sealed class IssuanceStartResult with _$IssuanceStartResult {
   const factory IssuanceStartResult.previews(
     List<AttestationPresentation> field0,
   ) = IssuanceStartResult_Previews;
-  const factory IssuanceStartResult.noPreviews() = IssuanceStartResult_NoPreviews;
+  const factory IssuanceStartResult.noPreviews({
+    required Organization organization,
+  }) = IssuanceStartResult_NoPreviews;
 }

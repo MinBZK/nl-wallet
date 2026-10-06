@@ -22,6 +22,7 @@ use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::DisclosureError;
+use super::IssuanceContinueResult;
 use super::IssuanceError;
 use super::Wallet;
 use super::disclosure::RedirectUriPurpose;
@@ -142,7 +143,7 @@ where
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
 
-        let previews = self
+        let result = self
             .prepare_issuance_acceptance(
                 issuance_session,
                 None, // we're not doing PID issuance
@@ -150,7 +151,7 @@ where
             .await
             .map_err(DisclosureBasedIssuanceError::Issuance)?;
 
-        let Some(previews) = previews else {
+        let IssuanceContinueResult::Previews(previews) = result else {
             // Disclosure based issuance requires previews, so discard the issuance session that was just stored.
             self.session.take();
             return Err(DisclosureBasedIssuanceError::MissingPreviews(organization));
@@ -477,6 +478,9 @@ mod tests {
                 issuance_session
                     .expect_credential_previews()
                     .return_const(MockIssuanceSessionCredentialPreviews::none());
+                issuance_session
+                    .expect_issuer()
+                    .return_const(IssuerRegistration::new_mock());
 
                 Ok(issuance_session)
             });

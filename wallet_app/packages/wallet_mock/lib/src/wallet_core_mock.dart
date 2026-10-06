@@ -143,11 +143,11 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri}) async {
+  Future<IssuanceContinueResult> crateApiFullContinueIssuance({required String uri}) async {
     if (uri.contains('mock') && _issuanceManager.hasActiveIssuanceSession) {
-      return _issuanceManager.sessionAttestations!;
+      return IssuanceContinueResult.previews(_issuanceManager.sessionAttestations!);
     }
-    return kPidAttestations;
+    return IssuanceContinueResult.previews(kPidAttestations);
   }
 
   @override

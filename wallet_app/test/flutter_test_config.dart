@@ -82,6 +82,9 @@ void _setupMockitoDummies() {
   // Core wallet instruction result dummies
   provideDummy<core.WalletInstructionResult>(const core.WalletInstructionResult.ok());
 
+  // Core issuance result dummies
+  provideDummy<core.IssuanceContinueResult>(const core.IssuanceContinueResult.previews([]));
+
   // Disclosure-related dummies
   provideDummy<StartDisclosureResult>(
     StartDisclosureReadyToDisclose(
