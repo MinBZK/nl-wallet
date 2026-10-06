@@ -13,22 +13,23 @@ use utils::path::prefix_local_path;
 use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
 use crate::pid::brp::data::BrpPersons;
-use crate::pid::constants::PID_ADDRESS_GROUP;
-use crate::pid::constants::PID_AGE_OVER_18;
-use crate::pid::constants::PID_BIRTH_DATE;
-use crate::pid::constants::PID_BSN;
-use crate::pid::constants::PID_FAMILY_NAME;
-use crate::pid::constants::PID_GIVEN_NAME;
-use crate::pid::constants::PID_MDOC_NAMESPACE;
-use crate::pid::constants::PID_NATIONALITY;
-use crate::pid::constants::PID_RECOVERY_CODE;
-use crate::pid::constants::PID_RESIDENT_CITY;
-use crate::pid::constants::PID_RESIDENT_COUNTRY;
-use crate::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
-use crate::pid::constants::PID_RESIDENT_POSTAL_CODE;
-use crate::pid::constants::PID_RESIDENT_STREET;
 use crate::pid::digid::DigidClient;
 use crate::pid::digid::Error as DigidError;
+use crate::pid::rulebook::constants::PID_ADDRESS_GROUP;
+use crate::pid::rulebook::constants::PID_AGE_OVER_18;
+use crate::pid::rulebook::constants::PID_BIRTH_DATE;
+use crate::pid::rulebook::constants::PID_BSN;
+use crate::pid::rulebook::constants::PID_FAMILY_NAME;
+use crate::pid::rulebook::constants::PID_GIVEN_NAME;
+use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
+use crate::pid::rulebook::constants::PID_NATIONALITY;
+use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
+use crate::pid::rulebook::constants::PID_RESIDENT_CITY;
+use crate::pid::rulebook::constants::PID_RESIDENT_COUNTRY;
+use crate::pid::rulebook::constants::PID_RESIDENT_HOUSE_NUMBER;
+use crate::pid::rulebook::constants::PID_RESIDENT_POSTAL_CODE;
+use crate::pid::rulebook::constants::PID_RESIDENT_STREET;
+use crate::pid::rulebook::constants::PID_SEX;
 
 /// The BSN of the standard mock test subject, present in the haal-centraal-examples BRP test data.
 pub const MOCK_BSN: &str = "999991772";
@@ -139,6 +140,7 @@ pub fn mock_pid_example() -> Attributes {
                 Attribute::Text("Belgische".to_string()),
             ]),
         ),
+        (vec![PID_SEX], Attribute::Number(2)),
         (vec![PID_RECOVERY_CODE], Attribute::Text("1234567".to_string())),
         (
             vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
@@ -190,6 +192,7 @@ pub fn mock_pid_mdoc_example() -> Attributes {
                 Attribute::Text("Belgische".to_string()),
             ]),
         ),
+        (vec![PID_MDOC_NAMESPACE, PID_SEX], Attribute::Number(2)),
         (
             vec![PID_MDOC_NAMESPACE, PID_RECOVERY_CODE],
             Attribute::Text("1234567".to_string()),

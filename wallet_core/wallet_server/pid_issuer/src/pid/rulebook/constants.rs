@@ -25,6 +25,7 @@ pub const PID_AGE_OVER_18: &str = "age_over_18";
 pub const PID_BSN: &str = "bsn";
 pub const PID_RECOVERY_CODE: &str = "recovery_code";
 pub const PID_NATIONALITY: &str = "nationalities";
+pub const PID_SEX: &str = "sex";
 pub const PID_ADDRESS_GROUP: &str = "address";
 pub const PID_RESIDENT_STREET: &str = "street_address";
 pub const PID_RESIDENT_HOUSE_NUMBER: &str = "house_number";

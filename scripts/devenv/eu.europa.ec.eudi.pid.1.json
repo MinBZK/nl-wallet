@@ -102,6 +102,22 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
+        "sex"
+      ],
+      "display": [
+        {
+          "name": "Sex",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geslacht",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
         "bsn"
       ],
       "mandatory": true,

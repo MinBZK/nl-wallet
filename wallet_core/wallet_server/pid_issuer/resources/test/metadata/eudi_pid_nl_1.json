@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-FS51/D5cxPyQHeROY8Pm2rsA8eE08euMWJ7DRJMrFwI=",
+  "extends#integrity": "sha256-0GWGCdK4s1YpjrSmUyvktnIH49N1U1pXdv3T6yi8ItE=",
   "display": [
     {
       "locale": "en-US",
@@ -111,6 +111,22 @@
           "locale": "nl-NL",
           "label": "Nationaliteiten",
           "description": "Lijst van nationaliteiten van de persoon"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["sex"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Sex",
+          "description": "Sex of the person"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Geslacht",
+          "description": "Geslacht van de persoon"
         }
       ],
       "sd": "always"

@@ -6,20 +6,22 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde_with::skip_serializing_none;
 
-use crate::pid::constants::PID_ADDRESS_GROUP;
-use crate::pid::constants::PID_AGE_OVER_18;
-use crate::pid::constants::PID_BIRTH_DATE;
-use crate::pid::constants::PID_BSN;
-use crate::pid::constants::PID_FAMILY_NAME;
-use crate::pid::constants::PID_GIVEN_NAME;
-use crate::pid::constants::PID_MDOC_NAMESPACE;
-use crate::pid::constants::PID_NATIONALITY;
-use crate::pid::constants::PID_RECOVERY_CODE;
-use crate::pid::constants::PID_RESIDENT_CITY;
-use crate::pid::constants::PID_RESIDENT_COUNTRY;
-use crate::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
-use crate::pid::constants::PID_RESIDENT_POSTAL_CODE;
-use crate::pid::constants::PID_RESIDENT_STREET;
+use crate::pid::rulebook::constants::PID_ADDRESS_GROUP;
+use crate::pid::rulebook::constants::PID_AGE_OVER_18;
+use crate::pid::rulebook::constants::PID_BIRTH_DATE;
+use crate::pid::rulebook::constants::PID_BSN;
+use crate::pid::rulebook::constants::PID_FAMILY_NAME;
+use crate::pid::rulebook::constants::PID_GIVEN_NAME;
+use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
+use crate::pid::rulebook::constants::PID_NATIONALITY;
+use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
+use crate::pid::rulebook::constants::PID_RESIDENT_CITY;
+use crate::pid::rulebook::constants::PID_RESIDENT_COUNTRY;
+use crate::pid::rulebook::constants::PID_RESIDENT_HOUSE_NUMBER;
+use crate::pid::rulebook::constants::PID_RESIDENT_POSTAL_CODE;
+use crate::pid::rulebook::constants::PID_RESIDENT_STREET;
+use crate::pid::rulebook::constants::PID_SEX;
+use crate::pid::rulebook::sex::PidSex;
 
 #[derive(Deserialize)]
 pub struct BrpPersons {
@@ -35,7 +37,6 @@ pub struct BrpPerson {
     #[serde(rename = "burgerservicenummer")]
     bsn: String,
 
-    #[expect(dead_code)]
     #[serde(rename = "geslacht")]
     gender: Option<BrpGender>,
 
@@ -96,6 +97,7 @@ impl BrpPerson {
         let given_names = self.name.given_names.clone();
         let is_over_18 = self.is_over_18();
         let family_name = self.name.into_name_with_prefix();
+        let sex = self.gender.map(|gender| Attribute::from(PidSex::from(gender.code)));
         let nationalities = self
             .nationalities
             .into_iter()
@@ -116,6 +118,7 @@ impl BrpPerson {
                     String::from(PID_NATIONALITY),
                     Attribute::Array(nationalities.into_iter().map(Attribute::Text).collect_vec()),
                 )),
+                sex.map(|sex| (PID_SEX.to_owned(), sex)),
             ]
             .into_iter()
             .flatten()
@@ -151,7 +154,6 @@ impl BrpResidence {
 
 #[derive(Clone, Deserialize)]
 pub struct BrpGender {
-    #[expect(dead_code)]
     code: BrpGenderCode,
 }
 
@@ -163,14 +165,16 @@ pub enum BrpGenderCode {
     O,
 }
 
-impl From<BrpGenderCode> for Attribute {
-    fn from(value: BrpGenderCode) -> Attribute {
-        let value = match value {
-            BrpGenderCode::O => 0,
-            BrpGenderCode::M => 1,
-            BrpGenderCode::V => 2,
-        };
-        Attribute::Number(value.into())
+/// BRP's `geslacht.code` only ever yields "onbekend", "man" or "vrouw", so only [`PidSex::NotKnown`],
+/// [`PidSex::Male`] and [`PidSex::Female`] are actually produced by this issuer, even though the Rulebook's `sex`
+/// attribute defines a larger value set (see [`PidSex`]).
+impl From<BrpGenderCode> for PidSex {
+    fn from(value: BrpGenderCode) -> Self {
+        match value {
+            BrpGenderCode::O => PidSex::NotKnown,
+            BrpGenderCode::M => PidSex::Male,
+            BrpGenderCode::V => PidSex::Female,
+        }
     }
 }
 
@@ -379,6 +383,10 @@ mod tests {
                             "value": "Belgische"
                         }
                     ]
+                },
+                "sex": {
+                    "type": "number",
+                    "value": 2
                 },
                 "recovery_code": {
                     "type": "text",

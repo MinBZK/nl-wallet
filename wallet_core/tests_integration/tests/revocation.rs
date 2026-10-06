@@ -8,7 +8,7 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::issuable_document::IssuableDocument;
-use pid_issuer::pid::constants::PID_NL_SD_JWT_VCT;
+use pid_issuer::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
 use serial_test::serial;
 use status_lists::postgres::revocation_helper::BatchIsRevoked;
 use tests_integration::common::*;

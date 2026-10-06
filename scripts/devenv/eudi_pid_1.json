@@ -69,6 +69,17 @@
       "sd": "always"
     },
     {
+      "path": ["sex"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Sex",
+          "description": "Sex of the person"
+        }
+      ],
+      "sd": "always"
+    },
+    {
       "path": ["address", "country"],
       "display": [
         {

@@ -52,11 +52,11 @@ use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
 use crate::pid::brp::client::HttpBrpClient;
 use crate::pid::brp::data::BrpPerson;
-use crate::pid::constants::pid_attestation_type;
 use crate::pid::digid;
 use crate::pid::digid::DigidClient;
 use crate::pid::digid::DigidMetadataClient;
 use crate::pid::digid::HttpDigidClient;
+use crate::pid::rulebook::constants::pid_attestation_type;
 
 const ISSUER_STATE_LENGTH: usize = 32;
 
@@ -562,13 +562,13 @@ mod tests {
     use super::complete_digid_callback;
     use super::recovery_code;
     use crate::pid::brp::client::BrpClient;
-    use crate::pid::constants::PID_MDOC_DOCTYPE;
-    use crate::pid::constants::PID_MDOC_NAMESPACE;
-    use crate::pid::constants::PID_NL_SD_JWT_VCT;
-    use crate::pid::constants::pid_attestation_type;
     use crate::pid::mock::MOCK_BSN;
     use crate::pid::mock::MockBrpClient;
     use crate::pid::mock::MockDigidClient;
+    use crate::pid::rulebook::constants::PID_MDOC_DOCTYPE;
+    use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
+    use crate::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
+    use crate::pid::rulebook::constants::pid_attestation_type;
 
     /// The in-memory [`AuthorizingIssuer`] flavour used by the callback tests: the mock inner issuer
     /// from `openid4vc::test` wrapped around a mock-backed flow.
@@ -608,6 +608,7 @@ mod tests {
         "age_over_18",
         "bsn",
         "nationalities",
+        "sex",
         "recovery_code",
         "street_address",
         "house_number",
