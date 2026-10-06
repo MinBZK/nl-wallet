@@ -12,7 +12,6 @@ use jwt::SignedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
 use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::Generate;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
@@ -105,10 +104,6 @@ where
             .into();
 
         Ok(WiaDisclosure::new(wia, wia_pop))
-    }
-
-    pub fn public_key(&self) -> VerifyingKey {
-        *self.keypair.certificate().public_key()
     }
 }
 
