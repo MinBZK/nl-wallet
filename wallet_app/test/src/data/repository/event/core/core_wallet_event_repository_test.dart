@@ -281,7 +281,7 @@ void main() {
         ),
         purpose: {},
         cards: [card],
-        policy: const Policy(dataIsShared: false, deletionCanBeRequested: false, privacyPolicyUrl: ''),
+        policy: const Policy(privacyPolicyUrl: ''),
         type: DisclosureType.regular,
       );
       final events = [

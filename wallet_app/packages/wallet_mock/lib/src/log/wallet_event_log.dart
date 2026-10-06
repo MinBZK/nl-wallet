@@ -57,8 +57,6 @@ class WalletEventLog {
     final RequestPolicy policy = switch (disclosure) {
       StartDisclosureResult_Request(:final policy) => policy,
       StartDisclosureResult_RequestAttributesMissing(:final relyingParty) => RequestPolicy(
-        dataSharedWithThirdParties: false,
-        dataDeletionPossible: false,
         policyUrl: relyingParty.privacyPolicyUrl ?? relyingParty.webUrl ?? '',
       ) /* We invent a policy here, mainly because it's only for the mock and not used in the current setup. */,
     };

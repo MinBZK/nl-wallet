@@ -2819,17 +2819,6 @@ impl SseDecode for Option<crate::models::revocation::RevocationStatus> {
     }
 }
 
-impl SseDecode for Option<u64> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(<u64>::sse_decode(deserializer));
-        } else {
-            return None;
-        }
-    }
-}
-
 impl SseDecode for Option<Vec<crate::models::attestation::AttestationPresentation>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2971,14 +2960,8 @@ impl SseDecode for crate::models::attestation::RenderingMetadata {
 impl SseDecode for crate::models::disclosure::RequestPolicy {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_dataStorageDurationInMinutes = <Option<u64>>::sse_decode(deserializer);
-        let mut var_dataSharedWithThirdParties = <bool>::sse_decode(deserializer);
-        let mut var_dataDeletionPossible = <bool>::sse_decode(deserializer);
-        let mut var_policyUrl = <String>::sse_decode(deserializer);
+        let mut var_policyUrl = <Option<String>>::sse_decode(deserializer);
         return crate::models::disclosure::RequestPolicy {
-            data_storage_duration_in_minutes: var_dataStorageDurationInMinutes,
-            data_shared_with_third_parties: var_dataSharedWithThirdParties,
-            data_deletion_possible: var_dataDeletionPossible,
             policy_url: var_policyUrl,
         };
     }
@@ -3043,7 +3026,6 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                 let mut var_sharedDataWithRelyingPartyBefore = <bool>::sse_decode(deserializer);
                 let mut var_sessionType = <crate::models::disclosure::DisclosureSessionType>::sse_decode(deserializer);
                 let mut var_requestPurpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-                let mut var_requestOriginBaseUrl = <String>::sse_decode(deserializer);
                 let mut var_requestType = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
                 return crate::models::disclosure::StartDisclosureResult::Request {
                     relying_party: var_relyingParty,
@@ -3052,7 +3034,6 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                     shared_data_with_relying_party_before: var_sharedDataWithRelyingPartyBefore,
                     session_type: var_sessionType,
                     request_purpose: var_requestPurpose,
-                    request_origin_base_url: var_requestOriginBaseUrl,
                     request_type: var_requestType,
                 };
             }
@@ -3063,14 +3044,12 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                 let mut var_sharedDataWithRelyingPartyBefore = <bool>::sse_decode(deserializer);
                 let mut var_sessionType = <crate::models::disclosure::DisclosureSessionType>::sse_decode(deserializer);
                 let mut var_requestPurpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-                let mut var_requestOriginBaseUrl = <String>::sse_decode(deserializer);
                 return crate::models::disclosure::StartDisclosureResult::RequestAttributesMissing {
                     relying_party: var_relyingParty,
                     missing_attributes: var_missingAttributes,
                     shared_data_with_relying_party_before: var_sharedDataWithRelyingPartyBefore,
                     session_type: var_sessionType,
                     request_purpose: var_requestPurpose,
-                    request_origin_base_url: var_requestOriginBaseUrl,
                 };
             }
             _ => {
@@ -4086,13 +4065,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::RenderingMeta
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::RequestPolicy {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.data_storage_duration_in_minutes.into_into_dart().into_dart(),
-            self.data_shared_with_third_parties.into_into_dart().into_dart(),
-            self.data_deletion_possible.into_into_dart().into_dart(),
-            self.policy_url.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        [self.policy_url.into_into_dart().into_dart()].into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::disclosure::RequestPolicy {}
@@ -4172,7 +4145,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
-                request_origin_base_url,
                 request_type,
             } => [
                 0.into_dart(),
@@ -4182,7 +4154,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 shared_data_with_relying_party_before.into_into_dart().into_dart(),
                 session_type.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
-                request_origin_base_url.into_into_dart().into_dart(),
                 request_type.into_into_dart().into_dart(),
             ]
             .into_dart(),
@@ -4192,7 +4163,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
-                request_origin_base_url,
             } => [
                 1.into_dart(),
                 relying_party.into_into_dart().into_dart(),
@@ -4200,7 +4170,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 shared_data_with_relying_party_before.into_into_dart().into_dart(),
                 session_type.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
-                request_origin_base_url.into_into_dart().into_dart(),
             ]
             .into_dart(),
             _ => {
@@ -5262,16 +5231,6 @@ impl SseEncode for Option<crate::models::revocation::RevocationStatus> {
     }
 }
 
-impl SseEncode for Option<u64> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <u64>::sse_encode(value, serializer);
-        }
-    }
-}
-
 impl SseEncode for Option<Vec<crate::models::attestation::AttestationPresentation>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5393,10 +5352,7 @@ impl SseEncode for crate::models::attestation::RenderingMetadata {
 impl SseEncode for crate::models::disclosure::RequestPolicy {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Option<u64>>::sse_encode(self.data_storage_duration_in_minutes, serializer);
-        <bool>::sse_encode(self.data_shared_with_third_parties, serializer);
-        <bool>::sse_encode(self.data_deletion_possible, serializer);
-        <String>::sse_encode(self.policy_url, serializer);
+        <Option<String>>::sse_encode(self.policy_url, serializer);
     }
 }
 
@@ -5455,7 +5411,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
-                request_origin_base_url,
                 request_type,
             } => {
                 <i32>::sse_encode(0, serializer);
@@ -5465,7 +5420,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
                 <crate::models::disclosure::DisclosureSessionType>::sse_encode(session_type, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(request_purpose, serializer);
-                <String>::sse_encode(request_origin_base_url, serializer);
                 <crate::models::disclosure::DisclosureType>::sse_encode(request_type, serializer);
             }
             crate::models::disclosure::StartDisclosureResult::RequestAttributesMissing {
@@ -5474,7 +5428,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
-                request_origin_base_url,
             } => {
                 <i32>::sse_encode(1, serializer);
                 <crate::models::organization::Organization>::sse_encode(relying_party, serializer);
@@ -5482,7 +5435,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
                 <crate::models::disclosure::DisclosureSessionType>::sse_encode(session_type, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(request_purpose, serializer);
-                <String>::sse_encode(request_origin_base_url, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -6070,12 +6022,6 @@ mod io {
             CstDecode::<crate::models::revocation::RevocationStatus>::cst_decode(*wrap).into()
         }
     }
-    impl CstDecode<u64> for *mut u64 {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> u64 {
-            unsafe { *flutter_rust_bridge::for_generated::box_from_leak_ptr(self) }
-        }
-    }
     impl CstDecode<crate::models::instruction::WalletInstructionError> for *mut wire_cst_wallet_instruction_error {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::instruction::WalletInstructionError {
@@ -6583,9 +6529,6 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::disclosure::RequestPolicy {
             crate::models::disclosure::RequestPolicy {
-                data_storage_duration_in_minutes: self.data_storage_duration_in_minutes.cst_decode(),
-                data_shared_with_third_parties: self.data_shared_with_third_parties.cst_decode(),
-                data_deletion_possible: self.data_deletion_possible.cst_decode(),
                 policy_url: self.policy_url.cst_decode(),
             }
         }
@@ -6631,7 +6574,6 @@ mod io {
                         shared_data_with_relying_party_before: ans.shared_data_with_relying_party_before.cst_decode(),
                         session_type: ans.session_type.cst_decode(),
                         request_purpose: ans.request_purpose.cst_decode(),
-                        request_origin_base_url: ans.request_origin_base_url.cst_decode(),
                         request_type: ans.request_type.cst_decode(),
                     }
                 }
@@ -6643,7 +6585,6 @@ mod io {
                         shared_data_with_relying_party_before: ans.shared_data_with_relying_party_before.cst_decode(),
                         session_type: ans.session_type.cst_decode(),
                         request_purpose: ans.request_purpose.cst_decode(),
-                        request_origin_base_url: ans.request_origin_base_url.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -7168,9 +7109,6 @@ mod io {
     impl NewWithNullPtr for wire_cst_request_policy {
         fn new_with_null_ptr() -> Self {
             Self {
-                data_storage_duration_in_minutes: core::ptr::null_mut(),
-                data_shared_with_third_parties: Default::default(),
-                data_deletion_possible: Default::default(),
                 policy_url: core::ptr::null_mut(),
             }
         }
@@ -7799,11 +7737,6 @@ mod io {
 
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_revocation_status(value: i32) -> *mut i32 {
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_u_64(value: u64) -> *mut u64 {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
     }
 
@@ -8591,9 +8524,6 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_request_policy {
-        data_storage_duration_in_minutes: *mut u64,
-        data_shared_with_third_parties: bool,
-        data_deletion_possible: bool,
         policy_url: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
@@ -8646,7 +8576,6 @@ mod io {
         shared_data_with_relying_party_before: bool,
         session_type: i32,
         request_purpose: *mut wire_cst_list_localized_string,
-        request_origin_base_url: *mut wire_cst_list_prim_u_8_strict,
         request_type: i32,
     }
     #[repr(C)]
@@ -8657,7 +8586,6 @@ mod io {
         shared_data_with_relying_party_before: bool,
         session_type: i32,
         request_purpose: *mut wire_cst_list_localized_string,
-        request_origin_base_url: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

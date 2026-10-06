@@ -44,13 +44,10 @@ void main() {
           identifier: '',
           countryCode: '',
         ),
-        requestOriginBaseUrl: '',
         sharedDataWithRelyingPartyBefore: false,
         sessionType: DisclosureSessionType.CrossDevice,
         requestPurpose: [],
         policy: RequestPolicy(
-          dataSharedWithThirdParties: false,
-          dataDeletionPossible: true,
           policyUrl: 'https://example.org',
         ),
         requestType: DisclosureType.Login,

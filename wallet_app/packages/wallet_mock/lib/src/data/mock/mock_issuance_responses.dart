@@ -95,10 +95,7 @@ final _kMockRequestNameDobAttributes = [
 
 // region Policies
 
-final _kMockIssuancePolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
-  dataSharedWithThirdParties: false,
-  dataDeletionPossible: true,
+const _kMockIssuancePolicy = RequestPolicy(
   policyUrl: 'https://www.example.org',
 );
 

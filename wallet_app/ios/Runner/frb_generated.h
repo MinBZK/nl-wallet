@@ -264,9 +264,6 @@ typedef struct wire_cst_record_string_string {
 } wire_cst_record_string_string;
 
 typedef struct wire_cst_request_policy {
-  uint64_t *data_storage_duration_in_minutes;
-  bool data_shared_with_third_parties;
-  bool data_deletion_possible;
   struct wire_cst_list_prim_u_8_strict *policy_url;
 } wire_cst_request_policy;
 
@@ -588,7 +585,6 @@ typedef struct wire_cst_StartDisclosureResult_Request {
   bool shared_data_with_relying_party_before;
   int32_t session_type;
   struct wire_cst_list_localized_string *request_purpose;
-  struct wire_cst_list_prim_u_8_strict *request_origin_base_url;
   int32_t request_type;
 } wire_cst_StartDisclosureResult_Request;
 
@@ -598,7 +594,6 @@ typedef struct wire_cst_StartDisclosureResult_RequestAttributesMissing {
   bool shared_data_with_relying_party_before;
   int32_t session_type;
   struct wire_cst_list_localized_string *request_purpose;
-  struct wire_cst_list_prim_u_8_strict *request_origin_base_url;
 } wire_cst_StartDisclosureResult_RequestAttributesMissing;
 
 typedef union StartDisclosureResultKind {
@@ -823,8 +818,6 @@ struct wire_cst_request_policy *frbgen_wallet_core_cst_new_box_autoadd_request_p
 
 int32_t *frbgen_wallet_core_cst_new_box_autoadd_revocation_status(int32_t value);
 
-uint64_t *frbgen_wallet_core_cst_new_box_autoadd_u_64(uint64_t value);
-
 struct wire_cst_wallet_instruction_error *frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error(void);
 
 struct wire_cst_wallet_state *frbgen_wallet_core_cst_new_box_wallet_state(void);
@@ -877,7 +870,6 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_revocation_status);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_u_64);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_wallet_state);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_app_notification);

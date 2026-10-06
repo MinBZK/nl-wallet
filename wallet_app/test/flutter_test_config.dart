@@ -108,7 +108,6 @@ void _setupMockitoDummies() {
         countryCode: '',
       ),
       missingAttributes: [],
-      requestOriginBaseUrl: '',
       sharedDataWithRelyingPartyBefore: false,
       sessionType: core.DisclosureSessionType.CrossDevice,
       requestPurpose: [],
