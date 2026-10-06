@@ -1012,6 +1012,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         Ok(metadata_per_config_id)
     }
 
+    #[expect(clippy::too_many_arguments, reason = "internal method")]
     async fn fetch_credential<'a, G>(
         &self,
         offered_credential: &OfferedCredential,
