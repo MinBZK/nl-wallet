@@ -518,8 +518,7 @@ where
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        // Authorize the entire offer before credential selection. Token responses and previews are subsequently
-        // restricted to the configurations from this offer.
+        // Authorize every offered configuration before selection; reject the entire offer if any is unauthorized.
         let validated = validate_registration_certificate_and_issuance(
             registration_certificate,
             credential_kinds,
