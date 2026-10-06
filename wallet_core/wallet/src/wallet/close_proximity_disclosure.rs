@@ -2,8 +2,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
 use chrono::DateTime;
 use chrono::Utc;
 use ciborium::value::Value;
@@ -864,8 +864,8 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::auth::Organization;
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::organization::Organization;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;

@@ -10,7 +10,6 @@ use assert_cmd::prelude::*;
 use assert_fs::TempDir;
 use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::registration_certificate::UncheckedRegistrationCertificate;
 use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
 use base64::Engine;
@@ -38,7 +37,6 @@ use pem::LineEnding;
 use pem::Pem;
 use predicates::prelude::*;
 use predicates::str::RegexPredicate;
-use predicates::str::StartsWithPredicate;
 use serde_json::json;
 use time::Duration;
 use time::OffsetDateTime;
@@ -108,35 +106,6 @@ fn predicate_not_a_natural_or_legal_person() -> Result<RegexPredicate> {
     let result =
         predicate::str::is_match("Error: Illegal subject name, specify either for a legal or natural person\n")?;
     Ok(result)
-}
-
-fn predicate_missing_issuer_json_file(path: &Path) -> StartsWithPredicate {
-    predicate::str::starts_with(format!(
-        "error: Invalid value for --issuer-auth-file <ISSUER_AUTH_FILE>: Could not open \"{}\": No such file or \
-         directory",
-        path.display()
-    ))
-}
-
-fn predicate_missing_crt_file(path: &Path) -> StartsWithPredicate {
-    predicate::str::starts_with(format!(
-        r#"error: Invalid value for --ca-crt-file <CA_CRT_FILE>: Could not open "{}": No such file or directory"#,
-        path.display()
-    ))
-}
-
-fn predicate_missing_key_file(path: &Path) -> StartsWithPredicate {
-    predicate::str::starts_with(format!(
-        r#"error: Invalid value for --ca-key-file <CA_KEY_FILE>: Could not open "{}": No such file or directory"#,
-        path.display()
-    ))
-}
-
-fn predicate_missing_public_key_file(path: &Path) -> StartsWithPredicate {
-    predicate::str::starts_with(format!(
-        r#"error: Invalid value for --public-key-file <PUBLIC_KEY_FILE>: Could not open "{}": No such file or directory"#,
-        path.display()
-    ))
 }
 
 fn assert_generated_key(key_file: &ChildPath) -> Result<()> {
@@ -275,24 +244,11 @@ fn assert_generated_crl(
 
 trait CommandExtension {
     fn generate_ca(&mut self, file_prefix: &Path) -> &mut Self;
-    fn generate_issuer_kp(
-        &mut self,
-        ca_crt: &Path,
-        ca_key: &Path,
-        issuer_auth_json: &Path,
-        file_prefix: &Path,
-    ) -> &mut Self;
+    fn generate_issuer_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_wrpac_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_wrprc_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_tsl_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
-    fn generate_issuer_cert(
-        &mut self,
-        pk: &Path,
-        ca_crt: &Path,
-        ca_key: &Path,
-        issuer_auth_json: &Path,
-        file_prefix: &Path,
-    ) -> &mut Self;
+    fn generate_issuer_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_wrpac_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_tsl_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self;
     fn generate_crl(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path, days: &str) -> &mut Self;
@@ -320,13 +276,7 @@ impl CommandExtension for Command {
             .arg(file_prefix)
     }
 
-    fn generate_issuer_kp(
-        &mut self,
-        ca_crt: &Path,
-        ca_key: &Path,
-        issuer_auth_json: &Path,
-        file_prefix: &Path,
-    ) -> &mut Self {
+    fn generate_issuer_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
         self.arg("cert")
             .arg("--type")
             .arg("issuer")
@@ -338,8 +288,6 @@ impl CommandExtension for Command {
             .arg("Test Issuer")
             .arg("--file-prefix")
             .arg(file_prefix)
-            .arg("--issuer-auth-file")
-            .arg(issuer_auth_json)
     }
 
     fn generate_wrpac_kp(&mut self, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
@@ -384,14 +332,7 @@ impl CommandExtension for Command {
             .arg(file_prefix)
     }
 
-    fn generate_issuer_cert(
-        &mut self,
-        pk: &Path,
-        ca_crt: &Path,
-        ca_key: &Path,
-        issuer_auth_json: &Path,
-        file_prefix: &Path,
-    ) -> &mut Self {
+    fn generate_issuer_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
         self.arg("cert-pub")
             .arg("--type")
             .arg("issuer")
@@ -405,8 +346,6 @@ impl CommandExtension for Command {
             .arg("Test Issuer")
             .arg("--file-prefix")
             .arg(file_prefix)
-            .arg("--issuer-auth-file")
-            .arg(issuer_auth_json)
     }
 
     fn generate_wrpac_cert(&mut self, pk: &Path, ca_crt: &Path, ca_key: &Path, file_prefix: &Path) -> &mut Self {
@@ -762,14 +701,10 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
     // Generate issuer key pair
     {
         let (mdl_prefix, mdl_crt, mdl_key) = keypair_paths(&temp, "test-mdl-kp");
-        let issuer_auth_json = temp.child("test-issuer-auth.json");
-
-        // Generate issuer registration JSON input file
-        issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
 
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+            .generate_issuer_kp(&ca_crt, &ca_key, &mdl_prefix)
             .generate_for_natural_person("123", "Doe", "John")
             .assert()
             .success()
@@ -797,17 +732,13 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
     // Generate issuer certificate
     {
         let (mdl_prefix, mdl_crt, _) = keypair_paths(&temp, "test-mdl-crt");
-        let issuer_auth_json = temp.child("test-issuer-auth.json");
-
-        // Generate issuer registration JSON input file
-        issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
 
         let public_key_path = public_key_path(&temp, "test-mdl-crt");
         generate_public_key(&public_key_path);
 
         // Execute command and assert success and stderr output
         Command::new(assert_cmd::cargo::cargo_bin!())
-            .generate_issuer_cert(&public_key_path, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+            .generate_issuer_cert(&public_key_path, &ca_crt, &ca_key, &mdl_prefix)
             .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
             .assert()
             .success()
@@ -1496,21 +1427,17 @@ fn regenerating_cert() -> Result<()> {
         .success();
 
     let (mdl_prefix, mdl_crt, mdl_key) = keypair_paths(&temp, "test-mdl-kp");
-    let issuer_auth_json = temp.child("test-issuer-auth.json");
-
-    // Generate issuer JSON input file
-    issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
 
     // Generate issuer key pair and assert success
     Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_issuer_kp(&ca_crt, &ca_key, &mdl_prefix)
         .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .success();
 
     // Regenerate issuer key pair should fail on key
     Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_issuer_kp(&ca_crt, &ca_key, &mdl_prefix)
         .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
@@ -1520,7 +1447,7 @@ fn regenerating_cert() -> Result<()> {
     std::fs::remove_file(&mdl_key)?;
 
     Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_issuer_kp(&ca_crt, &ca_key, &mdl_prefix)
         .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .assert()
         .failure()
@@ -1528,146 +1455,11 @@ fn regenerating_cert() -> Result<()> {
 
     // Regenerate issuer key pair should succeed with force
     Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .generate_issuer_kp(&ca_crt, &ca_key, &mdl_prefix)
         .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
         .arg("--force")
         .assert()
         .success();
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-// TODO: PVW-5870 Remove when issuer is just like another cert
-fn setup_issuer_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath)> {
-    let (ca_prefix, ca_crt, ca_key) = keypair_paths(temp, "test-ca");
-    let (mdl_prefix, _mdl_crt, _mdl_key) = keypair_paths(temp, "test-mdl-kp");
-    let issuer_auth_json = temp.child("test-issuer-auth.json");
-
-    // Generate ca
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_ca(&ca_prefix)
-        .arg("--force")
-        .assert()
-        .success();
-
-    // Generate issuer registration JSON input file
-    issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
-
-    Ok((ca_crt, ca_key, mdl_prefix, issuer_auth_json))
-}
-
-// TODO: PVW-5870 Remove when issuer is just like another cert
-fn setup_issuer_pubkey_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath, ChildPath)> {
-    let (ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_files(temp)?;
-
-    let public_key_path = public_key_path(temp, "test-mdl-crt");
-    generate_public_key(&public_key_path);
-
-    Ok((public_key_path, ca_crt, ca_key, mdl_prefix, issuer_auth_json))
-}
-
-#[test]
-// TODO: PVW-5870 Remove when issuer is just like another cert
-fn missing_input_files_issuer() -> Result<()> {
-    let temp = TempDir::new()?;
-
-    // Setup files without CA key
-    let (ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_files(&temp)?;
-    std::fs::remove_file(&ca_key)?;
-
-    // Generate issuer should fail when missing CA key file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_key_file(&ca_key));
-
-    // Setup files without CA crt
-    let (ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_files(&temp)?;
-    std::fs::remove_file(&ca_crt)?;
-
-    // Execute command and assert failure and stderr output
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_crt_file(&ca_crt));
-
-    // Setup files without issuer registration JSON file
-    let (ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_files(&temp)?;
-    std::fs::remove_file(&issuer_auth_json)?;
-
-    // Generate issuer should fail when missing JSON file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_kp(&ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_issuer_json_file(&issuer_auth_json));
-
-    // Explicitly close the temp folder, for better error reporting
-    temp.close()?;
-
-    Ok(())
-}
-
-#[test]
-// TODO: PVW-5870 Remove when issuer is just like another cert
-fn missing_input_files_issuer_pubkey() -> Result<()> {
-    let temp = TempDir::new()?;
-
-    // Setup files without CA key
-    let (public_key_file, ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_pubkey_files(&temp)?;
-    std::fs::remove_file(&ca_key)?;
-
-    // Generate issuer should fail when missing CA key file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_key_file(&ca_key));
-
-    // Setup files without CA crt
-    let (public_key_file, ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_pubkey_files(&temp)?;
-    std::fs::remove_file(&ca_crt)?;
-
-    // Execute command and assert failure and stderr output
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_crt_file(&ca_crt));
-
-    // Setup files without issuer registration JSON file
-    let (public_key_file, ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_pubkey_files(&temp)?;
-    std::fs::remove_file(&issuer_auth_json)?;
-
-    // Generate issuer should fail when missing JSON file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_issuer_json_file(&issuer_auth_json));
-
-    // Setup files without public key file
-    let (public_key_file, ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_pubkey_files(&temp)?;
-    std::fs::remove_file(&public_key_file)?;
-
-    // Generate issuer should fail when missing JSON file
-    Command::new(assert_cmd::cargo::cargo_bin!())
-        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
-        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
-        .assert()
-        .failure()
-        .stderr(predicate_missing_public_key_file(&public_key_file));
 
     // Explicitly close the temp folder, for better error reporting
     temp.close()?;

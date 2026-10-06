@@ -16,6 +16,7 @@ pub use payload::Intermediary;
 pub use payload::MultiLanguageString;
 pub use payload::MultiLanguageStringSet;
 pub use payload::ParsedRegistrationCertificate;
+pub use payload::Subject;
 pub use payload::SupervisoryAuthority;
 pub use payload::UncheckedRegistrationCertificate;
 pub use status::RegistrationCertificateStatus;

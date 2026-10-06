@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use attestation_data::auth::Organization;
+use attestation_data::organization::Organization;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
@@ -128,16 +128,13 @@ where
 
         let issuance_session = self
             .issuance_discovery
-            .start_pre_authorized_code_flow(
-                IssuanceDiscoveryParameters {
-                    offer_uri: &redirect_uri,
-                    selection: &CredentialSelection::All,
-                    wia_client: &self.new_remote_wia_client(attested_key, &registration_data, &config),
-                    wrpac_trust_anchors: config.wrpac_trust_anchors(),
-                    wrprc_trust_anchors: config.wrprc_trust_anchors(),
-                },
-                config.issuer_trust_anchors(),
-            )
+            .start_pre_authorized_code_flow(IssuanceDiscoveryParameters {
+                offer_uri: &redirect_uri,
+                selection: &CredentialSelection::All,
+                wia_client: &self.new_remote_wia_client(attested_key, &registration_data, &config),
+                wrpac_trust_anchors: config.wrpac_trust_anchors(),
+                wrprc_trust_anchors: config.wrprc_trust_anchors(),
+            })
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
 
@@ -174,7 +171,6 @@ mod tests {
     use std::assert_matches;
     use std::sync::LazyLock;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
@@ -195,6 +191,7 @@ mod tests {
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
@@ -304,7 +301,7 @@ mod tests {
                 let mut issuance_session = MockIssuanceSession::new();
 
                 issuance_session
-                    .expect_previews_with_metadata()
+                    .expect_credential_previews()
                     .return_const(vec![(credential_preview, metadata)].into());
 
                 issuance_session
@@ -347,6 +344,7 @@ mod tests {
             },
             StoredAttestationMetadata::CredentialMetadata(credential_metadata),
             None,
+            IssuerRegistration::new_mock(),
         );
 
         let expectation_attestation_copy = stored_attestation_copy.clone();

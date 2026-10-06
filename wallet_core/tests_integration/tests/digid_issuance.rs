@@ -32,6 +32,7 @@ use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use utils::vec_nonempty;
+use wallet::attestation_types::Format;
 use wallet::test::default_wallet_config;
 use wscd::mock::MOCK_WALLET_CLIENT_ID;
 use wscd::wia::mock::MockWiaClient;
@@ -148,7 +149,6 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             ),
             String::from(MOCK_WALLET_CLIENT_ID),
             redirect_uri,
-            wallet_config.issuer_trust_anchors(),
         )
         .await
         .unwrap();
@@ -174,18 +174,22 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Exchange the authorization code for the attestation previews. This is where the DigiD
     // connector is queried for the BSN and the BRP proxy is queried for the attributes.
     let issuance_session = authorization_session
-        .start_issuance(&redirect_url, wallet_config.issuer_trust_anchors(), &wia_client)
+        .start_issuance(&redirect_url, &wia_client)
         .await
         .unwrap();
 
     let previews = issuance_session
-        .previews_with_metadata()
+        .credential_previews()
         .expect("issuance session should have previews")
-        .map(|(preview, _)| preview)
         .collect_vec();
     assert_eq!(previews.len(), 2);
 
-    let payload = &previews[0].credential_payload;
+    let payload = previews
+        .into_iter()
+        .find(|preview| preview.format == Format::SdJwt)
+        .expect("previews should include SD-JWT PID")
+        .credential_payload;
+
     assert_eq!(payload.attestation_type, PID_ATTESTATION_TYPE);
 
     let attributes = payload.attributes.as_ref();

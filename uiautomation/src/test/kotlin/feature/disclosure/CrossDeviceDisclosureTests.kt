@@ -73,7 +73,7 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
             targetXyzBankWebPage = RelyingPartyXyzBankWebPage()
             targetAmsterdamWebPage = RelyingPartyAmsterdamWebPage()
             targetIndexWebPage.openUrlInBrowser(DEMO_INDEX_URL)
-            targetIndexWebPage.switchToWebViewContext()
+            targetIndexWebPage.switchToIndexPage()
         }
     }
 

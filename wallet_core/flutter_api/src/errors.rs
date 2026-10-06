@@ -323,9 +323,7 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialPreview(_))
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_)) => FlutterApiErrorType::Server,
 
-            IssuanceError::AttestationPreview(_)
-            | IssuanceError::Attestation { .. }
-            | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
+            IssuanceError::Attestation { .. } | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
 
             IssuanceError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {

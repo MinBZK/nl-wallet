@@ -3,6 +3,7 @@ mod authorization_endpoints;
 pub mod credential;
 pub mod discovery;
 pub mod issuance_session;
+pub mod issuer_registration;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
@@ -12,7 +13,6 @@ use std::collections::HashSet;
 use std::num::NonZeroU8;
 
 use attestation_data::attributes::AttributesError;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
 use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
@@ -28,7 +28,6 @@ use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
 use jwt::error::JwtX5cVerifyError;
-use mdoc::utils::cose::CoseError;
 use oauth::dpop::DpopError;
 use oauth::dpop::DpopNonceInvalid;
 use oauth::errors::RemoteErrorResponse;
@@ -51,6 +50,7 @@ use wscd::wia::WiaClient;
 use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
+use self::issuer_registration::IssuerRegistration;
 use crate::authorization_details::CredentialId;
 use crate::client_auth::ClientAttestationChallengeError;
 use crate::client_auth::ClientAttestationChallengeMechanismError;
@@ -61,8 +61,6 @@ use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::registration_certificate::RegistrationCertificateError;
-use crate::token::CredentialPreview;
-use crate::token::CredentialPreviewError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -230,19 +228,6 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataUriMultipleVcts(Box<Vec<(IssuerUrl, Vec<String>)>>),
 
-    #[error("could not read issuer registration from preview: {0}")]
-    PreviewIssuerRegistration(#[source] CredentialPreviewError),
-
-    #[error("error verifying credential preview: {0}")]
-    CredentialPreviewVerification(#[source] CredentialPreviewError),
-
-    #[error("error retrieving issuer certificate from issued mdoc: {0}")]
-    IssuerCertificate(#[source] CoseError),
-
-    #[error("issuer contained in credential not equal to expected value")]
-    #[category(critical)]
-    IssuerMismatch,
-
     #[error("missing metadata integrity digest in SD-JWT payload")]
     #[category(critical)]
     MetadataIntegrityMissing,
@@ -299,10 +284,6 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     OAuth(#[from] OAuthError),
 
-    #[error("issuer has no credential preview endpoint")]
-    #[category(critical)]
-    NoCredentialPreviewEndpoint, // TODO (PVW-5559): skip preview when no credential preview endpoint
-
     #[error("issuer has no nonce endpoint, yet one of the credential configurations require cryptographic binding")]
     #[category(critical)]
     NoNonceEndpoint,
@@ -328,10 +309,6 @@ pub enum WalletIssuanceError {
 
     #[error("error converting SD-JWT to a CredentialPayload: {0}")]
     SdJwtCredentialPayloadError(#[from] CredentialPayloadFromSdJwtError),
-
-    #[error("different issuers found in credential previews")]
-    #[category(critical)]
-    DifferentIssuers,
 
     #[error(
         "the received credential preview is missing credentials the issuer offered: {}",
@@ -433,6 +410,16 @@ impl AttestationClaims for OfferedCredentialMetadata {
     }
 }
 
+/// The preview of a credential offered by the issuer, together with the metadata of its Credential Configuration. The
+/// `format` is that of the Credential Configuration and is checked against the format of the received credential
+/// preview.
+#[derive(Debug, Clone, Copy)]
+pub struct OfferedCredentialPreview<'a> {
+    pub format: Format,
+    pub credential_payload: &'a PreviewableCredentialPayload,
+    pub metadata: &'a OfferedCredentialMetadata,
+}
+
 /// Allows selection of specific credential kinds (i.e. combinations of format and attestation type) at the start of
 /// issuance. If the `CredentialSelection::ByCredentialKind` variant is used, issuance will fail if the issuer offers
 /// none of the credential kinds. If some of them match, issuance will proceed with those matched credential
@@ -463,7 +450,6 @@ pub trait IssuanceDiscovery {
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
         client_id: String,
         redirect_uri: Url,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
     where
         W: WiaClient;
@@ -486,7 +472,6 @@ pub trait IssuanceDiscovery {
     async fn start_pre_authorized_code_flow<'a, W>(
         &self,
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>
     where
         W: WiaClient;
@@ -521,7 +506,6 @@ pub trait AuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        trust_anchors: &TrustAnchors,
         wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
@@ -530,6 +514,9 @@ pub trait AuthorizationSession {
 pub trait IssuanceSession {
     /// Accept all of the credentials the issuer offered. Cap the amount of copies of each credential the issuer offers
     /// to `max_copy_count`.
+    ///
+    /// If the issuer provides previews, the credentials are returned in the same order as the previews returned by
+    /// [`Self::credential_previews`]. If not, the order of the credentials is not relevant.
     async fn accept_issuance<W>(
         &mut self,
         max_copy_count: NonZeroU8,
@@ -540,7 +527,7 @@ pub trait IssuanceSession {
         W: IssuanceWscd;
 
     /// Returns the credential previews with their metadata, or `None` if the issuer does not provide previews.
-    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>>;
+    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

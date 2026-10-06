@@ -50,7 +50,7 @@ class HelpTests : TestBase() {
         helpAndInfoScreen.clickActivitiesHelpButton()
         activitiesHelpScreen.clickCardActivitiesButton()
 
-        activitiesHelpScreen.clickFirstHelpGroupButton()
+        activitiesHelpScreen.clickFirstCardActivitiesTopicButton()
         activitiesHelpScreen.clickSomethingElseButton()
         assertTrue(contactScreen.visible(), "Contact screen not visible")
 

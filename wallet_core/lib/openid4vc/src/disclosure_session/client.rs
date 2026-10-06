@@ -75,9 +75,9 @@ where
             }) => Some(VpAuthorizationErrorCode::UnsupportedResponseType),
 
             // Invalid request.
-            VpVerifierError::AuthRequestValidation(_)
-            | VpVerifierError::IncorrectClientId { .. }
-            | VpVerifierError::RpCertificate(_) => Some(VpAuthorizationErrorCode::InvalidRequest),
+            VpVerifierError::AuthRequestValidation(_) | VpVerifierError::IncorrectClientId { .. } => {
+                Some(VpAuthorizationErrorCode::InvalidRequest)
+            }
 
             // None.
             VpVerifierError::Request(_) => None,

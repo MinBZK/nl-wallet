@@ -81,6 +81,7 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::validity::ValidityWindow;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use uuid::Uuid;
@@ -146,6 +147,7 @@ mod tests {
                     },
                     StoredAttestationMetadata::TypeMetadata(sd_jwt_metadata),
                     None,
+                    IssuerRegistration::new_mock(),
                 ),
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
@@ -157,6 +159,7 @@ mod tests {
                     },
                     StoredAttestationMetadata::CredentialMetadata(mdoc_metadata),
                     None,
+                    IssuerRegistration::new_mock(),
                 ),
             ])
         });

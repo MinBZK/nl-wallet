@@ -786,11 +786,8 @@ mod tests {
     use std::num::NonZeroU8;
     use std::num::NonZeroU16;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
-    use attestation_data::x509::CertificateTypeError;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use crypto::server_keys::generate::Ca;
@@ -800,7 +797,6 @@ mod tests {
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use crypto::x509::DistinguishedName;
-    use crypto::x509::SubjectAltNameUri;
     use openid4vc::credential_configurations::SdJwtMetadata;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::TypeMetadataChainError;
@@ -842,7 +838,8 @@ mod tests {
             [CredentialKind::new(Format::SdJwt, "com.example.pid".to_string())],
         );
 
-        let issuance_keypair = generate_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock())
+        let issuance_keypair = issuer_ca
+            .generate_issuer_mock()
             .expect("generate issuer cert failed")
             .into();
 
@@ -1014,45 +1011,68 @@ mod tests {
     }
 
     #[test]
-    fn test_no_issuer_registration() {
-        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
-        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+    fn test_invalid_wrpac_subject() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
-
-        let issuer_cert_no_registration = issuer_ca
-            .generate_issuer_mock()
-            .expect("generate issuer cert without issuer registration");
-
-        let status_list_keypair = issuer_ca
-            .generate_issuer_status_list_mock()
-            .expect("generate tsl cert failed")
+        settings.credential_metadata_keypair = wrpac_ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("Issuer without organization"),
+                Default::default(),
+            )
+            .unwrap()
             .into();
 
-        settings.server_settings.issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
-        settings.credential_configurations = HashMap::from([(
-            "no_registration_sdjwt".to_string().into(),
-            ParsedCredentialConfigurationSettings {
-                format: sd_jwt_format("com.example.no_registration"),
-                signing: CredentialSigningSettings {
-                    keypair: issuer_cert_no_registration.into(),
-                    valid_days: 365,
-                    status_list: StatusListAttestationSettings {
-                        group_name: "no_registration_sdjwt".to_string(),
-                        base_url: None,
-                        context_path: "tsl".to_string(),
-                        keypair: status_list_keypair,
-                        publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
-                    },
-                },
-            },
-        )])
-        .into();
+        assert_matches!(
+            settings.validate().unwrap_err(),
+            IssuerSettingsValidationError::CertificateVerification(
+                CertificateVerificationError::InvalidOrganization(_, key)
+            ) if key == "credential_metadata"
+        );
+    }
+
+    #[test]
+    fn test_invalid_issuer_subject() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
+        settings
+            .credential_configurations
+            .0
+            .values_mut()
+            .next()
+            .unwrap()
+            .signing
+            .keypair = issuer_ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("Issuer without organization"),
+                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            )
+            .unwrap()
+            .into();
 
         assert_matches!(
-            settings.validate().expect_err("should fail"),
+            settings.validate().unwrap_err(),
+            IssuerSettingsValidationError::CertificateVerification(CertificateVerificationError::InvalidOrganization(
+                _,
+                _
+            ))
+        );
+    }
+
+    #[test]
+    fn test_issuer_invalid_usage() {
+        let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
+        let config = settings.credential_configurations.0.values_mut().next().unwrap();
+        config.signing.keypair = config.signing.status_list.keypair.clone();
+
+        assert_matches!(
+            settings.validate().unwrap_err(),
             IssuerSettingsValidationError::CertificateVerification(
-                CertificateVerificationError::NoCertificateType(CertificateTypeError::IssuerRegistrationNotFound, key)
-            ) if key == "no_registration_sdjwt"
+                CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)
+            ) if key == "pid_sdjwt"
         );
     }
 
@@ -1086,7 +1106,6 @@ mod tests {
             .generate_key_pair(
                 DistinguishedName::create_legal_person_mock("different"),
                 CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
-                ["https://different.example.com/".parse::<SubjectAltNameUri>().unwrap()],
             )
             .expect("generate tsl cert failed");
 

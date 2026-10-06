@@ -24,10 +24,11 @@ class DashboardScreen : MobileActions() {
     fun clickMenuButton() = clickElementContainingText(menuButton)
 
     // Sometimes the display name of a card is present in the activities button there for it is needed to
-    // click an element that does not contain the activities button title
+    // click an element that does not contain the activities button title. The card is scrolled into view first,
+    // so that it does not depend on where an earlier step left the dashboard.
     fun clickCard(displayName: String) {
         Thread.sleep(SCREEN_TRANSITION_MILLIS)
-        findElementByPartialTextExcludingText(displayName, activitiesButtonTitle).click()
+        scrollToElementContainingTextExcludingText(displayName, activitiesButtonTitle).click()
     }
 
     fun appTourBannerVisible() = elementContainingTextVisible(appTourBannerTitle.substringBefore("'"))
@@ -70,8 +71,10 @@ class DashboardScreen : MobileActions() {
         clickElementContainingText(cardRevocationBannerTitle.replace("{card}", cardDisplayName))
     }
 
+    // TODO: Remove conditions for click after PVW-6367
     fun dismissNotificationsDrawer() {
-        elementWithTextVisible(requestNotificationPermissionSheetNegativeCta, 15)
-        clickElementContainingText(requestNotificationPermissionSheetNegativeCta)
+        if (elementWithTextVisible(requestNotificationPermissionSheetNegativeCta, 5)) {
+            clickElementContainingText(requestNotificationPermissionSheetNegativeCta)
+        }
     }
 }

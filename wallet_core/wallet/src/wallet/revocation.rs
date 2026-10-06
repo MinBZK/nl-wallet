@@ -280,6 +280,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_string;
     use itertools::Itertools;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use parking_lot::Mutex;
     use token_status_list::status_list_token::mock::create_status_list_token;
     use token_status_list::verification::client::mock::MockStatusListClient;
@@ -356,6 +357,7 @@ mod tests {
                 },
                 StoredAttestationMetadata::TypeMetadata(sd_jwt_metadata.clone()),
                 Some(RevocationStatus::Valid),
+                IssuerRegistration::new_mock(),
             ),
             StoredAttestationCopy::new(
                 Uuid::new_v4(),
@@ -367,6 +369,7 @@ mod tests {
                 },
                 StoredAttestationMetadata::TypeMetadata(sd_jwt_metadata),
                 Some(RevocationStatus::Revoked),
+                IssuerRegistration::new_mock(),
             ),
         ];
 

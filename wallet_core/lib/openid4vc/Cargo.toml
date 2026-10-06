@@ -22,7 +22,6 @@ axum = ["axum/json", "oauth/axum"]
 allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
 mock = [
-    "attestation_data/generate",
     "attestation_data/mock",
     "crypto/generate",
     "crypto/mock",
@@ -66,6 +65,7 @@ indexmap.workspace = true
 itertools.workspace = true
 jwk-simple.workspace = true
 mime.workspace = true
+nonempty-collections.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["serde"] }
 rand_core.workspace = true
@@ -123,7 +123,6 @@ tokio = { workspace = true, features = ["test-util"] }
 tracing-test.workspace = true
 
 attestation_data = { path = "../attestation_data", features = [
-    "generate",
     "mock",
     "example_credential_payloads",
     "test_credential",

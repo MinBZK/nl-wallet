@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
@@ -273,6 +273,7 @@ impl<K> DatabaseStorage<K> {
             .column(attestation::Column::Expiration)
             .column(attestation::Column::NotBefore)
             .column(attestation::Column::Metadata)
+            .column(attestation::Column::IssuerRegistration)
             .expr_as(
                 Func::cust("json_group_array").arg(Expr::col(attestation_copy::Column::RevocationStatus)),
                 "revocation_statuses",
@@ -301,8 +302,20 @@ impl<K> DatabaseStorage<K> {
                     expiration,
                     not_before,
                     metadata,
+                    issuer_registration,
                     revocation_statuses,
-                ): (_, _, _, CompressedBlob, _, _, _, AttestationMetadataModel, String)| {
+                ): (
+                    _,
+                    _,
+                    _,
+                    CompressedBlob,
+                    _,
+                    _,
+                    _,
+                    AttestationMetadataModel,
+                    serde_json::Value,
+                    String,
+                )| {
                     let attestation = match attestation_format {
                         AttestationFormat::Mdoc => {
                             let issuer_signed = cbor_deserialize(attestation_bytes.decompress()?.as_slice())?;
@@ -347,6 +360,7 @@ impl<K> DatabaseStorage<K> {
                         attestation_copy_id,
                         attestation,
                         metadata,
+                        issuer_registration: serde_json::from_value(issuer_registration)?,
                         revocation_status: determine_revocation_status(&revocation_statuses),
                         validity_window: ValidityWindow {
                             valid_until: expiration,
@@ -755,6 +769,7 @@ where
                         not_before,
                         extended_attestation_types,
                         metadata,
+                        issuer_registration,
                     },
                     attestation_presentation,
                 )| {
@@ -762,6 +777,7 @@ where
 
                     let attestation_model = attestation::ActiveModel {
                         id: Set(attestation_id),
+                        issuer_registration: Set(serde_json::to_value(issuer_registration)?),
                         attestation_type: Set(attestation_type),
                         attestation_format: Set(copies.format().into()),
                         expiration: Set(expiration.map(Into::into)),
@@ -819,7 +835,7 @@ where
     async fn update_credentials(
         &mut self,
         timestamp: DateTime<Utc>,
-        credentials: Vec<(IssuedCredentialCopies, AttestationPresentation)>,
+        credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
     ) -> StorageResult<()> {
         let issuance_event_id = Uuid::now_v7();
 
@@ -832,7 +848,7 @@ where
 
         let mut issuance_event_attestations = Vec::with_capacity(credentials.len());
 
-        for (copies, attestation_presentation) in credentials {
+        for (credential, attestation_presentation) in credentials {
             let AttestationIdentity::Fixed { id: attestation_id } = attestation_presentation.identity else {
                 return Err(StorageError::EventEphemeralIdentity);
             };
@@ -846,12 +862,21 @@ where
             };
             issuance_event_attestations.push(issuance_event_attestation);
 
+            attestation::Entity::update_many()
+                .col_expr(
+                    attestation::Column::IssuerRegistration,
+                    Expr::value(serde_json::to_value(credential.issuer_registration)?),
+                )
+                .filter(attestation::Column::Id.eq(attestation_id))
+                .exec(&transaction)
+                .await?;
+
             attestation_copy::Entity::delete_many()
                 .filter(attestation_copy::Column::AttestationId.eq(attestation_id))
                 .exec(&transaction)
                 .await?;
 
-            attestation_copy::Entity::insert_many(create_attestation_copy_models(attestation_id, copies)?)
+            attestation_copy::Entity::insert_many(create_attestation_copy_models(attestation_id, credential.copies)?)
                 .exec(&transaction)
                 .await?;
         }
@@ -1508,10 +1533,8 @@ pub(crate) mod tests {
     use std::ops::Sub;
     use std::sync::LazyLock;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::validity::ValidityWindow;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Days;
@@ -1530,6 +1553,7 @@ pub(crate) mod tests {
     use openid4vc::metadata::issuer_metadata::Logo;
     use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
     use openid4vc::wallet_issuance::credential::SdJwtCopy;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
@@ -1557,7 +1581,7 @@ pub(crate) mod tests {
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
 
-        generate_issuer_mock_with_registration(&issuer_ca, &IssuerRegistration::new_mock()).unwrap()
+        issuer_ca.generate_issuer_mock().unwrap()
     });
 
     /// A mock mdoc is never deserialized, so it contains `ProtectedHeader { original_data: None, .. }`. When an
@@ -1890,6 +1914,8 @@ pub(crate) mod tests {
         assert!(!has_any_pid_attestations(&storage, Format::MsoMdoc).await);
         assert!(!storage.has_any_attestations().await.unwrap());
 
+        let issuer_registration = IssuerRegistration::new_mock();
+
         // Insert mdocs
         storage
             .insert_credentials(
@@ -1910,6 +1936,7 @@ pub(crate) mod tests {
                         ),
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
+                        issuer_registration.clone(),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -1930,6 +1957,10 @@ pub(crate) mod tests {
         // Only one unique `AttestationCopy` should be returned and it should match all copies.
         assert_eq!(fetched_unique.len(), 1);
         let attestation_copy1 = fetched_unique.first().unwrap();
+        assert_eq!(
+            serde_json::to_value(&attestation_copy1.issuer_registration).unwrap(),
+            serde_json::to_value(&issuer_registration).unwrap(),
+        );
 
         assert_matches!(
             &attestation_copy1.attestation,
@@ -2138,6 +2169,7 @@ pub(crate) mod tests {
                         None,
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata),
+                        IssuerRegistration::new_mock(),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -2204,6 +2236,7 @@ pub(crate) mod tests {
                         ),
                         std::iter::empty::<String>(),
                         IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
+                        IssuerRegistration::new_mock(),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -2249,6 +2282,7 @@ pub(crate) mod tests {
                         None,
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
+                        IssuerRegistration::new_mock(),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -2297,6 +2331,7 @@ pub(crate) mod tests {
                             None,
                             Vec::<String>::new(),
                             IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
+                            IssuerRegistration::new_mock(),
                         ),
                         AttestationPresentation::new_mock(),
                     ),
@@ -2311,6 +2346,7 @@ pub(crate) mod tests {
                             None,
                             normalized_metadata.extended_vcts(),
                             IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                            IssuerRegistration::new_mock(),
                         ),
                         AttestationPresentation::new_mock(),
                     ),
@@ -2456,6 +2492,7 @@ pub(crate) mod tests {
                         None,
                         extended_attestation_types.iter().copied(),
                         IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuerRegistration::new_mock(),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -2644,6 +2681,7 @@ pub(crate) mod tests {
                         sd_jwt.claims().nbf,
                         normalized_metadata.extended_vcts(),
                         IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuerRegistration::new_mock(),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -2834,6 +2872,8 @@ pub(crate) mod tests {
 
         let mut attestation_presentation = AttestationPresentation::new_mock();
 
+        let initial_issuer_registration = IssuerRegistration::new_mock();
+
         // Insert sd_jwt
         storage
             .insert_credentials(
@@ -2846,6 +2886,7 @@ pub(crate) mod tests {
                         sd_jwt.claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        initial_issuer_registration.clone(),
                     ),
                     attestation_presentation.clone(),
                 )],
@@ -2862,6 +2903,10 @@ pub(crate) mod tests {
         assert_eq!(attestations.len(), 1);
 
         let inserted_attestation_copy = attestations.first().unwrap();
+        assert_eq!(
+            serde_json::to_value(&inserted_attestation_copy.issuer_registration).unwrap(),
+            serde_json::to_value(&initial_issuer_registration).unwrap(),
+        );
         let StoredAttestation::SdJwt(inserted_attestation) = &inserted_attestation_copy.attestation.data else {
             panic!("Attestation is not an SD-JWT")
         };
@@ -2894,9 +2939,25 @@ pub(crate) mod tests {
             id: attestations[0].attestation_id,
         };
 
+        let renewed_issuer_registration = IssuerRegistration::new_mock();
+
         // Update sd_jwt
         storage
-            .update_credentials(Utc::now(), vec![(issued_copies, attestation_presentation)])
+            .update_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        issued_copies,
+                        "urn:eudi:pid:nl:1".to_string(),
+                        None,
+                        None,
+                        Vec::<String>::new(),
+                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        renewed_issuer_registration.clone(),
+                    ),
+                    attestation_presentation,
+                )],
+            )
             .await
             .expect("Could not update sd-jwts");
 
@@ -2909,6 +2970,14 @@ pub(crate) mod tests {
         assert_eq!(attestations.len(), 1);
 
         let updated_attestation_copy = attestations.first().unwrap();
+        assert_eq!(
+            serde_json::to_value(&updated_attestation_copy.issuer_registration).unwrap(),
+            serde_json::to_value(&renewed_issuer_registration).unwrap(),
+        );
+        assert_ne!(
+            initial_issuer_registration.access_certificate(),
+            renewed_issuer_registration.access_certificate(),
+        );
         let StoredAttestation::SdJwt(updated_attestation) = &updated_attestation_copy.attestation.data else {
             panic!("Attestation is not an SD-JWT")
         };
@@ -3154,6 +3223,7 @@ pub(crate) mod tests {
                             sd_jwt.claims().nbf,
                             normalized_metadata.extended_vcts(),
                             IssuedCredentialMetadata::TypeMetadata(metadata_documents.clone()),
+                            IssuerRegistration::new_mock(),
                         ),
                         AttestationPresentation::new_mock(),
                     ),
@@ -3165,6 +3235,7 @@ pub(crate) mod tests {
                             sd_jwt.claims().nbf,
                             normalized_metadata.extended_vcts(),
                             IssuedCredentialMetadata::TypeMetadata(metadata_documents),
+                            IssuerRegistration::new_mock(),
                         ),
                         AttestationPresentation::new_mock(),
                     ),
@@ -3368,6 +3439,7 @@ pub(crate) mod tests {
                         sd_jwt.claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuerRegistration::new_mock(),
                     ),
                     AttestationPresentation::new_mock(),
                 )],
@@ -3518,7 +3590,21 @@ pub(crate) mod tests {
         }]);
 
         storage
-            .update_credentials(Utc::now(), vec![(issued_copies, renewed_presentation.clone())])
+            .update_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        issued_copies,
+                        "urn:eudi:pid:nl:1".to_string(),
+                        None,
+                        None,
+                        Vec::<String>::new(),
+                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuerRegistration::new_mock(),
+                    ),
+                    renewed_presentation.clone(),
+                )],
+            )
             .await
             .expect("Could not update credentials");
 
