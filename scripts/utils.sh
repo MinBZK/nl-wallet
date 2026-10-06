@@ -555,6 +555,13 @@ function generate_registration_certificate {
             ;;
     esac
 
+    local name="${access_certificates[($service_provider,name)]}"
+    case "$protocol_role/$service_provider" in
+        issuance/university) name="Demo Issuer DBI" ;;
+        issuance/insurance) name="Demo Issuer ACF" ;;
+        issuance/museum_maandkaart) name="Demo Issuer PACF" ;;
+    esac
+
     if [[ -z ${access_certificates[($service_provider,serial_number)]:-} ]]; then
         subject=$(jq -n \
             --arg sub "${access_certificates[($service_provider,oid)]}" \
@@ -570,7 +577,7 @@ function generate_registration_certificate {
 
     jq -n \
         --arg service_provider "$service_provider" \
-        --arg name "${access_certificates[($service_provider,name)]}" \
+        --arg name "$name" \
         --arg entitlement "$entitlement" \
         --arg protocol_role "$protocol_role" \
         --arg status_list_index "$status_list_index" \
