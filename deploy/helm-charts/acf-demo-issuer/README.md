@@ -122,10 +122,10 @@
 
 ### Metadata parameters
 
-| Name                 | Description                                                               | Value                                                                                          |
-| -------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `typeMetadata`       | List of SD-JWT VC Type Metadata filenames to mount and pass to the server | `[]`                                                                                           |
-| `credentialMetadata` | List of Credential Metadata filenames to mount                            | `["com_example_insurance_metadata_mdoc.json","com_example_jum_bonuskaart_metadata_mdoc.json"]` |
+| Name                 | Description                                                               | Value                                                                                            |
+| -------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `typeMetadata`       | List of SD-JWT VC Type Metadata filenames to mount and pass to the server | `[]`                                                                                             |
+| `credentialMetadata` | List of Credential Metadata filenames to mount                            | `["com_example_insurance_metadata_mdoc.json","com_example_jum_bonuskaart_metadata_sd_jwt.json"]` |
 
 ### Migration parameters
 

@@ -11,7 +11,6 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
@@ -87,6 +86,7 @@ use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::CredentialFormat;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::nonce::response::NonceResponse;
@@ -308,22 +308,44 @@ impl VcMessageClient for HttpVcMessageClient {
 
 /// The parts of a [`CredentialConfiguration`] with a supported format that are relevant to an issuance session.
 #[derive(Debug)]
-struct SupportedConfiguration {
-    credential_kind: CredentialKind,
-    credential_metadata: Option<CredentialMetadata>,
-    type_metadata_uri: Option<IssuerUrl>,
+enum SupportedConfiguration {
+    MsoMdoc {
+        credential_metadata: Option<CredentialMetadata>,
+    },
+    SdJwt {
+        vct: String,
+        credential_metadata: Option<CredentialMetadata>,
+        type_metadata_uri: Option<IssuerUrl>,
+    },
 }
 
 impl SupportedConfiguration {
     /// Returns `None` if the format of the [`CredentialConfiguration`] is not supported.
     fn try_new(config: CredentialConfiguration) -> Option<Self> {
-        let credential_kind = config.format.credential_kind()?;
+        let CredentialConfiguration {
+            format,
+            credential_metadata,
+            ..
+        } = config;
 
-        Some(Self {
-            credential_kind,
-            credential_metadata: config.credential_metadata,
-            type_metadata_uri: config.type_metadata_uri,
-        })
+        match format {
+            CredentialFormat::MsoMdoc { .. } => Some(Self::MsoMdoc { credential_metadata }),
+            CredentialFormat::SdJwt {
+                vct, type_metadata_uri, ..
+            } => Some(Self::SdJwt {
+                vct,
+                credential_metadata,
+                type_metadata_uri,
+            }),
+            CredentialFormat::Other { .. } => None,
+        }
+    }
+
+    fn format(&self) -> Format {
+        match self {
+            Self::MsoMdoc { .. } => Format::MsoMdoc,
+            Self::SdJwt { .. } => Format::SdJwt,
+        }
     }
 }
 
@@ -524,14 +546,12 @@ impl SupportedConfigurations {
         let offered_credentials = match self {
             Self::WithoutIdentifiers(configs) => configs
                 .into_nonempty_iter()
-                .map(|(config_id, config)| {
-                    OfferedCredential::new_by_config_id(config_id, config.credential_kind.format)
-                })
+                .map(|(config_id, config)| OfferedCredential::new_by_config_id(config_id, config.format()))
                 .collect(),
             Self::WithIdentifiers(configs) => configs
                 .into_nonempty_iter()
                 .flat_map(|(config_id, (config, credential_ids))| {
-                    let format = config.credential_kind.format;
+                    let format = config.format();
 
                     credential_ids.into_nonempty_iter().map(move |credential_id| {
                         OfferedCredential::new_by_credential_id(credential_id, config_id.clone(), format)
@@ -562,9 +582,7 @@ impl SupportedConfigurations {
                         // If both the config_id and format match, remove the Credential Configuration. Otherwise,
                         // consider this Credential Preview an excess preview.
                         match configs.entry(preview.config_id.clone()) {
-                            Entry::Occupied(occupied_entry)
-                                if occupied_entry.get().credential_kind.format == preview.format =>
-                            {
+                            Entry::Occupied(occupied_entry) if occupied_entry.get().format() == preview.format => {
                                 let (config_id, _config) = occupied_entry.remove_entry();
                                 let offered_credential = OfferedCredential::new_by_config_id(config_id, preview.format);
                                 Either::Left((offered_credential, preview.credential_payload))
@@ -578,7 +596,7 @@ impl SupportedConfigurations {
                 if !configs.is_empty() {
                     let missing = configs
                         .into_iter()
-                        .map(|(config_id, config)| (config_id, None, config.credential_kind.format))
+                        .map(|(config_id, config)| (config_id, None, config.format()))
                         .collect();
 
                     return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
@@ -602,7 +620,7 @@ impl SupportedConfigurations {
                         match configs
                             .get_mut(&preview.config_id)
                             .and_then(|(config, credential_ids)| {
-                                if config.credential_kind.format == preview.format {
+                                if config.format() == preview.format {
                                     credential_ids.take(&preview.credential_id)
                                 } else {
                                     None
@@ -631,7 +649,7 @@ impl SupportedConfigurations {
                         .into_iter()
                         .flat_map(|(config_id, (config, credential_ids))| {
                             let credential_id_count = credential_ids.len();
-                            let format = config.credential_kind.format;
+                            let format = config.format();
                             std::iter::repeat_n(config_id, credential_id_count)
                                 .zip(credential_ids)
                                 .map(move |(config_id, credential_id)| (config_id, Some(credential_id), format))
@@ -905,33 +923,38 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     // Determine how each offered configuration's metadata is obtained. An SD-JWT that carries a `type_metadata_uri`
     // is described by the remotely fetched SD-JWT VC Type Metadata. Every other configuration is described by the
-    // Credential Metadata in the Credential Issuer metadata: an SD-JWT without a `type_metadata_uri` and mdocs. Any
-    // `type_metadata_uri` on an mdoc is ignored. Missing metadata is an error.
+    // Credential Metadata in the Credential Issuer metadata: an SD-JWT without a `type_metadata_uri` and mdocs. Missing
+    // metadata is an error.
     async fn fetch_metadata(
         credential_configurations: impl IntoIterator<Item = (&CredentialConfigurationId, &SupportedConfiguration)>,
         credential_issuer: &IssuerIdentifier,
         message_client: &H,
     ) -> Result<HashMap<CredentialConfigurationId, OfferedCredentialMetadata>, WalletIssuanceError> {
         let mut type_metadata_configs = Vec::new();
-        let mut credential_metadata = HashMap::new();
+        let mut credential_metadata_by_config_id = HashMap::new();
         let mut missing_metadata_config_ids = Vec::new();
 
         for (config_id, config) in credential_configurations {
-            match (
-                config.credential_kind.format,
-                config.type_metadata_uri.as_ref(),
-                config.credential_metadata.as_ref(),
-            ) {
-                (Format::SdJwt, Some(uri), _) => {
-                    type_metadata_configs.push((uri, (config.credential_kind.attestation_type.as_str(), config_id)));
+            match config {
+                SupportedConfiguration::SdJwt {
+                    vct,
+                    type_metadata_uri: Some(uri),
+                    ..
+                } => {
+                    type_metadata_configs.push((uri, (vct.as_str(), config_id)));
                 }
-                (Format::SdJwt | Format::MsoMdoc, _, Some(metadata)) => {
-                    credential_metadata.insert(
-                        config_id.clone(),
-                        OfferedCredentialMetadata::CredentialMetadata(metadata.clone()),
-                    );
-                }
-                (Format::SdJwt | Format::MsoMdoc, _, None) => missing_metadata_config_ids.push(config_id.clone()),
+                SupportedConfiguration::MsoMdoc { credential_metadata }
+                | SupportedConfiguration::SdJwt {
+                    credential_metadata, ..
+                } => match credential_metadata {
+                    Some(metadata) => {
+                        credential_metadata_by_config_id.insert(
+                            config_id.clone(),
+                            OfferedCredentialMetadata::CredentialMetadata(metadata.clone()),
+                        );
+                    }
+                    None => missing_metadata_config_ids.push(config_id.clone()),
+                },
             }
         }
 
@@ -1003,7 +1026,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         .await?
         .into_iter()
         .flatten()
-        .chain(credential_metadata)
+        .chain(credential_metadata_by_config_id)
         .collect();
 
         Ok(metadata_per_config_id)
@@ -1476,6 +1499,7 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::status_claim::StatusListClaim;
@@ -2097,7 +2121,7 @@ mod tests {
             .credential_configurations_supported
             .values_mut()
             .for_each(|config| {
-                config.type_metadata_uri = None;
+                set_type_metadata_uri(config, None);
                 config.credential_metadata = None;
             });
 
@@ -2234,7 +2258,7 @@ mod tests {
             .credential_configurations_supported
             .values_mut()
             .for_each(|config| {
-                config.type_metadata_uri = None;
+                set_type_metadata_uri(config, None);
                 config.credential_metadata = Some(CredentialMetadata::new_example(&["family_name"]));
             });
 
@@ -2261,6 +2285,53 @@ mod tests {
     }
 
     #[test]
+    fn test_start_issuance_sd_jwt_type_metadata_preferred_over_credential_metadata() {
+        // Create issuer metadata for an SD-JWT configuration that has both a type metadata URI and Credential Metadata.
+        let config_id = CredentialConfigurationId::from("config_id".to_string());
+        let mut issuer_metadata = IssuerMetadata::new_mock(
+            "https://example.com".parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            )],
+        );
+        issuer_metadata
+            .credential_configurations_supported
+            .values_mut()
+            .for_each(|config| {
+                config.credential_metadata = Some(CredentialMetadata::new_example(&["family_name"]));
+            });
+
+        let session = test_start_issuance(
+            issuer_metadata,
+            vec![(
+                "credential_id".to_string().into(),
+                config_id,
+                Format::SdJwt,
+                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            )],
+            TypeMetadata::pid_example(),
+            &TokenResponseFields::Neither,
+            true,
+        )
+        .expect("starting issuance session should succeed");
+
+        let Ok(credential_preview) = session
+            .credential_previews()
+            .expect("issuance session should contain previews")
+            .exactly_one()
+        else {
+            panic!("issuance session should contain exactly one preview")
+        };
+
+        // The SD-JWT configuration has a type metadata URI, so its Type Metadata should be used.
+        assert_matches!(
+            credential_preview.metadata,
+            OfferedCredentialMetadata::TypeMetadata { .. }
+        );
+    }
+
+    #[test]
     fn test_start_issuance_type_metadata_host_mismatch() {
         // Create issuer metadata with incorrect type_metadata_uri.
         let config_id = CredentialConfigurationId::from("config_id".to_string());
@@ -2273,7 +2344,7 @@ mod tests {
         );
         let type_metadata_uri = IssuerUrl::try_new("https://metadata.example.com").unwrap();
         let mut config = issuer_metadata.credential_configurations_supported[&config_id].clone();
-        config.type_metadata_uri = Some(type_metadata_uri.clone());
+        set_type_metadata_uri(&mut config, Some(type_metadata_uri.clone()));
         let issuer_metadata = IssuerMetadata {
             credential_configurations_supported: [(config_id.clone(), config)].into(),
             ..issuer_metadata
@@ -2385,11 +2456,14 @@ mod tests {
             .get(&pid_config_id)
             .unwrap()
             .clone();
-        let expected_type_metadata_uri = address_credential_config.type_metadata_uri.clone().unwrap();
-        let CredentialFormat::SdJwt { vct, .. } = &mut address_credential_config.format else {
+        let CredentialFormat::SdJwt {
+            vct, type_metadata_uri, ..
+        } = &mut address_credential_config.format
+        else {
             unreachable!()
         };
         *vct = ADDRESS_ATTESTATION_TYPE.to_string();
+        let expected_type_metadata_uri = type_metadata_uri.clone().unwrap();
         issuer_metadata
             .credential_configurations_supported
             .insert(address_config_id.clone(), address_credential_config);
@@ -2571,6 +2645,15 @@ mod tests {
             ),
         ];
         assert_matches!(error, WalletIssuanceError::PreviewExcessCredentials(excess) if excess == expected_excess);
+    }
+
+    /// Replace the `type_metadata_uri` of an SD-JWT credential configuration.
+    fn set_type_metadata_uri(config: &mut CredentialConfiguration, uri: Option<IssuerUrl>) {
+        let CredentialFormat::SdJwt { type_metadata_uri, .. } = &mut config.format else {
+            panic!("credential configuration should be an SD-JWT")
+        };
+
+        *type_metadata_uri = uri;
     }
 
     /// Return a new session ready for `accept_issuance()`. If `has_previews` is `false`, the previews are only used to
@@ -2856,7 +2939,7 @@ mod tests {
                     let sd_jwt_credentials = credential_payloads
                         .map(|credential_payload| {
                             let unverified_sd_jwt = credential_payload
-                                .into_signed_sd_jwt(&self.normalized_metadata, &self.issuer_key)
+                                .into_signed_sd_jwt(Some(&self.normalized_metadata), &self.issuer_key)
                                 .now_or_never()
                                 .unwrap()
                                 .unwrap()

@@ -47,14 +47,14 @@ attributes = { "com.example.insurance" = { type = "object", value = { product = 
 kind = "immediate"
 
 [[usecases.loyalty.documents]]
-format = "mso_mdoc"
+format = "dc+sd-jwt"
 attestation_type = "com.example.jum.bonuskaart"
-attributes = { "com.example.jum.bonuskaart" = { type = "object", value = { branch = { type = "text", value = "Demodam" }, loyalty_number = { type = "text", value = "{{INSERT_RANDOM_VALUE}}" } } } }
+attributes = { branch = { type = "text", value = "Demodam" }, loyalty_number = { type = "text", value = "{{INSERT_RANDOM_VALUE}}" } }
 
 [credential_configurations."com.example.jum.bonuskaart"]
-format = "mso_mdoc"
+format = "dc+sd-jwt"
 attestation_type = "com.example.jum.bonuskaart"
-credential_metadata = "com.example.jum.bonuskaart.mdoc.json"
+credential_metadata = "com.example.jum.bonuskaart.sd_jwt.json"
 valid_days = 365
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_LOYALTY_ISSUER}"
