@@ -221,7 +221,7 @@ impl MockRegistrationCertificateAuthority {
 
     pub fn new_with_status(status: StatusType) -> Self {
         let ca = Ca::generate_mock();
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
         let status_list_key_pair = ca.generate_issuer_status_list_mock().unwrap();
         let mut status_list = StatusList::new(10);
         if status != StatusType::Valid {

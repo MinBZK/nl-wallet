@@ -600,18 +600,13 @@ mod tests {
         // Test verify with no usage
         key_pair
             .certificate()
-            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca))
+            .verify(None, &[], &TimeGenerator, &ca.to_trust_anchors())
             .expect("Expected verify to succeed");
 
         // Test verify with correct usage
         key_pair
             .certificate()
-            .verify(
-                Some(CertificateUsage::Wia),
-                &[],
-                &TimeGenerator,
-                &TrustAnchors::from(&ca),
-            )
+            .verify(Some(CertificateUsage::Wia), &[], &TimeGenerator, &ca.to_trust_anchors())
             .expect("Expected verify to succeed");
 
         // Test verify with different usage
@@ -621,7 +616,7 @@ mod tests {
                 Some(CertificateUsage::StatusListSigning),
                 &[],
                 &TimeGenerator,
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
             )
             .expect_err("Expected verify to fail");
     }
@@ -653,12 +648,12 @@ mod tests {
 
         // Verify without CRL should succeed
         leaf_certificate
-            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca))
+            .verify(None, &[], &TimeGenerator, &ca.to_trust_anchors())
             .expect("certificate should verify");
 
         // Verify with CRL should fail
         let error = leaf_certificate
-            .verify_with_crls(None, &[], &TimeGenerator, &TrustAnchors::from(&ca), &crls)
+            .verify_with_crls(None, &[], &TimeGenerator, &ca.to_trust_anchors(), &crls)
             .expect_err("revoked certificate should fail verification");
         assert_matches!(
             error,
@@ -683,7 +678,7 @@ mod tests {
             .unwrap();
         issuer_key_pair
             .certificate()
-            .verify(None, &[], &TimeGenerator, &TrustAnchors::from(&ca))
+            .verify(None, &[], &TimeGenerator, &ca.to_trust_anchors())
             .expect_err("Expected verify to fail")
     }
 
@@ -787,7 +782,7 @@ mod tests {
         // Phase 1: leaf verified against old CA with the cross-cert as intermediate.
         // Path: leaf ← cross-cert (new key, signed by old CA) ← old CA trust anchor.
         leaf.certificate()
-            .verify(None, from_ref(&cross_cert), &time, &TrustAnchors::from(&old_ca))
+            .verify(None, from_ref(&cross_cert), &time, &old_ca.to_trust_anchors())
             .expect("leaf should verify against old CA via cross-cert intermediate");
 
         // Phase 2: same verification but with the self-signed new CA cert added to the
@@ -798,13 +793,13 @@ mod tests {
                 None,
                 &[cross_cert, new_ca.as_borrowing_certificate().unwrap()],
                 &time,
-                &TrustAnchors::from(&old_ca),
+                &old_ca.to_trust_anchors(),
             )
             .expect("leaf should still verify when self-signed new CA cert is added to intermediates");
 
         // Phase 3: leaf verified directly against the new CA trust anchor (no intermediates).
         leaf.certificate()
-            .verify(None, &[], &time, &TrustAnchors::from(&new_ca))
+            .verify(None, &[], &time, &new_ca.to_trust_anchors())
             .expect("leaf should verify against self-signed new CA");
     }
 
@@ -838,13 +833,13 @@ mod tests {
         // Verify whole chain with leaf, intermediate and ca trust anchor
         leaf_key_pair
             .certificate()
-            .verify(None, from_ref(&intermediate_cert), &time, &TrustAnchors::from(&ca))
+            .verify(None, from_ref(&intermediate_cert), &time, &ca.to_trust_anchors())
             .expect("should verify");
 
         // Verify leaf with only intermediate as trust anchor
         leaf_key_pair
             .certificate()
-            .verify(None, &[], &time, &TrustAnchors::from(&intermediate_ca))
+            .verify(None, &[], &time, &intermediate_ca.to_trust_anchors())
             .expect("should verify");
 
         // Verify whole chain with intermediate both in intermediates and trust anchors
@@ -862,7 +857,7 @@ mod tests {
         // Verify whole chain with ca in both intermediates and trust anchors
         let error = leaf_key_pair
             .certificate()
-            .verify(None, &[intermediate_cert, ca_cert], &time, &TrustAnchors::from(&ca))
+            .verify(None, &[intermediate_cert, ca_cert], &time, &ca.to_trust_anchors())
             .expect_err("should detect TrustAnchorInChain");
         assert_matches!(error, CertificateVerifyError::TrustAnchorInChain);
     }

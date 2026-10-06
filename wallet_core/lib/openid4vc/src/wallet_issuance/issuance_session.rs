@@ -2963,7 +2963,7 @@ mod tests {
     fn create_mock_wscd() -> (MockRemoteWscd, TrustAnchors) {
         let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
         let wscd = MockRemoteWscd::new_with_wptl_ca(&wptl_ca);
-        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+        let wptl_trust_anchors = wptl_ca.to_trust_anchors();
 
         (wscd, wptl_trust_anchors)
     }
@@ -3268,7 +3268,7 @@ mod tests {
         // credentials.
         let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
         let single_wscd = DuplicateKeyMockRemoteWscd::new(&wptl_ca, NonZeroU8::MIN);
-        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+        let wptl_trust_anchors = wptl_ca.to_trust_anchors();
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
@@ -3307,7 +3307,7 @@ mod tests {
 
         let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
         let duplicate_wscd = DuplicateKeyMockRemoteWscd::new(&wptl_ca, key_count);
-        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+        let wptl_trust_anchors = wptl_ca.to_trust_anchors();
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,

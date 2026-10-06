@@ -240,7 +240,7 @@ mod tests {
                 Duration::ZERO,
                 time.clone(),
             ),
-            trust_anchors: TrustAnchors::from(&ca),
+            trust_anchors: ca.to_trust_anchors(),
             signing_certificate_dn: registration_certificate_signer
                 .certificate()
                 .to_canonical_distinguished_name()
@@ -354,7 +354,7 @@ mod tests {
             .unwrap()
             .validate_status(
                 &context.verifier,
-                &TrustAnchors::from(&untrusted_ca),
+                &untrusted_ca.to_trust_anchors(),
                 context.signing_certificate_dn,
                 &context.time,
             )

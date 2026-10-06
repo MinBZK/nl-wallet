@@ -219,7 +219,7 @@ mod tests {
             &envelope,
             &query,
             access_key_pair.certificate(),
-            &TrustAnchors::from(&untrusted_ca),
+            &untrusted_ca.to_trust_anchors(),
             authority.status_list_client.clone(),
         )
         .await

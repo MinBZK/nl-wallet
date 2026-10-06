@@ -1212,7 +1212,6 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::CredentialQueryIdentifier;
@@ -1475,7 +1474,7 @@ mod tests {
     #[tokio::test]
     async fn test_authorization_request_jwt() {
         let (ca, rp_keypair, _, mut auth_request) = setup_mdoc();
-        let trust_anchor = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
         let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
         auth_request.state = Some("authorization_state".to_string());
 
@@ -1485,7 +1484,7 @@ mod tests {
                 .unwrap();
 
         let (auth_request, cert) =
-            VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchor, &crl_verifier)
+            VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchors, &crl_verifier)
                 .await
                 .unwrap();
         let (auth_request, _) = auth_request.normalize_request(&cert, None).unwrap();
@@ -1495,7 +1494,7 @@ mod tests {
     #[tokio::test]
     async fn test_authorization_request_jwt_with_crl_fails_without_distribution_point() {
         let (ca, rp_keypair, _, auth_request) = setup_mdoc_without_crl_distribution_point();
-        let trust_anchor = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
         let auth_request_jwt =
             SignedJwt::sign_with_certificate(&authorization_request_from_normalized(auth_request), &rp_keypair)
                 .await
@@ -1503,7 +1502,7 @@ mod tests {
 
         let verifier = MockCertificateCrlVerifier::default();
         let result =
-            VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
+            VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchors, &verifier).await;
 
         assert_matches!(
             result,
@@ -2646,7 +2645,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_issuer_status_list_mock().unwrap(),
@@ -2754,7 +2753,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_issuer_status_list_mock().unwrap(),
@@ -2914,7 +2913,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_issuer_status_list_mock().unwrap(),
@@ -2962,7 +2961,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_pid_issuer_status_list_mock().unwrap(),
@@ -2986,7 +2985,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_pid_issuer_status_list_mock().unwrap(),
@@ -3015,7 +3014,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_pid_issuer_status_list_mock().unwrap(),

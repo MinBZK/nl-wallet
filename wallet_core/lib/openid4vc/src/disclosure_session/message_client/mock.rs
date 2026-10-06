@@ -179,7 +179,7 @@ impl MockVerifierSession {
     ) -> Self {
         // Generate trust anchors, signing key and certificate.
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
         let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
         let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 

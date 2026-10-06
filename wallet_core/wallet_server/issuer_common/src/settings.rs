@@ -863,7 +863,7 @@ mod tests {
             .into();
 
         // Normally this is its own CA; here we just reuse the issuer_ca.
-        let wptl_trust_anchors = TrustAnchors::from(issuer_ca);
+        let wptl_trust_anchors = issuer_ca.to_trust_anchors();
 
         IssuerSettings {
             public_url: "https://example.com".parse().unwrap(),
@@ -910,8 +910,8 @@ mod tests {
                     successful_deletion_minutes: 10.try_into().unwrap(),
                     failed_deletion_minutes: 10.try_into().unwrap(),
                 },
-                issuer_trust_anchors: TrustAnchors::from(issuer_ca),
-                wrpac_trust_anchors: TrustAnchors::from(wrpac_ca),
+                issuer_trust_anchors: issuer_ca.to_trust_anchors(),
+                wrpac_trust_anchors: wrpac_ca.to_trust_anchors(),
                 wrprc_trust_anchors: TrustAnchors::empty(),
                 hsm: None,
             },

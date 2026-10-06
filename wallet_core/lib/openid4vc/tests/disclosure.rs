@@ -186,7 +186,7 @@ async fn disclosure_direct() {
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let jwe = disclosure_jwe(
         &auth_request_jws.into(),
-        &TrustAnchors::from(&ca),
+        &ca.to_trust_anchors(),
         &crl_verifier,
         &issuer_ca,
         MdocStatus::StatusList(StatusListClaim::new_mock()),
@@ -200,7 +200,7 @@ async fn disclosure_direct() {
         &iso_auth_request,
         &[MOCK_WALLET_CLIENT_ID.to_string()],
         &MockTimeGenerator::default(),
-        &TrustAnchors::from(&issuer_ca),
+        &issuer_ca.to_trust_anchors(),
         &ExtendingVctRetrieverStub,
         &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
             issuer_ca.generate_issuer_status_list_mock().unwrap(),
@@ -293,7 +293,7 @@ async fn disclosure_using_message_client(
         test_credentials,
         formats,
         rp_keypair,
-        TrustAnchors::from(&issuer_ca),
+        issuer_ca.to_trust_anchors(),
         issuer_ca.generate_pid_issuer_status_list_mock().unwrap(),
     );
     let request_uri = message_client.start_session();
@@ -312,7 +312,7 @@ async fn disclosure_using_message_client(
             &request_uri,
             DisclosureUriSource::Link,
             DisclosureTrustAnchors {
-                wrpac: &TrustAnchors::from(&ca),
+                wrpac: &ca.to_trust_anchors(),
                 wrprc: &registration_certificate_trust_anchors,
             },
         )
@@ -1131,7 +1131,7 @@ where
     let verifier = Arc::new(MockWalletInitiatedUseCaseVerifier::new(
         WalletInitiatedUseCases::new(usecases),
         sessions,
-        TrustAnchors::from(&issuer_ca),
+        issuer_ca.to_trust_anchors(),
         Some(Box::new(MockDisclosureResultHandler::new(None))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::default(),
@@ -1146,7 +1146,7 @@ where
         issuer_keypair,
         client_id,
         WalletValidationContext {
-            access_certificate_trust_anchors: TrustAnchors::from(&wrpac_ca),
+            access_certificate_trust_anchors: wrpac_ca.to_trust_anchors(),
             access_certificate_crl_verifier: CertificateCrlVerifier::new_for_ca(&wrpac_ca),
             registration_certificate_trust_anchors: registration_certificate_authority.trust_anchors,
             registration_certificate_status_list_client: registration_certificate_authority.status_list_client,
@@ -1219,7 +1219,7 @@ fn setup_verifier(
     let verifier = Arc::new(MockRpInitiatedUseCaseVerifier::new(
         usecases,
         sessions,
-        TrustAnchors::from(&issuer_ca),
+        issuer_ca.to_trust_anchors(),
         Some(Box::new(MockDisclosureResultHandler::new(session_result_query_param))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::from([(
@@ -1235,7 +1235,7 @@ fn setup_verifier(
         verifier,
         issuer_keypair,
         WalletValidationContext {
-            access_certificate_trust_anchors: TrustAnchors::from(&wrpac_ca),
+            access_certificate_trust_anchors: wrpac_ca.to_trust_anchors(),
             access_certificate_crl_verifier: CertificateCrlVerifier::new_for_ca(&wrpac_ca),
             registration_certificate_trust_anchors: registration_certificate_authority.trust_anchors,
             registration_certificate_status_list_client: registration_certificate_authority.status_list_client,

@@ -140,11 +140,11 @@ async fn wallet_server_settings_and_listener(
 
     // Create the issuer CA and derive the trust anchors from it.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
+    let issuer_trust_anchors = issuer_ca.to_trust_anchors();
 
     // Create the WRPAC CA, derive the trust anchor from it
     let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
-    let wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
+    let wrpac_trust_anchors = wrpac_ca.to_trust_anchors();
 
     // Set up the use case, based on RP CA and reader registration.
     let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();

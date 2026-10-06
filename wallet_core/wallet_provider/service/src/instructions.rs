@@ -1594,7 +1594,7 @@ mod tests {
             StubWalletFlags::default(),
             setup_hsm().await,
             wrapping_kid,
-            TrustAnchors::from(ca),
+            ca.to_trust_anchors(),
             mock_status_list_service(),
         )
     }
@@ -2378,7 +2378,7 @@ mod tests {
 
         assert_eq!(result.key_sets.len().get(), key_counts.len());
 
-        let trust_anchors = TrustAnchors::from(LazyLock::force(&MOCK_WPTL_CA));
+        let trust_anchors = MOCK_WPTL_CA.to_trust_anchors();
 
         for (set_result, key_count) in result.key_sets.into_iter().zip(key_counts) {
             let verification_result = set_result

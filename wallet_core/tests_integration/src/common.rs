@@ -26,7 +26,6 @@ use crypto::PublicKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use ctor::ctor;
@@ -935,7 +934,7 @@ pub fn pid_issuer_settings(db_url: Url, wptl_ca_override: Option<&Ca>) -> PidIss
         pid_settings
             .authorizing_issuer_settings
             .issuer_settings
-            .wptl_trust_anchors = TrustAnchors::from(wptl_ca);
+            .wptl_trust_anchors = wptl_ca.to_trust_anchors();
         pid_settings
             .authorizing_issuer_settings
             .issuer_settings
@@ -1186,7 +1185,7 @@ pub fn acf_demo_issuer_settings(db_url: Url, wptl_ca_override: Option<&Ca>) -> A
     });
 
     if let Some(wptl_ca) = wptl_ca_override {
-        settings.authorizing_issuer_settings.issuer_settings.wptl_trust_anchors = TrustAnchors::from(wptl_ca);
+        settings.authorizing_issuer_settings.issuer_settings.wptl_trust_anchors = wptl_ca.to_trust_anchors();
         // `MockWiaClient` always issues WIAs with `sub` set to `MOCK_WALLET_CLIENT_ID`.
         settings
             .authorizing_issuer_settings

@@ -1576,7 +1576,6 @@ mod tests {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
@@ -1676,7 +1675,7 @@ mod tests {
     {
         // Initialize server state
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
 
         let use_cases = HashMap::from([
             (
@@ -2133,7 +2132,7 @@ mod tests {
     async fn test_session_creation_by_usecase() {
         // Initialize server state
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
         let mut use_case_data = use_case_data(&ca, SessionTypeReturnUrl::SameDevice);
         use_case_data.client_id = "client_id".into();
 

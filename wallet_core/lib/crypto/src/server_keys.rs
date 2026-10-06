@@ -179,6 +179,7 @@ pub mod generate {
 
     use crate::server_keys::KeyPair;
     use crate::trust_anchor::BorrowingTrustAnchor;
+    use crate::trust_anchor::TrustAnchors;
     use crate::x509::BorrowingCertificate;
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateParseError;
@@ -322,6 +323,10 @@ pub mod generate {
 
         pub fn to_trust_anchor(&self) -> TrustAnchor<'_> {
             self.borrowing_trust_anchor.as_trust_anchor().clone()
+        }
+
+        pub fn to_trust_anchors(&self) -> TrustAnchors {
+            TrustAnchors::try_from(vec![self.to_borrowing_trust_anchor()]).expect("cannot create trust anchors")
         }
 
         /// Generate a signed CRL from this CA, revoking the given certificates.

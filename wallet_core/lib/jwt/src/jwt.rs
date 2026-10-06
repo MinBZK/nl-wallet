@@ -1334,7 +1334,6 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateVerifyError;
     use crypto::x509::DistinguishedName;
@@ -1790,7 +1789,7 @@ mod tests {
 
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -1831,7 +1830,7 @@ mod tests {
 
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors_with_crl(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &crl_verifier,
                 &TimeGenerator,
                 None,
@@ -1858,7 +1857,7 @@ mod tests {
 
         let error = jwt
             .parse_and_verify_against_trust_anchors_with_crl(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &crl_verifier,
                 &TimeGenerator,
                 None,
@@ -2055,7 +2054,7 @@ mod tests {
         // Verifying this JWT against the CA's trust anchor should succeed.
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -2081,7 +2080,7 @@ mod tests {
 
         let err = jwt
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&other_ca),
+                &other_ca.to_trust_anchors(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -2102,7 +2101,7 @@ mod tests {
 
         // Put the ca_cert in both the certificate list and the trust anchors.
         let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())

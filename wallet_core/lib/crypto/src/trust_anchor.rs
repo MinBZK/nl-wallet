@@ -169,7 +169,7 @@ impl TryFrom<IndexSet<BorrowingCertificate>> for TrustAnchors {
     }
 }
 
-#[cfg(any(test, feature = "examples"))]
+#[cfg(any(test, feature = "examples", feature = "generate"))]
 impl TryFrom<Vec<BorrowingTrustAnchor>> for TrustAnchors {
     type Error = CertificateParseError;
 
@@ -207,22 +207,5 @@ impl<'de> Deserialize<'de> for TrustAnchors {
             .map(|s| BASE64_STANDARD.decode(s).map_err(serde::de::Error::custom))
             .collect::<Result<_, _>>()?;
         TrustAnchors::try_from(der_bytes).map_err(serde::de::Error::custom)
-    }
-}
-
-#[cfg(any(test, all(feature = "mock", feature = "generate")))]
-pub mod mock {
-    use indexmap::IndexSet;
-
-    use crate::server_keys::generate::Ca;
-    use crate::trust_anchor::TrustAnchors;
-
-    impl From<&Ca> for TrustAnchors {
-        fn from(value: &Ca) -> Self {
-            // This implementation is meant for unit and integration tests, it expects a proper `Ca` with a valid
-            // certificate, hence the `unwrap`s.
-            let certs = IndexSet::from_iter([value.as_borrowing_certificate().unwrap()]);
-            certs.try_into().unwrap()
-        }
     }
 }
