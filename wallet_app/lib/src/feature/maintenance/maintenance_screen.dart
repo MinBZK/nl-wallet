@@ -11,7 +11,6 @@ import '../../util/formatter/datetime/date_formatter.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/button_content.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/text/body_text.dart';
@@ -38,7 +37,6 @@ class MaintenanceScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         title: TitleText(context.l10n.maintenanceScreenHeadline),
-        actions: const [HelpIconButton()],
       ),
       body: SafeArea(
         child: _buildContent(context),

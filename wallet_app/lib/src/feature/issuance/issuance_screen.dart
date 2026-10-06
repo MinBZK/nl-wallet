@@ -102,8 +102,12 @@ class IssuanceScreen extends StatelessWidget {
   bool _showHelpIcon(BuildContext context) {
     final state = context.watch<IssuanceBloc>().state;
     return switch (state) {
+      IssuanceInitial() => false,
+      IssuanceLoadInProgress() => false,
+      IssuanceAuthenticateWithIssuer() => false,
       IssuanceMissingAttributes() => false,
-      IssuanceError(:final error) => error is! RelyingPartyError,
+      IssuanceCompleted() => false,
+      IssuanceError(:final error) => error is! RelyingPartyError && error is! PreAuthorizedCodeExpiredError,
       _ => true,
     };
   }

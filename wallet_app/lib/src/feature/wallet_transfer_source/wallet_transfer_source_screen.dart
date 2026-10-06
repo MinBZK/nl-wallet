@@ -48,7 +48,10 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
           title: _buildTitle(context),
           leading: _buildBackButton(context),
           automaticallyImplyLeading: false,
-          actions: [const HelpIconButton(), _buildCloseButton(context)],
+          actions: [
+            if (_showHelpIcon(context)) const HelpIconButton(),
+            _buildCloseButton(context),
+          ],
           progress: context.bloc.state.stepperProgress,
         ),
         body: BlocConsumer<WalletTransferSourceBloc, WalletTransferSourceState>(
@@ -205,6 +208,18 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
         key: const Key('primaryButtonCta'),
       ),
     );
+  }
+
+  bool _showHelpIcon(BuildContext context) {
+    final state = context.watch<WalletTransferSourceBloc>().state;
+    return switch (state) {
+      WalletTransferInitial() => false,
+      WalletTransferLoading() => false,
+      WalletTransferCancelling() => false,
+      WalletTransferTransferring() => false,
+      WalletTransferSuccess() => false,
+      _ => true,
+    };
   }
 
   Widget? _buildBackButton(BuildContext context) {

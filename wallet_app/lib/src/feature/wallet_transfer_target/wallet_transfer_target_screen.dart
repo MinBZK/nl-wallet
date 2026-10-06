@@ -43,7 +43,10 @@ class WalletTransferTargetScreen extends StatelessWidget {
           title: _buildTitle(context),
           leading: _buildBackButton(context),
           automaticallyImplyLeading: false,
-          actions: [const HelpIconButton(), _buildCloseButton(context)],
+          actions: [
+            if (_showHelpIcon(context)) const HelpIconButton(),
+            _buildCloseButton(context),
+          ],
           progress: context.bloc.state.stepperProgress,
         ),
         body: BlocConsumer<WalletTransferTargetBloc, WalletTransferTargetState>(
@@ -182,6 +185,17 @@ class WalletTransferTargetScreen extends StatelessWidget {
         key: const Key('primaryButtonCta'),
       ),
     );
+  }
+
+  bool _showHelpIcon(BuildContext context) {
+    final state = context.watch<WalletTransferTargetBloc>().state;
+    return switch (state) {
+      WalletTransferLoadingQrData() => false,
+      WalletTransferAwaitingConfirmation() => false,
+      WalletTransferTransferring() => false,
+      WalletTransferSuccess() => false,
+      _ => true,
+    };
   }
 
   Widget? _buildBackButton(BuildContext context) {

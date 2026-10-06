@@ -33,7 +33,10 @@ class ReviewRevocationCodeScreen extends StatelessWidget {
         appBar: WalletAppBar(
           automaticallyImplyLeading: false,
           leading: _buildBackButton(context),
-          actions: [const HelpIconButton(), _buildCloseButton(context)],
+          actions: [
+            if (_showHelpIcon(context)) const HelpIconButton(),
+            _buildCloseButton(context),
+          ],
           title: TitleText(context.l10n.reviewRevocationCodeScreenTitle),
           progress: _resolveProgress(context),
         ),
@@ -59,6 +62,14 @@ class ReviewRevocationCodeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _showHelpIcon(BuildContext context) {
+    final state = context.watch<ReviewRevocationCodeBloc>().state;
+    return switch (state) {
+      ReviewRevocationCodeSuccess() => false,
+      _ => true,
+    };
   }
 
   Widget _buildInitial(BuildContext context) {

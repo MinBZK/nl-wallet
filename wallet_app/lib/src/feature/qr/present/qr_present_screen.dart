@@ -106,10 +106,10 @@ class QrPresentScreen extends StatelessWidget {
     return switch (state) {
       QrPresentInitial() => const [HelpIconButton()],
       QrPresentServerStarted() => const [HelpIconButton()],
-      QrPresentConnected() => const [HelpIconButton()],
+      QrPresentConnected() => null,
       QrPresentConnectionFailed() => null,
       QrPresentError() => const [HelpIconButton()],
-      QrPresentBluetoothDisabled() => const [HelpIconButton(), CloseIconButton()],
+      QrPresentBluetoothDisabled() => const [CloseIconButton()],
     };
   }
 

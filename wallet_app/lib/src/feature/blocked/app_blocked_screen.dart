@@ -102,6 +102,7 @@ class AppBlockedScreen extends StatelessWidget {
       primaryButton: canRegisterNewAccount ? _buildCreateWalletButton(context) : _buildHelpdeskButton(context),
       secondaryButton: canRegisterNewAccount ? _buildHelpdeskButton(context) : null,
       illustration: WalletAssets.svg_blocked_final,
+      showHelpButton: false,
     );
   }
 
@@ -112,6 +113,7 @@ class AppBlockedScreen extends StatelessWidget {
       description: context.l10n.appBlockedScreenSolutionRevokedDescription,
       primaryButton: _buildMoreInfoButton(context),
       illustration: WalletAssets.svg_blocked_final,
+      showHelpButton: false,
     );
   }
 
