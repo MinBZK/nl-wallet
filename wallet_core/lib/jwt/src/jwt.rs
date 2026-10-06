@@ -1347,7 +1347,6 @@ mod tests {
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::DistinguishedName;
-    use crypto::x509::NO_SAN;
     use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::CertificateCrlVerifier;
     use ecdsa::elliptic_curve::Generate;
@@ -1784,7 +1783,6 @@ mod tests {
                     crl_distribution_points: vec![crl_url],
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
         let crl_mock = server

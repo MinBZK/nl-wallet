@@ -506,7 +506,6 @@ mod tests {
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateError;
     use crate::x509::DistinguishedName;
-    use crate::x509::NO_SAN;
 
     #[derive(Clone, Debug)]
     struct ConcurrencyTrackingFetcher {
@@ -632,7 +631,7 @@ mod tests {
             crl_distribution_points: urls,
             ..Default::default()
         };
-        ca.generate_key_pair(DistinguishedName::create_mock("leaf"), config, NO_SAN)
+        ca.generate_key_pair(DistinguishedName::create_mock("leaf"), config)
             .unwrap()
             .into()
     }
@@ -925,7 +924,6 @@ mod tests {
                     crl_distribution_points: vec![leaf_crl_url.clone()],
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
         let fetcher = ConcurrencyTrackingFetcher::new([
@@ -1169,7 +1167,7 @@ mod tests {
             ..Default::default()
         };
         let leaf = ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), config, NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), config)
             .unwrap();
         leaf.certificate().clone()
     }
@@ -1307,7 +1305,6 @@ mod tests {
                     crl_distribution_points: vec![intermediate_crl_url.clone()],
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
 
@@ -1396,7 +1393,6 @@ mod tests {
                     crl_distribution_points: vec![leaf_crl_url],
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
         server

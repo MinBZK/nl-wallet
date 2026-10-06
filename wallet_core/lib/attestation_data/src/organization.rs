@@ -140,7 +140,6 @@ pub mod test {
     use attestation_types::image::Image;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::DistinguishedName;
-    use crypto::x509::NO_SAN;
     use rstest::rstest;
     use serde_json::json;
     use token_status_list::verification::verifier::RevocationVerifier;
@@ -176,7 +175,7 @@ pub mod test {
     ) {
         let access_key = Ca::generate_wrpac_mock_ca()
             .unwrap()
-            .generate_key_pair(subject, Default::default(), NO_SAN)
+            .generate_key_pair(subject, Default::default())
             .unwrap();
         let mut payload = issuer_registration_certificate_payload(access_key.certificate(), []);
         payload.0["name"] = json!(has_optional_fields.then_some("Issuer service"));

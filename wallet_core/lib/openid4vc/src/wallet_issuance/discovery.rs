@@ -844,7 +844,6 @@ mod test {
         let mut issuer_metadata_json = json!({
             "credential_issuer": issuer_identifier.to_string(),
             "credential_endpoint": server.url("/issuance/credential"),
-            "credential_preview_endpoint": server.url("/issuance/credential_preview"),
             "batch_credential_issuance": {
                 "batch_size": 1000,
             },
@@ -886,6 +885,9 @@ mod test {
         }
         if options.has_nonce_endpoint {
             issuer_metadata_json["nonce_endpoint"] = json!(server.url("/issuance/nonce"));
+        }
+        if options.has_credential_preview_endpoint {
+            issuer_metadata_json["credential_preview_endpoint"] = json!(server.url("/issuance/credential_preview"));
         }
 
         let mut payload = issuer_registration_certificate_payload(
@@ -1008,6 +1010,7 @@ mod test {
     #[derive(Debug, Clone, Copy)]
     struct IssuerMetadataOptions<'a> {
         has_nonce_endpoint: bool,
+        has_credential_preview_endpoint: bool,
         requires_key_binding: bool,
         grant_types_supported: Option<&'a [&'a str]>,
         has_client_attestation_support: bool,
@@ -1021,6 +1024,7 @@ mod test {
         fn default() -> Self {
             Self {
                 has_nonce_endpoint: true,
+                has_credential_preview_endpoint: true,
                 requires_key_binding: true,
                 grant_types_supported: Some(DEFAULT_GRANT_TYPES_SUPPORTED),
                 has_client_attestation_support: true,
@@ -1032,8 +1036,8 @@ mod test {
         }
     }
 
-    /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint,
-    /// and a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
+    /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint, and, if enabled in the
+    /// options, a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
     async fn start_httpmock_issuer(
         metadata_options: IssuerMetadataOptions<'_>,
     ) -> (
@@ -1110,16 +1114,20 @@ mod test {
             })
             .await;
 
-        server
-            .mock_async(|when, then| {
-                when.method(POST).path("/issuance/credential_preview");
+        // Only serve the credential preview if the issuer advertises the endpoint. Otherwise, a request to it results
+        // in an error response.
+        if metadata_options.has_credential_preview_endpoint {
+            server
+                .mock_async(|when, then| {
+                    when.method(POST).path("/issuance/credential_preview");
 
-                then.status(200)
-                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
-                    .header("DPoP-Nonce", "mock_dpop_nonce")
-                    .json_body(serde_json::to_value(preview_response).unwrap());
-            })
-            .await;
+                    then.status(200)
+                        .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                        .header("DPoP-Nonce", "mock_dpop_nonce")
+                        .json_body(serde_json::to_value(preview_response).unwrap());
+                })
+                .await;
+        }
 
         (
             server,
@@ -1150,6 +1158,7 @@ mod test {
     async fn http_issuance_discovery_start(
         #[case] scenario: IssuanceDiscoveryScenario,
         #[values(false, true)] is_by_reference: bool,
+        #[values(true, false)] has_credential_preview_endpoint: bool,
     ) {
         // Start a mock issuance server, which may or may not have a "grant_types_supported" field.
         let has_grant_types_supported = match &scenario {
@@ -1171,6 +1180,7 @@ mod test {
             registration_certificate,
         ) = start_httpmock_issuer(IssuerMetadataOptions {
             grant_types_supported: has_grant_types_supported.then_some(DEFAULT_GRANT_TYPES_SUPPORTED),
+            has_credential_preview_endpoint,
             ..IssuerMetadataOptions::default()
         })
         .await;
@@ -1373,11 +1383,19 @@ mod test {
                 subject.organization_identifier.as_ref()
             );
 
-            // Check that the issuance session contains the expected credential preview.
-            let Ok((preview, _metadata)) = issuance_session.previews_with_metadata().unwrap().exactly_one() else {
-                panic!("issuance session should contain exactly one preview")
-            };
-            assert_eq!(preview.credential_payload.attestation_type, PID_ATTESTATION_TYPE);
+            // Check that the issuance session contains the expected credential preview, if the issuer provides
+            // previews.
+            match issuance_session.credential_previews() {
+                Some(credential_previews) => {
+                    assert!(has_credential_preview_endpoint);
+
+                    let Ok(preview) = credential_previews.exactly_one() else {
+                        panic!("issuance session should contain exactly one preview")
+                    };
+                    assert_eq!(preview.credential_payload.attestation_type, PID_ATTESTATION_TYPE);
+                }
+                None => assert!(!has_credential_preview_endpoint),
+            }
 
             // Check that the batch size from the Issuer Metadata was capped.
             assert_eq!(issuance_session.batch_size(), BATCH_SIZE_MAX);

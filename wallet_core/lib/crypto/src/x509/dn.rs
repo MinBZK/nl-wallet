@@ -244,7 +244,6 @@ mod tests {
     use crate::x509::BorrowingCertificate;
     use crate::x509::DistinguishedName;
     use crate::x509::DistinguishedNameError;
-    use crate::x509::NO_SAN;
 
     const CN_OID: &Oid = &oid!(2.5.4.3);
     const COUNTRY_OID: &Oid = &oid!(2.5.4.6);
@@ -363,7 +362,7 @@ mod tests {
         let ca_dn = DistinguishedName::create_mock("myca");
         let ca = Ca::generate(ca_dn.clone(), Default::default()).unwrap();
         let dn = DistinguishedName::create_legal_person_mock("mycert");
-        let key_pair = ca.generate_key_pair(dn.clone(), Default::default(), NO_SAN).unwrap();
+        let key_pair = ca.generate_key_pair(dn.clone(), Default::default()).unwrap();
         let certificate = key_pair.certificate();
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
@@ -391,7 +390,7 @@ mod tests {
         let ca_dn = DistinguishedName::create_mock("myca");
         let ca = Ca::generate(ca_dn.clone(), Default::default()).unwrap();
         let dn = DistinguishedName::create_natural_person_mock("John", "Doe");
-        let key_pair = ca.generate_key_pair(dn.clone(), Default::default(), NO_SAN).unwrap();
+        let key_pair = ca.generate_key_pair(dn.clone(), Default::default()).unwrap();
         let certificate = key_pair.certificate();
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());

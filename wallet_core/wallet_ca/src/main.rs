@@ -23,10 +23,8 @@ use crypto::server_keys::generate;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
-use crypto::x509::NO_SAN;
-use crypto::x509::SubjectAltNameUri;
+use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
 use mdoc::DataElements;
@@ -169,7 +167,7 @@ enum Command {
         given_name: Option<String>,
         /// Subject Alternative Name URIs
         #[arg(long = "san-uri", num_args(0..))]
-        san_uris: Vec<String>,
+        san_uris: Vec<HttpsUri>,
         /// Certificate type in EDI
         #[arg(short = 't', long = "type", value_parser)]
         cert_type: CertType,
@@ -222,7 +220,7 @@ enum Command {
         given_name: Option<String>,
         /// Subject Alternative Name URIs
         #[arg(long = "san-uri", num_args(0..))]
-        san_uris: Vec<String>,
+        san_uris: Vec<HttpsUri>,
         /// Certificate type in EDI
         #[arg(short = 't', long = "type", value_parser)]
         cert_type: CertType,
@@ -375,12 +373,6 @@ impl Command {
         })
     }
 
-    fn get_san_uris(uris: Vec<String>) -> Result<Vec<SubjectAltNameUri>> {
-        uris.into_iter()
-            .map(|uri| uri.parse::<SubjectAltNameUri>().map_err(anyhow::Error::from))
-            .try_collect()
-    }
-
     fn get_ca_configuration(days: u32) -> CertificateConfiguration {
         let not_before = Utc::now();
         let not_after = not_before
@@ -400,6 +392,7 @@ impl Command {
         cert_type: CertType,
         days: u32,
         crl_distribution_points: Vec<Url>,
+        san_uris: Vec<HttpsUri>,
     ) -> CertificateConfiguration {
         let usage = match cert_type {
             CertType::Issuer => Some(CertificateUsage::Mdl),
@@ -408,10 +401,12 @@ impl Command {
             CertType::KeyAttestation => Some(CertificateUsage::KeyAttestation),
             CertType::Wrpac | CertType::Wrprc => None,
         };
+        let subject_alt_names = san_uris.into_iter().map(Into::into).collect();
 
         CertificateConfiguration {
             usage,
             crl_distribution_points,
+            subject_alt_names,
             ..Self::get_ca_configuration(days)
         }
     }
@@ -462,9 +457,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points);
-                let san_uris = Self::get_san_uris(san_uris)?;
-                let key_pair = ca.generate_key_pair(distinguished_name, config, san_uris)?;
+                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points, san_uris);
+                let key_pair = ca.generate_key_pair(distinguished_name, config)?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
                 Ok(())
             }
@@ -498,10 +492,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points);
-                let san_uris = Self::get_san_uris(san_uris)?;
-                let certificate =
-                    ca.generate_certificate(public_key.contents(), distinguished_name, config, san_uris)?;
+                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points, san_uris);
+                let certificate = ca.generate_certificate(public_key.contents(), distinguished_name, config)?;
                 write_certificate(&certificate, &file_prefix, force)?;
                 Ok(())
             }
@@ -822,7 +814,7 @@ async fn create_reader_device_request(
 ) -> Result<DeviceRequest> {
     // TODO PVW-6052 Derive item requests from `credentials` field of WRPRC
     let items_requests = items_requests_from_registration_cert(true, &vec![])?;
-    let key_pair = ca.generate_key_pair(distinguished_name, CertificateConfiguration::default(), NO_SAN)?;
+    let key_pair = ca.generate_key_pair(distinguished_name, CertificateConfiguration::default())?;
 
     let mut doc_requests = Vec::with_capacity(items_requests.len());
     for items_request in items_requests {

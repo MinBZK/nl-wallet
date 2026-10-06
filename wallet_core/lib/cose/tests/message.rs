@@ -11,7 +11,6 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
-use crypto::x509::NO_SAN;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use p256::ecdsa::SigningKey;
@@ -198,7 +197,6 @@ async fn verifies_certificate_chain_with_intermediate() {
         .generate_key_pair(
             DistinguishedName::create_mock("leaf"),
             CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-            NO_SAN,
         )
         .unwrap();
     let header = header_with_x5chain(&vec_nonempty![leaf_key_pair.certificate(), &intermediate_certificate]);
@@ -232,7 +230,6 @@ async fn rejects_missing_intermediate_certificate() {
         .generate_key_pair(
             DistinguishedName::create_mock("leaf"),
             CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-            NO_SAN,
         )
         .unwrap();
     let header = header_with_x5chain(&vec_nonempty![leaf_key_pair.certificate()]);

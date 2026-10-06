@@ -87,7 +87,7 @@ pub fn credential_offer_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
     universal_link_base.join_base_url(CREDENTIAL_OFFER_BASE_PATH)
 }
 
-#[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "https")), derive(Debug, Clone, TryFrom, FromStr, Into, Display, PartialEq, Eq, Serialize, Deserialize))]
+#[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "https")), derive(Debug, Clone, TryFrom, FromStr, Into, AsRef, Display, PartialEq, Eq, Serialize, Deserialize))]
 pub struct HttpsUri(String);
 
 #[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(Debug, Clone, TryFrom, PartialEq, Eq, Deserialize))]
