@@ -5,7 +5,15 @@ use p256::ecdsa::VerifyingKey;
 
 use crate::keys::EcdsaKey;
 use crate::x509::BorrowingCertificate;
-use crate::x509::CertificateError;
+
+#[derive(Debug, thiserror::Error)]
+pub enum KeyPairError {
+    #[error("private key does not belong to public key from certificate")]
+    KeyMismatch,
+
+    #[error("failed to get public key from private key: {0}")]
+    PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+}
 
 #[derive(Debug, Clone)]
 pub struct KeyPair<S = SigningKey> {
@@ -18,9 +26,9 @@ impl KeyPair {
     pub fn new_from_signing_key(
         private_key: SigningKey,
         certificate: BorrowingCertificate,
-    ) -> Result<KeyPair, CertificateError> {
+    ) -> Result<KeyPair, KeyPairError> {
         if certificate.public_key() != private_key.verifying_key() {
-            return Err(CertificateError::KeyMismatch);
+            return Err(KeyPairError::KeyMismatch);
         }
 
         Ok(KeyPair {
@@ -31,14 +39,14 @@ impl KeyPair {
 }
 
 impl<S: EcdsaKey> KeyPair<S> {
-    pub async fn new(private_key: S, certificate: BorrowingCertificate) -> Result<KeyPair<S>, CertificateError> {
+    pub async fn new(private_key: S, certificate: BorrowingCertificate) -> Result<KeyPair<S>, KeyPairError> {
         if certificate.public_key()
             != &private_key
                 .verifying_key()
                 .await
-                .map_err(|e| CertificateError::PublicKeyFromPrivate(Box::new(e)))?
+                .map_err(|e| KeyPairError::PublicKeyFromPrivate(Box::new(e)))?
         {
-            return Err(CertificateError::KeyMismatch);
+            return Err(KeyPairError::KeyMismatch);
         }
 
         Ok(KeyPair {
@@ -100,6 +108,7 @@ pub mod generate {
     use rustls_pki_types::TrustAnchor;
     use time::Duration;
     use time::OffsetDateTime;
+    use x509_parser::error::X509Error;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
 
@@ -107,7 +116,7 @@ pub mod generate {
     use crate::trust_anchor::BorrowingTrustAnchor;
     use crate::x509::BorrowingCertificate;
     use crate::x509::CertificateConfiguration;
-    use crate::x509::CertificateError;
+    use crate::x509::CertificateParseError;
     use crate::x509::DistinguishedName;
 
     #[derive(thiserror::Error, Debug)]
@@ -124,8 +133,14 @@ pub mod generate {
         #[error("the basic constraint of this CA does not allow generating an intermediate CA")]
         BasicConstraintViolation,
 
-        #[error("could not parse certificate: {0}")]
-        Certificate(#[source] CertificateError),
+        #[error("certificate parsing failed: {0}")]
+        CertificateParsing(#[source] Box<webpki::Error>),
+
+        #[error("certificate content parsing failed: {0}")]
+        X509CertificateParsing(#[source] x509_parser::nom::Err<X509Error>),
+
+        #[error("certificate parse: {0}")]
+        CertificateParse(#[source] CertificateParseError),
     }
 
     fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateGenerationError> {
@@ -146,9 +161,8 @@ pub mod generate {
             certificate: CertificateDer<'static>,
             intermediate_count: u8,
         ) -> Result<Self, CertificateGenerationError> {
-            let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.as_ref()).map_err(|error| {
-                CertificateGenerationError::Certificate(CertificateError::CertificateParsing(Box::new(error)))
-            })?;
+            let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.as_ref())
+                .map_err(|error| CertificateGenerationError::CertificateParsing(Box::new(error)))?;
 
             let ca = Self {
                 issuer,
@@ -193,9 +207,8 @@ pub mod generate {
             certificate_der: impl AsRef<[u8]>,
             signing_key_der: impl AsRef<[u8]>,
         ) -> Result<Self, CertificateGenerationError> {
-            let (_, x509_certificate) = X509Certificate::from_der(certificate_der.as_ref()).map_err(|error| {
-                CertificateGenerationError::Certificate(CertificateError::X509CertificateParsing(error))
-            })?;
+            let (_, x509_certificate) = X509Certificate::from_der(certificate_der.as_ref())
+                .map_err(CertificateGenerationError::X509CertificateParsing)?;
 
             // Check if the parsed certificate is actually a root CA.
             if !x509_certificate.is_ca() || x509_certificate.issuer() != x509_certificate.subject() {
@@ -219,7 +232,8 @@ pub mod generate {
         }
 
         pub fn as_borrowing_certificate(&self) -> Result<BorrowingCertificate, CertificateGenerationError> {
-            BorrowingCertificate::from_der(self.certificate().as_ref()).map_err(CertificateGenerationError::Certificate)
+            BorrowingCertificate::from_der(self.certificate().as_ref())
+                .map_err(CertificateGenerationError::CertificateParse)
         }
 
         pub fn borrowing_trust_anchor(&self) -> &BorrowingTrustAnchor {
@@ -312,7 +326,7 @@ pub mod generate {
                 .signed_by(pk, &self.issuer)
                 .map_err(CertificateGenerationError::GeneratingFailed)?;
             let certificate = BorrowingCertificate::from_certificate_der(certificate.into())
-                .map_err(CertificateGenerationError::Certificate)?;
+                .map_err(CertificateGenerationError::CertificateParse)?;
             Ok(certificate)
         }
 
@@ -419,18 +433,16 @@ pub mod generate {
         pub static WRPAC_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA wrpac"));
 
-        pub static ISSUANCE_CA_DN: LazyLock<DistinguishedName> =
+        pub static ISSUER_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA issuer"));
-        pub static ISSUANCE_CERT_DN: LazyLock<DistinguishedName> =
+        pub static ISSUER_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert issuer"));
         pub static PID_ISSUER_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("PID"));
         pub static WIA_CERT_DN: LazyLock<DistinguishedName> = LazyLock::new(|| DistinguishedName::create_mock("WIA"));
 
-        pub static RP_CA_DN: LazyLock<DistinguishedName> =
-            LazyLock::new(|| DistinguishedName::create_mock("CA relying party"));
-        pub static RP_CERT_DN: LazyLock<DistinguishedName> =
-            LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert relying party"));
+        pub static VERIFIER_CERT_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert verifier"));
 
         impl Ca {
             pub fn generate_mock() -> Self {
@@ -446,12 +458,12 @@ pub mod generate {
             }
 
             pub fn generate_issuer_mock_ca() -> Result<Self, CertificateGenerationError> {
-                Self::generate(ISSUANCE_CA_DN.clone(), Default::default())
+                Self::generate(ISSUER_CA_DN.clone(), Default::default())
             }
 
             pub fn generate_issuer_mock_ca_without_aki() -> Result<Self, CertificateGenerationError> {
                 Self::generate(
-                    ISSUANCE_CA_DN.clone(),
+                    ISSUER_CA_DN.clone(),
                     CertificateConfiguration {
                         exclude_aki: true,
                         ..Default::default()
@@ -460,12 +472,12 @@ pub mod generate {
             }
 
             pub fn generate_wrpac_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(ISSUANCE_CERT_DN.clone(), Default::default())
+                self.generate_key_pair(ISSUER_CERT_DN.clone(), Default::default())
             }
 
             pub fn generate_wrpac_issuer_mock_with_crl(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
-                    ISSUANCE_CERT_DN.clone(),
+                    ISSUER_CERT_DN.clone(),
                     CertificateConfiguration {
                         crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
                         ..Default::default()
@@ -474,12 +486,12 @@ pub mod generate {
             }
 
             pub fn generate_wrpac_verifier_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(RP_CERT_DN.clone(), Default::default())
+                self.generate_key_pair(VERIFIER_CERT_DN.clone(), Default::default())
             }
 
             pub fn generate_wrpac_verifier_mock_with_crl(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
-                    RP_CERT_DN.clone(),
+                    VERIFIER_CERT_DN.clone(),
                     CertificateConfiguration {
                         crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
                         ..Default::default()
@@ -496,7 +508,7 @@ pub mod generate {
 
             pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
-                    ISSUANCE_CERT_DN.clone(),
+                    ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Mdl),
                 )
             }
@@ -510,7 +522,7 @@ pub mod generate {
 
             pub fn generate_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
-                    ISSUANCE_CERT_DN.clone(),
+                    ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
                 )
             }
@@ -542,7 +554,7 @@ pub mod generate {
                     .signed_by(&key_pair, &self.issuer)
                     .map_err(CertificateGenerationError::GeneratingFailed)?;
                 let certificate = BorrowingCertificate::from_certificate_der(certificate.into())
-                    .map_err(CertificateGenerationError::Certificate)?;
+                    .map_err(CertificateGenerationError::CertificateParse)?;
 
                 Ok(KeyPair {
                     private_key,

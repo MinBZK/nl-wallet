@@ -1,6 +1,7 @@
 use crypto::PublicKey;
 use crypto::PublicKeyError;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateParseError;
+use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use error_category::ErrorCategory;
 pub use jsonwebtoken::errors::ErrorKind as ValidationErrorKind;
@@ -176,10 +177,10 @@ pub enum JwtX5cVerifyError {
     CertificateBase64(#[source] base64::DecodeError),
 
     #[error("error parsing certificate: {0}")]
-    CertificateParsing(#[source] CertificateError),
+    CertificateParsing(#[source] CertificateParseError),
 
     #[error("error verifying certificate: {0}")]
-    CertificateValidation(#[source] CertificateError),
+    CertificateValidation(#[source] CertificateVerifyError),
 
     #[error("error verifying certificate with CRLs: {0}")]
     CertificateCrlValidation(#[source] CertificateCrlVerificationError),

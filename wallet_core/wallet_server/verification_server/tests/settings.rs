@@ -13,7 +13,7 @@ use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateVerifyError;
 use dcql::Query;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
@@ -234,7 +234,7 @@ fn test_settings_wrong_wrpac_ca() {
     assert_matches!(
         error,
         VerifierUseCasesValidationError::Certificate(CertificateVerificationError::InvalidCertificate(
-            CertificateError::Verification(_), key
+            CertificateVerifyError::Verification(_), key
         )) if key == "wrong_ca"
     );
 }
@@ -259,8 +259,8 @@ fn test_settings_wrong_wrprc_ca(#[case] format: RegistrationCertificateFormat) {
         Err(VerifierUseCasesValidationError::InvalidRegistrationCertificate { use_case_id, source })
             if use_case_id == "wrong_ca"
                 && source.chain().any(|error| matches!(
-                    error.downcast_ref::<CertificateError>(),
-                    Some(CertificateError::Verification(_))
+                    error.downcast_ref::<CertificateVerifyError>(),
+                    Some(CertificateVerifyError::Verification(_))
                 ))
     );
 
