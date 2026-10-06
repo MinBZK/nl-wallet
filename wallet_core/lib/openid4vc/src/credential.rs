@@ -78,8 +78,6 @@ pub enum CredentialRequestIdentifier {
 #[serde(rename_all = "snake_case")]
 pub enum CredentialRequestProofs {
     Attestation([KeyAttestation; 1]),
-
-    // TODO (PVW-6238): Update `jwt` proof type to OpenID4VCI 1.0.
     Jwt(VecNonEmpty<JwtProof>),
 }
 
