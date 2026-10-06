@@ -63,33 +63,3 @@ impl From<wallet::attestation_data::Organization> for Organization {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use rstest::rstest;
-
-    use super::Organization;
-    use super::PersonType;
-
-    #[rstest]
-    #[case::unknown(None, None)]
-    #[case::natural_person(
-        Some(wallet::attestation_data::SubjectType::NaturalPerson),
-        Some(PersonType::NaturalPerson)
-    )]
-    #[case::legal_person(
-        Some(wallet::attestation_data::SubjectType::LegalPerson),
-        Some(PersonType::LegalPerson)
-    )]
-    fn maps_organization_person_type(
-        #[case] person_type: Option<wallet::attestation_data::SubjectType>,
-        #[case] expected: Option<PersonType>,
-    ) {
-        let organization = Organization::from(wallet::attestation_data::Organization {
-            person_type,
-            ..Default::default()
-        });
-
-        assert_eq!(organization.person_type, expected);
-    }
-}

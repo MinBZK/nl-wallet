@@ -108,27 +108,17 @@ impl From<RelyingParty> for Organization {
 mod tests {
     use std::assert_matches;
 
-    use rstest::rstest;
-
     use super::*;
-
-    #[rstest]
-    #[case::legal_person(DistinguishedName::create_legal_person_mock("Example"), SubjectType::LegalPerson)]
-    #[case::natural_person(
-        DistinguishedName::create_natural_person_mock("Jane", "Doe"),
-        SubjectType::NaturalPerson
-    )]
-    fn maps_relying_party_person_type(#[case] subject: DistinguishedName, #[case] person_type: SubjectType) {
-        let relying_party = RelyingParty::try_from(subject).unwrap();
-        let organization = Organization::from(relying_party);
-
-        assert_eq!(organization.person_type, Some(person_type));
-    }
 
     #[test]
     fn parse_legal_person_name() {
         let dn = DistinguishedName::create_legal_person_mock("Test");
         let rp = RelyingParty::try_from(dn.clone()).unwrap();
+        assert_eq!(
+            Organization::from(rp.clone()).person_type,
+            Some(SubjectType::LegalPerson)
+        );
+
         let RelyingParty::LegalPerson {
             common_name,
             country_name,
@@ -148,6 +138,11 @@ mod tests {
     fn parse_natural_person_name() {
         let dn = DistinguishedName::create_natural_person_mock("John", "Doe");
         let rp = RelyingParty::try_from(dn.clone()).unwrap();
+        assert_eq!(
+            Organization::from(rp.clone()).person_type,
+            Some(SubjectType::NaturalPerson)
+        );
+
         let RelyingParty::NaturalPerson {
             common_name,
             country_name,

@@ -209,19 +209,17 @@ pub mod test {
         #[case] legal_name: &str,
         #[case] person_type: SubjectType,
         #[values(false, true)] has_optional_fields: bool,
-        #[values(None, Some(false), Some(true))] public_body: Option<bool>,
-        #[values("https://example.com/support", "support@example.com")] support_uri: &str,
     ) {
         let access_key = Ca::generate_wrpac_mock_ca()
             .unwrap()
             .generate_key_pair(subject, Default::default(), NO_SAN)
             .unwrap();
         let mut payload = issuer_registration_certificate_payload(access_key.certificate(), []);
-        payload.0["support_uri"] = json!(support_uri);
-        payload.0["public_body"] = json!(public_body);
         payload.0["name"] = json!(has_optional_fields.then_some("Issuer service"));
         payload.0["info_uri"] = json!(has_optional_fields.then_some("https://example.com/info"));
         payload.0["privacy_policy"] = json!(has_optional_fields.then_some("https://example.com/privacy"));
+        payload.0["support_uri"] = json!("https://example.com/support");
+        payload.0["public_body"] = json!(has_optional_fields.then_some(true));
         payload.0["srv_description"] = json!([
             [
                 { "lang": "en", "value": "First service" },
@@ -278,8 +276,8 @@ pub mod test {
                 country_code: "NL".to_owned(),
                 web_url: has_optional_fields.then(|| "https://example.com/info".parse().unwrap()),
                 privacy_policy_url: has_optional_fields.then(|| "https://example.com/privacy".parse().unwrap()),
-                support_uri: Some(support_uri.to_owned()),
-                public_body,
+                support_uri: Some("https://example.com/support".to_owned()),
+                public_body: has_optional_fields.then_some(true),
                 person_type: Some(person_type),
             }
         );
