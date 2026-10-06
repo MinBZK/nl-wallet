@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
@@ -86,7 +85,6 @@ use crate::credential::SdJwtCredential;
 use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationTypeMetadata;
 use crate::credential_configurations::CredentialConfigurations;
-use crate::credential_configurations::CredentialConfigurationsError;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
@@ -640,19 +638,17 @@ where
     L: StatusListService,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
-    pub fn try_new(
+    pub fn new(
         issuer_identifier: IssuerIdentifier,
         metadata_keypair: KeyPair<K>,
         registration_certificate: RegistrationCertificateEnvelope,
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
-        credential_configs: HashMap<CredentialConfigurationId, CredentialConfiguration<K, L>>,
+        credential_configs: CredentialConfigurations<K, L>,
         wia_trust_anchors: TrustAnchors,
         sessions: Arc<S>,
         nonce_store: N,
-    ) -> Result<Self, CredentialConfigurationsError> {
-        let credential_configs = CredentialConfigurations::try_new(credential_configs)?;
-
+    ) -> Self {
         let server_url = issuer_identifier.as_issuer_url().join_issuer_url("/issuance");
         let credential_endpoint = server_url.join_issuer_url(&format!("/{CREDENTIAL_ENDPOINT_PATH}"));
         let nonce_endpoint = server_url.join_issuer_url("/nonce");
@@ -703,14 +699,12 @@ where
             .map(|config| config.status_list.start_refresh_job())
             .collect();
 
-        let issuer = Self {
+        Self {
             issuer_data,
             sessions,
             nonce_store,
             status_list_refresh_tasks,
-        };
-
-        Ok(issuer)
+        }
     }
 }
 

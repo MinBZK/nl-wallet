@@ -178,6 +178,7 @@ mod tests {
     use openid4vc::credential_configurations::CredentialConfiguration;
     use openid4vc::credential_configurations::CredentialConfigurationFormat;
     use openid4vc::credential_configurations::CredentialConfigurationTypeMetadata;
+    use openid4vc::credential_configurations::CredentialConfigurations;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::issuable_document::IssuableDocument;
@@ -289,18 +290,18 @@ mod tests {
         // Normally this is its own CA; here we just reuse the ca we have.
         let wia_trust_anchors = TrustAnchors::from(&ca);
 
-        Issuer::try_new(
+        Issuer::new(
             "https://example.com".parse().unwrap(),
             metadata_keypair,
             RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
             NonZeroU8::MIN,
             HashSet::new(),
-            [("credential_config_id".to_string().into(), credential_config)].into(),
+            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), credential_config)].into())
+                .unwrap(),
             wia_trust_anchors,
             sessions,
             MemoryNonceStore::new(),
         )
-        .unwrap()
     }
 
     #[tokio::test]

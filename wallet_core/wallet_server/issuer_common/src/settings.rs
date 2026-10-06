@@ -28,6 +28,7 @@ use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::credential_configurations::CredentialConfiguration;
 use openid4vc::credential_configurations::CredentialConfigurationFormat;
 use openid4vc::credential_configurations::CredentialConfigurationTypeMetadata;
+use openid4vc::credential_configurations::CredentialConfigurations;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -698,7 +699,10 @@ impl IssuerSettings {
             .await
             .map_err(IssuerSettingsError::CredentialConfigurationsSettings)?;
 
-        let issuer = Issuer::try_new(
+        let credential_configs = CredentialConfigurations::try_new(credential_configs)
+            .map_err(IssuerSettingsError::CredentialConfigurations)?;
+
+        let issuer = Issuer::new(
             self.public_url,
             metadata_keypair,
             self.registration_certificate,
@@ -708,8 +712,7 @@ impl IssuerSettings {
             self.wia_trust_anchors,
             Arc::new(sessions),
             proof_nonce_store,
-        )
-        .map_err(IssuerSettingsError::CredentialConfigurations)?;
+        );
 
         Ok((issuer, database_checkers, store_connection, self.server_settings))
     }

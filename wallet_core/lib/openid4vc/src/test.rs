@@ -53,6 +53,7 @@ use crate::authorizing_issuer::AuthorizingIssuer;
 use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationFormat;
 use crate::credential_configurations::CredentialConfigurationTypeMetadata;
+use crate::credential_configurations::CredentialConfigurations;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
@@ -359,35 +360,38 @@ where
         attestations.iter().map(CredentialConfigurationFormat::credential_kind),
     );
 
-    let credential_configs = attestations
-        .into_iter()
-        .map(|format| {
-            let config_id = format!("{}_{}", format.attestation_type(), format.format());
+    let credential_configs = CredentialConfigurations::try_new(
+        attestations
+            .into_iter()
+            .map(|format| {
+                let config_id = format!("{}_{}", format.attestation_type(), format.format());
 
-            let status_list_uri_path = config_id.replace(':', "-");
-            let status_list = MockObtainingStatusListService::new(
-                format!("https://tsl.example.com/{status_list_uri_path}")
-                    .parse()
+                let status_list_uri_path = config_id.replace(':', "-");
+                let status_list = MockObtainingStatusListService::new(
+                    format!("https://tsl.example.com/{status_list_uri_path}")
+                        .parse()
+                        .unwrap(),
+                );
+
+                let config = CredentialConfiguration {
+                    scope: config_id.parse().unwrap(),
+                    format,
+                    key_pair: KeyPair::new_from_signing_key(
+                        issuance_keypair.private_key().clone(),
+                        issuance_keypair.certificate().clone(),
+                    )
                     .unwrap(),
-            );
+                    valid_days: Days::new(365),
+                    status_list,
+                };
 
-            let config = CredentialConfiguration {
-                scope: config_id.parse().unwrap(),
-                format,
-                key_pair: KeyPair::new_from_signing_key(
-                    issuance_keypair.private_key().clone(),
-                    issuance_keypair.certificate().clone(),
-                )
-                .unwrap(),
-                valid_days: Days::new(365),
-                status_list,
-            };
+                (config_id.into(), config)
+            })
+            .collect(),
+    )
+    .unwrap();
 
-            (config_id.into(), config)
-        })
-        .collect();
-
-    let issuer = MockIssuer::try_new(
+    let issuer = MockIssuer::new(
         issuer_identifier,
         metadata_keypair,
         RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
@@ -397,8 +401,7 @@ where
         trust_anchors.clone(),
         sessions,
         MemoryNonceStore::new(),
-    )
-    .unwrap();
+    );
 
     let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
 

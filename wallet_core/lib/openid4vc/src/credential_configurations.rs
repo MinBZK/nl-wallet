@@ -215,7 +215,7 @@ pub struct CredentialConfiguration<K, L> {
 
 /// Static credential configurations indexed by their identifier.
 #[derive(Debug)]
-pub(crate) struct CredentialConfigurations<K, L> {
+pub struct CredentialConfigurations<K, L> {
     configs_by_id: HashMap<CredentialConfigurationId, CredentialConfiguration<K, L>>,
     ids_by_credential_kind: HashMap<CredentialKind, CredentialConfigurationId>,
 }
