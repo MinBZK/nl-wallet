@@ -1,4 +1,6 @@
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use dcql::ClaimsQuery;
 use dcql::ClaimsSelection;
 use dcql::CredentialQuery;
@@ -14,9 +16,33 @@ use super::StatusValidatedRegistrationCertificate;
 pub enum RegistrationCertificateAuthorizationError {
     #[error("registration certificate does not authorize credential query `{0}`")]
     UnauthorizedCredential(CredentialQueryIdentifier),
+    #[error("issuer registration certificate is missing provides_attestations")]
+    MissingProvidesAttestations,
+    #[error("registration certificate does not authorize issuance of credential `{0}`")]
+    UnauthorizedIssuance(CredentialKind),
 }
 
 impl StatusValidatedRegistrationCertificate {
+    pub fn validate_issuance_authorization(
+        &self,
+        credential_kinds: impl IntoIterator<Item = CredentialKind>,
+    ) -> Result<(), RegistrationCertificateAuthorizationError> {
+        let Some(provides_attestations) = &self.payload().provides_attestations else {
+            return Err(RegistrationCertificateAuthorizationError::MissingProvidesAttestations);
+        };
+
+        for kind in credential_kinds {
+            if !provides_attestations
+                .iter()
+                .any(|authorized| credential_kind_is_authorized(&kind, authorized))
+            {
+                return Err(RegistrationCertificateAuthorizationError::UnauthorizedIssuance(kind));
+            }
+        }
+
+        Ok(())
+    }
+
     /// Validate that every credential, claim and requested value in a DCQL query is authorized by this certificate.
     pub fn validate_query_authorization(&self, query: &Query) -> Result<(), RegistrationCertificateAuthorizationError> {
         validate_query_authorization(query, self.payload().credentials.as_deref().unwrap_or_default())
@@ -46,6 +72,16 @@ fn validate_query_authorization(
     }
 
     Ok(())
+}
+
+fn credential_kind_is_authorized(kind: &CredentialKind, authorized: &Credential) -> bool {
+    match (kind.format, &authorized.format) {
+        (Format::MsoMdoc, CredentialQueryFormat::MsoMdoc { doctype_value }) => kind.attestation_type == *doctype_value,
+        (Format::SdJwt, CredentialQueryFormat::SdJwt { vct_values }) => {
+            vct_values.as_slice().contains(&kind.attestation_type)
+        }
+        _ => false,
+    }
 }
 
 fn credential_query_is_authorized(query: &CredentialQuery, authorized: &Credential) -> bool {

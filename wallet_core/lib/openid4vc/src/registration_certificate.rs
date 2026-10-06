@@ -7,6 +7,7 @@ use attestation_data::registration_certificate::StatusValidatedRegistrationCerti
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use attestation_data::x509::RelyingPartyError;
+use attestation_types::credential_kind::CredentialKind;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::DistinguishedNameError;
@@ -101,6 +102,33 @@ where
         .map_err(RegistrationCertificateError::Authorization)
 }
 
+pub async fn validate_registration_certificate_and_issuance<C>(
+    registration_certificate: &RegistrationCertificateEnvelope,
+    credential_kinds: impl IntoIterator<Item = CredentialKind>,
+    access_certificate: &BorrowingCertificate,
+    registration_certificate_trust_anchors: &TrustAnchors,
+    revocation_verifier: &RevocationVerifier<C>,
+    time: &impl Generator<chrono::DateTime<chrono::Utc>>,
+) -> Result<StatusValidatedRegistrationCertificate, RegistrationCertificateError>
+where
+    C: StatusListClient,
+{
+    let certificate = validate_registration_certificate(
+        registration_certificate,
+        access_certificate,
+        registration_certificate_trust_anchors,
+        revocation_verifier,
+        time,
+    )
+    .await?;
+
+    certificate
+        .validate_issuance_authorization(credential_kinds)
+        .map_err(RegistrationCertificateError::Authorization)?;
+
+    Ok(certificate)
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -112,6 +140,9 @@ mod tests {
     use attestation_data::registration_certificate::RegistrationCertificateValidationError;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_data::registration_certificate::mock::StaticStatusListClient;
+    use attestation_data::registration_certificate::mock::issuer_registration_certificate_payload;
+    use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -119,12 +150,15 @@ mod tests {
     use crypto::x509::DistinguishedName;
     use dcql::Query;
     use rstest::rstest;
+    use serde_json::Value;
+    use serde_json::json;
     use token_status_list::status_list::StatusType;
     use token_status_list::verification::verifier::RevocationVerifier;
     use utils::generator::TimeGenerator;
 
     use super::RegistrationCertificateError;
     use super::validate_registration_certificate;
+    use super::validate_registration_certificate_and_issuance;
     use super::validate_registration_certificate_and_query;
 
     enum EnvelopeFormat {
@@ -203,6 +237,84 @@ mod tests {
         )
         .await
         .unwrap();
+    }
+
+    #[rstest]
+    #[case::missing(None, None)]
+    #[case::null(Some(json!(null)), None)]
+    #[case::empty(Some(json!([])), Some(Format::MsoMdoc))]
+    #[case::authorized(Some(json!([
+        { "format": "mso_mdoc", "meta": { "doctype_value": "urn:example:pid" } },
+        { "format": "dc+sd-jwt", "meta": { "vct_values": ["urn:example:other", "urn:example:pid"] } }
+    ])), None)]
+    #[case::wrong_doctype(Some(json!([
+        { "format": "mso_mdoc", "meta": { "doctype_value": "urn:example:other" } },
+        { "format": "dc+sd-jwt", "meta": { "vct_values": ["urn:example:pid"] } }
+    ])), Some(Format::MsoMdoc))]
+    #[case::wrong_vct(Some(json!([
+        { "format": "mso_mdoc", "meta": { "doctype_value": "urn:example:pid" } },
+        { "format": "dc+sd-jwt", "meta": { "vct_values": ["urn:example:other"] } }
+    ])), Some(Format::SdJwt))]
+    #[case::mdoc_does_not_authorize_sd_jwt(Some(json!([
+        { "format": "mso_mdoc", "meta": { "doctype_value": "urn:example:pid" } }
+    ])), Some(Format::SdJwt))]
+    #[case::sd_jwt_does_not_authorize_mdoc(Some(json!([
+        { "format": "dc+sd-jwt", "meta": { "vct_values": ["urn:example:pid"] } }
+    ])), Some(Format::MsoMdoc))]
+    #[tokio::test]
+    async fn validate_issuance_authorization(
+        #[case] provides_attestations: Option<Value>,
+        #[case] unauthorized_format: Option<Format>,
+        #[values(EnvelopeFormat::Jwt, EnvelopeFormat::Cwt)] envelope_format: EnvelopeFormat,
+    ) {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let access_key_pair = ca.generate_wrpac_issuer_mock().unwrap();
+        let authority = MockRegistrationCertificateAuthority::new();
+        let credential_kinds =
+            [Format::MsoMdoc, Format::SdJwt].map(|format| CredentialKind::new(format, "urn:example:pid".to_string()));
+        let mut payload =
+            issuer_registration_certificate_payload(access_key_pair.certificate(), credential_kinds.clone());
+        match &provides_attestations {
+            Some(value) => payload.0["provides_attestations"] = value.clone(),
+            None => {
+                payload.0.as_object_mut().unwrap().remove("provides_attestations");
+            }
+        }
+        let certificate = match envelope_format {
+            EnvelopeFormat::Jwt => authority.sign_jwt(&payload),
+            EnvelopeFormat::Cwt => authority.sign_cwt(&payload),
+        };
+        let envelope = registration_certificate_envelope(&certificate);
+        let revocation_verifier = RevocationVerifier::new_without_caching(Arc::new(authority.status_list_client));
+
+        let result = validate_registration_certificate_and_issuance(
+            &envelope,
+            credential_kinds,
+            access_key_pair.certificate(),
+            &authority.trust_anchors,
+            &revocation_verifier,
+            &TimeGenerator,
+        )
+        .await;
+
+        let result = result.map(|validated| validated.payload().id.clone());
+        if provides_attestations.as_ref().is_none_or(Value::is_null) {
+            assert_matches!(
+                result,
+                Err(RegistrationCertificateError::Authorization(
+                    RegistrationCertificateAuthorizationError::MissingProvidesAttestations
+                ))
+            );
+        } else if let Some(format) = unauthorized_format {
+            assert_matches!(
+                result,
+                Err(RegistrationCertificateError::Authorization(
+                    RegistrationCertificateAuthorizationError::UnauthorizedIssuance(kind)
+                )) if kind == CredentialKind::new(format, "urn:example:pid".to_string())
+            );
+        } else {
+            assert_eq!(result.unwrap().as_deref(), Some("mock-registration-certificate"));
+        }
     }
 
     #[tokio::test]
