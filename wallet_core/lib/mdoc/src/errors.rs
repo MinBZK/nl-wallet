@@ -34,10 +34,10 @@ pub enum Error {
     KeysError(#[from] KeysError),
 
     #[error("certificate name error: {0}")]
-    CertificateNameError(#[from] CertificateNameError),
+    CertificateNameError(#[source] CertificateNameError),
 
     #[error("certificate canocilization error: {0}")]
-    CanocalizationError(#[from] CanocalizationError),
+    CanocalizationError(#[source] CanocalizationError),
 }
 
 impl From<CoseKeyConversionError> for Error {
