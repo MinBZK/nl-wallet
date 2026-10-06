@@ -11,9 +11,11 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::Router;
+use axum::extract::FromRequestParts;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::http::StatusCode;
+use axum::http::request::Parts;
 use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
@@ -209,22 +211,37 @@ impl From<LoggedInUser> for MeResponse {
     }
 }
 
-async fn me<R>(State(state): State<Arc<AdminPortalState<R>>>, cookie_jar: CookieJar) -> Response
+async fn me(AuthenticatedAdminUser(user): AuthenticatedAdminUser) -> Response {
+    Json(MeResponse::from(user)).into_response()
+}
+
+/// Extracts the logged-in Admin Portal user from the session cookie, rejecting with `401  Unauthorized` when there is
+/// no valid session. Shared by every endpoint under `/admin-portal` that requires a logged-in user.
+#[derive(Debug)]
+pub struct AuthenticatedAdminUser(pub LoggedInUser);
+
+impl<R> FromRequestParts<Arc<AdminPortalState<R>>> for AuthenticatedAdminUser
 where
     R: AdminPortalSessionRepository + Send + Sync + 'static,
 {
-    // Retrieve the session_id from the cookie, note that we don't need to touch the cookie's `max_age`, as it is a
-    // session cookie, see the documentation at `fn session_cookie`.
-    let Some(session_id) = cookie_jar.get(SESSION_ID_COOKIE).map(|cookie| cookie.value()) else {
-        return StatusCode::UNAUTHORIZED.into_response();
-    };
+    type Rejection = Response;
 
-    match state.service.authenticated_user(session_id).await {
-        Ok(Some(user)) => Json(MeResponse::from(user)).into_response(),
-        Ok(None) => StatusCode::UNAUTHORIZED.into_response(),
-        Err(error) => {
-            warn!("/api/me failed: {error}");
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<AdminPortalState<R>>) -> Result<Self, Self::Rejection> {
+        let cookie_jar = CookieJar::from_headers(&parts.headers);
+
+        // Retrieve the session_id from the cookie, note that we don't need to touch the cookie's `max_age`, as it is a
+        // session cookie, see the documentation at `fn session_cookie`.
+        let Some(session_id) = cookie_jar.get(SESSION_ID_COOKIE).map(|cookie| cookie.value()) else {
+            return Err(StatusCode::UNAUTHORIZED.into_response());
+        };
+
+        match state.service.authenticated_user(session_id).await {
+            Ok(Some(user)) => Ok(AuthenticatedAdminUser(user)),
+            Ok(None) => Err(StatusCode::UNAUTHORIZED.into_response()),
+            Err(error) => {
+                warn!("session lookup failed: {error}");
+                Err(StatusCode::INTERNAL_SERVER_ERROR.into_response())
+            }
         }
     }
 }
@@ -236,6 +253,7 @@ mod tests {
     use std::time::Duration;
 
     use axum::body::to_bytes;
+    use axum::http::Request;
     use axum::http::StatusCode;
     use axum::http::header;
     use chrono::DateTime;
@@ -475,36 +493,88 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn me_without_session_cookie_is_unauthorized() {
-        let state = setup_state();
+    fn request_parts(cookie_jar: &CookieJar) -> Parts {
+        let mut request = Request::new(());
+        for cookie in cookie_jar.iter() {
+            request.headers_mut().append(
+                header::COOKIE,
+                format!("{}={}", cookie.name(), cookie.value()).parse().unwrap(),
+            );
+        }
+        request.into_parts().0
+    }
 
-        let response = me(State(state), CookieJar::new()).await;
+    #[tokio::test]
+    async fn authenticated_admin_user_without_session_cookie_is_rejected_with_401() {
+        let state = setup_state();
+        let mut parts = request_parts(&CookieJar::new());
+
+        let response = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect_err("missing session cookie should be rejected");
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]
-    async fn me_with_unknown_session_cookie_is_unauthorized() {
+    async fn authenticated_admin_user_with_unknown_session_cookie_is_rejected_with_401() {
         let state = setup_state();
         let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "unknown-session"));
+        let mut parts = request_parts(&jar);
 
-        let response = me(State(state), jar).await;
+        let response = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect_err("unknown session should be rejected");
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn authenticated_admin_user_reports_server_error_for_database_errors() {
+        let mut repository = InMemoryRepository::default();
+        repository.set_errors(true);
+        let state = setup_state_with_repository(repository);
+        let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "my-session"));
+        let mut parts = request_parts(&jar);
+
+        let response = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect_err("database errors should reject extraction");
+
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[tokio::test]
+    async fn authenticated_admin_user_with_valid_session_cookie_is_extracted() {
+        let (state, jar) = setup_state_with_valid_user();
+        let mut parts = request_parts(&jar);
+
+        let AuthenticatedAdminUser(user) = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect("valid session should be extracted");
+
+        assert_eq!(user.user_id, "user_id");
+        assert_eq!(user.display_name, "Jane Doe");
+        assert_eq!(user.privileges, vec!["admin"]);
     }
 
     #[tokio::test]
     async fn me_with_valid_session_reports_logged_in_user() {
         let (state, jar) = setup_state_with_valid_user();
+        let mut parts = request_parts(&jar);
+        let user = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect("valid session should be extracted");
 
-        let response = me(State(state), jar).await;
+        let response = me(user).await;
 
         assert_eq!(response.status(), StatusCode::OK);
+        assert!(!response.headers().contains_key(header::SET_COOKIE));
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let json: Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(json["displayName"], "Jane Doe");
-        assert_eq!(json["privileges"], serde_json::json!(["admin"]));
-        assert_eq!(json["user_id"], serde_json::json!(null));
+        assert_eq!(
+            json,
+            serde_json::json!({"displayName": "Jane Doe", "privileges": ["admin"]})
+        );
     }
 }
