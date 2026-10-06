@@ -164,6 +164,10 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
   ///   True if the "Help" button should be visible, false otherwise.
   bool _showHelpIcon(RecoverPinState state) {
     return switch (state) {
+      RecoverPinLoadingDigidUrl() => false,
+      RecoverPinAwaitingDigidAuthentication() => false,
+      RecoverPinVerifyingDigidAuthentication() => false,
+      RecoverPinUpdatingPin() => false,
       RecoverPinChooseNewPin() => false,
       RecoverPinSelectPinFailed() => false,
       RecoverPinConfirmNewPin() => false,

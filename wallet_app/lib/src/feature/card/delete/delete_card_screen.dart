@@ -41,7 +41,7 @@ class DeleteCardScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         fadeInTitleOnScroll: false,
         actions: [
-          const HelpIconButton(),
+          if (_showHelpIcon(context)) const HelpIconButton(),
           CloseIconButton(onPressed: () => _onClose(context)),
         ],
         progress: _resolveProgress(context),
@@ -95,6 +95,14 @@ class DeleteCardScreen extends StatelessWidget {
     } else {
       Navigator.pop(context);
     }
+  }
+
+  bool _showHelpIcon(BuildContext context) {
+    final state = context.watch<DeleteCardBloc>().state;
+    return switch (state) {
+      DeleteCardSuccess() => false,
+      _ => true,
+    };
   }
 
   FlowProgress _resolveProgress(BuildContext context) {
