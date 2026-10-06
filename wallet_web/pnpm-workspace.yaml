@@ -1,2 +1,3 @@
 minimumReleaseAgeExclude:
   - nanoid@3.3.18
+  - source-map-js@1.2.2
