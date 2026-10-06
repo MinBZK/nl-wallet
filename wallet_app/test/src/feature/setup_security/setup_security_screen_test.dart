@@ -12,6 +12,7 @@ import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart';
 import 'package:wallet/src/feature/setup_security/setup_security_screen.dart';
+import 'package:wallet/src/util/extension/build_context_extension.dart';
 import 'package:wallet/src/util/helper/onboarding_helper.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 
@@ -85,7 +86,7 @@ void main() {
       await screenMatchesGolden('pin_confirmation_in_progress.light');
     });
 
-    testGoldens('ltc51 SetupSecurityConfigureBiometrics fingerOnly light', (tester) async {
+    testGoldens('ltc51 SetupSecurityConfigureBiometrics fingerOnly light - Android', (tester) async {
       // Configure the SetupHelper with a custom value, impacting the stepper visuals.
       OnboardingHelper.initWithValue(9);
 
@@ -95,20 +96,57 @@ void main() {
           const SetupSecurityConfigureBiometrics(biometrics: Biometrics.fingerprint),
         ),
       );
-      await screenMatchesGolden('biometrics.finger.light');
+      await screenMatchesGolden('biometrics.finger.android.light');
     });
 
-    testGoldens('ltc51 SetupSecurityConfigureBiometrics faceOnly light', (tester) async {
+    testGoldens('ltc51 SetupSecurityConfigureBiometrics fingerOnly light - iOS', (tester) async {
+      // Configure the SetupHelper with a custom value, impacting the stepper visuals.
+      OnboardingHelper.initWithValue(9);
+
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return Theme(
+              data: context.theme.copyWith(platform: .iOS),
+              child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+                MockSetupSecurityBloc(),
+                const SetupSecurityConfigureBiometrics(biometrics: Biometrics.fingerprint),
+              ),
+            );
+          },
+        ),
+      );
+      await screenMatchesGolden('biometrics.finger.ios.light');
+    });
+
+    testGoldens('ltc51 SetupSecurityConfigureBiometrics faceOnly light - Android', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
           const SetupSecurityConfigureBiometrics(biometrics: Biometrics.face),
         ),
       );
-      await screenMatchesGolden('biometrics.face.light');
+      await screenMatchesGolden('biometrics.face.android.light');
     });
 
-    testGoldens('ltc51 SetupSecurityConfigureBiometrics some dark', (tester) async {
+    testGoldens('ltc51 SetupSecurityConfigureBiometrics faceOnly light - iOS', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return Theme(
+              data: context.theme.copyWith(platform: .iOS),
+              child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+                MockSetupSecurityBloc(),
+                const SetupSecurityConfigureBiometrics(biometrics: Biometrics.face),
+              ),
+            );
+          },
+        ),
+      );
+      await screenMatchesGolden('biometrics.face.ios.light');
+    });
+
+    testGoldens('ltc51 SetupSecurityConfigureBiometrics some dark - Android', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
@@ -116,7 +154,25 @@ void main() {
         ),
         brightness: Brightness.dark,
       );
-      await screenMatchesGolden('biometrics.some.dark');
+      await screenMatchesGolden('biometrics.some.android.dark');
+    });
+
+    testGoldens('ltc51 SetupSecurityConfigureBiometrics some dark - iOS', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return Theme(
+              data: context.theme.copyWith(platform: .iOS),
+              child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+                MockSetupSecurityBloc(),
+                const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
+              ),
+            );
+          },
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('biometrics.some.ios.dark');
     });
 
     testGoldens('ltc51 SetupSecurityCompleted light', (tester) async {
