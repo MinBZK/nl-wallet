@@ -172,6 +172,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::organization::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -230,7 +231,7 @@ mod tests {
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
             .expect_organization()
-            .return_const(super::Organization::try_from(&certificate).unwrap());
+            .return_const(Organization::try_from(&certificate).unwrap());
 
         let disclosable_attestation = match requested_format {
             Format::MsoMdoc => {
