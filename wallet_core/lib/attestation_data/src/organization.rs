@@ -31,6 +31,7 @@ pub struct Organization {
     pub identifier: String,
     pub country_code: String,
     pub privacy_policy_url: Option<Url>,
+    // TODO (PVW-6052): Require support_uri and person_type once proximity disclosure uses WRPRC organization data.
     pub support_uri: Option<String>,
     pub public_body: Option<bool>,
     pub person_type: Option<SubjectType>,

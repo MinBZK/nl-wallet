@@ -62,6 +62,7 @@ impl TryFrom<DistinguishedName> for RelyingParty {
     }
 }
 
+// TODO (PVW-6052): Source proximity proposals, errors, and history from WRPRC, then remove this WRPAC mapping
 impl From<RelyingParty> for Organization {
     fn from(rp: RelyingParty) -> Self {
         match rp {
