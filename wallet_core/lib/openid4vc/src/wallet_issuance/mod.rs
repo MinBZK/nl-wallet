@@ -61,7 +61,6 @@ use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::registration_certificate::RegistrationCertificateError;
-use crate::token::CredentialPreview;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -285,10 +284,6 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     OAuth(#[from] OAuthError),
 
-    #[error("issuer has no credential preview endpoint")]
-    #[category(critical)]
-    NoCredentialPreviewEndpoint, // TODO (PVW-5559): skip preview when no credential preview endpoint
-
     #[error("issuer has no nonce endpoint, yet one of the credential configurations require cryptographic binding")]
     #[category(critical)]
     NoNonceEndpoint,
@@ -415,6 +410,16 @@ impl AttestationClaims for OfferedCredentialMetadata {
     }
 }
 
+/// The preview of a credential offered by the issuer, together with the metadata of its Credential Configuration. The
+/// `format` is that of the Credential Configuration and is checked against the format of the received credential
+/// preview.
+#[derive(Debug, Clone, Copy)]
+pub struct OfferedCredentialPreview<'a> {
+    pub format: Format,
+    pub credential_payload: &'a PreviewableCredentialPayload,
+    pub metadata: &'a OfferedCredentialMetadata,
+}
+
 /// Allows selection of specific credential kinds (i.e. combinations of format and attestation type) at the start of
 /// issuance. If the `CredentialSelection::ByCredentialKind` variant is used, issuance will fail if the issuer offers
 /// none of the credential kinds. If some of them match, issuance will proceed with those matched credential
@@ -509,6 +514,9 @@ pub trait AuthorizationSession {
 pub trait IssuanceSession {
     /// Accept all of the credentials the issuer offered. Cap the amount of copies of each credential the issuer offers
     /// to `max_copy_count`.
+    ///
+    /// If the issuer provides previews, the credentials are returned in the same order as the previews returned by
+    /// [`Self::credential_previews`]. If not, the order of the credentials is not relevant.
     async fn accept_issuance<W>(
         &mut self,
         max_copy_count: NonZeroU8,
@@ -519,7 +527,7 @@ pub trait IssuanceSession {
         W: IssuanceWscd;
 
     /// Returns the credential previews with their metadata, or `None` if the issuer does not provide previews.
-    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>>;
+    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }
