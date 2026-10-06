@@ -195,11 +195,11 @@ class SetupSecurityScreen extends StatelessWidget {
     };
     return TerminalPage(
       title: title,
-      description: context.l10n.setupBiometricsPageDescription,
+      description: context.l10n.setupBiometricsPageDescription(state.biometrics.prettyPrint(context)),
       illustration: PageIllustration(asset: illustration),
       primaryButton: PrimaryButton(
         text: Text(context.l10n.setupBiometricsPageEnableCta),
-        icon: Icon(state.biometrics.icon),
+        icon: Icon(state.biometrics.icon(context)),
         onPressed: () => context.bloc.add(EnableBiometricsPressed()),
         key: const Key('primaryButtonCta'),
       ),
