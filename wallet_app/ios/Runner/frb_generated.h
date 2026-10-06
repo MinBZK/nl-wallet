@@ -194,6 +194,9 @@ typedef struct wire_cst_organization {
   struct wire_cst_list_prim_u_8_strict *privacy_policy_url;
   struct wire_cst_list_prim_u_8_strict *identifier;
   struct wire_cst_list_prim_u_8_strict *country_code;
+  struct wire_cst_list_prim_u_8_strict *support_uri;
+  bool *public_body;
+  int32_t *person_type;
 } wire_cst_organization;
 
 typedef struct wire_cst_ValidityStatus_NotYetValid {
@@ -809,11 +812,15 @@ struct wire_cst_attribute_value *frbgen_wallet_core_cst_new_box_attribute_value(
 
 struct wire_cst_attestation_presentation *frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(void);
 
+bool *frbgen_wallet_core_cst_new_box_autoadd_bool(bool value);
+
 struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
 
 struct wire_cst_image_with_metadata *frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata(void);
 
 struct wire_cst_organization *frbgen_wallet_core_cst_new_box_autoadd_organization(void);
+
+int32_t *frbgen_wallet_core_cst_new_box_autoadd_person_type(int32_t value);
 
 struct wire_cst_record_string_string *frbgen_wallet_core_cst_new_box_autoadd_record_string_string(void);
 
@@ -870,9 +877,11 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_attribute_value);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_bool);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_organization);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_person_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_record_string_string);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);

@@ -119,6 +119,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AttestationPresentation dco_decode_box_autoadd_attestation_presentation(dynamic raw);
 
   @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw);
+
+  @protected
   Image dco_decode_box_autoadd_image(dynamic raw);
 
   @protected
@@ -126,6 +129,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Organization dco_decode_box_autoadd_organization(dynamic raw);
+
+  @protected
+  PersonType dco_decode_box_autoadd_person_type(dynamic raw);
 
   @protected
   (String, String) dco_decode_box_autoadd_record_string_string(dynamic raw);
@@ -275,10 +281,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
+
+  @protected
   Image? dco_decode_opt_box_autoadd_image(dynamic raw);
 
   @protected
   ImageWithMetadata? dco_decode_opt_box_autoadd_image_with_metadata(dynamic raw);
+
+  @protected
+  PersonType? dco_decode_opt_box_autoadd_person_type(dynamic raw);
 
   @protected
   (String, String)? dco_decode_opt_box_autoadd_record_string_string(dynamic raw);
@@ -297,6 +309,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Organization dco_decode_organization(dynamic raw);
+
+  @protected
+  PersonType dco_decode_person_type(dynamic raw);
 
   @protected
   PidAttestation dco_decode_pid_attestation(dynamic raw);
@@ -448,6 +463,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AttestationPresentation sse_decode_box_autoadd_attestation_presentation(SseDeserializer deserializer);
 
   @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
   Image sse_decode_box_autoadd_image(SseDeserializer deserializer);
 
   @protected
@@ -455,6 +473,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Organization sse_decode_box_autoadd_organization(SseDeserializer deserializer);
+
+  @protected
+  PersonType sse_decode_box_autoadd_person_type(SseDeserializer deserializer);
 
   @protected
   (String, String) sse_decode_box_autoadd_record_string_string(SseDeserializer deserializer);
@@ -606,10 +627,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
   Image? sse_decode_opt_box_autoadd_image(SseDeserializer deserializer);
 
   @protected
   ImageWithMetadata? sse_decode_opt_box_autoadd_image_with_metadata(SseDeserializer deserializer);
+
+  @protected
+  PersonType? sse_decode_opt_box_autoadd_person_type(SseDeserializer deserializer);
 
   @protected
   (String, String)? sse_decode_opt_box_autoadd_record_string_string(SseDeserializer deserializer);
@@ -628,6 +655,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Organization sse_decode_organization(SseDeserializer deserializer);
+
+  @protected
+  PersonType sse_decode_person_type(SseDeserializer deserializer);
 
   @protected
   PidAttestation sse_decode_pid_attestation(SseDeserializer deserializer);
@@ -823,6 +853,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<ffi.Bool> cst_encode_box_autoadd_bool(bool raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return wire.cst_new_box_autoadd_bool(cst_encode_bool(raw));
+  }
+
+  @protected
   ffi.Pointer<wire_cst_image> cst_encode_box_autoadd_image(Image raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_image();
@@ -844,6 +880,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     final ptr = wire.cst_new_box_autoadd_organization();
     cst_api_fill_to_wire_organization(raw, ptr.ref);
     return ptr;
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int32> cst_encode_box_autoadd_person_type(PersonType raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return wire.cst_new_box_autoadd_person_type(cst_encode_person_type(raw));
   }
 
   @protected
@@ -1111,6 +1153,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<ffi.Bool> cst_encode_opt_box_autoadd_bool(bool? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_bool(raw);
+  }
+
+  @protected
   ffi.Pointer<wire_cst_image> cst_encode_opt_box_autoadd_image(Image? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_box_autoadd_image(raw);
@@ -1120,6 +1168,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ffi.Pointer<wire_cst_image_with_metadata> cst_encode_opt_box_autoadd_image_with_metadata(ImageWithMetadata? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_box_autoadd_image_with_metadata(raw);
+  }
+
+  @protected
+  ffi.Pointer<ffi.Int32> cst_encode_opt_box_autoadd_person_type(PersonType? raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_person_type(raw);
   }
 
   @protected
@@ -1569,6 +1623,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.privacy_policy_url = cst_encode_opt_String(apiObj.privacyPolicyUrl);
     wireObj.identifier = cst_encode_String(apiObj.identifier);
     wireObj.country_code = cst_encode_String(apiObj.countryCode);
+    wireObj.support_uri = cst_encode_opt_String(apiObj.supportUri);
+    wireObj.public_body = cst_encode_opt_box_autoadd_bool(apiObj.publicBody);
+    wireObj.person_type = cst_encode_opt_box_autoadd_person_type(apiObj.personType);
   }
 
   @protected
@@ -1937,6 +1994,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_identify_uri_result(IdentifyUriResult raw);
 
   @protected
+  int cst_encode_person_type(PersonType raw);
+
+  @protected
   int cst_encode_pin_validation_result(PinValidationResult raw);
 
   @protected
@@ -2066,6 +2126,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_attestation_presentation(AttestationPresentation self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_image(Image self, SseSerializer serializer);
 
   @protected
@@ -2073,6 +2136,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_box_autoadd_organization(Organization self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_person_type(PersonType self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_record_string_string((String, String) self, SseSerializer serializer);
@@ -2225,10 +2291,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_image(Image? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_image_with_metadata(ImageWithMetadata? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_person_type(PersonType? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_record_string_string((String, String)? self, SseSerializer serializer);
@@ -2247,6 +2319,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_organization(Organization self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_person_type(PersonType self, SseSerializer serializer);
 
   @protected
   void sse_encode_pid_attestation(PidAttestation self, SseSerializer serializer);
@@ -3467,6 +3542,16 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_attestation_presentation = _cst_new_box_autoadd_attestation_presentationPtr
       .asFunction<ffi.Pointer<wire_cst_attestation_presentation> Function()>();
 
+  ffi.Pointer<ffi.Bool> cst_new_box_autoadd_bool(bool value) {
+    return _cst_new_box_autoadd_bool(value);
+  }
+
+  late final _cst_new_box_autoadd_boolPtr = _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Bool> Function(ffi.Bool)>>(
+    'frbgen_wallet_core_cst_new_box_autoadd_bool',
+  );
+  late final _cst_new_box_autoadd_bool = _cst_new_box_autoadd_boolPtr
+      .asFunction<ffi.Pointer<ffi.Bool> Function(bool)>();
+
   ffi.Pointer<wire_cst_image> cst_new_box_autoadd_image() {
     return _cst_new_box_autoadd_image();
   }
@@ -3498,6 +3583,17 @@ class WalletCoreWire implements BaseWire {
       );
   late final _cst_new_box_autoadd_organization = _cst_new_box_autoadd_organizationPtr
       .asFunction<ffi.Pointer<wire_cst_organization> Function()>();
+
+  ffi.Pointer<ffi.Int32> cst_new_box_autoadd_person_type(int value) {
+    return _cst_new_box_autoadd_person_type(value);
+  }
+
+  late final _cst_new_box_autoadd_person_typePtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Int32> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_box_autoadd_person_type',
+      );
+  late final _cst_new_box_autoadd_person_type = _cst_new_box_autoadd_person_typePtr
+      .asFunction<ffi.Pointer<ffi.Int32> Function(int)>();
 
   ffi.Pointer<wire_cst_record_string_string> cst_new_box_autoadd_record_string_string() {
     return _cst_new_box_autoadd_record_string_string();
@@ -4080,6 +4176,12 @@ final class wire_cst_organization extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> identifier;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> country_code;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> support_uri;
+
+  external ffi.Pointer<ffi.Bool> public_body;
+
+  external ffi.Pointer<ffi.Int32> person_type;
 }
 
 final class wire_cst_ValidityStatus_NotYetValid extends ffi.Struct {

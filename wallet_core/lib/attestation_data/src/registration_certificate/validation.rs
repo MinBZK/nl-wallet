@@ -3,6 +3,8 @@ use chrono::Months;
 use chrono::Utc;
 use dcql::CredentialQueryFormat;
 use language_tags::LanguageTag;
+use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 
 use super::payload::Credential;
@@ -52,7 +54,8 @@ impl BoundRegistrationCertificate {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum SubjectType {
     LegalPerson,
     NaturalPerson,
