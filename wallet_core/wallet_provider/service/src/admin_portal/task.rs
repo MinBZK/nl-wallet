@@ -6,12 +6,14 @@ use audit_log::model::FromAuditLogError;
 use chrono::DateTime;
 use chrono::Utc;
 use serde_json::Value as JsonValue;
+use strum::IntoEnumIterator;
 use utils::generator::Generator;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
 use wallet_provider_domain::model::admin_task::AdminTaskCreate;
 use wallet_provider_domain::model::admin_task::AdminTaskReview;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
+use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminTaskRepository;
@@ -138,6 +140,60 @@ pub async fn review_task<R: AdminTaskRepository>(
         .ok_or(ReviewTaskError::InvalidState)?;
 
     Ok(updated)
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString, serde::Serialize, serde::Deserialize,
+)]
+#[strum(serialize_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TaskListViewKind {
+    Open,
+    History,
+    ToReview,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ListTasksError {
+    #[error("persistence error: {0}")]
+    Storage(#[from] PersistenceError),
+    #[error("error while auditing: {0}")]
+    AuditLog(#[source] Box<dyn Error + Send + Sync>),
+}
+
+impl FromAuditLogError for ListTasksError {
+    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
+        Self::AuditLog(audit_log_error)
+    }
+}
+
+#[audited]
+pub async fn list_tasks<R: AdminTaskRepository>(
+    #[audit] view_kind: TaskListViewKind,
+    #[audit_user] user_id: &str,
+    privileges: &[String],
+    repository: &R,
+    #[auditor] audit_log: &impl AuditLog,
+) -> Result<Vec<AdminTask>, ListTasksError> {
+    let user_id = user_id.to_string();
+
+    let view = match view_kind {
+        TaskListViewKind::Open => TaskListView::OpenTasks { user_id },
+        TaskListViewKind::History => TaskListView::History { user_id },
+        TaskListViewKind::ToReview => {
+            let authorized_task_types = TaskType::iter()
+                .filter(|task_type| privileges.iter().any(|privilege| privilege == &task_type.to_string()))
+                .collect();
+            TaskListView::Reviewable {
+                user_id,
+                authorized_task_types,
+            }
+        }
+    };
+
+    let tasks = repository.list_tasks(view).await?;
+
+    Ok(tasks)
 }
 
 #[cfg(test)]
@@ -403,5 +459,69 @@ mod tests {
         .expect("should review");
 
         assert_eq!(result.status, TaskStatus::Approved);
+    }
+
+    #[tokio::test]
+    async fn list_tasks_open_queries_for_the_caller_as_creator() {
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_list_tasks()
+            .withf(|view| matches!(view, TaskListView::OpenTasks { user_id } if user_id == "user-1"))
+            .returning(|_| Ok(vec![]));
+
+        list_tasks(TaskListViewKind::Open, "user-1", &[], &repository, &MockAuditLog)
+            .await
+            .expect("should list");
+    }
+
+    #[tokio::test]
+    async fn list_tasks_history_queries_for_the_caller() {
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_list_tasks()
+            .withf(|view| matches!(view, TaskListView::History { user_id } if user_id == "user-1"))
+            .returning(|_| Ok(vec![]));
+
+        list_tasks(TaskListViewKind::History, "user-1", &[], &repository, &MockAuditLog)
+            .await
+            .expect("should list");
+    }
+
+    #[tokio::test]
+    async fn list_tasks_to_review_resolves_task_types_from_privileges() {
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_list_tasks()
+            .withf(|view| {
+                matches!(
+                    view,
+                    TaskListView::Reviewable { user_id, authorized_task_types }
+                        if user_id == "user-1" && authorized_task_types == &[TaskType::RevokeWallet]
+                )
+            })
+            .returning(|_| Ok(vec![]));
+
+        list_tasks(
+            TaskListViewKind::ToReview,
+            "user-1",
+            &["revoke_wallet".to_string(), "unrelated_privilege".to_string()],
+            &repository,
+            &MockAuditLog,
+        )
+        .await
+        .expect("should list");
+    }
+
+    #[tokio::test]
+    async fn list_tasks_to_review_with_no_matching_privileges_still_calls_repository_with_empty_types() {
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_list_tasks()
+            .withf(|view| matches!(view, TaskListView::Reviewable { authorized_task_types, .. } if authorized_task_types.is_empty()))
+            .returning(|_| Ok(vec![]));
+
+        list_tasks(TaskListViewKind::ToReview, "user-1", &[], &repository, &MockAuditLog)
+            .await
+            .expect("should list");
     }
 }
