@@ -116,9 +116,9 @@
 
 ### Metadata parameters
 
-| Name           | Description                                                               | Value                                                    |
-| -------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `typeMetadata` | List of SD-JWT VC Type Metadata filenames to mount and pass to the server | `["com.example.degree.json","com.example.housing.json"]` |
+| Name           | Description                                                               | Value                                                                           |
+| -------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `typeMetadata` | List of SD-JWT VC Type Metadata filenames to mount and pass to the server | `["com.example.degree.json","com.example.housing.json","dezi_verklaring.json"]` |
 
 ### Urls
 

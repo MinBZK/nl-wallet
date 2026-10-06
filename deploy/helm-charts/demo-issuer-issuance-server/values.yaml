@@ -147,6 +147,7 @@ batchSize: 4
 typeMetadata:
   - com.example.degree.json
   - com.example.housing.json
+  - dezi_verklaring.json
 
 ## @section Urls
 ## @param universalLinkBaseUrl Base URL for universal links
