@@ -73,7 +73,7 @@ impl From<wallet::WalletEvent> for WalletEvent {
                     id: id.to_string(),
                     date_time: timestamp.to_rfc3339(),
                     purpose: request_purpose(&organization),
-                    request_policy: RequestPolicy::from(organization.as_ref()),
+                    request_policy: RequestPolicy::new(organization.privacy_policy_url.as_ref()),
                     relying_party: (*organization).into(),
                     shared_attestations: (!attestations.is_empty()).then_some(attestations),
                     status: status.into(),

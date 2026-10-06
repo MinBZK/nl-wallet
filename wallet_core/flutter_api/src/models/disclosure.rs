@@ -17,10 +17,10 @@ pub struct RequestPolicy {
     pub policy_url: Option<String>,
 }
 
-impl From<&wallet::attestation_data::Organization> for RequestPolicy {
-    fn from(organization: &wallet::attestation_data::Organization) -> Self {
+impl RequestPolicy {
+    pub(super) fn new(policy_url: Option<&Url>) -> Self {
         Self {
-            policy_url: organization.privacy_policy_url.as_ref().map(ToString::to_string),
+            policy_url: policy_url.map(ToString::to_string),
         }
     }
 }
@@ -150,7 +150,7 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
     fn from(proposal: DisclosureProposalPresentation) -> Self {
         StartDisclosureResult::Request {
             request_purpose: request_purpose(&proposal.organization),
-            policy: RequestPolicy::from(&proposal.organization),
+            policy: RequestPolicy::new(proposal.organization.privacy_policy_url.as_ref()),
             relying_party: proposal.organization.into(),
             disclosure_options: proposal
                 .attestation_options
