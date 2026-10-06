@@ -102,9 +102,16 @@ pub struct AdminTaskReview {
 /// Request model for task lists
 #[derive(Debug, Clone)]
 pub enum TaskListView {
-    OpenTasks { user_id: String },
-    History { user_id: String },
-    Reviewable { user_id: String },
+    OpenTasks {
+        user_id: String,
+    },
+    History {
+        user_id: String,
+    },
+    Reviewable {
+        user_id: String,
+        authorized_task_types: Vec<TaskType>,
+    },
 }
 
 #[cfg(test)]

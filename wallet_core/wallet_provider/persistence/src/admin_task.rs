@@ -157,23 +157,33 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let condition = match view {
-        TaskListView::OpenTasks { user_id } => Condition::all()
-            .add(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
-            .add(admin_task::Column::CreatedByUserId.eq(user_id)),
-        TaskListView::History { user_id } => Condition::all()
-            .add(admin_task::Column::Status.is_in(
-                [TaskStatus::Approved, TaskStatus::Rejected, TaskStatus::Withdrawn].map(|status| status.to_string()),
-            ))
-            .add(
-                Condition::any()
-                    .add(admin_task::Column::CreatedByUserId.eq(user_id.clone()))
-                    .add(admin_task::Column::ReviewedByUserId.eq(user_id)),
-            ),
-        TaskListView::Reviewable { user_id } => Condition::all()
-            .add(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
-            .add(admin_task::Column::CreatedByUserId.ne(user_id)),
-    };
+    let condition =
+        match view {
+            TaskListView::OpenTasks { user_id } => Condition::all()
+                .add(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
+                .add(admin_task::Column::CreatedByUserId.eq(user_id)),
+            TaskListView::History { user_id } => Condition::all()
+                .add(admin_task::Column::Status.is_in(
+                    [&TaskStatus::Approved, &TaskStatus::Rejected, &TaskStatus::Withdrawn].map(ToString::to_string),
+                ))
+                .add(
+                    Condition::any()
+                        .add(admin_task::Column::CreatedByUserId.eq(&user_id))
+                        .add(admin_task::Column::ReviewedByUserId.eq(&user_id)),
+                ),
+            TaskListView::Reviewable {
+                user_id,
+                authorized_task_types,
+            } => {
+                if authorized_task_types.is_empty() {
+                    return Ok(vec![]);
+                }
+                Condition::all()
+                    .add(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
+                    .add(admin_task::Column::CreatedByUserId.ne(user_id))
+                    .add(admin_task::Column::TaskType.is_in(authorized_task_types.iter().map(ToString::to_string)))
+            }
+        };
     let tasks = admin_task::Entity::find()
         .filter(condition)
         .order_by_asc(admin_task::Column::CreatedAt)
