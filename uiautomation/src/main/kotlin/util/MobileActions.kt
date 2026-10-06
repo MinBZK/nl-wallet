@@ -811,6 +811,77 @@ open class MobileActions {
         file.writeText(content)
     }
 
+    fun captureA11ySnapshot(screenName: String) {
+        if (EnvironmentUtil.getVar("ENABLE_A11Y_CAPTURES").toBooleanStrictOrNull() != true) return
+
+        val platform = platform().name.lowercase()
+        val safeName = screenName.trim()
+            .replace(Regex("[^A-Za-z0-9-]+"), "-")
+            .trim('-')
+            .ifBlank { "screen" }
+
+        val dir = File(EnvironmentUtil.getVar("A11Y_CAPTURE_DIR").ifBlank { A11Y_CAPTURE_DIR_DEFAULT })
+        dir.mkdirs()
+
+        val pageSourceFile = File(dir, "$safeName.$platform.xml")
+        pageSourceFile.writeText((driver as AppiumDriver).pageSource ?: "")
+
+        val screenshotFile = File(dir, "$safeName.$platform.png")
+        screenshotFile.writeBytes((driver as TakesScreenshot).getScreenshotAs(OutputType.BYTES))
+
+        writeA11yDeviceMetadata(dir, platform)
+
+        println("a11y snapshot: wrote ${pageSourceFile.name} and ${screenshotFile.name} to ${dir.absolutePath}")
+    }
+
+    private fun writeA11yDeviceMetadata(dir: File, platform: String) {
+        val environment = if (testConfig.remote) "browserstack" else "local-device"
+        val file = File(dir, "$platform.$environment.device.json")
+        if (file.exists()) return
+
+        val densityDpi = when (platform()) {
+            Platform.ANDROID -> runCatching { (driver as AndroidDriver).displayDensity }.getOrNull()
+            Platform.IOS -> null
+        }
+        val scale = when (platform()) {
+            Platform.ANDROID -> densityDpi?.let { it.toDouble() / ANDROID_DENSITY_BASE_DPI }
+            Platform.IOS -> 1.0
+        }
+        if (scale == null || scale <= 0.0) {
+            println("a11y snapshot: display density unavailable; target-size checks will need manual verification")
+            return
+        }
+
+        // Read the device from the session, not testConfig: `test.config.device.name` defaults to
+        // "emulator-5554" and the BrowserStack jobs never pass it.
+        val model = capabilityOrNull("deviceModel") ?: testConfig.udid.ifBlank { "unknown" }
+        val version = capabilityOrNull("platformVersion") ?: testConfig.platformVersion
+        val unit = if (platform() == Platform.ANDROID) "px" else "pt"
+        val size = driver.manage().window().size
+
+        file.writeText(
+            """
+            {
+              "platform": "$platform",
+              "environment": "$environment",
+              "geometry_unit": "$unit",
+              "scale": $scale,
+              "density_dpi": ${densityDpi ?: "null"},
+              "screen_width": ${size.width},
+              "screen_height": ${size.height},
+              "device_model": "${model.jsonEscape()}",
+              "platform_version": "${version.jsonEscape()}"
+            }
+            """.trimIndent() + "\n",
+        )
+        println("a11y snapshot: wrote ${file.name} (device $model, scale $scale)")
+    }
+
+    private fun capabilityOrNull(name: String) =
+        (driver.capabilities.getCapability(name) as? String)?.takeIf { it.isNotBlank() }
+
+    private fun String.jsonEscape() = replace("\\", "\\\\").replace("\"", "\\\"")
+
     fun putAppInBackground(seconds: Int) {
         val driver = when (platform()) {
             Platform.ANDROID -> driver as AndroidDriver
@@ -978,6 +1049,13 @@ open class MobileActions {
 
         const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
         const val NATIVE_APP_CONTEXT = "NATIVE_APP"
+
+        // Default output directory for captureA11ySnapshot; override with A11Y_CAPTURE_DIR.
+        // Under the Gradle build directory so it is transient and git-ignored.
+        const val A11Y_CAPTURE_DIR_DEFAULT = "build/a11y-captures"
+
+        // Android's density-independent pixel baseline: 160 dpi is a scale of 1.
+        const val ANDROID_DENSITY_BASE_DPI = 160.0
 
         private val browserStackUserName = EnvironmentUtil.getVar("BROWSERSTACK_USER")
         private val browserStackAccessKey = EnvironmentUtil.getVar("BROWSERSTACK_KEY")

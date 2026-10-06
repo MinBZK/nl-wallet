@@ -45,6 +45,7 @@ class CameraPermissionTests : TestBase() {
         nativePermissionDialog.deny()
         assertTrue(qrScanner.permissionHintVisible(), "camera permission screen is not visible")
         assertTrue(qrScanner.grantPermissionButtonVisible(), "grant camera permission button is not visible")
+        qrScanner.captureA11ySnapshot("CameraPermissionHint")
     }
 
     @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")

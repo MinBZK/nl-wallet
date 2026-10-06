@@ -52,5 +52,6 @@ class BluetoothPermissionTests : TestBase() {
         assertTrue(bluetoothPermissionScreen.visible(), "bluetooth permission screen is not visible")
         assertTrue(bluetoothPermissionScreen.descriptionVisible(), "bluetooth permission description is not visible")
         assertTrue(bluetoothPermissionScreen.openSettingsButtonVisible(), "open settings button is not visible")
+        bluetoothPermissionScreen.captureA11ySnapshot("BluetoothPermission")
     }
 }

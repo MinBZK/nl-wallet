@@ -61,9 +61,11 @@ class RecoverPinTests : TestBase() {
 
         pinScreen.clickForgotPinButton()
         assertTrue(forgotPinScreen.visible(), "forgot pin screen is not visible")
+        forgotPinScreen.captureA11ySnapshot("ForgotPin")
 
         forgotPinScreen.clickResetPinButton()
         assertTrue(resetPinDigiDScreen.visible(), "reset pin DigiD screen is not visible")
+        resetPinDigiDScreen.captureA11ySnapshot("ResetPinDigiD")
 
         resetPinDigiDScreen.clickDigidLoginButton()
         digidLoginMockWebPage.switchToWebViewContext()
@@ -73,8 +75,10 @@ class RecoverPinTests : TestBase() {
 
         pinScreen.enterPin("222223")
         assertTrue(pinScreen.confirmRecoverPinScreenVisible(), "confirm pin screen is not visible")
+        pinScreen.captureA11ySnapshot("ConfirmRecoverPin")
         pinScreen.enterPin("222223")
         assertTrue(recoverPinSuccesScreen.visible(), "recover pin success screen screen is not visible")
+        recoverPinSuccesScreen.captureA11ySnapshot("RecoverPinSuccess")
 
         recoverPinSuccesScreen.clickToOverviewButton()
         assertTrue(dashboardScreen.visible(), "dashboard screen is not visible")

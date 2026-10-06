@@ -1,0 +1,9 @@
+# The repository root .gitignore ignores `.claude` everywhere; re-include ours,
+# because the skill in it is the whole point of this component.
+!.claude/
+
+/A11Y-REPORT.json
+/A11Y-REPORT.md
+/captures/
+
+.DS_Store

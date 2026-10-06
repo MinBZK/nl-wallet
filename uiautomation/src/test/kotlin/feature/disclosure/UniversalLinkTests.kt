@@ -97,6 +97,7 @@ class UniversalLinkTests : TestBase() {
             { assertTrue(scanWithWalletDialog.scanWithWalletDialogBodyVisible(), "scan with wallet dialog subtitle is not visible") },
             { assertTrue(scanWithWalletDialog.scanWithWalletButtonVisible(), "scan with wallet button is not visible") },
         )
+        scanWithWalletDialog.captureA11ySnapshot("ScanWithWalletDialog")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -119,6 +120,7 @@ class UniversalLinkTests : TestBase() {
             { assertTrue(invalidIssuanceULErrorScreen.headlineVisible(), "Headline is not visible") },
             { assertTrue(invalidIssuanceULErrorScreen.closeButtonVisible(), "Close button is not visible") },
         )
+        invalidIssuanceULErrorScreen.captureA11ySnapshot("InvalidIssuanceUlError")
         invalidIssuanceULErrorScreen.errorDetails.seeDetails()
         assertAll(
             { assertTrue(invalidIssuanceULErrorScreen.errorDetails.appVersionLabelVisible(), "App version label is not visible") },
@@ -128,6 +130,7 @@ class UniversalLinkTests : TestBase() {
             { assertTrue(invalidIssuanceULErrorScreen.errorDetails.osVersionVisible(), "OS version is not visible") },
             { assertTrue(invalidIssuanceULErrorScreen.errorDetails.appConfigVisible(), "App config is not visible") },
         )
+        invalidIssuanceULErrorScreen.captureA11ySnapshot("InvalidIssuanceUlErrorDetails")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -137,6 +140,7 @@ class UniversalLinkTests : TestBase() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecurityChoosePin)
         pinScreen.openLink(expiredDisclosureUniversalLinkFromCameraApp)
         assertTrue(finishWalletDialog.visible(), "Finish wallet dialog is not visible")
+        finishWalletDialog.captureA11ySnapshot("FinishWalletDialog")
     }
 
     private fun buildIssuanceUniversalLink(): String {
