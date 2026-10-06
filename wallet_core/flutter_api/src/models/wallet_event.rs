@@ -113,7 +113,7 @@ mod tests {
 
     #[rstest]
     #[case::registered(Some("Verify your identity"), "Verify your identity")]
-    #[case::older_history(None, "Disclosure")]
+    #[case::proximity(None, "Disclosure")]
     fn disclosure_history_registration_fields(
         #[case] registered_purpose: Option<&str>,
         #[case] expected: &str,

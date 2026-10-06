@@ -132,7 +132,7 @@ pub(super) fn request_purpose(organization: &wallet::attestation_data::Organizat
                 value: translation.value.clone(),
             })
             .collect(),
-        // Older history and proximity disclosure do not yet contain a WRPRC purpose.
+        // Preserve the existing purpose for close proximity disclosure until it uses WRPRC.
         None => vec![
             LocalizedString {
                 language: "en".into(),
