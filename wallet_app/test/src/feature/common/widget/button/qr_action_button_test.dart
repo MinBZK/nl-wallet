@@ -37,7 +37,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           QrActionButton(onPressed: () {}),
-          surfaceSize: const Size(240, 320),
+          surfaceSize: const Size(240, 360),
           textScaleSize: 2,
         );
         await screenMatchesGolden('qr_action_button/light.scaled');
@@ -49,7 +49,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           QrActionButton(onPressed: () {}),
-          surfaceSize: const Size(240, 800),
+          surfaceSize: const Size(240, 871),
           textScaleSize: 4,
         );
         await screenMatchesGolden('qr_action_button/light.4x_scaled');
