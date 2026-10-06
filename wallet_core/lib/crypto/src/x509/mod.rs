@@ -30,6 +30,16 @@ use webpki::RevocationCheckDepth;
 use webpki::RevocationOptionsBuilder;
 use webpki::UnknownStatusPolicy;
 use webpki::ring::ECDSA_P256_SHA256;
+use webpki::ring::ECDSA_P256_SHA384;
+use webpki::ring::ECDSA_P384_SHA256;
+use webpki::ring::ECDSA_P384_SHA384;
+use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
+use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
+use webpki::ring::RSA_PKCS1_2048_8192_SHA512;
+use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
+use webpki::ring::RSA_PSS_2048_8192_SHA256_LEGACY_KEY;
+use webpki::ring::RSA_PSS_2048_8192_SHA384_LEGACY_KEY;
+use webpki::ring::RSA_PSS_2048_8192_SHA512_LEGACY_KEY;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
 use x509_parser::nom::AsBytes;
@@ -272,7 +282,19 @@ impl BorrowingCertificate {
             .cloned()
             .collect_vec();
 
-        let supported_sig_algs = [ECDSA_P256_SHA256];
+        let supported_sig_algs = [
+            ECDSA_P256_SHA256,
+            ECDSA_P256_SHA384,
+            ECDSA_P384_SHA256,
+            ECDSA_P384_SHA384,
+            RSA_PKCS1_2048_8192_SHA256,
+            RSA_PKCS1_2048_8192_SHA384,
+            RSA_PKCS1_2048_8192_SHA512,
+            RSA_PKCS1_3072_8192_SHA384,
+            RSA_PSS_2048_8192_SHA256_LEGACY_KEY,
+            RSA_PSS_2048_8192_SHA384_LEGACY_KEY,
+            RSA_PSS_2048_8192_SHA512_LEGACY_KEY,
+        ];
         let time = UnixTime::since_unix_epoch(Duration::from_secs(
             time.generate()
                 .timestamp()
@@ -320,7 +342,7 @@ impl BorrowingCertificate {
         self.as_ref().to_vec()
     }
 
-    pub fn as_der(&'_ self) -> &'_ CertificateDer<'_> {
+    pub fn as_der<'a>(&self) -> &CertificateDer<'a> {
         self.0.backing_cart()
     }
 
@@ -448,7 +470,6 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use rcgen::CertificateParams;
     use rcgen::PKCS_ECDSA_P384_SHA384;
     use rcgen::RevocationReason;
     use rcgen::RevokedCertParams;
@@ -490,10 +511,20 @@ mod tests {
     #[rstest]
     fn borrowing_certificate_works_with_p384() {
         let key_pair = rcgen::KeyPair::generate_for(&PKCS_ECDSA_P384_SHA384).unwrap();
-        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+        let ca = Ca::create_from_keypair(key_pair, Default::default()).unwrap();
+        assert_matches!(
+            ca.as_borrowing_certificate().unwrap().public_key(),
+            PublicKey::ESP384(_)
+        );
 
-        assert_matches!(certificate.public_key(), PublicKey::ESP384(_));
+        // Test if it can verify
+        let key_pair = ca
+            .generate_key_pair(DistinguishedName::create_mock("test"), Default::default())
+            .unwrap();
+        key_pair
+            .certificate()
+            .verify(None, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .unwrap();
     }
 
     #[rstest]
@@ -502,10 +533,17 @@ mod tests {
     #[case::rsa4096(include_str!("../../test/rsa4096.pem"))]
     fn borrowing_certificate_works_with_rsa(#[case] private_key_pem: &str) {
         let key_pair = rcgen::KeyPair::from_pem(private_key_pem).unwrap();
-        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
-        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+        let ca = Ca::create_from_keypair(key_pair, Default::default()).unwrap();
+        assert_matches!(ca.as_borrowing_certificate().unwrap().public_key(), PublicKey::RSA(_));
 
-        assert_matches!(certificate.public_key(), PublicKey::RSA(_));
+        // Test if it can verify
+        let key_pair = ca
+            .generate_key_pair(DistinguishedName::create_mock("test"), Default::default())
+            .unwrap();
+        key_pair
+            .certificate()
+            .verify(None, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .unwrap();
     }
 
     fn assert_ca_key_usage(certificate: &X509Certificate<'_>) {

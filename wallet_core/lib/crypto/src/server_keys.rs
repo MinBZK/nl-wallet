@@ -246,6 +246,18 @@ pub mod generate {
             Ok(ca)
         }
 
+        pub fn create_from_keypair(
+            keypair: rcgen::KeyPair,
+            configuration: CertificateConfiguration,
+        ) -> Result<Self, CertificateGenerationError> {
+            let params = CertificateParams::from(configuration);
+            let certificate = params
+                .self_signed(&keypair)
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
+            let issuer: Issuer<'static, _> = Issuer::new(params, keypair);
+            Self::new(issuer, certificate.into(), 0)
+        }
+
         /// Generate a new self-signed CA key pair, constrained to the specified number of intermediates CAs.
         pub fn generate_with_intermediate_count(
             distinguished_name: DistinguishedName,
