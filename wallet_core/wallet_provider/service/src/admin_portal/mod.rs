@@ -50,6 +50,7 @@ use self::oidc_client::OidcHttpClientError;
 use crate::admin_portal::oidc_client::OidcHttpClient;
 
 pub mod oidc_client;
+pub mod task;
 
 const PRIVILEGE_ROLE_PREFIX: &str = "privilege_";
 
