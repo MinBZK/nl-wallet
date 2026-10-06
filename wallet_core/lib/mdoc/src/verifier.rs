@@ -269,7 +269,9 @@ impl IssuerSigned {
             .unwrap_or_default();
 
         let signing_cert = self.issuer_auth.x5chain()?.into_first();
-        let ca_cns = signing_cert.issuer_common_names().map_err(Error::CertificateNameError)?;
+        let ca_cns = signing_cert
+            .issuer_common_names()
+            .map_err(Error::CertificateNameError)?;
         let ca_common_name = ca_cns
             .into_iter()
             .exactly_one()
@@ -391,7 +393,9 @@ impl Document {
                 let revocation_status = revocation_verifier
                     .verify(
                         trust_anchors,
-                        issuer_certificate.to_canonical_distinguished_name().map_err(Error::CanocalizationError)?,
+                        issuer_certificate
+                            .to_canonical_distinguished_name()
+                            .map_err(Error::CanocalizationError)?,
                         StatusClaim::StatusList(status_list_claim.clone()),
                         time,
                     )

@@ -433,9 +433,9 @@ pub mod generate {
         pub static WRPAC_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA wrpac"));
 
-        pub static ISSUANCE_CA_DN: LazyLock<DistinguishedName> =
+        pub static ISSUER_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA issuer"));
-        pub static ISSUANCE_CERT_DN: LazyLock<DistinguishedName> =
+        pub static ISSUER_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert issuer"));
         pub static PID_ISSUER_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("PID"));
@@ -458,12 +458,12 @@ pub mod generate {
             }
 
             pub fn generate_issuer_mock_ca() -> Result<Self, CertificateGenerationError> {
-                Self::generate(ISSUANCE_CA_DN.clone(), Default::default())
+                Self::generate(ISSUER_CA_DN.clone(), Default::default())
             }
 
             pub fn generate_issuer_mock_ca_without_aki() -> Result<Self, CertificateGenerationError> {
                 Self::generate(
-                    ISSUANCE_CA_DN.clone(),
+                    ISSUER_CA_DN.clone(),
                     CertificateConfiguration {
                         exclude_aki: true,
                         ..Default::default()
@@ -472,12 +472,12 @@ pub mod generate {
             }
 
             pub fn generate_wrpac_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(ISSUANCE_CERT_DN.clone(), Default::default())
+                self.generate_key_pair(ISSUER_CERT_DN.clone(), Default::default())
             }
 
             pub fn generate_wrpac_issuer_mock_with_crl(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
-                    ISSUANCE_CERT_DN.clone(),
+                    ISSUER_CERT_DN.clone(),
                     CertificateConfiguration {
                         crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
                         ..Default::default()
@@ -508,7 +508,7 @@ pub mod generate {
 
             pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
-                    ISSUANCE_CERT_DN.clone(),
+                    ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::Mdl),
                 )
             }
@@ -522,7 +522,7 @@ pub mod generate {
 
             pub fn generate_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
-                    ISSUANCE_CERT_DN.clone(),
+                    ISSUER_CERT_DN.clone(),
                     CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
                 )
             }
