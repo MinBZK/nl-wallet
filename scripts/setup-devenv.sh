@@ -17,7 +17,7 @@
 # - openssl: needed to generate keys and certificates
 # - jq: needed to parse JSON
 # - standard unix tools like: grep, sed, tr, ...
-# - docker: with compose v2 extension, to run the digid-connector
+# - docker: with compose v2 and buildx 0.19 or newer, to run the digid-connector
 # - softhsm2-util: software implementation of a hardware security module (HSM). See https://github.com/opendnssec/SoftHSMv2.
 # - p11tool: utility that is part of the gnutls package. The Homebrew package is 'gnutls'. On Debian/Ubuntu, it is 'gnutls-bin'.
 # - nodejs: JavaScript runtime environment for building frontend library
@@ -156,7 +156,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   cd "${DIGID_CONNECTOR_PATH}"
 
   # Brings v4.0.3 up to dockerfile-stage-fixes branch.
-  # Commits: v4.0.3 (c2b5915), main (70d1e46), current (d72ee52), fixes (5b28537).
+  # Commits: v4.0.3 (c2b5915), main (70d1e46), current (d72ee52), fixes (8165875).
   echo -e "${INFO}Applying nl-rdo-max patches to ${DIGID_CONNECTOR_PATH} (${DIGID_CONNECTOR_VERSION})"
   apply_patches_once "${DIGID_CONNECTOR_PATH}" \
     "${DEVENV}/digid-connector/from-v403-to-main.patch" \
