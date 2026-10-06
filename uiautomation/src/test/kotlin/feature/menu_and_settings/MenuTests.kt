@@ -40,6 +40,7 @@ class MenuTests : TestBase() {
     fun verifyMenuScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(menuScreen.menuListButtonsVisible(), "menu screen is not visible")
+        menuScreen.captureA11ySnapshot("Menu")
 
         menuScreen.clickHelpAndInfoButton()
         Thread.sleep(SCREEN_TRANSITION_MILLIS)
@@ -50,6 +51,7 @@ class MenuTests : TestBase() {
         historyOverviewScreen.clickBottomBackButton()
         menuScreen.clickSettingsButton()
         assertTrue(settingsScreen.settingsButtonsVisible(), "settings buttons are not visible")
+        settingsScreen.captureA11ySnapshot("Settings")
 
         Thread.sleep(SCREEN_TRANSITION_MILLIS)
         menuScreen.clickBottomBackButton()

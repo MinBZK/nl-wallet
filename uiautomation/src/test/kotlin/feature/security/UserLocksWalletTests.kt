@@ -77,6 +77,7 @@ class UserLocksWalletTests : TestBase() {
         inactivityLockWarningNotification.switchToNativeContext()
         assertTrue(inactivityLockWarningNotification.visible())
         assertTrue(inactivityLockWarningNotification.confirmButtonVisible())
+        inactivityLockWarningNotification.captureA11ySnapshot("InactivityLockWarning")
 
         inactivityLockWarningNotification.clickConfirmButton()
         assertTrue(!inactivityLockWarningNotification.visible(), "inactivity warning notification is visible")

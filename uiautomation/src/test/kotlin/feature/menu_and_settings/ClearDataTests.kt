@@ -44,6 +44,7 @@ class ClearDataTests : TestBase() {
             { assertTrue(clearDataDialog.cancelButtonVisible(), "cancel button is not visible") },
             { assertTrue(clearDataDialog.confirmButtonVisible(), "confirm button is not visible") }
         )
+        clearDataDialog.captureA11ySnapshot("ClearDataDialog")
 
         clearDataDialog.clickConfirmButton()
         assertTrue(demoScreen.visible(), "demo screen is not visible")

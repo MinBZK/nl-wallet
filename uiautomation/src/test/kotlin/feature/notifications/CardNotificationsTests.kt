@@ -85,8 +85,10 @@ class CardNotificationsTests : TestBase() {
         dashboardScreen.clickMenuButton()
         menuScreen.clickSettingsButton()
         settingsScreen.clickNotificationsButton()
+        notificationsScreen.captureA11ySnapshot("Notifications")
         notificationsScreen.toggleNotifications()
         notificationsScreen.clickDebugScreenButton()
+        notificationsDebugScreen.captureA11ySnapshot("NotificationsDebug")
 
         val pidExpiresSoonTimer = notificationsDebugScreen.getCardNotificationTimer(tasData.getPidDisplayName(), EXPIRES_SOON)
         val pidExpiresSoonVisible = notificationsDebugScreen.isNotificationVisible(tasData.getPidDisplayName(), EXPIRES_SOON)
