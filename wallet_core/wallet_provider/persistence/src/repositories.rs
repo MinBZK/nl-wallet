@@ -668,6 +668,10 @@ pub mod mock {
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_task::AdminTask;
+    use wallet_provider_domain::model::admin_task::AdminTaskCreate;
+    use wallet_provider_domain::model::admin_task::AdminTaskReview;
+    use wallet_provider_domain::model::admin_task::TaskListView;
     use wallet_provider_domain::model::wallet_flag::WalletFlag;
     use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
@@ -686,11 +690,36 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_1;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_with_id;
     use wallet_provider_domain::repository::AdminPortalSessionRepository;
+    use wallet_provider_domain::repository::AdminTaskRepository;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;
     use wallet_provider_domain::repository::TransactionStarter;
     use wallet_provider_domain::repository::WalletUserRepository;
+
+    mockall::mock! {
+        pub AdminTaskRepository {}
+
+        impl AdminTaskRepository for AdminTaskRepository {
+            async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError>;
+
+            async fn find_task_by_id(&self, id: Uuid) -> Result<Option<AdminTask>, PersistenceError>;
+
+            async fn withdraw_task(
+                &self,
+                id: Uuid,
+                user_id: &str,
+                now: DateTime<Utc>,
+            ) -> Result<Option<AdminTask>, PersistenceError>;
+
+            async fn review_task(
+                &self,
+                review: AdminTaskReview,
+            ) -> Result<Option<AdminTask>, PersistenceError>;
+
+            async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError>;
+        }
+    }
 
     mockall::mock! {
         pub AdminPortalSessionRepository {}
