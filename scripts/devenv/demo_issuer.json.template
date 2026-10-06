@@ -235,7 +235,7 @@
             "format": "dc+sd-jwt",
             "attestation_type": "https://www.dezi.nl/vct/v1/deziVerklaringDcSdJwt",
             "attributes": {
-              "loa_dezi": { "type": "text", "value": "http://eidas.europe.eu/LoA/high" },
+              "loa_dezi": { "type": "text", "value": "http://eidas.europa.eu/LoA/high" },
               "verklaring_id": { "type": "text", "value": "77b2c445-594c-457b-8c9a-1b86cd08bc85" },
               "dezi_nummer": { "type": "text", "value": "900027308" },
               "voorletters": { "type": "text", "value": "J." },
@@ -254,7 +254,7 @@
             "format": "dc+sd-jwt",
             "attestation_type": "https://www.dezi.nl/vct/v1/deziVerklaringDcSdJwt",
             "attributes": {
-              "loa_dezi": { "type": "text", "value": "http://eidas.europe.eu/LoA/high" },
+              "loa_dezi": { "type": "text", "value": "http://eidas.europa.eu/LoA/high" },
               "verklaring_id": { "type": "text", "value": "12a971fd-1403-454f-9a3f-29b185575a97" },
               "dezi_nummer": { "type": "text", "value": "900026904" },
               "voorletters": { "type": "text", "value": "J." },
