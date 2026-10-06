@@ -35,6 +35,11 @@
       "path": ["family_name"],
       "display": [
         {
+          "locale": "en-US",
+          "label": "Name",
+          "description": "Family name of the person, including any prefixes"
+        },
+        {
           "locale": "nl-NL",
           "label": "Achternaam",
           "description": "Achternaam van de persoon, inclusief voorvoegsels"
@@ -46,6 +51,11 @@
     {
       "path": ["given_name"],
       "display": [
+        {
+          "locale": "en-US",
+          "label": "First name",
+          "description": "First name of the person"
+        },
         {
           "locale": "nl-NL",
           "label": "Voornaam",
@@ -60,6 +70,11 @@
       "path": ["birthdate"],
       "display": [
         {
+          "locale": "en-US",
+          "label": "Birth date",
+          "description": "Birth date of the person"
+        },
+        {
           "locale": "nl-NL",
           "label": "Geboortedatum",
           "description": "Geboortedatum van de persoon"
@@ -72,6 +87,11 @@
       "path": ["age_over_18"],
       "display": [
         {
+          "locale": "en-US",
+          "label": "Over 18",
+          "description": "Whether the person is over 18"
+        },
+        {
           "locale": "nl-NL",
           "label": "18+",
           "description": "Of de persoon 18+ is"
@@ -82,6 +102,11 @@
     {
       "path": ["nationalities"],
       "display": [
+        {
+          "locale": "en-US",
+          "label": "Nationalities",
+          "description": "List of nationalities of the person"
+        },
         {
           "locale": "nl-NL",
           "label": "Nationaliteiten",
@@ -128,6 +153,11 @@
       "path": ["address", "street_address"],
       "display": [
         {
+          "locale": "en-US",
+          "label": "Street",
+          "description": "Street of the address"
+        },
+        {
           "locale": "nl-NL",
           "label": "Straatnaam",
           "description": "Straatnaam van het adres"
@@ -139,6 +169,11 @@
     {
       "path": ["address", "house_number"],
       "display": [
+        {
+          "locale": "en-US",
+          "label": "House number",
+          "description": "House number of the address"
+        },
         {
           "locale": "nl-NL",
           "label": "Huisnummer",
@@ -152,6 +187,11 @@
       "path": ["address", "postal_code"],
       "display": [
         {
+          "locale": "en-US",
+          "label": "Postal code",
+          "description": "Postal code of the address"
+        },
+        {
           "locale": "nl-NL",
           "label": "Postcode",
           "description": "Postcode van het adres"
@@ -163,6 +203,11 @@
     {
       "path": ["address", "locality"],
       "display": [
+        {
+          "locale": "en-US",
+          "label": "City",
+          "description": "City of the address"
+        },
         {
           "locale": "nl-NL",
           "label": "Stad",
@@ -176,6 +221,11 @@
     {
       "path": ["address", "country"],
       "display": [
+        {
+          "locale": "en-US",
+          "label": "Country",
+          "description": "Country of the address"
+        },
         {
           "locale": "nl-NL",
           "label": "Land",
