@@ -395,6 +395,9 @@ has been removed from the issuer configuration.</p></li>
 <code class="docutils literal notranslate"><span class="pre">credential_metadata</span></code> setting that names a JSON file with the Credential
 Metadata for that credential, and the issuer refuses to start without it.
 SD-JWT VC Type Metadata documents can only be used for <code class="docutils literal notranslate"><span class="pre">sd_jwt</span></code> credentials.</p></li>
+<li><p>A credential configuration with format <code class="docutils literal notranslate"><span class="pre">dc+sd-jwt</span></code> is described by either
+SD-JWT VC Type Metadata or Credential Metadata, but not both. Configure
+<code class="docutils literal notranslate"><span class="pre">credential_metadata</span></code> for it when no Type Metadata is available.</p></li>
 <li><p>The attributes of an issuable mdoc document now have exactly two levels of
 keys: a namespace and the name of a data element. Existing <code class="docutils literal notranslate"><span class="pre">IssuableDocuments</span></code>
 should be updated to reflect this.</p></li>

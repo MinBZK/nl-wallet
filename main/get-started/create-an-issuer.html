@@ -1024,18 +1024,16 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 </pre></div>
 </div>
 <div class="admonition note">
-<p class="admonition-title">Issuing mdocs instead of SD-JWTs</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">type_metadata</span></code> setting only applies to credential configurations with
-format <code class="docutils literal notranslate"><span class="pre">dc+sd-jwt</span></code>, and can be left out entirely by an issuer of only mdocs. An
-<code class="docutils literal notranslate"><span class="pre">mso_mdoc</span></code> configuration is described by Credential Metadata instead: add a
-<code class="docutils literal notranslate"><span class="pre">credential_metadata</span></code> key to its <code class="docutils literal notranslate"><span class="pre">[credential_configurations.&lt;id&gt;]</span></code> block,
-naming a JSON file that holds a <code class="docutils literal notranslate"><span class="pre">display</span></code> array and a <code class="docutils literal notranslate"><span class="pre">claims</span></code> array. Two
-differences with the TAS above are worth noting: a claim <code class="docutils literal notranslate"><span class="pre">display</span></code> entry uses
-<code class="docutils literal notranslate"><span class="pre">name</span></code> where the TAS uses <code class="docutils literal notranslate"><span class="pre">label</span></code>, and each claim <code class="docutils literal notranslate"><span class="pre">path</span></code> has two elements, the
-mdoc namespace followed by the data element name. Every credential configuration has to
-be described one way or the other: the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> refuses to start when a
-<code class="docutils literal notranslate"><span class="pre">dc+sd-jwt</span></code> configuration has no technical attestation schema, or an <code class="docutils literal notranslate"><span class="pre">mso_mdoc</span></code>
-configuration has no <code class="docutils literal notranslate"><span class="pre">credential_metadata</span></code>.
+<p class="admonition-title">Describing a configuration with Credential Metadata</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">type_metadata</span></code> setting lists SD-JWT VC Type Metadata documents, which can
+only describe a <code class="docutils literal notranslate"><span class="pre">dc+sd-jwt</span></code> configuration. The alternative is Credential Metadata: add a
+<code class="docutils literal notranslate"><span class="pre">credential_metadata</span></code> key to a <code class="docutils literal notranslate"><span class="pre">[credential_configurations.&lt;id&gt;]</span></code> block, naming
+a JSON file that holds a <code class="docutils literal notranslate"><span class="pre">display</span></code> array and a <code class="docutils literal notranslate"><span class="pre">claims</span></code> array. An <code class="docutils literal notranslate"><span class="pre">mso_mdoc</span></code>
+configuration has to be described this way, while a <code class="docutils literal notranslate"><span class="pre">dc+sd-jwt</span></code> configuration
+may use either, but not both. Two differences with the TAS above are worth noting: a claim <code class="docutils literal notranslate"><span class="pre">display</span></code> entry uses
+<code class="docutils literal notranslate"><span class="pre">name</span></code> where the TAS uses <code class="docutils literal notranslate"><span class="pre">label</span></code>, and in the Credential Metadata for an mdoc
+each claim <code class="docutils literal notranslate"><span class="pre">path</span></code> has two elements, the namespace followed by the data element
+name.
 </id></p>
 </div>
 </section>
