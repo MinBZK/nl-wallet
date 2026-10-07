@@ -14,7 +14,7 @@ use crate::transfer::TransferSessionId;
 #[derive(Debug, thiserror::Error)]
 pub enum TransferUriError {
     #[error("invalid transfer uri: {0}")]
-    InvalidUri(String),
+    InvalidUri(Url),
 
     #[error("error deserializing query parameters: {0}")]
     QueryDeserialization(#[source] serde_qs::Error),
@@ -37,12 +37,12 @@ pub struct TransferQuery {
     pub public_key: JwePublicKey,
 }
 
-impl TryFrom<&Url> for TransferQuery {
+impl TryFrom<Url> for TransferQuery {
     type Error = TransferUriError;
 
-    fn try_from(value: &Url) -> Result<Self, Self::Error> {
+    fn try_from(value: Url) -> Result<Self, Self::Error> {
         let Some(query) = value.fragment() else {
-            return Err(TransferUriError::InvalidUri(value.to_string()));
+            return Err(TransferUriError::InvalidUri(value));
         };
 
         let query: TransferQuery = serde_qs::from_str(query).map_err(TransferUriError::QueryDeserialization)?;

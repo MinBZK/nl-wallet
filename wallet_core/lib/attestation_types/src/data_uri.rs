@@ -99,6 +99,6 @@ mod tests {
     fn into_url() {
         let data_uri = DataUri::from_str("data:image/png;base64,q80=").unwrap();
         let url = Url::from(&data_uri);
-        assert_eq!(data_uri.to_string(), url.to_string());
+        assert_eq!(data_uri.to_string(), String::from(url));
     }
 }

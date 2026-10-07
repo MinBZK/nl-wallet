@@ -625,7 +625,7 @@ fn generate_and_validate_status_list_token() -> Result<()> {
     let token: StatusListToken = std::str::from_utf8(&output)?.trim().parse()?;
     let trust_anchors = trust_anchors_from_pem(&ca_crt)?;
     let signing_certificate_dn = certificate_from_pem(&tsl_crt)?.to_canonical_distinguished_name()?;
-    let claims = token.parse_and_verify(&trust_anchors, signing_certificate_dn, &uri, &TimeGenerator)?;
+    let claims = token.parse_and_verify(&trust_anchors, signing_certificate_dn, uri.clone(), &TimeGenerator)?;
 
     assert!(claims.iat.timestamp() >= before.timestamp() && claims.iat.timestamp() <= after.timestamp());
     let expiration = claims.exp.expect("token should have an expiration");

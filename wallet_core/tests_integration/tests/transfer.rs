@@ -119,7 +119,7 @@ async fn ltc62_test_wallet_transfer() {
 
     assert_state(TransferSessionState::Created, &mut destination).await;
 
-    source.pair_transfer(&url).await.unwrap();
+    source.pair_transfer(url).await.unwrap();
 
     assert_states(TransferSessionState::Paired, &mut destination, &mut source).await;
 
@@ -173,7 +173,7 @@ async fn ltc63_test_wallet_transfer_canceled_from_source() {
 
     assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
 
-    source_data.wallet.pair_transfer(&url).await.unwrap();
+    source_data.wallet.pair_transfer(url).await.unwrap();
 
     assert_states(
         TransferSessionState::Paired,
@@ -209,7 +209,7 @@ async fn ltc64_test_wallet_transfer_canceled_from_destination() {
 
     assert_state(TransferSessionState::Created, &mut destination).await;
 
-    source.pair_transfer(&url).await.unwrap();
+    source.pair_transfer(url).await.unwrap();
 
     assert_states(TransferSessionState::Paired, &mut destination, &mut source).await;
 
@@ -237,7 +237,7 @@ async fn ltc63_test_retry_transfer_after_canceled() {
 
     assert_state(TransferSessionState::Created, &mut destination_data.wallet).await;
 
-    source_data.wallet.pair_transfer(&url).await.unwrap();
+    source_data.wallet.pair_transfer(url).await.unwrap();
 
     assert_states(
         TransferSessionState::Paired,

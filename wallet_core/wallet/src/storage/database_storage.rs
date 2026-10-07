@@ -1345,7 +1345,7 @@ fn create_attestation_copy_models(
                 let attestation_bytes: Vec<u8> = cbor_serialize(&issuer_signed)?;
 
                 let (status_uri, status_index) = match mso.status {
-                    Some(MdocStatus::StatusList(claim)) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    Some(MdocStatus::StatusList(claim)) => (Some(claim.uri.into()), Some(claim.idx)),
                     // `identifier_list` status not supported so no status list reference is stored (PVW-6106)
                     Some(MdocStatus::IdentifierList(_)) | None => (None, None),
                 };
@@ -1370,7 +1370,7 @@ fn create_attestation_copy_models(
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
 
                 let (status_uri, status_index) = match sd_jwt.into_claims().status {
-                    Some(StatusClaim::StatusList(claim)) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    Some(StatusClaim::StatusList(claim)) => (Some(claim.uri.into()), Some(claim.idx)),
                     None => (None, None),
                 };
 
