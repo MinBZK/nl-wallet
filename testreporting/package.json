@@ -13,21 +13,21 @@
     "serve": "python3 -m http.server -b 127.0.0.1 -d allure-report 8080"
   },
   "dependencies": {
-    "@allurereport/core": "^3.18.0",
-    "@allurereport/plugin-api": "^3.18.0",
-    "@allurereport/reader": "^3.18.0",
-    "@allurereport/reader-api": "^3.18.0",
+    "@allurereport/core": "^3.19.1",
+    "@allurereport/plugin-api": "^3.19.1",
+    "@allurereport/reader": "^3.19.1",
+    "@allurereport/reader-api": "^3.19.1",
     "@types/yauzl": "^2.10.3",
     "yauzl": "^3.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@tsconfig/node24": "^24.0.5",
-    "@types/node": "^24.13.6",
+    "@types/node": "^24.19.0",
     "eslint": "^10.11.0",
-    "prettier": "^3.9.8",
+    "prettier": "^3.9.9",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.70.1"
+    "typescript-eslint": "^8.71.0"
   },
   "overrides": {
     "underscore": "^1.12.1"
