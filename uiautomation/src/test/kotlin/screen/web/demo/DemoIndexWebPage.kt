@@ -5,7 +5,7 @@ import util.MobileActions
 
 class DemoIndexWebPage : MobileActions() {
 
-    private val headerTextLocator = By.xpath("//h1[text()='NL Wallet demo']")
+    private val headerTextLocator = By.xpath("//h1[contains(., 'NL Wallet')]")
 
     private val amsterdamMdocButtonLocator = By.xpath("//a[@id='mijn_amsterdam_mdoc']")
     private val amsterdamSdJwtButtonLocator = By.xpath("//a[@id='mijn_amsterdam_sd_jwt']")
