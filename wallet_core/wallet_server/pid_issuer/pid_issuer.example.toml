@@ -89,7 +89,7 @@ attestation_type = "com.example.pid"
 credential_metadata = "com_example_pid_metadata_mdoc.json"
 valid_days = 365
 private_key_type = "software"
-private_key = "MIG..."                                     # DER-encoded private key
+private_key = "MIG..."               # DER-encoded private key
 certificate = "MIJ..."
 
 [credential_configurations."com.example.pid_sdjwt".status_list]
