@@ -307,6 +307,13 @@ pub enum WalletIssuanceError {
     NoNonceEndpoint,
 
     #[error(
+        "at least one of the offered credential configurations does not support the \"attestation\" proof type: {}",
+        .0.iter().join(", ")
+    )]
+    #[category(pd)]
+    AttestationProofTypeUnsupported(VecNonEmpty<CredentialConfigurationId>),
+
+    #[error(
         "issuer offered Credential Configurations for none of the requested credential kinds, \
          requested: {}, offered: {}",
         requested.iter().join(", "),

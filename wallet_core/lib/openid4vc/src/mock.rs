@@ -46,13 +46,13 @@ impl IssuerMetadata {
                     Format::MsoMdoc => CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
                         credential_kind.attestation_type.clone(),
                         scope,
-                        vec![ProofType::Jwt],
+                        vec![ProofType::Attestation],
                         CredentialMetadata::new_mdoc_example(&credential_kind.attestation_type, &[]),
                     ),
                     Format::SdJwt => CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                         credential_kind.attestation_type,
                         scope,
-                        vec![ProofType::Jwt],
+                        vec![ProofType::Attestation],
                         CredentialMetadata::new_example(&[]),
                         Some(type_metadata_uri),
                     ),

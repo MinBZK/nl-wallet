@@ -21,6 +21,7 @@ use token_status_list::verification::verifier::RevocationVerifier;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 use wscd::wia::WiaClient;
 
@@ -44,6 +45,7 @@ use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerInfo;
 use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::issuer_metadata::ProofType;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
 use crate::registration_certificate::RegistrationCertificateError;
@@ -611,6 +613,27 @@ where
             return Err(WalletIssuanceError::NoNonceEndpoint);
         }
 
+        // Check that, if the Credential Configuration requires cryptographic key binding, it supports the "attestation"
+        // proof type. If the Issuer does not require key binding for a particular configuration, the Wallet will send
+        // a proof anyway, which we assume the Issuer either verifies if it supports it or ignores if it does not.
+        let unsupported_proof_config_ids = credential_configs
+            .iter()
+            .filter(|(_id, config)| {
+                config
+                    .cryptographic_binding
+                    .as_ref()
+                    .map(|binding| !binding.proof_types_supported.contains_key(&ProofType::Attestation))
+                    .unwrap_or(false)
+            })
+            .map(|(id, _config)| id.clone())
+            .collect_vec();
+
+        if let Ok(unsupported_proof_config_ids) = VecNonEmpty::try_from(unsupported_proof_config_ids) {
+            return Err(WalletIssuanceError::AttestationProofTypeUnsupported(
+                unsupported_proof_config_ids,
+            ));
+        }
+
         // Now that we have all the Credential Configurations that were part of the Credential Offer extracted from the
         // Issuer Metadata, select only those whose `CredentialKind` was requested.
         let selected_credential_configs = match selection {
@@ -876,12 +899,24 @@ mod test {
                 }
             },
         });
-        if options.requires_key_binding {
+        if matches!(
+            options.key_binding,
+            KeyBinding::AttestationProofType | KeyBinding::JwtProofType
+        ) {
             let config = &mut issuer_metadata_json["credential_configurations_supported"][CONFIG_ID_MDOC.as_ref()];
-            config["cryptographic_binding_methods_supported"] = json!(["jwk"]);
-            config["proof_types_supported"] = json!({
-                "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
-            });
+            config["cryptographic_binding_methods_supported"] = json!(["cose_key"]);
+
+            if matches!(options.key_binding, KeyBinding::AttestationProofType) {
+                config["proof_types_supported"] = json!({
+                    "attestation": { "proof_signing_alg_values_supported": ["ES256"] }
+                });
+            }
+
+            if matches!(options.key_binding, KeyBinding::JwtProofType) {
+                config["proof_types_supported"] = json!({
+                    "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
+                });
+            }
         }
         if options.has_nonce_endpoint {
             issuer_metadata_json["nonce_endpoint"] = json!(server.url("/issuance/nonce"));
@@ -1007,11 +1042,19 @@ mod test {
         UntrustedStatusList,
     }
 
+    #[derive(Debug, Clone, Copy, Default)]
+    enum KeyBinding {
+        NotRequired,
+        #[default]
+        AttestationProofType,
+        JwtProofType,
+    }
+
     #[derive(Debug, Clone, Copy)]
     struct IssuerMetadataOptions<'a> {
         has_nonce_endpoint: bool,
         has_credential_preview_endpoint: bool,
-        requires_key_binding: bool,
+        key_binding: KeyBinding,
         grant_types_supported: Option<&'a [&'a str]>,
         has_client_attestation_support: bool,
         with_crl: bool,
@@ -1025,7 +1068,7 @@ mod test {
             Self {
                 has_nonce_endpoint: true,
                 has_credential_preview_endpoint: true,
-                requires_key_binding: true,
+                key_binding: KeyBinding::default(),
                 grant_types_supported: Some(DEFAULT_GRANT_TYPES_SUPPORTED),
                 has_client_attestation_support: true,
                 with_crl: true,
@@ -1686,9 +1729,6 @@ mod test {
             httpmock_issuer_add_metadata(
                 &server,
                 IssuerMetadataOptions {
-                    has_nonce_endpoint: false,
-                    requires_key_binding: false,
-                    grant_types_supported: None,
                     with_crl,
                     ..IssuerMetadataOptions::default()
                 },
@@ -2149,7 +2189,99 @@ mod test {
             registration_certificate,
         ) = start_httpmock_issuer(IssuerMetadataOptions {
             has_nonce_endpoint: false,
-            requires_key_binding: false,
+            key_binding: KeyBinding::NotRequired,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
+
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client.clone(),
+        );
+        let _flow = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+            )
+            .await
+            .expect("starting issuance should succeed");
+    }
+
+    #[tokio::test]
+    async fn start_attestation_proof_type_unsupported_error() {
+        // Starting issuance when the issuer metadata indicates that key binding is mandatory, but only supports the
+        // "jwt" proof type should fail.
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            key_binding: KeyBinding::JwtProofType,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
+
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client.clone(),
+        );
+
+        let error = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+            )
+            .await
+            .expect_err("starting issuance should fail");
+
+        assert_matches!(
+            error,
+            WalletIssuanceError::AttestationProofTypeUnsupported(id) if id == vec_nonempty![CONFIG_ID_MDOC.clone()]
+        );
+
+        // When key binding is not mandatory however, starting issuance should succeed.
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            key_binding: KeyBinding::NotRequired,
             ..IssuerMetadataOptions::default()
         })
         .await;
