@@ -3272,10 +3272,10 @@ mod tests {
             let key = SigningKey::generate();
             let public_key = PublicKey::from(*key.verifying_key());
 
-            let attested_keys =
+            let public_keys =
                 utils::vec_at_least::repeat_n(public_key, self.key_count.into()).collect::<VecNonEmpty<_>>();
             let attestation = KeyAttestation::sign(
-                &attested_keys,
+                &public_keys,
                 MOCK_CERTIFICATION_URL.clone(),
                 nonce,
                 &self.attestation_key_pair,

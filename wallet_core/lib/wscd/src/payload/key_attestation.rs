@@ -177,7 +177,7 @@ pub struct KeyAttestationVerificationResult {
 
 impl KeyAttestation {
     pub async fn sign<'a, I, K, G>(
-        attested_keys: I,
+        public_keys: I,
         certification: Url,
         nonce: Option<Nonce>,
         key_pair: &KeyPair<K>,
@@ -188,13 +188,13 @@ impl KeyAttestation {
         K: EcdsaKey,
         G: Generator<DateTime<Utc>>,
     {
-        let attested_keys = attested_keys
+        let public_keys = public_keys
             .into_nonempty_iter()
             .map(jwk_from_public_key)
             .collect::<Result<_, _>>()
             .map_err(KeyAttestationSigningError::PublicKey)?;
 
-        let claims = KeyAttestationClaims::new(attested_keys, certification, nonce, time);
+        let claims = KeyAttestationClaims::new(public_keys, certification, nonce, time);
         let signed_jwt = SignedJwt::sign_with_certificate(&claims, key_pair)
             .await
             .map_err(KeyAttestationSigningError::SignJwt)?;

@@ -477,13 +477,13 @@ where
                 .into_nonempty_iter()
                 .unzip();
 
-            let attested_keys = wrapped_keys
+            let public_keys = wrapped_keys
                 .nonempty_iter()
                 .map(|wrapped_key| PublicKey::from(*wrapped_key.public_key()))
                 .collect::<VecNonEmpty<_>>();
 
             let attestation = KeyAttestation::sign(
-                attested_keys.nonempty_iter(),
+                &public_keys,
                 user_state.key_attestation_certification.clone(),
                 request.proof_nonce,
                 &user_state.key_attestation_key_pair,
