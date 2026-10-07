@@ -39,6 +39,7 @@ class QRScannerTests : TestBase() {
             qrScanner.visible(),
             "QR Scanner is not visible"
         )
+        qrScanner.captureA11ySnapshot("QRScanner")
         qrScanner.enableTorch()
         qrScanner.disableTorch()
         assertTrue(

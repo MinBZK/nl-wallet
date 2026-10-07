@@ -54,6 +54,7 @@ class AppTourVideoTests : TestBase() {
             { assertTrue(appTourScreen.videoTitleVisible(), "video title is not visible") },
             { assertTrue(appTourScreen.videoPlayButtonVisible(), "Play button is not visible") },
         )
+        appTourScreen.captureA11ySnapshot("AppTour")
 
         appTourScreen.playVideo()
         assertAll(
@@ -62,6 +63,7 @@ class AppTourVideoTests : TestBase() {
             { assertTrue(videoPlayer.subtitlesOnToggleVisible(), "subtitle on toggle is not visible") },
             { assertTrue(videoPlayer.soundOffToggleVisible(), "sound toggle is not visible") },
         )
+        videoPlayer.captureA11ySnapshot("AppTourVideoPlayer")
         // This sleep is needed (in combination with find element timeout) to ensure that the first video "intro" has finished.
         // This will break when the first video becomes longer
         Thread.sleep(8000)

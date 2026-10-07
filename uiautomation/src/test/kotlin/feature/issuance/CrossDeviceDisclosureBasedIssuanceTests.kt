@@ -88,6 +88,7 @@ class CrossDeviceDisclosureBasedIssuanceTests : TwoDeviceTestBase() {
             Thread.sleep(MobileActions.SET_FRAME_SYNC_MAX_WAIT_MILLIS)
 
             assertTrue(sourceDisclosureScreen.organizationNameVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)))
+            sourceDisclosureScreen.captureA11ySnapshot("CrossDeviceDisclosureBasedIssuance-source")
 
             sourceDisclosureScreen.viewDetails()
             assertTrue(sourceDisclosureScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))

@@ -260,18 +260,17 @@ where
         let pid_config = &config.pid_attributes;
         let pid_preview = Self::pid_preview(
             issuance_session
-                .previews_with_metadata()
+                .credential_previews()
                 .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPreviews))?
                 .collect_vec()
-                .into_iter()
-                .map(|(preview, _)| preview),
+                .into_iter(),
             pid_config,
         )?;
 
         self.compare_recovery_code_against_stored(pid_preview, pid_config)
             .await?;
 
-        let pid_attestation_type = pid_preview.credential_payload.attestation_type.clone();
+        let pid_attestation_type = pid_preview.attestation_type.clone();
         let recovery_code_path = pid_config.recovery_code_path(&pid_attestation_type)?;
 
         self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
@@ -626,7 +625,7 @@ mod tests {
                 create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
 
             client
-                .expect_previews_with_metadata()
+                .expect_credential_previews()
                 .once()
                 .return_const(vec![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
@@ -883,7 +882,7 @@ mod tests {
                 .prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
 
             client
-                .expect_previews_with_metadata()
+                .expect_credential_previews()
                 .once()
                 .return_const(vec![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
@@ -934,7 +933,7 @@ mod tests {
                     .unwrap();
 
                 client
-                    .expect_previews_with_metadata()
+                    .expect_credential_previews()
                     .once()
                     .return_const(vec![(preview, normalized_metadata)].into());
 

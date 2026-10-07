@@ -11,6 +11,7 @@ use crate::registration_certificate::MultiLanguageStringSet;
 use crate::registration_certificate::ParsedRegistrationCertificate;
 use crate::registration_certificate::StatusValidatedRegistrationCertificate;
 use crate::registration_certificate::Subject;
+use crate::registration_certificate::SubjectType;
 use crate::registration_certificate::UncheckedRegistrationCertificate;
 use crate::x509::RelyingParty;
 use crate::x509::RelyingPartyError;
@@ -32,6 +33,10 @@ pub struct Organization {
     pub country_code: String,
     pub privacy_policy_url: Option<Url>,
     pub purpose: Option<MultiLanguageStringSet>,
+    // TODO (PVW-6052): Require support_uri and person_type once proximity disclosure uses WRPRC organization data.
+    pub support_uri: Option<String>,
+    pub public_body: Option<bool>,
+    pub person_type: Option<SubjectType>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -70,12 +75,12 @@ impl From<&ParsedRegistrationCertificate> for Organization {
 
 impl Organization {
     fn from_registration_certificate(payload: &UncheckedRegistrationCertificate, subject: &Subject) -> Self {
-        let legal_name = match subject {
-            Subject::LegalPerson { legal_name } => legal_name.clone(),
+        let (legal_name, person_type) = match subject {
+            Subject::LegalPerson { legal_name } => (legal_name.clone(), SubjectType::LegalPerson),
             Subject::NaturalPerson {
                 given_name,
                 family_name,
-            } => format!("{given_name} {family_name}"),
+            } => (format!("{given_name} {family_name}"), SubjectType::NaturalPerson),
         };
 
         Self {
@@ -93,6 +98,9 @@ impl Organization {
             web_url: payload.info_uri.clone(),
             privacy_policy_url: payload.privacy_policy.clone(),
             purpose: payload.purpose.clone(),
+            support_uri: Some(payload.support_uri.clone()),
+            public_body: payload.public_body,
+            person_type: Some(person_type),
         }
     }
 }
@@ -135,6 +143,9 @@ pub mod mock {
                     lang: "en".to_owned(),
                     value: "Verify your identity".to_owned(),
                 }]),
+                support_uri: None,
+                public_body: None,
+                person_type: Some(SubjectType::LegalPerson),
             }
         }
     }
@@ -147,7 +158,6 @@ pub mod test {
     use attestation_types::image::Image;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::DistinguishedName;
-    use crypto::x509::NO_SAN;
     use rstest::rstest;
     use serde_json::json;
     use token_status_list::verification::verifier::RevocationVerifier;
@@ -156,6 +166,7 @@ pub mod test {
 
     use super::Organization;
     use crate::registration_certificate::RegistrationCertificateEnvelope;
+    use crate::registration_certificate::SubjectType;
     use crate::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use crate::registration_certificate::mock::issuer_registration_certificate_payload;
     use crate::registration_certificate::verify_registration_certificate_envelope;
@@ -172,18 +183,43 @@ pub mod test {
         )
     }
 
+    #[test]
+    fn deserialize_organization_without_registration_fields() {
+        let organization: Organization = serde_json::from_value(json!({
+            "displayName": "Example",
+            "legalName": "Example B.V.",
+            "description": [],
+            "identifier": "example",
+            "countryCode": "NL",
+        }))
+        .unwrap();
+
+        assert_eq!(organization.support_uri, None);
+        assert_eq!(organization.public_body, None);
+        assert_eq!(organization.person_type, None);
+    }
+
     #[rstest]
-    #[case::legal_person(DistinguishedName::create_legal_person_mock("Example"), "Example B.V.")]
-    #[case::natural_person(DistinguishedName::create_natural_person_mock("Jane", "Doe"), "Jane Doe")]
+    #[case::legal_person(
+        DistinguishedName::create_legal_person_mock("Example"),
+        "Example B.V.",
+        SubjectType::LegalPerson
+    )]
+    #[case::natural_person(
+        DistinguishedName::create_natural_person_mock("Jane", "Doe"),
+        "Jane Doe",
+        SubjectType::NaturalPerson
+    )]
     #[tokio::test]
     async fn maps_registration_certificate_to_organization(
         #[case] subject: DistinguishedName,
         #[case] legal_name: &str,
+        #[case] person_type: SubjectType,
         #[values(false, true)] has_optional_fields: bool,
     ) {
         let access_key = Ca::generate_wrpac_mock_ca()
             .unwrap()
-            .generate_key_pair(subject, Default::default(), NO_SAN)
+            .generate_key_pair(subject, Default::default())
             .unwrap();
         let purpose = has_optional_fields.then(|| {
             utils::vec_nonempty![super::MultiLanguageString {
@@ -196,6 +232,8 @@ pub mod test {
         payload.0["name"] = json!(has_optional_fields.then_some("Issuer service"));
         payload.0["info_uri"] = json!(has_optional_fields.then_some("https://example.com/info"));
         payload.0["privacy_policy"] = json!(has_optional_fields.then_some("https://example.com/privacy"));
+        payload.0["support_uri"] = json!("https://example.com/support");
+        payload.0["public_body"] = json!(has_optional_fields.then_some(true));
         payload.0["srv_description"] = json!([
             [
                 { "lang": "en", "value": "First service" },
@@ -253,6 +291,9 @@ pub mod test {
                 web_url: has_optional_fields.then(|| "https://example.com/info".parse().unwrap()),
                 privacy_policy_url: has_optional_fields.then(|| "https://example.com/privacy".parse().unwrap()),
                 purpose,
+                support_uri: Some("https://example.com/support".to_owned()),
+                public_body: has_optional_fields.then_some(true),
+                person_type: Some(person_type),
             }
         );
     }

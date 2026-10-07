@@ -121,6 +121,10 @@ tasks.withType<Test>().configureEach {
         systemProperty(k, System.getProperty(k, v.toString()))
     }
 
+    listOf("ENABLE_A11Y_CAPTURES", "A11Y_CAPTURE_DIR").forEach { name ->
+        (System.getProperty(name) ?: System.getenv(name))?.let { environment(name, it) }
+    }
+
     val toolchains = project.extensions.getByType(JavaToolchainService::class.java)
     javaLauncher.set(toolchains.launcherFor {
         languageVersion.set(JavaLanguageVersion.of(21))

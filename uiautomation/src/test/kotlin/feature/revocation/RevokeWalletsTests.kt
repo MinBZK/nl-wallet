@@ -101,6 +101,7 @@ class RevokeWalletsTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
 
         assertTrue(walletBlockedByUserScreen.visible(), "Wallet revoked screen is not visible")
+        walletBlockedByUserScreen.captureA11ySnapshot("WalletBlockedByUser")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -116,6 +117,7 @@ class RevokeWalletsTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
 
         assertTrue(walletBlockedByWalletIdScreen.visible(), "Wallet revoked screen is not visible")
+        walletBlockedByWalletIdScreen.captureA11ySnapshot("WalletBlockedByWalletId")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -131,6 +133,7 @@ class RevokeWalletsTests : TestBase() {
         pinScreen.switchToNativeContext()
         pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(walletBlockedByRecoveryIdScreen.visible(), "Wallet revoked screen is not visible")
+        walletBlockedByRecoveryIdScreen.captureA11ySnapshot("WalletBlockedByRecoveryCode")
         dashboardScreen.closeApp()
     }
 
@@ -148,6 +151,7 @@ class RevokeWalletsTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
 
         assertTrue(walletSolutionBlockedScreen.visible(), "Wallet revoked screen is not visible")
+        walletSolutionBlockedScreen.captureA11ySnapshot("WalletSolutionBlocked")
     }
 
     @AfterEach

@@ -100,6 +100,7 @@ class DisclosureScreen extends StatelessWidget {
 
   bool _showHelpIcon(DisclosureState state) {
     return switch (state) {
+      DisclosureInitial() => false,
       DisclosureSuccess() => false,
       DisclosureStopped() => false,
       DisclosureMissingAttributes() => false,

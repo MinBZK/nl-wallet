@@ -322,7 +322,7 @@ where
             .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
             .await
             .map_err(|error| match error {
-                CertificateCrlVerificationError::Certificate(source) => {
+                CertificateCrlVerificationError::CertificateVerify(source) => {
                     JwtX5cVerifyError::CertificateValidation(source)
                 }
                 error => JwtX5cVerifyError::CertificateCrlValidation(error),
@@ -1345,9 +1345,8 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
-    use crypto::x509::CertificateError;
+    use crypto::x509::CertificateVerifyError;
     use crypto::x509::DistinguishedName;
-    use crypto::x509::NO_SAN;
     use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::CertificateCrlVerifier;
     use ecdsa::elliptic_curve::Generate;
@@ -1784,7 +1783,6 @@ mod tests {
                     crl_distribution_points: vec![crl_url],
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
         let crl_mock = server
@@ -2061,7 +2059,7 @@ mod tests {
             .unwrap_err();
         assert_matches!(
             err,
-            JwtX5cVerifyError::CertificateValidation(CertificateError::Verification(_))
+            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::Verification(_))
         );
     }
 
@@ -2088,7 +2086,7 @@ mod tests {
 
         assert_matches!(
             err,
-            JwtX5cVerifyError::CertificateValidation(CertificateError::TrustAnchorInChain)
+            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::TrustAnchorInChain)
         );
     }
 

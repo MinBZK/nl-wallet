@@ -19,7 +19,7 @@ use yoke::Yoke;
 use yoke::Yokeable;
 
 use crate::x509::BorrowingCertificate;
-use crate::x509::CertificateError;
+use crate::x509::CertificateParseError;
 
 #[derive(Yokeable, Debug, Clone)]
 struct ParsedTrustAnchor<'a> {
@@ -139,7 +139,7 @@ impl PartialEq for TrustAnchors {
 impl Eq for TrustAnchors {}
 
 impl TryFrom<Vec<Vec<u8>>> for TrustAnchors {
-    type Error = CertificateError;
+    type Error = CertificateParseError;
 
     fn try_from(input: Vec<Vec<u8>>) -> Result<Self, Self::Error> {
         let certificates: IndexSet<BorrowingCertificate> =
@@ -149,7 +149,7 @@ impl TryFrom<Vec<Vec<u8>>> for TrustAnchors {
 }
 
 impl TryFrom<IndexSet<BorrowingCertificate>> for TrustAnchors {
-    type Error = CertificateError;
+    type Error = CertificateParseError;
 
     fn try_from(certificates: IndexSet<BorrowingCertificate>) -> Result<Self, Self::Error> {
         let trust_anchors: Vec<_> = certificates
@@ -158,7 +158,7 @@ impl TryFrom<IndexSet<BorrowingCertificate>> for TrustAnchors {
             .map(webpki::anchor_from_trusted_cert)
             .map_ok(|ta| ta.to_owned())
             .try_collect()
-            .map_err(|e| CertificateError::CertificateParsing(Box::new(e)))?;
+            .map_err(|e| CertificateParseError::TrustAnchorCertificateParsing(Box::new(e)))?;
 
         let result = Self {
             certificates,
@@ -171,7 +171,7 @@ impl TryFrom<IndexSet<BorrowingCertificate>> for TrustAnchors {
 
 #[cfg(any(test, feature = "examples"))]
 impl TryFrom<Vec<BorrowingTrustAnchor>> for TrustAnchors {
-    type Error = CertificateError;
+    type Error = CertificateParseError;
 
     fn try_from(trust_anchors: Vec<BorrowingTrustAnchor>) -> Result<Self, Self::Error> {
         let certificates: IndexSet<BorrowingCertificate> = trust_anchors

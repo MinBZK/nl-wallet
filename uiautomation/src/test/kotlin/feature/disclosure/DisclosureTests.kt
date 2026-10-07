@@ -151,6 +151,7 @@ class DisclosureTests : TestBase() {
         amsterdamWebPage.openSameDeviceWalletFlow()
         amsterdamWebPage.switchToNativeContext()
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM)))
+        disclosureScreen.captureA11ySnapshot("DisclosureLoginApprove")
 
         disclosureScreen.viewLoginDisclosureDetails()
         disclosureScreen.viewDisclosureOrganizationDetails(organizationAuthMetadata.getDisplayNameOfOrganization(MIJN_AMSTERDAM))
@@ -158,12 +159,14 @@ class DisclosureTests : TestBase() {
         organizationDetailScreen.clickBackButton()
         disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.bsnVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "BSN not visible")
+        disclosureScreen.captureA11ySnapshot("DisclosureSharedDataDetails")
 
         disclosureScreen.goBack()
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
         assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
+        disclosureScreen.captureA11ySnapshot("DisclosureReportProblem")
 
         disclosureScreen.goBack()
         disclosureScreen.viewLoginDisclosureDetails()
@@ -234,6 +237,7 @@ class DisclosureTests : TestBase() {
             { assertTrue(disclosureScreen.privacyHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.privacyButtonVisible(), "Try again button is not visible") }
         )
+        disclosureScreen.captureA11ySnapshot("DisclosureShareRequest")
         disclosureScreen.viewSharedData("7", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "Name not visible")
         disclosureScreen.goBack()
@@ -293,6 +297,7 @@ class DisclosureTests : TestBase() {
         // PVW-6101 Check for organization details
         disclosureScreen.goBack()
         disclosureScreen.clickSwapCardButton()
+        disclosureScreen.captureA11ySnapshot("DisclosureSwapCard")
         disclosureScreen.swapCardTo(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last())
         disclosureScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
@@ -329,6 +334,7 @@ class DisclosureTests : TestBase() {
         amsterdamWebPage.switchToNativeContext()
         disclosureScreen.stop()
         disclosureScreen.bottomSheetConfirmStop()
+        sharingStoppedScreen.captureA11ySnapshot("SharingStopped")
         sharingStoppedScreen.close()
         dashboardScreen.dismissNotificationsDrawer()
         assertTrue(dashboardScreen.visible(), "Dashboard not visible")

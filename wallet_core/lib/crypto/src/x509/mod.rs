@@ -12,8 +12,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
 use error_category::ErrorCategory;
-use http_utils::urls::HttpsUri;
-use http_utils::urls::HttpsUriError;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
@@ -22,7 +20,6 @@ use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use rustls_pki_types::pem::PemObject;
 use utils::generator::Generator;
-use utils::vec_at_least::VecNonEmpty;
 use webpki::CertRevocationList;
 use webpki::EndEntityCert;
 use webpki::Error;
@@ -35,10 +32,8 @@ use webpki::UnknownStatusPolicy;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
-use x509_parser::extensions::GeneralName;
 use x509_parser::nom::AsBytes;
 use x509_parser::prelude::FromDer;
-use x509_parser::prelude::PEMError;
 use x509_parser::prelude::ParsedExtension;
 use x509_parser::prelude::X509Certificate;
 use x509_parser::prelude::X509Error;
@@ -63,60 +58,52 @@ pub use dn::DistinguishedName;
 pub use dn::DistinguishedNameError;
 pub use key_identifier::KeyIdentifier;
 #[cfg(any(test, feature = "generate"))]
-pub use san::NO_SAN;
-#[cfg(any(test, feature = "generate"))]
 pub use san::SubjectAltNameUri;
 pub use usage::CertificateUsage;
 pub use usage::CertificateUsageError;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
-#[category(pd)]
-pub enum CertificateError {
+pub enum CertificateVerifyError {
     #[error("certificate verification failed: {0}")]
+    #[category(pd)]
     Verification(#[source] Box<webpki::Error>),
-
-    #[error("certificate parsing failed: {0}")]
-    CertificateParsing(#[source] Box<webpki::Error>),
-
-    #[error("certificate parsing for validation failed: {0}")]
-    EndEntityCertificateParsing(#[source] Box<webpki::Error>),
-
-    #[error("certificate content parsing failed: {0}")]
-    X509CertificateParsing(#[from] x509_parser::nom::Err<X509Error>),
-
-    #[error("pem parsing failed: {0}")]
-    PemParsing(#[from] rustls_pki_types::pem::Error),
-
-    #[error("failed to parse certificate public key: {0}")]
-    PublicKeyParsing(#[source] Box<p256::pkcs8::spki::Error>),
-
-    #[error("PEM decoding error: {0}")]
-    Pem(#[from] x509_parser::nom::Err<PEMError>),
-
-    #[error("X509 coding error: {0}")]
-    X509Error(#[from] X509Error),
-
-    #[error("private key does not belong to public key from certificate")]
-    KeyMismatch,
-
-    #[error("failed to get public key from private key: {0}")]
-    PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-
-    #[error("missing SAN extension")]
-    MissingSan,
-
-    #[error("missing SAN DNS name or URI")]
-    MissingSanDnsNameOrUri,
-
-    #[error("SAN DNS name is not a URI: {0}")]
-    SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriError),
-
-    #[error("could not serialize to DER: {0}")]
-    DerSerialization(#[from] SerializeError),
 
     #[error("certificate chain must not contain the trust anchor")]
     #[category(critical)]
     TrustAnchorInChain,
+}
+
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(pd)]
+pub enum CertificateParseError {
+    #[error("trust anchor certificate parsing failed: {0}")]
+    TrustAnchorCertificateParsing(#[source] Box<webpki::Error>),
+
+    #[error("end entity certificate parsing failed: {0}")]
+    EndEntityCertificateParsing(#[source] Box<webpki::Error>),
+
+    #[error("certificate content parsing failed: {0}")]
+    X509CertificateParsing(#[source] x509_parser::nom::Err<X509Error>),
+
+    #[error("pem parsing failed: {0}")]
+    PemParsing(#[source] rustls_pki_types::pem::Error),
+
+    #[error("failed to parse certificate public key: {0}")]
+    PublicKeyParsing(#[source] Box<p256::pkcs8::spki::Error>),
+}
+
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(pd)]
+pub enum CertificateNameError {
+    #[error("X509 coding error: {0}")]
+    X509Error(#[source] X509Error),
+}
+
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(pd)]
+pub enum CanocalizationError {
+    #[error("could not serialize to DER: {0}")]
+    DerSerialization(#[source] SerializeError),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
@@ -160,31 +147,32 @@ impl<E: ExtendedKeyUsageValidator> ExtendedKeyUsageValidator for OptionalExtende
 }
 
 impl BorrowingCertificate {
-    pub fn from_der(der_bytes: impl Into<Vec<u8>>) -> Result<Self, CertificateError> {
+    pub fn from_der(der_bytes: impl Into<Vec<u8>>) -> Result<Self, CertificateParseError> {
         let certificate_der = CertificateDer::from(der_bytes.into());
         Self::from_certificate_der(certificate_der)
     }
 
-    pub fn from_pem(pem: impl AsRef<[u8]>) -> Result<Self, CertificateError> {
-        let certificate_der = CertificateDer::from_pem_slice(pem.as_ref()).map_err(CertificateError::PemParsing)?;
+    pub fn from_pem(pem: impl AsRef<[u8]>) -> Result<Self, CertificateParseError> {
+        let certificate_der =
+            CertificateDer::from_pem_slice(pem.as_ref()).map_err(CertificateParseError::PemParsing)?;
         Self::from_certificate_der(certificate_der)
     }
 
-    pub fn from_certificate_der(certificate_der: CertificateDer<'_>) -> Result<Self, CertificateError> {
+    pub fn from_certificate_der(certificate_der: CertificateDer<'_>) -> Result<Self, CertificateParseError> {
         Self::from_certificate_der_arc(Arc::from(certificate_der.into_owned()))
     }
 
-    fn from_certificate_der_arc(certificate_der: Arc<CertificateDer<'static>>) -> Result<Self, CertificateError> {
+    fn from_certificate_der_arc(certificate_der: Arc<CertificateDer<'static>>) -> Result<Self, CertificateParseError> {
         let yoke = Yoke::try_attach_to_cart(certificate_der, |cert| {
             let end_entity_cert = cert
                 .try_into()
-                .map_err(|error| CertificateError::EndEntityCertificateParsing(Box::new(error)))?;
+                .map_err(|error| CertificateParseError::EndEntityCertificateParsing(Box::new(error)))?;
             let (_, x509_cert) =
-                X509Certificate::from_der(cert.as_bytes()).map_err(CertificateError::X509CertificateParsing)?;
+                X509Certificate::from_der(cert.as_bytes()).map_err(CertificateParseError::X509CertificateParsing)?;
             let public_key = VerifyingKey::from_public_key_der(x509_cert.public_key().raw)
-                .map_err(|error| CertificateError::PublicKeyParsing(Box::new(error)))?;
+                .map_err(|error| CertificateParseError::PublicKeyParsing(Box::new(error)))?;
 
-            Ok::<_, CertificateError>(ParsedCertificate {
+            Ok::<_, CertificateParseError>(ParsedCertificate {
                 end_entity_cert,
                 x509_cert,
                 public_key,
@@ -204,7 +192,7 @@ impl BorrowingCertificate {
         intermediate_certs: &[BorrowingCertificate],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
-    ) -> Result<(), CertificateError> {
+    ) -> Result<(), CertificateVerifyError> {
         self.verify_inner(usage, intermediate_certs, time, trust_anchors, None)
     }
 
@@ -215,7 +203,7 @@ impl BorrowingCertificate {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
         crls: &[&CertRevocationList<'_>],
-    ) -> Result<(), CertificateError> {
+    ) -> Result<(), CertificateVerifyError> {
         self.verify_inner(usage, intermediate_certs, time, trust_anchors, Some(crls))
     }
 
@@ -226,12 +214,12 @@ impl BorrowingCertificate {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
         crls: Option<&[&CertRevocationList<'_>]>,
-    ) -> Result<(), CertificateError> {
+    ) -> Result<(), CertificateVerifyError> {
         let chain = once(self).chain(intermediate_certs).collect_vec();
 
         // HAIP 1.0 requires that the x5c header does not contain the trust anchor.
         if chain.iter().any(|cert| trust_anchors.contains(cert)) {
-            return Err(CertificateError::TrustAnchorInChain);
+            return Err(CertificateVerifyError::TrustAnchorInChain);
         }
 
         let intermediate_certs = intermediate_certs
@@ -269,7 +257,7 @@ impl BorrowingCertificate {
                 None,
             )
             .map(|_| ())
-            .map_err(|error| CertificateError::Verification(Box::new(error)))
+            .map_err(|error| CertificateVerifyError::Verification(Box::new(error)))
     }
 
     pub fn end_entity_certificate(&self) -> &EndEntityCert<'_> {
@@ -293,7 +281,7 @@ impl BorrowingCertificate {
         self.0.backing_cart()
     }
 
-    pub fn subject(&self) -> Result<IndexMap<String, &str>, CertificateError> {
+    pub fn subject(&self) -> Result<IndexMap<String, &str>, CertificateNameError> {
         self.x509_certificate()
             .subject
             .iter_attributes()
@@ -301,22 +289,22 @@ impl BorrowingCertificate {
                 Ok((
                     x509_parser::objects::oid2abbrev(attr.attr_type(), x509_parser::objects::oid_registry())
                         .map_or(attr.attr_type().to_id_string(), String::from),
-                    attr.as_str()?,
+                    attr.as_str().map_err(CertificateNameError::X509Error)?,
                 ))
             })
             .collect::<Result<_, _>>()
     }
 
-    pub fn issuer_common_names(&self) -> Result<Vec<&str>, CertificateError> {
+    pub fn issuer_common_names(&self) -> Result<Vec<&str>, CertificateNameError> {
         x509_common_names(&self.x509_certificate().issuer)
     }
 
-    pub fn common_names(&self) -> Result<Vec<&str>, CertificateError> {
+    pub fn common_names(&self) -> Result<Vec<&str>, CertificateNameError> {
         x509_common_names(&self.x509_certificate().subject)
     }
 
     /// Returns the first CN, if any, from the certificate.
-    pub fn common_name(&self) -> Result<Option<&str>, CertificateError> {
+    pub fn common_name(&self) -> Result<Option<&str>, CertificateNameError> {
         Ok(self.common_names()?.into_iter().next())
     }
 
@@ -328,41 +316,24 @@ impl BorrowingCertificate {
     // Returns a human-readable string representation of the distinguished name attributes with the raw OID values and
     // base64-encoded DER values. Can be used for persistence and comparison, since this representation is independent
     // of an OID registry.
-    pub fn to_canonical_distinguished_name(&self) -> Result<CanonicalDistinguishedName, CertificateError> {
+    pub fn to_canonical_distinguished_name(&self) -> Result<CanonicalDistinguishedName, CanocalizationError> {
         let encoded_attrs: Vec<_> = self
             .x509_certificate()
             .subject()
             .iter_attributes()
             .map(|attr| {
                 let r#type = attr.attr_type().to_id_string();
-                let value = BASE64_STANDARD_NO_PAD.encode(&attr.attr_value().to_der_vec()?);
-                Ok::<_, CertificateError>(format!("{}={}", r#type, value))
+                let value = BASE64_STANDARD_NO_PAD.encode(
+                    &attr
+                        .attr_value()
+                        .to_der_vec()
+                        .map_err(CanocalizationError::DerSerialization)?,
+                );
+                Ok::<_, CanocalizationError>(format!("{}={}", r#type, value))
             })
             .try_collect()?;
 
         Ok(CanonicalDistinguishedName::new(encoded_attrs.join(",")))
-    }
-
-    /// Returns the SAN DNS names and URIs from the certificate, as an HTTPS URI.
-    pub fn san_dns_name_or_uris(&self) -> Result<VecNonEmpty<HttpsUri>, CertificateError> {
-        let san_ext = self
-            .x509_certificate()
-            .subject_alternative_name()?
-            .ok_or(CertificateError::MissingSan)?;
-
-        let san_dns_name_or_uri = san_ext.value.general_names.iter().filter_map(|name| match name {
-            GeneralName::DNSName(name) => Some(format!("https://{name}")),
-            GeneralName::URI(uri) => Some(uri.to_string()),
-            _ => None,
-        });
-
-        let san_https_uris = san_dns_name_or_uri
-            .map(|san| san.parse().map_err(CertificateError::SanDnsNameOrUriIsNotAnHttpsUri))
-            .collect::<Result<Vec<_>, _>>()?
-            .try_into()
-            .map_err(|_| CertificateError::MissingSanDnsNameOrUri)?;
-
-        Ok(san_https_uris)
     }
 
     /// From the AuthorityKeyIdentifier in the certificate, if present, return the key identifier field:
@@ -391,7 +362,7 @@ impl AsRef<[u8]> for BorrowingCertificate {
 }
 
 impl TryFrom<Vec<u8>> for BorrowingCertificate {
-    type Error = CertificateError;
+    type Error = CertificateParseError;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         BorrowingCertificate::from_der(value.as_slice())
@@ -418,10 +389,10 @@ impl Hash for BorrowingCertificate {
     }
 }
 
-fn x509_common_names<'a>(x509name: &'a X509Name) -> Result<Vec<&'a str>, CertificateError> {
+fn x509_common_names<'a>(x509name: &'a X509Name) -> Result<Vec<&'a str>, CertificateNameError> {
     x509name
         .iter_common_name()
-        .map(|cn| cn.as_str().map_err(CertificateError::X509Error))
+        .map(|cn| cn.as_str().map_err(CertificateNameError::X509Error))
         .collect()
 }
 
@@ -533,7 +504,6 @@ mod tests {
                     usage,
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
         let key_usage = key_pair.certificate().x509_certificate().key_usage().unwrap();
@@ -556,7 +526,6 @@ mod tests {
             .generate_key_pair(
                 DistinguishedName::create_mock("mycert"),
                 CertificateConfiguration::with_usage(CertificateUsage::Wia),
-                NO_SAN,
             )
             .unwrap();
 
@@ -594,7 +563,7 @@ mod tests {
         // Create a CA and a leaf certificate
         let ca = Ca::generate_mock();
         let leaf = ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default())
             .unwrap();
         let leaf_certificate = leaf.certificate();
 
@@ -625,14 +594,14 @@ mod tests {
             .expect_err("revoked certificate should fail verification");
         assert_matches!(
             error,
-            CertificateError::Verification(error) if matches!(*error, webpki::Error::CertRevoked)
+            CertificateVerifyError::Verification(error) if matches!(*error, webpki::Error::CertRevoked)
         );
     }
 
     fn generate_and_verify_issuer_for_validity(
         not_before: Option<DateTime<Utc>>,
         not_after: Option<DateTime<Utc>>,
-    ) -> CertificateError {
+    ) -> CertificateVerifyError {
         let ca = generate_ca_for_validity_test();
 
         let config = CertificateConfiguration {
@@ -642,7 +611,7 @@ mod tests {
         };
 
         let issuer_key_pair = ca
-            .generate_key_pair(DistinguishedName::create_mock("mycert"), config, NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("mycert"), config)
             .unwrap();
         issuer_key_pair
             .certificate()
@@ -659,7 +628,7 @@ mod tests {
         let error = generate_and_verify_issuer_for_validity(start, end);
         assert_matches!(
             error,
-            CertificateError::Verification(error) if matches!(*error, webpki::Error::CertNotValidYet { .. })
+            CertificateVerifyError::Verification(error) if matches!(*error, webpki::Error::CertNotValidYet { .. })
         );
     }
 
@@ -672,7 +641,7 @@ mod tests {
         let error = generate_and_verify_issuer_for_validity(start, end);
         assert_matches!(
             error,
-            CertificateError::Verification(error) if matches!(*error, webpki::Error::CertExpired { .. })
+            CertificateVerifyError::Verification(error) if matches!(*error, webpki::Error::CertExpired { .. })
         );
     }
 
@@ -744,7 +713,7 @@ mod tests {
 
         // Both leaves are signed by the new CA key (same key in cross-cert and self-signed cert).
         let leaf = new_ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default())
             .unwrap();
 
         // Phase 1: leaf verified against old CA with the cross-cert as intermediate.
@@ -795,7 +764,7 @@ mod tests {
 
         // Leaf
         let leaf_key_pair = intermediate_ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default(), NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), Default::default())
             .unwrap();
 
         // Verify whole chain with leaf, intermediate and ca trust anchor
@@ -820,13 +789,13 @@ mod tests {
                 &TrustAnchors::try_from(vec![intermediate_ta, ca_ta.clone()]).unwrap(),
             )
             .expect_err("should detect TrustAnchorInChain");
-        assert_matches!(error, CertificateError::TrustAnchorInChain);
+        assert_matches!(error, CertificateVerifyError::TrustAnchorInChain);
 
         // Verify whole chain with ca in both intermediates and trust anchors
         let error = leaf_key_pair
             .certificate()
             .verify(None, &[intermediate_cert, ca_cert], &time, &TrustAnchors::from(&ca))
             .expect_err("should detect TrustAnchorInChain");
-        assert_matches!(error, CertificateError::TrustAnchorInChain);
+        assert_matches!(error, CertificateVerifyError::TrustAnchorInChain);
     }
 }

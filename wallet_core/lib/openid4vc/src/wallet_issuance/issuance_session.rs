@@ -3,13 +3,14 @@ use std::collections::HashSet;
 use std::collections::hash_map::Entry;
 use std::convert::identity;
 use std::num::NonZeroU8;
+use std::num::NonZeroUsize;
 
 use attestation_data::attributes::AttributesTraversalBehaviour;
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
@@ -23,6 +24,8 @@ use jwt::nonce::Nonce;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
+use nonempty_collections::NEMap;
+use nonempty_collections::NESet;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;
 use oauth::dpop::Dpop;
@@ -60,6 +63,7 @@ use wscd::wia::WiaClient;
 
 use super::IssuanceSession;
 use super::OfferedCredentialMetadata;
+use super::OfferedCredentialPreview;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
@@ -82,6 +86,7 @@ use crate::errors::CredentialPreviewErrorCode;
 use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::CredentialFormat;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::nonce::response::NonceResponse;
@@ -303,35 +308,55 @@ impl VcMessageClient for HttpVcMessageClient {
 
 /// The parts of a [`CredentialConfiguration`] with a supported format that are relevant to an issuance session.
 #[derive(Debug)]
-struct SupportedConfiguration {
-    credential_kind: CredentialKind,
-    credential_metadata: Option<CredentialMetadata>,
-    type_metadata_uri: Option<IssuerUrl>,
+enum SupportedConfiguration {
+    MsoMdoc {
+        credential_metadata: Option<CredentialMetadata>,
+    },
+    SdJwt {
+        vct: String,
+        credential_metadata: Option<CredentialMetadata>,
+        type_metadata_uri: Option<IssuerUrl>,
+    },
 }
 
 impl SupportedConfiguration {
     /// Returns `None` if the format of the [`CredentialConfiguration`] is not supported.
     fn try_new(config: CredentialConfiguration) -> Option<Self> {
-        let credential_kind = config.format.credential_kind()?;
+        let CredentialConfiguration {
+            format,
+            credential_metadata,
+            ..
+        } = config;
 
-        Some(Self {
-            credential_kind,
-            credential_metadata: config.credential_metadata,
-            type_metadata_uri: config.type_metadata_uri,
-        })
+        match format {
+            CredentialFormat::MsoMdoc { .. } => Some(Self::MsoMdoc { credential_metadata }),
+            CredentialFormat::SdJwt {
+                vct, type_metadata_uri, ..
+            } => Some(Self::SdJwt {
+                vct,
+                credential_metadata,
+                type_metadata_uri,
+            }),
+            CredentialFormat::Other { .. } => None,
+        }
+    }
+
+    fn format(&self) -> Format {
+        match self {
+            Self::MsoMdoc { .. } => Format::MsoMdoc,
+            Self::SdJwt { .. } => Format::SdJwt,
+        }
     }
 }
 
-/// Internal helper type that represents the relevant information about the credential configurations that the issuer
-/// offered to the holder in the Token Response. It is generic over the actual credential configuration type: it is
-/// created with the [`CredentialConfiguration`]s from the Issuer Metadata, after which [`Self::into_supported`]
-/// converts these into [`SupportedConfiguration`]s, discarding those with an unsupported format.
+/// Internal helper type that represents the Credential Configurations from the Credential Offer that the issuer granted
+/// to the holder in the Token Response. The [`CredentialConfiguration`]s are sourced from the Issuer Metadata.
 #[derive(Debug)]
-enum OfferedConfigurations<C = SupportedConfiguration> {
+enum GrantedConfigurations {
     /// The result of a Token Response that did not contain `authorization_details`. Credentials may only be identified
     /// by their Credential Configuration Identifier when the holder calls the Credential Endpoint to fetch the
     /// credentials.
-    WithoutIdentifiers(HashMap<CredentialConfigurationId, C>),
+    WithoutIdentifiers(HashMap<CredentialConfigurationId, CredentialConfiguration>),
 
     /// The result of a Token Response that did contain `authorization_details`, where each Credential Configuration
     /// has at least one Credential Identifier of an offered credential. The holder then uses these Credential
@@ -339,10 +364,47 @@ enum OfferedConfigurations<C = SupportedConfiguration> {
     ///
     /// The Credential Identifiers are unique across Credential Configurations, as this is required in order to identify
     /// credentials at the Credential Endpoint.
-    WithIdentifiers(HashMap<CredentialConfigurationId, (C, HashSet<CredentialId>)>),
+    WithIdentifiers(HashMap<CredentialConfigurationId, (CredentialConfiguration, HashSet<CredentialId>)>),
 }
 
-impl OfferedConfigurations<CredentialConfiguration> {
+/// The [`GrantedConfigurations`] that have a supported format, see [`GrantedConfigurations::into_supported`]. There is
+/// always at least one Credential Configuration or at least one Credential Identifier per Credential Configuration.
+#[derive(Debug)]
+enum SupportedConfigurations {
+    /// See [`GrantedConfigurations::WithoutIdentifiers`].
+    WithoutIdentifiers(NEMap<CredentialConfigurationId, SupportedConfiguration>),
+
+    /// See [`GrantedConfigurations::WithIdentifiers`].
+    WithIdentifiers(NEMap<CredentialConfigurationId, (SupportedConfiguration, NESet<CredentialId>)>),
+}
+
+impl GrantedConfigurations {
+    /// Create [`GrantedConfigurations`] by combining the Credential Configurations that were present in the Credential
+    /// Offer with the `scope` and `authorization_details` fields as received in the Token Response, discarding any
+    /// Credential Configurations that the issuer no longer offers.
+    fn new_from_token_response(
+        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+        scope: Option<&HashSet<Scope>>,
+        authorization_details: Option<IssuerAuthorizationDetails>,
+    ) -> Result<Self, WalletIssuanceError> {
+        match (scope, authorization_details) {
+            // If the Token Response contained `authorization_details`, use that and ignore any `scope` values. Returns
+            // an error if any Credential Configuration ID was not present in the Credential Offer.
+            (_, Some(authorization_details)) => {
+                Self::new_from_authorization_details(credential_configurations, authorization_details)
+            }
+
+            // If the Token Response contained `scope` values, select only those Credential Configurations that have
+            // this scope. Returns an error if no scope values were provided or if any of the scope values do not refer
+            // to Credential Configurations present in the Credential Offer.
+            (Some(scope), None) => Self::new_from_scope(credential_configurations, scope),
+
+            // If neither the `authorization_details` nor the `scope` field was present in the Token Response, it means
+            // that the issuer offers all of the Credential Configurations from the Credential Offer.
+            (None, None) => Ok(Self::WithoutIdentifiers(credential_configurations)),
+        }
+    }
+
     /// Filter the Credential Configurations that were present in the Credential Offer based on the
     /// `authorization_details` field from the Token Response.
     fn new_from_authorization_details(
@@ -437,69 +499,36 @@ impl OfferedConfigurations<CredentialConfiguration> {
         Ok(Self::WithoutIdentifiers(offered_configs))
     }
 
-    /// Discard the Credential Configurations with an unsupported format.
-    fn into_supported(self) -> OfferedConfigurations {
+    /// Discard the Credential Configurations with an unsupported format. Returns `None` if no Credential Configurations
+    /// remain.
+    fn into_supported(self) -> Option<SupportedConfigurations> {
         match self {
-            Self::WithoutIdentifiers(configs) => OfferedConfigurations::WithoutIdentifiers(
+            Self::WithoutIdentifiers(configs) => NEMap::try_from_map(
                 configs
                     .into_iter()
                     .filter_map(|(config_id, config)| Some((config_id, SupportedConfiguration::try_new(config)?)))
-                    .collect(),
-            ),
-            Self::WithIdentifiers(configs) => OfferedConfigurations::WithIdentifiers(
+                    .collect::<HashMap<_, _>>(),
+            )
+            .map(SupportedConfigurations::WithoutIdentifiers),
+            Self::WithIdentifiers(configs) => NEMap::try_from_map(
                 configs
                     .into_iter()
                     .filter_map(|(config_id, (config, credential_ids))| {
+                        // A Credential Configuration without any Credential Identifiers does not offer any credentials,
+                        // so it can be discarded as well. Note that this does not occur in practice, as the
+                        // `authorization_details` contain at least one Credential Identifier per configuration.
+                        let credential_ids = NESet::try_from_set(credential_ids)?;
+
                         Some((config_id, (SupportedConfiguration::try_new(config)?, credential_ids)))
                     })
-                    .collect(),
-            ),
+                    .collect::<HashMap<_, _>>(),
+            )
+            .map(SupportedConfigurations::WithIdentifiers),
         }
     }
 }
 
-impl OfferedConfigurations {
-    /// Create [`OfferedConfigurations`] by combining the Credential Configurations that were present in the Credential
-    /// Offer with the `scope` and `authorization_details` fields as received in the Token Response, discarding any
-    /// Credential Configurations that the issuer no longer offers or that have an unsupported format. Returns an error
-    /// if no Credential Configurations remain.
-    fn new_from_token_response(
-        credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
-        scope: Option<&HashSet<Scope>>,
-        authorization_details: Option<IssuerAuthorizationDetails>,
-    ) -> Result<Self, WalletIssuanceError> {
-        let offered_configurations = match (scope, authorization_details) {
-            // If the Token Response contained `authorization_details`, use that and ignore any `scope` values. Returns
-            // an error if any Credential Configuration ID was not present in the Credential Offer.
-            (_, Some(authorization_details)) => {
-                OfferedConfigurations::new_from_authorization_details(credential_configurations, authorization_details)?
-            }
-
-            // If the Token Response contained `scope` values, select only those Credential Configurations that have
-            // this scope. Returns an error if no scope values were provided or if any of the scope values do not refer
-            // to Credential Configurations present in the Credential Offer.
-            (Some(scope), None) => OfferedConfigurations::new_from_scope(credential_configurations, scope)?,
-
-            // If neither the `authorization_details` nor the `scope` field was present in the Token Response, it means
-            // that the issuer offers all of the Credential Configurations from the Credential Offer.
-            (None, None) => OfferedConfigurations::WithoutIdentifiers(credential_configurations),
-        }
-        .into_supported();
-
-        if offered_configurations.is_empty() {
-            return Err(WalletIssuanceError::NoSupportedCredentialConfigurations);
-        }
-
-        Ok(offered_configurations)
-    }
-
-    fn is_empty(&self) -> bool {
-        match self {
-            Self::WithoutIdentifiers(credential_configs) => credential_configs.is_empty(),
-            Self::WithIdentifiers(credential_configs) => credential_configs.is_empty(),
-        }
-    }
-
+impl SupportedConfigurations {
     fn credential_config_iter(&self) -> impl Iterator<Item = (&CredentialConfigurationId, &SupportedConfiguration)> {
         match self {
             Self::WithoutIdentifiers(credential_configs) => Either::Left(credential_configs.iter()),
@@ -508,6 +537,140 @@ impl OfferedConfigurations {
                     .iter()
                     .map(|(config_id, (config, _ids))| (config_id, config)),
             ),
+        }
+    }
+
+    /// Create an [`OfferedCredentials`] without previews, containing an entry for every offered Credential
+    /// Configuration or, if applicable, every offered Credential Identifier.
+    fn into_offered_credentials_without_previews(self) -> OfferedCredentials {
+        let offered_credentials = match self {
+            Self::WithoutIdentifiers(configs) => configs
+                .into_nonempty_iter()
+                .map(|(config_id, config)| OfferedCredential::new_by_config_id(config_id, config.format()))
+                .collect(),
+            Self::WithIdentifiers(configs) => configs
+                .into_nonempty_iter()
+                .flat_map(|(config_id, (config, credential_ids))| {
+                    let format = config.format();
+
+                    credential_ids.into_nonempty_iter().map(move |credential_id| {
+                        OfferedCredential::new_by_credential_id(credential_id, config_id.clone(), format)
+                    })
+                })
+                .collect(),
+        };
+
+        OfferedCredentials::WithoutPreviews(offered_credentials)
+    }
+
+    /// Create an [`OfferedCredentials`] with previews, checking that the `CredentialPreview`s exactly match the
+    /// credentials that were offered by the issuer. This returns an error when any previews are missing or when excess
+    /// previews are received.
+    fn into_offered_credentials_with_previews(
+        self,
+        credential_previews: VecNonEmpty<CredentialPreview>,
+    ) -> Result<OfferedCredentials, WalletIssuanceError> {
+        let (offered_credentials, excess_identifiers): (Vec<_>, Vec<_>) = match self {
+            // If the offered credential configurations did not contain credential identifiers because the issuer did
+            // not send `authorization_details`, match every preview against its `config_id` value only.
+            Self::WithoutIdentifiers(configs) => {
+                // Convert to a regular map so that matched configurations can be removed from it.
+                let mut configs = HashMap::from(configs);
+
+                let (offered_credentials, excess_identifiers) =
+                    credential_previews.into_iter().partition_map(|preview| {
+                        // If both the config_id and format match, remove the Credential Configuration. Otherwise,
+                        // consider this Credential Preview an excess preview.
+                        match configs.entry(preview.config_id.clone()) {
+                            Entry::Occupied(occupied_entry) if occupied_entry.get().format() == preview.format => {
+                                let (config_id, _config) = occupied_entry.remove_entry();
+                                let offered_credential = OfferedCredential::new_by_config_id(config_id, preview.format);
+                                Either::Left((offered_credential, preview.credential_payload))
+                            }
+                            _ => Either::Right((preview.config_id, preview.credential_id, preview.format)),
+                        }
+                    });
+
+                // If there are any offered credential configurations remaining, the preview did not contain everything
+                // that was offered.
+                if !configs.is_empty() {
+                    let missing = configs
+                        .into_iter()
+                        .map(|(config_id, config)| (config_id, None, config.format()))
+                        .collect();
+
+                    return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
+                }
+
+                (offered_credentials, excess_identifiers)
+            }
+            // If the issuer did send `authorization_details`, match every preview exactly against both its `config_id`
+            // and `credential_id` values.
+            Self::WithIdentifiers(configs) => {
+                // Convert to regular collections so that matched credential identifiers can be removed from them.
+                let mut configs = configs
+                    .into_iter()
+                    .map(|(config_id, (config, credential_ids))| (config_id, (config, HashSet::from(credential_ids))))
+                    .collect::<HashMap<_, _>>();
+
+                let (offered_credentials, excess_identifiers) =
+                    credential_previews.into_iter().partition_map(|preview| {
+                        // If the config_id, credential_id and format all match, remove the credential_id. Otherwise,
+                        // consider this Credential Preview an excess preview.
+                        match configs
+                            .get_mut(&preview.config_id)
+                            .and_then(|(config, credential_ids)| {
+                                if config.format() == preview.format {
+                                    credential_ids.take(&preview.credential_id)
+                                } else {
+                                    None
+                                }
+                            }) {
+                            Some(credential_id) => {
+                                let offered_credential = OfferedCredential::new_by_credential_id(
+                                    credential_id,
+                                    preview.config_id.clone(),
+                                    preview.format,
+                                );
+
+                                Either::Left((offered_credential, preview.credential_payload))
+                            }
+                            None => Either::Right((preview.config_id, preview.credential_id, preview.format)),
+                        }
+                    });
+
+                // If there are any offered credential identifiers remaining, the preview did not contain everything
+                // that was offered.
+                if configs
+                    .values()
+                    .any(|(_config, credential_ids)| !credential_ids.is_empty())
+                {
+                    let missing = configs
+                        .into_iter()
+                        .flat_map(|(config_id, (config, credential_ids))| {
+                            let credential_id_count = credential_ids.len();
+                            let format = config.format();
+                            std::iter::repeat_n(config_id, credential_id_count)
+                                .zip(credential_ids)
+                                .map(move |(config_id, credential_id)| (config_id, Some(credential_id), format))
+                        })
+                        .collect();
+
+                    return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
+                }
+
+                (offered_credentials, excess_identifiers)
+            }
+        };
+
+        // If any of the previews could not be resolved against what was offered, report this as an error. As there is
+        // at least one preview, having no offered credentials implies that every preview was in excess.
+        match (
+            VecNonEmpty::try_from(offered_credentials),
+            excess_identifiers.is_empty(),
+        ) {
+            (Ok(offered_credentials), true) => Ok(OfferedCredentials::WithPreviews(offered_credentials)),
+            _ => Err(WalletIssuanceError::PreviewExcessCredentials(excess_identifiers)),
         }
     }
 }
@@ -522,16 +685,48 @@ struct IssuanceState {
     // configuration, not per credential. `HttpIssuanceSession::create` enforces that every credential configuration
     // has metadata.
     metadata: HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
-    // Maintains the order as received from the Credential Preview endpoint.
-    offered_credentials: VecNonEmpty<OfferedCredential>,
+    offered_credentials: OfferedCredentials,
     issuer_registration: IssuerRegistration,
     #[debug(skip)]
     dpop_signing_key: SigningKey,
     dpop_nonce: Option<DpopNonce>,
 }
 
-/// A single credential offered by the issuer.
 #[derive(Debug)]
+enum OfferedCredentials {
+    /// The issuer provided a preview for each offered credential. Maintains the order as received from the Credential
+    /// Preview endpoint.
+    WithPreviews(VecNonEmpty<(OfferedCredential, PreviewableCredentialPayload)>),
+
+    /// The issuer does not have a Credential Preview endpoint. The offered credentials have no meaningful order.
+    WithoutPreviews(NESet<OfferedCredential>),
+}
+
+impl OfferedCredentials {
+    fn len(&self) -> NonZeroUsize {
+        match self {
+            OfferedCredentials::WithPreviews(creds) => creds.len(),
+            OfferedCredentials::WithoutPreviews(creds) => creds.len(),
+        }
+    }
+
+    /// Iterate over the offered credentials and optional previews.
+    fn iter(&self) -> impl Iterator<Item = (&OfferedCredential, Option<&PreviewableCredentialPayload>)> {
+        match self {
+            OfferedCredentials::WithPreviews(creds) => Either::Left(
+                creds
+                    .iter()
+                    .map(|(offered_credential, preview)| (offered_credential, Some(preview))),
+            ),
+            OfferedCredentials::WithoutPreviews(creds) => {
+                Either::Right(creds.iter().map(|offered_credential| (offered_credential, None)))
+            }
+        }
+    }
+}
+
+/// A single credential offered by the issuer.
+#[derive(Debug, PartialEq, Eq, Hash)]
 struct OfferedCredential {
     /// Present when the Token Response contained `authorization_details`.
     credential_id: Option<CredentialId>,
@@ -541,36 +736,26 @@ struct OfferedCredential {
 
     /// As specified by the Credential Configuration.
     format: Format,
-
-    /// Received from the Credential Preview endpoint.
-    preview: CredentialPreview,
 }
 
 impl OfferedCredential {
     /// The Token Response did not contain `authorization_details`, so the credential is requested by its Credential
     /// Configuration Identifier.
-    fn new_by_config_id(config_id: CredentialConfigurationId, format: Format, preview: CredentialPreview) -> Self {
+    fn new_by_config_id(config_id: CredentialConfigurationId, format: Format) -> Self {
         Self {
             credential_id: None,
             config_id,
             format,
-            preview,
         }
     }
 
     /// The Token Response contained `authorization_details`, so the credential is requested by its Credential
     /// Identifier.
-    fn new_by_credential_id(
-        credential_id: CredentialId,
-        config_id: CredentialConfigurationId,
-        format: Format,
-        preview: CredentialPreview,
-    ) -> Self {
+    fn new_by_credential_id(credential_id: CredentialId, config_id: CredentialConfigurationId, format: Format) -> Self {
         Self {
             credential_id: Some(credential_id),
             config_id,
             format,
-            preview,
         }
     }
 
@@ -640,11 +825,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         wia_client: &impl WiaClient,
         auth_server_identifier: &IssuerIdentifier,
     ) -> Result<Self, WalletIssuanceError> {
-        let credential_preview_endpoint = issuer_endpoints
-            .credential_preview_endpoint
-            .as_ref()
-            .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
-
         let dpop_signing_key = SigningKey::generate();
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
@@ -666,28 +846,48 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .await
             .map_err(|error| map_pre_authorized_token_error(error, &token_request))?;
 
-        let offered_configurations = OfferedConfigurations::new_from_token_response(
+        let offered_configurations = GrantedConfigurations::new_from_token_response(
             credential_configurations,
             token_response.oauth_response.scope.as_ref(),
             token_response.authorization_details,
-        )?;
+        )?
+        .into_supported()
+        .ok_or(WalletIssuanceError::NoSupportedCredentialConfigurations)?;
 
-        // Request preview and fetch metadata
-        let (metadata, credential_previews) = try_join!(
-            Self::fetch_metadata(
-                offered_configurations.credential_config_iter(),
-                &credential_issuer,
-                &message_client
-            ),
-            Self::request_previews(
-                credential_preview_endpoint.as_url().clone(),
-                &token_response.oauth_response.access_token,
-                &message_client
-            )
-        )?;
+        let (metadata, offered_credentials) = match issuer_endpoints.credential_preview_endpoint.as_ref() {
+            Some(preview_endpoint) => {
+                let (metadata, credential_previews) = try_join!(
+                    Self::fetch_metadata(
+                        offered_configurations.credential_config_iter(),
+                        &credential_issuer,
+                        &message_client
+                    ),
+                    Self::request_previews(
+                        preview_endpoint.as_url().clone(),
+                        &token_response.oauth_response.access_token,
+                        &message_client
+                    )
+                )?;
 
-        let offered_credentials =
-            Self::match_preview_against_offered_configurations(credential_previews, offered_configurations)?;
+                (
+                    metadata,
+                    offered_configurations.into_offered_credentials_with_previews(credential_previews)?,
+                )
+            }
+            None => {
+                let metadata = Self::fetch_metadata(
+                    offered_configurations.credential_config_iter(),
+                    &credential_issuer,
+                    &message_client,
+                )
+                .await?;
+
+                (
+                    metadata,
+                    offered_configurations.into_offered_credentials_without_previews(),
+                )
+            }
+        };
 
         let session_state = IssuanceState {
             access_token: token_response.oauth_response.access_token,
@@ -723,33 +923,38 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     // Determine how each offered configuration's metadata is obtained. An SD-JWT that carries a `type_metadata_uri`
     // is described by the remotely fetched SD-JWT VC Type Metadata. Every other configuration is described by the
-    // Credential Metadata in the Credential Issuer metadata: an SD-JWT without a `type_metadata_uri` and mdocs. Any
-    // `type_metadata_uri` on an mdoc is ignored. Missing metadata is an error.
+    // Credential Metadata in the Credential Issuer metadata: an SD-JWT without a `type_metadata_uri` and mdocs. Missing
+    // metadata is an error.
     async fn fetch_metadata(
         credential_configurations: impl IntoIterator<Item = (&CredentialConfigurationId, &SupportedConfiguration)>,
         credential_issuer: &IssuerIdentifier,
         message_client: &H,
     ) -> Result<HashMap<CredentialConfigurationId, OfferedCredentialMetadata>, WalletIssuanceError> {
         let mut type_metadata_configs = Vec::new();
-        let mut credential_metadata = HashMap::new();
+        let mut credential_metadata_by_config_id = HashMap::new();
         let mut missing_metadata_config_ids = Vec::new();
 
         for (config_id, config) in credential_configurations {
-            match (
-                config.credential_kind.format,
-                config.type_metadata_uri.as_ref(),
-                config.credential_metadata.as_ref(),
-            ) {
-                (Format::SdJwt, Some(uri), _) => {
-                    type_metadata_configs.push((uri, (config.credential_kind.attestation_type.as_str(), config_id)));
+            match config {
+                SupportedConfiguration::SdJwt {
+                    vct,
+                    type_metadata_uri: Some(uri),
+                    ..
+                } => {
+                    type_metadata_configs.push((uri, (vct.as_str(), config_id)));
                 }
-                (Format::SdJwt | Format::MsoMdoc, _, Some(metadata)) => {
-                    credential_metadata.insert(
-                        config_id.clone(),
-                        OfferedCredentialMetadata::CredentialMetadata(metadata.clone()),
-                    );
-                }
-                (Format::SdJwt | Format::MsoMdoc, _, None) => missing_metadata_config_ids.push(config_id.clone()),
+                SupportedConfiguration::MsoMdoc { credential_metadata }
+                | SupportedConfiguration::SdJwt {
+                    credential_metadata, ..
+                } => match credential_metadata {
+                    Some(metadata) => {
+                        credential_metadata_by_config_id.insert(
+                            config_id.clone(),
+                            OfferedCredentialMetadata::CredentialMetadata(metadata.clone()),
+                        );
+                    }
+                    None => missing_metadata_config_ids.push(config_id.clone()),
+                },
             }
         }
 
@@ -821,115 +1026,16 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         .await?
         .into_iter()
         .flatten()
-        .chain(credential_metadata)
+        .chain(credential_metadata_by_config_id)
         .collect();
 
         Ok(metadata_per_config_id)
     }
 
-    /// Check that the `CredentialPreview`s exactly match the credentials that were offered by the issuer. This throws
-    /// an error when any previews are missing or when excess previews are received.
-    fn match_preview_against_offered_configurations(
-        credential_previews: VecNonEmpty<CredentialPreview>,
-        offered_configurations: OfferedConfigurations,
-    ) -> Result<VecNonEmpty<OfferedCredential>, WalletIssuanceError> {
-        let (offered_credentials, excess_identifiers): (Vec<_>, Vec<_>) = match offered_configurations {
-            // If the offered credential configurations did not contain credential identifiers because the issuer did
-            // not send `authorization_details`, match every preview against its `config_id` value only.
-            OfferedConfigurations::WithoutIdentifiers(mut configs) => {
-                let (offered_credentials, excess_identifiers) =
-                    credential_previews.into_iter().partition_map(|preview| {
-                        // If both the config_id and format match, remove the Credential Configuration. Otherwise,
-                        // consider this Credential Preview an excess preview.
-                        match configs.entry(preview.config_id.clone()) {
-                            Entry::Occupied(occupied_entry)
-                                if occupied_entry.get().credential_kind.format == preview.format =>
-                            {
-                                let (config_id, _config) = occupied_entry.remove_entry();
-
-                                Either::Left(OfferedCredential::new_by_config_id(config_id, preview.format, preview))
-                            }
-                            _ => Either::Right((preview.config_id, preview.credential_id, preview.format)),
-                        }
-                    });
-
-                // If there are any offered credential configurations remaining, the preview did not contain everything
-                // that was offered.
-                if !configs.is_empty() {
-                    let missing = configs
-                        .into_iter()
-                        .map(|(config_id, config)| (config_id, None, config.credential_kind.format))
-                        .collect();
-
-                    return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
-                }
-
-                (offered_credentials, excess_identifiers)
-            }
-            // If the issuer did send `authorization_details`, match every preview exactly against both its `config_id`
-            // and `credential_id` values.
-            OfferedConfigurations::WithIdentifiers(mut configs) => {
-                let (offered_credentials, excess_identifiers) =
-                    credential_previews.into_iter().partition_map(|preview| {
-                        // If the config_id, credential_id and format all match, remove the credential_id. Otherwise,
-                        // consider this Credential Preview an excess preview.
-                        match configs
-                            .get_mut(&preview.config_id)
-                            .and_then(|(config, credential_ids)| {
-                                if config.credential_kind.format == preview.format {
-                                    credential_ids.take(&preview.credential_id)
-                                } else {
-                                    None
-                                }
-                            }) {
-                            Some(credential_id) => Either::Left(OfferedCredential::new_by_credential_id(
-                                credential_id,
-                                preview.config_id.clone(),
-                                preview.format,
-                                preview,
-                            )),
-                            None => Either::Right((preview.config_id, preview.credential_id, preview.format)),
-                        }
-                    });
-
-                // If there are any offered credential identifiers remaining, the preview did not contain everything
-                // that was offered.
-                if configs
-                    .values()
-                    .any(|(_config, credential_ids)| !credential_ids.is_empty())
-                {
-                    let missing = configs
-                        .into_iter()
-                        .flat_map(|(config_id, (config, credential_ids))| {
-                            let credential_id_count = credential_ids.len();
-                            let format = config.credential_kind.format;
-                            std::iter::repeat_n(config_id, credential_id_count)
-                                .zip(credential_ids)
-                                .map(move |(config_id, credential_id)| (config_id, Some(credential_id), format))
-                        })
-                        .collect();
-
-                    return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
-                }
-
-                (offered_credentials, excess_identifiers)
-            }
-        };
-
-        // If any of the previews could not be resolved against what was offered, report this as an error. As there is
-        // at least one preview, having no offered credentials implies that every preview was in excess.
-        match (
-            VecNonEmpty::try_from(offered_credentials),
-            excess_identifiers.is_empty(),
-        ) {
-            (Ok(offered_credentials), true) => Ok(offered_credentials),
-            _ => Err(WalletIssuanceError::PreviewExcessCredentials(excess_identifiers)),
-        }
-    }
-
     async fn fetch_credential(
         &self,
         offered_credential: &OfferedCredential,
+        credential_preview: Option<&PreviewableCredentialPayload>,
         keys: VecNonEmpty<IssuanceKeyResult>,
         dpop_nonce: Option<DpopNonce>,
         trust_anchors: &TrustAnchors,
@@ -989,7 +1095,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     let (sd_jwts, credential_payloads) = credentials.into_issued_sd_jwts(
                         key_ids_and_public_keys,
                         metadata,
-                        &offered_credential.preview,
+                        credential_preview,
                         trust_anchors,
                     )?;
 
@@ -1010,7 +1116,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     let (sd_jwts, credential_payloads) = credentials.into_issued_sd_jwts(
                         key_ids_and_public_keys,
                         metadata,
-                        &offered_credential.preview,
+                        credential_preview,
                         trust_anchors,
                     )?;
 
@@ -1024,7 +1130,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 (Format::MsoMdoc, OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
                     let (mdocs, credential_payloads) = credentials.into_issued_mdocs(
                         key_ids_and_public_keys,
-                        &offered_credential.preview,
+                        credential_preview,
                         credential_metadata,
                         trust_anchors,
                     )?;
@@ -1037,15 +1143,16 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     )
                 }
                 (Format::MsoMdoc, OfferedCredentialMetadata::TypeMetadata { .. }) => {
-                    // The combination of an mdoc credential preview and SD-JWT VC Type Metadata being present in
+                    // The combination of an offered mdoc credential and SD-JWT VC Type Metadata being present in
                     // `IssuanceState` should never occur for the following reasons:
                     //
                     // 1. SD-JWT VC Type Metadata is only fetched for Credential Configurations with the SD-JWT format.
-                    // 2. For each credential preview, the format is matched against the Credential Configuration with
+                    // 2. The format of each offered credential is that of its Credential Configuration. When previews
+                    //    are received, the format of each preview is matched against the Credential Configuration with
                     //    the same Credential Configuration Identifier. On a mismatch an error is returned.
                     //
-                    // This means that the metadata stored for a particular preview's Credential Configuration
-                    // Identifier should always be appropriate for its format.
+                    // This means that the metadata stored for a particular offered credential's Credential
+                    // Configuration Identifier should always be appropriate for its format.
                     //
                     // The error variant returned is categorized as `impossible`. Note that this does not include any
                     // details, as these could reveal personal data.
@@ -1053,6 +1160,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 }
             };
 
+        // TODO (PVW-6364): Only the payload of the first copy is used below. Without previews, all copies should be
+        //                  checked that they are identical.
         let credential_with_metadata = CredentialWithMetadata::new(
             credential_copies,
             first_credential_payload.previewable_payload.attestation_type,
@@ -1134,8 +1243,8 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 .iter()
                 .zip_eq(key_results)
                 .zip_eq(dpop_nonces)
-                .map(|((offered_credential, keys), dpop_nonce)| {
-                    self.fetch_credential(offered_credential, keys, dpop_nonce, trust_anchors)
+                .map(|(((offered_credential, preview), keys), dpop_nonce)| {
+                    self.fetch_credential(offered_credential, preview, keys, dpop_nonce, trust_anchors)
                 }),
         )
         .await?;
@@ -1143,16 +1252,25 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(credentials)
     }
 
-    fn previews_with_metadata(&self) -> Option<impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)>> {
-        Some(self.session_state.offered_credentials.iter().map(|offered_credential| {
-            let metadata = self
-                .session_state
-                .metadata
-                .get(&offered_credential.config_id)
-                .expect("`IssuanceState::metadata` has an entry for every offered configuration");
+    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
+        match &self.session_state.offered_credentials {
+            OfferedCredentials::WithPreviews(creds) => {
+                Some(creds.iter().map(|(offered_credential, credential_payload)| {
+                    let metadata = self
+                        .session_state
+                        .metadata
+                        .get(&offered_credential.config_id)
+                        .expect("`IssuanceState::metadata` has an entry for every offered configuration");
 
-            (&offered_credential.preview, metadata)
-        }))
+                    OfferedCredentialPreview {
+                        format: offered_credential.format,
+                        credential_payload,
+                        metadata,
+                    }
+                }))
+            }
+            OfferedCredentials::WithoutPreviews(_) => None,
+        }
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {
@@ -1166,7 +1284,7 @@ impl Credentials {
     fn into_issued_mdocs(
         self,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
-        preview: &CredentialPreview,
+        preview: Option<&PreviewableCredentialPayload>,
         credential_metadata: &CredentialMetadata,
         trust_anchors: &TrustAnchors,
     ) -> Result<(VecNonEmpty<MdocCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
@@ -1224,7 +1342,7 @@ impl Credentials {
         self,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         metadata: &OfferedCredentialMetadata,
-        preview: &CredentialPreview,
+        preview: Option<&PreviewableCredentialPayload>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(VecNonEmpty<SdJwtCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
         let Self::SdJwt(sd_jwt_credentials) = self else {
@@ -1271,7 +1389,7 @@ impl Credentials {
     }
 
     fn validate_credential(
-        preview: &CredentialPreview,
+        preview: Option<&PreviewableCredentialPayload>,
         holder_pubkey: &PublicKey,
         credential_payload: &CredentialPayload,
         metadata: &impl AttestationClaims,
@@ -1280,12 +1398,14 @@ impl Credentials {
             return Err(WalletIssuanceError::PublicKeyMismatch);
         }
 
-        // Check that the credential contains exactly the attributes the issuer said it would have.
-        if credential_payload.previewable_payload != preview.credential_payload {
-            return Err(WalletIssuanceError::IssuedCredentialMismatch {
-                actual: Box::new(credential_payload.previewable_payload.clone()),
-                expected: Box::new(preview.credential_payload.clone()),
-            });
+        if let Some(preview) = preview {
+            // Check that the credential contains exactly the attributes the issuer said it would have.
+            if credential_payload.previewable_payload != *preview {
+                return Err(WalletIssuanceError::IssuedCredentialMismatch {
+                    actual: Box::new(credential_payload.previewable_payload.clone()),
+                    expected: Box::new(preview.clone()),
+                });
+            }
         }
 
         // Check that those attributes are the ones described by the metadata of the credential configuration. Note
@@ -1379,6 +1499,7 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::status_claim::StatusListClaim;
@@ -1570,6 +1691,7 @@ mod tests {
         )>,
         type_metadata: TypeMetadata,
         token_response_fields: &TokenResponseFields,
+        expect_preview_request: bool,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
         let authorization_details = match &token_response_fields {
             TokenResponseFields::AuthorizationDetails(identifiers) | TokenResponseFields::Both(identifiers, _) => {
@@ -1629,6 +1751,7 @@ mod tests {
 
         mock_msg_client
             .expect_request_credential_preview()
+            .times(usize::from(expect_preview_request))
             .return_once(move |_url, _access_token| {
                 let previews = preview_payloads
                     .into_iter()
@@ -1727,10 +1850,11 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            true,
         )
         .expect("starting issuance session should succeed");
 
-        let Ok((preview, metadata)) = session.previews_with_metadata().unwrap().exactly_one() else {
+        let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
@@ -1738,7 +1862,7 @@ mod tests {
                 &preview.credential_payload.attributes.as_ref()["family_name"],
                 Attribute::Text(v) if v == "De Bruijn");
 
-        let OfferedCredentialMetadata::TypeMetadata { normalized, .. } = metadata else {
+        let OfferedCredentialMetadata::TypeMetadata { normalized, .. } = preview.metadata else {
             panic!("session should contain type metadata for the credential configuration");
         };
 
@@ -1749,6 +1873,73 @@ mod tests {
                 .into_normalized(&preview.credential_payload.attestation_type)
                 .unwrap()
                 .0
+        );
+    }
+
+    #[rstest]
+    #[case::authorization_details(
+        TokenResponseFields::AuthorizationDetails(vec![("config_id", vec!["credential_id_1", "credential_id_2"])]),
+        vec![
+            OfferedCredential::new_by_credential_id(
+                "credential_id_1".to_string().into(),
+                "config_id".to_string().into(),
+                Format::SdJwt,
+            ),
+            OfferedCredential::new_by_credential_id(
+                "credential_id_2".to_string().into(),
+                "config_id".to_string().into(),
+                Format::SdJwt,
+            ),
+        ]
+    )]
+    #[case::scope(
+        TokenResponseFields::Scope(vec!["config_id_scope"]),
+        vec![OfferedCredential::new_by_config_id("config_id".to_string().into(), Format::SdJwt)]
+    )]
+    #[case::no_authorization_details_or_scope(
+        TokenResponseFields::Neither,
+        vec![OfferedCredential::new_by_config_id("config_id".to_string().into(), Format::SdJwt)]
+    )]
+    fn test_start_issuance_without_preview_endpoint(
+        #[case] token_response_fields: TokenResponseFields,
+        #[case] expected_offered_credentials: Vec<OfferedCredential>,
+    ) {
+        let config_id = CredentialConfigurationId::from("config_id".to_string());
+        let mut issuer_metadata = IssuerMetadata::new_mock(
+            "https://example.com".parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            )],
+        );
+        issuer_metadata.endpoints.credential_preview_endpoint = None;
+
+        let session = test_start_issuance(
+            issuer_metadata,
+            vec![],
+            TypeMetadata::pid_example(),
+            &token_response_fields,
+            false,
+        )
+        .expect("starting issuance session should succeed");
+
+        assert!(session.credential_previews().is_none());
+
+        // Without previews, the offered credentials are determined by the Credential Configurations and the Token
+        // Response only.
+        let OfferedCredentials::WithoutPreviews(offered_credentials) = &session.session_state.offered_credentials
+        else {
+            panic!("issuance session should not contain previews");
+        };
+        assert_eq!(
+            offered_credentials.iter().collect::<HashSet<_>>(),
+            expected_offered_credentials.iter().collect::<HashSet<_>>()
+        );
+
+        // The metadata of the Credential Configuration should still be fetched.
+        assert_matches!(
+            session.session_state.metadata.get(&config_id),
+            Some(OfferedCredentialMetadata::TypeMetadata { .. })
         );
     }
 
@@ -1787,6 +1978,7 @@ mod tests {
                 ("mdoc_config_id", vec!["credential_id"]),
                 ("sd_jwt_config_id", vec!["credential_id"]),
             ]),
+            false,
         )
         .expect_err("starting issuance session should fail");
 
@@ -1822,6 +2014,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::AuthorizationDetails(vec![("unknown_config_id", vec!["credential_id"])]),
+            false,
         )
         .expect_err("starting issuance session should fail");
 
@@ -1850,6 +2043,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Scope(vec![]),
+            false,
         )
         .expect_err("starting issuance session should fail");
 
@@ -1874,6 +2068,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Scope(vec!["unknown_config_id_scope"]),
+            false,
         )
         .expect_err("starting issuance session should fail");
 
@@ -1903,6 +2098,7 @@ mod tests {
             )],
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
             &TokenResponseFields::Neither,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1925,7 +2121,7 @@ mod tests {
             .credential_configurations_supported
             .values_mut()
             .for_each(|config| {
-                config.type_metadata_uri = None;
+                set_type_metadata_uri(config, None);
                 config.credential_metadata = None;
             });
 
@@ -1939,6 +2135,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2005,10 +2202,11 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            true,
         )
         .expect("starting issuance session should succeed");
 
-        let Ok(offered_credential) = session.session_state.offered_credentials.iter().exactly_one() else {
+        let Ok((offered_credential, _preview)) = session.session_state.offered_credentials.iter().exactly_one() else {
             panic!("issuance session should contain exactly one offered credential")
         };
         assert_eq!(offered_credential.config_id, config_id);
@@ -2037,6 +2235,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2059,7 +2258,7 @@ mod tests {
             .credential_configurations_supported
             .values_mut()
             .for_each(|config| {
-                config.type_metadata_uri = None;
+                set_type_metadata_uri(config, None);
                 config.credential_metadata = Some(CredentialMetadata::new_example(&["family_name"]));
             });
 
@@ -2073,15 +2272,63 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
+            true,
         )
         .expect("starting issuance session should succeed");
 
-        let Ok((_preview, metadata)) = session.previews_with_metadata().unwrap().exactly_one() else {
+        let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
         // The SD-JWT configuration has no type metadata URI, so it should fall back to its Credential Metadata.
-        assert_matches!(metadata, OfferedCredentialMetadata::CredentialMetadata(_));
+        assert_matches!(preview.metadata, OfferedCredentialMetadata::CredentialMetadata(_));
+    }
+
+    #[test]
+    fn test_start_issuance_sd_jwt_type_metadata_preferred_over_credential_metadata() {
+        // Create issuer metadata for an SD-JWT configuration that has both a type metadata URI and Credential Metadata.
+        let config_id = CredentialConfigurationId::from("config_id".to_string());
+        let mut issuer_metadata = IssuerMetadata::new_mock(
+            "https://example.com".parse().unwrap(),
+            vec![(
+                config_id.clone(),
+                CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            )],
+        );
+        issuer_metadata
+            .credential_configurations_supported
+            .values_mut()
+            .for_each(|config| {
+                config.credential_metadata = Some(CredentialMetadata::new_example(&["family_name"]));
+            });
+
+        let session = test_start_issuance(
+            issuer_metadata,
+            vec![(
+                "credential_id".to_string().into(),
+                config_id,
+                Format::SdJwt,
+                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            )],
+            TypeMetadata::pid_example(),
+            &TokenResponseFields::Neither,
+            true,
+        )
+        .expect("starting issuance session should succeed");
+
+        let Ok(credential_preview) = session
+            .credential_previews()
+            .expect("issuance session should contain previews")
+            .exactly_one()
+        else {
+            panic!("issuance session should contain exactly one preview")
+        };
+
+        // The SD-JWT configuration has a type metadata URI, so its Type Metadata should be used.
+        assert_matches!(
+            credential_preview.metadata,
+            OfferedCredentialMetadata::TypeMetadata { .. }
+        );
     }
 
     #[test]
@@ -2097,7 +2344,7 @@ mod tests {
         );
         let type_metadata_uri = IssuerUrl::try_new("https://metadata.example.com").unwrap();
         let mut config = issuer_metadata.credential_configurations_supported[&config_id].clone();
-        config.type_metadata_uri = Some(type_metadata_uri.clone());
+        set_type_metadata_uri(&mut config, Some(type_metadata_uri.clone()));
         let issuer_metadata = IssuerMetadata {
             credential_configurations_supported: [(config_id.clone(), config)].into(),
             ..issuer_metadata
@@ -2114,6 +2361,7 @@ mod tests {
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2208,11 +2456,14 @@ mod tests {
             .get(&pid_config_id)
             .unwrap()
             .clone();
-        let expected_type_metadata_uri = address_credential_config.type_metadata_uri.clone().unwrap();
-        let CredentialFormat::SdJwt { vct, .. } = &mut address_credential_config.format else {
+        let CredentialFormat::SdJwt {
+            vct, type_metadata_uri, ..
+        } = &mut address_credential_config.format
+        else {
             unreachable!()
         };
         *vct = ADDRESS_ATTESTATION_TYPE.to_string();
+        let expected_type_metadata_uri = type_metadata_uri.clone().unwrap();
         issuer_metadata
             .credential_configurations_supported
             .insert(address_config_id.clone(), address_credential_config);
@@ -2235,6 +2486,7 @@ mod tests {
             ],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
+            false,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -2299,6 +2551,7 @@ mod tests {
             ],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            true,
         )
         .expect_err("starting issuance session should fail");
 
@@ -2370,6 +2623,7 @@ mod tests {
             ],
             TypeMetadata::pid_example(),
             &token_response_fields,
+            true,
         )
         .expect_err("starting issuance session should fail");
 
@@ -2393,12 +2647,23 @@ mod tests {
         assert_matches!(error, WalletIssuanceError::PreviewExcessCredentials(excess) if excess == expected_excess);
     }
 
-    /// Return a new session ready for `accept_issuance()`.
+    /// Replace the `type_metadata_uri` of an SD-JWT credential configuration.
+    fn set_type_metadata_uri(config: &mut CredentialConfiguration, uri: Option<IssuerUrl>) {
+        let CredentialFormat::SdJwt { type_metadata_uri, .. } = &mut config.format else {
+            panic!("credential configuration should be an SD-JWT")
+        };
+
+        *type_metadata_uri = uri;
+    }
+
+    /// Return a new session ready for `accept_issuance()`. If `has_previews` is `false`, the previews are only used to
+    /// determine the offered credentials and then discarded, as if the issuer had no Credential Preview endpoint.
     fn new_session_state(
         credential_previews: Vec<CredentialPreview>,
         metadata: HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         batch_size: NonZeroU8,
         has_nonce_endpoint: bool,
+        has_previews: bool,
     ) -> IssuanceState {
         let issuer_identifier = "https://issuer.example.com".parse().unwrap();
 
@@ -2406,20 +2671,32 @@ mod tests {
         if !has_nonce_endpoint {
             issuer_endpoints.nonce_endpoint = None;
         }
+        if !has_previews {
+            issuer_endpoints.credential_preview_endpoint = None;
+        }
 
-        let offered_credentials = credential_previews
-            .into_iter()
-            .map(|preview| {
-                OfferedCredential::new_by_credential_id(
-                    preview.credential_id.clone(),
-                    preview.config_id.clone(),
-                    preview.format,
-                    preview,
+        let offered_credentials_and_previews = credential_previews.into_iter().map(|preview| {
+            let offered_credential = OfferedCredential::new_by_credential_id(
+                preview.credential_id.clone(),
+                preview.config_id.clone(),
+                preview.format,
+            );
+
+            (offered_credential, preview.credential_payload)
+        });
+
+        let offered_credentials = if has_previews {
+            OfferedCredentials::WithPreviews(offered_credentials_and_previews.collect_vec().try_into().unwrap())
+        } else {
+            OfferedCredentials::WithoutPreviews(
+                NESet::try_from_set(
+                    offered_credentials_and_previews
+                        .map(|(offered_credential, _preview)| offered_credential)
+                        .collect(),
                 )
-            })
-            .collect_vec()
-            .try_into()
-            .unwrap();
+                .unwrap(),
+            )
+        };
 
         IssuanceState {
             access_token: "access_token".to_string().into(),
@@ -2662,7 +2939,7 @@ mod tests {
                     let sd_jwt_credentials = credential_payloads
                         .map(|credential_payload| {
                             let unverified_sd_jwt = credential_payload
-                                .into_signed_sd_jwt(&self.normalized_metadata, &self.issuer_key)
+                                .into_signed_sd_jwt(Some(&self.normalized_metadata), &self.issuer_key)
                                 .now_or_never()
                                 .unwrap()
                                 .unwrap()
@@ -2736,6 +3013,7 @@ mod tests {
             TestNonceEndpoint::PresentWithDpopNonce
         )]
         nonce_endpoint: TestNonceEndpoint,
+        #[values(true, false)] has_previews: bool,
     ) {
         let formats_by_credential_id = match formats {
             AcceptIssuanceTestFormats::CredentialId(formats) => formats
@@ -2770,7 +3048,7 @@ mod tests {
             ),
         };
 
-        let session_state = new_session_state(previews, metadata, batch_size, has_nonce_endpoint);
+        let session_state = new_session_state(previews, metadata, batch_size, has_nonce_endpoint, has_previews);
         let expected_issuer_registration = serde_json::to_value(&session_state.issuer_registration).unwrap();
 
         let dpop_signing_key = session_state.dpop_signing_key.clone();
@@ -2789,14 +3067,18 @@ mod tests {
                 Ok(signer.response_from_request(credential_request))
             });
 
-        let credentials = HttpIssuanceSession {
+        let mut session = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state,
-        }
-        .accept_issuance(max_copy_count, &trust_anchors, &wscd)
-        .now_or_never()
-        .unwrap()
-        .expect("accepting issuance should succeed");
+        };
+
+        assert_eq!(session.credential_previews().is_some(), has_previews);
+
+        let credentials = session
+            .accept_issuance(max_copy_count, &trust_anchors, &wscd)
+            .now_or_never()
+            .unwrap()
+            .expect("accepting issuance should succeed");
 
         assert_eq!(credentials.len(), credential_count);
 
@@ -2859,7 +3141,7 @@ mod tests {
 
         let credentials = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
         }
         .accept_issuance(NonZeroU8::MIN, &trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
@@ -2891,7 +3173,7 @@ mod tests {
 
         let credential_copies = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
         }
         .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
@@ -2936,7 +3218,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
         }
         .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
@@ -2969,7 +3251,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), true),
+            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), true, true),
         }
         .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
@@ -3001,7 +3283,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
         }
         .accept_issuance(NonZeroU8::MAX, &trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
@@ -3036,7 +3318,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
         }
         .accept_issuance(NonZeroU8::MAX, &signer.trust_anchors, &MockRemoteWscd::default())
         .now_or_never()
@@ -3051,7 +3333,7 @@ mod tests {
         sd_jwt_uses_credential_metadata: SdJwtMetadataUsage,
     ) -> (
         Credentials,
-        CredentialPreview,
+        PreviewableCredentialPayload,
         OfferedCredentialMetadata,
         PublicKey,
         TrustAnchors,
@@ -3068,7 +3350,7 @@ mod tests {
             .into_immediate_credentials()
             .unwrap();
 
-        let preview = previews.into_iter().exactly_one().unwrap();
+        let preview = previews.into_iter().exactly_one().unwrap().credential_payload;
         let metadata = metadata
             .into_iter()
             .exactly_one()
@@ -3078,12 +3360,12 @@ mod tests {
         (credentials, preview, metadata, holder_pubkey, signer.trust_anchors)
     }
 
-    /// Convert issued credentials using the provided metadata.
+    /// Convert issued credentials using the provided metadata and, if the issuer provided one, preview.
     fn test_convert_credentials_into_issued_credential(
         credentials: Credentials,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         metadata: &OfferedCredentialMetadata,
-        preview: &CredentialPreview,
+        preview: Option<&PreviewableCredentialPayload>,
         trust_anchors: &TrustAnchors,
     ) -> Result<(), WalletIssuanceError> {
         match (&credentials, metadata) {
@@ -3105,7 +3387,10 @@ mod tests {
     }
 
     #[rstest]
-    fn test_credential_response_into_credential(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
+    fn test_credential_response_into_credential(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+        #[values(true, false)] has_preview: bool,
+    ) {
         let (credentials, preview_data, metadata, holder_public_key, trust_anchor) =
             mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
 
@@ -3113,14 +3398,16 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            &preview_data,
+            has_preview.then_some(&preview_data),
             &trust_anchor,
         )
         .expect("should be able to convert CredentialResponse into Mdoc");
     }
 
-    #[test]
-    fn test_credential_response_into_credential_with_sd_jwt_credential_metadata_fallback() {
+    #[rstest]
+    fn test_credential_response_into_credential_with_sd_jwt_credential_metadata_fallback(
+        #[values(true, false)] has_preview: bool,
+    ) {
         let (credentials, preview_data, metadata, holder_public_key, trust_anchor) =
             mock_credential_response_credential(Format::SdJwt, SdJwtMetadataUsage::CredentialMetadata);
 
@@ -3130,14 +3417,14 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            &preview_data,
+            has_preview.then_some(&preview_data),
             &trust_anchor,
         )
         .expect("should be able to convert CredentialResponse into SD-JWT described by Credential Metadata");
     }
 
-    #[test]
-    fn test_credential_response_into_mdoc_attribute_random_length_error() {
+    #[rstest]
+    fn test_credential_response_into_mdoc_attribute_random_length_error(#[values(true, false)] has_preview: bool) {
         let (credentials, preview_data, metadata, holder_public_key, trust_anchor) =
             mock_credential_response_credential(Format::MsoMdoc, SdJwtMetadataUsage::CredentialMetadata);
 
@@ -3173,7 +3460,7 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            &preview_data,
+            has_preview.then_some(&preview_data),
             &trust_anchor,
         )
         .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -3181,8 +3468,8 @@ mod tests {
         assert_matches!(error, WalletIssuanceError::AttributeRandomLength(5, ATTR_RANDOM_LENGTH));
     }
 
-    #[test]
-    fn test_credential_response_into_sd_jwt_sd_jwt_verification_error() {
+    #[rstest]
+    fn test_credential_response_into_sd_jwt_sd_jwt_verification_error(#[values(true, false)] has_preview: bool) {
         let (credentials, preview, metadata, holder_public_key, _) =
             mock_credential_response_credential(Format::SdJwt, SdJwtMetadataUsage::TypeMetadata);
 
@@ -3192,7 +3479,7 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            &preview,
+            has_preview.then_some(&preview),
             &TrustAnchors::empty(),
         )
         .expect_err("should not be able to convert CredentialResponse into SD-JWT");
@@ -3203,6 +3490,7 @@ mod tests {
     #[rstest]
     fn test_credential_response_into_mdoc_public_key_mismatch_error(
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+        #[values(true, false)] has_preview: bool,
     ) {
         let (credentials, preview_data, metadata, _, trust_anchor) =
             mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
@@ -3214,7 +3502,7 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), other_public_key)],
             &metadata,
-            &preview_data,
+            has_preview.then_some(&preview_data),
             &trust_anchor,
         )
         .expect_err("should not be able to convert CredentialResponse into credential");
@@ -3222,8 +3510,8 @@ mod tests {
         assert_matches!(error, WalletIssuanceError::PublicKeyMismatch);
     }
 
-    #[test]
-    fn test_credential_response_into_mdoc_mdoc_verification_error() {
+    #[rstest]
+    fn test_credential_response_into_mdoc_mdoc_verification_error(#[values(true, false)] has_preview: bool) {
         let (credentials, preview, metadata, holder_public_key, _) =
             mock_credential_response_credential(Format::MsoMdoc, SdJwtMetadataUsage::CredentialMetadata);
 
@@ -3233,7 +3521,7 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            &preview,
+            has_preview.then_some(&preview),
             &TrustAnchors::empty(),
         )
         .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -3249,7 +3537,7 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail. Note that these stay laid out in the
         // mdoc name space, so that the extra attribute is the only difference.
-        preview.credential_payload.attributes = Attributes::example([
+        preview.attributes = Attributes::example([
             ([PID_ATTESTATION_TYPE, "new"], Attribute::Bool(true)),
             (
                 [PID_ATTESTATION_TYPE, "family_name"],
@@ -3261,7 +3549,7 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            &preview,
+            Some(&preview),
             &trust_anchor,
         )
         .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -3278,13 +3566,13 @@ mod tests {
 
         // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
         // within the response should fail.
-        preview.credential_payload.attestation_type = String::from("other.attestation_type");
+        preview.attestation_type = String::from("other.attestation_type");
 
         let error = test_convert_credentials_into_issued_credential(
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            &preview,
+            Some(&preview),
             &trust_anchor,
         )
         .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -3302,13 +3590,13 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` with different expiration information in the preview than
         // contained within the response should fail.
 
-        preview.credential_payload.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
+        preview.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
 
         let error = test_convert_credentials_into_issued_credential(
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            &preview,
+            Some(&preview),
             &trust_anchor,
         )
         .expect_err("should not be able to convert CredentialResponse into Mdoc");

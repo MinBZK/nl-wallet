@@ -4,7 +4,7 @@ use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
-use crypto::x509::CertificateError;
+use crypto::x509::CanocalizationError;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
@@ -127,7 +127,7 @@ pub enum DecoderError {
     JwtX5cVerification(#[from] JwtX5cVerifyError),
 
     #[error("unable to extract DN from issuer certificate: {0}")]
-    IssuerDnExtraction(#[from] CertificateError),
+    IssuerDnExtraction(#[from] CanocalizationError),
 
     #[error("invalid KB-JWT: {0}")]
     KeyBinding(#[from] KeyBindingError),

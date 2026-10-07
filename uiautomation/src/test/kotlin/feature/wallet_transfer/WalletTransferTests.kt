@@ -79,6 +79,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
 
         useTargetDevice {
             assertTrue(targetTransferScreen.qrScreenVisible(), "QR screen is not visible on destination device")
+            targetTransferScreen.captureA11ySnapshot("WalletTransferQr-target")
             transferUrl = targetTransferScreen.getTransferUrl()
         }
 
@@ -86,6 +87,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
             sourceDashboard.openLink(transferUrl)
             sourceDashboard.openApp()
             assertTrue(sourceTransferScreen.confirmTransferVisible(), "Confirm transfer screen is not visible on source device")
+            sourceTransferScreen.captureA11ySnapshot("WalletTransferConfirm-source")
             sourceTransferScreen.clickConfirmTransfer()
             sourcePin.enterPin(DEFAULT_PIN)
             assertTrue(sourceTransferScreen.transferringVisible(), "Transferring screen is not visible on source device")
@@ -94,6 +96,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
         useTargetDevice {
             assertTrue(targetTransferScreen.transferringVisible(), "Transferring screen is not visible on destination device")
             assertTrue(targetTransferScreen.successVisible(), "Success screen is not visible on destination device")
+            targetTransferScreen.captureA11ySnapshot("WalletTransferSuccess-target")
             targetTransferScreen.clickToOverview()
         }
 
@@ -133,10 +136,12 @@ class WalletTransferTests : TwoDeviceTestBase() {
             sourceTransferScreen.clickStop()
             sourceTransferScreen.confirmStop()
             assertTrue(sourceTransferScreen.stoppedVisible(), "Source device should show stopped")
+            sourceTransferScreen.captureA11ySnapshot("WalletTransferStoppedBySource-source")
         }
 
         useTargetDevice {
             assertTrue(targetTransferScreen.stoppedVisible(), "Target device should show stopped")
+            targetTransferScreen.captureA11ySnapshot("WalletTransferStoppedBySource-target")
         }
     }
 
@@ -162,10 +167,12 @@ class WalletTransferTests : TwoDeviceTestBase() {
             targetTransferScreen.clickStop()
             targetTransferScreen.confirmStop()
             assertTrue(targetTransferScreen.stoppedVisible(), "Stopped screen is not visible on destination device")
+            targetTransferScreen.captureA11ySnapshot("WalletTransferStoppedByTarget-target")
         }
 
         useSourceDevice {
             assertTrue(sourceTransferScreen.stoppedVisible(), "Source device should show stopped")
+            sourceTransferScreen.captureA11ySnapshot("WalletTransferStoppedByTarget-source")
         }
     }
 

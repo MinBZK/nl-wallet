@@ -54,6 +54,7 @@ class UserEntersPinTests : TestBase() {
         setUp(testInfo)
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
+        pinScreen.captureA11ySnapshot("PinUnlock")
         val pin = "12222"
         pinScreen.enterPin(pin)
         assertTrue(pinScreen.enteredPinAbsent(pin), "entered pin is not absent")
@@ -87,6 +88,7 @@ class UserEntersPinTests : TestBase() {
                 { assertTrue(noInternetErrorScreen.errorDetails.osVersionVisible(), "Os version is not visible") },
                 { assertTrue(noInternetErrorScreen.errorDetails.appConfigVisible(), "appConfig is not visible") }
             )
+            noInternetErrorScreen.captureA11ySnapshot("ErrorDetails")
         } finally {
             noInternetErrorScreen.enableInternetConnection();
         }
@@ -112,6 +114,7 @@ class UserEntersPinTests : TestBase() {
             { assertTrue(temporarilyBlockedScreen.forgotPinButtonVisible(), "Forgot pin button is not visible") },
             { assertTrue(temporarilyBlockedScreen.timeoutMessageVisible(), "Timeout message is not visible") }
         )
+        temporarilyBlockedScreen.captureA11ySnapshot("TemporarilyBlocked")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

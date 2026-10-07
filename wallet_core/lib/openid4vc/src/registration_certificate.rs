@@ -119,7 +119,6 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::DistinguishedName;
-    use crypto::x509::NO_SAN;
     use dcql::Query;
     use rstest::rstest;
     use token_status_list::status_list::StatusType;
@@ -244,7 +243,6 @@ mod tests {
                     "other-organization-identifier".to_string(),
                 ),
                 Default::default(),
-                NO_SAN,
             )
             .unwrap();
 

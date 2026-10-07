@@ -1,5 +1,6 @@
 use coset::Label;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateParseError;
+use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use error_category::ErrorCategory;
 
@@ -37,8 +38,10 @@ pub enum CoseError {
     #[error("x5chain certificate chain is empty")]
     #[category(critical)]
     EmptyCertificateChain,
-    #[error("certificate error: {0}")]
-    Certificate(#[source] CertificateError),
+    #[error("certificate parse error: {0}")]
+    CertificateParse(#[source] CertificateParseError),
+    #[error("certificate verify error: {0}")]
+    CertificateVerify(#[source] CertificateVerifyError),
     #[error("certificate CRL verification error: {0}")]
     CertificateCrl(#[source] CertificateCrlVerificationError),
     #[error("signing failed: {0}")]

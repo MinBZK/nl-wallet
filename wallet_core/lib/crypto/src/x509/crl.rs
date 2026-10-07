@@ -24,8 +24,8 @@ use x509_parser::revocation_list::CertificateRevocationList;
 
 use crate::trust_anchor::TrustAnchors;
 use crate::x509::BorrowingCertificate;
-use crate::x509::CertificateError;
 use crate::x509::CertificateUsage;
+use crate::x509::CertificateVerifyError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -61,9 +61,9 @@ pub enum CrlRetrievalError {
 #[category(defer)]
 pub enum CertificateCrlVerificationError {
     #[error("certificate verification failed: {0}")]
-    Certificate(#[source] CertificateError),
+    CertificateVerify(#[source] CertificateVerifyError),
     #[error("certificate revocation verification failed: {0}")]
-    Revocation(#[source] CertificateError),
+    Revocation(#[source] CertificateVerifyError),
     #[error("all CRL distribution points for at least one certificate failed; first failure: {source}; additional failures: {}", additional_errors.iter().join(", "))]
     #[category(pd)]
     CrlRetrieval {
@@ -327,7 +327,7 @@ where
         // Validate the certificate path before following distribution-point URLs supplied by the certificate. This
         // prevents an untrusted certificate from turning CRL retrieval into an arbitrary network request.
         leaf.verify(usage, intermediate_certs, time, trust_anchors)
-            .map_err(CertificateCrlVerificationError::Certificate)?;
+            .map_err(CertificateCrlVerificationError::CertificateVerify)?;
 
         let crls = self.crls_for_chain(chain, time).await?;
 
@@ -502,9 +502,8 @@ mod tests {
     use crate::server_keys::generate::Ca;
     use crate::trust_anchor::TrustAnchors;
     use crate::x509::CertificateConfiguration;
-    use crate::x509::CertificateError;
+    use crate::x509::CertificateVerifyError;
     use crate::x509::DistinguishedName;
-    use crate::x509::NO_SAN;
 
     #[derive(Clone, Debug)]
     struct ConcurrencyTrackingFetcher {
@@ -630,7 +629,7 @@ mod tests {
             crl_distribution_points: urls,
             ..Default::default()
         };
-        ca.generate_key_pair(DistinguishedName::create_mock("leaf"), config, NO_SAN)
+        ca.generate_key_pair(DistinguishedName::create_mock("leaf"), config)
             .unwrap()
             .into()
     }
@@ -923,7 +922,6 @@ mod tests {
                     crl_distribution_points: vec![leaf_crl_url.clone()],
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
         let fetcher = ConcurrencyTrackingFetcher::new([
@@ -1167,7 +1165,7 @@ mod tests {
             ..Default::default()
         };
         let leaf = ca
-            .generate_key_pair(DistinguishedName::create_mock("leaf"), config, NO_SAN)
+            .generate_key_pair(DistinguishedName::create_mock("leaf"), config)
             .unwrap();
         leaf.certificate().clone()
     }
@@ -1263,7 +1261,7 @@ mod tests {
             .expect_err("revoked certificate should fail verification");
         assert!(matches!(
             error,
-            CertificateCrlVerificationError::Revocation(CertificateError::Verification(error))
+            CertificateCrlVerificationError::Revocation(CertificateVerifyError::Verification(error))
                 if matches!(*error, webpki::Error::CertRevoked)
         ));
 
@@ -1305,7 +1303,6 @@ mod tests {
                     crl_distribution_points: vec![intermediate_crl_url.clone()],
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
 
@@ -1354,7 +1351,7 @@ mod tests {
             .expect_err("chain with a revoked intermediate certificate should fail verification");
         assert!(matches!(
             error,
-            CertificateCrlVerificationError::Revocation(CertificateError::Verification(error))
+            CertificateCrlVerificationError::Revocation(CertificateVerifyError::Verification(error))
                 if matches!(*error, webpki::Error::CertRevoked)
         ));
     }
@@ -1394,7 +1391,6 @@ mod tests {
                     crl_distribution_points: vec![leaf_crl_url],
                     ..Default::default()
                 },
-                NO_SAN,
             )
             .unwrap();
         server
@@ -1449,7 +1445,7 @@ mod tests {
             .expect_err("expired CRL should fail verification");
         assert!(matches!(
             error,
-            CertificateCrlVerificationError::Revocation(CertificateError::Verification(error))
+            CertificateCrlVerificationError::Revocation(CertificateVerifyError::Verification(error))
                 if matches!(*error, webpki::Error::CrlExpired { .. })
         ));
     }

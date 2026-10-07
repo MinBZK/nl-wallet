@@ -304,7 +304,7 @@ mod tests {
                 let mut issuance_session = MockIssuanceSession::new();
 
                 issuance_session
-                    .expect_previews_with_metadata()
+                    .expect_credential_previews()
                     .return_const(vec![(credential_preview, metadata)].into());
 
                 issuance_session
