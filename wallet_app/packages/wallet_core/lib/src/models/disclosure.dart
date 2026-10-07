@@ -83,34 +83,19 @@ class MissingAttribute {
 }
 
 class RequestPolicy {
-  final BigInt? dataStorageDurationInMinutes;
-  final bool dataSharedWithThirdParties;
-  final bool dataDeletionPossible;
-  final String policyUrl;
+  final String? policyUrl;
 
   const RequestPolicy({
-    this.dataStorageDurationInMinutes,
-    required this.dataSharedWithThirdParties,
-    required this.dataDeletionPossible,
-    required this.policyUrl,
+    this.policyUrl,
   });
 
   @override
-  int get hashCode =>
-      dataStorageDurationInMinutes.hashCode ^
-      dataSharedWithThirdParties.hashCode ^
-      dataDeletionPossible.hashCode ^
-      policyUrl.hashCode;
+  int get hashCode => policyUrl.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is RequestPolicy &&
-          runtimeType == other.runtimeType &&
-          dataStorageDurationInMinutes == other.dataStorageDurationInMinutes &&
-          dataSharedWithThirdParties == other.dataSharedWithThirdParties &&
-          dataDeletionPossible == other.dataDeletionPossible &&
-          policyUrl == other.policyUrl;
+      other is RequestPolicy && runtimeType == other.runtimeType && policyUrl == other.policyUrl;
 }
 
 @freezed
@@ -124,7 +109,6 @@ sealed class StartDisclosureResult with _$StartDisclosureResult {
     required bool sharedDataWithRelyingPartyBefore,
     required DisclosureSessionType sessionType,
     required List<LocalizedString> requestPurpose,
-    required String requestOriginBaseUrl,
     required DisclosureType requestType,
   }) = StartDisclosureResult_Request;
   const factory StartDisclosureResult.requestAttributesMissing({
@@ -133,6 +117,5 @@ sealed class StartDisclosureResult with _$StartDisclosureResult {
     required bool sharedDataWithRelyingPartyBefore,
     required DisclosureSessionType sessionType,
     required List<LocalizedString> requestPurpose,
-    required String requestOriginBaseUrl,
   }) = StartDisclosureResult_RequestAttributesMissing;
 }

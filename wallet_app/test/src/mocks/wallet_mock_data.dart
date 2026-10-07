@@ -192,10 +192,7 @@ abstract class WalletMockData {
   );
 
   static const Policy policy = Policy(
-    storageDuration: Duration(days: 90),
     dataPurpose: 'Data Purpose',
-    dataIsShared: false,
-    deletionCanBeRequested: true,
     privacyPolicyUrl: 'https://www.example.org',
   );
 

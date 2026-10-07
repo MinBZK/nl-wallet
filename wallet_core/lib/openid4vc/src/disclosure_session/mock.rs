@@ -1,10 +1,10 @@
 use std::hash::Hash;
 
+use attestation_data::organization::Organization;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
-use crypto::x509::BorrowingCertificate;
 use dcql::normalized::NormalizedCredentialRequests;
 use url::Url;
 use utils::generator::Generator;
@@ -40,7 +40,7 @@ mockall::mock! {
     pub DisclosureSession {
         pub fn session_type(&self) -> SessionType;
         pub fn credential_requests(&self) -> &NormalizedCredentialRequests;
-        pub fn certificate(&self) -> &BorrowingCertificate;
+        pub fn organization(&self) -> &Organization;
 
         pub async fn terminate(self) -> Result<Option<Url>, VpSessionError>;
         pub async fn disclose(
@@ -59,8 +59,8 @@ impl DisclosureSession for MockDisclosureSession {
         self.credential_requests()
     }
 
-    fn certificate(&self) -> &BorrowingCertificate {
-        self.certificate()
+    fn organization(&self) -> &Organization {
+        self.organization()
     }
 
     async fn terminate(self) -> Result<Option<Url>, VpSessionError> {

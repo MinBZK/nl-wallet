@@ -53,8 +53,6 @@ abstract class CoreMockData {
   );
 
   static const RequestPolicy policy = RequestPolicy(
-    dataSharedWithThirdParties: true,
-    dataDeletionPossible: true,
     policyUrl: 'https://example.org',
   );
 

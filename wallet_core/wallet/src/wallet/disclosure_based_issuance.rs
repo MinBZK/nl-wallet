@@ -90,7 +90,7 @@ where
             return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
         };
 
-        let organization = Box::new(Organization::try_from(session.protocol_state.certificate()).unwrap());
+        let organization = Box::new(session.protocol_state.organization().clone());
 
         let redirect_uri = match self
             .perform_disclosure(
@@ -172,6 +172,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::organization::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -228,7 +229,9 @@ mod tests {
         let certificate = key_pair.certificate().clone();
 
         let mut disclosure_session = MockDisclosureSession::new();
-        disclosure_session.expect_certificate().return_const(certificate);
+        disclosure_session
+            .expect_organization()
+            .return_const(Organization::try_from(&certificate).unwrap());
 
         let disclosable_attestation = match requested_format {
             Format::MsoMdoc => {
