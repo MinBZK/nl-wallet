@@ -390,7 +390,7 @@ mod tests {
 
     #[test]
     fn test_key_attestation_claims_ts3_example_deserialization() {
-        // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-D.1-6>
+        // Source: <https://github.com/eu-digital-identity-wallet/eudi-doc-standards-and-technical-specifications/blob/5924eb77ab4495d4dc0a874e54ac3e5de1fbd5b1/docs/technical-specifications/ts3-wallet-unit-attestation.md#31-examples>
         let json = json!({
             "iat": 1516247022,
             "exp": 1541493724,
