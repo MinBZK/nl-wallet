@@ -85,8 +85,11 @@ impl BrpPerson {
 
     pub fn into_mdoc_attributes(self, recovery_code: Attribute, issuer_metadata: PidIssuerMetadata) -> Attributes {
         let address_attributes = self.residence.clone().into_address_attributes();
+        let birth_date = self.birth.date.date;
         let mut attributes = self.common_attributes();
 
+        // In mdoc, `birthdate` should be encoded as `full-date` (CBOR tag 1004)
+        attributes.insert(PID_BIRTH_DATE.to_owned(), Attribute::Date(birth_date));
         attributes.extend(issuer_metadata.into_attributes());
         attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
         attributes.extend(address_attributes);
@@ -1061,7 +1064,7 @@ mod tests {
     }
 
     #[test]
-    fn should_convert_brp_person_to_issuable_vec() {
+    fn should_convert_brp_person_to_sd_jwt_issuable_vec() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
         let issuer_metadata = PidIssuerMetadata {
             issuing_country: "NL".to_owned(),
@@ -1126,6 +1129,99 @@ mod tests {
                 "address": {
                     "type": "object",
                     "value": {
+                        "street_address": {
+                            "type": "text",
+                            "value": "Van Wijngaerdenstraat"
+                        },
+                        "house_number": {
+                            "type": "text",
+                            "value": "1"
+                        },
+                        "postal_code": {
+                            "type": "text",
+                            "value": "2596TW"
+                        },
+                        "locality": {
+                            "type": "text",
+                            "value": "Toetsoog"
+                        },
+                        "country": {
+                            "type": "text",
+                            "value": "Nederland"
+                        }
+                    }
+                }
+            }),
+            serde_json::to_value(pid_card).unwrap()
+        );
+    }
+
+    #[test]
+    fn should_convert_brp_person_to_mdoc_issuable_vec() {
+        let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
+        let issuer_metadata = PidIssuerMetadata {
+            issuing_country: "NL".to_owned(),
+            issuing_authority: "Test Issuing Authority".to_owned(),
+        };
+        let pid_card = brp_persons
+            .persons
+            .remove(0)
+            .into_mdoc_attributes(Attribute::Text("recovery_code_123".to_owned()), issuer_metadata);
+
+        assert_eq!(
+            json!({
+                "eu.europa.ec.eudi.pid.1": {
+                    "type": "object",
+                    "value": {
+                        "family_name": {
+                            "type": "text",
+                            "value": "Jansen"
+                        },
+                        "given_name": {
+                            "type": "text",
+                            "value": "Frouke"
+                        },
+                        "birthdate": {
+                            "type": "date",
+                            "value": "2000-03-24"
+                        },
+                        "age_over_18": {
+                            "type": "bool",
+                            "value": true
+                        },
+                        "bsn": {
+                            "type": "text",
+                            "value": "999991772"
+                        },
+                        "nationalities": {
+                            "type": "array",
+                            "value": [
+                                {
+                                    "type": "text",
+                                    "value": "NL"
+                                },
+                                {
+                                    "type": "text",
+                                    "value": "BE"
+                                }
+                            ]
+                        },
+                        "sex": {
+                            "type": "number",
+                            "value": 2
+                        },
+                        "issuing_country": {
+                            "type": "text",
+                            "value": "NL"
+                        },
+                        "issuing_authority": {
+                            "type": "text",
+                            "value": "Test Issuing Authority"
+                        },
+                        "recovery_code": {
+                            "type": "text",
+                            "value": "recovery_code_123"
+                        },
                         "street_address": {
                             "type": "text",
                             "value": "Van Wijngaerdenstraat"
