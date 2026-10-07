@@ -42,7 +42,7 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
-pub const OPENID4VCI_PROOF_JWT_TYP: &str = "key-attestation+jwt";
+pub const OPENID4VCI_KEY_ATTESTATION_JWT_TYP: &str = "key-attestation+jwt";
 
 /// Used to set the `exp` value of `KeyAttestationClaims`.
 const VALIDITY_TIME: Duration = Duration::from_mins(15);
@@ -143,7 +143,7 @@ pub struct KeyAttestationClaims {
 }
 
 impl JwtTyp for KeyAttestationClaims {
-    const TYP: &'static str = OPENID4VCI_PROOF_JWT_TYP;
+    const TYP: &'static str = OPENID4VCI_KEY_ATTESTATION_JWT_TYP;
 }
 
 /// Attack potential resistance of a storage or access method.
