@@ -57,6 +57,7 @@ use crate::pid::digid::DigidClient;
 use crate::pid::digid::DigidMetadataClient;
 use crate::pid::digid::HttpDigidClient;
 use crate::pid::rulebook::constants::pid_attestation_type;
+use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
 const ISSUER_STATE_LENGTH: usize = 32;
 
@@ -152,6 +153,7 @@ pub struct UpstreamOidcAuthorizationCodeFlow<B = HttpBrpClient, O = HttpDigidCli
     brp_client: B,
     digid_client: O,
     recovery_code_secret_key: SecretKeyVariant,
+    issuer_metadata: PidIssuerMetadata,
     state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
     callback_url: Url,
     client_id: String,
@@ -166,6 +168,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
         client_id: impl Into<String>,
         digid_metadata_client: DigidMetadataClient,
         recovery_code_secret_key: SecretKeyVariant,
+        issuer_metadata: PidIssuerMetadata,
         store_connection: StoreConnection,
         callback_base_url: &BaseUrl,
     ) -> Result<Self, Error> {
@@ -177,6 +180,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
             brp_client,
             digid_client,
             recovery_code_secret_key,
+            issuer_metadata,
             store_connection,
             callback_base_url,
             client_id,
@@ -187,10 +191,12 @@ impl UpstreamOidcAuthorizationCodeFlow {
 impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     /// Construct the flow, building its [`IssuerStateBridgeStore`] from `store_connection`. The
     /// store's entry type is an internal detail of this flow, so callers only supply the connection.
+    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
         brp_client: B,
         digid_client: O,
         recovery_code_secret_key: SecretKeyVariant,
+        issuer_metadata: PidIssuerMetadata,
         store_connection: StoreConnection,
         callback_base_url: &BaseUrl,
         client_id: String,
@@ -199,16 +205,19 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             brp_client,
             digid_client,
             recovery_code_secret_key,
+            issuer_metadata,
             Arc::new(IssuerStateBridgeStore::new(store_connection)),
             callback_base_url,
             client_id,
         )
     }
 
+    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     fn new_with_store(
         brp_client: B,
         digid_client: O,
         recovery_code_secret_key: SecretKeyVariant,
+        issuer_metadata: PidIssuerMetadata,
         state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
         callback_base_url: &BaseUrl,
         client_id: String,
@@ -217,6 +226,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             brp_client,
             digid_client,
             recovery_code_secret_key,
+            issuer_metadata,
             state_bridge_store,
             callback_url: callback_base_url.join(DIGID_CALLBACK_PATH),
             client_id,
@@ -274,17 +284,21 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         }
         let person = persons.persons.remove(0);
         let recovery_code = recovery_code(&person, &self.recovery_code_secret_key).await?;
+        let issuer_metadata = self.issuer_metadata.clone();
 
         // Create an `IssuableDocument` for each requested format.
         let format_count = formats.len();
         let issuable_documents = formats
             .into_nonempty_iter()
-            .zip(utils::vec_at_least::repeat_n((person, recovery_code), format_count))
-            .map(|(format, (person, recovery_code))| {
+            .zip(utils::vec_at_least::repeat_n(
+                (person, recovery_code, issuer_metadata),
+                format_count,
+            ))
+            .map(|(format, (person, recovery_code, issuer_metadata))| {
                 let attestation_type = pid_attestation_type(format);
                 let attributes = match format {
-                    Format::MsoMdoc => person.into_mdoc_attributes(recovery_code),
-                    Format::SdJwt => person.into_sd_jwt_attributes(recovery_code),
+                    Format::MsoMdoc => person.into_mdoc_attributes(recovery_code, issuer_metadata),
+                    Format::SdJwt => person.into_sd_jwt_attributes(recovery_code, issuer_metadata),
                 };
 
                 IssuableDocument::try_new_with_random_id(
@@ -569,6 +583,7 @@ mod tests {
     use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
     use crate::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
     use crate::pid::rulebook::constants::pid_attestation_type;
+    use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
     /// The in-memory [`AuthorizingIssuer`] flavour used by the callback tests: the mock inner issuer
     /// from `openid4vc::test` wrapped around a mock-backed flow.
@@ -609,6 +624,8 @@ mod tests {
         "bsn",
         "nationalities",
         "sex",
+        "issuing_country",
+        "issuing_authority",
         "recovery_code",
         "street_address",
         "house_number",
@@ -636,10 +653,15 @@ mod tests {
         digid_client: MockDigidClient,
         state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
     ) -> UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient> {
+        let issuer_metadata = PidIssuerMetadata {
+            issuing_country: "NL".to_owned(),
+            issuing_authority: "Test Issuing Authority".to_owned(),
+        };
         UpstreamOidcAuthorizationCodeFlow::new_with_store(
             brp_client,
             digid_client,
             recovery_code_secret_key(),
+            issuer_metadata,
             state_bridge_store,
             &CALLBACK_BASE_URL.parse().unwrap(),
             String::from(CLIENT_ID),

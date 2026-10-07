@@ -4,6 +4,9 @@ registration_certificate = "${PID_ISSUER_REGISTRATION_CERTIFICATE}"
 wallet_client_ids = ["${NL_WALLET_CLIENT_ID}"]
 wallet_redirect_uris = ["${WALLET_REDIRECT_URI}"]
 
+issuing_country = "NL"
+issuing_authority = "Rijksdienst voor Identiteitsgegevens"
+
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]

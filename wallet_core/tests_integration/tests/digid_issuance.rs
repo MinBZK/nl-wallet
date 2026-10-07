@@ -24,6 +24,7 @@ use pid_issuer::pid::rulebook::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::rulebook::constants::PID_GIVEN_NAME;
 use pid_issuer::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
 use pid_issuer::pid::rulebook::constants::PID_RESIDENT_COUNTRY;
+use pid_issuer::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
@@ -109,12 +110,17 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         // follows the callback. Keep the port (3003) in sync with the redirect_uris statically registered in
         // `scripts/devenv/digid-connector/clients.json` and `deploy/helm-charts/rdo-max/values.yaml`.
         let callback_base_url = local_http_base_url(3003);
+        let issuer_metadata = PidIssuerMetadata {
+            issuing_country: "NL".to_owned(),
+            issuing_authority: "Test Issuing Authority".to_owned(),
+        };
         UpstreamOidcAuthorizationCodeFlow::try_new(
             brp_client,
             &bsn_privkey,
             digid_client_id,
             digid_metadata_cache,
             recovery_secret_key,
+            issuer_metadata,
             store_connection,
             &callback_base_url,
         )

@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-0GWGCdK4s1YpjrSmUyvktnIH49N1U1pXdv3T6yi8ItE=",
+  "extends#integrity": "sha256-7fdbbnmnnFiO+gsT66p4WCTmen6SULthm9XSbZJFHhY=",
   "display": [
     {
       "locale": "en-US",
@@ -130,6 +130,40 @@
         }
       ],
       "sd": "always"
+    },
+    {
+      "path": ["issuing_country"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuing country",
+          "description": "Country that issued the person identification data"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Land van afgifte",
+          "description": "Land dat de persoonsgegevens heeft afgegeven"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["issuing_authority"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuing authority",
+          "description": "Authority that issued the person identification data"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Autoriteit van afgifte",
+          "description": "Autoriteit die de persoonsgegevens heeft afgegeven"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["bsn"],

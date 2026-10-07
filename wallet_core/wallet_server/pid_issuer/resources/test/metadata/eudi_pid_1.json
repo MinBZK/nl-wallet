@@ -80,6 +80,30 @@
       "sd": "always"
     },
     {
+      "path": ["issuing_country"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuing country",
+          "description": "Country that issued the person identification data"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["issuing_authority"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuing authority",
+          "description": "Authority that issued the person identification data"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
       "path": ["address", "country"],
       "display": [
         {

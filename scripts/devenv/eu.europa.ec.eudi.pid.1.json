@@ -118,6 +118,40 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
+        "issuing_country"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Issuing country",
+          "locale": "en-US"
+        },
+        {
+          "name": "Land van afgifte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "issuing_authority"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Issuing authority",
+          "locale": "en-US"
+        },
+        {
+          "name": "Autoriteit van afgifte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
         "bsn"
       ],
       "mandatory": true,

@@ -21,6 +21,8 @@ use crate::pid::rulebook::constants::PID_BIRTH_DATE;
 use crate::pid::rulebook::constants::PID_BSN;
 use crate::pid::rulebook::constants::PID_FAMILY_NAME;
 use crate::pid::rulebook::constants::PID_GIVEN_NAME;
+use crate::pid::rulebook::constants::PID_ISSUING_AUTHORITY;
+use crate::pid::rulebook::constants::PID_ISSUING_COUNTRY;
 use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_NATIONALITY;
 use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
@@ -141,6 +143,11 @@ pub fn mock_pid_example() -> Attributes {
             ]),
         ),
         (vec![PID_SEX], Attribute::Number(2)),
+        (vec![PID_ISSUING_COUNTRY], Attribute::Text("NL".to_owned())),
+        (
+            vec![PID_ISSUING_AUTHORITY],
+            Attribute::Text("Issuing Authority".to_owned()),
+        ),
         (vec![PID_RECOVERY_CODE], Attribute::Text("1234567".to_string())),
         (
             vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
@@ -194,6 +201,14 @@ pub fn mock_pid_mdoc_example() -> Attributes {
         ),
         (vec![PID_MDOC_NAMESPACE, PID_SEX], Attribute::Number(2)),
         (
+            vec![PID_MDOC_NAMESPACE, PID_ISSUING_COUNTRY],
+            Attribute::Text("NL".to_owned()),
+        ),
+        (
+            vec![PID_MDOC_NAMESPACE, PID_ISSUING_AUTHORITY],
+            Attribute::Text("Issuing Authority".to_owned()),
+        ),
+        (
             vec![PID_MDOC_NAMESPACE, PID_RECOVERY_CODE],
             Attribute::Text("1234567".to_string()),
         ),
@@ -228,6 +243,7 @@ mod tests {
     use itertools::Either;
 
     use super::*;
+    use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
     // Lay out the attributes of a PID for mdoc, which places every attribute in a single namespace named
     // after the attestation type, without nesting.
@@ -259,10 +275,14 @@ mod tests {
     #[tokio::test]
     async fn mock_brp_person_attributes_match_mock_pid_example() {
         let mut persons = MockBrpClient::default().get_person_by_bsn(MOCK_BSN).await.unwrap();
+        let issuer_metadata = PidIssuerMetadata {
+            issuing_country: "NL".to_owned(),
+            issuing_authority: "Issuing Authority".to_owned(),
+        };
         let attributes = persons
             .persons
             .remove(0)
-            .into_sd_jwt_attributes(Attribute::Text(String::from("1234567")));
+            .into_sd_jwt_attributes(Attribute::Text(String::from("1234567")), issuer_metadata);
 
         // The BRP person yields the example attribute set minus the recovery code,
         // which is not BRP data but inserted later by the flow.

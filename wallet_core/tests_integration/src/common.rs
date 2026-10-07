@@ -65,6 +65,7 @@ use pid_issuer::pid::brp::client::BrpClient;
 use pid_issuer::pid::digid::DigidClient;
 use pid_issuer::pid::mock::MockBrpClient;
 use pid_issuer::pid::mock::MockDigidClient;
+use pid_issuer::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use reqwest::Certificate;
@@ -379,6 +380,11 @@ pub async fn setup_env(
         SecretKeyVariant::from_settings(pid_issuer_settings.recovery_code.clone(), Some(hsm.clone()))
             .expect("could not initialize recovery code secret key");
 
+    let issuer_metadata = PidIssuerMetadata {
+        issuing_country: "NL".to_owned(),
+        issuing_authority: "Test Issuing Authority".to_owned(),
+    };
+
     let pid_issuer_url = start_pid_issuer_server(pid_issuer_settings, Some(hsm), |public_url| {
         // The production `UpstreamOidcAuthorizationCodeFlow` (state bridge, callback handler, BRP
         // attribute mapping, recovery-code HMAC) with only its two external boundaries mocked:
@@ -390,6 +396,7 @@ pub async fn setup_env(
             MockBrpClient::default(),
             MockDigidClient::default(),
             recovery_code_secret_key,
+            issuer_metadata,
             StoreConnection::Memory,
             public_url.as_base_url(),
             "mock-digid-client".to_string(),

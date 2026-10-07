@@ -21,6 +21,7 @@ use crate::pid::rulebook::constants::PID_RESIDENT_HOUSE_NUMBER;
 use crate::pid::rulebook::constants::PID_RESIDENT_POSTAL_CODE;
 use crate::pid::rulebook::constants::PID_RESIDENT_STREET;
 use crate::pid::rulebook::constants::PID_SEX;
+use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use crate::pid::rulebook::sex::PidSex;
 
 #[derive(Deserialize)]
@@ -67,10 +68,11 @@ impl BrpPerson {
 }
 
 impl BrpPerson {
-    pub fn into_sd_jwt_attributes(self, recovery_code: Attribute) -> Attributes {
+    pub fn into_sd_jwt_attributes(self, recovery_code: Attribute, issuer_metadata: PidIssuerMetadata) -> Attributes {
         let address_attributes = self.residence.clone().into_address_attributes();
         let mut attributes = self.common_attributes();
 
+        attributes.extend(issuer_metadata.into_attributes());
         attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
         attributes.insert(
             String::from(PID_ADDRESS_GROUP),
@@ -80,10 +82,11 @@ impl BrpPerson {
         Attributes::from(attributes)
     }
 
-    pub fn into_mdoc_attributes(self, recovery_code: Attribute) -> Attributes {
+    pub fn into_mdoc_attributes(self, recovery_code: Attribute, issuer_metadata: PidIssuerMetadata) -> Attributes {
         let address_attributes = self.residence.clone().into_address_attributes();
         let mut attributes = self.common_attributes();
 
+        attributes.extend(issuer_metadata.into_attributes());
         attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
         attributes.extend(address_attributes);
 
@@ -298,6 +301,7 @@ mod tests {
     use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;
+    use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
     fn read_json(name: &str) -> String {
         fs::read_to_string(prefix_local_path(PathBuf::from(format!(
@@ -344,10 +348,14 @@ mod tests {
     #[test]
     fn should_convert_brp_person_to_issuable_vec() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
+        let issuer_metadata = PidIssuerMetadata {
+            issuing_country: "NL".to_owned(),
+            issuing_authority: "Test Issuing Authority".to_owned(),
+        };
         let pid_card = brp_persons
             .persons
             .remove(0)
-            .into_sd_jwt_attributes(Attribute::Text(String::from("recovery_code_123")));
+            .into_sd_jwt_attributes(Attribute::Text(String::from("recovery_code_123")), issuer_metadata);
 
         assert_eq!(
             json!({
@@ -387,6 +395,14 @@ mod tests {
                 "sex": {
                     "type": "number",
                     "value": 2
+                },
+                "issuing_country": {
+                    "type": "text",
+                    "value": "NL"
+                },
+                "issuing_authority": {
+                    "type": "text",
+                    "value": "Test Issuing Authority"
                 },
                 "recovery_code": {
                     "type": "text",

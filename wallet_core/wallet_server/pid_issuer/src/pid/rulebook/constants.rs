@@ -32,3 +32,6 @@ pub const PID_RESIDENT_HOUSE_NUMBER: &str = "house_number";
 pub const PID_RESIDENT_POSTAL_CODE: &str = "postal_code";
 pub const PID_RESIDENT_CITY: &str = "locality";
 pub const PID_RESIDENT_COUNTRY: &str = "country";
+
+pub const PID_ISSUING_COUNTRY: &str = "issuing_country";
+pub const PID_ISSUING_AUTHORITY: &str = "issuing_authority";
