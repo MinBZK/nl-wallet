@@ -103,38 +103,40 @@ pub struct KeyAttestation(UnverifiedJwt<KeyAttestationClaims, KeyAttestationHead
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyAttestationClaims {
-    /// Integer for the time at which the key attestation was issued using the syntax defined in RFC7519.
+    /// REQUIRED (number). Integer for the time at which the key attestation was issued using the syntax defined in
+    /// RFC7519.
     pub iat: DateTimeSeconds,
 
-    /// Integer for the time at which the key attestation and the key(s) it is attesting expire, using the syntax
-    /// defined in RFC7519. MUST be present if the attestation is used with the JWT proof type.
+    /// OPTIONAL (number). Integer for the time at which the key attestation and the key(s) it is attesting expire,
+    /// using the syntax defined in RFC7519. MUST be present if the attestation is used with the JWT proof type.
     pub exp: Option<DateTimeSeconds>,
 
-    /// A non-empty array of attested keys from the same key storage component using the syntax of JWK as defined in
-    /// RFC7517.
+    /// REQUIRED. A non-empty array of attested keys from the same key storage component using the syntax of JWK as
+    /// defined in RFC7517.
     pub attested_keys: VecNonEmpty<Jwk>,
 
-    /// A non-empty array of case sensitive strings that assert the attack potential resistance of the key storage
-    /// component and its keys attested in the attested_keys parameter.
+    /// OPTIONAL. A non-empty array of case sensitive strings that assert the attack potential resistance of the key
+    /// storage component and its keys attested in the attested_keys parameter.
     ///
     /// Note that this uses a `HashSet`, which makes more sense semantically than a `Vec`.
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     pub key_storage: HashSet<AttackPotentialResistance>,
 
-    /// A non-empty array of case sensitive strings that assert the attack potential resistance of the user
+    /// OPTIONAL. A non-empty array of case sensitive strings that assert the attack potential resistance of the user
     /// authentication methods allowed to access the private keys from the attested_keys parameter.
     ///
     /// Note that this uses a `HashSet`, which makes more sense semantically than a `Vec`.
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     pub user_authentication: HashSet<AttackPotentialResistance>,
 
-    /// A String that contains a URL that links to the certification of the key storage component.
+    /// OPTIONAL. A String that contains a URL that links to the certification of the key storage component.
     pub certification: Option<Url>,
 
-    /// String that represents a nonce provided by the Issuer to prove that a key attestation was freshly generated.
+    /// OPTIONAL. String that represents a nonce provided by the Issuer to prove that a key attestation was freshly
+    /// generated.
     pub nonce: Option<Nonce>,
 
-    /// JSON Object representing the supported revocation check mechanisms, such as the one defined in
+    /// OPTIONAL. JSON Object representing the supported revocation check mechanisms, such as the one defined in
     /// <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list-12>.
     pub status: Option<StatusClaim>,
     // TODO (PVW-6239): Add `key_storage_status` field to Key Attestation.
