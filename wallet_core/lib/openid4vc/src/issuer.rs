@@ -242,8 +242,11 @@ pub enum CredentialRequestError {
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
 
-    #[error("missing credential request proof of possession")]
-    MissingCredentialRequestPoP,
+    #[error("missing credential request proof")]
+    MissingCredentialRequestProof,
+
+    #[error("verification of the \"jwt\" proof type is not supported")]
+    JwtProofTypeUnsupported,
 
     #[error("too many copies of a credential were requested: {0}")]
     TooManyCopiesRequested(NonZeroUsize),
@@ -1531,9 +1534,11 @@ impl CredentialRequest {
         // The issuer requires key binding proofs, as is indicated in the Issuer Metadata.
         let key_attestation = match self.proofs.as_ref() {
             Some(CredentialRequestProofs::Attestation([key_attestation])) => key_attestation,
-            // TODO (PVW-6238): Update `jwt` proof type to OpenID4VCI 1.0 and support it.
-            _ => {
-                return Err(CredentialRequestError::MissingCredentialRequestPoP);
+            Some(CredentialRequestProofs::Jwt(_)) => {
+                return Err(CredentialRequestError::JwtProofTypeUnsupported);
+            }
+            None => {
+                return Err(CredentialRequestError::MissingCredentialRequestProof);
             }
         };
 
