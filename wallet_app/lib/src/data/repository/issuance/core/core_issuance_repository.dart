@@ -5,6 +5,7 @@ import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../../domain/model/disclosure/disclosure_session_type.dart';
+import '../../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
@@ -70,8 +71,8 @@ class CoreIssuanceRepository implements IssuanceRepository {
         return StartIssuanceAuthorizationRequired(authUrl);
       case core.IssuanceStartResult_Previews(field0: final cards):
         return StartIssuancePreAuthorizedOffer(_attestationMapper.mapList(cards));
-      case core.IssuanceStartResult_NoPreviews():
-        throw UnsupportedError('Issuance without previews is not supported yet');
+      case core.IssuanceStartResult_NoPreviews(:final organization):
+        return StartIssuanceNoPreviews(organization: _relyingPartyMapper.map(organization));
     }
   }
 
@@ -87,13 +88,13 @@ class CoreIssuanceRepository implements IssuanceRepository {
   }
 
   @override
-  Future<List<WalletCard>> continueIssuance(String uri) async {
+  Future<ContinueIssuanceResult> continueIssuance(String uri) async {
     final result = await _walletCore.continueIssuance(uri);
     switch (result) {
       case core.IssuanceContinueResult_Previews(field0: final cards):
-        return _attestationMapper.mapList(cards);
-      case core.IssuanceContinueResult_NoPreviews():
-        throw UnsupportedError('Issuance without previews is not supported yet');
+        return ContinueIssuancePreviews(_attestationMapper.mapList(cards));
+      case core.IssuanceContinueResult_NoPreviews(:final organization):
+        return ContinueIssuanceNoPreviews(organization: _relyingPartyMapper.map(organization));
     }
   }
 

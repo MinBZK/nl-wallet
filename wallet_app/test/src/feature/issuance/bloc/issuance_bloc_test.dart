@@ -4,6 +4,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
+import 'package:wallet/src/domain/model/issuance/continue_issuance_result.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
@@ -156,7 +157,7 @@ void main() {
         ),
       );
       when(continueIssuanceUseCase.invoke(any)).thenAnswer(
-        (_) async => Result.success([WalletMockData.card]),
+        (_) async => Result.success(ContinueIssuancePreviews([WalletMockData.card])),
       );
     },
     act: (bloc) async {
@@ -178,6 +179,73 @@ void main() {
       isA<IssuanceProvidePinForIssuance>(),
       isA<IssuanceLoadInProgress>(),
       isA<IssuanceCompleted>().having((it) => it.addedCards, 'added cards should match', [WalletMockData.card]),
+    ],
+  );
+
+  blocTest(
+    'verify happy path - pre-authorized offer without previews',
+    build: () => createBloc(isRefreshFlow: false),
+    setUp: () {
+      when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
+        (_) async => Result.success(StartIssuanceNoPreviews(organization: WalletMockData.organization)),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
+      await Future.delayed(_kBlockProcessDelay);
+      bloc.add(const IssuanceIssuerApproved());
+      bloc.add(const IssuancePinForIssuanceConfirmed());
+      await Future.delayed(_kBlockProcessDelay);
+    },
+    expect: () => [
+      IssuanceConfirmIssuer(organization: WalletMockData.organization),
+      const IssuanceProvidePinForIssuance(cards: []),
+      isA<IssuanceLoadInProgress>(),
+      const IssuanceCompleted(addedCards: []),
+    ],
+  );
+
+  blocTest(
+    'verify happy path - authorization required without previews',
+    build: () => createBloc(isRefreshFlow: false),
+    setUp: () {
+      when(continueIssuanceUseCase.invoke(any)).thenAnswer(
+        (_) async => Result.success(ContinueIssuanceNoPreviews(organization: WalletMockData.organization)),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const IssuanceSessionContinued('https://example.org/callback'));
+      await Future.delayed(_kBlockProcessDelay);
+      bloc.add(const IssuanceIssuerApproved());
+      bloc.add(const IssuancePinForIssuanceConfirmed());
+      await Future.delayed(_kBlockProcessDelay);
+    },
+    expect: () => [
+      IssuanceConfirmIssuer(organization: WalletMockData.organization),
+      const IssuanceProvidePinForIssuance(cards: []),
+      isA<IssuanceLoadInProgress>(),
+      const IssuanceCompleted(addedCards: []),
+    ],
+  );
+
+  blocTest(
+    'verify back press from pin without previews returns to confirming the issuer',
+    build: () => createBloc(isRefreshFlow: false),
+    setUp: () {
+      when(continueIssuanceUseCase.invoke(any)).thenAnswer(
+        (_) async => Result.success(ContinueIssuanceNoPreviews(organization: WalletMockData.organization)),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const IssuanceSessionContinued('https://example.org/callback'));
+      await Future.delayed(_kBlockProcessDelay);
+      bloc.add(const IssuanceIssuerApproved());
+      bloc.add(const IssuanceBackPressed());
+    },
+    expect: () => [
+      IssuanceConfirmIssuer(organization: WalletMockData.organization),
+      const IssuanceProvidePinForIssuance(cards: []),
+      isA<IssuanceConfirmIssuer>().having((it) => it.didGoBack, 'didGoBack', isTrue),
     ],
   );
 

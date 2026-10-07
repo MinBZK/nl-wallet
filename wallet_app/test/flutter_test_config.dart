@@ -16,6 +16,7 @@ import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/event/wallet_events_page.dart';
 import 'package:wallet/src/domain/model/help/help_category.dart';
 import 'package:wallet/src/domain/model/help/topic_block.dart';
+import 'package:wallet/src/domain/model/issuance/continue_issuance_result.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
@@ -192,6 +193,8 @@ void _setupMockitoDummies() {
       ),
     ),
   );
+  provideDummy<ContinueIssuanceResult>(const ContinueIssuanceResult.previews([]));
+  provideDummy<Result<ContinueIssuanceResult>>(const Result.success(ContinueIssuanceResult.previews([])));
   provideDummy<Result<domain.StartIssuanceResult>>(
     Result.success(
       domain.StartIssuanceReadyToDisclose(
