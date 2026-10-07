@@ -132,7 +132,7 @@ pub(super) fn request_purpose(organization: &wallet::attestation_data::Organizat
                 value: translation.value.clone(),
             })
             .collect(),
-        // Preserve the existing purpose for close proximity disclosure until it uses WRPRC.
+        // TODO (PVW-6052): Remove these hardcoded translations once close proximity disclosure uses WRPRC.
         None => vec![
             LocalizedString {
                 language: "en".into(),
