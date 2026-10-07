@@ -138,8 +138,8 @@ pub fn mock_pid_example() -> Attributes {
         (
             vec![PID_NATIONALITY],
             Attribute::Array(vec![
-                Attribute::Text("Nederlandse".to_string()),
-                Attribute::Text("Belgische".to_string()),
+                Attribute::Text("NL".to_string()),
+                Attribute::Text("BE".to_string()),
             ]),
         ),
         (vec![PID_SEX], Attribute::Number(2)),
@@ -195,8 +195,8 @@ pub fn mock_pid_mdoc_example() -> Attributes {
         (
             vec![PID_MDOC_NAMESPACE, PID_NATIONALITY],
             Attribute::Array(vec![
-                Attribute::Text("Nederlandse".to_string()),
-                Attribute::Text("Belgische".to_string()),
+                Attribute::Text("NL".to_string()),
+                Attribute::Text("BE".to_string()),
             ]),
         ),
         (vec![PID_MDOC_NAMESPACE, PID_SEX], Attribute::Number(2)),
