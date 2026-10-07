@@ -336,7 +336,6 @@ mod tests {
 
     static PUBLIC_KEYS: LazyLock<VecNonEmpty<PublicKey>> = LazyLock::new(|| {
         (0..3)
-            .into_iter()
             .map(|_| PublicKey::from(*SigningKey::generate().verifying_key()))
             .collect_vec()
             .try_into()
