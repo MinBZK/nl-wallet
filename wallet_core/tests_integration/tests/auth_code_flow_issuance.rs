@@ -191,6 +191,56 @@ async fn test_acf_demo_issuer_wallet_issuance() {
     );
 }
 
+/// Full wallet driven issuance for the authorization-code flow demo issuer, configured without the Credential Preview
+/// Endpoint.
+///
+/// The wallet receives no previews, only the issuer organization to show to the user, and stores the issued
+/// insurance attestation as a new attestation after acceptance.
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm)]
+async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
+    let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
+    let pin: Pin = "112233".into();
+
+    let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let mut settings = acf_demo_issuer_settings(db_setup.acf_demo_issuer_url(), None);
+    settings
+        .authorizing_issuer_settings
+        .issuer_settings
+        .credential_preview_endpoint = false;
+    let acf = start_acf_demo_issuer_server(settings).await;
+    let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
+
+    let offer_uri = create_auth_code_credential_offer(&acf.public, ISSUER_STATE, "com.example.insurance");
+
+    let IssuanceStartResult::AuthorizationUrl(authorization_url) = wallet
+        .start_issuance_from_offer(offer_uri)
+        .await
+        .expect("should start issuance from offer")
+    else {
+        panic!("expected an authorization URL for the auth-code flow");
+    };
+
+    let redirect_uri = fake_consent_auth(authorization_url).await;
+    let IssuanceContinueResult::NoPreviews { organization } = wallet
+        .continue_issuance(redirect_uri)
+        .await
+        .expect("should continue issuance after consent")
+    else {
+        panic!("expected no previews");
+    };
+
+    wallet.accept_issuance(pin).await.expect("should accept issuance");
+
+    let attestations = wallet_attestations(&mut wallet).await;
+    let attestation = attestations
+        .iter()
+        .find(|attestation| attestation.attestation_type == "com.example.insurance")
+        .expect("the issued insurance attestation should be present in the wallet");
+    assert_eq!(attestation.issuer, organization);
+}
+
 /// Full wallet-driven issuance for the loyalty card use case, which uses [`UsecaseKind::Immediate`]:
 /// no consent page is shown — `/authorize` resolves the PAR and redirects the user-agent directly
 /// to the wallet's redirect URI with the authorization code.
