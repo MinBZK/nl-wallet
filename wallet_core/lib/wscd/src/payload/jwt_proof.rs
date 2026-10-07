@@ -43,23 +43,24 @@ pub struct JwtProofHeader {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtProofClaims {
-    /// The value of this claim MUST be the client_id of the Client making the Credential request. This claim MUST be
-    /// omitted if the access token authorizing the issuance call was obtained from a Pre-Authorized Code Flow through
-    /// anonymous access to the token endpoint.
+    /// OPTIONAL (string). The value of this claim MUST be the client_id of the Client making the Credential request.
+    /// This claim MUST be omitted if the access token authorizing the issuance call was obtained from a
+    /// Pre-Authorized Code Flow through anonymous access to the token endpoint.
     ///
     /// NB: Since HAIP requires always using client authentication at the Token Endpoint, anonymous access is not
     ///     applicable and this field should never be omitted.
     pub iss: String,
 
-    /// The value of this claim MUST be the Credential Issuer Identifier.
+    /// REQUIRED (string). The value of this claim MUST be the Credential Issuer Identifier.
     pub aud: String,
 
-    /// The value of this claim MUST be the time at which the key proof was issued using the syntax defined in RFC7519.
+    /// REQUIRED (number). The value of this claim MUST be the time at which the key proof was issued using the syntax
+    /// defined in RFC7519.
     #[serde(with = "ts_seconds")]
     pub iat: DateTime<Utc>,
 
-    /// The value type of this claim MUST be a string, where the value is a server-provided `c_nonce`. It MUST be
-    /// present when the issuer has a Nonce Endpoint.
+    /// OPTIONAL (string). The value type of this claim MUST be a string, where the value is a server-provided
+    /// `c_nonce`. It MUST be present when the issuer has a Nonce Endpoint.
     pub nonce: Option<Nonce>,
 }
 
