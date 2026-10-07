@@ -645,6 +645,7 @@ where
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
         credential_configs: CredentialConfigurations<K, L>,
+        credential_preview_endpoint: bool,
         wia_trust_anchors: TrustAnchors,
         sessions: Arc<S>,
         nonce_store: N,
@@ -652,7 +653,8 @@ where
         let server_url = issuer_identifier.as_issuer_url().join_issuer_url("/issuance");
         let credential_endpoint = server_url.join_issuer_url(&format!("/{CREDENTIAL_ENDPOINT_PATH}"));
         let nonce_endpoint = server_url.join_issuer_url("/nonce");
-        let credential_preview_endpoint = server_url.join_issuer_url("/credential_preview");
+        let credential_preview_endpoint =
+            credential_preview_endpoint.then(|| server_url.join_issuer_url("/credential_preview"));
         let type_metadata_base_url = server_url.join_issuer_url("/type_metadata");
 
         let batch_credential_issuance = AtLeastTwoU64::try_new(batch_size.into())
@@ -666,7 +668,7 @@ where
                 nonce_endpoint: Some(nonce_endpoint),
                 deferred_credential_endpoint: None,
                 notification_endpoint: None,
-                credential_preview_endpoint: Some(credential_preview_endpoint),
+                credential_preview_endpoint,
             },
             credential_request_encryption: None,
             credential_response_encryption: None,
@@ -1789,6 +1791,7 @@ mod tests {
                 attestation_type.to_string(),
                 CredentialMetadata::new_example(&claim_names),
             )],
+            true,
             Arc::new(MemorySessionStore::default()),
         );
 
@@ -1811,6 +1814,7 @@ mod tests {
                 attestation_type.to_string(),
                 CredentialMetadata::new_example(&["first_name"]),
             )],
+            true,
             Arc::new(MemorySessionStore::default()),
         );
 
@@ -1845,6 +1849,7 @@ mod tests {
                 attestation_type.to_string(),
                 credential_metadata,
             )],
+            true,
             Arc::new(MemorySessionStore::default()),
         );
 
@@ -2927,5 +2932,24 @@ mod tests {
         let _cleanup_task = start_cleanup_task(CLEANUP_INTERVAL, Arc::new(issuer));
 
         test_memory_store_with_cleanup_task(sessions, code.into(), &mock_time, CLEANUP_INTERVAL).await;
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_metadata_credential_preview_endpoint(#[values(true, false)] credential_preview_endpoint: bool) {
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
+            "https://example.com/".parse().unwrap(),
+            vec![CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+                MOCK_ATTESTATION_TYPES[0].to_string(),
+                CredentialMetadata::new_example(&["first_name"]),
+            )],
+            credential_preview_endpoint,
+            Arc::new(MemorySessionStore::default()),
+        );
+
+        assert_eq!(
+            issuer.metadata().endpoints.credential_preview_endpoint.is_some(),
+            credential_preview_endpoint
+        );
     }
 }

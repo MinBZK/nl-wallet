@@ -9,6 +9,8 @@ use std::time::Duration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use attestation_types::credential_format::Format;
+use axum::body::Body;
+use axum::http::Request;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -42,11 +44,13 @@ use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequestIdentifier;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::Credentials;
+use openid4vc::credential_configurations::CredentialConfigurationFormat;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
+use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use openid4vc::metadata::issuer_metadata::IssuerInfo;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
@@ -63,6 +67,7 @@ use openid4vc::test::mock_type_metadata;
 use openid4vc::test::mock_type_metadata_with_required_attr;
 use openid4vc::test::setup_mock_authorizing_issuer_from_sd_jwt_metadata;
 use openid4vc::test::setup_mock_issuer;
+use openid4vc::test::setup_mock_issuer_with_metadata;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::token::VciTokenRequest;
 use openid4vc::token::VciTokenResponse;
@@ -90,6 +95,7 @@ use reqwest::redirect::Policy;
 use rstest::rstest;
 use sd_jwt_vc_metadata::TypeMetadata;
 use tokio::net::TcpListener;
+use tower::ServiceExt;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
@@ -1841,4 +1847,31 @@ async fn openid_metadata_error(#[case] accept_header: &str, #[case] status_code:
 
     let response = request.header(ACCEPT, accept_header).send().await.unwrap();
     assert_eq!(response.status(), status_code);
+}
+
+#[rstest]
+#[tokio::test]
+async fn test_credential_preview_endpoint_only_served_when_enabled(
+    #[values(true, false)] credential_preview_endpoint: bool,
+) {
+    let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
+        "https://example.com/".parse().unwrap(),
+        vec![CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+            MOCK_ATTESTATION_TYPES[0].to_string(),
+            CredentialMetadata::new_example(&["first_name"]),
+        )],
+        credential_preview_endpoint,
+        Arc::new(MemorySessionStore::default()),
+    );
+
+    let response = create_issuance_router(Arc::new(issuer))
+        .oneshot(
+            Request::post("/issuance/credential_preview")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status() == StatusCode::NOT_FOUND, !credential_preview_endpoint);
 }

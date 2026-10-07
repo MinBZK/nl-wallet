@@ -289,7 +289,7 @@ where
         })
         .collect();
 
-    setup_mock_issuer_with_metadata(issuer_identifier, attestations, sessions)
+    setup_mock_issuer_with_metadata(issuer_identifier, attestations, true, sessions)
 }
 
 /// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
@@ -331,13 +331,14 @@ where
         })
         .collect();
 
-    setup_mock_issuer_with_metadata(issuer_identifier, attestations, sessions)
+    setup_mock_issuer_with_metadata(issuer_identifier, attestations, true, sessions)
 }
 
 /// Create a mock [`Issuer`] whose credential configurations are described explicitly by the provided metadata.
 pub fn setup_mock_issuer_with_metadata<G>(
     issuer_identifier: IssuerIdentifier,
     attestations: Vec<CredentialConfigurationFormat>,
+    credential_preview_endpoint: bool,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
 ) -> (
     MockIssuer<G>,
@@ -398,6 +399,7 @@ where
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
         credential_configs,
+        credential_preview_endpoint,
         trust_anchors.clone(),
         sessions,
         MemoryNonceStore::new(),
