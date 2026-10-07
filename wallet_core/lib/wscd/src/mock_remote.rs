@@ -55,14 +55,14 @@ impl MockRemoteWscd {
         let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
         let signing_keys = keys.into_iter().map(|key| (key.identifier, key.key)).collect();
 
-        Self::new_with_with_wptl_ca_and_keys(&wptl_ca, signing_keys)
+        Self::new_with_wptl_ca_and_keys(&wptl_ca, signing_keys)
     }
 
     pub fn new_with_wptl_ca(wptl_ca: &Ca) -> Self {
-        Self::new_with_with_wptl_ca_and_keys(wptl_ca, HashMap::new())
+        Self::new_with_wptl_ca_and_keys(wptl_ca, HashMap::new())
     }
 
-    fn new_with_with_wptl_ca_and_keys(wptl_ca: &Ca, signing_keys: HashMap<String, SigningKey>) -> Self {
+    fn new_with_wptl_ca_and_keys(wptl_ca: &Ca, signing_keys: HashMap<String, SigningKey>) -> Self {
         let attestation_key_pair = wptl_ca.generate_key_attestation_mock().unwrap();
 
         Self {
@@ -79,7 +79,7 @@ impl MockRemoteWscd {
         let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
         let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
 
-        Self::new_with_with_wptl_ca_and_keys(&wptl_ca, keys)
+        Self::new_with_wptl_ca_and_keys(&wptl_ca, keys)
     }
 
     pub fn sign_key_attestation<I, G>(&self, verifying_keys: I, nonce: Option<Nonce>, time: &G) -> KeyAttestation
