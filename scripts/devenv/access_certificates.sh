@@ -60,7 +60,7 @@ declare -A access_certificates=(
 
     [(issuance_server,name)]='Demo Issuer (disclosure based)'
     [(issuance_server,legal_name)]='Demo Issuer (disclosure based)'
-    [(issuance_server,oid)]='NTRNL-99876549'
+    [(issuance_server,oid)]='NTRNL-99876552'
 
     [(acf_demo_issuer,name)]='Demo Issuer (authorization code)'
     [(acf_demo_issuer,legal_name)]='Demo Issuer (authorization code)'
