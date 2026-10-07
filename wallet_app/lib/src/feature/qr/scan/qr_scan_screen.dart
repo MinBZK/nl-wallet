@@ -35,14 +35,23 @@ class QrScanScreen extends StatelessWidget {
   }
 
   PreferredSize _buildTransparentAppBar(BuildContext context) {
-    const appBar = WalletAppBar(
-      actions: [HelpIconButton()],
+    final appBar = WalletAppBar(
+      actions: [
+        if (context.select<QrScanBloc, bool>((bloc) => _showHelpIcon(bloc.state))) const HelpIconButton(),
+      ],
       fadeInTitleOnScroll: false,
     );
     return PreferredSize(
       preferredSize: appBar.preferredSize,
-      child: const Opacity(opacity: 0.9, child: appBar),
+      child: Opacity(opacity: 0.9, child: appBar),
     );
+  }
+
+  bool _showHelpIcon(QrScanState state) {
+    return switch (state) {
+      QrScanNoPermission() => false,
+      _ => true,
+    };
   }
 
   Widget _buildBody(BuildContext context) {

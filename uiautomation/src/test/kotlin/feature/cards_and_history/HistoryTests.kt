@@ -106,15 +106,18 @@ class HistoryTests : TestBase() {
             { assertTrue(historyOverviewScreen.loginDisclosureLogEntryVisible(), "login log entry is not visible") },
             { assertTrue(historyOverviewScreen.disclosureOrganizationVisible(organizationAuthData.getDisplayNameOfOrganization(MIJN_AMSTERDAM))) }
         )
+        historyOverviewScreen.captureA11ySnapshot("HistoryOverview")
 
         historyOverviewScreen.clickPidCardTitle()
         assertAll(
             { assertTrue(historyDetailScreen.issuanceOrganizationVisible(organizationAuthData.getDisplayNameOfOrganization(PID)), "organization not visible") },
             { assertTrue(historyDetailScreen.titleCorrectForIssuance(tasData.getPidDisplayName()), "title not visible") }
         )
+        historyDetailScreen.captureA11ySnapshot("HistoryDetailIssuance")
 
         historyDetailScreen.openOrganizationScreen();
         assertTrue(organizationDetailScreen.organizationInHeaderVisible(organizationAuthData.getDisplayNameOfOrganization(PID)), "organization not visible")
+        organizationDetailScreen.captureA11ySnapshot("OrganizationDetail")
 
         organizationDetailScreen.clickBackButton()
         assertAll(
@@ -136,6 +139,7 @@ class HistoryTests : TestBase() {
             { assertTrue(historyDetailScreen.titleCorrectForLogin(organizationAuthData.getDisplayNameOfOrganization(MIJN_AMSTERDAM)), "title not visible") },
             { assertTrue(historyDetailScreen.reportProblemButtonVisible(), "report problem button not visible") },
         )
+        historyDetailScreen.captureA11ySnapshot("HistoryDetailLogin")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -146,5 +150,6 @@ class HistoryTests : TestBase() {
         dashboardScreen.clickCard(tasData.getPidDisplayName())
         cardDetailScreen.clickCardHistoryButton()
         assertTrue(cardHistoryScreen.visible(), "card history screen is not visible")
+        cardHistoryScreen.captureA11ySnapshot("CardHistory")
     }
 }

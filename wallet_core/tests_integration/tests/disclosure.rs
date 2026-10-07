@@ -402,11 +402,12 @@ async fn test_disclosure_aki_ok() {
         .credential_configurations
         .into_iter()
         .find(|(_, config_settings)| {
-            config_settings.credential_kind.format == Format::SdJwt
-                && config_settings.credential_kind.attestation_type == *PID_ATTESTATION_TYPE
+            config_settings.format.format() == Format::SdJwt
+                && config_settings.format.attestation_type() == PID_ATTESTATION_TYPE
         })
         .unwrap()
         .1
+        .signing
         .keypair
         .certificate
         .authority_key_id()

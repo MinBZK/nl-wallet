@@ -58,6 +58,7 @@ pub mod attestation_data {
     pub use attestation_data::disclosure_type::DisclosureType;
     pub use attestation_data::organization::Organization;
     pub use attestation_data::organization::ServiceDescription;
+    pub use attestation_data::registration_certificate::SubjectType;
     pub use attestation_data::validity::ValidityWindow;
 }
 

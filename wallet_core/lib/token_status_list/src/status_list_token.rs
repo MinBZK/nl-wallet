@@ -111,8 +111,8 @@ pub mod verification {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::CanocalizationError;
     use crypto::x509::CanonicalDistinguishedName;
-    use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use jwt::DEFAULT_VALIDATION;
     use jwt::error::JwtX5cVerifyError;
@@ -136,7 +136,7 @@ pub mod verification {
         UnexpectedSubject { sub: String, url: String },
 
         #[error("DN is missing in certificate")]
-        MissingDN(#[source] CertificateError),
+        MissingDN(#[source] CanocalizationError),
 
         #[error("DN from SLT ('{slt}') is different from attestation ('{attestation}')")]
         DifferentDN {

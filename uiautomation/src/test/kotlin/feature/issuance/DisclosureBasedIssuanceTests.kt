@@ -73,9 +73,11 @@ class DisclosureBasedIssuanceTests : TestBase() {
 
         disclosureForIssuanceScreen.switchToNativeContext()
         assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)))
+        disclosureForIssuanceScreen.captureA11ySnapshot("DisclosureBasedIssuanceApprove")
 
         disclosureForIssuanceScreen.viewDetails()
         assertTrue(disclosureForIssuanceScreen.requestedAttributeVisible(tasData.getPidClaimLabel("bsn")))
+        disclosureForIssuanceScreen.captureA11ySnapshot("DisclosureBasedIssuanceDetails")
 
         disclosureForIssuanceScreen.goBack();
         disclosureForIssuanceScreen.share()
@@ -88,8 +90,10 @@ class DisclosureBasedIssuanceTests : TestBase() {
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "university").last()), "data is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last()), "data is not visible") },
         )
+        cardIssuanceScreen.captureA11ySnapshot("CardIssuanceCardDetails")
 
         cardIssuanceScreen.clickBackButton()
+        cardIssuanceScreen.captureA11ySnapshot("CardIssuanceMultiple")
         cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
 
@@ -97,6 +101,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
+        dashboardScreen.captureA11ySnapshot("DashboardWithDiplomaCard")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -150,6 +155,7 @@ class DisclosureBasedIssuanceTests : TestBase() {
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(noCardsErrorScreen.titleVisible(), "no card error screen is not visible")
+        noCardsErrorScreen.captureA11ySnapshot("NoCardsError")
 
         noCardsErrorScreen.close()
         assertTrue(dashboardScreen.cardVisible(tasData.getPidDisplayName()), "Pid not visible on dashboard")

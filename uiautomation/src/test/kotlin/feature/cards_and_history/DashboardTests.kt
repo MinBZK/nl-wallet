@@ -46,6 +46,7 @@ class DashboardTests : TestBase() {
             { assertTrue(dashboardScreen.cardButtonsVisible(), "card buttons are not visible") },
             { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.FIRST_NAME, DEFAULT_BSN)), "pid card subtitle is not visible") },
         )
+        dashboardScreen.captureA11ySnapshot("DashboardCards")
 
         dashboardScreen.clickCard(tasData.getPidDisplayName())
         assertTrue(cardDetailScreen.visible(), "card detail screen is not visible")

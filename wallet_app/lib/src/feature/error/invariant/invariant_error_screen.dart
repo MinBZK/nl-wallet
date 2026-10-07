@@ -8,7 +8,6 @@ import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
-import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/page_illustration.dart';
@@ -44,7 +43,6 @@ class InvariantErrorScreen extends StatelessWidget {
       appBar: WalletAppBar(
         title: TitleText(context.l10n.invariantErrorScreenTitle),
         automaticallyImplyLeading: false,
-        actions: const [HelpIconButton()],
       ),
       body: SafeArea(
         child: Column(

@@ -33,6 +33,7 @@ scheduled-automation-tests-trigger:
     AUTO_GRANT_PERMISSIONS: "true"
     IOS_ACCEPT_ALERTS: "true"
     ENABLE_BROWSERSTACK_A11Y_CHECKS: false
+    ENABLE_A11Y_CAPTURES: "true"
 
 .extract-reader-ca-credentials:
   extends: .env-k8s
@@ -133,6 +134,8 @@ automation-tests-load-device-config:
   resource_group: automation-tests
   tags:
     - macos-devices
+  variables:
+    ENABLE_A11Y_CAPTURES: "true"
   artifacts:
     name: uiautomation
     when: always
@@ -141,6 +144,7 @@ automation-tests-load-device-config:
       - uiautomation/build/allure-results
       - uiautomation/build/reports
       - uiautomation/build/page-sources
+      - uiautomation/build/a11y-captures
       - uiautomation/appium.log
     reports:
       junit: uiautomation/build/test-results/**/*.xml
@@ -188,6 +192,7 @@ automation-tests-load-device-config:
       - uiautomation/build/allure-results
       - uiautomation/build/reports
       - uiautomation/build/page-sources
+      - uiautomation/build/a11y-captures
     reports:
       junit: uiautomation/build/test-results/**/*.xml
 
@@ -254,6 +259,7 @@ run-automation-tests-publish-results-android:
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e-android.zip uiautomation/build/test-results/test/TEST-feature.*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e-android.zip uiautomation/build/allure-results/*
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/a11y-captures/e2e-android.zip uiautomation/build/a11y-captures/*
 
 run-automation-tests-publish-results-ios:
   rules: !reference [.run-automation-tests-default, rules]
@@ -276,6 +282,7 @@ run-automation-tests-publish-results-ios:
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e-ios.zip uiautomation/build/test-results/test/TEST-feature.*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e-ios.zip uiautomation/build/allure-results/*
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/a11y-captures/e2e-ios.zip uiautomation/build/a11y-captures/*
 
 run-automation-card-and-history-tests-android:
   extends: .run-automation-tests-default

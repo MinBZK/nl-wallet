@@ -50,7 +50,6 @@ class IssuanceManager {
         disclosureOptions: _requestedAttestationsForActiveRequest.map((it) => DisclosureOptions(field0: [it])).toList(),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(response.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,
-        requestOriginBaseUrl: response.relyingParty.webUrl ?? 'https://origin.org',
         requestPurpose: [
           const LocalizedString(language: 'en', value: 'Card issuance'),
           const LocalizedString(language: 'nl', value: 'Kaart uitgifte'),
@@ -69,7 +68,6 @@ class IssuanceManager {
         relyingParty: response.relyingParty,
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(response.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,
-        requestOriginBaseUrl: response.relyingParty.webUrl ?? 'https://origin.org',
         requestPurpose: [
           const LocalizedString(language: 'en', value: 'Card issuance'),
           const LocalizedString(language: 'nl', value: 'Kaart uitgifte'),

@@ -1,5 +1,6 @@
 use cose::CoseKeyConversionError;
-use crypto::x509::CertificateError;
+use crypto::x509::CanocalizationError;
+use crypto::x509::CertificateNameError;
 use error_category::ErrorCategory;
 
 use crate::utils::cose::CoseError;
@@ -32,8 +33,11 @@ pub enum Error {
     #[error("keys error: {0}")]
     KeysError(#[from] KeysError),
 
-    #[error("certificate error: {0}")]
-    CertificateError(#[from] CertificateError),
+    #[error("certificate name error: {0}")]
+    CertificateNameError(#[source] CertificateNameError),
+
+    #[error("certificate canocilization error: {0}")]
+    CanocalizationError(#[source] CanocalizationError),
 }
 
 impl From<CoseKeyConversionError> for Error {

@@ -68,10 +68,12 @@ class RevokeCardTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         dashboardScreen.dismissNotificationsDrawer()
         assertTrue(dashboardScreen.cardRevocationVisible(tasData.getPidDisplayName()), "Card revocation not visible")
+        dashboardScreen.captureA11ySnapshot("DashboardCardRevoked")
 
         dashboardScreen.clickCard(tasData.getPidDisplayName())
         cardDetailScreen.clickCardDataButton()
         assertTrue(cardDataScreen.revocationMessageVisible(), "Card revocation not visible")
+        cardDataScreen.captureA11ySnapshot("CardDataRevoked")
 
         cardDataScreen.clickBottomBackButton()
         cardDetailScreen.clickBottomBackButton()

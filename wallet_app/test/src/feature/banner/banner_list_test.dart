@@ -13,8 +13,8 @@ import '../../test_util/golden_utils.dart';
 
 class MockBannerCubit extends MockCubit<List<WalletBanner>> implements BannerCubit {}
 
-const kSingleItemSize = Size(390, 100);
-const kMultiItemSize = Size(390, 180);
+const kSingleItemSize = Size(390, 108);
+const kMultiItemSize = Size(390, 192);
 
 const tourBanner = TourSuggestionBanner();
 final updateNotifyBanner = UpdateAvailableBanner(state: VersionStateNotify());
@@ -95,7 +95,7 @@ void main() {
           cardExpiryWarningBanner,
           cardRevokedBanner,
         ],
-        surfaceSize: const Size(390, 310),
+        surfaceSize: const Size(390, 306),
       );
       await screenMatchesGolden('banner_list.multiple_expiry_banners.light');
     });
@@ -109,7 +109,7 @@ void main() {
           cardRevokedBanner,
         ],
         brightness: Brightness.dark,
-        surfaceSize: const Size(390, 310),
+        surfaceSize: const Size(390, 306),
       );
       await screenMatchesGolden('banner_list.multiple_expiry_banners.dark');
     });
@@ -138,7 +138,7 @@ void main() {
         tester,
         initialBanners: [tourBanner],
         textScaleSize: 1.5,
-        surfaceSize: const Size(390, 130),
+        surfaceSize: const Size(390, 163),
       );
       await screenMatchesGolden('banner_list.single_tour.scaled.light');
     });

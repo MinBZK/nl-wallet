@@ -13,6 +13,8 @@ import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.d
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import 'package:wallet/src/feature/common/widget/button/icon/close_icon_button.dart';
+import 'package:wallet/src/feature/common/widget/button/icon/help_icon_button.dart';
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import 'package:wallet/src/feature/issuance/issuance_request_details_screen.dart';
 import 'package:wallet/src/feature/issuance/issuance_screen.dart';
@@ -547,6 +549,28 @@ void main() {
       await screenMatchesGolden('relying_party_error.light');
     });
 
+    testGoldens('IssuancePreAuthorizedCodeExpiredError Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceError(error: PreAuthorizedCodeExpiredError(sourceError: 'test')),
+        ),
+      );
+      await screenMatchesGolden('pre_authorized_code_expired_error.light');
+    });
+
+    testGoldens('IssuancePreAuthorizedCodeExpiredError Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceError(error: PreAuthorizedCodeExpiredError(sourceError: 'test')),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('pre_authorized_code_expired_error.dark.landscape');
+    });
+
     testGoldens('ltc5 IssuanceCancelledSessionError Dark Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
@@ -563,6 +587,17 @@ void main() {
   });
 
   group('widgets', () {
+    testWidgets('expired qr code error shows a close button instead of a help button', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceError(error: PreAuthorizedCodeExpiredError(sourceError: 'test')),
+        ),
+      );
+      expect(find.byType(HelpIconButton), findsNothing);
+      expect(find.byType(CloseIconButton), findsOneWidget);
+    });
+
     testWidgets('ltc5 continue cta is visible when issuance is completed', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(

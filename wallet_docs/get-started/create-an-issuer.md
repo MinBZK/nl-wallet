@@ -846,18 +846,16 @@ unset IS_WALLET_METADATA_FILES IDENTIFIER
 ```
 
 <div class="admonition note">
-<p class="title">Issuing mdocs instead of SD-JWTs</p>
-The `type_metadata` setting only applies to credential configurations with
-format `dc+sd-jwt`, and can be left out entirely by an issuer of only mdocs. An
-`mso_mdoc` configuration is described by Credential Metadata instead: add a
-`credential_metadata` key to its `[credential_configurations.<id>]` block,
-naming a JSON file that holds a `display` array and a `claims` array. Two
-differences with the TAS above are worth noting: a claim `display` entry uses
-`name` where the TAS uses `label`, and each claim `path` has two elements, the
-mdoc namespace followed by the data element name. Every credential configuration has to
-be described one way or the other: the `issuance_server` refuses to start when a
-`dc+sd-jwt` configuration has no technical attestation schema, or an `mso_mdoc`
-configuration has no `credential_metadata`.
+<p class="title">Describing a configuration with Credential Metadata</p>
+The `type_metadata` setting lists SD-JWT VC Type Metadata documents, which can
+only describe a `dc+sd-jwt` configuration. The alternative is Credential Metadata: add a
+`credential_metadata` key to a `[credential_configurations.<id>]` block, naming
+a JSON file that holds a `display` array and a `claims` array. An `mso_mdoc`
+configuration has to be described this way, while a `dc+sd-jwt` configuration
+may use either, but not both. Two differences with the TAS above are worth noting: a claim `display` entry uses
+`name` where the TAS uses `label`, and in the Credential Metadata for an mdoc
+each claim `path` has two elements, the namespace followed by the data element
+name.
 </div>
 
 #### Configuring listener address and port

@@ -6,7 +6,7 @@ import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/golden_utils.dart';
 import '../../../test_util/test_utils.dart';
 
-const tourBannerSize = Size(390, 64);
+const tourBannerSize = Size(390, 76);
 
 void main() {
   group('goldens', () {
@@ -39,7 +39,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const TourBanner(),
-          surfaceSize: const Size(390, 128),
+          surfaceSize: const Size(390, 208),
           textScaleSize: 2,
         );
         await screenMatchesGolden('scaled.light');

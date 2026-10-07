@@ -44,6 +44,7 @@ class SetupSecurityTests : TestBase() {
         setUp(testInfo)
         assertTrue(pinScreen.setupPinScreenVisible(), "choose pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
+        pinScreen.captureA11ySnapshot("SetupChoosePin")
 
         val pin = "12222"
         pinScreen.enterPin(pin)
@@ -52,17 +53,21 @@ class SetupSecurityTests : TestBase() {
         pinScreen.enterPin("2")
         assertTrue(pinScreen.confirmPinScreenVisible(), "confirm pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
+        pinScreen.captureA11ySnapshot("SetupConfirmPin")
 
         pinScreen.enterPin(DEFAULT_PIN)
         pinScreen.skipBiometricsIfConfigurable()
         assertTrue(securitySetupCompletedScreen.visible(), "setup security completed screen is not visible")
+        securitySetupCompletedScreen.captureA11ySnapshot("SecuritySetupCompleted")
 
         securitySetupCompletedScreen.clickNextButton()
         assertTrue(revocationCodeSetupScreen.visible(), "Revocation code screen is not visible")
         assertTrue(revocationCodeSetupScreen.getRevocationCode().length == 18, "Revocation code is not displayed correctly")
+        revocationCodeSetupScreen.captureA11ySnapshot("RevocationCodeSetup")
 
         revocationCodeSetupScreen.confirmReceive()
         assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not visible")
+        personalizeInformScreen.captureA11ySnapshot("PersonalizeInform")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -76,6 +81,7 @@ class SetupSecurityTests : TestBase() {
             pinScreen.choosePinErrorTooFewUniqueDigitsVisible(),
             "choose pin error too few unique digits is not visible"
         )
+        pinScreen.captureA11ySnapshot("ChoosePinErrorTooFewUniqueDigits")
 
         pinScreen.closeAlertDialog()
         pinScreen.enterPin("123456")
@@ -83,6 +89,7 @@ class SetupSecurityTests : TestBase() {
             pinScreen.choosePinErrorSequentialDigitsVisible(),
             "choose pin error sequential digits is not visible"
         )
+        pinScreen.captureA11ySnapshot("ChoosePinErrorSequentialDigits")
 
         pinScreen.closeAlertDialog()
         pinScreen.enterPin("987654")
@@ -102,6 +109,7 @@ class SetupSecurityTests : TestBase() {
 
         pinScreen.enterPin("211111")
         assertTrue(pinScreen.confirmPinErrorMismatchVisible(), "confirm pin error mismatch is not visible")
+        pinScreen.captureA11ySnapshot("ConfirmPinErrorMismatch")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -116,6 +124,7 @@ class SetupSecurityTests : TestBase() {
         pinScreen.closeAlertDialog()
         pinScreen.enterPin("211111")
         assertTrue(pinScreen.confirmPinErrorMismatchFatalVisible(), "confirm pin error fatal mismatch is not visible")
+        pinScreen.captureA11ySnapshot("ConfirmPinErrorFatalMismatch")
 
         pinScreen.clickConfirmPinErrorFatalCta()
         assertTrue(pinScreen.setupPinScreenVisible(), "choose pin screen is not visible")

@@ -71,7 +71,7 @@ ai-security-scan-diff:
     SCAN_COMMIT_RANGE: "HEAD~1..HEAD"
   script:
     - 'echo "Scanning commit range: ${SCAN_COMMIT_RANGE}"'
-    - claude -p "/vuln-scan-diff ../../.. ${SCAN_COMMIT_RANGE} --no-score" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --sandbox --append-system-prompt "$NONINTERACTIVE"
+    - claude -p "/vuln-scan-diff ../../.. ${SCAN_COMMIT_RANGE} --no-score" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --append-system-prompt "$NONINTERACTIVE"
     - mv ../../../VULN-FINDINGS-DIFF.* ./ 2>/dev/null || true
     - |
       if [ ! -f VULN-FINDINGS-DIFF.json ]; then
@@ -80,7 +80,7 @@ ai-security-scan-diff:
       fi
     - |
       if [ "${TRIAGE}" = "true" ]; then
-        claude -p "/triage VULN-FINDINGS-DIFF.json --auto --repo ../../.. --fp-rules false-positives.md" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --sandbox --append-system-prompt "$NONINTERACTIVE"
+        claude -p "/triage VULN-FINDINGS-DIFF.json --auto --repo ../../.. --fp-rules false-positives.md" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --append-system-prompt "$NONINTERACTIVE"
         test -f TRIAGE.md || { echo "No TRIAGE.md (triage did not complete)"; exit 1; }
       else
         echo "Skipping triage (set TRIAGE=true when triggering to verify, dedupe and rank the findings)"
@@ -96,12 +96,12 @@ ai-security-scan-full:
     SCAN_TARGET: "wallet_core"
     SCAN_EXCLUDES: "--exclude target --exclude tests_integration --exclude demo --exclude gba_hc_converter --exclude wallet_server/pid_issuer"
   script:
-    - claude -p "/vuln-scan ../../../${SCAN_TARGET} ${SCAN_EXCLUDES} --no-score" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --sandbox --append-system-prompt "$NONINTERACTIVE"
+    - claude -p "/vuln-scan ../../../${SCAN_TARGET} ${SCAN_EXCLUDES} --no-score" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --append-system-prompt "$NONINTERACTIVE"
     - mv ../../../${SCAN_TARGET}/VULN-FINDINGS.* ./ 2>/dev/null || true
     - test -f VULN-FINDINGS.json || { echo "No VULN-FINDINGS.json (scan did not complete)"; exit 1; }
     - |
       if [ "${TRIAGE}" = "true" ]; then
-        claude -p "/triage VULN-FINDINGS.json --auto --repo ../../../${SCAN_TARGET} --fp-rules false-positives.md" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --sandbox --append-system-prompt "$NONINTERACTIVE"
+        claude -p "/triage VULN-FINDINGS.json --auto --repo ../../../${SCAN_TARGET} --fp-rules false-positives.md" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --append-system-prompt "$NONINTERACTIVE"
         test -f TRIAGE.md || { echo "No TRIAGE.md (triage did not complete)"; exit 1; }
       else
         echo "Skipping triage (set TRIAGE=true when triggering to verify, dedupe and rank the findings)"

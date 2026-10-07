@@ -158,10 +158,7 @@ final _kSampleInteractionAttribute = WalletEvent.disclosure(
   cards: [_kSampleCard],
   status: EventStatus.success,
   policy: const Policy(
-    storageDuration: Duration(days: 90),
     dataPurpose: _kMockPurpose,
-    dataIsShared: false,
-    deletionCanBeRequested: true,
     privacyPolicyUrl: _kMockUrl,
   ),
   purpose: _kMockPurpose.untranslated,
@@ -582,10 +579,7 @@ class OtherStylesTab extends StatelessWidget {
         relyingParty: _kSampleOrganization,
         status: EventStatus.success,
         policy: const Policy(
-          storageDuration: Duration(days: 90),
           dataPurpose: _kMockPurpose,
-          dataIsShared: false,
-          deletionCanBeRequested: true,
           privacyPolicyUrl: _kMockUrl,
         ),
         purpose: _kMockPurpose.untranslated,
@@ -613,10 +607,7 @@ class OtherStylesTab extends StatelessWidget {
         relyingParty: _kSampleOrganization,
         status: EventStatus.cancelled,
         policy: const Policy(
-          storageDuration: Duration(days: 90),
           dataPurpose: _kMockPurpose,
-          dataIsShared: false,
-          deletionCanBeRequested: true,
           privacyPolicyUrl: _kMockUrl,
         ),
         purpose: _kMockPurpose.untranslated,
@@ -648,10 +639,7 @@ class OtherStylesTab extends StatelessWidget {
         PolicySection(
           relyingParty: _kSampleOrganization,
           policy: const Policy(
-            storageDuration: Duration(days: 90),
             dataPurpose: _kMockPurpose,
-            dataIsShared: false,
-            deletionCanBeRequested: true,
             privacyPolicyUrl: _kMockUrl,
           ),
         ),

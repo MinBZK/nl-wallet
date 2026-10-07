@@ -11,7 +11,7 @@ use crypto::CredentialEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -240,7 +240,7 @@ pub enum CloseProximityDisclosureError {
     InvalidDocRequest(#[from] mdoc::Error),
 
     #[error("reader access certificate validation failed")]
-    InvalidReaderCertificate(#[source] CertificateError),
+    InvalidReaderCertificate(#[source] CertificateVerifyError),
 
     #[error("reader access certificate CRL verification failed")]
     ReaderCertificateCrlVerification(#[source] CertificateCrlVerificationError),
@@ -452,11 +452,12 @@ where
             }
         };
 
+        let organization = Organization::try_from(&verifier_certificate).map_err(DisclosureError::Organization)?;
         let (candidate_attestations, shared_data_with_relying_party_before) = self
             .prepare_disclosure(
                 &device_request.items_requests().collect_vec(),
                 &wallet_config.pid_attributes,
-                &verifier_certificate,
+                &organization,
             )
             .await?;
 
@@ -465,7 +466,6 @@ where
             .flatten() // remove entries for which no suitable candidates were found
             .collect::<Vec<_>>();
 
-        let organization = Organization::try_from(&verifier_certificate).map_err(DisclosureError::Organization)?;
         let session_type = SessionType::CrossDevice; // all close proximity disclosure sessions are cross-device
         let disclosure_type = DisclosureType::Regular; // all close proximity disclosure sessions are regular
         let purpose = RedirectUriPurpose::Browser; // irrelevant for close proximity disclosure sessions
@@ -803,7 +803,7 @@ async fn verify_device_request_with_crl(
                 .verify_with_crl(session_transcript, time, trust_anchors, crl_verifier)
                 .await
                 .map_err(|error| match error {
-                    mdoc::Error::Cose(CoseError::Certificate(error)) => {
+                    mdoc::Error::Cose(CoseError::CertificateVerify(error)) => {
                         CloseProximityDisclosureError::InvalidReaderCertificate(error)
                     }
                     mdoc::Error::Cose(CoseError::CertificateCrl(error)) => {

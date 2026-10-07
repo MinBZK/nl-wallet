@@ -42,9 +42,11 @@ class HelpTests : TestBase() {
         setUp(testInfo)
         menuScreen.clickHelpAndInfoButton()
         assertTrue(helpAndInfoScreen.visible(), "Help buttons are not visible")
+        helpAndInfoScreen.captureA11ySnapshot("HelpAndInfo")
 
         helpAndInfoScreen.clickContactButton()
         assertTrue(contactScreen.visible(), "Contact screen not visible")
+        contactScreen.captureA11ySnapshot("Contact")
 
         contactScreen.clickBottomBackButton()
         helpAndInfoScreen.clickActivitiesHelpButton()

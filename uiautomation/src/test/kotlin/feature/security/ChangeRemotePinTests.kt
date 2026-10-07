@@ -46,15 +46,19 @@ class ChangeRemotePinTests : TestBase() {
         menuScreen.clickSettingsButton()
         settingsScreen.clickChangePinButton()
         assertTrue(pinScreen.enterCurrentPinTitleVisible(), "Enter current pin screen is not visible")
+        pinScreen.captureA11ySnapshot("ChangePinEnterCurrent")
 
         pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(pinScreen.selectNewPinTitleVisible(), "Select new pin screen is not visible")
+        pinScreen.captureA11ySnapshot("ChangePinSelectNew")
 
         pinScreen.enterPin("222221")
         assertTrue(pinScreen.confirmNewPinTitleVisible(), "Confirm new pin screen is not visible")
+        pinScreen.captureA11ySnapshot("ChangePinConfirmNew")
 
         pinScreen.enterPin("222221")
         assertTrue(changePinSuccessScreen.visible(), "Change pin success screen is not visible")
+        changePinSuccessScreen.captureA11ySnapshot("ChangePinSuccess")
 
         changePinSuccessScreen.toSettings()
         settingsScreen.clickBackButton()
@@ -62,6 +66,7 @@ class ChangeRemotePinTests : TestBase() {
 
         pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(pinScreen.pinErrorDialogNonFinalRoundInitialAttemptVisible(), "pin error is not visible")
+        pinScreen.captureA11ySnapshot("PinErrorIncorrect")
 
         pinScreen.closePinIncorrectAlertDialog()
         pinScreen.enterPin("222221")

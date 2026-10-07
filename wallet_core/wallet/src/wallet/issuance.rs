@@ -9,7 +9,7 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateParseError;
 use derive_more::IsVariant;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -162,7 +162,7 @@ pub enum IssuanceError {
     },
 
     #[error("certificate error: {0}")]
-    Certificate(#[from] CertificateError),
+    Certificate(#[from] CertificateParseError),
 
     #[error("PID attestation in SD JWT format is missing")]
     #[category(critical)]
@@ -1563,7 +1563,7 @@ mod tests {
             panic!("an SD-JWT should be described by Type Metadata");
         };
         let sd_jwt = payload
-            .into_signed_sd_jwt(&type_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(Some(&type_metadata), &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
@@ -2355,7 +2355,7 @@ mod tests {
             panic!("an SD-JWT should be described by Type Metadata");
         };
         let sd_jwt = payload
-            .into_signed_sd_jwt(&type_metadata, &issuer_key_pair)
+            .into_signed_sd_jwt(Some(&type_metadata), &issuer_key_pair)
             .now_or_never()
             .unwrap()
             .unwrap();
