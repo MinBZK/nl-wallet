@@ -190,7 +190,8 @@ pub struct PerformIssuanceResult {
 }
 
 /// Part of [`PerformIssuanceResult`], reflects the result of the generation of a particular set of keys, consisting of
-/// both the identifiers for that set and the key attestation, which contains the requested nonce, if provided.
+/// both the identifiers for that set and the OpenID4VCI key attestation, which contains the requested nonce, if
+/// provided.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IssuanceKeySetResult {
     pub identifiers: VecNonEmpty<String>,

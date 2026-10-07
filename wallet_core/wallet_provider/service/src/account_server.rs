@@ -313,7 +313,7 @@ pub enum InstructionError {
     #[error("public key conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
 
-    #[error("could not sign key attestation: {0}")]
+    #[error("could not sign OpenID4VCI key attestation: {0}")]
     KeyAttestationSigning(#[source] KeyAttestationSigningError),
 
     #[error("SD JWT error: {0}")]
