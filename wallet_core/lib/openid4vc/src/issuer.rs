@@ -1539,6 +1539,12 @@ impl CredentialRequest {
 
         // Verify that the Key Attestation JWT is valid, the public keys are distinct and the attack potential
         // resistance is sufficient.
+        //
+        // NB: We intentionally choose to ignore and not validate the `status` claim here. This Issuer implementation
+        //     does not to be fully compliant and we assume that the Wallet Provider will instead use the
+        //     `key_storage_status` as specified by TS3.
+        //
+        // TODO (PVW-6239): Verify the `key_storage_status` claim.
         let KeyAttestationVerificationResult {
             attested_keys, nonce, ..
         } = key_attestation
