@@ -2884,8 +2884,8 @@ mod tests {
             };
 
             let holder_pubkeys = match request.proofs.as_ref().unwrap() {
-                CredentialRequestProofs::Attestation(key_attestations) => {
-                    let (_header, claims) = key_attestations.first().as_ref().dangerous_parse_unverified().unwrap();
+                CredentialRequestProofs::Attestation([key_attestation]) => {
+                    let (_header, claims) = key_attestation.as_ref().dangerous_parse_unverified().unwrap();
                     claims
                         .attested_keys
                         .nonempty_iter()

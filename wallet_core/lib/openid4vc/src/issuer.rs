@@ -245,9 +245,6 @@ pub enum CredentialRequestError {
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
 
-    #[error("found more than one \"attestation\" proof type in Credential Request, count: {}", .0)]
-    MultipleAttestationProofs(usize),
-
     #[error("too many copies of a credential were requested: {0}")]
     TooManyCopiesRequested(NonZeroUsize),
 
@@ -1532,19 +1529,13 @@ impl CredentialRequest {
         G: Generator<DateTime<Utc>>,
     {
         // The issuer requires key binding proofs, as is indicated in the Issuer Metadata.
-        let key_attestations = match self.proofs.as_ref() {
-            Some(CredentialRequestProofs::Attestation(key_attestations)) => key_attestations,
+        let key_attestation = match self.proofs.as_ref() {
+            Some(CredentialRequestProofs::Attestation([key_attestation])) => key_attestation,
             // TODO (PVW-6238): Update `jwt` proof type to OpenID4VCI 1.0 and support it.
             _ => {
                 return Err(CredentialRequestError::MissingCredentialRequestPoP);
             }
         };
-
-        // According to OpenID4VCI, there should be exactly one JWT for the attestation proof type.
-        let key_attestation = key_attestations
-            .iter()
-            .exactly_one()
-            .map_err(|iter| CredentialRequestError::MultipleAttestationProofs(iter.count()))?;
 
         // Verify that the Key Attestation JWT is valid, the public keys are distinct and the attack potential
         // resistance is sufficient.
@@ -2597,8 +2588,8 @@ mod tests {
         );
 
         let public_keys = match credential_request.proofs.as_ref() {
-            Some(CredentialRequestProofs::Attestation(key_attestations)) => {
-                let (_header, claims) = key_attestations.first().as_ref().dangerous_parse_unverified().unwrap();
+            Some(CredentialRequestProofs::Attestation([key_attestation])) => {
+                let (_header, claims) = key_attestation.as_ref().dangerous_parse_unverified().unwrap();
                 claims
                     .attested_keys
                     .iter()
@@ -2829,30 +2820,6 @@ mod tests {
             .expect_err("processing CredentialRequest should fail");
 
         assert_matches!(error, CredentialRequestError::InvalidNonce);
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_process_credential_request_error_multipleattestation_proofs() {
-        let (issuer, _trust_anchors, access_token, dpop, mut credential_request) =
-            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
-
-        let key_attestation = match credential_request.proofs {
-            Some(CredentialRequestProofs::Attestation(key_attestations)) => key_attestations.into_first(),
-            _ => unreachable!(),
-        };
-        credential_request.proofs = Some(CredentialRequestProofs::Attestation(vec_nonempty![
-            key_attestation.clone(),
-            key_attestation
-        ]));
-
-        // Processing a Credential Request with too many proof JWT should result in an error.
-        let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
-            .await
-            .expect_err("processing CredentialRequest should fail");
-
-        assert_matches!(error, CredentialRequestError::MultipleAttestationProofs(count) if count == 2);
     }
 
     #[rstest]
