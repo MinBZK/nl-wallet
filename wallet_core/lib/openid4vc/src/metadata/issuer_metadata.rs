@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::num::NonZeroU64;
 use std::ops::Not;
 
@@ -389,7 +390,7 @@ impl CredentialConfiguration {
     pub fn new_mdoc_ecdsa_p256_sha256(
         doctype: String,
         scope: Scope,
-        proof_types: Vec<ProofType>,
+        proof_types: HashSet<ProofType>,
         credential_metadata: CredentialMetadata,
     ) -> Self {
         Self {
@@ -403,7 +404,7 @@ impl CredentialConfiguration {
     pub fn new_sd_jwt_ecdsa_p256_sha256(
         vct: String,
         scope: Scope,
-        proof_types: Vec<ProofType>,
+        proof_types: HashSet<ProofType>,
         credential_metadata: CredentialMetadata,
         type_metadata_uri: Option<IssuerUrl>,
     ) -> Self {
@@ -521,15 +522,15 @@ pub struct CryptographicBinding {
 }
 
 impl CryptographicBinding {
-    fn new_mdoc_ecdsa_p256_sha256(proof_types: Vec<ProofType>) -> Self {
+    fn new_mdoc_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
         Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::CoseKey, proof_types)
     }
 
-    fn new_sd_jwt_ecdsa_p256_sha256(proof_types: Vec<ProofType>) -> Self {
+    fn new_sd_jwt_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
         Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::Jwk, proof_types)
     }
 
-    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod, proof_types: Vec<ProofType>) -> Self {
+    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod, proof_types: HashSet<ProofType>) -> Self {
         Self {
             cryptographic_binding_methods_supported: vec_nonempty![binding_method],
             proof_types_supported: proof_types

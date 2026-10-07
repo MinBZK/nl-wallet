@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::iter;
 
 use attestation_types::credential_format::Format;
@@ -46,13 +47,13 @@ impl IssuerMetadata {
                     Format::MsoMdoc => CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
                         credential_kind.attestation_type.clone(),
                         scope,
-                        vec![ProofType::Attestation],
+                        HashSet::from([ProofType::Attestation]),
                         CredentialMetadata::new_mdoc_example(&credential_kind.attestation_type, &[]),
                     ),
                     Format::SdJwt => CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                         credential_kind.attestation_type,
                         scope,
-                        vec![ProofType::Attestation],
+                        HashSet::from([ProofType::Attestation]),
                         CredentialMetadata::new_example(&[]),
                         Some(type_metadata_uri),
                     ),

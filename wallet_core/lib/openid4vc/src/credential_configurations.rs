@@ -313,7 +313,7 @@ impl<K, L> CredentialConfigurations<K, L> {
 
                 // Note that we decide to only support the `attestation` proof type in the Issuer, as the `jwt` poof
                 // type does not add significant additional benefits.
-                let proof_types = vec![ProofType::Attestation];
+                let proof_types = HashSet::from([ProofType::Attestation]);
 
                 let credential_configuration = match &config.format {
                     CredentialConfigurationFormat::MsoMdoc {
