@@ -555,13 +555,6 @@ function generate_registration_certificate {
             ;;
     esac
 
-    local name="${access_certificates[($service_provider,name)]}"
-    case "$protocol_role/$service_provider" in
-        issuance/university) name="Demo Issuer DBI" ;;
-        issuance/insurance) name="Demo Issuer ACF" ;;
-        issuance/museum_maandkaart) name="Demo Issuer PACF" ;;
-    esac
-
     if [[ -z ${access_certificates[($service_provider,serial_number)]:-} ]]; then
         subject=$(jq -n \
             --arg sub "${access_certificates[($service_provider,oid)]}" \
@@ -577,7 +570,7 @@ function generate_registration_certificate {
 
     jq -n \
         --arg service_provider "$service_provider" \
-        --arg name "$name" \
+        --arg name "${access_certificates[($service_provider,name)]}" \
         --arg entitlement "$entitlement" \
         --arg protocol_role "$protocol_role" \
         --arg status_list_index "$status_list_index" \
@@ -650,7 +643,7 @@ function generate_demo_issuer_disclosure_registration_certificate {
 }
 
 # Generate an issuance WRPRC bound to the certificate that signs issuer metadata.
-# Use a separate output prefix (e.g. university.issuance); the generated ID also gets
+# Use a separate output prefix (e.g. issuance_server.issuance); the generated ID also gets
 # an -issuer suffix so issuance and disclosure registrations for a service can coexist.
 #
 # $1 - Issuer name in access_certificates and issuer_registration_certificate_attestations.json

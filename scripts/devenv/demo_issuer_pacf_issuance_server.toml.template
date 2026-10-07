@@ -9,8 +9,8 @@ wia_trust_anchors = ["${WIA_CA_CRT}"]
 
 [credential_metadata_keypair]
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC}"
-certificate = "${DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC}"
+private_key = "${PACF_ISSUANCE_SERVER_WRPAC_KEY}"
+certificate = "${PACF_ISSUANCE_SERVER_WRPAC_CRT}"
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pacf_issuance_server'
