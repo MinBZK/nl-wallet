@@ -733,6 +733,7 @@ where
                 .partition(|(_, preview)| matches!(preview.identity, AttestationIdentity::Fixed { .. })),
             // Without previews, there is no stored attestation identity to match against, so every credential is
             // stored as a new attestation.
+            // TODO (PVW-6251): Determine renewal against the issued credentials.
             None => {
                 let new = issued_credentials_with_metadata
                     .into_iter()
