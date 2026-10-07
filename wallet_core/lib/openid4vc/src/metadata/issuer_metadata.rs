@@ -535,7 +535,14 @@ impl CryptographicBinding {
             cryptographic_binding_methods_supported: vec_nonempty![binding_method],
             proof_types_supported: proof_types
                 .into_iter()
-                .map(|proof_type| (proof_type, ProofMetadata::new_ecdsa_p256_sha256()))
+                .map(|proof_type| {
+                    let requires_key_attestation = matches!(proof_type, ProofType::Attestation);
+
+                    (
+                        proof_type,
+                        ProofMetadata::new_ecdsa_p256_sha256(requires_key_attestation),
+                    )
+                })
                 .collect(),
         }
     }
@@ -589,10 +596,15 @@ pub struct ProofMetadata {
 }
 
 impl ProofMetadata {
-    fn new_ecdsa_p256_sha256() -> Self {
+    fn new_ecdsa_p256_sha256(requires_key_attestation: bool) -> Self {
+        let key_attestations_required = requires_key_attestation.then(|| KeyAttestationsRequired {
+            key_storage: HashSet::from([AttackPotentialResistance::Iso18045High]),
+            user_authentication: HashSet::from([AttackPotentialResistance::Iso18045High]),
+        });
+
         Self {
             proof_signing_alg_values_supported: vec_nonempty![JwsAlgorithm::ES256],
-            key_attestations_required: None,
+            key_attestations_required,
         }
     }
 }
@@ -605,11 +617,13 @@ impl ProofMetadata {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyAttestationsRequired {
-    /// A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
-    pub key_storage: Option<VecNonEmpty<AttackPotentialResistance>>,
+    /// OPTIONAL. A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub key_storage: HashSet<AttackPotentialResistance>,
 
-    /// A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
-    pub user_authentication: Option<VecNonEmpty<AttackPotentialResistance>>,
+    /// OPTIONAL. A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub user_authentication: HashSet<AttackPotentialResistance>,
 }
 
 /// Information relevant to the usage and display of issued Credentials. Credential Format-specific mechanisms can
