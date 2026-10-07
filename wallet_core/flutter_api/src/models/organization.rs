@@ -55,7 +55,7 @@ impl From<wallet::attestation_data::Organization> for Organization {
             service_description: value.description.into_iter().map(Into::into).collect(),
             identifier: value.identifier,
             country_code: value.country_code,
-            web_url: value.web_url.map(|url| url.to_string()),
+            web_url: value.web_url.map(Into::into),
             privacy_policy_url: value.privacy_policy_url.map(|url| url.to_string()),
             support_uri: value.support_uri,
             public_body: value.public_body,

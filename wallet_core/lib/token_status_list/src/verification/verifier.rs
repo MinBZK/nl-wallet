@@ -164,7 +164,7 @@ where
         let status_list_token = self.client.fetch(url.clone()).await.map_err(Arc::new)?;
 
         let claims = status_list_token
-            .parse_and_verify(issuer_trust_anchors, attestation_signing_certificate_dn, &url, time)
+            .parse_and_verify(issuer_trust_anchors, attestation_signing_certificate_dn, url, time)
             .map_err(Arc::new)?;
 
         Ok(claims)

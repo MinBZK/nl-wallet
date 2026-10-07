@@ -9,7 +9,7 @@ impl From<wallet::IssuanceStartResult> for IssuanceStartResult {
     fn from(source: wallet::IssuanceStartResult) -> IssuanceStartResult {
         use wallet::IssuanceStartResult::*;
         match source {
-            AuthorizationUrl(url) => IssuanceStartResult::AuthorizationUrl(url.to_string()),
+            AuthorizationUrl(url) => IssuanceStartResult::AuthorizationUrl(url.into()),
             Previews(previews) => {
                 IssuanceStartResult::Previews(previews.into_iter().map(AttestationPresentation::from).collect())
             }

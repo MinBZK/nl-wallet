@@ -609,7 +609,7 @@ mod tests {
         setup_issuer_metadata_mock(&mut wallet);
 
         let redirect_uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
-        assert!(redirect_uri.to_string().starts_with(AUTH_URL));
+        assert!(redirect_uri.as_str().starts_with(AUTH_URL));
     }
 
     #[tokio::test]

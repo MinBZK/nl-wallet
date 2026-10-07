@@ -133,7 +133,7 @@ pub mod verification {
         Expired,
 
         #[error("JWT subject claim ('{sub}') does not match url claim of Reference Token ('{url}')")]
-        UnexpectedSubject { sub: String, url: String },
+        UnexpectedSubject { sub: Box<Url>, url: Box<Url> },
 
         #[error("DN is missing in certificate")]
         MissingDN(#[source] CanocalizationError),
@@ -150,7 +150,7 @@ pub mod verification {
             &self,
             issuer_trust_anchors: &TrustAnchors,
             attestation_signing_certificate_dn: CanonicalDistinguishedName,
-            url: &Url,
+            url: Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<StatusListClaims, StatusListTokenVerificationError> {
             let (header, claims) = self.0.parse_and_verify_against_trust_anchors(
@@ -172,10 +172,10 @@ pub mod verification {
                 });
             }
 
-            if *url != claims.sub {
+            if url != claims.sub {
                 return Err(StatusListTokenVerificationError::UnexpectedSubject {
-                    sub: claims.sub.to_string(),
-                    url: url.to_string(),
+                    sub: claims.sub.into(),
+                    url: url.into(),
                 });
             }
 
@@ -299,7 +299,7 @@ mod test {
             .parse_and_verify(
                 &TrustAnchors::empty(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
-                &expected_claims.sub,
+                expected_claims.sub.clone(),
                 &MockTimeGenerator::default(),
             )
             .expect_err("should not verify for empty trust anchors");
@@ -316,7 +316,7 @@ mod test {
                     .certificate()
                     .to_canonical_distinguished_name()
                     .unwrap(),
-                &expected_claims.sub,
+                expected_claims.sub.clone(),
                 &MockTimeGenerator::default(),
             )
             .expect_err("should not verify for attestation signing certificate with different DN");
@@ -326,7 +326,7 @@ mod test {
             .parse_and_verify(
                 &TrustAnchors::from(&ca),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
-                &"http://example.com/sub".parse().unwrap(),
+                "http://example.com/sub".parse().unwrap(),
                 &MockTimeGenerator::default(),
             )
             .expect_err("should not verify for attestation signing certificate with different sub claim");
@@ -336,7 +336,7 @@ mod test {
             .parse_and_verify(
                 &TrustAnchors::from(&ca),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
-                &expected_claims.sub,
+                expected_claims.sub.clone(),
                 &MockTimeGenerator::new(DateTime::from_timestamp(SLT_EXP, 0).unwrap().add(Days::new(1))),
             )
             .expect_err("should not verify when jwt is expired");
@@ -346,7 +346,7 @@ mod test {
             .parse_and_verify(
                 &TrustAnchors::from(&ca),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
-                &expected_claims.sub,
+                expected_claims.sub,
                 &MockTimeGenerator::default(),
             )
             .unwrap();
