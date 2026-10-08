@@ -12,6 +12,7 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::utils::sha256_array;
 use db_test::DbSetup;
 use hsm::model::TestHsm;
 use hsm::model::mock::MockPkcs11Client;
@@ -931,7 +932,7 @@ async fn test_attestation_wrapping_key_rollover() {
         .key_identifier;
 
     let sign_instruction = |key_identifier: String| Sign {
-        messages_with_identifiers: vec![(b"message".to_vec(), vec![key_identifier])],
+        messages_with_identifiers: vec![(sha256_array(b"message"), vec![key_identifier])],
         poa_nonce: None,
         poa_aud: "aud".to_string(),
     };

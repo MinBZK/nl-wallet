@@ -29,6 +29,10 @@ pub fn sha256(bts: &[u8]) -> Vec<u8> {
     Sha256::digest(bts).to_vec()
 }
 
+pub fn sha256_array(bts: &[u8]) -> [u8; 32] {
+    Sha256::digest(bts).into()
+}
+
 /// Key material. Zeroed on drop to prevent it from lingering in memory.
 #[derive(Debug, Clone, From, ZeroizeOnDrop)]
 pub struct KeyBytes(#[debug("<redacted>")] Vec<u8>);

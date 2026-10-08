@@ -3942,7 +3942,7 @@ mod tests {
         let instruction = hw_privkey
             .sign_instruction(
                 Sign {
-                    messages_with_identifiers: vec![(random_bytes(32), vec!["key2".to_string()])],
+                    messages_with_identifiers: vec![(random_bytes(32).try_into().unwrap(), vec!["key2".to_string()])],
                     poa_nonce: Some(Nonce::from("nonce".to_string())),
                     poa_aud: "aud".to_string(),
                 },

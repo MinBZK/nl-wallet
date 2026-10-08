@@ -63,6 +63,9 @@ pub enum HsmError {
     #[error("CMAC has wrong length: expected {expected}, got {actual}")]
     IncorrectCmacLength { expected: usize, actual: usize },
 
+    #[error("payload had incorrect length for raw ECDSA signature: expected 32, got {0}")]
+    IncorrectRawEcdsaPayloadLength(usize),
+
     #[cfg(feature = "mock")]
     #[error("hmac error: {0}")]
     Hmac(#[from] hmac::digest::MacError),
@@ -110,6 +113,13 @@ pub struct SecretKeyHandle(ObjectHandle);
 #[derive(PartialEq, Eq)]
 pub struct PrivateKeyHandle(ObjectHandle);
 
+/// PrivateKeyHandle that wraps ObjectHandle for attestation private keys. This type is distinct from
+/// the one above, because it uses raw ECDSA signing (i.e., without SHA256 hashing).
+///
+/// Note that this struct doesn't derive Copy (ObjectHandle does) on purpose to
+/// leverage the type system to detect when handles are destroyed.
+pub struct AttestationPrivateKeyHandle(ObjectHandle);
+
 /// PublicKeyHandle that wraps ObjectHandle for public keys
 ///
 /// Note that this struct doesn't derive Copy (ObjectHandle does) on purpose to
@@ -132,6 +142,12 @@ impl KeyHandle for PrivateKeyHandle {
     }
 }
 
+impl KeyHandle for AttestationPrivateKeyHandle {
+    fn to_object_handle(&self) -> ObjectHandle {
+        self.0
+    }
+}
+
 impl KeyHandle for PublicKeyHandle {
     fn to_object_handle(&self) -> ObjectHandle {
         self.0
@@ -139,18 +155,48 @@ impl KeyHandle for PublicKeyHandle {
 }
 
 pub trait SignVerifyKeyHandle: KeyHandle {
+    /// Whether or not the implementing type expects the payload that is to be signed
+    /// to have been hashed by the caller. If set to false, hashing will be done by
+    /// the using code of this trait.
+    const PREHASHED: bool;
+
     fn mechanism() -> Mechanism<'static>;
 }
 
 impl SignVerifyKeyHandle for SecretKeyHandle {
+    const PREHASHED: bool = false;
+
     fn mechanism() -> Mechanism<'static> {
         Mechanism::Sha256Hmac
     }
 }
 
 impl SignVerifyKeyHandle for PrivateKeyHandle {
+    const PREHASHED: bool = false;
+
     fn mechanism() -> Mechanism<'static> {
         Mechanism::Ecdsa
+    }
+}
+
+impl SignVerifyKeyHandle for AttestationPrivateKeyHandle {
+    const PREHASHED: bool = true;
+
+    fn mechanism() -> Mechanism<'static> {
+        Mechanism::Ecdsa
+    }
+}
+
+/// Prepare `data` for signing or verification by the HSM: if the key handle expects prehashed input, the data must be
+/// a 32-byte digest and is passed on as is; otherwise its SHA-256 digest is computed.
+fn prepare_data<KH: SignVerifyKeyHandle>(data: &[u8]) -> Result<Vec<u8>> {
+    if KH::PREHASHED {
+        if data.len() != 32 {
+            return Err(HsmError::IncorrectRawEcdsaPayloadLength(data.len()));
+        }
+        Ok(data.to_vec())
+    } else {
+        Ok(sha256(data))
     }
 }
 
@@ -236,7 +282,7 @@ pub trait Pkcs11Client {
         &self,
         unwrapping_key: &SecretKeyHandle,
         wrapped_key: WrappedKey,
-    ) -> Result<PrivateKeyHandle>;
+    ) -> Result<AttestationPrivateKeyHandle>;
     async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<WrappedKey>;
     async fn generate_wrapped_keys(
         &self,
@@ -257,7 +303,7 @@ pub trait Pkcs11Client {
         &self,
         wrapping_key_identifier: &str,
         wrapped_key: WrappedKey,
-        data: &[u8],
+        data: [u8; 32],
     ) -> Result<Signature>;
 }
 
@@ -567,13 +613,13 @@ impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn sign<KH: SignVerifyKeyHandle>(&self, key_handle: &KH, data: &[u8]) -> Result<Vec<u8>> {
         let pool = self.pool.clone();
-        let data_hash = sha256(data);
+        let to_sign = prepare_data::<KH>(data)?;
         let object_handle = key_handle.to_object_handle();
 
         spawn::blocking(move || {
             let mechanism = KH::mechanism();
             let session = pool.get()?;
-            let signature = session.sign(&mechanism, object_handle, &data_hash)?;
+            let signature = session.sign(&mechanism, object_handle, &to_sign)?;
             Ok(signature)
         })
         .await
@@ -582,13 +628,13 @@ impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn verify<KH: SignVerifyKeyHandle>(&self, key_handle: &KH, data: &[u8], signature: Vec<u8>) -> Result<()> {
         let pool = self.pool.clone();
-        let data_hash = sha256(data);
+        let to_verify = prepare_data::<KH>(data)?;
         let object_handle = key_handle.to_object_handle();
 
         spawn::blocking(move || {
             let mechanism = KH::mechanism();
             let session = pool.get()?;
-            session.verify(&mechanism, object_handle, &data_hash, &signature)?;
+            session.verify(&mechanism, object_handle, &to_verify, &signature)?;
 
             Ok(())
         })
@@ -713,7 +759,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         &self,
         unwrapping_key: &SecretKeyHandle,
         wrapped_key: WrappedKey,
-    ) -> Result<PrivateKeyHandle> {
+    ) -> Result<AttestationPrivateKeyHandle> {
         let pool = self.pool.clone();
         let unwrapping_key_handle = unwrapping_key.to_object_handle();
 
@@ -734,7 +780,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             Ok(result)
         })
         .await
-        .map(PrivateKeyHandle)
+        .map(AttestationPrivateKeyHandle)
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
@@ -758,7 +804,7 @@ impl Pkcs11Client for Pkcs11Hsm {
         &self,
         wrapping_key_identifier: &str,
         wrapped_key: WrappedKey,
-        data: &[u8],
+        data: [u8; 32],
     ) -> Result<Signature> {
         // TODO: PVW-5862 handles can be used in different sessions that are
         // either connected to a different PKCS11 device or the session can be
@@ -766,7 +812,7 @@ impl Pkcs11Client for Pkcs11Hsm {
 
         let wrapping_handle = self.get_secret_key_handle(wrapping_key_identifier).await?;
         let private_handle = self.unwrap_signing_key(&wrapping_handle, wrapped_key).await?;
-        let result = Pkcs11Client::sign(self, &private_handle, data).await;
+        let result = Pkcs11Client::sign(self, &private_handle, data.as_slice()).await;
         self.clone().delete_private_key_in_background(private_handle);
         result.and_then(|signature| Signature::from_slice(&signature).map_err(HsmError::from))
     }
@@ -830,7 +876,7 @@ impl Pkcs11Hsm {
 }
 
 impl Pkcs11Hsm {
-    fn delete_private_key_in_background(self, private_handle: PrivateKeyHandle) {
+    fn delete_private_key_in_background(self, private_handle: AttestationPrivateKeyHandle) {
         tokio::spawn(async move {
             if let Err(err) = Pkcs11Client::delete_key(&self, private_handle).await {
                 tracing::warn!("failed to delete private key: {err:?}");

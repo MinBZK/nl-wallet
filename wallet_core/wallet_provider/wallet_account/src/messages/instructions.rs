@@ -228,7 +228,7 @@ impl InstructionAndResult for IssueWia {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Sign {
     #[serde_as(as = "Vec<(Base64, _)>")]
-    pub messages_with_identifiers: Vec<(Vec<u8>, Vec<String>)>,
+    pub messages_with_identifiers: Vec<([u8; 32], Vec<String>)>,
     pub poa_nonce: Option<Nonce>,
     pub poa_aud: String,
 }

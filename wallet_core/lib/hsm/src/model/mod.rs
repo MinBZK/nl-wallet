@@ -39,7 +39,9 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use p256::ecdsa::signature::Signer;
+    use p256::ecdsa::signature::hazmat::RandomizedPrehashSigner;
     use p256::elliptic_curve::Generate;
+    use p256::elliptic_curve::common::getrandom;
     use sha2::Sha256;
 
     use crate::model::Hsm;
@@ -50,6 +52,7 @@ pub mod mock {
     use crate::model::wrapped_key::WrappedKey;
     use crate::service::AES_BLOCK_SIZE;
     use crate::service::AesKeyUsage;
+    use crate::service::AttestationPrivateKeyHandle;
     use crate::service::HsmError;
     use crate::service::KeyHandle;
     use crate::service::Pkcs11Client;
@@ -264,7 +267,7 @@ pub mod mock {
             &self,
             _unwrapping_key: &SecretKeyHandle,
             _wrapped_key: WrappedKey,
-        ) -> Result<PrivateKeyHandle, HsmError> {
+        ) -> Result<AttestationPrivateKeyHandle, HsmError> {
             todo!()
         }
 
@@ -277,10 +280,10 @@ pub mod mock {
             &self,
             _wrapping_key_identifier: &str,
             wrapped_key: WrappedKey,
-            data: &[u8],
+            data: [u8; 32],
         ) -> Result<Signature, HsmError> {
             let key = SigningKey::from_slice(wrapped_key.wrapped_private_key()).unwrap();
-            let signature = Signer::sign(&key, data);
+            let signature = key.sign_prehash_with_rng(&mut getrandom::SysRng, data.as_slice())?;
             Ok(signature)
         }
     }
