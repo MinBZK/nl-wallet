@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
+use chrono::NaiveDate;
 use crypto::utils::random_string;
 use oauth::pkce::S256PkcePair;
 use oauth::token::AuthorizationCode;
@@ -15,22 +16,28 @@ use crate::pid::brp::client::BrpError;
 use crate::pid::brp::data::BrpPersons;
 use crate::pid::digid::DigidClient;
 use crate::pid::digid::Error as DigidError;
-use crate::pid::rulebook::constants::PID_ADDRESS_GROUP;
 use crate::pid::rulebook::constants::PID_AGE_OVER_18;
-use crate::pid::rulebook::constants::PID_BIRTH_DATE;
 use crate::pid::rulebook::constants::PID_BSN;
 use crate::pid::rulebook::constants::PID_FAMILY_NAME;
 use crate::pid::rulebook::constants::PID_GIVEN_NAME;
 use crate::pid::rulebook::constants::PID_ISSUING_AUTHORITY;
 use crate::pid::rulebook::constants::PID_ISSUING_COUNTRY;
+use crate::pid::rulebook::constants::PID_MDOC_BIRTH_DATE;
 use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
-use crate::pid::rulebook::constants::PID_NATIONALITY;
+use crate::pid::rulebook::constants::PID_MDOC_NATIONALITY;
+use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_CITY;
+use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_COUNTRY;
+use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_POSTAL_CODE;
+use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_STREET;
 use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
-use crate::pid::rulebook::constants::PID_RESIDENT_CITY;
-use crate::pid::rulebook::constants::PID_RESIDENT_COUNTRY;
-use crate::pid::rulebook::constants::PID_RESIDENT_HOUSE_NUMBER;
-use crate::pid::rulebook::constants::PID_RESIDENT_POSTAL_CODE;
-use crate::pid::rulebook::constants::PID_RESIDENT_STREET;
+use crate::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
+use crate::pid::rulebook::constants::PID_SD_JWT_BIRTH_DATE;
+use crate::pid::rulebook::constants::PID_SD_JWT_COUNTRY;
+use crate::pid::rulebook::constants::PID_SD_JWT_HOUSE_NUMBER;
+use crate::pid::rulebook::constants::PID_SD_JWT_LOCALITY;
+use crate::pid::rulebook::constants::PID_SD_JWT_NATIONALITIES;
+use crate::pid::rulebook::constants::PID_SD_JWT_POSTAL_CODE;
+use crate::pid::rulebook::constants::PID_SD_JWT_STREET_ADDRESS;
 use crate::pid::rulebook::constants::PID_SEX;
 
 /// The BSN of the standard mock test subject, present in the haal-centraal-examples BRP test data.
@@ -132,11 +139,11 @@ pub fn mock_pid_example() -> Attributes {
     Attributes::example([
         (vec![PID_FAMILY_NAME], Attribute::Text("Jansen".to_string())),
         (vec![PID_GIVEN_NAME], Attribute::Text("Frouke".to_string())),
-        (vec![PID_BIRTH_DATE], Attribute::Text("2000-03-24".to_string())),
+        (vec![PID_SD_JWT_BIRTH_DATE], Attribute::Text("2000-03-24".to_string())),
         (vec![PID_AGE_OVER_18], Attribute::Bool(true)),
         (vec![PID_BSN], Attribute::Text("999991772".to_string())),
         (
-            vec![PID_NATIONALITY],
+            vec![PID_SD_JWT_NATIONALITIES],
             Attribute::Array(vec![
                 Attribute::Text("NL".to_string()),
                 Attribute::Text("BE".to_string()),
@@ -150,23 +157,23 @@ pub fn mock_pid_example() -> Attributes {
         ),
         (vec![PID_RECOVERY_CODE], Attribute::Text("1234567".to_string())),
         (
-            vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
+            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_STREET_ADDRESS],
             Attribute::Text("Van Wijngaerdenstraat".to_string()),
         ),
         (
-            vec![PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
+            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_HOUSE_NUMBER],
             Attribute::Text("1".to_string()),
         ),
         (
-            vec![PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_POSTAL_CODE],
             Attribute::Text("2596TW".to_string()),
         ),
         (
-            vec![PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
+            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_LOCALITY],
             Attribute::Text("Toetsoog".to_string()),
         ),
         (
-            vec![PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
+            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_COUNTRY],
             Attribute::Text("NL".to_owned()),
         ),
     ])
@@ -184,8 +191,8 @@ pub fn mock_pid_mdoc_example() -> Attributes {
             Attribute::Text("Frouke".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_BIRTH_DATE],
-            Attribute::Text("2000-03-24".to_string()),
+            vec![PID_MDOC_NAMESPACE, PID_MDOC_BIRTH_DATE],
+            Attribute::Date(NaiveDate::from_ymd_opt(2000, 3, 24).unwrap()),
         ),
         (vec![PID_MDOC_NAMESPACE, PID_AGE_OVER_18], Attribute::Bool(true)),
         (
@@ -193,7 +200,7 @@ pub fn mock_pid_mdoc_example() -> Attributes {
             Attribute::Text("999991772".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_NATIONALITY],
+            vec![PID_MDOC_NAMESPACE, PID_MDOC_NATIONALITY],
             Attribute::Array(vec![
                 Attribute::Text("NL".to_string()),
                 Attribute::Text("BE".to_string()),
@@ -213,23 +220,19 @@ pub fn mock_pid_mdoc_example() -> Attributes {
             Attribute::Text("1234567".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_STREET],
-            Attribute::Text("Van Wijngaerdenstraat".to_string()),
+            vec![PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_STREET],
+            Attribute::Text("Van Wijngaerdenstraat 1".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_HOUSE_NUMBER],
-            Attribute::Text("1".to_string()),
-        ),
-        (
-            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_POSTAL_CODE],
+            vec![PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_POSTAL_CODE],
             Attribute::Text("2596TW".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_CITY],
+            vec![PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_CITY],
             Attribute::Text("Toetsoog".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_RESIDENT_COUNTRY],
+            vec![PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_COUNTRY],
             Attribute::Text("NL".to_owned()),
         ),
     ])
@@ -238,37 +241,9 @@ pub fn mock_pid_mdoc_example() -> Attributes {
 #[cfg(test)]
 mod tests {
     use attestation_data::attributes::Attribute;
-    use attestation_data::attributes::Attributes;
-    use indexmap::IndexMap;
-    use itertools::Either;
 
     use super::*;
     use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
-
-    // Lay out the attributes of a PID for mdoc, which places every attribute in a single namespace named
-    // after the attestation type, without nesting.
-    fn into_mdoc_attributes(attributes: Attributes) -> Attributes {
-        let entries = attributes
-            .into_inner()
-            .into_iter()
-            .flat_map(|(name, attribute)| match attribute {
-                Attribute::Object(group) => Either::Right(group.into_iter()),
-                value => Either::Left(std::iter::once((name, value))),
-            })
-            .collect::<IndexMap<_, _>>();
-
-        Attributes::from(IndexMap::from([(
-            PID_MDOC_NAMESPACE.to_owned(),
-            Attribute::Object(entries),
-        )]))
-    }
-
-    /// Ensures that the two authored sets of attributes describe the same PID, so that a test using one format
-    /// cannot silently diverge from a test using the other.
-    #[test]
-    fn mock_pid_mdoc_example_matches_mock_pid_example() {
-        assert_eq!(mock_pid_mdoc_example(), into_mdoc_attributes(mock_pid_example()));
-    }
 
     /// Ensures that data returned by [`MockBrpClient`] and [`mock_pid_example`] are identical, because some tests rely
     /// on this.

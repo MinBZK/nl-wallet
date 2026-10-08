@@ -6,21 +6,27 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde_with::skip_serializing_none;
 
-use crate::pid::rulebook::constants::PID_ADDRESS_GROUP;
 use crate::pid::rulebook::constants::PID_AGE_OVER_18;
-use crate::pid::rulebook::constants::PID_BIRTH_DATE;
 use crate::pid::rulebook::constants::PID_BSN;
 use crate::pid::rulebook::constants::PID_FAMILY_NAME;
 use crate::pid::rulebook::constants::PID_GIVEN_NAME;
+use crate::pid::rulebook::constants::PID_MDOC_BIRTH_DATE;
 use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
-use crate::pid::rulebook::constants::PID_NATIONALITY;
+use crate::pid::rulebook::constants::PID_MDOC_NATIONALITY;
+use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_CITY;
+use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_COUNTRY;
+use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_POSTAL_CODE;
+use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_STREET;
 use crate::pid::rulebook::constants::PID_PLACE_OF_BIRTH_GROUP;
 use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
-use crate::pid::rulebook::constants::PID_RESIDENT_CITY;
-use crate::pid::rulebook::constants::PID_RESIDENT_COUNTRY;
-use crate::pid::rulebook::constants::PID_RESIDENT_HOUSE_NUMBER;
-use crate::pid::rulebook::constants::PID_RESIDENT_POSTAL_CODE;
-use crate::pid::rulebook::constants::PID_RESIDENT_STREET;
+use crate::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
+use crate::pid::rulebook::constants::PID_SD_JWT_BIRTH_DATE;
+use crate::pid::rulebook::constants::PID_SD_JWT_COUNTRY;
+use crate::pid::rulebook::constants::PID_SD_JWT_HOUSE_NUMBER;
+use crate::pid::rulebook::constants::PID_SD_JWT_LOCALITY;
+use crate::pid::rulebook::constants::PID_SD_JWT_NATIONALITIES;
+use crate::pid::rulebook::constants::PID_SD_JWT_POSTAL_CODE;
+use crate::pid::rulebook::constants::PID_SD_JWT_STREET_ADDRESS;
 use crate::pid::rulebook::constants::PID_SEX;
 use crate::pid::rulebook::country_code::IsoCountryCode;
 use crate::pid::rulebook::country_code::RulebookCountryCode;
@@ -74,13 +80,18 @@ impl BrpPerson {
 
 impl BrpPerson {
     pub fn into_sd_jwt_attributes(self, recovery_code: Attribute, issuer_metadata: PidIssuerMetadata) -> Attributes {
-        let address_attributes = self.residence.clone().into_address_attributes();
-        let mut attributes = self.common_attributes();
+        let address_attributes = self.residence.clone().into_sd_jwt_address_attributes();
+        let (mut attributes, birth_date, nationality) = self.common_attributes();
 
+        attributes.insert(
+            String::from(PID_SD_JWT_BIRTH_DATE),
+            Attribute::Text(birth_date.format("%Y-%m-%d").to_string()), // ISO-8601 string
+        );
+        attributes.insert(String::from(PID_SD_JWT_NATIONALITIES), nationality);
         attributes.extend(issuer_metadata.into_attributes());
         attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
         attributes.insert(
-            String::from(PID_ADDRESS_GROUP),
+            String::from(PID_SD_JWT_ADDRESS_GROUP),
             Attribute::Object(IndexMap::from_iter(address_attributes)),
         );
 
@@ -88,12 +99,12 @@ impl BrpPerson {
     }
 
     pub fn into_mdoc_attributes(self, recovery_code: Attribute, issuer_metadata: PidIssuerMetadata) -> Attributes {
-        let address_attributes = self.residence.clone().into_address_attributes();
-        let birth_date = self.birth.date.date;
-        let mut attributes = self.common_attributes();
+        let address_attributes = self.residence.clone().into_mdoc_address_attributes();
+        let (mut attributes, birth_date, nationality) = self.common_attributes();
 
-        // In mdoc, `birthdate` should be encoded as `full-date` (CBOR tag 1004)
-        attributes.insert(PID_BIRTH_DATE.to_owned(), Attribute::Date(birth_date));
+        // In mdoc, `birth_date` should be encoded as `full-date` (CBOR tag 1004)
+        attributes.insert(PID_MDOC_BIRTH_DATE.to_owned(), Attribute::Date(birth_date));
+        attributes.insert(PID_MDOC_NATIONALITY.to_owned(), nationality);
         attributes.extend(issuer_metadata.into_attributes());
         attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
         attributes.extend(address_attributes);
@@ -104,60 +115,86 @@ impl BrpPerson {
         )]))
     }
 
-    fn common_attributes(self) -> IndexMap<String, Attribute> {
+    /// Everything but `birth_date` and `nationality`, since those have different key/value formats for mdoc and SD-JWT.
+    fn common_attributes(self) -> (IndexMap<String, Attribute>, NaiveDate, Attribute) {
         let given_names = self.name.given_names.clone();
         let is_over_18 = self.is_over_18();
         let family_name = self.name.into_name_with_prefix();
         let sex = self
             .gender
             .map(|gender| Attribute::from(RulebookSex::from(gender.code)));
-        let birth_date = self.birth.date.date.format("%Y-%m-%d").to_string();
+        let birth_date = self.birth.date.date;
         let place_of_birth = self.birth.into_place_of_birth_attribute();
-        let nationalities = self
-            .nationalities
-            .into_iter()
-            .filter_map(|nationality| nationality.nationality)
-            .map(|detail| Attribute::from(RulebookNationality::from(detail.code)))
-            .collect_vec();
+        let nationality = Attribute::Array(
+            self.nationalities
+                .into_iter()
+                .filter_map(|nationality| nationality.nationality)
+                .map(|detail| Attribute::from(RulebookNationality::from(detail.code)))
+                .collect_vec(),
+        );
 
-        IndexMap::from_iter(
+        let attributes = IndexMap::from_iter(
             vec![
                 Some((String::from(PID_FAMILY_NAME), Attribute::Text(family_name))),
                 given_names.map(|names| (String::from(PID_GIVEN_NAME), Attribute::Text(names))),
-                Some((String::from(PID_BIRTH_DATE), Attribute::Text(birth_date))),
                 Some((String::from(PID_AGE_OVER_18), Attribute::Bool(is_over_18))),
                 Some((String::from(PID_BSN), Attribute::Text(self.bsn))),
-                Some((String::from(PID_NATIONALITY), Attribute::Array(nationalities))),
                 sex.map(|sex| (PID_SEX.to_owned(), sex)),
                 place_of_birth.map(|attribute| (PID_PLACE_OF_BIRTH_GROUP.to_owned(), attribute)),
             ]
             .into_iter()
             .flatten()
             .collect::<Vec<(String, Attribute)>>(),
-        )
+        );
+
+        (attributes, birth_date, nationality)
     }
 }
 
 impl BrpResidence {
-    pub fn into_address_attributes(self) -> impl Iterator<Item = (String, Attribute)> {
+    pub fn into_sd_jwt_address_attributes(self) -> impl Iterator<Item = (String, Attribute)> {
         vec![
-            self.address
-                .street()
-                .map(|street| (String::from(PID_RESIDENT_STREET), Attribute::Text(String::from(street)))),
+            self.address.street().map(|street| {
+                (
+                    String::from(PID_SD_JWT_STREET_ADDRESS),
+                    Attribute::Text(String::from(street)),
+                )
+            }),
             Some((
-                String::from(PID_RESIDENT_HOUSE_NUMBER),
+                String::from(PID_SD_JWT_HOUSE_NUMBER),
                 Attribute::Text(self.address.locator_designator()),
             )),
             Some((
-                String::from(PID_RESIDENT_POSTAL_CODE),
+                String::from(PID_SD_JWT_POSTAL_CODE),
                 Attribute::Text(self.address.postal_code),
             )),
-            Some((String::from(PID_RESIDENT_CITY), Attribute::Text(self.address.city))),
+            Some((String::from(PID_SD_JWT_LOCALITY), Attribute::Text(self.address.city))),
             self.address
                 .country
                 .code
                 .to_rulebook_country()
-                .map(|country| (PID_RESIDENT_COUNTRY.to_owned(), Attribute::from(country))),
+                .map(|country| (PID_SD_JWT_COUNTRY.to_owned(), Attribute::from(country))),
+        ]
+        .into_iter()
+        .flatten()
+    }
+
+    /// mdoc has no nested `address` and uses dedicated attribute identifiers (`resident_*`)
+    pub fn into_mdoc_address_attributes(self) -> impl Iterator<Item = (String, Attribute)> {
+        vec![
+            self.address
+                .mdoc_street()
+                .map(|street| (PID_MDOC_RESIDENT_STREET.to_owned(), Attribute::Text(street))),
+            Some((
+                PID_MDOC_RESIDENT_POSTAL_CODE.to_owned(),
+                Attribute::Text(self.address.postal_code),
+            )),
+            Some((PID_MDOC_RESIDENT_CITY.to_owned(), Attribute::Text(self.address.city))),
+            self.address
+                .country
+                .code
+                .to_rulebook_country()
+                .map(|country| (PID_MDOC_RESIDENT_COUNTRY.to_owned(), Attribute::from(country))),
         ]
         .into_iter()
         .flatten()
@@ -244,8 +281,8 @@ impl BrpBirth {
         let locality = self.place.map(|description| description.description);
 
         let group = [
-            country.map(|country| (PID_RESIDENT_COUNTRY.to_owned(), Attribute::from(country))),
-            locality.map(|locality| (PID_RESIDENT_CITY.to_owned(), Attribute::Text(locality))),
+            country.map(|country| (PID_SD_JWT_COUNTRY.to_owned(), Attribute::from(country))),
+            locality.map(|locality| (PID_SD_JWT_LOCALITY.to_owned(), Attribute::Text(locality))),
         ]
         .into_iter()
         .flatten()
@@ -2441,6 +2478,12 @@ impl BrpAddress {
 
         format!("{}{}{}", self.house_number, house_letter, house_number_addition)
     }
+
+    /// `resident_street` includes the house number in its value
+    fn mdoc_street(&self) -> Option<String> {
+        self.street()
+            .map(|street| format!("{street} {}", self.locator_designator()))
+    }
 }
 
 #[cfg(test)]
@@ -2616,7 +2659,7 @@ mod tests {
                             "type": "text",
                             "value": "Frouke"
                         },
-                        "birthdate": {
+                        "birth_date": {
                             "type": "date",
                             "value": "2000-03-24"
                         },
@@ -2628,7 +2671,7 @@ mod tests {
                             "type": "text",
                             "value": "999991772"
                         },
-                        "nationalities": {
+                        "nationality": {
                             "type": "array",
                             "value": [
                                 {
@@ -2657,23 +2700,19 @@ mod tests {
                             "type": "text",
                             "value": "recovery_code_123"
                         },
-                        "street_address": {
+                        "resident_street": {
                             "type": "text",
-                            "value": "Van Wijngaerdenstraat"
+                            "value": "Van Wijngaerdenstraat 1"
                         },
-                        "house_number": {
-                            "type": "text",
-                            "value": "1"
-                        },
-                        "postal_code": {
+                        "resident_postal_code": {
                             "type": "text",
                             "value": "2596TW"
                         },
-                        "locality": {
+                        "resident_city": {
                             "type": "text",
                             "value": "Toetsoog"
                         },
-                        "country": {
+                        "resident_country": {
                             "type": "text",
                             "value": "NL"
                         }

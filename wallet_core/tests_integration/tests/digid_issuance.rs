@@ -18,12 +18,12 @@ use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::pid::digid::DigidMetadataClient;
-use pid_issuer::pid::rulebook::constants::PID_ADDRESS_GROUP;
 use pid_issuer::pid::rulebook::constants::PID_BSN;
 use pid_issuer::pid::rulebook::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::rulebook::constants::PID_GIVEN_NAME;
 use pid_issuer::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
-use pid_issuer::pid::rulebook::constants::PID_RESIDENT_COUNTRY;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_COUNTRY;
 use pid_issuer::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
@@ -216,13 +216,13 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     }
 
     let address = attributes
-        .get(PID_ADDRESS_GROUP)
-        .unwrap_or_else(|| panic!("preview is missing {PID_ADDRESS_GROUP} group"));
+        .get(PID_SD_JWT_ADDRESS_GROUP)
+        .unwrap_or_else(|| panic!("preview is missing {PID_SD_JWT_ADDRESS_GROUP} group"));
     let Attribute::Object(address_fields) = address else {
-        panic!("{PID_ADDRESS_GROUP} is not a nested group: {address:?}");
+        panic!("{PID_SD_JWT_ADDRESS_GROUP} is not a nested group: {address:?}");
     };
     let country = address_fields
-        .get(PID_RESIDENT_COUNTRY)
-        .unwrap_or_else(|| panic!("address is missing {PID_RESIDENT_COUNTRY}"));
+        .get(PID_SD_JWT_COUNTRY)
+        .unwrap_or_else(|| panic!("address is missing {PID_SD_JWT_COUNTRY}"));
     assert_eq!(country, &Attribute::Text("Nederland".to_string()));
 }

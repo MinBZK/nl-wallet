@@ -6,19 +6,24 @@ use dcql::CredentialQuery;
 use dcql::Query;
 use pid_issuer::pid::mock::mock_pid_example;
 use pid_issuer::pid::mock::mock_pid_mdoc_example;
-use pid_issuer::pid::rulebook::constants::PID_ADDRESS_GROUP;
-use pid_issuer::pid::rulebook::constants::PID_BIRTH_DATE;
 use pid_issuer::pid::rulebook::constants::PID_BSN;
 use pid_issuer::pid::rulebook::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::rulebook::constants::PID_GIVEN_NAME;
+use pid_issuer::pid::rulebook::constants::PID_MDOC_BIRTH_DATE;
 use pid_issuer::pid::rulebook::constants::PID_MDOC_DOCTYPE;
 use pid_issuer::pid::rulebook::constants::PID_MDOC_NAMESPACE;
+use pid_issuer::pid::rulebook::constants::PID_MDOC_RESIDENT_CITY;
+use pid_issuer::pid::rulebook::constants::PID_MDOC_RESIDENT_COUNTRY;
+use pid_issuer::pid::rulebook::constants::PID_MDOC_RESIDENT_POSTAL_CODE;
+use pid_issuer::pid::rulebook::constants::PID_MDOC_RESIDENT_STREET;
 use pid_issuer::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
-use pid_issuer::pid::rulebook::constants::PID_RESIDENT_CITY;
-use pid_issuer::pid::rulebook::constants::PID_RESIDENT_COUNTRY;
-use pid_issuer::pid::rulebook::constants::PID_RESIDENT_HOUSE_NUMBER;
-use pid_issuer::pid::rulebook::constants::PID_RESIDENT_POSTAL_CODE;
-use pid_issuer::pid::rulebook::constants::PID_RESIDENT_STREET;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_BIRTH_DATE;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_COUNTRY;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_HOUSE_NUMBER;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_LOCALITY;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_POSTAL_CODE;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_STREET_ADDRESS;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
 
@@ -49,11 +54,11 @@ fn new_nl_pid<'a>(
 pub fn new_nl_pid_all() -> TestCredential {
     new_nl_pid(
         "nl_pid_all",
-        [[PID_GIVEN_NAME], [PID_FAMILY_NAME], [PID_BIRTH_DATE], [PID_BSN]],
+        [[PID_GIVEN_NAME], [PID_FAMILY_NAME], [PID_SD_JWT_BIRTH_DATE], [PID_BSN]],
         [
             [PID_MDOC_NAMESPACE, PID_GIVEN_NAME],
             [PID_MDOC_NAMESPACE, PID_FAMILY_NAME],
-            [PID_MDOC_NAMESPACE, PID_BIRTH_DATE],
+            [PID_MDOC_NAMESPACE, PID_MDOC_BIRTH_DATE],
             [PID_MDOC_NAMESPACE, PID_BSN],
         ],
     )
@@ -94,18 +99,17 @@ pub fn new_nl_pid_address_all() -> TestCredential {
     new_nl_pid(
         "nl_pid_address_all",
         [
-            [PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
-            [PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
-            [PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
-            [PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
-            [PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
+            [PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_STREET_ADDRESS],
+            [PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_HOUSE_NUMBER],
+            [PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_POSTAL_CODE],
+            [PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_LOCALITY],
+            [PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_COUNTRY],
         ],
         [
-            [PID_MDOC_NAMESPACE, PID_RESIDENT_STREET],
-            [PID_MDOC_NAMESPACE, PID_RESIDENT_HOUSE_NUMBER],
-            [PID_MDOC_NAMESPACE, PID_RESIDENT_POSTAL_CODE],
-            [PID_MDOC_NAMESPACE, PID_RESIDENT_CITY],
-            [PID_MDOC_NAMESPACE, PID_RESIDENT_COUNTRY],
+            [PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_STREET],
+            [PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_POSTAL_CODE],
+            [PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_CITY],
+            [PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_COUNTRY],
         ],
     )
 }
@@ -114,14 +118,13 @@ pub fn new_nl_pid_address_minimal_address() -> TestCredential {
     new_nl_pid(
         "nl_pid_address_minimal_address",
         [
-            [PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
-            [PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
-            [PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+            [PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_STREET_ADDRESS],
+            [PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_HOUSE_NUMBER],
+            [PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_POSTAL_CODE],
         ],
         [
-            [PID_MDOC_NAMESPACE, PID_RESIDENT_STREET],
-            [PID_MDOC_NAMESPACE, PID_RESIDENT_HOUSE_NUMBER],
-            [PID_MDOC_NAMESPACE, PID_RESIDENT_POSTAL_CODE],
+            [PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_STREET],
+            [PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_POSTAL_CODE],
         ],
     )
 }

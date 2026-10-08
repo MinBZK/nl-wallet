@@ -53,7 +53,7 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
-        "birthdate"
+        "birth_date"
       ],
       "mandatory": true,
       "display": [
@@ -86,7 +86,7 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
-        "nationalities"
+        "nationality"
       ],
       "display": [
         {
@@ -237,7 +237,7 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
-        "street_address"
+        "resident_street"
       ],
       "mandatory": true,
       "display": [
@@ -254,24 +254,7 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
-        "house_number"
-      ],
-      "mandatory": true,
-      "display": [
-        {
-          "name": "House number",
-          "locale": "en-US"
-        },
-        {
-          "name": "Huisnummer",
-          "locale": "nl-NL"
-        }
-      ]
-    },
-    {
-      "path": [
-        "eu.europa.ec.eudi.pid.1",
-        "postal_code"
+        "resident_postal_code"
       ],
       "mandatory": true,
       "display": [
@@ -288,7 +271,7 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
-        "locality"
+        "resident_city"
       ],
       "mandatory": true,
       "display": [
@@ -305,7 +288,7 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
-        "country"
+        "resident_country"
       ],
       "mandatory": true,
       "display": [
