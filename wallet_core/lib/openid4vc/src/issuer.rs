@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
@@ -84,10 +83,8 @@ use crate::credential::Credentials;
 use crate::credential::MdocCredential;
 use crate::credential::SdJwtCredential;
 use crate::credential_configurations::CredentialConfiguration;
-use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurationTypeMetadata;
 use crate::credential_configurations::CredentialConfigurations;
-use crate::credential_configurations::CredentialConfigurationsError;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
@@ -147,12 +144,6 @@ pub enum IssuableDocumentError {
 
     #[error("attributes do not match metadata: {0}")]
     AttributesError(#[source] AttributesError),
-
-    #[error("no credential metadata for mdoc credential configuration: {0}")]
-    MissingCredentialMetadata(CredentialConfigurationId),
-
-    #[error("no type metadata for SD-JWT credential configuration: {0}")]
-    MissingTypeMetadata(CredentialConfigurationId),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -491,8 +482,7 @@ impl<K, L> IssuerData<K, L> {
             .get_by_configuration_id(config_id)
             .and_then(|config| {
                 // Do a sanity check to see if the credential configuration has changed since determining its id.
-                let credential_kind = &config.credential_kind;
-                (credential_kind.format == format && credential_kind.attestation_type == attestation_type)
+                (config.format.format() == format && config.format.attestation_type() == attestation_type)
                     .then_some(config)
             })
     }
@@ -613,7 +603,7 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
         self.issuer_data
             .credential_configs
             .get_by_configuration_id(id)
-            .and_then(|config| config.type_metadata.as_ref())
+            .and_then(|config| config.format.type_metadata())
             .map(|metadata| metadata.documents().clone().into())
     }
 }
@@ -648,19 +638,17 @@ where
     L: StatusListService,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
-    pub fn try_new(
+    pub fn new(
         issuer_identifier: IssuerIdentifier,
         metadata_keypair: KeyPair<K>,
         registration_certificate: RegistrationCertificateEnvelope,
         batch_size: NonZeroU8,
         wallet_client_ids: HashSet<String>,
-        credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
+        credential_configs: CredentialConfigurations<K, L>,
         wia_trust_anchors: TrustAnchors,
         sessions: Arc<S>,
         nonce_store: N,
-    ) -> Result<Self, CredentialConfigurationsError> {
-        let credential_configs = CredentialConfigurations::try_new(credential_config_params)?;
-
+    ) -> Self {
         let server_url = issuer_identifier.as_issuer_url().join_issuer_url("/issuance");
         let credential_endpoint = server_url.join_issuer_url(&format!("/{CREDENTIAL_ENDPOINT_PATH}"));
         let nonce_endpoint = server_url.join_issuer_url("/nonce");
@@ -688,7 +676,7 @@ where
                 data: registration_certificate,
             }]),
             credential_configurations_supported: credential_configs
-                .to_credential_configurations_supported(&type_metadata_base_url)?,
+                .to_credential_configurations_supported(&type_metadata_base_url),
         };
 
         let issuer_data = IssuerData::new(
@@ -711,14 +699,12 @@ where
             .map(|config| config.status_list.start_refresh_job())
             .collect();
 
-        let issuer = Self {
+        Self {
             issuer_data,
             sessions,
             nonce_store,
             status_list_refresh_tasks,
-        };
-
-        Ok(issuer)
+        }
     }
 }
 
@@ -765,29 +751,9 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
                     .get_by_credential_kind(&document.credential_kind)
                     .ok_or_else(|| IssuableDocumentError::CredentialTypeNotOffered(document.credential_kind.clone()))?;
 
-                match document.credential_kind {
-                    CredentialKind {
-                        format: Format::MsoMdoc,
-                        ..
-                    } => {
-                        let credential_metadata = credential_config.credential_metadata.as_ref().ok_or_else(|| {
-                            IssuableDocumentError::MissingCredentialMetadata(credential_config_id.clone())
-                        })?;
-
-                        document.validate_with_metadata(credential_metadata)
-                    }
-                    CredentialKind {
-                        format: Format::SdJwt, ..
-                    } => {
-                        let type_metadata = credential_config
-                            .type_metadata
-                            .as_ref()
-                            .ok_or_else(|| IssuableDocumentError::MissingTypeMetadata(credential_config_id.clone()))?;
-
-                        document.validate_with_metadata(type_metadata.normalized())
-                    }
-                }
-                .map_err(IssuableDocumentError::AttributesError)?;
+                document
+                    .validate_with_metadata(&credential_config.format)
+                    .map_err(IssuableDocumentError::AttributesError)?;
 
                 Ok((credential_config_id.clone(), document))
             })
@@ -1515,7 +1481,7 @@ impl Session<AccessTokenIssued> {
             credential.credential_payload.clone(),
             utc_now_truncated_to_days(),
             public_keys.nonempty_iter().collect(),
-            credential_config.type_metadata.as_ref(),
+            credential_config.format.type_metadata(),
             &credential_config.key_pair,
             &credential_config.status_list,
         )
@@ -1690,10 +1656,7 @@ impl Credentials {
                 Self::MsoMdoc(mdoc_credentials)
             }
             Format::SdJwt => {
-                // Guaranteed by `CredentialConfiguration::try_new()`, which requires Type Metadata for an SD-JWT.
-                let type_metadata = type_metadata
-                    .expect("SD-JWT credential configuration should have Type Metadata")
-                    .normalized();
+                let type_metadata = type_metadata.map(CredentialConfigurationTypeMetadata::normalized);
 
                 let sd_jwt_credentials = try_join_all(payloads.into_iter().map(|credential_payload| {
                     SdJwtCredential::from_credential_payload(credential_payload, key_pair, type_metadata)
@@ -1731,7 +1694,7 @@ impl SdJwtCredential {
     async fn from_credential_payload<K>(
         credential_payload: CredentialPayload,
         key_pair: &KeyPair<K>,
-        type_metadata: &NormalizedTypeMetadata,
+        type_metadata: Option<&NormalizedTypeMetadata>,
     ) -> Result<Self, CredentialPayloadIntoSignedSdJwtError>
     where
         K: EcdsaKey,
@@ -1787,10 +1750,12 @@ mod tests {
     use crate::cleanup::start_cleanup_task;
     use crate::client_auth::ClientAttestationChallengeMechanism;
     use crate::credential::CredentialResponse;
+    use crate::credential_configurations::CredentialConfigurationFormat;
     use crate::errors::CredentialErrorCode;
     use crate::errors::CredentialPreviewErrorCode;
     use crate::errors::VciTokenErrorCode;
     use crate::issuable_document::IssuableDocument;
+    use crate::metadata::issuer_metadata::CredentialMetadata;
     use crate::nonce::response::NonceResponse;
     use crate::preview::CredentialPreviewResponse;
     use crate::server_state::MemorySessionStore;
@@ -1804,6 +1769,7 @@ mod tests {
     use crate::test::mock_type_metadata;
     use crate::test::setup_mock_issuer;
     use crate::test::setup_mock_issuer_attestation_types_and_metadata;
+    use crate::test::setup_mock_issuer_with_metadata;
     use crate::token::VciTokenRequest;
     use crate::token::VciTokenResponse;
     use crate::wallet_issuance::IssuanceSession;
@@ -1811,6 +1777,89 @@ mod tests {
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
     use crate::wallet_issuance::issuer_registration::IssuerRegistration;
+
+    #[tokio::test]
+    async fn test_validate_issuable_documents_sd_jwt_described_by_credential_metadata() {
+        let attestation_type = MOCK_ATTESTATION_TYPES[0];
+        let claim_names = MOCK_ATTRS.map(|(name, _)| name);
+
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
+            "https://example.com/".parse().unwrap(),
+            vec![CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+                attestation_type.to_string(),
+                CredentialMetadata::new_example(&claim_names),
+            )],
+            Arc::new(MemorySessionStore::default()),
+        );
+
+        let document = mock_issuable_document_with_attrs(Format::SdJwt, attestation_type, &MOCK_ATTRS);
+
+        let validated = issuer
+            .validate_issuable_documents(vec_nonempty![document])
+            .expect("an SD-JWT described by Credential Metadata should validate against it");
+
+        assert_eq!(validated.len().get(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_validate_issuable_documents_sd_jwt_credential_metadata_attribute_without_claim() {
+        let attestation_type = MOCK_ATTESTATION_TYPES[0];
+
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
+            "https://example.com/".parse().unwrap(),
+            vec![CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+                attestation_type.to_string(),
+                CredentialMetadata::new_example(&["first_name"]),
+            )],
+            Arc::new(MemorySessionStore::default()),
+        );
+
+        // The document also contains `family_name`, which the Credential Metadata does not describe.
+        let document = mock_issuable_document_with_attrs(Format::SdJwt, attestation_type, &MOCK_ATTRS);
+
+        let error = issuer
+            .validate_issuable_documents(vec_nonempty![document])
+            .expect_err("attributes not described by the Credential Metadata should not validate");
+
+        assert_matches!(
+            error,
+            IssuableDocumentError::AttributesError(AttributesError::AttributesWithoutClaim(_))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_validate_issuable_documents_sd_jwt_credential_metadata_missing_mandatory_claim() {
+        let attestation_type = MOCK_ATTESTATION_TYPES[0];
+
+        let credential_metadata = serde_json::from_value(serde_json::json!({
+            "claims": [
+                { "path": ["first_name"] },
+                { "path": ["family_name"], "mandatory": true },
+            ]
+        }))
+        .unwrap();
+
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
+            "https://example.com/".parse().unwrap(),
+            vec![CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+                attestation_type.to_string(),
+                credential_metadata,
+            )],
+            Arc::new(MemorySessionStore::default()),
+        );
+
+        // The document does not contain `family_name`, which the Credential Metadata describes as mandatory.
+        let document = mock_issuable_document_with_attrs(Format::SdJwt, attestation_type, &MOCK_ATTRS[..1]);
+
+        let error = issuer
+            .validate_issuable_documents(vec_nonempty![document])
+            .expect_err("a document without a mandatory claim of the Credential Metadata should not validate");
+
+        assert_matches!(
+            error,
+            IssuableDocumentError::AttributesError(AttributesError::MissingMandatoryAttribute(_))
+        );
+    }
 
     #[tokio::test]
     async fn test_signed_metadata() {

@@ -61,7 +61,7 @@ pub(crate) fn x5chain_from_header(header: &Header) -> Result<VecNonEmpty<Borrowi
 
     match value {
         Value::Bytes(bytes) => Ok(vec_nonempty![
-            BorrowingCertificate::from_der(bytes.clone()).map_err(CoseError::Certificate)?
+            BorrowingCertificate::from_der(bytes.clone()).map_err(CoseError::CertificateParse)?
         ]),
         Value::Array(items) => {
             if items.is_empty() {
@@ -73,7 +73,9 @@ pub(crate) fn x5chain_from_header(header: &Header) -> Result<VecNonEmpty<Borrowi
                 .map(|item| {
                     item.as_bytes()
                         .ok_or(CoseError::CertificateUnexpectedHeaderType)
-                        .and_then(|bytes| BorrowingCertificate::from_der(bytes.clone()).map_err(CoseError::Certificate))
+                        .and_then(|bytes| {
+                            BorrowingCertificate::from_der(bytes.clone()).map_err(CoseError::CertificateParse)
+                        })
                 })
                 .collect::<Result<Vec<_>, CoseError>>()?;
             certificates.try_into().map_err(|_| CoseError::EmptyCertificateChain)
@@ -194,7 +196,7 @@ impl<T> TypedCose<CoseSign1, T> {
                 time,
                 trust_anchors,
             )
-            .map_err(CoseError::Certificate)?;
+            .map_err(CoseError::CertificateVerify)?;
         self.verify_and_parse(certificate.public_key())
     }
 
@@ -213,7 +215,7 @@ impl<T> TypedCose<CoseSign1, T> {
             .verify_chain(x5chain.as_slice(), trust_anchors, certificate_usage, time)
             .await
             .map_err(|error| match error {
-                CertificateCrlVerificationError::Certificate(source) => CoseError::Certificate(source),
+                CertificateCrlVerificationError::CertificateVerify(source) => CoseError::CertificateVerify(source),
                 error => CoseError::CertificateCrl(error),
             })?;
         self.verify_and_parse(x5chain.first().public_key())

@@ -70,7 +70,7 @@ class RenewPidScreen extends StatelessWidget {
           : null,
       automaticallyImplyLeading: false,
       actions: [
-        const HelpIconButton(),
+        if (_showHelpIcon(state)) const HelpIconButton(),
         if (_showCloseButton(state)) CloseIconButton(onPressed: () => _stopRenewPid(context)),
       ],
       title: _buildTitle(context, state),
@@ -261,6 +261,16 @@ class RenewPidScreen extends StatelessWidget {
   }
 
   /// Determines whether to show the close button in the [WalletAppBar].
+  bool _showHelpIcon(RenewPidState state) {
+    return switch (state) {
+      RenewPidLoadingDigidUrl() => false,
+      RenewPidAwaitingDigidAuthentication() => false,
+      RenewPidVerifyingDigidAuthentication() => false,
+      RenewPidUpdatingCards() => false,
+      _ => true,
+    };
+  }
+
   bool _showCloseButton(RenewPidState state) {
     switch (state) {
       case RenewPidAwaitingDigidAuthentication():

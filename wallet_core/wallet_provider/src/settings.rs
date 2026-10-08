@@ -15,10 +15,10 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use crypto::server_keys::KeyPair;
+use crypto::server_keys::KeyPairError;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
 use derive_more::From;
 use derive_more::Into;
 use hsm::keys::HsmEcdsaKey;
@@ -304,7 +304,7 @@ pub enum WiaStatusListsSettingsError {
     ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
 
     #[error("incorrectly configured WIA status list key identifier or certificate: {0}")]
-    PrivateKey(#[from] CertificateError),
+    PrivateKey(#[from] KeyPairError),
 }
 
 impl WiaStatusListsSettings {

@@ -27,7 +27,6 @@ class DisclosureManager {
     // Look up the associated request
     final disclosureId = jsonPayload['id'] as String;
     final request = kDisclosureRequests.firstWhere((element) => element.id == disclosureId);
-    final requestOriginBaseUrl = request.relyingParty.webUrl ?? 'http://origin.org';
 
     // Check if all attributes are available
     final containsAllRequestedAttributes = _wallet.containsAttributes(
@@ -45,7 +44,6 @@ class DisclosureManager {
         disclosureOptions: requestedAttestations.map((it) => DisclosureOptions(field0: [it])).toList(),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,
-        requestOriginBaseUrl: requestOriginBaseUrl,
         requestPurpose: request.purpose.untranslated,
         requestType: isLoginRequest ? DisclosureType.Login : DisclosureType.Regular,
       );
@@ -61,7 +59,6 @@ class DisclosureManager {
         relyingParty: request.relyingParty,
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,
-        requestOriginBaseUrl: requestOriginBaseUrl,
         requestPurpose: request.purpose.untranslated,
         missingAttributes: missingAttributes.toList(),
       );

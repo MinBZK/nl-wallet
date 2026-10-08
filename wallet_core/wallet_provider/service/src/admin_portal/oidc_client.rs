@@ -479,20 +479,13 @@ mod tests {
             .expect("should build the URL");
 
         assert!(
-            url.as_str().starts_with(
-                &(metadata
-                    .oauth_metadata
-                    .authorization_endpoint
-                    .clone()
-                    .unwrap()
-                    .to_string()
-                    + "?")
-            )
+            url.as_str()
+                .starts_with(&(String::from(metadata.oauth_metadata.authorization_endpoint.unwrap()) + "?"))
         );
         let query: std::collections::HashMap<_, _> = url.query_pairs().into_owned().collect();
         assert_eq!(query["response_type"], "code");
         assert_eq!(query["client_id"], "test-client");
-        assert_eq!(query["redirect_uri"], redirect_uri.to_string());
+        assert_eq!(query["redirect_uri"], String::from(redirect_uri));
         assert_eq!(
             query["scope"].split(' ').collect::<HashSet<_>>(),
             HashSet::from(["openid", "profile"])

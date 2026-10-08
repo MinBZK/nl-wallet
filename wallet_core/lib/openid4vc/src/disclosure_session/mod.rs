@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+use attestation_data::organization::Organization;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
-use crypto::x509::BorrowingCertificate;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use mdoc::holder::disclosure::PartialMdoc;
@@ -77,7 +77,8 @@ pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;
     /// The identifiers of each [`NormalizedCredentialRequest`] returned are guaranteed to be unique.
     fn credential_requests(&self) -> &NormalizedCredentialRequests;
-    fn certificate(&self) -> &BorrowingCertificate;
+    /// Organization details from the validated registration certificate.
+    fn organization(&self) -> &Organization;
 
     async fn terminate(self) -> Result<Option<Url>, VpSessionError>;
     async fn disclose<K, W>(

@@ -21,8 +21,10 @@ public_url = 'http://localhost:8001/'
 # Default value: https://wallet.edi.rijksoverheid.nl
 wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 
-# Files containing SD-JWT Type Metadata documents for issued attestations
-metadata = ["com_example_address_metadata.json"]
+# Files containing SD-JWT VC Type Metadata documents for issued attestations. Note: only applicable to credential
+# configurations with the `dc+sd-jwt` credential format. This server issues mdocs only, so the list is empty; the
+# setting may also be left out entirely.
+type_metadata = []
 
 # The maximum amount of credentials a holder will be able to request, in the range 1-255
 batch_size = 10

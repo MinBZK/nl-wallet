@@ -28,9 +28,10 @@ wallet_redirect_uris = ["http://localhost:3004/return"]
 # Default value: https://wallet.edi.rijksoverheid.nl
 wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 
-# Files containing SD-JWT Type Metadata documents for issued attestations. Note: only applicable to credential
-# configurations with the `dc+sd-jwt` credential format.
-metadata = ["com_example_insurance_metadata.json"]
+# Files containing SD-JWT VC Type Metadata documents for issued attestations. Note: only applicable to credential
+# configurations with the `dc+sd-jwt` credential format. This server issues mdocs only, so the list is empty; the
+# setting may also be left out entirely.
+type_metadata = []
 
 # Maximum number of attestation copies the wallet may request per credential in a single batch
 batch_size = 10
@@ -84,6 +85,10 @@ attributes = { "com.example.insurance" = { type = "object", value = { product = 
 # * private_key: Base64 encoded DER format private key, or string
 # * certificate: Base64 encoded DER format certificate
 # * valid_days: How long are these attestations valid, in days
+# * credential_metadata: Path to a JSON file containing the Credential Metadata
+#   for this credential configuration. This is mandatory for "mso_mdoc". For
+#   "dc+sd-jwt" either provide this or SD-JWT VC Type Metadata through the
+#   top-level type_metadata setting, but not both.
 [credential_configurations."com.example.insurance"]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"

@@ -50,7 +50,10 @@ use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::authorizing_issuer::AuthorizingIssuer;
-use crate::credential_configurations::CredentialConfigurationParameters;
+use crate::credential_configurations::CredentialConfiguration;
+use crate::credential_configurations::CredentialConfigurationFormat;
+use crate::credential_configurations::CredentialConfigurationTypeMetadata;
+use crate::credential_configurations::CredentialConfigurations;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
@@ -279,11 +282,14 @@ where
         .map(|metadata| {
             let (attestation_type, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
 
-            (Format::SdJwt, attestation_type, metadata_documents)
+            CredentialConfigurationFormat::new_sd_jwt_type_metadata(
+                CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
+                    .expect("example type metadata should verify"),
+            )
         })
         .collect();
 
-    setup_mock_issuer_attestation_types_and_metadata(issuer_identifier, attestations, sessions)
+    setup_mock_issuer_with_metadata(issuer_identifier, attestations, sessions)
 }
 
 /// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
@@ -304,6 +310,45 @@ pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
+    let attestations = attestations
+        .into_iter()
+        .map(|(format, attestation_type, metadata_documents)| match format {
+            Format::MsoMdoc => {
+                let (normalized, _) = metadata_documents
+                    .clone()
+                    .into_normalized(&attestation_type)
+                    .expect("example type metadata should normalize");
+
+                CredentialConfigurationFormat::new_mdoc(
+                    attestation_type.clone(),
+                    CredentialMetadata::new_mdoc_example_from_type_metadata(&attestation_type, &normalized),
+                )
+            }
+            Format::SdJwt => CredentialConfigurationFormat::new_sd_jwt_type_metadata(
+                CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
+                    .expect("example type metadata should verify"),
+            ),
+        })
+        .collect();
+
+    setup_mock_issuer_with_metadata(issuer_identifier, attestations, sessions)
+}
+
+/// Create a mock [`Issuer`] whose credential configurations are described explicitly by the provided metadata.
+pub fn setup_mock_issuer_with_metadata<G>(
+    issuer_identifier: IssuerIdentifier,
+    attestations: Vec<CredentialConfigurationFormat>,
+    sessions: Arc<MemorySessionStore<IssuanceData, G>>,
+) -> (
+    MockIssuer<G>,
+    TrustAnchors,
+    KeyPair,
+    CertificateCrlVerifier<MockCrlFetcher>,
+    MockRegistrationCertificate,
+)
+where
+    G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+{
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let metadata_keypair = ca.generate_wrpac_issuer_mock_with_crl().unwrap();
     let issuance_keypair = ca.generate_issuer_mock().unwrap();
@@ -312,63 +357,51 @@ where
 
     let registration_certificate = MockRegistrationCertificate::new_issuer(
         metadata_keypair.certificate(),
-        attestations
-            .iter()
-            .map(|(format, attestation_type, _)| CredentialKind::new(*format, attestation_type.clone())),
+        attestations.iter().map(CredentialConfigurationFormat::credential_kind),
     );
 
-    let config_params = attestations
-        .into_iter()
-        .map(|(format, attestation_type, metadata_documents)| {
-            let config_id = format!("{attestation_type}_{format}");
+    let credential_configs = CredentialConfigurations::try_new(
+        attestations
+            .into_iter()
+            .map(|format| {
+                let config_id = format!("{}_{}", format.attestation_type(), format.format());
 
-            let credential_metadata = matches!(format, Format::MsoMdoc).then(|| {
-                let (normalized, _) = metadata_documents
-                    .clone()
-                    .into_normalized(&attestation_type)
-                    .expect("example type metadata should normalize");
+                let status_list_uri_path = config_id.replace(':', "-");
+                let status_list = MockObtainingStatusListService::new(
+                    format!("https://tsl.example.com/{status_list_uri_path}")
+                        .parse()
+                        .unwrap(),
+                );
 
-                CredentialMetadata::new_mdoc_example_from_type_metadata(&attestation_type, &normalized)
-            });
-
-            let type_metadata = matches!(format, Format::SdJwt).then_some(metadata_documents);
-
-            let status_list_uri_path = config_id.replace(':', "-");
-            let status_list = MockObtainingStatusListService::new(
-                format!("https://tsl.example.com/{status_list_uri_path}")
-                    .parse()
+                let config = CredentialConfiguration {
+                    scope: config_id.parse().unwrap(),
+                    format,
+                    key_pair: KeyPair::new_from_signing_key(
+                        issuance_keypair.private_key().clone(),
+                        issuance_keypair.certificate().clone(),
+                    )
                     .unwrap(),
-            );
+                    valid_days: Days::new(365),
+                    status_list,
+                };
 
-            let params = CredentialConfigurationParameters {
-                credential_kind: CredentialKind::new(format, attestation_type),
-                key_pair: KeyPair::new_from_signing_key(
-                    issuance_keypair.private_key().clone(),
-                    issuance_keypair.certificate().clone(),
-                )
-                .unwrap(),
-                valid_days: Days::new(365),
-                status_list,
-                type_metadata,
-                credential_metadata,
-            };
+                (config_id.into(), config)
+            })
+            .collect(),
+    )
+    .unwrap();
 
-            (config_id.into(), params)
-        })
-        .collect();
-
-    let issuer = MockIssuer::try_new(
+    let issuer = MockIssuer::new(
         issuer_identifier,
         metadata_keypair,
         RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
-        config_params,
+        credential_configs,
         trust_anchors.clone(),
         sessions,
         MemoryNonceStore::new(),
-    )
-    .unwrap();
+    );
 
     let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
 

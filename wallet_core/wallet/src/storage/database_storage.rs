@@ -1148,7 +1148,6 @@ where
         Self::combine_events(issuance_events, disclosure_events, vec![])
     }
 
-    // TODO (PVW-6111): Use registration certificate to distinguish between natural person and legal person
     async fn did_share_data_with_relying_party(&self, organization: &Organization) -> StorageResult<bool> {
         let select_statement = Query::select()
             .column((disclosure_event::Entity, disclosure_event::Column::Id))
@@ -1345,7 +1344,7 @@ fn create_attestation_copy_models(
                 let attestation_bytes: Vec<u8> = cbor_serialize(&issuer_signed)?;
 
                 let (status_uri, status_index) = match mso.status {
-                    Some(MdocStatus::StatusList(claim)) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    Some(MdocStatus::StatusList(claim)) => (Some(claim.uri.into()), Some(claim.idx)),
                     // `identifier_list` status not supported so no status list reference is stored (PVW-6106)
                     Some(MdocStatus::IdentifierList(_)) | None => (None, None),
                 };
@@ -1370,7 +1369,7 @@ fn create_attestation_copy_models(
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
 
                 let (status_uri, status_index) = match sd_jwt.into_claims().status {
-                    Some(StatusClaim::StatusList(claim)) => (Some(claim.uri.to_string()), Some(claim.idx)),
+                    Some(StatusClaim::StatusList(claim)) => (Some(claim.uri.into()), Some(claim.idx)),
                     None => (None, None),
                 };
 
@@ -3056,6 +3055,11 @@ pub(crate) mod tests {
         // Cancel event should exist
         assert_eq!(fetched_events.len(), 1);
         assert_eq!(fetched_events.first().unwrap().timestamp(), &timestamp);
+        assert_matches!(
+            &fetched_events[0],
+            WalletEvent::Disclosure { organization: stored_organization, .. }
+                if stored_organization.as_ref() == &organization
+        );
 
         // Still no data shared with RP
         assert!(!storage.did_share_data_with_relying_party(&organization).await.unwrap());

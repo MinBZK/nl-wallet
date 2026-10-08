@@ -558,7 +558,7 @@ pub async fn init_wallet_transfer() -> anyhow::Result<String> {
 
     let transfer_uri = wallet.init_transfer().await?;
 
-    Ok(transfer_uri.to_string())
+    Ok(transfer_uri.into())
 }
 
 #[flutter_api_error]
@@ -567,7 +567,7 @@ pub async fn pair_wallet_transfer(uri: String) -> anyhow::Result<()> {
 
     let mut wallet = wallet().write().await;
 
-    wallet.pair_transfer(&url).await?;
+    wallet.pair_transfer(url).await?;
 
     Ok(())
 }
