@@ -70,22 +70,6 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
-        "age_over_18"
-      ],
-      "display": [
-        {
-          "name": "Over 18",
-          "locale": "en-US"
-        },
-        {
-          "name": "18+",
-          "locale": "nl-NL"
-        }
-      ]
-    },
-    {
-      "path": [
-        "eu.europa.ec.eudi.pid.1",
         "nationality"
       ],
       "display": [

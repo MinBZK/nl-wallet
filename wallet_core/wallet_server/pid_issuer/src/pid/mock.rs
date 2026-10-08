@@ -16,7 +16,6 @@ use crate::pid::brp::client::BrpError;
 use crate::pid::brp::data::BrpPersons;
 use crate::pid::digid::DigidClient;
 use crate::pid::digid::Error as DigidError;
-use crate::pid::rulebook::constants::PID_AGE_OVER_18;
 use crate::pid::rulebook::constants::PID_BSN;
 use crate::pid::rulebook::constants::PID_FAMILY_NAME;
 use crate::pid::rulebook::constants::PID_GIVEN_NAME;
@@ -140,7 +139,6 @@ pub fn mock_pid_example() -> Attributes {
         (vec![PID_FAMILY_NAME], Attribute::Text("Jansen".to_string())),
         (vec![PID_GIVEN_NAME], Attribute::Text("Frouke".to_string())),
         (vec![PID_SD_JWT_BIRTH_DATE], Attribute::Text("2000-03-24".to_string())),
-        (vec![PID_AGE_OVER_18], Attribute::Bool(true)),
         (vec![PID_BSN], Attribute::Text("999991772".to_string())),
         (
             vec![PID_SD_JWT_NATIONALITIES],
@@ -194,7 +192,6 @@ pub fn mock_pid_mdoc_example() -> Attributes {
             vec![PID_MDOC_NAMESPACE, PID_MDOC_BIRTH_DATE],
             Attribute::Date(NaiveDate::from_ymd_opt(2000, 3, 24).unwrap()),
         ),
-        (vec![PID_MDOC_NAMESPACE, PID_AGE_OVER_18], Attribute::Bool(true)),
         (
             vec![PID_MDOC_NAMESPACE, PID_BSN],
             Attribute::Text("999991772".to_string()),

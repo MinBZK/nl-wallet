@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-aHil+xG/twbsmFZTAVRgwA0leS0gdsRrSoOv8fCdgW0=",
+  "extends#integrity": "sha256-esZaRHLFytDKOfTf9BkXKexLcq1A3fBRPhC44J7Yjw4=",
   "display": [
     {
       "locale": "en-US",
@@ -82,22 +82,6 @@
       ],
       "sd": "always",
       "mandatory": true
-    },
-    {
-      "path": ["age_over_18"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Over 18",
-          "description": "Whether the person is over 18"
-        },
-        {
-          "locale": "nl-NL",
-          "label": "18+",
-          "description": "Of de persoon 18+ is"
-        }
-      ],
-      "sd": "always"
     },
     {
       "path": ["nationalities"],

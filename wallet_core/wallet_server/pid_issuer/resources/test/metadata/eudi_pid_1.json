@@ -47,17 +47,6 @@
       "mandatory": true
     },
     {
-      "path": ["age_over_18"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Over 18",
-          "description": "Whether the person is over 18"
-        }
-      ],
-      "sd": "always"
-    },
-    {
       "path": ["nationalities"],
       "display": [
         {

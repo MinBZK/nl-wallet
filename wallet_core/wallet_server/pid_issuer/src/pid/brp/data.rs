@@ -6,7 +6,6 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde_with::skip_serializing_none;
 
-use crate::pid::rulebook::constants::PID_AGE_OVER_18;
 use crate::pid::rulebook::constants::PID_BSN;
 use crate::pid::rulebook::constants::PID_FAMILY_NAME;
 use crate::pid::rulebook::constants::PID_GIVEN_NAME;
@@ -58,9 +57,6 @@ pub struct BrpPerson {
     #[serde(rename = "geboorte")]
     birth: BrpBirth,
 
-    #[serde(rename = "leeftijd")]
-    age: u8,
-
     #[serde(rename = "nationaliteiten", default, skip_serializing_if = "Vec::is_empty")]
     nationalities: Vec<BrpNationality>,
 
@@ -69,10 +65,6 @@ pub struct BrpPerson {
 }
 
 impl BrpPerson {
-    fn is_over_18(&self) -> bool {
-        self.age >= 18
-    }
-
     pub fn bsn(&self) -> &str {
         &self.bsn
     }
@@ -118,7 +110,6 @@ impl BrpPerson {
     /// Everything but `birth_date` and `nationality`, since those have different key/value formats for mdoc and SD-JWT.
     fn common_attributes(self) -> (IndexMap<String, Attribute>, NaiveDate, Attribute) {
         let given_names = self.name.given_names.clone();
-        let is_over_18 = self.is_over_18();
         let family_name = self.name.into_name_with_prefix();
         let sex = self
             .gender
@@ -137,7 +128,6 @@ impl BrpPerson {
             vec![
                 Some((String::from(PID_FAMILY_NAME), Attribute::Text(family_name))),
                 given_names.map(|names| (String::from(PID_GIVEN_NAME), Attribute::Text(names))),
-                Some((String::from(PID_AGE_OVER_18), Attribute::Bool(is_over_18))),
                 Some((String::from(PID_BSN), Attribute::Text(self.bsn))),
                 sex.map(|sex| (PID_SEX.to_owned(), sex)),
                 place_of_birth.map(|attribute| (PID_PLACE_OF_BIRTH_GROUP.to_owned(), attribute)),
@@ -2512,13 +2502,6 @@ mod tests {
         assert!(brp_persons.persons.is_empty());
     }
 
-    #[test]
-    fn should_be_over_18() {
-        let brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
-        let brp_person = brp_persons.persons.first().unwrap();
-        assert!(brp_person.is_over_18());
-    }
-
     #[rstest]
     #[case("missing-bsn")]
     #[case("missing-family-name")]
@@ -2566,10 +2549,6 @@ mod tests {
                 "birthdate": {
                     "type": "text",
                     "value": "2000-03-24"
-                },
-                "age_over_18": {
-                    "type": "bool",
-                    "value": true
                 },
                 "bsn": {
                     "type": "text",
@@ -2662,10 +2641,6 @@ mod tests {
                         "birth_date": {
                             "type": "date",
                             "value": "2000-03-24"
-                        },
-                        "age_over_18": {
-                            "type": "bool",
-                            "value": true
                         },
                         "bsn": {
                             "type": "text",

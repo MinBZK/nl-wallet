@@ -20,7 +20,6 @@ pub fn pid_attestation_type(format: Format) -> &'static str {
 
 pub const PID_FAMILY_NAME: &str = "family_name";
 pub const PID_GIVEN_NAME: &str = "given_name";
-pub const PID_AGE_OVER_18: &str = "age_over_18";
 pub const PID_BSN: &str = "bsn";
 pub const PID_RECOVERY_CODE: &str = "recovery_code";
 pub const PID_SEX: &str = "sex";
