@@ -1557,7 +1557,7 @@ mod test {
                 result,
                 Err(WalletIssuanceError::IssuerRegistrationCertificate(
                     RegistrationCertificateError::Authorization(
-                        RegistrationCertificateAuthorizationError::UnauthorizedIssuance(kind)
+                        RegistrationCertificateAuthorizationError::UnauthorizedCredentialKind(kind)
                     )
                 )) if kind == CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string())
             );
@@ -2002,7 +2002,7 @@ mod test {
                 assert_matches!(
                     error,
                     WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::Authorization(
-                        RegistrationCertificateAuthorizationError::UnauthorizedIssuance(kind)
+                        RegistrationCertificateAuthorizationError::UnauthorizedCredentialKind(kind)
                     )) if kind == CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string())
                 );
             }

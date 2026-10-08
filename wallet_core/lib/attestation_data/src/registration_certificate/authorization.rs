@@ -15,11 +15,11 @@ use super::StatusValidatedRegistrationCertificate;
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateAuthorizationError {
     #[error("registration certificate does not authorize credential query `{0}`")]
-    UnauthorizedCredential(CredentialQueryIdentifier),
+    UnauthorizedCredentialQuery(CredentialQueryIdentifier),
     #[error("issuer registration certificate is missing provides_attestations")]
     MissingProvidesAttestations,
     #[error("registration certificate does not authorize issuance of credential `{0}`")]
-    UnauthorizedIssuance(CredentialKind),
+    UnauthorizedCredentialKind(CredentialKind),
 }
 
 impl StatusValidatedRegistrationCertificate {
@@ -36,7 +36,9 @@ impl StatusValidatedRegistrationCertificate {
                 .iter()
                 .any(|authorized| credential_kind_is_authorized(&kind, authorized))
             {
-                return Err(RegistrationCertificateAuthorizationError::UnauthorizedIssuance(kind));
+                return Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialKind(
+                    kind,
+                ));
             }
         }
 
@@ -65,7 +67,7 @@ fn validate_query_authorization(
             .iter()
             .any(|authorized| credential_query_is_authorized(credential_query, authorized))
         {
-            return Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(
+            return Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
                 credential_query.id.clone(),
             ));
         }
@@ -273,7 +275,9 @@ mod tests {
 
         assert_matches!(
             validate_query_authorization(&query, &[]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -320,7 +324,7 @@ mod tests {
 
         assert_matches!(
             validate_query_authorization(&query, &[authorized_sd_jwt()]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(id))
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(id))
                 if id.as_ref() == "address"
         );
     }
@@ -347,7 +351,9 @@ mod tests {
 
         assert_matches!(
             validate_query_authorization(&query, &[authorized_sd_jwt()]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -372,7 +378,9 @@ mod tests {
 
         assert_matches!(
             validate_query_authorization(&query, &authorized),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -407,7 +415,9 @@ mod tests {
 
         assert_matches!(
             validate_query_authorization(&query, &[authorized]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -461,7 +471,9 @@ mod tests {
         validate_query_authorization(&query, &[fully_authorized]).unwrap();
         assert_matches!(
             validate_query_authorization(&query, &[partially_authorized]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -528,7 +540,9 @@ mod tests {
 
         assert_matches!(
             validate_query_authorization(&query, &[authorized]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 }

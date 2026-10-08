@@ -309,7 +309,7 @@ mod tests {
             assert_matches!(
                 result,
                 Err(RegistrationCertificateError::Authorization(
-                    RegistrationCertificateAuthorizationError::UnauthorizedIssuance(kind)
+                    RegistrationCertificateAuthorizationError::UnauthorizedCredentialKind(kind)
                 )) if kind == CredentialKind::new(format, "urn:example:pid".to_string())
             );
         } else {
@@ -417,7 +417,7 @@ mod tests {
         assert_matches!(
             error,
             RegistrationCertificateError::Authorization(
-                RegistrationCertificateAuthorizationError::UnauthorizedCredential(_)
+                RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(_)
             )
         );
     }
