@@ -311,8 +311,10 @@ impl<K, L> CredentialConfigurations<K, L> {
             .map(|(config_id, config)| {
                 let scope = config.scope.clone();
 
-                // Note that we decide to only support the `attestation` proof type in the Issuer, as the `jwt` proof
-                // type does not add significant additional benefits.
+                // Even though support for both the `attestation` and `jwt` proof types is mandatory, we decide to only
+                // implement the `attestation` proof type here, as this Issuer implementation need not be fully
+                // compliant. The `jwt` proof type does not add significant additional benefits over the `attestation`
+                // proof type.
                 let proof_types = HashSet::from([ProofType::Attestation]);
 
                 let credential_configuration = match &config.format {
