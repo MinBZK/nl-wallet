@@ -1,20 +1,15 @@
 use std::error::Error;
 
 use chrono::DateTime;
-use sea_orm::ActiveModelTrait;
-use sea_orm::DatabaseConnection;
-use sea_orm::DbErr;
+use chrono::Utc;
 use sea_orm::JsonValue;
-use sea_orm::Set;
-use sea_orm::prelude::DateTimeWithTimeZone;
-use sea_orm::sqlx::types::chrono::Utc;
 use tracing::Level;
 use tracing::span;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use uuid::Uuid;
 
-use crate::entity::audit_log;
+use crate::repository::AuditLogRepository;
 
 pub trait FromAuditLogError {
     fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self;
@@ -35,18 +30,20 @@ pub trait AuditLog {
         E: FromAuditLogError;
 }
 
-pub struct PostgresAuditLog<UG, TG = TimeGenerator> {
-    pub db_connection: DatabaseConnection,
+#[derive(Clone)]
+pub struct DbAuditLog<R, UG, TG = TimeGenerator> {
+    pub repository: R,
     pub time_generator: TG,
     pub uuid_generator: UG,
 }
 
-impl<UG, TG> AuditLog for PostgresAuditLog<UG, TG>
+impl<R, UG, TG> AuditLog for DbAuditLog<R, UG, TG>
 where
+    R: AuditLogRepository,
     TG: Generator<DateTime<Utc>>,
     UG: Generator<Uuid>,
 {
-    type Error = DbErr;
+    type Error = R::Error;
 
     /// Audit operation.
     ///
@@ -75,13 +72,21 @@ where
             audit_correlation_id = correlation_id.to_string()
         );
 
-        self.audit_operation_start(operation_name, parameters, user_id.map(Into::into), correlation_id)
+        self.repository
+            .audit_operation_start(
+                self.time_generator.generate(),
+                operation_name,
+                parameters,
+                user_id.map(Into::into),
+                correlation_id,
+            )
             .await
             .map_err(|e| E::from_audit_log_error(Box::new(e)))?;
 
         let result = operation().await;
 
-        self.audit_operation_result(correlation_id, &result)
+        self.repository
+            .audit_operation_result(self.time_generator.generate(), correlation_id, result.is_ok())
             .await
             .map_err(|e| E::from_audit_log_error(Box::new(e)))?;
 
@@ -89,74 +94,13 @@ where
     }
 }
 
-impl<UG, TG> PostgresAuditLog<UG, TG>
-where
-    TG: Generator<DateTime<Utc>>,
-    UG: Generator<Uuid>,
-{
-    async fn audit_operation_start(
-        &self,
-        operation_name: String,
-        parameters: JsonValue,
-        user_id: Option<String>,
-        correlation_id: Uuid,
-    ) -> Result<(), DbErr> {
-        let timestamp: DateTimeWithTimeZone = self.time_generator.generate().into();
-
-        let audit_start = audit_log::ActiveModel {
-            correlation_id: Set(correlation_id),
-            timestamp: Set(timestamp),
-            operation: Set(Some(operation_name)),
-            params: Set(Some(parameters.clone())),
-            user_id: Set(user_id),
-            ..Default::default()
-        };
-
-        audit_start.insert(&self.db_connection).await.map_err(|error| {
-            // Log the audit error
-            tracing::debug!(
-                audit_timestamp = %timestamp,
-                audit_parameters = %parameters,
-                "error while auditing start of operation: {error}",
-            );
-            error
-        })?;
-
-        Ok(())
-    }
-
-    async fn audit_operation_result<T, E>(&self, correlation_id: Uuid, result: &Result<T, E>) -> Result<(), DbErr> {
-        let timestamp: DateTimeWithTimeZone = self.time_generator.generate().into();
-        let is_success = result.is_ok();
-
-        let audit_result = audit_log::ActiveModel {
-            correlation_id: Set(correlation_id),
-            timestamp: Set(timestamp),
-            is_success: Set(Some(is_success)),
-            ..Default::default()
-        };
-
-        audit_result.insert(&self.db_connection).await.map_err(|error| {
-            // Log the audit error
-            tracing::debug!(
-                audit_timestamp = %timestamp,
-                audit_operation_result = is_success,
-                "error while auditing result of operation: {error}",
-            );
-            error
-        })?;
-
-        Ok(())
-    }
-}
-
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use std::convert::Infallible;
 
     use sea_orm::JsonValue;
 
-    use crate::model::AuditLog;
+    use super::AuditLog;
 
     pub struct MockAuditLog;
 
@@ -174,6 +118,110 @@ pub mod mock {
             F: AsyncFnOnce() -> Result<T, E>,
         {
             operation().await
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+    use std::error::Error;
+    use std::sync::Mutex;
+
+    use chrono::DateTime;
+    use chrono::Utc;
+    use sea_orm::JsonValue;
+    use serde_json::json;
+    use utils::generator::TimeGenerator;
+    use utils::generator::UuidV4AndTimeGenerator;
+    use uuid::Uuid;
+
+    use super::AuditLog;
+    use super::DbAuditLog;
+    use super::FromAuditLogError;
+    use crate::repository::AuditLogRepository;
+
+    #[derive(Debug, thiserror::Error)]
+    #[error("test error")]
+    pub struct MockError;
+
+    impl FromAuditLogError for MockError {
+        fn from_audit_log_error(_: Box<dyn Error + Send + Sync>) -> Self {
+            Self
+        }
+    }
+
+    #[derive(Default)]
+    pub struct MockAuditLogRepository {
+        pub events: Mutex<Vec<(Uuid, Option<bool>)>>,
+        pub fail_start: bool,
+        pub fail_result: bool,
+    }
+
+    impl AuditLogRepository for MockAuditLogRepository {
+        type Error = MockError;
+
+        async fn audit_operation_start(
+            &self,
+            _: DateTime<Utc>,
+            operation_name: String,
+            parameters: JsonValue,
+            user_id: Option<String>,
+            correlation_id: Uuid,
+        ) -> Result<(), Self::Error> {
+            assert_eq!(operation_name, "test");
+            assert_eq!(parameters, json!({"input": 42}));
+            assert_eq!(user_id.as_deref(), Some("user"));
+            self.events.lock().unwrap().push((correlation_id, None));
+            if self.fail_start { Err(MockError) } else { Ok(()) }
+        }
+
+        async fn audit_operation_result(
+            &self,
+            _: DateTime<Utc>,
+            correlation_id: Uuid,
+            is_success: bool,
+        ) -> Result<(), Self::Error> {
+            self.events.lock().unwrap().push((correlation_id, Some(is_success)));
+            if self.fail_result { Err(MockError) } else { Ok(()) }
+        }
+    }
+
+    #[rstest::rstest]
+    #[tokio::test]
+    async fn test_repository_audit(
+        #[values(true, false)] operation_success: bool,
+        #[values(true, false)] fail_start: bool,
+        #[values(true, false)] fail_result: bool,
+    ) {
+        let audit_log = DbAuditLog {
+            repository: MockAuditLogRepository {
+                events: Default::default(),
+                fail_start,
+                fail_result,
+            },
+            time_generator: TimeGenerator,
+            uuid_generator: UuidV4AndTimeGenerator,
+        };
+        let called = RefCell::new(false);
+        let result = audit_log
+            .audit("test", json!({"input": 42}), Some("user"), async || {
+                assert_eq!(audit_log.repository.events.lock().unwrap().len(), 1);
+                *called.borrow_mut() = true;
+                if operation_success { Ok(42) } else { Err(MockError) }
+            })
+            .await;
+
+        assert_eq!(
+            result.ok(),
+            (operation_success && !fail_start && !fail_result).then_some(42)
+        );
+        assert_eq!(*called.borrow(), !fail_start);
+        let events = audit_log.repository.events.lock().unwrap();
+        assert_eq!(events.len(), if fail_start { 1 } else { 2 });
+        if !fail_start {
+            assert_eq!(events[0].0, events[1].0);
+            assert_eq!(events[1].1, Some(operation_success));
         }
     }
 }

@@ -1,7 +1,8 @@
 use std::error::Error;
 
 use android_attest::root_public_key::RootPublicKey;
-use audit_log::model::PostgresAuditLog;
+use audit_log::model::DbAuditLog;
+use audit_log::repository::PostgresAuditLogRepository;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
@@ -64,7 +65,7 @@ type ProductionUserState = UserState<
 
 pub struct RouterState<GRC, PIC> {
     pub account_server: AccountServer<GRC, PIC>,
-    pub audit_log: PostgresAuditLog<UuidV7Generator>,
+    pub audit_log: DbAuditLog<PostgresAuditLogRepository, UuidV7Generator>,
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
@@ -199,8 +200,10 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
 
         let audit_db = Db::new_connection(settings.audit_log.url, settings.audit_log.options).await?;
 
-        let audit_log = PostgresAuditLog {
-            db_connection: audit_db,
+        let audit_log = DbAuditLog {
+            repository: PostgresAuditLogRepository {
+                db_connection: audit_db,
+            },
             time_generator: TimeGenerator,
             uuid_generator: UuidV7Generator,
         };
