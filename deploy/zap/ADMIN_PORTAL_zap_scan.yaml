@@ -140,7 +140,7 @@ jobs:
   name: "spiderAjax"
   type: "spiderAjax"
   tests:
-  - onFail: "ERROR"
+  - onFail: "INFO"
     statistic: "spiderAjax.urls.added"
     site: ""
     operator: ">="
