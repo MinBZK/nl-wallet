@@ -65,6 +65,6 @@ class HelpTests : TestBase() {
         helpAndInfoScreen.clickBottomBackButton()
         Thread.sleep(ANIMATION_SETTLE_MILLIS)
         helpAndInfoScreen.clickBottomBackButton()
-        assertTrue(menuScreen.menuListButtonsVisible(), "Menu screen not visible")
+        assertTrue(menuScreen.menuVisible(), "Menu screen not visible")
     }
 }

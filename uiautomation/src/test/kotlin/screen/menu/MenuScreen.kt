@@ -12,10 +12,13 @@ class MenuScreen : MobileActions() {
     private val logoutButton = l10n.getString("menuScreenLockCta")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
     private val browserTestButton = l10n.getString("menuScreenBrowserCta")
+    private val menuHeader = l10n.getString("menuScreenTitle")
 
     fun menuListButtonsVisible() =
         elementWithTextVisible(helpAndInfoButton) && elementWithTextVisible(historyButton) && elementWithTextVisible(settingsButton) &&
             elementWithTextVisible(feedbackButton) && elementWithTextVisible(aboutButton)
+
+    fun menuVisible() = elementWithTextVisible(bottomBackButton) && elementWithTextVisible(menuHeader)
 
     fun logoutButtonVisible(): Boolean {
         scrollToElementWithText(logoutButton)
