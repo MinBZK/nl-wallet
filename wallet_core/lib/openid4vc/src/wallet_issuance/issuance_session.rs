@@ -539,12 +539,6 @@ impl SupportedConfigurations {
         }
     }
 
-    /// Whether the offered Credential Configurations contain Credential Identifiers, i.e. whether the issuer sent
-    /// `authorization_details` in the Token Response.
-    fn has_credential_ids(&self) -> bool {
-        matches!(self, Self::WithIdentifiers(_))
-    }
-
     /// Create an [`OfferedCredential`] for every offered Credential Configuration or, if applicable, every offered
     /// Credential Identifier.
     fn into_offered_credential_set(self) -> NESet<OfferedCredential> {
@@ -582,7 +576,7 @@ impl SupportedConfigurations {
         // If the issuer did not send `authorization_details`, the offered credentials do not contain credential
         // identifiers, so match every preview against its `config_id` and `format` only. Otherwise, match every preview
         // exactly against its `config_id`, `credential_id` and `format`.
-        let match_credential_id = self.has_credential_ids();
+        let has_credential_ids = matches!(self, Self::WithIdentifiers(_));
 
         // Convert to a regular set so that matched offered credentials can be removed from it.
         let mut remaining = HashSet::from(self.into_offered_credential_set());
@@ -590,7 +584,7 @@ impl SupportedConfigurations {
         let (offered_credentials, excess_identifiers): (Vec<_>, Vec<_>) =
             credential_previews.into_iter().partition_map(|preview| {
                 let candidate = OfferedCredential {
-                    credential_id: match_credential_id.then(|| preview.credential_id.clone()),
+                    credential_id: has_credential_ids.then(|| preview.credential_id.clone()),
                     config_id: preview.config_id,
                     format: preview.format,
                 };
