@@ -206,7 +206,7 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
         .no_zstd()
         .no_deflate()
         .tls_built_in_root_certs(true)
-        .min_tls_version(Version::TLS_1_2)
+        .min_tls_version(Version::TLS_1_3)
 }
 
 /// Create a [`ClientBuilder`] with sensible defaults that is TLS-only.
