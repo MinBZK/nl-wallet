@@ -1339,7 +1339,15 @@
     "settingsScreenShowRevocationCodeCta": "Bekijk je verwijder-code",
     "settingsScreenTitle": "Instellingen en beveiliging",
     "settingsScreenTransferWalletCta": "NL Wallet verplaatsen",
-    "setupBiometricsPageDescription": "Je pincode gebruik je voor het delen van gegevens. Gezicht-scan of vingerafdruk kun je alleen gebruiken om de app sneller te openen.",
+    "setupBiometricsPageDescription": "Met {supportedBiometrics} open je NL Wallet sneller.\nJe gebruikt nog steeds je pincode als je gegevens deelt.",
+    "@setupBiometricsPageDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "setupBiometricsPageEnableCta": "Zet aan",
     "setupBiometricsPageLocalizedReason": "Om de app te openen",
     "setupBiometricsPageSkipCta": "Overslaan",

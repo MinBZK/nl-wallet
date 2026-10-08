@@ -245,6 +245,6 @@ async fn rejects_missing_intermediate_certificate() {
             &TimeGenerator,
             Some(CertificateUsage::Mdl),
         ),
-        Err(CoseError::Certificate(_))
+        Err(CoseError::CertificateVerify(_))
     ));
 }

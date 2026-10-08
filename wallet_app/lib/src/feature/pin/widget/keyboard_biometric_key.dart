@@ -36,7 +36,7 @@ class KeyboardBiometricKey extends StatelessWidget {
                     const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                   ),
                 ),
-                icon: Icon(biometrics.icon),
+                icon: Icon(biometrics.icon(context)),
               ),
             );
           },

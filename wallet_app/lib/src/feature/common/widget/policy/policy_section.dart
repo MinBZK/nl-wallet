@@ -23,31 +23,12 @@ class PolicySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final storageDuration = policy.storageDuration;
     return Column(
       children: [
-        if (storageDuration != null)
-          PolicyRow(
-            icon: Icons.access_time_outlined,
-            title: context.l10n.generalPolicyDataRetentionDuration(storageDuration.inDays),
-          ),
-        PolicyRow(
-          icon: Icons.share_outlined,
-          title: policy.dataIsShared
-              ? context.l10n.generalPolicyDataWillBeShared
-              : context.l10n.generalPolicyDataWillNotBeShared,
-        ),
         if (addSignatureRow)
           PolicyRow(
             icon: Icons.security_outlined,
             title: context.l10n.generalPolicyDataIsSignature,
-          ),
-        if (storageDuration != null && storageDuration.inDays > 0)
-          PolicyRow(
-            icon: Icons.delete_outline,
-            title: policy.deletionCanBeRequested
-                ? context.l10n.generalPolicyDataCanBeDeleted
-                : context.l10n.generalPolicyDataCanNotBeDeleted,
           ),
         Align(
           alignment: AlignmentDirectional.centerStart,

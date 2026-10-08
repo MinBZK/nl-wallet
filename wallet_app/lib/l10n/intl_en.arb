@@ -1343,7 +1343,15 @@
     "settingsScreenShowRevocationCodeCta": "View your deletion code",
     "settingsScreenTitle": "Settings and security",
     "settingsScreenTransferWalletCta": "Move NL Wallet",
-    "setupBiometricsPageDescription": "You use your PIN code to share data. Face scan or fingerprint is only for opening the app faster.",
+    "setupBiometricsPageDescription": "With {supportedBiometrics}, you can open NL Wallet faster.\nYou still use your PIN when you share your data.",
+    "@setupBiometricsPageDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "setupBiometricsPageEnableCta": "Enable",
     "setupBiometricsPageLocalizedReason": "To unlock the app",
     "setupBiometricsPageSkipCta": "Skip",

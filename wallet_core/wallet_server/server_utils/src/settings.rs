@@ -17,8 +17,9 @@ use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateParseError;
 use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateVerifyError;
 use dcql::Query;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
@@ -185,9 +186,9 @@ pub enum CertificateVerificationError {
     #[error("missing trust anchors, expected at least 1")]
     MissingTrustAnchors,
     #[error("invalid certificate `{1}`: {0}")]
-    InvalidCertificate(#[source] CertificateError, String),
+    InvalidCertificate(#[source] CertificateVerifyError, String),
     #[error("invalid key pair `{1}`: {0}")]
-    InvalidKeyPair(#[source] CertificateError, String),
+    InvalidKeyPair(#[source] CertificateParseError, String),
     #[error("invalid organization in certificate `{1}`: {0}")]
     InvalidOrganization(#[source] OrganizationError, String),
 }

@@ -69,7 +69,7 @@ class SettingsScreen extends StatelessWidget {
               subtitle: Text.rich(
                 context.l10n.settingsScreenSetupBiometricsNotSupportedSubtitle.toTextSpan(context),
               ).takeIf((_) => !biometricsSupported),
-              leftIcon: Icon(biometrics.icon),
+              leftIcon: Icon(biometrics.icon(context)),
               onPressed: biometricsSupported
                   ? () => Navigator.pushNamed(context, WalletRoutes.biometricsSettingsRoute)
                   : null,

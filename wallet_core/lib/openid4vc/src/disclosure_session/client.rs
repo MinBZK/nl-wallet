@@ -225,7 +225,7 @@ where
                 &TimeGenerator,
             )
             .await
-            .map(|()| (auth_request, selected_encryption_algorithm))
+            .map(|registration| (auth_request, selected_encryption_algorithm, (&registration).into()))
             .map_err(|error| {
                 VpVerifierError::AuthRequestValidation(AuthRequestValidationError::RegistrationCertificate(Box::new(
                     error,
@@ -234,7 +234,7 @@ where
             Err(error) => Err(error),
         };
 
-        let (auth_request, selected_encryption_algorithm) = match (auth_request_result, response_uri) {
+        let (auth_request, selected_encryption_algorithm, organization) = match (auth_request_result, response_uri) {
             (Err(error), Some(response_uri)) => {
                 return Err(VpSessionError::Verifier(
                     self.report_error_back(response_uri, state, error).await,
@@ -284,7 +284,7 @@ where
         let session = VpDisclosureSession::new(
             self.client.clone(),
             source_session_type,
-            certificate,
+            organization,
             auth_request,
             selected_encryption_algorithm,
         );
@@ -561,10 +561,7 @@ mod tests {
             }
         );
 
-        assert_eq!(
-            disclosure_session.certificate(),
-            verifier_session.key_pair.certificate()
-        );
+        assert_eq!(disclosure_session.organization().display_name, "Mock verifier");
 
         // Create an attestation and disclose it.
         let ca = Ca::generate_issuer_mock_ca().unwrap();

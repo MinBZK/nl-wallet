@@ -14,10 +14,15 @@ use super::organization::Organization;
 use crate::errors::FlutterApiError;
 
 pub struct RequestPolicy {
-    pub data_storage_duration_in_minutes: Option<u64>,
-    pub data_shared_with_third_parties: bool,
-    pub data_deletion_possible: bool,
-    pub policy_url: String,
+    pub policy_url: Option<String>,
+}
+
+impl RequestPolicy {
+    pub(super) fn new(policy_url: Option<&Url>) -> Self {
+        Self {
+            policy_url: policy_url.map(ToString::to_string),
+        }
+    }
 }
 
 pub struct MissingAttribute {
@@ -73,7 +78,6 @@ pub enum StartDisclosureResult {
         shared_data_with_relying_party_before: bool,
         session_type: DisclosureSessionType,
         request_purpose: Vec<LocalizedString>,
-        request_origin_base_url: String,
         request_type: DisclosureType,
     },
     RequestAttributesMissing {
@@ -82,7 +86,6 @@ pub enum StartDisclosureResult {
         shared_data_with_relying_party_before: bool,
         session_type: DisclosureSessionType,
         request_purpose: Vec<LocalizedString>,
-        request_origin_base_url: String,
     },
 }
 
@@ -120,17 +123,35 @@ impl From<wallet::attestation_data::DisclosureType> for DisclosureType {
     }
 }
 
+pub(super) fn request_purpose(organization: &wallet::attestation_data::Organization) -> Vec<LocalizedString> {
+    match &organization.purpose {
+        Some(purpose) => purpose
+            .iter()
+            .map(|translation| LocalizedString {
+                language: translation.lang.clone(),
+                value: translation.value.clone(),
+            })
+            .collect(),
+        // TODO (PVW-6052): Remove these hardcoded translations once close proximity disclosure uses WRPRC.
+        None => vec![
+            LocalizedString {
+                language: "en".into(),
+                value: "Disclosure".into(),
+            },
+            LocalizedString {
+                language: "nl".into(),
+                value: "Onthullen".into(),
+            },
+        ],
+    }
+}
+
 impl From<DisclosureProposalPresentation> for StartDisclosureResult {
     fn from(proposal: DisclosureProposalPresentation) -> Self {
         StartDisclosureResult::Request {
+            request_purpose: request_purpose(&proposal.organization),
+            policy: RequestPolicy::new(proposal.organization.privacy_policy_url.as_ref()),
             relying_party: proposal.organization.into(),
-            // TODO (PVW-6111): Replace with fields from registration certificate
-            policy: RequestPolicy {
-                data_storage_duration_in_minutes: Some(525600),
-                data_shared_with_third_parties: false,
-                data_deletion_possible: false,
-                policy_url: "https://example.com".to_string(),
-            },
             disclosure_options: proposal
                 .attestation_options
                 .into_iter()
@@ -138,19 +159,6 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
                 .collect(),
             shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
             session_type: proposal.session_type.into(),
-            // TODO (PVW-6111): Replace with fields from registration certificate
-            request_purpose: vec![
-                LocalizedString {
-                    language: "en".into(),
-                    value: "Disclosure".into(),
-                },
-                LocalizedString {
-                    language: "nl".into(),
-                    value: "Onthullen".into(),
-                },
-            ],
-            // TODO (PVW-6111): Replace with fields from registration certificate
-            request_origin_base_url: "https://example.com".into(),
             request_type: proposal.disclosure_type.into(),
         }
     }
@@ -170,22 +178,11 @@ impl From<AttributesNotAvailable> for StartDisclosureResult {
             .collect();
 
         StartDisclosureResult::RequestAttributesMissing {
+            request_purpose: request_purpose(&value.organization),
             relying_party: (*value.organization).into(),
             missing_attributes,
             shared_data_with_relying_party_before: value.shared_data_with_relying_party_before,
             session_type: value.session_type.into(),
-            // TODO (PVW-6111): Replace with fields from registration certificate
-            request_purpose: vec![
-                LocalizedString {
-                    language: "en".into(),
-                    value: "Disclosure".into(),
-                },
-                LocalizedString {
-                    language: "nl".into(),
-                    value: "Onthullen".into(),
-                },
-            ],
-            request_origin_base_url: "https://example.com".into(),
         }
     }
 }
