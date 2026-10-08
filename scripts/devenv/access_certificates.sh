@@ -2,8 +2,8 @@
 
 declare -A access_certificates=(
     [(wp_trusted_list,name)]='NL Wallet'
-    [(wp_trusted_list,legal_name)]='Stichting ICTU'
-    [(wp_trusted_list,oid)]='NTRNL-27381312'
+    [(wp_trusted_list,legal_name)]='Ministerie van Economische Zaken'
+    [(wp_trusted_list,oid)]='NTRNL-52813150'
 
     [(pid,name)]='RvIG'
     [(pid,legal_name)]='Rijksdienst voor Identiteitsgegevens'

@@ -1123,8 +1123,8 @@ mod tests {
             error,
             IssuerSettingsValidationError::CertificatesSubjectNameMismatch { config_id, attestation, status_list }
                 if config_id.as_ref() == "pid_sdjwt" &&
-                    attestation == "2.5.4.3=DAtDZXJ0IGlzc3Vlcg,2.5.4.6=DAJOTA,2.5.4.10=DBBDZXJ0IGlzc3VlciBCLlYu,1.3.6.1.1.15=DA5OVFJOTC05OTMzMzY3Mw".to_string().into() &&
-                    status_list == "2.5.4.3=DAlkaWZmZXJlbnQ,2.5.4.6=DAJOTA,2.5.4.10=DA5kaWZmZXJlbnQgQi5WLg,1.3.6.1.1.15=DA5OVFJOTC0xOTU3MDE4Ng".to_string().into()
+                    attestation == "2.5.4.3=DAtDZXJ0IGlzc3Vlcg,2.5.4.6=EwJOTA,2.5.4.10=DBBDZXJ0IGlzc3VlciBCLlYu,2.5.4.97=DA5OVFJOTC05OTMzMzY3Mw".to_string().into() &&
+                    status_list == "2.5.4.3=DAlkaWZmZXJlbnQ,2.5.4.6=EwJOTA,2.5.4.10=DA5kaWZmZXJlbnQgQi5WLg,2.5.4.97=DA5OVFJOTC0xOTU3MDE4Ng".to_string().into()
         );
     }
 

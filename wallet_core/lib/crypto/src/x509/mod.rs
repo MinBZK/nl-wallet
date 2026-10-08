@@ -482,7 +482,7 @@ mod tests {
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
         assert_eq!(
-            "2.5.4.3=DARteWNh,2.5.4.6=DAJOTA",
+            "2.5.4.3=DARteWNh,2.5.4.6=EwJOTA",
             certificate.to_canonical_distinguished_name().unwrap().as_ref()
         );
 
@@ -492,8 +492,8 @@ mod tests {
 
     #[rstest]
     #[case::issuer(Some(CertificateUsage::Mdl), Some(0b0000_0001))]
-    #[case::status_list(Some(CertificateUsage::StatusListSigning), None)]
-    #[case::wia(Some(CertificateUsage::Wia), None)]
+    #[case::status_list(Some(CertificateUsage::StatusListSigning), Some(0b0000_0001))]
+    #[case::wia(Some(CertificateUsage::Wia), Some(0b0000_0001))]
     #[case::without_eku(None, None)]
     fn generated_leaf_key_usage(#[case] usage: Option<CertificateUsage>, #[case] expected_flags: Option<u16>) {
         let ca = Ca::generate_mock();
@@ -508,7 +508,8 @@ mod tests {
             .unwrap();
         let key_usage = key_pair.certificate().x509_certificate().key_usage().unwrap();
 
-        // Table B.3 requires critical digitalSignature only for mDL
+        // ISO/IEC 18013-5:2021, Table B.3 (mdoc signers) and ETSI EN 319 412-2, section 4.3.2 (status list and WIA
+        // signers) require a critical digitalSignature; leaves without extended key usage get no key usage.
         assert_eq!(
             key_usage.as_ref().map(|extension| extension.value.flags),
             expected_flags
