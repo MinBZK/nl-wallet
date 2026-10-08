@@ -6,7 +6,7 @@
     {
       "locale": "nl-NL",
       "name": "De ZorgIDentiteit",
-      "description": "Dezi-verklaring uitgegeven aan zorgmedewerkers t.b.v verificatie van de zorgidentiteit.",
+      "description": "Dezi-verklaring uitgegeven aan zorgmedewerkers t.b.v. verificatie van de zorgidentiteit.",
       "rendering": {
         "simple": {
           "logo": {
