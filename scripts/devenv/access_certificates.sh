@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 declare -A access_certificates=(
-    [(wp_trusted_list,name)]='NL Wallet'
-    [(wp_trusted_list,legal_name)]='Ministerie van Economische Zaken'
-    [(wp_trusted_list,oid)]='NTRNL-52813150'
+    [(wptl,name)]='NL Wallet'
+    [(wptl,legal_name)]='Ministerie van Economische Zaken'
+    [(wptl,oid)]='NTRNL-52813150'
 
     [(pid,name)]='RvIG'
     [(pid,legal_name)]='Rijksdienst voor Identiteitsgegevens'

@@ -400,9 +400,9 @@ function generate_wia_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
-        --common-name "${access_certificates[(wp_trusted_list,name)]}" \
-        --organization-name "${access_certificates[(wp_trusted_list,legal_name)]}" \
-        --organization-id "${access_certificates[(wp_trusted_list,oid)]}" \
+        --common-name "${access_certificates[(wptl,name)]}" \
+        --organization-name "${access_certificates[(wptl,legal_name)]}" \
+        --organization-id "${access_certificates[(wptl,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_signing" \
         --force
 
@@ -423,9 +423,9 @@ function generate_key_attestation_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/key_attestation_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
-        --common-name "${access_certificates[(wp_trusted_list,name)]}" \
-        --organization-name "${access_certificates[(wp_trusted_list,legal_name)]}" \
-        --organization-id "${access_certificates[(wp_trusted_list,oid)]}" \
+        --common-name "${access_certificates[(wptl,name)]}" \
+        --organization-name "${access_certificates[(wptl,legal_name)]}" \
+        --organization-id "${access_certificates[(wptl,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/key_attestation_signing" \
         --force
 
@@ -446,9 +446,9 @@ function generate_wia_tsl_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
-        --common-name "${access_certificates[(wp_trusted_list,name)]}" \
-        --organization-name "${access_certificates[(wp_trusted_list,legal_name)]}" \
-        --organization-id "${access_certificates[(wp_trusted_list,oid)]}" \
+        --common-name "${access_certificates[(wptl,name)]}" \
+        --organization-name "${access_certificates[(wptl,legal_name)]}" \
+        --organization-id "${access_certificates[(wptl,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_tsl" \
         --force
 
