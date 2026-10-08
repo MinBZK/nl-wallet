@@ -172,6 +172,10 @@ impl<R> AdminPortalService<R> {
         }
     }
 
+    pub fn repository(&self) -> &R {
+        &self.repository
+    }
+
     pub fn session_ttl(&self) -> Duration {
         self.session_ttl
     }

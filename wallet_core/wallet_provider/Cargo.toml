@@ -96,6 +96,7 @@ wscd.path = "../lib/wscd"
 token_status_list = { path = "../lib/token_status_list", optional = true }
 
 [dev-dependencies]
+audit_log = { path = "audit_log", features = ["mock"] }
 rstest.workspace = true
 tempfile.workspace = true
 

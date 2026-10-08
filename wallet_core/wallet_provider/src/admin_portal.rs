@@ -9,6 +9,8 @@
 
 use std::sync::Arc;
 
+use audit_log::model::DbAuditLog;
+use audit_log::repository::AuditLogRepository;
 use axum::Json;
 use axum::Router;
 use axum::extract::FromRequestParts;
@@ -20,32 +22,66 @@ use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
 use axum::routing::get;
+use axum::routing::post;
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::cookie::SameSite;
+use chrono::DateTime;
+use chrono::Utc;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_pinned_client_builder;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Value as JsonValue;
 use tracing::warn;
 use url::Url;
+use utils::generator::TimeGenerator;
+use uuid::Uuid;
+use wallet_provider_domain::model::admin_task::AdminTask;
+use wallet_provider_domain::model::admin_task::TaskStatus;
+use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminPortalSessionRepository;
+use wallet_provider_domain::repository::AdminTaskRepository;
+use wallet_provider_service::admin_portal;
 use wallet_provider_service::admin_portal::AdminPortalConfig;
 use wallet_provider_service::admin_portal::AdminPortalService;
 use wallet_provider_service::admin_portal::LoggedInUser;
+use wallet_provider_service::admin_portal::task::CreateTaskError;
 
+use crate::router_state::UuidV7Generator;
 use crate::settings::AdminPortalSettings;
 
 const SESSION_ID_COOKIE: &str = "sid";
 
-pub struct AdminPortalState<R> {
-    service: AdminPortalService<R>,
-    public_url: BaseUrl,
+struct CreateTaskApiError(CreateTaskError);
+
+impl IntoResponse for CreateTaskApiError {
+    fn into_response(self) -> Response {
+        let CreateTaskApiError(error) = self;
+        warn!("create_task failed: {error:?}");
+        match error {
+            CreateTaskError::UnknownTaskType(_) => StatusCode::BAD_REQUEST.into_response(),
+            CreateTaskError::MissingPrivilege(_) => StatusCode::FORBIDDEN.into_response(),
+            CreateTaskError::Storage(_) | CreateTaskError::AuditLog(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            }
+        }
+    }
 }
 
-impl<R> AdminPortalState<R> {
-    pub fn try_new(settings: AdminPortalSettings, repository: R) -> Result<Self, reqwest::Error> {
+pub struct AdminPortalState<R, AR> {
+    service: AdminPortalService<R>,
+    public_url: BaseUrl,
+    audit_log: DbAuditLog<AR, UuidV7Generator>,
+}
+
+impl<R, AR> AdminPortalState<R, AR> {
+    pub fn try_new(
+        settings: AdminPortalSettings,
+        repository: R,
+        audit_log: DbAuditLog<AR, UuidV7Generator>,
+    ) -> Result<Self, reqwest::Error> {
         let certs = settings
             .keycloak_trust_anchors
             .into_iter()
@@ -68,6 +104,7 @@ impl<R> AdminPortalState<R> {
         Ok(Self {
             service,
             public_url: settings.public_url,
+            audit_log,
         })
     }
 
@@ -76,15 +113,17 @@ impl<R> AdminPortalState<R> {
     }
 }
 
-pub fn router<R>(state: Arc<AdminPortalState<R>>) -> Router
+pub fn router<R, AR>(state: Arc<AdminPortalState<R, AR>>) -> Router
 where
-    R: AdminPortalSessionRepository + Send + Sync + 'static,
+    R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
+    AR: AuditLogRepository + Send + Sync + 'static,
 {
     Router::new()
         .route("/auth/login", get(login))
         .route("/auth/callback", get(callback))
         .route("/auth/logout", get(logout))
         .route("/api/me", get(me))
+        .nest("/tasks", Router::new().route("/", post(create_task)))
         .with_state(state)
 }
 
@@ -102,7 +141,7 @@ fn session_cookie(session_id: String) -> Cookie<'static> {
 
 /// Redirects to the frontend's error page, so it can show the user a proper error message
 /// instead of the SPA rendering a blank page or the browser rendering a raw JSON error.
-fn error_redirect<R>(state: &AdminPortalState<R>, reason: &str) -> Response {
+fn error_redirect<R, AR>(state: &AdminPortalState<R, AR>, reason: &str) -> Response {
     let mut url = state.frontend_url("/error");
     url.query_pairs_mut().append_pair("reason", reason);
 
@@ -114,9 +153,10 @@ struct LoginQuery {
     login_hint: Option<String>,
 }
 
-async fn login<R>(State(state): State<Arc<AdminPortalState<R>>>, Query(query): Query<LoginQuery>) -> Response
+async fn login<R, AR>(State(state): State<Arc<AdminPortalState<R, AR>>>, Query(query): Query<LoginQuery>) -> Response
 where
     R: AdminPortalSessionRepository + Send + Sync + 'static,
+    AR: Send + Sync + 'static,
 {
     match state.service.authorization_url(query.login_hint.as_deref()).await {
         Ok(auth_url) => Redirect::to(auth_url.as_str()).into_response(),
@@ -134,13 +174,14 @@ struct CallbackQuery {
     error: Option<String>,
 }
 
-async fn callback<R>(
-    State(state): State<Arc<AdminPortalState<R>>>,
+async fn callback<R, AR>(
+    State(state): State<Arc<AdminPortalState<R, AR>>>,
     cookie_jar: CookieJar,
     Query(query): Query<CallbackQuery>,
 ) -> Response
 where
     R: AdminPortalSessionRepository + Send + Sync + 'static,
+    AR: Send + Sync + 'static,
 {
     let session_id = cookie_jar
         .get(SESSION_ID_COOKIE)
@@ -168,9 +209,10 @@ where
     (jar, Redirect::to(entry_url.as_str())).into_response()
 }
 
-async fn logout<R>(State(state): State<Arc<AdminPortalState<R>>>, cookie_jar: CookieJar) -> Response
+async fn logout<R, AR>(State(state): State<Arc<AdminPortalState<R, AR>>>, cookie_jar: CookieJar) -> Response
 where
     R: AdminPortalSessionRepository + Send + Sync + 'static,
+    AR: Send + Sync + 'static,
 {
     let session_id = cookie_jar
         .get(SESSION_ID_COOKIE)
@@ -220,13 +262,17 @@ async fn me(AuthenticatedAdminUser(user): AuthenticatedAdminUser) -> Response {
 #[derive(Debug)]
 pub struct AuthenticatedAdminUser(pub LoggedInUser);
 
-impl<R> FromRequestParts<Arc<AdminPortalState<R>>> for AuthenticatedAdminUser
+impl<R, AR> FromRequestParts<Arc<AdminPortalState<R, AR>>> for AuthenticatedAdminUser
 where
     R: AdminPortalSessionRepository + Send + Sync + 'static,
+    AR: AuditLogRepository + Send + Sync + 'static,
 {
     type Rejection = Response;
 
-    async fn from_request_parts(parts: &mut Parts, state: &Arc<AdminPortalState<R>>) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &Arc<AdminPortalState<R, AR>>,
+    ) -> Result<Self, Self::Rejection> {
         let cookie_jar = CookieJar::from_headers(&parts.headers);
 
         // Retrieve the session_id from the cookie, note that we don't need to touch the cookie's `max_age`, as it is a
@@ -246,12 +292,91 @@ where
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateTaskRequest {
+    task_type: String,
+    #[serde(default = "serde_json::Map::new")]
+    task_parameters: serde_json::Map<String, serde_json::Value>,
+    task_reason: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TaskResponse {
+    task_id: Uuid,
+    created_at: DateTime<Utc>,
+    created_by: String,
+    task_type: TaskType,
+    task_parameters: JsonValue,
+    task_reason: String,
+    status: TaskStatus,
+    reviewed_at: Option<DateTime<Utc>>,
+    reviewed_by: Option<String>,
+    review_comment: Option<String>,
+    executed_at: Option<DateTime<Utc>>,
+    execution_result: Option<String>,
+    execution_result_details: Option<JsonValue>,
+}
+
+impl From<AdminTask> for TaskResponse {
+    fn from(task: AdminTask) -> Self {
+        Self {
+            task_id: task.id,
+            created_at: task.created_at,
+            created_by: task.created_by_display_name,
+            task_type: task.task_type,
+            task_parameters: task.task_parameters,
+            task_reason: task.task_reason,
+            status: task.status,
+            reviewed_at: task.reviewed_at,
+            reviewed_by: task.reviewed_by_display_name,
+            review_comment: task.review_comment,
+            executed_at: task.executed_at,
+            execution_result: task.execution_result,
+            execution_result_details: task.execution_result_details,
+        }
+    }
+}
+
+async fn create_task<R, AR>(
+    State(state): State<Arc<AdminPortalState<R, AR>>>,
+    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    Json(payload): Json<CreateTaskRequest>,
+) -> Response
+where
+    R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
+    AR: AuditLogRepository + Send + Sync + 'static,
+{
+    let result = admin_portal::task::create_task(
+        &payload.task_type,
+        &JsonValue::Object(payload.task_parameters),
+        &payload.task_reason,
+        &user.user_id,
+        &user.display_name,
+        &user.privileges,
+        state.service.repository(),
+        &TimeGenerator,
+        &UuidV7Generator,
+        &state.audit_log,
+    )
+    .await
+    .map_err(CreateTaskApiError);
+
+    match result {
+        Ok(task) => (StatusCode::CREATED, Json(TaskResponse::from(task))).into_response(),
+        Err(error) => error.into_response(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
     use std::sync::Mutex;
     use std::time::Duration;
 
+    use audit_log::model::DbAuditLog;
+    use audit_log::repository::mock::NoopAuditLogRepository;
     use axum::body::to_bytes;
     use axum::http::Request;
     use axum::http::StatusCode;
@@ -262,6 +387,7 @@ mod tests {
     use crypto::utils::random_string;
     use http_utils::reqwest::test::get_test_trust_anchor;
     use serde_json::Value;
+    use utils::generator::TimeGenerator;
     use utils::vec_nonempty;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
@@ -269,6 +395,29 @@ mod tests {
     use wallet_provider_domain::repository::PersistenceError;
 
     use super::*;
+    use crate::router_state::UuidV7Generator;
+
+    #[test]
+    fn create_task_error_status_codes() {
+        assert_eq!(
+            CreateTaskApiError(CreateTaskError::UnknownTaskType("x".to_string()))
+                .into_response()
+                .status(),
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            CreateTaskApiError(CreateTaskError::MissingPrivilege(TaskType::RevokeWallet))
+                .into_response()
+                .status(),
+            StatusCode::FORBIDDEN
+        );
+        assert_eq!(
+            CreateTaskApiError(CreateTaskError::Storage(PersistenceError::NoRowsUpdated))
+                .into_response()
+                .status(),
+            StatusCode::INTERNAL_SERVER_ERROR
+        );
+    }
 
     #[test]
     fn session_cookie_is_secure_http_only_strict_and_session_only() {
@@ -368,11 +517,13 @@ mod tests {
         }
     }
 
-    fn setup_state() -> Arc<AdminPortalState<InMemoryRepository>> {
+    fn setup_state() -> Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>> {
         setup_state_with_repository(InMemoryRepository::default())
     }
 
-    fn setup_state_with_repository(repository: InMemoryRepository) -> Arc<AdminPortalState<InMemoryRepository>> {
+    fn setup_state_with_repository(
+        repository: InMemoryRepository,
+    ) -> Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>> {
         Arc::new(
             AdminPortalState::try_new(
                 AdminPortalSettings {
@@ -386,12 +537,20 @@ mod tests {
                     login_attempt_ttl: Duration::from_mins(10),
                 },
                 repository,
+                DbAuditLog {
+                    repository: NoopAuditLogRepository,
+                    time_generator: TimeGenerator,
+                    uuid_generator: UuidV7Generator,
+                },
             )
             .unwrap(),
         )
     }
 
-    fn setup_state_with_valid_user() -> (Arc<AdminPortalState<InMemoryRepository>>, CookieJar) {
+    fn setup_state_with_valid_user() -> (
+        Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>>,
+        CookieJar,
+    ) {
         let session_id = random_string(12);
         let repository = InMemoryRepository::default();
         repository.sessions.lock().unwrap().insert(
@@ -576,5 +735,30 @@ mod tests {
             json,
             serde_json::json!({"displayName": "Jane Doe", "privileges": ["admin"]})
         );
+    }
+
+    #[test]
+    fn task_response_maps_display_names_not_user_ids() {
+        let task = AdminTask {
+            id: Uuid::new_v4(),
+            created_at: Utc::now(),
+            created_by_user_id: "user-1".to_string(),
+            created_by_display_name: "User One".to_string(),
+            task_type: TaskType::RevokeWallet,
+            task_parameters: serde_json::json!({}),
+            task_reason: "reason".to_string(),
+            status: TaskStatus::Created,
+            reviewed_at: None,
+            reviewed_by_user_id: None,
+            reviewed_by_display_name: None,
+            review_comment: None,
+            executed_at: None,
+            execution_result: None,
+            execution_result_details: None,
+        };
+
+        let response = TaskResponse::from(task);
+
+        assert_eq!(response.created_by, "User One");
     }
 }

@@ -329,6 +329,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
 }
 
 // Time-Sortable and Index-Friendly Uuid generator
+#[derive(Clone)]
 pub struct UuidV7Generator;
 
 impl Generator<Uuid> for UuidV7Generator {
