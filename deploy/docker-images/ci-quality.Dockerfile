@@ -22,6 +22,10 @@ RUN /tmp/cyclonedx.sh
 COPY osv-scanner.sh /tmp/
 RUN /tmp/osv-scanner.sh
 
+# Firefox (required for ZAP)
+COPY firefox.sh /tmp/
+RUN /tmp/firefox.sh
+
 # Zap
 ENV ZAP_HOME=/opt/zap
 ENV PATH=${PATH}:${ZAP_HOME}
