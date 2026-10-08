@@ -72,6 +72,7 @@
         "eu.europa.ec.eudi.pid.1",
         "nationality"
       ],
+      "mandatory": true,
       "display": [
         {
           "name": "Nationalities",

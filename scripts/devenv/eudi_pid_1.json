@@ -55,7 +55,8 @@
           "description": "List of nationalities of the person"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["sex"],
