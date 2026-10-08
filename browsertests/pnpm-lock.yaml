@@ -27,6 +27,12 @@ importers:
         specifier: ^3.9.9
         version: 3.9.9
 
+  packages/admin-portal:
+    devDependencies:
+      '@axe-core/playwright':
+        specifier: ^4.10.1
+        version: 4.10.1(playwright-core@1.60.0)
+
   packages/fallback-pages: {}
 
   packages/revocation-portal:

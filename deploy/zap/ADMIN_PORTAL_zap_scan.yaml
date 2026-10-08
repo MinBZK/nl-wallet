@@ -1,0 +1,239 @@
+---
+env:
+  contexts:
+  - name: "Default Context"
+    urls:
+    - "${ADMIN_PORTAL_URL}"
+    includePaths:
+    - "${ADMIN_PORTAL_URL}.*"
+    excludePaths: []
+    authentication:
+      method: "browser"
+      parameters:
+        loginPageUrl: "${ADMIN_PORTAL_URL}auth/login"
+        loginPageWait: 10
+        browserId: "firefox-headless"
+      verification:
+        method: "poll"
+        pollUrl: "${ADMIN_PORTAL_URL}api/me"
+        pollFrequency: 60
+        pollUnits: "requests"
+        loggedInRegex: '"privileges"'
+        loggedOutRegex: 'HTTP/\d+\.\d+ 401'
+    sessionManagement:
+      method: "cookie"
+      parameters: {}
+    users:
+    - name: "admin"
+      credentials:
+        username: "administrator"
+        password: "${AP_OPERATOR_PASSWORD}"
+    technology:
+      exclude: []
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+  vars: {}
+jobs:
+- alertFilters:
+# False positive: Issues are not vulnerabilities
+    - ruleId: "10205"
+      ruleName: "HTTPS Security Configuration Issues (10205)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
+# False positive: proxy disclosure not a vulnerability
+    - ruleId: "40025"
+      ruleName: "Proxy Disclosure (40025)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
+# As designed
+    - ruleId: "200019"
+      ruleName: "Admin/management path observed (200019)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
+# As designed
+    - ruleId: "200016"
+      ruleName: "Environment hints (dev/staging/test) in response (200016)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
+  parameters:
+    deleteGlobalAlerts: false
+  name: "alertFilter"
+  type: "alertFilter"
+- parameters:
+    maxAlertsPerRule: 0
+    scanOnlyInScope: true
+    maxBodySizeInBytesToScan: 0
+    enableTags: false
+    disableAllRules: false
+  rules: []
+  name: "passiveScan-config"
+  type: "passiveScan-config"
+- parameters:
+    context: "Default Context"
+    user: "admin"
+    url: ""
+    maxDuration: 0
+    maxDepth: 0
+    maxChildren: 0
+  name: "spider"
+  type: "spider"
+  tests:
+  - onFail: "INFO"
+    statistic: "automation.spider.urls.added"
+    site: ""
+    operator: ">="
+    value: 10
+    type: "stats"
+    name: "At least 10 URLs found"
+- parameters:
+    context: "Default Context"
+    user: "admin"
+    url: ""
+    maxDuration: 10
+    maxCrawlDepth: 10
+    maxCrawlStates: 0
+    eventWait: 1000
+    reloadWait: 2000
+    numberOfBrowsers: 2
+    clickDefaultElems: false
+    clickElemsOnce: true
+    randomInputs: false
+    browserId: "firefox-headless"
+  name: "spiderAjax"
+  type: "spiderAjax"
+  tests:
+  - onFail: "ERROR"
+    statistic: "spiderAjax.urls.added"
+    site: ""
+    operator: ">="
+    value: 5
+    type: "stats"
+    name: "At least 5 URLs found by AJAX spider"
+- parameters: {}
+  name: "passiveScan-wait"
+  type: "passiveScan-wait"
+- parameters:
+    context: "Default Context"
+    user: "admin"
+    policy: ""
+    maxRuleDurationInMins: 0
+    maxScanDurationInMins: 0
+    addQueryParam: false
+    delayInMs: 0
+    handleAntiCSRFTokens: false
+    injectPluginIdInHeader: false
+    scanHeadersAllRequests: false
+    threadPerHost: 24
+    maxAlertsPerRule: 0
+  policyDefinition:
+    rules: []
+  name: "activeScan"
+  type: "activeScan"
+- parameters:
+    template: "modern"
+    theme: "console"
+    reportDir: "${CI_PROJECT_DIR}/zapreports"
+    reportFile: ""
+    reportTitle: "ADMIN_PORTAL ZAP Scanning Report"
+    reportDescription: ""
+    displayReport: false
+  risks:
+  - "low"
+  - "medium"
+  - "high"
+  confidences:
+  - "low"
+  - "medium"
+  - "high"
+  - "confirmed"
+  sections:
+  - "passingrules"
+  - "instancecount"
+  - "alertdetails"
+  - "alertcount"
+  - "params"
+  - "chart"
+  - "statistics"
+  sites: []
+  name: "report"
+  type: "report"
+- parameters:
+    template: "traditional-xml"
+    reportDir: "${CI_PROJECT_DIR}/zapreports"
+    reportFile: "ADMIN_PORTAL-zap.xml"
+    reportTitle: "ADMIN_PORTAL ZAP Scanning Report"
+    reportDescription: ""
+    displayReport: false
+  risks:
+  - "info"
+  - "low"
+  - "medium"
+  - "high"
+  confidences:
+  - "falsepositive"
+  - "low"
+  - "medium"
+  - "high"
+  - "confirmed"
+  sites: []
+  name: "report"
+  type: "report"
+- parameters:
+    template: "traditional-json"
+    reportDir: "${CI_PROJECT_DIR}/zapreports"
+    reportFile: "ADMIN_PORTAL-zap.json"
+    reportTitle: "ADMIN_PORTAL ZAP Scanning Report"
+    reportDescription: ""
+    displayReport: false
+  risks:
+    - "info"
+    - "low"
+    - "medium"
+    - "high"
+  confidences:
+    - "falsepositive"
+    - "low"
+    - "medium"
+    - "high"
+    - "confirmed"
+  sites: []
+  name: "report"
+  type: "report"
