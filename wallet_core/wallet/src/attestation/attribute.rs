@@ -89,6 +89,7 @@ impl AttestationPresentation {
             },
         };
 
+        // TODO (PVW-6251): determine attestation identity to support renewal
         match &credential.copies {
             IssuedCredentialCopies::Mdoc(copies) => Self::create_from_mdoc(
                 AttestationIdentity::Ephemeral,

@@ -125,7 +125,7 @@ where
                 if err.error_response.error
                     == RemoteErrorCode::Known(PostAuthResponseErrorCode::NoIssuableAttestations) =>
             {
-                return Ok(vec![]); // TODO: use an explicit type to handle this case
+                return Ok(vec![]); // TODO (PVW-6381): use an explicit type to handle this case
             }
 
             Err(err) => Err(err)?,
