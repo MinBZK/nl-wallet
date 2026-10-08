@@ -167,7 +167,7 @@ pub fn mock_pid_example() -> Attributes {
         ),
         (
             vec![PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
-            Attribute::Text("Nederland".to_string()),
+            Attribute::Text("NL".to_owned()),
         ),
     ])
 }
@@ -230,7 +230,7 @@ pub fn mock_pid_mdoc_example() -> Attributes {
         ),
         (
             vec![PID_MDOC_NAMESPACE, PID_RESIDENT_COUNTRY],
-            Attribute::Text("Nederland".to_string()),
+            Attribute::Text("NL".to_owned()),
         ),
     ])
 }

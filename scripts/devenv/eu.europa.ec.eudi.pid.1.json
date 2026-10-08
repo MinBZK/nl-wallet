@@ -118,6 +118,57 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
+        "place_of_birth",
+        "country"
+      ],
+      "display": [
+        {
+          "name": "Country of birth",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboorteland",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "place_of_birth",
+        "locality"
+      ],
+      "display": [
+        {
+          "name": "Place of birth",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboorteplaats",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "place_of_birth",
+        "region"
+      ],
+      "display": [
+        {
+          "name": "Region of birth",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboorteregio",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
         "issuing_country"
       ],
       "mandatory": true,

@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-7fdbbnmnnFiO+gsT66p4WCTmen6SULthm9XSbZJFHhY=",
+  "extends#integrity": "sha256-aHil+xG/twbsmFZTAVRgwA0leS0gdsRrSoOv8fCdgW0=",
   "display": [
     {
       "locale": "en-US",
@@ -127,6 +127,54 @@
           "locale": "nl-NL",
           "label": "Geslacht",
           "description": "Geslacht van de persoon"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "country"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Country of birth",
+          "description": "Country where the person was born"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Geboorteland",
+          "description": "Land waar de persoon is geboren"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "locality"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Place of birth",
+          "description": "Place where the person was born"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Geboorteplaats",
+          "description": "Plaats waar de persoon is geboren"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "region"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Region of birth",
+          "description": "State, province, district or local area where the person was born"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Geboorteregio",
+          "description": "Staat, provincie, district of regio waar de persoon is geboren"
         }
       ],
       "sd": "always"

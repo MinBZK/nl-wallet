@@ -580,7 +580,6 @@ mod tests {
     use crate::pid::mock::MockBrpClient;
     use crate::pid::mock::MockDigidClient;
     use crate::pid::rulebook::constants::PID_MDOC_DOCTYPE;
-    use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
     use crate::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
     use crate::pid::rulebook::constants::pid_attestation_type;
     use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
@@ -613,26 +612,13 @@ mod tests {
         ])
     });
 
-    /// Claim names for a mock mdoc Credential Metadata matching what
-    /// [`crate::pid::brp::data::BrpPerson::into_mdoc_attributes`] actually produces. The real mdoc credential
-    /// metadata is a separate JSON file (`eu.europa.ec.eudi.pid.1.json`) not exercised by these unit tests.
-    const PID_MDOC_CLAIM_NAMES: &[&str] = &[
-        "family_name",
-        "given_name",
-        "birthdate",
-        "age_over_18",
-        "bsn",
-        "nationalities",
-        "sex",
-        "issuing_country",
-        "issuing_authority",
-        "recovery_code",
-        "street_address",
-        "house_number",
-        "postal_code",
-        "locality",
-        "country",
-    ];
+    static PID_MDOC_METADATA: LazyLock<CredentialMetadata> = LazyLock::new(|| {
+        let json = fs::read_to_string(prefix_local_path(Path::new(
+            "resources/test/metadata/eu.europa.ec.eudi.pid.1.json",
+        )))
+        .unwrap();
+        serde_json::from_str(&json).unwrap()
+    });
 
     fn recovery_code_secret_key() -> SecretKeyVariant {
         SecretKeyVariant::from_settings(
@@ -688,7 +674,7 @@ mod tests {
                 },
                 MockAttestationType::MsoMdoc {
                     doc_type: PID_MDOC_DOCTYPE.to_owned(),
-                    credential_metadata: CredentialMetadata::new_mdoc_example(PID_MDOC_NAMESPACE, PID_MDOC_CLAIM_NAMES),
+                    credential_metadata: PID_MDOC_METADATA.clone(),
                 },
             ],
             Arc::clone(&sessions),

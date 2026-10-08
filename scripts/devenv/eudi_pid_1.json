@@ -80,6 +80,39 @@
       "sd": "always"
     },
     {
+      "path": ["place_of_birth", "country"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Country of birth",
+          "description": "Country where the person was born"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "locality"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Place of birth",
+          "description": "Place where the person was born"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "region"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Region of birth",
+          "description": "State, province, district or local area where the person was born"
+        }
+      ],
+      "sd": "always"
+    },
+    {
       "path": ["issuing_country"],
       "display": [
         {

@@ -33,5 +33,9 @@ pub const PID_RESIDENT_POSTAL_CODE: &str = "postal_code";
 pub const PID_RESIDENT_CITY: &str = "locality";
 pub const PID_RESIDENT_COUNTRY: &str = "country";
 
+/// Same name and sub-keys (`country`/`locality`) in both the mdoc and SD-JWT encodings, unlike the `resident_*`
+/// address group above.
+pub const PID_PLACE_OF_BIRTH_GROUP: &str = "place_of_birth";
+
 pub const PID_ISSUING_COUNTRY: &str = "issuing_country";
 pub const PID_ISSUING_AUTHORITY: &str = "issuing_authority";
