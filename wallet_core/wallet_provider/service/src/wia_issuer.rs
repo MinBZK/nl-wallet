@@ -15,7 +15,7 @@ use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
-use wscd::payload::wia::ClientStatus;
+use wscd::payload::status_claim::TimeBoundedStatusClaim;
 use wscd::payload::wia::WiaClaims;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::payload::wia::WiaPopClaims;
@@ -84,10 +84,7 @@ where
                 self.sub.clone(),
                 wia_exp,
                 self.wallet_info.clone(),
-                ClientStatus {
-                    status: status_claim,
-                    exp: wallet_exp,
-                },
+                TimeBoundedStatusClaim::new(status_claim, wallet_exp),
                 time,
             )
             .map_err(WiaIssuerError::KeyConversion)?,
