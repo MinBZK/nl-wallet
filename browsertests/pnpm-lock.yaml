@@ -31,7 +31,7 @@ importers:
     devDependencies:
       '@axe-core/playwright':
         specifier: ^4.10.1
-        version: 4.10.1(playwright-core@1.60.0)
+        version: 4.13.0(playwright-core@1.63.0)
 
   packages/fallback-pages: {}
 
