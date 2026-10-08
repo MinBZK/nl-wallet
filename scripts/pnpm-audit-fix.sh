@@ -9,7 +9,8 @@ SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -
 while IFS= read -r -d '' lockfile; do
     echo "Fixing $lockfile..."
     cd "$(dirname "$lockfile")"
-    pnpm audit --fix update || true
+    pnpm audit --fix || true
+    pnpm install
 done < <(find "$BASE_DIR" -name pnpm-lock.yaml -not -path '*/node_modules/*' -print0)
 
 cd "$BASE_DIR"
