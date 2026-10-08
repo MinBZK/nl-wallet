@@ -93,12 +93,19 @@ variables:
   rules:
     - if: $SCHEDULED == "trigger-scan" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $SCHEDULED == "trigger-scan" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $SCHEDULED == "trigger-scan" && $CI_PIPELINE_SOURCE == "web"
 
 .on-schedule-scan:
   rules:
     - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "parent_pipeline"
     - if: $SCHEDULED == "scan" && $CI_PIPELINE_SOURCE == "web"
+
+.on-schedule-security:
+  rules:
+    - if: $SCHEDULED == "security" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $SCHEDULED == "security" && $CI_PIPELINE_SOURCE == "parent_pipeline"
+    - if: $SCHEDULED == "security" && $CI_PIPELINE_SOURCE == "web"
 
 .on-schedule-rust-features-check:
   rules:
