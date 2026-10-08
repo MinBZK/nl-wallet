@@ -22,9 +22,12 @@ use crate::pid::rulebook::constants::PID_RESIDENT_HOUSE_NUMBER;
 use crate::pid::rulebook::constants::PID_RESIDENT_POSTAL_CODE;
 use crate::pid::rulebook::constants::PID_RESIDENT_STREET;
 use crate::pid::rulebook::constants::PID_SEX;
-use crate::pid::rulebook::country_code::CountryCode;
+use crate::pid::rulebook::country_code::IsoCountryCode;
+use crate::pid::rulebook::country_code::RulebookCountryCode;
+use crate::pid::rulebook::country_code::RulebookNationality;
 use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
-use crate::pid::rulebook::sex::PidSex;
+use crate::pid::rulebook::sex::IsoSex;
+use crate::pid::rulebook::sex::RulebookSex;
 
 #[derive(Deserialize)]
 pub struct BrpPersons {
@@ -105,14 +108,16 @@ impl BrpPerson {
         let given_names = self.name.given_names.clone();
         let is_over_18 = self.is_over_18();
         let family_name = self.name.into_name_with_prefix();
-        let sex = self.gender.map(|gender| Attribute::from(PidSex::from(gender.code)));
+        let sex = self
+            .gender
+            .map(|gender| Attribute::from(RulebookSex::from(gender.code)));
         let birth_date = self.birth.date.date.format("%Y-%m-%d").to_string();
         let place_of_birth = self.birth.into_place_of_birth_attribute();
         let nationalities = self
             .nationalities
             .into_iter()
             .filter_map(|nationality| nationality.nationality)
-            .map(|detail| detail.code.as_attribute())
+            .map(|detail| Attribute::from(RulebookNationality::from(detail.code)))
             .collect_vec();
 
         IndexMap::from_iter(
@@ -122,10 +127,7 @@ impl BrpPerson {
                 Some((String::from(PID_BIRTH_DATE), Attribute::Text(birth_date))),
                 Some((String::from(PID_AGE_OVER_18), Attribute::Bool(is_over_18))),
                 Some((String::from(PID_BSN), Attribute::Text(self.bsn))),
-                Some((
-                    String::from(PID_NATIONALITY),
-                    Attribute::Array(nationalities.into_iter().map(Attribute::Text).collect_vec()),
-                )),
+                Some((String::from(PID_NATIONALITY), Attribute::Array(nationalities))),
                 sex.map(|sex| (PID_SEX.to_owned(), sex)),
                 place_of_birth.map(|attribute| (PID_PLACE_OF_BIRTH_GROUP.to_owned(), attribute)),
             ]
@@ -154,8 +156,8 @@ impl BrpResidence {
             self.address
                 .country
                 .code
-                .to_attribute()
-                .map(|country| (PID_RESIDENT_COUNTRY.to_owned(), Attribute::Text(country))),
+                .to_rulebook_country()
+                .map(|country| (PID_RESIDENT_COUNTRY.to_owned(), Attribute::from(country))),
         ]
         .into_iter()
         .flatten()
@@ -175,16 +177,18 @@ pub enum BrpGenderCode {
     O,
 }
 
-/// BRP's `geslacht.code` only ever yields "onbekend", "man" or "vrouw", so only [`PidSex::NotKnown`],
-/// [`PidSex::Male`] and [`PidSex::Female`] are actually produced by this issuer, even though the Rulebook's `sex`
-/// attribute defines a larger value set (see [`PidSex`]).
-impl From<BrpGenderCode> for PidSex {
+/// BRP's `geslacht.code` only ever yields "onbekend", "man" or "vrouw", all three of which fall within the
+/// ISO/IEC 5218 base standard, even though the Rulebook's `sex` attribute defines a larger value set (see
+/// [`RulebookSex`]).
+impl From<BrpGenderCode> for RulebookSex {
     fn from(value: BrpGenderCode) -> Self {
-        match value {
-            BrpGenderCode::O => PidSex::NotKnown,
-            BrpGenderCode::M => PidSex::Male,
-            BrpGenderCode::V => PidSex::Female,
-        }
+        let iso = match value {
+            BrpGenderCode::O => IsoSex::NotKnown,
+            BrpGenderCode::M => IsoSex::Male,
+            BrpGenderCode::V => IsoSex::Female,
+        };
+
+        RulebookSex::Iso(iso)
     }
 }
 
@@ -236,11 +240,11 @@ impl BrpBirth {
     /// }
     /// ```
     fn into_place_of_birth_attribute(self) -> Option<Attribute> {
-        let country = self.country.and_then(|detail| detail.code.to_attribute());
+        let country = self.country.and_then(|detail| detail.code.to_rulebook_country());
         let locality = self.place.map(|description| description.description);
 
         let group = [
-            country.map(|country| (PID_RESIDENT_COUNTRY.to_owned(), Attribute::Text(country))),
+            country.map(|country| (PID_RESIDENT_COUNTRY.to_owned(), Attribute::from(country))),
             locality.map(|locality| (PID_RESIDENT_CITY.to_owned(), Attribute::Text(locality))),
         ]
         .into_iter()
@@ -738,255 +742,254 @@ impl RvigNationalityCode {
     /// * "Kosovaarse" has no official ISO 3166-1 code.
     /// * Returns `None` for variants that aren't an ISO 3166-1 country: e.g. "Onbekend", "Staatloos",
     ///   "BehandeldAlsNederlander", "VastgesteldNietNederlander"
-    fn alpha2(&self) -> Option<CountryCode> {
+    fn alpha2(&self) -> Option<IsoCountryCode> {
         match self {
             Self::Onbekend => None,
-            Self::Nederlandse => Some(CountryCode::Netherlands),
+            Self::Nederlandse => Some(IsoCountryCode::Netherlands),
             Self::BehandeldAlsNederlander => None,
-            Self::Slowaakse => Some(CountryCode::Slovakia),
-            Self::Tsjechische => Some(CountryCode::Czechia),
-            Self::BurgerVanBosnieHerzegovina => Some(CountryCode::BosniaAndHerzegovina),
-            Self::Georgische => Some(CountryCode::Georgia),
-            Self::Turkmeense => Some(CountryCode::Turkmenistan),
-            Self::Tadzjiekse => Some(CountryCode::Tajikistan),
-            Self::Oezbeekse => Some(CountryCode::Uzbekistan),
-            Self::Oekrainense => Some(CountryCode::Ukraine),
-            Self::Kirgizische => Some(CountryCode::Kyrgyzstan),
-            Self::Moldavische => Some(CountryCode::Moldova),
-            Self::Kazachse => Some(CountryCode::Kazakhstan),
-            Self::Belarussische => Some(CountryCode::Belarus),
-            Self::Azerbeidzjaanse => Some(CountryCode::Azerbaijan),
-            Self::Armeense => Some(CountryCode::Armenia),
-            Self::Russische => Some(CountryCode::Russia),
-            Self::Sloveense => Some(CountryCode::Slovenia),
-            Self::Kroatische => Some(CountryCode::Croatia),
-            Self::Letse => Some(CountryCode::Latvia),
-            Self::Estische => Some(CountryCode::Estonia),
-            Self::Litouwse => Some(CountryCode::Lithuania),
-            Self::Marshalleilandse => Some(CountryCode::MarshallIslands),
-            Self::Myanmarese => Some(CountryCode::Myanmar),
-            Self::Namibische => Some(CountryCode::Namibia),
-            Self::Albanese => Some(CountryCode::Albania),
-            Self::Andorrese => Some(CountryCode::Andorra),
-            Self::Belgische => Some(CountryCode::Belgium),
-            Self::Bulgaarse => Some(CountryCode::Bulgaria),
-            Self::Deense => Some(CountryCode::Denmark),
-            Self::BurgerVanDeBondsrepubliekDuitsland => Some(CountryCode::Germany),
-            Self::Finse => Some(CountryCode::Finland),
-            Self::Franse => Some(CountryCode::France),
-            Self::Jemenitische => Some(CountryCode::Yemen),
-            Self::Griekse => Some(CountryCode::Greece),
-            Self::BritsBurger => Some(CountryCode::UnitedKingdom),
-            Self::Hongaarse => Some(CountryCode::Hungary),
-            Self::Ierse => Some(CountryCode::Ireland),
-            Self::IJslandse => Some(CountryCode::Iceland),
-            Self::Italiaanse => Some(CountryCode::Italy),
+            Self::Slowaakse => Some(IsoCountryCode::Slovakia),
+            Self::Tsjechische => Some(IsoCountryCode::Czechia),
+            Self::BurgerVanBosnieHerzegovina => Some(IsoCountryCode::BosniaAndHerzegovina),
+            Self::Georgische => Some(IsoCountryCode::Georgia),
+            Self::Turkmeense => Some(IsoCountryCode::Turkmenistan),
+            Self::Tadzjiekse => Some(IsoCountryCode::Tajikistan),
+            Self::Oezbeekse => Some(IsoCountryCode::Uzbekistan),
+            Self::Oekrainense => Some(IsoCountryCode::Ukraine),
+            Self::Kirgizische => Some(IsoCountryCode::Kyrgyzstan),
+            Self::Moldavische => Some(IsoCountryCode::Moldova),
+            Self::Kazachse => Some(IsoCountryCode::Kazakhstan),
+            Self::Belarussische => Some(IsoCountryCode::Belarus),
+            Self::Azerbeidzjaanse => Some(IsoCountryCode::Azerbaijan),
+            Self::Armeense => Some(IsoCountryCode::Armenia),
+            Self::Russische => Some(IsoCountryCode::Russia),
+            Self::Sloveense => Some(IsoCountryCode::Slovenia),
+            Self::Kroatische => Some(IsoCountryCode::Croatia),
+            Self::Letse => Some(IsoCountryCode::Latvia),
+            Self::Estische => Some(IsoCountryCode::Estonia),
+            Self::Litouwse => Some(IsoCountryCode::Lithuania),
+            Self::Marshalleilandse => Some(IsoCountryCode::MarshallIslands),
+            Self::Myanmarese => Some(IsoCountryCode::Myanmar),
+            Self::Namibische => Some(IsoCountryCode::Namibia),
+            Self::Albanese => Some(IsoCountryCode::Albania),
+            Self::Andorrese => Some(IsoCountryCode::Andorra),
+            Self::Belgische => Some(IsoCountryCode::Belgium),
+            Self::Bulgaarse => Some(IsoCountryCode::Bulgaria),
+            Self::Deense => Some(IsoCountryCode::Denmark),
+            Self::BurgerVanDeBondsrepubliekDuitsland => Some(IsoCountryCode::Germany),
+            Self::Finse => Some(IsoCountryCode::Finland),
+            Self::Franse => Some(IsoCountryCode::France),
+            Self::Jemenitische => Some(IsoCountryCode::Yemen),
+            Self::Griekse => Some(IsoCountryCode::Greece),
+            Self::BritsBurger => Some(IsoCountryCode::UnitedKingdom),
+            Self::Hongaarse => Some(IsoCountryCode::Hungary),
+            Self::Ierse => Some(IsoCountryCode::Ireland),
+            Self::IJslandse => Some(IsoCountryCode::Iceland),
+            Self::Italiaanse => Some(IsoCountryCode::Italy),
             // Yugoslavia (ended 01-02-2004) split into multiple current countries
             Self::Joegoslavische => None,
-            Self::Liechtensteinse => Some(CountryCode::Liechtenstein),
-            Self::Luxemburgse => Some(CountryCode::Luxembourg),
-            Self::Maltese => Some(CountryCode::Malta),
-            Self::Monegaskische => Some(CountryCode::Monaco),
-            Self::Noorse => Some(CountryCode::Norway),
-            Self::Oostenrijkse => Some(CountryCode::Austria),
-            Self::Poolse => Some(CountryCode::Poland),
-            Self::Portugese => Some(CountryCode::Portugal),
-            Self::Roemeense => Some(CountryCode::Romania),
+            Self::Liechtensteinse => Some(IsoCountryCode::Liechtenstein),
+            Self::Luxemburgse => Some(IsoCountryCode::Luxembourg),
+            Self::Maltese => Some(IsoCountryCode::Malta),
+            Self::Monegaskische => Some(IsoCountryCode::Monaco),
+            Self::Noorse => Some(IsoCountryCode::Norway),
+            Self::Oostenrijkse => Some(IsoCountryCode::Austria),
+            Self::Poolse => Some(IsoCountryCode::Poland),
+            Self::Portugese => Some(IsoCountryCode::Portugal),
+            Self::Roemeense => Some(IsoCountryCode::Romania),
             // The Soviet Union split into multiple current countries (ended 31-12-1991).
             Self::BurgerVanDeSovjetUnie => None,
-            Self::SanMarinese => Some(CountryCode::SanMarino),
-            Self::Spaanse => Some(CountryCode::Spain),
+            Self::SanMarinese => Some(IsoCountryCode::SanMarino),
+            Self::Spaanse => Some(IsoCountryCode::Spain),
             // Czechoslovakia split into Czechia and Slovakia on 01-01-1993.
             Self::TsjechoSlowaakse => None,
-            Self::Vaticaanse => Some(CountryCode::HolySee),
-            Self::Zweedse => Some(CountryCode::Sweden),
-            Self::Zwitserse => Some(CountryCode::Switzerland),
+            Self::Vaticaanse => Some(IsoCountryCode::HolySee),
+            Self::Zweedse => Some(IsoCountryCode::Sweden),
+            Self::Zwitserse => Some(IsoCountryCode::Switzerland),
             // Eastern Germany merged into reunified Germany.
-            Self::OostDuitse => Some(CountryCode::Germany),
+            Self::OostDuitse => Some(IsoCountryCode::Germany),
             // A British-nationality-law status.
-            Self::BritsOnderdaan => Some(CountryCode::UnitedKingdom),
-            Self::Eritrese => Some(CountryCode::Eritrea),
+            Self::BritsOnderdaan => Some(IsoCountryCode::UnitedKingdom),
+            Self::Eritrese => Some(IsoCountryCode::Eritrea),
             // A British-nationality-law status.
-            Self::BritsOverzeesBurger => Some(CountryCode::UnitedKingdom),
-            Self::Macedonische => Some(CountryCode::NorthMacedonia),
+            Self::BritsOverzeesBurger => Some(IsoCountryCode::UnitedKingdom),
+            Self::Macedonische => Some(IsoCountryCode::NorthMacedonia),
             // Kosovo has no official ISO 3166-1 code, see [`Self::as_nationality_attribute`].
             Self::Kosovaarse => None,
-            Self::BurgerVanNoordMacedonie => Some(CountryCode::NorthMacedonia),
-            Self::Algerijnse => Some(CountryCode::Algeria),
-            Self::Angolese => Some(CountryCode::Angola),
-            Self::Burundese => Some(CountryCode::Burundi),
-            Self::Botswaanse => Some(CountryCode::Botswana),
-            Self::Burkinese => Some(CountryCode::BurkinaFaso),
-            Self::CentraalAfrikaanse => Some(CountryCode::CentralAfricanRepublic),
-            Self::Comorese => Some(CountryCode::Comoros),
-            Self::BurgerVanCongo => Some(CountryCode::Congo),
-            Self::Beninse => Some(CountryCode::Benin),
-            Self::Egyptische => Some(CountryCode::Egypt),
-            Self::EquatoriaalGuinese => Some(CountryCode::EquatorialGuinea),
-            Self::Ethiopische => Some(CountryCode::Ethiopia),
-            Self::Djiboutiaanse => Some(CountryCode::Djibouti),
-            Self::Gabonese => Some(CountryCode::Gabon),
-            Self::Gambiaanse => Some(CountryCode::Gambia),
-            Self::Ghanese => Some(CountryCode::Ghana),
-            Self::Guinese => Some(CountryCode::Guinea),
-            Self::Ivoriaanse => Some(CountryCode::CoteDIvoire),
-            Self::Kaapverdische => Some(CountryCode::CaboVerde),
-            Self::Kameroense => Some(CountryCode::Cameroon),
-            Self::Kenyaanse => Some(CountryCode::Kenya),
+            Self::BurgerVanNoordMacedonie => Some(IsoCountryCode::NorthMacedonia),
+            Self::Algerijnse => Some(IsoCountryCode::Algeria),
+            Self::Angolese => Some(IsoCountryCode::Angola),
+            Self::Burundese => Some(IsoCountryCode::Burundi),
+            Self::Botswaanse => Some(IsoCountryCode::Botswana),
+            Self::Burkinese => Some(IsoCountryCode::BurkinaFaso),
+            Self::CentraalAfrikaanse => Some(IsoCountryCode::CentralAfricanRepublic),
+            Self::Comorese => Some(IsoCountryCode::Comoros),
+            Self::BurgerVanCongo => Some(IsoCountryCode::Congo),
+            Self::Beninse => Some(IsoCountryCode::Benin),
+            Self::Egyptische => Some(IsoCountryCode::Egypt),
+            Self::EquatoriaalGuinese => Some(IsoCountryCode::EquatorialGuinea),
+            Self::Ethiopische => Some(IsoCountryCode::Ethiopia),
+            Self::Djiboutiaanse => Some(IsoCountryCode::Djibouti),
+            Self::Gabonese => Some(IsoCountryCode::Gabon),
+            Self::Gambiaanse => Some(IsoCountryCode::Gambia),
+            Self::Ghanese => Some(IsoCountryCode::Ghana),
+            Self::Guinese => Some(IsoCountryCode::Guinea),
+            Self::Ivoriaanse => Some(IsoCountryCode::CoteDIvoire),
+            Self::Kaapverdische => Some(IsoCountryCode::CaboVerde),
+            Self::Kameroense => Some(IsoCountryCode::Cameroon),
+            Self::Kenyaanse => Some(IsoCountryCode::Kenya),
             // Zaire was renamed Democratic Republic of the Congo on 15-07-1997.
-            Self::Zairese => Some(CountryCode::DemocraticRepublicOfTheCongo),
-            Self::Lesothaanse => Some(CountryCode::Lesotho),
-            Self::Liberiaanse => Some(CountryCode::Liberia),
-            Self::Libische => Some(CountryCode::Libya),
-            Self::Malagassische => Some(CountryCode::Madagascar),
-            Self::Malawische => Some(CountryCode::Malawi),
-            Self::Malinese => Some(CountryCode::Mali),
-            Self::Marokkaanse => Some(CountryCode::Morocco),
-            Self::Mauritaanse => Some(CountryCode::Mauritania),
-            Self::Mauritiaanse => Some(CountryCode::Mauritius),
-            Self::Mozambikaanse => Some(CountryCode::Mozambique),
+            Self::Zairese => Some(IsoCountryCode::DemocraticRepublicOfTheCongo),
+            Self::Lesothaanse => Some(IsoCountryCode::Lesotho),
+            Self::Liberiaanse => Some(IsoCountryCode::Liberia),
+            Self::Libische => Some(IsoCountryCode::Libya),
+            Self::Malagassische => Some(IsoCountryCode::Madagascar),
+            Self::Malawische => Some(IsoCountryCode::Malawi),
+            Self::Malinese => Some(IsoCountryCode::Mali),
+            Self::Marokkaanse => Some(IsoCountryCode::Morocco),
+            Self::Mauritaanse => Some(IsoCountryCode::Mauritania),
+            Self::Mauritiaanse => Some(IsoCountryCode::Mauritius),
+            Self::Mozambikaanse => Some(IsoCountryCode::Mozambique),
             // Swaziland was renamed Eswatini on 19-04-2018.
-            Self::Swazische => Some(CountryCode::Eswatini),
-            Self::Nigerese => Some(CountryCode::Niger),
-            Self::Nigeriaanse => Some(CountryCode::Nigeria),
-            Self::Ugandese => Some(CountryCode::Uganda),
-            Self::GuineeBissause => Some(CountryCode::GuineaBissau),
-            Self::ZuidAfrikaanse => Some(CountryCode::SouthAfrica),
-            Self::Eswatinische => Some(CountryCode::Eswatini),
-            Self::Zimbabwaanse => Some(CountryCode::Zimbabwe),
-            Self::Rwandese => Some(CountryCode::Rwanda),
-            Self::BurgerVanSaoTomeEnPrincipe => Some(CountryCode::SaoTomeAndPrincipe),
-            Self::Senegalese => Some(CountryCode::Senegal),
-            Self::SierraLeoonse => Some(CountryCode::SierraLeone),
-            Self::Soedanese => Some(CountryCode::Sudan),
-            Self::Somalische => Some(CountryCode::Somalia),
-            Self::Tanzaniaanse => Some(CountryCode::Tanzania),
-            Self::Togolese => Some(CountryCode::Togo),
-            Self::Tsjadische => Some(CountryCode::Chad),
-            Self::Tunesische => Some(CountryCode::Tunisia),
-            Self::Zambiaanse => Some(CountryCode::Zambia),
-            Self::ZuidSoedanese => Some(CountryCode::SouthSudan),
-            Self::Bahamaanse => Some(CountryCode::Bahamas),
-            Self::Belizaanse => Some(CountryCode::Belize),
-            Self::Canadese => Some(CountryCode::Canada),
-            Self::CostaRicaanse => Some(CountryCode::CostaRica),
-            Self::Cubaanse => Some(CountryCode::Cuba),
-            Self::Dominicaanse => Some(CountryCode::DominicanRepublic),
-            Self::Salvadoraanse => Some(CountryCode::ElSalvador),
-            Self::Guatemalaanse => Some(CountryCode::Guatemala),
-            Self::Haitiaanse => Some(CountryCode::Haiti),
-            Self::Hondurese => Some(CountryCode::Honduras),
-            Self::Jamaicaanse => Some(CountryCode::Jamaica),
-            Self::Mexicaanse => Some(CountryCode::Mexico),
-            Self::Nicaraguaanse => Some(CountryCode::Nicaragua),
-            Self::Panamese => Some(CountryCode::Panama),
-            Self::BurgerVanTrinidadEnTobago => Some(CountryCode::TrinidadAndTobago),
-            Self::AmerikaansBurger => Some(CountryCode::UnitedStates),
-            Self::Argentijnse => Some(CountryCode::Argentina),
-            Self::Barbadaanse => Some(CountryCode::Barbados),
-            Self::Boliviaanse => Some(CountryCode::Bolivia),
-            Self::Braziliaanse => Some(CountryCode::Brazil),
-            Self::Chileense => Some(CountryCode::Chile),
-            Self::Colombiaanse => Some(CountryCode::Colombia),
-            Self::Ecuadoraanse => Some(CountryCode::Ecuador),
-            Self::Guyaanse => Some(CountryCode::Guyana),
-            Self::Paraguayaanse => Some(CountryCode::Paraguay),
-            Self::Peruaanse => Some(CountryCode::Peru),
-            Self::Surinaamse => Some(CountryCode::Suriname),
-            Self::Uruguayaanse => Some(CountryCode::Uruguay),
-            Self::Venezolaanse => Some(CountryCode::Venezuela),
-            Self::Grenadaanse => Some(CountryCode::Grenada),
-            Self::BurgerVanSaintKittsEnNevis => Some(CountryCode::SaintKittsAndNevis),
-            Self::Afghaanse => Some(CountryCode::Afghanistan),
-            Self::Bahreinse => Some(CountryCode::Bahrain),
-            Self::Bhutaanse => Some(CountryCode::Bhutan),
+            Self::Swazische => Some(IsoCountryCode::Eswatini),
+            Self::Nigerese => Some(IsoCountryCode::Niger),
+            Self::Nigeriaanse => Some(IsoCountryCode::Nigeria),
+            Self::Ugandese => Some(IsoCountryCode::Uganda),
+            Self::GuineeBissause => Some(IsoCountryCode::GuineaBissau),
+            Self::ZuidAfrikaanse => Some(IsoCountryCode::SouthAfrica),
+            Self::Eswatinische => Some(IsoCountryCode::Eswatini),
+            Self::Zimbabwaanse => Some(IsoCountryCode::Zimbabwe),
+            Self::Rwandese => Some(IsoCountryCode::Rwanda),
+            Self::BurgerVanSaoTomeEnPrincipe => Some(IsoCountryCode::SaoTomeAndPrincipe),
+            Self::Senegalese => Some(IsoCountryCode::Senegal),
+            Self::SierraLeoonse => Some(IsoCountryCode::SierraLeone),
+            Self::Soedanese => Some(IsoCountryCode::Sudan),
+            Self::Somalische => Some(IsoCountryCode::Somalia),
+            Self::Tanzaniaanse => Some(IsoCountryCode::Tanzania),
+            Self::Togolese => Some(IsoCountryCode::Togo),
+            Self::Tsjadische => Some(IsoCountryCode::Chad),
+            Self::Tunesische => Some(IsoCountryCode::Tunisia),
+            Self::Zambiaanse => Some(IsoCountryCode::Zambia),
+            Self::ZuidSoedanese => Some(IsoCountryCode::SouthSudan),
+            Self::Bahamaanse => Some(IsoCountryCode::Bahamas),
+            Self::Belizaanse => Some(IsoCountryCode::Belize),
+            Self::Canadese => Some(IsoCountryCode::Canada),
+            Self::CostaRicaanse => Some(IsoCountryCode::CostaRica),
+            Self::Cubaanse => Some(IsoCountryCode::Cuba),
+            Self::Dominicaanse => Some(IsoCountryCode::DominicanRepublic),
+            Self::Salvadoraanse => Some(IsoCountryCode::ElSalvador),
+            Self::Guatemalaanse => Some(IsoCountryCode::Guatemala),
+            Self::Haitiaanse => Some(IsoCountryCode::Haiti),
+            Self::Hondurese => Some(IsoCountryCode::Honduras),
+            Self::Jamaicaanse => Some(IsoCountryCode::Jamaica),
+            Self::Mexicaanse => Some(IsoCountryCode::Mexico),
+            Self::Nicaraguaanse => Some(IsoCountryCode::Nicaragua),
+            Self::Panamese => Some(IsoCountryCode::Panama),
+            Self::BurgerVanTrinidadEnTobago => Some(IsoCountryCode::TrinidadAndTobago),
+            Self::AmerikaansBurger => Some(IsoCountryCode::UnitedStates),
+            Self::Argentijnse => Some(IsoCountryCode::Argentina),
+            Self::Barbadaanse => Some(IsoCountryCode::Barbados),
+            Self::Boliviaanse => Some(IsoCountryCode::Bolivia),
+            Self::Braziliaanse => Some(IsoCountryCode::Brazil),
+            Self::Chileense => Some(IsoCountryCode::Chile),
+            Self::Colombiaanse => Some(IsoCountryCode::Colombia),
+            Self::Ecuadoraanse => Some(IsoCountryCode::Ecuador),
+            Self::Guyaanse => Some(IsoCountryCode::Guyana),
+            Self::Paraguayaanse => Some(IsoCountryCode::Paraguay),
+            Self::Peruaanse => Some(IsoCountryCode::Peru),
+            Self::Surinaamse => Some(IsoCountryCode::Suriname),
+            Self::Uruguayaanse => Some(IsoCountryCode::Uruguay),
+            Self::Venezolaanse => Some(IsoCountryCode::Venezuela),
+            Self::Grenadaanse => Some(IsoCountryCode::Grenada),
+            Self::BurgerVanSaintKittsEnNevis => Some(IsoCountryCode::SaintKittsAndNevis),
+            Self::Afghaanse => Some(IsoCountryCode::Afghanistan),
+            Self::Bahreinse => Some(IsoCountryCode::Bahrain),
+            Self::Bhutaanse => Some(IsoCountryCode::Bhutan),
             // Burma was renamed to Myanmar on 18-06-1989.
-            Self::Burmaanse => Some(CountryCode::Myanmar),
-            Self::Bruneise => Some(CountryCode::BruneiDarussalam),
-            Self::Cambodjaanse => Some(CountryCode::Cambodia),
-            Self::SriLankaanse => Some(CountryCode::SriLanka),
-            Self::Chinese => Some(CountryCode::China),
-            Self::Cyprische => Some(CountryCode::Cyprus),
-            Self::Filipijnse => Some(CountryCode::Philippines),
-            Self::Taiwanese => Some(CountryCode::Taiwan),
-            Self::Indiase => Some(CountryCode::India),
-            Self::Indonesische => Some(CountryCode::Indonesia),
-            Self::Iraakse => Some(CountryCode::Iraq),
-            Self::Iraanse => Some(CountryCode::Iran),
-            Self::Israelische => Some(CountryCode::Israel),
-            Self::Japanse => Some(CountryCode::Japan),
+            Self::Burmaanse => Some(IsoCountryCode::Myanmar),
+            Self::Bruneise => Some(IsoCountryCode::BruneiDarussalam),
+            Self::Cambodjaanse => Some(IsoCountryCode::Cambodia),
+            Self::SriLankaanse => Some(IsoCountryCode::SriLanka),
+            Self::Chinese => Some(IsoCountryCode::China),
+            Self::Cyprische => Some(IsoCountryCode::Cyprus),
+            Self::Filipijnse => Some(IsoCountryCode::Philippines),
+            Self::Taiwanese => Some(IsoCountryCode::Taiwan),
+            Self::Indiase => Some(IsoCountryCode::India),
+            Self::Indonesische => Some(IsoCountryCode::Indonesia),
+            Self::Iraakse => Some(IsoCountryCode::Iraq),
+            Self::Iraanse => Some(IsoCountryCode::Iran),
+            Self::Israelische => Some(IsoCountryCode::Israel),
+            Self::Japanse => Some(IsoCountryCode::Japan),
             // North Yemen merged into Yemen on 22-05-1990.
-            Self::NoordJemenitische => Some(CountryCode::Yemen),
-            Self::Jordaanse => Some(CountryCode::Jordan),
-            Self::Koeweitse => Some(CountryCode::Kuwait),
-            Self::Laotiaanse => Some(CountryCode::Laos),
-            Self::Libanese => Some(CountryCode::Lebanon),
-            Self::Maldivische => Some(CountryCode::Maldives),
-            Self::Maleisische => Some(CountryCode::Malaysia),
-            Self::Mongolische => Some(CountryCode::Mongolia),
-            Self::Omaanse => Some(CountryCode::Oman),
-            Self::Nepalese => Some(CountryCode::Nepal),
-            Self::NoordKoreaanse => Some(CountryCode::NorthKorea),
-            Self::Pakistaanse => Some(CountryCode::Pakistan),
-            Self::Qatarese => Some(CountryCode::Qatar),
-            Self::SaoediArabische => Some(CountryCode::SaudiArabia),
-            Self::Singaporese => Some(CountryCode::Singapore),
-            Self::Syrische => Some(CountryCode::Syria),
-            Self::Thaise => Some(CountryCode::Thailand),
-            Self::BurgerVanDeVerenigdeArabischeEmiraten => Some(CountryCode::UnitedArabEmirates),
-            Self::Turkse => Some(CountryCode::Turkiye),
+            Self::NoordJemenitische => Some(IsoCountryCode::Yemen),
+            Self::Jordaanse => Some(IsoCountryCode::Jordan),
+            Self::Koeweitse => Some(IsoCountryCode::Kuwait),
+            Self::Laotiaanse => Some(IsoCountryCode::Laos),
+            Self::Libanese => Some(IsoCountryCode::Lebanon),
+            Self::Maldivische => Some(IsoCountryCode::Maldives),
+            Self::Maleisische => Some(IsoCountryCode::Malaysia),
+            Self::Mongolische => Some(IsoCountryCode::Mongolia),
+            Self::Omaanse => Some(IsoCountryCode::Oman),
+            Self::Nepalese => Some(IsoCountryCode::Nepal),
+            Self::NoordKoreaanse => Some(IsoCountryCode::NorthKorea),
+            Self::Pakistaanse => Some(IsoCountryCode::Pakistan),
+            Self::Qatarese => Some(IsoCountryCode::Qatar),
+            Self::SaoediArabische => Some(IsoCountryCode::SaudiArabia),
+            Self::Singaporese => Some(IsoCountryCode::Singapore),
+            Self::Syrische => Some(IsoCountryCode::Syria),
+            Self::Thaise => Some(IsoCountryCode::Thailand),
+            Self::BurgerVanDeVerenigdeArabischeEmiraten => Some(IsoCountryCode::UnitedArabEmirates),
+            Self::Turkse => Some(IsoCountryCode::Turkiye),
             // South Yemen merged into Yemen on 22-05-1990.
-            Self::ZuidJemenitische => Some(CountryCode::Yemen),
-            Self::ZuidKoreaanse => Some(CountryCode::SouthKorea),
-            Self::Vietnamese => Some(CountryCode::Vietnam),
-            Self::Bengalese => Some(CountryCode::Bangladesh),
-            Self::Australische => Some(CountryCode::Australia),
-            Self::PapoeaNieuwGuinese => Some(CountryCode::PapuaNewGuinea),
-            Self::NieuwZeelandse => Some(CountryCode::NewZealand),
+            Self::ZuidJemenitische => Some(IsoCountryCode::Yemen),
+            Self::ZuidKoreaanse => Some(IsoCountryCode::SouthKorea),
+            Self::Vietnamese => Some(IsoCountryCode::Vietnam),
+            Self::Bengalese => Some(IsoCountryCode::Bangladesh),
+            Self::Australische => Some(IsoCountryCode::Australia),
+            Self::PapoeaNieuwGuinese => Some(IsoCountryCode::PapuaNewGuinea),
+            Self::NieuwZeelandse => Some(IsoCountryCode::NewZealand),
             // Western Samoa was renamed Samoa on 04-07-1997.
-            Self::WestSamoaanse => Some(CountryCode::Samoa),
-            Self::Samoaanse => Some(CountryCode::Samoa),
-            Self::BurgerVanAntiguaEnBarbuda => Some(CountryCode::AntiguaAndBarbuda),
-            Self::Vanuatuaanse => Some(CountryCode::Vanuatu),
-            Self::Fijische => Some(CountryCode::Fiji),
+            Self::WestSamoaanse => Some(IsoCountryCode::Samoa),
+            Self::Samoaanse => Some(IsoCountryCode::Samoa),
+            Self::BurgerVanAntiguaEnBarbuda => Some(IsoCountryCode::AntiguaAndBarbuda),
+            Self::Vanuatuaanse => Some(IsoCountryCode::Vanuatu),
+            Self::Fijische => Some(IsoCountryCode::Fiji),
             // A British-nationality-law status.
-            Self::BurgerVanBritseAfhankelijkeGebieden => Some(CountryCode::UnitedKingdom),
-            Self::Tongaanse => Some(CountryCode::Tonga),
-            Self::Nauruaanse => Some(CountryCode::Nauru),
-            Self::Palause => Some(CountryCode::Palau),
+            Self::BurgerVanBritseAfhankelijkeGebieden => Some(IsoCountryCode::UnitedKingdom),
+            Self::Tongaanse => Some(IsoCountryCode::Tonga),
+            Self::Nauruaanse => Some(IsoCountryCode::Nauru),
+            Self::Palause => Some(IsoCountryCode::Palau),
             // A US-nationality-law status.
-            Self::AmerikaansOnderdaan => Some(CountryCode::UnitedStates),
-            Self::Salomonseilandse => Some(CountryCode::SolomonIslands),
-            Self::Micronesische => Some(CountryCode::Micronesia),
-            Self::Seychelse => Some(CountryCode::Seychelles),
-            Self::Kiribatische => Some(CountryCode::Kiribati),
-            Self::Tuvaluaanse => Some(CountryCode::Tuvalu),
-            Self::SaintLuciaanse => Some(CountryCode::SaintLucia),
-            Self::BurgerVanDominica => Some(CountryCode::Dominica),
-            Self::BurgerVanSaintVincentEnDeGrenadines => Some(CountryCode::SaintVincentAndTheGrenadines),
+            Self::AmerikaansOnderdaan => Some(IsoCountryCode::UnitedStates),
+            Self::Salomonseilandse => Some(IsoCountryCode::SolomonIslands),
+            Self::Micronesische => Some(IsoCountryCode::Micronesia),
+            Self::Seychelse => Some(IsoCountryCode::Seychelles),
+            Self::Kiribatische => Some(IsoCountryCode::Kiribati),
+            Self::Tuvaluaanse => Some(IsoCountryCode::Tuvalu),
+            Self::SaintLuciaanse => Some(IsoCountryCode::SaintLucia),
+            Self::BurgerVanDominica => Some(IsoCountryCode::Dominica),
+            Self::BurgerVanSaintVincentEnDeGrenadines => Some(IsoCountryCode::SaintVincentAndTheGrenadines),
             // A British-nationality-law status.
-            Self::BritishNationalOverseas => Some(CountryCode::UnitedKingdom),
-            Self::BurgerVanDemocratischeRepubliekCongo => Some(CountryCode::DemocraticRepublicOfTheCongo),
-            Self::BurgerVanTimorLeste => Some(CountryCode::TimorLeste),
+            Self::BritishNationalOverseas => Some(IsoCountryCode::UnitedKingdom),
+            Self::BurgerVanDemocratischeRepubliekCongo => Some(IsoCountryCode::DemocraticRepublicOfTheCongo),
+            Self::BurgerVanTimorLeste => Some(IsoCountryCode::TimorLeste),
             // Serbia and Montenegro split into Serbia and Montenegro on 03-06-2006.
             Self::BurgerVanServieEnMontenegro => None,
-            Self::Servische => Some(CountryCode::Serbia),
-            Self::Montenegrijnse => Some(CountryCode::Montenegro),
+            Self::Servische => Some(IsoCountryCode::Serbia),
+            Self::Montenegrijnse => Some(IsoCountryCode::Montenegro),
             Self::Staatloos => None,
             Self::VastgesteldNietNederlander => None,
             Self::Overig => None,
         }
     }
+}
 
-    /// The value to put in the `nationalities` attribute: the mapped alpha-2 country, the Rulebook's own special value
-    /// for `Self::Staatloos` ("QS", stateless), the widely used placeholder for `Self::Kosovaarse` ("XK") or any other
-    /// unmapped variant ("QU", unknown).
-    fn as_attribute(&self) -> String {
-        match self.alpha2() {
-            Some(country) => country.to_string(),
-            None if matches!(self, Self::Staatloos) => "QS".to_owned(),
-            None if matches!(self, Self::Kosovaarse) => "XK".to_owned(),
-            None => "QU".to_owned(),
+impl From<RvigNationalityCode> for RulebookNationality {
+    fn from(value: RvigNationalityCode) -> Self {
+        match value.alpha2() {
+            Some(country) => Self::Iso(country),
+            None if matches!(value, RvigNationalityCode::Kosovaarse) => Self::Other("XK".to_owned()),
+            None if matches!(value, RvigNationalityCode::Staatloos) => Self::Stateless,
+            None => Self::Unknown,
         }
     }
 }
@@ -1804,581 +1807,585 @@ impl RvigCountryCode {
     /// * Split/dissolved countries have no official ISO 3166-1 code: e.g. "Joegoslavie", "SovjetUnie",
     ///   "OostenrijkHongarije"
     /// * "Kosovo" and "Tibet" have no official ISO 3166-1 code.
-    fn alpha2(&self) -> Option<CountryCode> {
+    fn alpha2(&self) -> Option<IsoCountryCode> {
         match self {
             Self::Onbekend => None,
-            Self::Canada => Some(CountryCode::Canada),
-            Self::Frankrijk => Some(CountryCode::France),
-            Self::Zwitserland => Some(CountryCode::Switzerland),
+            Self::Canada => Some(IsoCountryCode::Canada),
+            Self::Frankrijk => Some(IsoCountryCode::France),
+            Self::Zwitserland => Some(IsoCountryCode::Switzerland),
             // Rhodesia (ended 01-06-1979) became Zimbabwe upon independence in 1980.
-            Self::Rhodesie => Some(CountryCode::Zimbabwe),
-            Self::Malawi => Some(CountryCode::Malawi),
-            Self::Cuba => Some(CountryCode::Cuba),
-            Self::Suriname => Some(CountryCode::Suriname),
-            Self::Tunesie => Some(CountryCode::Tunisia),
-            Self::Oostenrijk => Some(CountryCode::Austria),
-            Self::Belgie => Some(CountryCode::Belgium),
-            Self::Botswana => Some(CountryCode::Botswana),
-            Self::Iran => Some(CountryCode::Iran),
-            Self::NieuwZeeland => Some(CountryCode::NewZealand),
-            Self::ZuidAfrika => Some(CountryCode::SouthAfrica),
-            Self::Denemarken => Some(CountryCode::Denmark),
+            Self::Rhodesie => Some(IsoCountryCode::Zimbabwe),
+            Self::Malawi => Some(IsoCountryCode::Malawi),
+            Self::Cuba => Some(IsoCountryCode::Cuba),
+            Self::Suriname => Some(IsoCountryCode::Suriname),
+            Self::Tunesie => Some(IsoCountryCode::Tunisia),
+            Self::Oostenrijk => Some(IsoCountryCode::Austria),
+            Self::Belgie => Some(IsoCountryCode::Belgium),
+            Self::Botswana => Some(IsoCountryCode::Botswana),
+            Self::Iran => Some(IsoCountryCode::Iran),
+            Self::NieuwZeeland => Some(IsoCountryCode::NewZealand),
+            Self::ZuidAfrika => Some(IsoCountryCode::SouthAfrica),
+            Self::Denemarken => Some(IsoCountryCode::Denmark),
             // North Yemen merged into Yemen on 22-05-1990.
-            Self::NoordJemen => Some(CountryCode::Yemen),
-            Self::Hongarije => Some(CountryCode::Hungary),
-            Self::SaoediArabie => Some(CountryCode::SaudiArabia),
-            Self::Liberia => Some(CountryCode::Liberia),
-            Self::Ethiopie => Some(CountryCode::Ethiopia),
-            Self::Chili => Some(CountryCode::Chile),
-            Self::Marokko => Some(CountryCode::Morocco),
-            Self::Togo => Some(CountryCode::Togo),
-            Self::Ghana => Some(CountryCode::Ghana),
-            Self::Laos => Some(CountryCode::Laos),
-            Self::Angola => Some(CountryCode::Angola),
-            Self::Filipijnen => Some(CountryCode::Philippines),
-            Self::Zambia => Some(CountryCode::Zambia),
-            Self::Mali => Some(CountryCode::Mali),
-            Self::Ivoorkust => Some(CountryCode::CoteDIvoire),
+            Self::NoordJemen => Some(IsoCountryCode::Yemen),
+            Self::Hongarije => Some(IsoCountryCode::Hungary),
+            Self::SaoediArabie => Some(IsoCountryCode::SaudiArabia),
+            Self::Liberia => Some(IsoCountryCode::Liberia),
+            Self::Ethiopie => Some(IsoCountryCode::Ethiopia),
+            Self::Chili => Some(IsoCountryCode::Chile),
+            Self::Marokko => Some(IsoCountryCode::Morocco),
+            Self::Togo => Some(IsoCountryCode::Togo),
+            Self::Ghana => Some(IsoCountryCode::Ghana),
+            Self::Laos => Some(IsoCountryCode::Laos),
+            Self::Angola => Some(IsoCountryCode::Angola),
+            Self::Filipijnen => Some(IsoCountryCode::Philippines),
+            Self::Zambia => Some(IsoCountryCode::Zambia),
+            Self::Mali => Some(IsoCountryCode::Mali),
+            Self::Ivoorkust => Some(IsoCountryCode::CoteDIvoire),
             // Burma was renamed Myanmar on 18-06-1989.
-            Self::Birma => Some(CountryCode::Myanmar),
-            Self::Monaco => Some(CountryCode::Monaco),
-            Self::Colombia => Some(CountryCode::Colombia),
-            Self::Albanie => Some(CountryCode::Albania),
-            Self::Kameroen => Some(CountryCode::Cameroon),
+            Self::Birma => Some(IsoCountryCode::Myanmar),
+            Self::Monaco => Some(IsoCountryCode::Monaco),
+            Self::Colombia => Some(IsoCountryCode::Colombia),
+            Self::Albanie => Some(IsoCountryCode::Albania),
+            Self::Kameroen => Some(IsoCountryCode::Cameroon),
             // South Vietnam merged into Vietnam on 02-07-1976.
-            Self::ZuidVietnam => Some(CountryCode::Vietnam),
-            Self::Singapore => Some(CountryCode::Singapore),
-            Self::Paraguay => Some(CountryCode::Paraguay),
-            Self::Zweden => Some(CountryCode::Sweden),
-            Self::Cyprus => Some(CountryCode::Cyprus),
+            Self::ZuidVietnam => Some(IsoCountryCode::Vietnam),
+            Self::Singapore => Some(IsoCountryCode::Singapore),
+            Self::Paraguay => Some(IsoCountryCode::Paraguay),
+            Self::Zweden => Some(IsoCountryCode::Sweden),
+            Self::Cyprus => Some(IsoCountryCode::Cyprus),
             // Australian New Guinea became part of Papua New Guinea on 16-09-1975.
-            Self::AustralischNieuwGuinea => Some(CountryCode::PapuaNewGuinea),
-            Self::Brunei => Some(CountryCode::BruneiDarussalam),
-            Self::Irak => Some(CountryCode::Iraq),
-            Self::Mauritius => Some(CountryCode::Mauritius),
-            Self::Vaticaanstad => Some(CountryCode::HolySee),
+            Self::AustralischNieuwGuinea => Some(IsoCountryCode::PapuaNewGuinea),
+            Self::Brunei => Some(IsoCountryCode::BruneiDarussalam),
+            Self::Irak => Some(IsoCountryCode::Iraq),
+            Self::Mauritius => Some(IsoCountryCode::Mauritius),
+            Self::Vaticaanstad => Some(IsoCountryCode::HolySee),
             // Kashmir is disputed territory with no official ISO 3166-1 code.
             Self::Kashmir => None,
-            Self::Myanmar => Some(CountryCode::Myanmar),
-            Self::Jemen => Some(CountryCode::Yemen),
-            Self::Slovenie => Some(CountryCode::Slovenia),
+            Self::Myanmar => Some(IsoCountryCode::Myanmar),
+            Self::Jemen => Some(IsoCountryCode::Yemen),
+            Self::Slovenie => Some(IsoCountryCode::Slovenia),
             // Zaire was renamed Democratic Republic of the Congo on 15-07-1997 (RvIG lists the withdrawn ISO code "ZR";
-            // not adopted here since CountryCode only models current assignments).
-            Self::Zaire => Some(CountryCode::DemocraticRepublicOfTheCongo),
-            Self::Kroatie => Some(CountryCode::Croatia),
-            Self::Taiwan => Some(CountryCode::Taiwan),
-            Self::Rusland => Some(CountryCode::Russia),
-            Self::Armenie => Some(CountryCode::Armenia),
+            // not adopted here since IsoCountryCode only models current assignments).
+            Self::Zaire => Some(IsoCountryCode::DemocraticRepublicOfTheCongo),
+            Self::Kroatie => Some(IsoCountryCode::Croatia),
+            Self::Taiwan => Some(IsoCountryCode::Taiwan),
+            Self::Rusland => Some(IsoCountryCode::Russia),
+            Self::Armenie => Some(IsoCountryCode::Armenia),
             // Ascension is part of the single territory Saint Helena, Ascension and Tristan da Cunha.
-            Self::Ascension => Some(CountryCode::SaintHelenaAscensionAndTristanDaCunha),
+            Self::Ascension => Some(IsoCountryCode::SaintHelenaAscensionAndTristanDaCunha),
             // The Azores are an autonomous region of Portugal, not separately coded in ISO 3166-1.
-            Self::Azoren => Some(CountryCode::Portugal),
-            Self::Bahrein => Some(CountryCode::Bahrain),
-            Self::Bhutan => Some(CountryCode::Bhutan),
+            Self::Azoren => Some(IsoCountryCode::Portugal),
+            Self::Bahrein => Some(IsoCountryCode::Bahrain),
+            Self::Bhutan => Some(IsoCountryCode::Bhutan),
             // The British West Indies devolved into multiple current Caribbean countries; no single successor.
             Self::BritseAntillen => None,
-            Self::Comoren => Some(CountryCode::Comoros),
-            Self::Falklandeilanden => Some(CountryCode::FalklandIslands),
-            Self::FransGuyana => Some(CountryCode::FrenchGuiana),
+            Self::Comoren => Some(IsoCountryCode::Comoros),
+            Self::Falklandeilanden => Some(IsoCountryCode::FalklandIslands),
+            Self::FransGuyana => Some(IsoCountryCode::FrenchGuiana),
             // French Somaliland was renamed Djibouti upon independence.
-            Self::FransSomaliland => Some(CountryCode::Djibouti),
+            Self::FransSomaliland => Some(IsoCountryCode::Djibouti),
             // The Gilbert and Ellice Islands split into Kiribati and Tuvalu; no single successor.
             Self::GilbertEnEllice => None,
-            Self::Groenland => Some(CountryCode::Greenland),
-            Self::Guadeloupe => Some(CountryCode::Guadeloupe),
+            Self::Groenland => Some(IsoCountryCode::Greenland),
+            Self::Guadeloupe => Some(IsoCountryCode::Guadeloupe),
             // Older code for Cape Verde, superseded by code "8025".
-            Self::KaapverdischeEilanden => Some(CountryCode::CaboVerde),
-            Self::Macau => Some(CountryCode::Macao),
-            Self::Martinique => Some(CountryCode::Martinique),
-            Self::Mozambique => Some(CountryCode::Mozambique),
-            Self::Pitcairneilanden => Some(CountryCode::Pitcairn),
-            Self::GuineeBissau => Some(CountryCode::GuineaBissau),
-            Self::Reunion => Some(CountryCode::Reunion),
-            Self::SaintPierreEnMiquelon => Some(CountryCode::SaintPierreAndMiquelon),
+            Self::KaapverdischeEilanden => Some(IsoCountryCode::CaboVerde),
+            Self::Macau => Some(IsoCountryCode::Macao),
+            Self::Martinique => Some(IsoCountryCode::Martinique),
+            Self::Mozambique => Some(IsoCountryCode::Mozambique),
+            Self::Pitcairneilanden => Some(IsoCountryCode::Pitcairn),
+            Self::GuineeBissau => Some(IsoCountryCode::GuineaBissau),
+            Self::Reunion => Some(IsoCountryCode::Reunion),
+            Self::SaintPierreEnMiquelon => Some(IsoCountryCode::SaintPierreAndMiquelon),
             // Older code for Seychelles.
-            Self::SeychellenEnAmiranten => Some(CountryCode::Seychelles),
-            Self::Tonga => Some(CountryCode::Tonga),
-            Self::WallisEnFutuna => Some(CountryCode::WallisAndFutuna),
+            Self::SeychellenEnAmiranten => Some(IsoCountryCode::Seychelles),
+            Self::Tonga => Some(IsoCountryCode::Tonga),
+            Self::WallisEnFutuna => Some(IsoCountryCode::WallisAndFutuna),
             // South West Africa was renamed Namibia on 21-03-1990.
-            Self::ZuidwestAfrika => Some(CountryCode::Namibia),
+            Self::ZuidwestAfrika => Some(IsoCountryCode::Namibia),
             // French India's territories were ceded to and incorporated into India.
-            Self::FransIndie => Some(CountryCode::India),
+            Self::FransIndie => Some(IsoCountryCode::India),
             // Johnston Atoll is one of the United States Minor Outlying Islands.
-            Self::Johnston => Some(CountryCode::UnitedStatesMinorOutlyingIslands),
+            Self::Johnston => Some(IsoCountryCode::UnitedStatesMinorOutlyingIslands),
             // Pre-federation Malay state, now part of Malaysia.
-            Self::Kedah => Some(CountryCode::Malaysia),
+            Self::Kedah => Some(IsoCountryCode::Malaysia),
             // Pre-federation Malay state, now part of Malaysia.
-            Self::Kelantan => Some(CountryCode::Malaysia),
+            Self::Kelantan => Some(IsoCountryCode::Malaysia),
             // Malacca, pre-federation territory, now part of Malaysia.
-            Self::Malakka => Some(CountryCode::Malaysia),
-            Self::Mayotte => Some(CountryCode::Mayotte),
+            Self::Malakka => Some(IsoCountryCode::Malaysia),
+            Self::Mayotte => Some(IsoCountryCode::Mayotte),
             // Pre-federation Malay state, now part of Malaysia.
-            Self::NegriSembilan => Some(CountryCode::Malaysia),
+            Self::NegriSembilan => Some(IsoCountryCode::Malaysia),
             // Pre-federation Malay state, now part of Malaysia.
-            Self::Pahang => Some(CountryCode::Malaysia),
+            Self::Pahang => Some(IsoCountryCode::Malaysia),
             // Pre-federation Malay state, now part of Malaysia.
-            Self::Perak => Some(CountryCode::Malaysia),
+            Self::Perak => Some(IsoCountryCode::Malaysia),
             // Pre-federation Malay state, now part of Malaysia.
-            Self::Perlis => Some(CountryCode::Malaysia),
+            Self::Perlis => Some(IsoCountryCode::Malaysia),
             // Portuguese India (Goa etc.) was annexed by and incorporated into India in 1961.
-            Self::PortugeesIndie => Some(CountryCode::India),
+            Self::PortugeesIndie => Some(IsoCountryCode::India),
             // Pre-federation Malay state, now part of Malaysia.
-            Self::Selangor => Some(CountryCode::Malaysia),
+            Self::Selangor => Some(IsoCountryCode::Malaysia),
             // Sikkim merged with India in 1975.
-            Self::Sikkim => Some(CountryCode::India),
-            Self::SaintVincentEnDeGrenadines => Some(CountryCode::SaintVincentAndTheGrenadines),
-            Self::Spitsbergen => Some(CountryCode::SvalbardAndJanMayen),
+            Self::Sikkim => Some(IsoCountryCode::India),
+            Self::SaintVincentEnDeGrenadines => Some(IsoCountryCode::SaintVincentAndTheGrenadines),
+            Self::Spitsbergen => Some(IsoCountryCode::SvalbardAndJanMayen),
             // Pre-federation Malay state, now part of Malaysia.
-            Self::Trengganu => Some(CountryCode::Malaysia),
-            Self::Aruba => Some(CountryCode::Aruba),
-            Self::BurkinaFaso => Some(CountryCode::BurkinaFaso),
-            Self::Azerbeidzjan => Some(CountryCode::Azerbaijan),
-            Self::Belarus => Some(CountryCode::Belarus),
-            Self::Kazachstan => Some(CountryCode::Kazakhstan),
-            Self::Macedonie => Some(CountryCode::NorthMacedonia),
-            Self::OostTimor => Some(CountryCode::TimorLeste),
+            Self::Trengganu => Some(IsoCountryCode::Malaysia),
+            Self::Aruba => Some(IsoCountryCode::Aruba),
+            Self::BurkinaFaso => Some(IsoCountryCode::BurkinaFaso),
+            Self::Azerbeidzjan => Some(IsoCountryCode::Azerbaijan),
+            Self::Belarus => Some(IsoCountryCode::Belarus),
+            Self::Kazachstan => Some(IsoCountryCode::Kazakhstan),
+            Self::Macedonie => Some(IsoCountryCode::NorthMacedonia),
+            Self::OostTimor => Some(IsoCountryCode::TimorLeste),
             // Serbia and Montenegro split into Serbia and Montenegro in 2006; no single successor (RvIG lists the
             // withdrawn ISO code "CS"; not adopted here).
             Self::ServieEnMontenegro => None,
-            Self::Servie => Some(CountryCode::Serbia),
-            Self::Montenegro => Some(CountryCode::Montenegro),
+            Self::Servie => Some(IsoCountryCode::Serbia),
+            Self::Montenegro => Some(IsoCountryCode::Montenegro),
             // Kosovo has no official ISO 3166-1 code; deferred rather than adopting the unofficial "XK" placeholder
             // without an explicit product decision.
             Self::Kosovo => None,
             // Bonaire is one of the special municipalities covered by the single ISO code "BQ" (Bonaire, Sint Eustatius
             // and Saba).
-            Self::Bonaire => Some(CountryCode::BonaireSintEustatiusAndSaba),
-            Self::Curacao => Some(CountryCode::Curacao),
+            Self::Bonaire => Some(IsoCountryCode::BonaireSintEustatiusAndSaba),
+            Self::Curacao => Some(IsoCountryCode::Curacao),
             // Saba is one of the special municipalities covered by the single ISO code "BQ".
-            Self::Saba => Some(CountryCode::BonaireSintEustatiusAndSaba),
+            Self::Saba => Some(IsoCountryCode::BonaireSintEustatiusAndSaba),
             // Sint Eustatius is one of the special municipalities covered by the single ISO code "BQ".
-            Self::SintEustatius => Some(CountryCode::BonaireSintEustatiusAndSaba),
-            Self::SintMaarten => Some(CountryCode::SintMaarten),
-            Self::ZuidSoedan => Some(CountryCode::SouthSudan),
-            Self::GazastrookEnWestelijkeJordaanoever => Some(CountryCode::Palestine),
-            Self::RepubliekNoordMacedonie => Some(CountryCode::NorthMacedonia),
-            Self::Moldavie => Some(CountryCode::Moldova),
-            Self::Burundi => Some(CountryCode::Burundi),
-            Self::Finland => Some(CountryCode::Finland),
-            Self::Griekenland => Some(CountryCode::Greece),
-            Self::Guatemala => Some(CountryCode::Guatemala),
-            Self::Nigeria => Some(CountryCode::Nigeria),
-            Self::Libie => Some(CountryCode::Libya),
-            Self::Ierland => Some(CountryCode::Ireland),
-            Self::Brazilie => Some(CountryCode::Brazil),
-            Self::Rwanda => Some(CountryCode::Rwanda),
-            Self::Venezuela => Some(CountryCode::Venezuela),
-            Self::IJsland => Some(CountryCode::Iceland),
-            Self::Liechtenstein => Some(CountryCode::Liechtenstein),
-            Self::Somalie => Some(CountryCode::Somalia),
-            Self::VerenigdeStatenVanAmerika => Some(CountryCode::UnitedStates),
-            Self::Bolivia => Some(CountryCode::Bolivia),
-            Self::Australie => Some(CountryCode::Australia),
-            Self::Jamaica => Some(CountryCode::Jamaica),
-            Self::Luxemburg => Some(CountryCode::Luxembourg),
-            Self::Tsjaad => Some(CountryCode::Chad),
-            Self::Mauritanie => Some(CountryCode::Mauritania),
-            Self::Kirgizie => Some(CountryCode::Kyrgyzstan),
-            Self::China => Some(CountryCode::China),
-            Self::Afghanistan => Some(CountryCode::Afghanistan),
-            Self::Indonesie => Some(CountryCode::Indonesia),
-            Self::Guyana => Some(CountryCode::Guyana),
+            Self::SintEustatius => Some(IsoCountryCode::BonaireSintEustatiusAndSaba),
+            Self::SintMaarten => Some(IsoCountryCode::SintMaarten),
+            Self::ZuidSoedan => Some(IsoCountryCode::SouthSudan),
+            Self::GazastrookEnWestelijkeJordaanoever => Some(IsoCountryCode::Palestine),
+            Self::RepubliekNoordMacedonie => Some(IsoCountryCode::NorthMacedonia),
+            Self::Moldavie => Some(IsoCountryCode::Moldova),
+            Self::Burundi => Some(IsoCountryCode::Burundi),
+            Self::Finland => Some(IsoCountryCode::Finland),
+            Self::Griekenland => Some(IsoCountryCode::Greece),
+            Self::Guatemala => Some(IsoCountryCode::Guatemala),
+            Self::Nigeria => Some(IsoCountryCode::Nigeria),
+            Self::Libie => Some(IsoCountryCode::Libya),
+            Self::Ierland => Some(IsoCountryCode::Ireland),
+            Self::Brazilie => Some(IsoCountryCode::Brazil),
+            Self::Rwanda => Some(IsoCountryCode::Rwanda),
+            Self::Venezuela => Some(IsoCountryCode::Venezuela),
+            Self::IJsland => Some(IsoCountryCode::Iceland),
+            Self::Liechtenstein => Some(IsoCountryCode::Liechtenstein),
+            Self::Somalie => Some(IsoCountryCode::Somalia),
+            Self::VerenigdeStatenVanAmerika => Some(IsoCountryCode::UnitedStates),
+            Self::Bolivia => Some(IsoCountryCode::Bolivia),
+            Self::Australie => Some(IsoCountryCode::Australia),
+            Self::Jamaica => Some(IsoCountryCode::Jamaica),
+            Self::Luxemburg => Some(IsoCountryCode::Luxembourg),
+            Self::Tsjaad => Some(IsoCountryCode::Chad),
+            Self::Mauritanie => Some(IsoCountryCode::Mauritania),
+            Self::Kirgizie => Some(IsoCountryCode::Kyrgyzstan),
+            Self::China => Some(IsoCountryCode::China),
+            Self::Afghanistan => Some(IsoCountryCode::Afghanistan),
+            Self::Indonesie => Some(IsoCountryCode::Indonesia),
+            Self::Guyana => Some(IsoCountryCode::Guyana),
             // North Vietnam merged into Vietnam on 02-07-1976.
-            Self::NoordVietnam => Some(CountryCode::Vietnam),
-            Self::Noorwegen => Some(CountryCode::Norway),
-            Self::SanMarino => Some(CountryCode::SanMarino),
+            Self::NoordVietnam => Some(IsoCountryCode::Vietnam),
+            Self::Noorwegen => Some(IsoCountryCode::Norway),
+            Self::SanMarino => Some(IsoCountryCode::SanMarino),
             // Historical code, superseded after reunification by code "9089".
-            Self::Duitsland => Some(CountryCode::Germany),
-            Self::Nederland => Some(CountryCode::Netherlands),
-            Self::Cambodja => Some(CountryCode::Cambodia),
-            Self::Fiji => Some(CountryCode::Fiji),
-            Self::Bahamas => Some(CountryCode::Bahamas),
-            Self::Israel => Some(CountryCode::Israel),
-            Self::Nepal => Some(CountryCode::Nepal),
-            Self::ZuidKorea => Some(CountryCode::SouthKorea),
-            Self::Spanje => Some(CountryCode::Spain),
-            Self::Oekraine => Some(CountryCode::Ukraine),
-            Self::VerenigdKoninkrijk => Some(CountryCode::UnitedKingdom),
-            Self::Niger => Some(CountryCode::Niger),
-            Self::Haiti => Some(CountryCode::Haiti),
-            Self::Jordanie => Some(CountryCode::Jordan),
-            Self::Turkije => Some(CountryCode::Turkiye),
-            Self::TrinidadEnTobago => Some(CountryCode::TrinidadAndTobago),
+            Self::Duitsland => Some(IsoCountryCode::Germany),
+            Self::Nederland => Some(IsoCountryCode::Netherlands),
+            Self::Cambodja => Some(IsoCountryCode::Cambodia),
+            Self::Fiji => Some(IsoCountryCode::Fiji),
+            Self::Bahamas => Some(IsoCountryCode::Bahamas),
+            Self::Israel => Some(IsoCountryCode::Israel),
+            Self::Nepal => Some(IsoCountryCode::Nepal),
+            Self::ZuidKorea => Some(IsoCountryCode::SouthKorea),
+            Self::Spanje => Some(IsoCountryCode::Spain),
+            Self::Oekraine => Some(IsoCountryCode::Ukraine),
+            Self::VerenigdKoninkrijk => Some(IsoCountryCode::UnitedKingdom),
+            Self::Niger => Some(IsoCountryCode::Niger),
+            Self::Haiti => Some(IsoCountryCode::Haiti),
+            Self::Jordanie => Some(IsoCountryCode::Jordan),
+            Self::Turkije => Some(IsoCountryCode::Turkiye),
+            Self::TrinidadEnTobago => Some(IsoCountryCode::TrinidadAndTobago),
             // Yugoslavia split into multiple current countries; no single alpha-2 code is correct (RvIG lists the
             // withdrawn ISO code "YU"; not adopted here).
             Self::Joegoslavie => None,
             // Upper Volta was renamed Burkina Faso on 04-08-1984.
-            Self::OpperVolta => Some(CountryCode::BurkinaFaso),
-            Self::Algerije => Some(CountryCode::Algeria),
-            Self::Gabon => Some(CountryCode::Gabon),
-            Self::NoordKorea => Some(CountryCode::NorthKorea),
-            Self::Oezbekistan => Some(CountryCode::Uzbekistan),
-            Self::SierraLeone => Some(CountryCode::SierraLeone),
+            Self::OpperVolta => Some(IsoCountryCode::BurkinaFaso),
+            Self::Algerije => Some(IsoCountryCode::Algeria),
+            Self::Gabon => Some(IsoCountryCode::Gabon),
+            Self::NoordKorea => Some(IsoCountryCode::NorthKorea),
+            Self::Oezbekistan => Some(IsoCountryCode::Uzbekistan),
+            Self::SierraLeone => Some(IsoCountryCode::SierraLeone),
             // British Honduras was renamed Belize.
-            Self::BritsHonduras => Some(CountryCode::Belize),
+            Self::BritsHonduras => Some(IsoCountryCode::Belize),
             // The Canary Islands are an autonomous community of Spain, not separately coded in ISO 3166-1.
-            Self::CanarischeEilanden => Some(CountryCode::Spain),
-            Self::FransPolynesie => Some(CountryCode::FrenchPolynesia),
-            Self::Gibraltar => Some(CountryCode::Gibraltar),
+            Self::CanarischeEilanden => Some(IsoCountryCode::Spain),
+            Self::FransPolynesie => Some(IsoCountryCode::FrenchPolynesia),
+            Self::Gibraltar => Some(IsoCountryCode::Gibraltar),
             // Portuguese Timor is the predecessor territory of Timor-Leste.
-            Self::PortugeesTimor => Some(CountryCode::TimorLeste),
-            Self::Tadzjikistan => Some(CountryCode::Tajikistan),
+            Self::PortugeesTimor => Some(IsoCountryCode::TimorLeste),
+            Self::Tadzjikistan => Some(IsoCountryCode::Tajikistan),
             // The British Solomon Islands became the Solomon Islands.
-            Self::BritseSalomonseilanden => Some(CountryCode::SolomonIslands),
-            Self::SaoTomeEnPrincipe => Some(CountryCode::SaoTomeAndPrincipe),
+            Self::BritseSalomonseilanden => Some(IsoCountryCode::SolomonIslands),
+            Self::SaoTomeEnPrincipe => Some(IsoCountryCode::SaoTomeAndPrincipe),
             // Part of the single territory Saint Helena, Ascension and Tristan da Cunha.
-            Self::SintHelena => Some(CountryCode::SaintHelenaAscensionAndTristanDaCunha),
+            Self::SintHelena => Some(IsoCountryCode::SaintHelenaAscensionAndTristanDaCunha),
             // Part of the single territory Saint Helena, Ascension and Tristan da Cunha.
-            Self::TristanDaCunha => Some(CountryCode::SaintHelenaAscensionAndTristanDaCunha),
+            Self::TristanDaCunha => Some(IsoCountryCode::SaintHelenaAscensionAndTristanDaCunha),
             // Western Samoa was renamed Samoa on 04-07-1997.
-            Self::WestSamoa => Some(CountryCode::Samoa),
-            Self::Turkmenistan => Some(CountryCode::Turkmenistan),
-            Self::Georgie => Some(CountryCode::Georgia),
-            Self::BosnieEnHerzegovina => Some(CountryCode::BosniaAndHerzegovina),
-            Self::Tsjechie => Some(CountryCode::Czechia),
-            Self::Slowakije => Some(CountryCode::Slovakia),
+            Self::WestSamoa => Some(IsoCountryCode::Samoa),
+            Self::Turkmenistan => Some(IsoCountryCode::Turkmenistan),
+            Self::Georgie => Some(IsoCountryCode::Georgia),
+            Self::BosnieEnHerzegovina => Some(IsoCountryCode::BosniaAndHerzegovina),
+            Self::Tsjechie => Some(IsoCountryCode::Czechia),
+            Self::Slowakije => Some(IsoCountryCode::Slovakia),
             // The Federal Republic of Yugoslavia (Serbia and Montenegro) split into Serbia and Montenegro; no single
             // successor (RvIG lists the withdrawn ISO code "YU"; not adopted here).
             Self::FederaleRepubliekJoegoslavie => None,
-            Self::DemocratischeRepubliekCongo => Some(CountryCode::DemocraticRepublicOfTheCongo),
-            Self::Oeganda => Some(CountryCode::Uganda),
-            Self::Kenia => Some(CountryCode::Kenya),
-            Self::Malta => Some(CountryCode::Malta),
-            Self::Barbados => Some(CountryCode::Barbados),
-            Self::Andorra => Some(CountryCode::Andorra),
-            Self::Mexico => Some(CountryCode::Mexico),
-            Self::CostaRica => Some(CountryCode::CostaRica),
-            Self::Gambia => Some(CountryCode::Gambia),
-            Self::Syrie => Some(CountryCode::Syria),
+            Self::DemocratischeRepubliekCongo => Some(IsoCountryCode::DemocraticRepublicOfTheCongo),
+            Self::Oeganda => Some(IsoCountryCode::Uganda),
+            Self::Kenia => Some(IsoCountryCode::Kenya),
+            Self::Malta => Some(IsoCountryCode::Malta),
+            Self::Barbados => Some(IsoCountryCode::Barbados),
+            Self::Andorra => Some(IsoCountryCode::Andorra),
+            Self::Mexico => Some(IsoCountryCode::Mexico),
+            Self::CostaRica => Some(IsoCountryCode::CostaRica),
+            Self::Gambia => Some(IsoCountryCode::Gambia),
+            Self::Syrie => Some(IsoCountryCode::Syria),
             // The Netherlands Antilles dissolved in 2010 into Curaçao, Sint Maarten and the "BQ" special
             // municipalities; no single successor.
             Self::NederlandseAntillen => None,
             // South Yemen merged into Yemen on 22-05-1990.
-            Self::ZuidJemen => Some(CountryCode::Yemen),
-            Self::Egypte => Some(CountryCode::Egypt),
-            Self::Argentinie => Some(CountryCode::Argentina),
-            Self::Lesotho => Some(CountryCode::Lesotho),
-            Self::Honduras => Some(CountryCode::Honduras),
-            Self::Nicaragua => Some(CountryCode::Nicaragua),
-            Self::Pakistan => Some(CountryCode::Pakistan),
-            Self::Senegal => Some(CountryCode::Senegal),
+            Self::ZuidJemen => Some(IsoCountryCode::Yemen),
+            Self::Egypte => Some(IsoCountryCode::Egypt),
+            Self::Argentinie => Some(IsoCountryCode::Argentina),
+            Self::Lesotho => Some(IsoCountryCode::Lesotho),
+            Self::Honduras => Some(IsoCountryCode::Honduras),
+            Self::Nicaragua => Some(IsoCountryCode::Nicaragua),
+            Self::Pakistan => Some(IsoCountryCode::Pakistan),
+            Self::Senegal => Some(IsoCountryCode::Senegal),
             // Dahomey was renamed Benin.
-            Self::Dahomey => Some(CountryCode::Benin),
-            Self::Bulgarije => Some(CountryCode::Bulgaria),
-            Self::Maleisie => Some(CountryCode::Malaysia),
-            Self::DominicaanseRepubliek => Some(CountryCode::DominicanRepublic),
-            Self::Polen => Some(CountryCode::Poland),
+            Self::Dahomey => Some(IsoCountryCode::Benin),
+            Self::Bulgarije => Some(IsoCountryCode::Bulgaria),
+            Self::Maleisie => Some(IsoCountryCode::Malaysia),
+            Self::DominicaanseRepubliek => Some(IsoCountryCode::DominicanRepublic),
+            Self::Polen => Some(IsoCountryCode::Poland),
             // Pre-revolutionary Imperial Russia; substantially succeeded by the Soviet Union rather than directly by
             // the modern Russian Federation, so no single current code is adopted.
             Self::RuslandOud => None,
-            Self::BritseMaagdeneilanden => Some(CountryCode::BritishVirginIslands),
-            Self::Tanzania => Some(CountryCode::Tanzania),
-            Self::ElSalvador => Some(CountryCode::ElSalvador),
-            Self::SriLanka => Some(CountryCode::SriLanka),
-            Self::Soedan => Some(CountryCode::Sudan),
-            Self::Japan => Some(CountryCode::Japan),
+            Self::BritseMaagdeneilanden => Some(IsoCountryCode::BritishVirginIslands),
+            Self::Tanzania => Some(IsoCountryCode::Tanzania),
+            Self::ElSalvador => Some(IsoCountryCode::ElSalvador),
+            Self::SriLanka => Some(IsoCountryCode::SriLanka),
+            Self::Soedan => Some(IsoCountryCode::Sudan),
+            Self::Japan => Some(IsoCountryCode::Japan),
             // Hong Kong retains its own ISO 3166-1 code as a special administrative region.
-            Self::Hongkong => Some(CountryCode::HongKong),
-            Self::Panama => Some(CountryCode::Panama),
-            Self::Uruguay => Some(CountryCode::Uruguay),
-            Self::Ecuador => Some(CountryCode::Ecuador),
-            Self::Guinee => Some(CountryCode::Guinea),
-            Self::Maldiven => Some(CountryCode::Maldives),
-            Self::Thailand => Some(CountryCode::Thailand),
-            Self::Libanon => Some(CountryCode::Lebanon),
-            Self::Italie => Some(CountryCode::Italy),
-            Self::Koeweit => Some(CountryCode::Kuwait),
-            Self::India => Some(CountryCode::India),
-            Self::Roemenie => Some(CountryCode::Romania),
+            Self::Hongkong => Some(IsoCountryCode::HongKong),
+            Self::Panama => Some(IsoCountryCode::Panama),
+            Self::Uruguay => Some(IsoCountryCode::Uruguay),
+            Self::Ecuador => Some(IsoCountryCode::Ecuador),
+            Self::Guinee => Some(IsoCountryCode::Guinea),
+            Self::Maldiven => Some(IsoCountryCode::Maldives),
+            Self::Thailand => Some(IsoCountryCode::Thailand),
+            Self::Libanon => Some(IsoCountryCode::Lebanon),
+            Self::Italie => Some(IsoCountryCode::Italy),
+            Self::Koeweit => Some(IsoCountryCode::Kuwait),
+            Self::India => Some(IsoCountryCode::India),
+            Self::Roemenie => Some(IsoCountryCode::Romania),
             // Czechoslovakia split into Czechia and Slovakia; no single alpha-2 code is correct.
             Self::TsjechoSlowakije => None,
-            Self::Peru => Some(CountryCode::Peru),
-            Self::Portugal => Some(CountryCode::Portugal),
-            Self::Oman => Some(CountryCode::Oman),
-            Self::Mongolie => Some(CountryCode::Mongolia),
-            Self::Samoa => Some(CountryCode::Samoa),
-            Self::VerenigdeArabischeEmiraten => Some(CountryCode::UnitedArabEmirates),
+            Self::Peru => Some(IsoCountryCode::Peru),
+            Self::Portugal => Some(IsoCountryCode::Portugal),
+            Self::Oman => Some(IsoCountryCode::Oman),
+            Self::Mongolie => Some(IsoCountryCode::Mongolia),
+            Self::Samoa => Some(IsoCountryCode::Samoa),
+            Self::VerenigdeArabischeEmiraten => Some(IsoCountryCode::UnitedArabEmirates),
             // Tibet has no official ISO 3166-1 code; deferred as a politically sensitive case rather than unilaterally
             // mapping it to China.
             Self::Tibet => None,
-            Self::Nauru => Some(CountryCode::Nauru),
+            Self::Nauru => Some(IsoCountryCode::Nauru),
             // Dutch New Guinea was transferred to Indonesia in 1963.
-            Self::NederlandsNieuwGuinea => Some(CountryCode::Indonesia),
+            Self::NederlandsNieuwGuinea => Some(IsoCountryCode::Indonesia),
             // Tanganyika merged with Zanzibar to form Tanzania in 1964.
-            Self::Tanganyika => Some(CountryCode::Tanzania),
-            Self::Palestina => Some(CountryCode::Palestine),
+            Self::Tanganyika => Some(IsoCountryCode::Tanzania),
+            Self::Palestina => Some(IsoCountryCode::Palestine),
             // The British West Indies devolved into multiple current Caribbean countries; no single successor.
             Self::BritsWestIndie => None,
             // Portuguese Africa devolved into multiple current countries (Angola, Mozambique, Guinea-Bissau, etc.); no
             // single successor.
             Self::PortugeesAfrika => None,
-            Self::Letland => Some(CountryCode::Latvia),
-            Self::Estland => Some(CountryCode::Estonia),
-            Self::Litouwen => Some(CountryCode::Lithuania),
+            Self::Letland => Some(IsoCountryCode::Latvia),
+            Self::Estland => Some(IsoCountryCode::Estonia),
+            Self::Litouwen => Some(IsoCountryCode::Lithuania),
             // British Africa devolved into multiple current countries; no single successor.
             Self::BritsAfrika => None,
             // The Belgian Congo became Congo, now the Democratic Republic of the Congo.
-            Self::BelgischCongo => Some(CountryCode::DemocraticRepublicOfTheCongo),
+            Self::BelgischCongo => Some(IsoCountryCode::DemocraticRepublicOfTheCongo),
             // British India was partitioned into India, Pakistan and (later) Bangladesh; no single successor.
             Self::BritsIndie => None,
             // Northern Rhodesia became Zambia.
-            Self::NoordRhodesie => Some(CountryCode::Zambia),
+            Self::NoordRhodesie => Some(IsoCountryCode::Zambia),
             // Southern Rhodesia became Rhodesia, later Zimbabwe.
-            Self::ZuidRhodesie => Some(CountryCode::Zimbabwe),
+            Self::ZuidRhodesie => Some(IsoCountryCode::Zimbabwe),
             // The Saar Protectorate rejoined (West) Germany in 1957.
-            Self::Saarland => Some(CountryCode::Germany),
+            Self::Saarland => Some(IsoCountryCode::Germany),
             // French Indochina split into Vietnam, Laos and Cambodia; no single successor.
             Self::FransIndochina => None,
             // British West Borneo became part of Malaysia (Sarawak).
-            Self::BritsWestBorneo => Some(CountryCode::Malaysia),
+            Self::BritsWestBorneo => Some(IsoCountryCode::Malaysia),
             // The Gold Coast was renamed Ghana upon independence.
-            Self::Goudkust => Some(CountryCode::Ghana),
+            Self::Goudkust => Some(IsoCountryCode::Ghana),
             // Ras al-Khaimah is one of the emirates of the United Arab Emirates.
-            Self::RasAlKhaimah => Some(CountryCode::UnitedArabEmirates),
+            Self::RasAlKhaimah => Some(IsoCountryCode::UnitedArabEmirates),
             // French Congo became the Republic of the Congo.
-            Self::FransCongo => Some(CountryCode::Congo),
+            Self::FransCongo => Some(IsoCountryCode::Congo),
             // Siam was renamed Thailand.
-            Self::Siam => Some(CountryCode::Thailand),
+            Self::Siam => Some(IsoCountryCode::Thailand),
             // British East Africa devolved into multiple current countries (Kenya, Uganda, Tanzania); no single
             // successor.
             Self::BritsOostAfrika => None,
             // British North Borneo became Sabah, part of Malaysia.
-            Self::BritsNoordBorneo => Some(CountryCode::Malaysia),
-            Self::Bangladesh => Some(CountryCode::Bangladesh),
+            Self::BritsNoordBorneo => Some(IsoCountryCode::Malaysia),
+            Self::Bangladesh => Some(IsoCountryCode::Bangladesh),
             // East Germany merged into reunified Germany on 03-10-1990.
-            Self::DuitseDemocratischeRepubliek => Some(CountryCode::Germany),
+            Self::DuitseDemocratischeRepubliek => Some(IsoCountryCode::Germany),
             // Madeira is an autonomous region of Portugal, not separately coded in ISO 3166-1.
-            Self::Madeira => Some(CountryCode::Portugal),
-            Self::AmerikaanseMaagdeneilanden => Some(CountryCode::UsVirginIslands),
+            Self::Madeira => Some(IsoCountryCode::Portugal),
+            Self::AmerikaanseMaagdeneilanden => Some(IsoCountryCode::UsVirginIslands),
             // The Australian-administered Solomon Islands territory is now part of Solomon Islands.
-            Self::AustralischeSalomonseilanden => Some(CountryCode::SolomonIslands),
+            Self::AustralischeSalomonseilanden => Some(IsoCountryCode::SolomonIslands),
             // Spanish Sahara became Western Sahara.
-            Self::SpaanseSahara => Some(CountryCode::WesternSahara),
-            Self::Kaaimaneilanden => Some(CountryCode::CaymanIslands),
+            Self::SpaanseSahara => Some(IsoCountryCode::WesternSahara),
+            Self::Kaaimaneilanden => Some(IsoCountryCode::CaymanIslands),
             // Part of the single territory Turks and Caicos Islands.
-            Self::Caicoseilanden => Some(CountryCode::TurksAndCaicosIslands),
+            Self::Caicoseilanden => Some(IsoCountryCode::TurksAndCaicosIslands),
             // Part of the single territory Turks and Caicos Islands.
-            Self::Turkseilanden => Some(CountryCode::TurksAndCaicosIslands),
+            Self::Turkseilanden => Some(IsoCountryCode::TurksAndCaicosIslands),
             // The British Antarctic Territory is a claim within Antarctica.
-            Self::BritsAntarctischTerritorium => Some(CountryCode::Antarctica),
-            Self::BritsIndischeOceaanterritorium => Some(CountryCode::BritishIndianOceanTerritory),
-            Self::Cookeilanden => Some(CountryCode::CookIslands),
-            Self::Tokelau => Some(CountryCode::Tokelau),
-            Self::NieuwCaledonie => Some(CountryCode::NewCaledonia),
+            Self::BritsAntarctischTerritorium => Some(IsoCountryCode::Antarctica),
+            Self::BritsIndischeOceaanterritorium => Some(IsoCountryCode::BritishIndianOceanTerritory),
+            Self::Cookeilanden => Some(IsoCountryCode::CookIslands),
+            Self::Tokelau => Some(IsoCountryCode::Tokelau),
+            Self::NieuwCaledonie => Some(IsoCountryCode::NewCaledonia),
             // Hawaii became a US state in 1959.
-            Self::HawaiiEilanden => Some(CountryCode::UnitedStates),
-            Self::Guam => Some(CountryCode::Guam),
-            Self::AmerikaansSamoa => Some(CountryCode::AmericanSamoa),
+            Self::HawaiiEilanden => Some(IsoCountryCode::UnitedStates),
+            Self::Guam => Some(IsoCountryCode::Guam),
+            Self::AmerikaansSamoa => Some(IsoCountryCode::AmericanSamoa),
             // Midway Atoll is one of the United States Minor Outlying Islands.
-            Self::Midway => Some(CountryCode::UnitedStatesMinorOutlyingIslands),
+            Self::Midway => Some(IsoCountryCode::UnitedStatesMinorOutlyingIslands),
             // The Ryukyu Islands (Okinawa) reverted to Japan in 1972.
-            Self::RiukiuEilanden => Some(CountryCode::Japan),
+            Self::RiukiuEilanden => Some(IsoCountryCode::Japan),
             // Wake Island is one of the United States Minor Outlying Islands.
-            Self::Wake => Some(CountryCode::UnitedStatesMinorOutlyingIslands),
+            Self::Wake => Some(IsoCountryCode::UnitedStatesMinorOutlyingIslands),
             // The Pacific Islands Trust Territory devolved into multiple current countries (Palau, Micronesia, Marshall
             // Islands, Northern Mariana Islands); no single successor.
             Self::PacificEilanden => None,
-            Self::Grenada => Some(CountryCode::Grenada),
-            Self::NoordelijkeMarianen => Some(CountryCode::NorthernMarianaIslands),
+            Self::Grenada => Some(IsoCountryCode::Grenada),
+            Self::NoordelijkeMarianen => Some(IsoCountryCode::NorthernMarianaIslands),
             // Cabinda is an exclave province of Angola.
-            Self::Cabinda => Some(CountryCode::Angola),
+            Self::Cabinda => Some(IsoCountryCode::Angola),
             // Canton and Enderbury Islands are now part of Kiribati.
-            Self::CantonEnEnderbury => Some(CountryCode::Kiribati),
-            Self::Christmaseiland => Some(CountryCode::ChristmasIsland),
-            Self::Cocoseilanden => Some(CountryCode::CocosKeelingIslands),
-            Self::Faeroer => Some(CountryCode::FaroeIslands),
-            Self::Montserrat => Some(CountryCode::Montserrat),
-            Self::Norfolk => Some(CountryCode::NorfolkIsland),
-            Self::Belize => Some(CountryCode::Belize),
+            Self::CantonEnEnderbury => Some(IsoCountryCode::Kiribati),
+            Self::Christmaseiland => Some(IsoCountryCode::ChristmasIsland),
+            Self::Cocoseilanden => Some(IsoCountryCode::CocosKeelingIslands),
+            Self::Faeroer => Some(IsoCountryCode::FaroeIslands),
+            Self::Montserrat => Some(IsoCountryCode::Montserrat),
+            Self::Norfolk => Some(IsoCountryCode::NorfolkIsland),
+            Self::Belize => Some(IsoCountryCode::Belize),
             // Tasmania is a state of Australia, not separately coded in ISO 3166-1.
-            Self::Tasmanie => Some(CountryCode::Australia),
-            Self::TurksEnCaicoseilanden => Some(CountryCode::TurksAndCaicosIslands),
-            Self::PuertoRico => Some(CountryCode::PuertoRico),
-            Self::PapoeaNieuwGuinea => Some(CountryCode::PapuaNewGuinea),
-            Self::Salomonseilanden => Some(CountryCode::SolomonIslands),
-            Self::Benin => Some(CountryCode::Benin),
-            Self::Vietnam => Some(CountryCode::Vietnam),
-            Self::Kaapverdie => Some(CountryCode::CaboVerde),
-            Self::Seychellen => Some(CountryCode::Seychelles),
-            Self::Kiribati => Some(CountryCode::Kiribati),
-            Self::Tuvalu => Some(CountryCode::Tuvalu),
-            Self::SaintLucia => Some(CountryCode::SaintLucia),
-            Self::Dominica => Some(CountryCode::Dominica),
-            Self::Zimbabwe => Some(CountryCode::Zimbabwe),
+            Self::Tasmanie => Some(IsoCountryCode::Australia),
+            Self::TurksEnCaicoseilanden => Some(IsoCountryCode::TurksAndCaicosIslands),
+            Self::PuertoRico => Some(IsoCountryCode::PuertoRico),
+            Self::PapoeaNieuwGuinea => Some(IsoCountryCode::PapuaNewGuinea),
+            Self::Salomonseilanden => Some(IsoCountryCode::SolomonIslands),
+            Self::Benin => Some(IsoCountryCode::Benin),
+            Self::Vietnam => Some(IsoCountryCode::Vietnam),
+            Self::Kaapverdie => Some(IsoCountryCode::CaboVerde),
+            Self::Seychellen => Some(IsoCountryCode::Seychelles),
+            Self::Kiribati => Some(IsoCountryCode::Kiribati),
+            Self::Tuvalu => Some(IsoCountryCode::Tuvalu),
+            Self::SaintLucia => Some(IsoCountryCode::SaintLucia),
+            Self::Dominica => Some(IsoCountryCode::Dominica),
+            Self::Zimbabwe => Some(IsoCountryCode::Zimbabwe),
             // Dubai is one of the emirates of the United Arab Emirates.
-            Self::Dubai => Some(CountryCode::UnitedArabEmirates),
+            Self::Dubai => Some(IsoCountryCode::UnitedArabEmirates),
             // The New Hebrides became Vanuatu upon independence.
-            Self::NieuweHebriden => Some(CountryCode::Vanuatu),
+            Self::NieuweHebriden => Some(IsoCountryCode::Vanuatu),
             // The Channel Islands comprise two separate current jurisdictions (Jersey and Guernsey); no single
             // successor.
             Self::Kanaaleilanden => None,
-            Self::Man => Some(CountryCode::IsleOfMan),
-            Self::Anguilla => Some(CountryCode::Anguilla),
-            Self::SaintKittsEnNevis => Some(CountryCode::SaintKittsAndNevis),
+            Self::Man => Some(IsoCountryCode::IsleOfMan),
+            Self::Anguilla => Some(IsoCountryCode::Anguilla),
+            Self::SaintKittsEnNevis => Some(IsoCountryCode::SaintKittsAndNevis),
             // Antigua is now part of Antigua and Barbuda.
-            Self::Antigua => Some(CountryCode::AntiguaAndBarbuda),
+            Self::Antigua => Some(IsoCountryCode::AntiguaAndBarbuda),
             // Saint Vincent is now part of Saint Vincent and the Grenadines.
-            Self::SaintVincent => Some(CountryCode::SaintVincentAndTheGrenadines),
+            Self::SaintVincent => Some(IsoCountryCode::SaintVincentAndTheGrenadines),
             // The Gilbert Islands became Kiribati.
-            Self::Gilberteilanden => Some(CountryCode::Kiribati),
+            Self::Gilberteilanden => Some(IsoCountryCode::Kiribati),
             // The Panama Canal Zone reverted to Panama.
-            Self::Panamakanaalzone => Some(CountryCode::Panama),
+            Self::Panamakanaalzone => Some(IsoCountryCode::Panama),
             // Anguilla later separated; the remainder became Saint Kitts and Nevis.
-            Self::SaintKittsNevisEnAnguilla => Some(CountryCode::SaintKittsAndNevis),
+            Self::SaintKittsNevisEnAnguilla => Some(IsoCountryCode::SaintKittsAndNevis),
             // Belau is the former name for Palau.
-            Self::Belau => Some(CountryCode::Palau),
-            Self::Palau => Some(CountryCode::Palau),
-            Self::AntiguaEnBarbuda => Some(CountryCode::AntiguaAndBarbuda),
-            Self::SintHelenaAscensionEnTristanDaCunha => Some(CountryCode::SaintHelenaAscensionAndTristanDaCunha),
-            Self::AmerikaanseKleinereAfgelegenEilanden => Some(CountryCode::UnitedStatesMinorOutlyingIslands),
+            Self::Belau => Some(IsoCountryCode::Palau),
+            Self::Palau => Some(IsoCountryCode::Palau),
+            Self::AntiguaEnBarbuda => Some(IsoCountryCode::AntiguaAndBarbuda),
+            Self::SintHelenaAscensionEnTristanDaCunha => Some(IsoCountryCode::SaintHelenaAscensionAndTristanDaCunha),
+            Self::AmerikaanseKleinereAfgelegenEilanden => Some(IsoCountryCode::UnitedStatesMinorOutlyingIslands),
             Self::ZuidGeorgiaEnDeZuidelijkeSandwicheilanden => {
-                Some(CountryCode::SouthGeorgiaAndTheSouthSandwichIslands)
+                Some(IsoCountryCode::SouthGeorgiaAndTheSouthSandwichIslands)
             }
-            Self::SaintBarthelemy => Some(CountryCode::SaintBarthelemy),
-            Self::SaintMartin => Some(CountryCode::SaintMartin),
-            Self::Guernsey => Some(CountryCode::Guernsey),
-            Self::Jersey => Some(CountryCode::Jersey),
-            Self::Aland => Some(CountryCode::AlandIslands),
+            Self::SaintBarthelemy => Some(IsoCountryCode::SaintBarthelemy),
+            Self::SaintMartin => Some(IsoCountryCode::SaintMartin),
+            Self::Guernsey => Some(IsoCountryCode::Guernsey),
+            Self::Jersey => Some(IsoCountryCode::Jersey),
+            Self::Aland => Some(IsoCountryCode::AlandIslands),
             // Newfoundland joined Canada as a province in 1949.
-            Self::Newfoundland => Some(CountryCode::Canada),
+            Self::Newfoundland => Some(IsoCountryCode::Canada),
             // Nyasaland became Malawi.
-            Self::Nyasaland => Some(CountryCode::Malawi),
-            Self::Eritrea => Some(CountryCode::Eritrea),
+            Self::Nyasaland => Some(IsoCountryCode::Malawi),
+            Self::Eritrea => Some(IsoCountryCode::Eritrea),
             // Ifni was ceded to Morocco in 1969.
-            Self::Ifni => Some(CountryCode::Morocco),
+            Self::Ifni => Some(IsoCountryCode::Morocco),
             // British Cameroons split between Nigeria and Cameroon; no single successor.
             Self::BritsKameroen => None,
             // Kaiser-Wilhelmsland (German New Guinea) is now part of Papua New Guinea.
-            Self::KeizerWilhelmsland => Some(CountryCode::PapuaNewGuinea),
-            Self::RepubliekCongo => Some(CountryCode::Congo),
+            Self::KeizerWilhelmsland => Some(IsoCountryCode::PapuaNewGuinea),
+            Self::RepubliekCongo => Some(IsoCountryCode::Congo),
             // Early name for the present-day Democratic Republic of the Congo.
-            Self::CongoKinshasa => Some(CountryCode::DemocraticRepublicOfTheCongo),
-            Self::Madagaskar => Some(CountryCode::Madagascar),
-            Self::CongoBrazzaville => Some(CountryCode::Congo),
+            Self::CongoKinshasa => Some(IsoCountryCode::DemocraticRepublicOfTheCongo),
+            Self::Madagaskar => Some(IsoCountryCode::Madagascar),
+            Self::CongoBrazzaville => Some(IsoCountryCode::Congo),
             // The Leeward Islands comprise multiple current Caribbean jurisdictions; no single successor.
             Self::Leewardeilanden => None,
             // The Windward Islands comprise multiple current Caribbean jurisdictions; no single successor.
             Self::Windwardeilanden => None,
             // The French Territory of the Afars and the Issas became Djibouti.
-            Self::FransTerritoriumVoorAfarsEnIssas => Some(CountryCode::Djibouti),
+            Self::FransTerritoriumVoorAfarsEnIssas => Some(IsoCountryCode::Djibouti),
             // The Phoenix Islands are now part of Kiribati.
-            Self::Phoenixeilanden => Some(CountryCode::Kiribati),
+            Self::Phoenixeilanden => Some(IsoCountryCode::Kiribati),
             // Portuguese Guinea became Guinea-Bissau.
-            Self::PortugeesGuinee => Some(CountryCode::GuineaBissau),
+            Self::PortugeesGuinee => Some(IsoCountryCode::GuineaBissau),
             // German South West Africa, early name for present-day Namibia.
-            Self::DuitsZuidwestAfrika => Some(CountryCode::Namibia),
-            Self::Namibie => Some(CountryCode::Namibia),
+            Self::DuitsZuidwestAfrika => Some(IsoCountryCode::Namibia),
+            Self::Namibie => Some(IsoCountryCode::Namibia),
             // British Somaliland merged into Somalia.
-            Self::BritsSomaliland => Some(CountryCode::Somalia),
+            Self::BritsSomaliland => Some(IsoCountryCode::Somalia),
             // Italian Somaliland merged into Somalia.
-            Self::ItaliaansSomaliland => Some(CountryCode::Somalia),
+            Self::ItaliaansSomaliland => Some(IsoCountryCode::Somalia),
             // The Dutch East Indies became Indonesia.
-            Self::NederlandsIndie => Some(CountryCode::Indonesia),
+            Self::NederlandsIndie => Some(IsoCountryCode::Indonesia),
             // British Guiana became Guyana.
-            Self::BritsGuyana => Some(CountryCode::Guyana),
+            Self::BritsGuyana => Some(IsoCountryCode::Guyana),
             // Swaziland was renamed Eswatini on 19-04-2018.
-            Self::Swaziland => Some(CountryCode::Eswatini),
-            Self::Qatar => Some(CountryCode::Qatar),
-            Self::Eswatini => Some(CountryCode::Eswatini),
+            Self::Swaziland => Some(IsoCountryCode::Eswatini),
+            Self::Qatar => Some(IsoCountryCode::Qatar),
+            Self::Eswatini => Some(IsoCountryCode::Eswatini),
             // Aden, part of South Yemen, is now part of unified Yemen.
-            Self::Aden => Some(CountryCode::Yemen),
+            Self::Aden => Some(IsoCountryCode::Yemen),
             // The Federation of South Arabia, predecessor of South Yemen, is now part of unified Yemen.
-            Self::ZuidArabischeFederatie => Some(CountryCode::Yemen),
-            Self::EquatoriaalGuinea => Some(CountryCode::EquatorialGuinea),
+            Self::ZuidArabischeFederatie => Some(IsoCountryCode::Yemen),
+            Self::EquatoriaalGuinea => Some(IsoCountryCode::EquatorialGuinea),
             // Spanish Guinea became Equatorial Guinea.
-            Self::SpaansGuinee => Some(CountryCode::EquatorialGuinea),
+            Self::SpaansGuinee => Some(IsoCountryCode::EquatorialGuinea),
             // The United Arab Republic (Egypt-Syria union) dissolved into separate Egypt and Syria; no single
             // successor.
             Self::VerenigdeArabischeRepubliek => None,
-            Self::Bermuda => Some(CountryCode::Bermuda),
+            Self::Bermuda => Some(IsoCountryCode::Bermuda),
             // The Soviet Union split into multiple current countries; no single alpha-2 code is correct.
             Self::SovjetUnie => None,
             // German East Africa devolved into multiple current countries (Tanzania, Rwanda, Burundi); no single
             // successor.
             Self::DuitsOostAfrika => None,
             // Zanzibar merged with Tanganyika to form Tanzania.
-            Self::Zanzibar => Some(CountryCode::Tanzania),
+            Self::Zanzibar => Some(IsoCountryCode::Tanzania),
             // Ceylon was renamed Sri Lanka.
-            Self::Ceylon => Some(CountryCode::SriLanka),
+            Self::Ceylon => Some(IsoCountryCode::SriLanka),
             // Muscat and Oman was renamed Oman.
-            Self::MuscatEnOman => Some(CountryCode::Oman),
+            Self::MuscatEnOman => Some(IsoCountryCode::Oman),
             // Trucial Oman (the Trucial States) became the United Arab Emirates.
-            Self::TrucialOman => Some(CountryCode::UnitedArabEmirates),
+            Self::TrucialOman => Some(IsoCountryCode::UnitedArabEmirates),
             // Indochina split into Vietnam, Laos and Cambodia; no single successor.
             Self::Indochina => None,
-            Self::Marshalleilanden => Some(CountryCode::MarshallIslands),
+            Self::Marshalleilanden => Some(IsoCountryCode::MarshallIslands),
             // Sarawak is part of Malaysia.
-            Self::Sarawak => Some(CountryCode::Malaysia),
+            Self::Sarawak => Some(IsoCountryCode::Malaysia),
             // British Borneo territories are now part of Malaysia.
-            Self::BritsBorneo => Some(CountryCode::Malaysia),
+            Self::BritsBorneo => Some(IsoCountryCode::Malaysia),
             // Sabah is part of Malaysia.
-            Self::Sabah => Some(CountryCode::Malaysia),
+            Self::Sabah => Some(IsoCountryCode::Malaysia),
             // Abu Dhabi is one of the emirates of the United Arab Emirates.
-            Self::AbuDhabi => Some(CountryCode::UnitedArabEmirates),
+            Self::AbuDhabi => Some(IsoCountryCode::UnitedArabEmirates),
             // Ajman is one of the emirates of the United Arab Emirates.
-            Self::Ajman => Some(CountryCode::UnitedArabEmirates),
+            Self::Ajman => Some(IsoCountryCode::UnitedArabEmirates),
             // Basutoland became Lesotho.
-            Self::Basutoland => Some(CountryCode::Lesotho),
+            Self::Basutoland => Some(IsoCountryCode::Lesotho),
             // Bechuanaland became Botswana.
-            Self::Bechuanaland => Some(CountryCode::Botswana),
+            Self::Bechuanaland => Some(IsoCountryCode::Botswana),
             // Fujairah is one of the emirates of the United Arab Emirates.
-            Self::Fujairah => Some(CountryCode::UnitedArabEmirates),
+            Self::Fujairah => Some(IsoCountryCode::UnitedArabEmirates),
             // French Cameroons became Cameroon.
-            Self::FransKameroen => Some(CountryCode::Cameroon),
+            Self::FransKameroen => Some(IsoCountryCode::Cameroon),
             // Pre-federation Malay state, now part of Malaysia.
-            Self::Johore => Some(CountryCode::Malaysia),
+            Self::Johore => Some(IsoCountryCode::Malaysia),
             // Korea split into North and South Korea; no single alpha-2 code is correct.
             Self::Korea => None,
             // Labuan is part of Malaysia.
-            Self::Labuan => Some(CountryCode::Malaysia),
+            Self::Labuan => Some(IsoCountryCode::Malaysia),
             // Umm al-Qaiwain is one of the emirates of the United Arab Emirates.
-            Self::UmmAlQaiwain => Some(CountryCode::UnitedArabEmirates),
+            Self::UmmAlQaiwain => Some(IsoCountryCode::UnitedArabEmirates),
             // Austria-Hungary split into multiple current countries; no single successor.
             Self::OostenrijkHongarije => None,
             // Portuguese East Africa became Mozambique.
-            Self::PortugeesOostAfrika => Some(CountryCode::Mozambique),
+            Self::PortugeesOostAfrika => Some(IsoCountryCode::Mozambique),
             // Portuguese West Africa became Angola.
-            Self::PortugeesWestAfrika => Some(CountryCode::Angola),
+            Self::PortugeesWestAfrika => Some(IsoCountryCode::Angola),
             // Sharjah is one of the emirates of the United Arab Emirates.
-            Self::Sharjah => Some(CountryCode::UnitedArabEmirates),
+            Self::Sharjah => Some(IsoCountryCode::UnitedArabEmirates),
             // The Straits Settlements split between Malaysia (Penang, Malacca) and Singapore; no single successor.
             Self::StraitsSettlements => None,
             // Abyssinia is the historical name for Ethiopia.
-            Self::Abessinie => Some(CountryCode::Ethiopia),
+            Self::Abessinie => Some(IsoCountryCode::Ethiopia),
             // French West Africa devolved into multiple current West African countries; no single successor.
             Self::FransWestAfrika => None,
             // French Equatorial Africa devolved into multiple current Central African countries; no single successor.
             Self::FransEquatoriaalAfrika => None,
             // Urundi, part of Ruanda-Urundi, is now Burundi.
-            Self::Urundi => Some(CountryCode::Burundi),
+            Self::Urundi => Some(IsoCountryCode::Burundi),
             // Ruanda-Urundi split into Rwanda and Burundi; no single successor.
             Self::RuandaUrundi => None,
             // Goa was annexed by India in 1961.
-            Self::Goa => Some(CountryCode::India),
+            Self::Goa => Some(IsoCountryCode::India),
             // The Free City of Danzig is now Gdańsk, Poland.
-            Self::Dantzig => Some(CountryCode::Poland),
-            Self::CentraalAfrikaanseRepubliek => Some(CountryCode::CentralAfricanRepublic),
-            Self::Djibouti => Some(CountryCode::Djibouti),
+            Self::Dantzig => Some(IsoCountryCode::Poland),
+            Self::CentraalAfrikaanseRepubliek => Some(IsoCountryCode::CentralAfricanRepublic),
+            Self::Djibouti => Some(IsoCountryCode::Djibouti),
             // Transjordan was renamed Jordan.
-            Self::Transjordanie => Some(CountryCode::Jordan),
-            Self::BondsrepubliekDuitsland => Some(CountryCode::Germany),
-            Self::Vanuatu => Some(CountryCode::Vanuatu),
-            Self::Niue => Some(CountryCode::Niue),
+            Self::Transjordanie => Some(IsoCountryCode::Jordan),
+            Self::BondsrepubliekDuitsland => Some(IsoCountryCode::Germany),
+            Self::Vanuatu => Some(IsoCountryCode::Vanuatu),
+            Self::Niue => Some(IsoCountryCode::Niue),
             // Spanish North Africa (Ceuta, Melilla) are autonomous cities of Spain, not separately coded in ISO 3166-1.
-            Self::SpaansNoordAfrika => Some(CountryCode::Spain),
-            Self::WestelijkeSahara => Some(CountryCode::WesternSahara),
-            Self::Micronesie => Some(CountryCode::Micronesia),
-            Self::Svalbardeilanden => Some(CountryCode::SvalbardAndJanMayen),
+            Self::SpaansNoordAfrika => Some(IsoCountryCode::Spain),
+            Self::WestelijkeSahara => Some(IsoCountryCode::WesternSahara),
+            Self::Micronesie => Some(IsoCountryCode::Micronesia),
+            Self::Svalbardeilanden => Some(IsoCountryCode::SvalbardAndJanMayen),
             // International territory/high seas is not a country.
             Self::InternationaalGebied => None,
             Self::Overig => None,
         }
     }
 
-    /// The value to put in a Rulebook alpha-2 country field (`resident_country`/`place_of_birth.country`). There's no
-    /// Rulebook-definition for an unmappable country, so callers get `None`.
-    fn to_attribute(&self) -> Option<String> {
-        self.alpha2().map(|country| country.to_string())
+    /// The Rulebook `country` value for this code (`resident_country`/`place_of_birth.country`). Kosovo has no
+    /// official ISO 3166-1 code, but "XK" is widely used in practice (see [`RulebookCountryCode::Other`]). Returns
+    /// `None` for a country that can't be mapped to either.
+    fn to_rulebook_country(&self) -> Option<RulebookCountryCode> {
+        match self {
+            Self::Kosovo => Some(RulebookCountryCode::Other("XK".to_owned())),
+            _ => self.alpha2().map(RulebookCountryCode::Iso),
+        }
     }
 }
 

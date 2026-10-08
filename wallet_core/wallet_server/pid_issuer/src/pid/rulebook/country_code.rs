@@ -1,6 +1,8 @@
+use attestation_data::attributes::Attribute;
+
 /// ISO 3166-1 alpha-2 country codes, covering every code currently assigned by the standard.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
-pub enum CountryCode {
+pub enum IsoCountryCode {
     #[strum(serialize = "AD")]
     Andorra,
     #[strum(serialize = "AE")]
@@ -499,4 +501,62 @@ pub enum CountryCode {
     Zambia,
     #[strum(serialize = "ZW")]
     Zimbabwe,
+}
+
+/// The Rulebook's `nationality` value
+///
+/// > One or more alpha-2 country codes as specified in [ISO 3166-1], representing the nationality of the user to whom
+/// > the person identification data relates. If unknown, value `QU`. If the user does not hold a nationality, value
+/// > `QS`.
+///
+/// `Other` is added for territories with no official ISO 3166-1 code (currently only "XK" for Kosovo), not something
+/// the Rulebook defines, unlike `Unknown`/`Stateless`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RulebookNationality {
+    Iso(IsoCountryCode),
+    Unknown,
+    Stateless,
+    Other(String),
+}
+
+impl From<RulebookNationality> for Attribute {
+    fn from(value: RulebookNationality) -> Attribute {
+        let text = match value {
+            RulebookNationality::Iso(country) => country.to_string(),
+            RulebookNationality::Unknown => "QU".to_owned(),
+            RulebookNationality::Stateless => "QS".to_owned(),
+            RulebookNationality::Other(value) => value,
+        };
+
+        Attribute::Text(text)
+    }
+}
+
+/// The Rulebook's `country` value for `resident_country` and `place_of_birth.country`
+///
+/// `place_of_birth.country`:
+/// > The country as an alpha-2 country code as specified in [ISO 3166-1], [...] where the user to whom the person
+/// > identification data relates was born.
+///
+/// `resident_country`:
+/// > The country where the user to whom the person identification data relates currently resides, as an alpha-2 country
+/// > code as specified in [ISO 3166-1].
+///
+/// `Other` is added for territories with no official ISO 3166-1 code (currently only "XK" for Kosovo), not something
+/// the Rulebook defines. There is no equivalent variant for "unknown".
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RulebookCountryCode {
+    Iso(IsoCountryCode),
+    Other(String),
+}
+
+impl From<RulebookCountryCode> for Attribute {
+    fn from(value: RulebookCountryCode) -> Attribute {
+        let text = match value {
+            RulebookCountryCode::Iso(country) => country.to_string(),
+            RulebookCountryCode::Other(value) => value,
+        };
+
+        Attribute::Text(text)
+    }
 }

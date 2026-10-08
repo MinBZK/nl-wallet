@@ -1,23 +1,37 @@
 use attestation_data::attributes::Attribute;
 
-/// PID Rulebook (section 2.3) `sex` attribute values. Values 0, 1, 2 and 9 follow [ISO/IEC 5218]; 3-6 are Rulebook
-/// additions on top of that standard, for gender identities not covered by ISO/IEC 5218.
+/// The [ISO/IEC 5218] `sex` codes.
 ///
 /// [ISO/IEC 5218]: https://en.wikipedia.org/wiki/ISO/IEC_5218
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PidSex {
+pub enum IsoSex {
     NotKnown = 0,
     Male = 1,
     Female = 2,
-    Other = 3,
-    Inter = 4,
-    Diverse = 5,
-    Open = 6,
     NotApplicable = 9,
 }
 
-impl From<PidSex> for Attribute {
-    fn from(value: PidSex) -> Attribute {
-        Attribute::Number(value as i64)
+/// PID Rulebook (section 2.3) `sex` attribute values.
+///
+/// [`Self::Iso`] covers the [ISO/IEC 5218] values (see [`IsoSex`]); the remaining variants are Rulebook additions on
+/// top of that standard.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RulebookSex {
+    Iso(IsoSex),
+    Other,
+    Inter,
+    Diverse,
+    Open,
+}
+
+impl From<RulebookSex> for Attribute {
+    fn from(value: RulebookSex) -> Attribute {
+        match value {
+            RulebookSex::Iso(iso) => Attribute::Number(iso as i64),
+            RulebookSex::Other => Attribute::Number(3),
+            RulebookSex::Inter => Attribute::Number(4),
+            RulebookSex::Diverse => Attribute::Number(5),
+            RulebookSex::Open => Attribute::Number(6),
+        }
     }
 }
