@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::collections::hash_map::Entry;
 use std::convert::identity;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
@@ -540,10 +539,10 @@ impl SupportedConfigurations {
         }
     }
 
-    /// Create an [`OfferedCredentials`] without previews, containing an entry for every offered Credential
-    /// Configuration or, if applicable, every offered Credential Identifier.
-    fn into_offered_credentials_without_previews(self) -> OfferedCredentials {
-        let offered_credentials = match self {
+    /// Create an [`OfferedCredential`] for every offered Credential Configuration or, if applicable, every offered
+    /// Credential Identifier.
+    fn into_offered_credential_set(self) -> NESet<OfferedCredential> {
+        match self {
             Self::WithoutIdentifiers(configs) => configs
                 .into_nonempty_iter()
                 .map(|(config_id, config)| OfferedCredential::new_by_config_id(config_id, config.format()))
@@ -558,9 +557,13 @@ impl SupportedConfigurations {
                     })
                 })
                 .collect(),
-        };
+        }
+    }
 
-        OfferedCredentials::WithoutPreviews(offered_credentials)
+    /// Create an [`OfferedCredentials`] without previews, containing an entry for every offered Credential
+    /// Configuration or, if applicable, every offered Credential Identifier.
+    fn into_offered_credentials_without_previews(self) -> OfferedCredentials {
+        OfferedCredentials::WithoutPreviews(self.into_offered_credential_set())
     }
 
     /// Create an [`OfferedCredentials`] with previews, checking that the `CredentialPreview`s exactly match the
@@ -570,98 +573,45 @@ impl SupportedConfigurations {
         self,
         credential_previews: VecNonEmpty<CredentialPreview>,
     ) -> Result<OfferedCredentials, WalletIssuanceError> {
-        let (offered_credentials, excess_identifiers): (Vec<_>, Vec<_>) = match self {
-            // If the offered credential configurations did not contain credential identifiers because the issuer did
-            // not send `authorization_details`, match every preview against its `config_id` value only.
-            Self::WithoutIdentifiers(configs) => {
-                // Convert to a regular map so that matched configurations can be removed from it.
-                let mut configs = HashMap::from(configs);
+        // If the issuer did not send `authorization_details`, the offered credentials do not contain credential
+        // identifiers, so match every preview against its `config_id` and `format` only. Otherwise, match every preview
+        // exactly against its `config_id`, `credential_id` and `format`.
+        let has_credential_ids = matches!(self, Self::WithIdentifiers(_));
 
-                let (offered_credentials, excess_identifiers) =
-                    credential_previews.into_iter().partition_map(|preview| {
-                        // If both the config_id and format match, remove the Credential Configuration. Otherwise,
-                        // consider this Credential Preview an excess preview.
-                        match configs.entry(preview.config_id.clone()) {
-                            Entry::Occupied(occupied_entry) if occupied_entry.get().format() == preview.format => {
-                                let (config_id, _config) = occupied_entry.remove_entry();
-                                let offered_credential = OfferedCredential::new_by_config_id(config_id, preview.format);
-                                Either::Left((offered_credential, preview.credential_payload))
-                            }
-                            _ => Either::Right((preview.config_id, preview.credential_id, preview.format)),
-                        }
-                    });
+        // Convert to a regular set so that matched offered credentials can be removed from it.
+        let mut remaining = HashSet::from(self.into_offered_credential_set());
 
-                // If there are any offered credential configurations remaining, the preview did not contain everything
-                // that was offered.
-                if !configs.is_empty() {
-                    let missing = configs
-                        .into_iter()
-                        .map(|(config_id, config)| (config_id, None, config.format()))
-                        .collect();
+        let (offered_credentials, excess_identifiers): (Vec<_>, Vec<_>) =
+            credential_previews.into_iter().partition_map(|preview| {
+                let candidate = OfferedCredential {
+                    credential_id: has_credential_ids.then(|| preview.credential_id.clone()),
+                    config_id: preview.config_id,
+                    format: preview.format,
+                };
 
-                    return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
+                // If the preview matches an offered credential, remove it from the set. Otherwise, consider this
+                // Credential Preview an excess preview.
+                match remaining.take(&candidate) {
+                    Some(offered_credential) => Either::Left((offered_credential, preview.credential_payload)),
+                    None => Either::Right((candidate.config_id, preview.credential_id, candidate.format)),
                 }
+            });
 
-                (offered_credentials, excess_identifiers)
-            }
-            // If the issuer did send `authorization_details`, match every preview exactly against both its `config_id`
-            // and `credential_id` values.
-            Self::WithIdentifiers(configs) => {
-                // Convert to regular collections so that matched credential identifiers can be removed from them.
-                let mut configs = configs
-                    .into_iter()
-                    .map(|(config_id, (config, credential_ids))| (config_id, (config, HashSet::from(credential_ids))))
-                    .collect::<HashMap<_, _>>();
+        // If there are any offered credentials remaining, the preview did not contain everything that was offered.
+        if !remaining.is_empty() {
+            let missing = remaining
+                .into_iter()
+                .map(|offered_credential| {
+                    (
+                        offered_credential.config_id,
+                        offered_credential.credential_id,
+                        offered_credential.format,
+                    )
+                })
+                .collect();
 
-                let (offered_credentials, excess_identifiers) =
-                    credential_previews.into_iter().partition_map(|preview| {
-                        // If the config_id, credential_id and format all match, remove the credential_id. Otherwise,
-                        // consider this Credential Preview an excess preview.
-                        match configs
-                            .get_mut(&preview.config_id)
-                            .and_then(|(config, credential_ids)| {
-                                if config.format() == preview.format {
-                                    credential_ids.take(&preview.credential_id)
-                                } else {
-                                    None
-                                }
-                            }) {
-                            Some(credential_id) => {
-                                let offered_credential = OfferedCredential::new_by_credential_id(
-                                    credential_id,
-                                    preview.config_id.clone(),
-                                    preview.format,
-                                );
-
-                                Either::Left((offered_credential, preview.credential_payload))
-                            }
-                            None => Either::Right((preview.config_id, preview.credential_id, preview.format)),
-                        }
-                    });
-
-                // If there are any offered credential identifiers remaining, the preview did not contain everything
-                // that was offered.
-                if configs
-                    .values()
-                    .any(|(_config, credential_ids)| !credential_ids.is_empty())
-                {
-                    let missing = configs
-                        .into_iter()
-                        .flat_map(|(config_id, (config, credential_ids))| {
-                            let credential_id_count = credential_ids.len();
-                            let format = config.format();
-                            std::iter::repeat_n(config_id, credential_id_count)
-                                .zip(credential_ids)
-                                .map(move |(config_id, credential_id)| (config_id, Some(credential_id), format))
-                        })
-                        .collect();
-
-                    return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
-                }
-
-                (offered_credentials, excess_identifiers)
-            }
-        };
+            return Err(WalletIssuanceError::PreviewMissingCredentials(missing));
+        }
 
         // If any of the previews could not be resolved against what was offered, report this as an error. As there is
         // at least one preview, having no offered credentials implies that every preview was in excess.
