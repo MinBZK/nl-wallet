@@ -26,7 +26,7 @@ use serde::Serialize;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::payload::jwt_proof::JwtProofClaims;
+use super::jwt_proof::JwtProofClaims;
 
 pub const POA_JWT_TYP: &str = "poa+jwt";
 

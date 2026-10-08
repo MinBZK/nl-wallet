@@ -76,6 +76,8 @@ enum CertType {
     Tsl,
     /// Wallet Issuer Authentication certificate
     Wia,
+    /// Key Attestation certificate
+    KeyAttestation,
     /// Wallet Relying Party Access Certificate (WRPAC)
     Wrpac,
     /// Wallet Relying Party Registration Certificate (WRPRC) signing certificate
@@ -411,6 +413,7 @@ impl Command {
             CertType::Issuer => Some(CertificateUsage::Mdl),
             CertType::Tsl => Some(CertificateUsage::StatusListSigning),
             CertType::Wia => Some(CertificateUsage::Wia),
+            CertType::KeyAttestation => Some(CertificateUsage::KeyAttestation),
             CertType::Wrpac | CertType::Wrprc => None,
         };
         let subject_alt_names = san_uris.into_iter().map(Into::into).collect();

@@ -288,7 +288,7 @@ mod tests {
         };
 
         // Normally this is its own CA; here we just reuse the ca we have.
-        let wia_trust_anchors = TrustAnchors::from(&ca);
+        let wptl_trust_anchors = TrustAnchors::from(&ca);
 
         Issuer::new(
             "https://example.com".parse().unwrap(),
@@ -298,7 +298,7 @@ mod tests {
             HashSet::new(),
             CredentialConfigurations::try_new([("credential_config_id".to_string().into(), credential_config)].into())
                 .unwrap(),
-            wia_trust_anchors,
+            wptl_trust_anchors,
             sessions,
             MemoryNonceStore::new(),
         )

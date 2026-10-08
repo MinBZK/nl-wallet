@@ -159,6 +159,9 @@ spec:
             - name: WALLET_PROVIDER__WIA_STATUS_LIST__KEY_CERTIFICATE
               value: {{ .Values.wiaStatusList.certificate }}
 
+            - name: WALLET_PROVIDER__KEY_ATTESTATION_CERTIFICATE
+              value: {{ .Values.keyAttestationCertificate }}
+
             - name: WALLET_PROVIDER__STRUCTURED_LOGGING
               value: "true"
             - name: WALLET_PROVIDER__CAPTURE_AND_REDIRECT_LOGGING

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 declare -A access_certificates=(
-    [(wia,name)]='NL Wallet'
-    [(wia,legal_name)]='Ministerie van Economische Zaken'
-    [(wia,oid)]='NTRNL-52813150'
+    [(wptl,name)]='NL Wallet'
+    [(wptl,legal_name)]='Ministerie van Economische Zaken'
+    [(wptl,oid)]='NTRNL-52813150'
 
     [(pid,name)]='RvIG'
     [(pid,legal_name)]='Rijksdienst voor Identiteitsgegevens'

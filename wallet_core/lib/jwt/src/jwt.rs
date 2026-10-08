@@ -661,14 +661,10 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
 
         // Make sure we received the correct number of signatures.
         if signatures.len() != headers_and_payloads.len() {
-            return Err(JwtSignError::Signing(
-                format!(
-                    "incorrect signature count received from WSCD, expected {}, received {}",
-                    headers_and_payloads.len(),
-                    signatures.len()
-                )
-                .into(),
-            ));
+            return Err(JwtSignError::IncorrectSignatureCount {
+                expected: headers_and_payloads.len(),
+                received: signatures.len(),
+            });
         }
 
         // Actually create the JWTs by combining their header, payload and received signature.
@@ -677,15 +673,10 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
             .zip_eq(signatures)
             .map(|(header_and_payload, signatures)| {
                 // Again, make sure we received the correct number of signatures.
-                let signature = signatures.into_iter().exactly_one().map_err(|error| {
-                    JwtSignError::Signing(
-                        format!(
-                            "expected to receive a single signature per JWT from WSCD, received {}",
-                            error.len()
-                        )
-                        .into(),
-                    )
-                })?;
+                let signature = signatures
+                    .into_iter()
+                    .exactly_one()
+                    .map_err(|error| JwtSignError::IncorrectPayloadSignatureCount { received: error.len() })?;
 
                 let jwt = Self::from_header_payload_and_signature(header_and_payload, &signature);
                 Ok(jwt)

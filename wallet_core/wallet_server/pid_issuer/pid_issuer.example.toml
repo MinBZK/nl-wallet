@@ -12,8 +12,12 @@ wallet_client_ids = [""]
 # issuance redirect URI: <universal_link_base>/iss.
 wallet_redirect_uris = ["walletdebuginteraction://wallet.edi.rijksoverheid.nl/iss"]
 
-issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
-wia_trust_anchors = ["MII..."]    # CAs for WIA certificates
+# CAs for issuer certificates
+issuer_trust_anchors = ["MII..."]
+
+# CAs in the Wallet Provider Trusted List, under which both the Wallet Instance Attestation (WIA) and Key Attestation
+# are validated.
+wptl_trust_anchors = ["MII..."]
 
 # Files containing SD-JWT VC Type Metadata documents. Note: only applicable to credential configurations with the
 # `dc+sd-jwt` credential format.

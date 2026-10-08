@@ -494,6 +494,7 @@ mod tests {
     #[case::issuer(Some(CertificateUsage::Mdl), Some(0b0000_0001))]
     #[case::status_list(Some(CertificateUsage::StatusListSigning), Some(0b0000_0001))]
     #[case::wia(Some(CertificateUsage::Wia), Some(0b0000_0001))]
+    #[case::wia(Some(CertificateUsage::KeyAttestation), Some(0b0000_0001))]
     #[case::without_eku(None, None)]
     fn generated_leaf_key_usage(#[case] usage: Option<CertificateUsage>, #[case] expected_flags: Option<u16>) {
         let ca = Ca::generate_mock();

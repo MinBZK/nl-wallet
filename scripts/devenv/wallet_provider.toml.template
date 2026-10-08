@@ -1,13 +1,17 @@
 current_certificate_kid = "${WP_CERTIFICATE_KID}"
 current_instruction_result_kid = "${WP_INSTRUCTION_RESULT_KID}"
 
-wia_signing_key_identifier = "wia_signing_key"
 wia_certificate = "${WP_WIA_CERTIFICATE}"
+wia_signing_key_identifier = "wia_signing_key"
 # wia_status_tracking_validity_in_days = 365
 # wia_wallet_name = "NL Wallet"
 # wia_wallet_link = "https://wallet.edi.rijksoverheid.nl"
 wia_wallet_version = "${WALLET_VERSION}"
 # wia_wallet_solution_certification_information = "https://wallet.edi.rijksoverheid.nl"
+
+key_attestation_certificate = "${WP_KA_CERTIFICATE}"
+key_attestation_signing_key_identifier = "key_attestation_signing_key"
+# key_attestation_certification = "https://wallet.edi.rijksoverheid.nl"
 
 # Refresh delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300

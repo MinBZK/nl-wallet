@@ -5,6 +5,8 @@ use std::time::Duration;
 
 use crypto::x509::crl::CertificateCrlVerifier;
 #[cfg(any(test, feature = "test"))]
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+#[cfg(any(test, feature = "test"))]
 use crypto::x509::crl::mock::MockCrlFetcher;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -186,12 +188,12 @@ pub struct WalletClients<APC, CID, DCC, SLC> {
 pub(crate) enum WalletCertificateCrlVerifier {
     Http(CertificateCrlVerifier),
     #[cfg(any(test, feature = "test"))]
-    Mock(CertificateCrlVerifier<MockCrlFetcher>),
+    Mock(MockCertificateCrlVerifier),
 }
 
 #[cfg(any(test, feature = "test"))]
 impl WalletClients<MockAccountProviderClient, MockIssuanceDiscovery, MockDisclosureClient, MockStatusListClient> {
-    pub fn new_mock(crl_verifier: CertificateCrlVerifier<MockCrlFetcher>) -> Self {
+    pub fn new_mock(crl_verifier: MockCertificateCrlVerifier) -> Self {
         Self {
             account_provider_client: MockAccountProviderClient::default(),
             credential_issuer_discovery: MockIssuanceDiscovery::default(),
@@ -215,7 +217,7 @@ where
     C: StatusListClient + Clone,
 {
     pub fn new_with_mock_crl_verifier_and_registration_certificate_status_list_client(
-        crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+        crl_verifier: MockCertificateCrlVerifier,
         registration_certificate_status_list_client: C,
     ) -> Result<Self, reqwest::Error> {
         let credential_issuer_discovery = HttpIssuanceDiscovery::new(
@@ -636,7 +638,7 @@ mod tests {
             MockIssuanceDiscovery,
             MockDisclosureClient,
             MockStatusListClient,
-        > = WalletClients::new_mock(CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&test::WRPAC_CA));
+        > = WalletClients::new_mock(MockCertificateCrlVerifier::new_for_ca(&test::WRPAC_CA));
         wallet_clients.credential_issuer_discovery = discovery;
 
         let wallet: TestWalletMockStorage = Wallet::init_registration(
@@ -717,7 +719,7 @@ mod tests {
             MockIssuanceDiscovery,
             MockDisclosureClient,
             MockStatusListClient,
-        > = WalletClients::new_mock(CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&test::WRPAC_CA));
+        > = WalletClients::new_mock(MockCertificateCrlVerifier::new_for_ca(&test::WRPAC_CA));
         wallet_clients.credential_issuer_discovery = discovery;
 
         let wallet: TestWalletMockStorage = Wallet::init_registration(
@@ -792,7 +794,7 @@ mod tests {
             MockIssuanceDiscovery,
             MockDisclosureClient,
             MockStatusListClient,
-        > = WalletClients::new_mock(CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&test::WRPAC_CA));
+        > = WalletClients::new_mock(MockCertificateCrlVerifier::new_for_ca(&test::WRPAC_CA));
 
         let result: Result<TestWalletMockStorage, WalletInitError> = Wallet::init_registration(
             storage,
