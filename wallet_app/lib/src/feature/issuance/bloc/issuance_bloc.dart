@@ -192,6 +192,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final state = this.state;
     if (state is! IssuanceConfirmIssuer) throw UnsupportedError('Incorrect state to $state');
     // Without previews there are no cards to show, they are only known once issued.
+    // TODO(PVW-5559): let the user review the issued cards after entering the PIN, instead of accepting them blindly.
     emit(const IssuanceProvidePinForIssuance(cards: []));
   }
 
@@ -230,6 +231,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     emit(IssuanceLoadInProgress(state.stepperProgress));
     await Future.delayed(Duration(seconds: Environment.mockRepositories ? 2 : 0));
 
+    // TODO(PVW-5559): without previews, show the issued cards for review here and only store them once accepted.
     emit(IssuanceCompleted(addedCards: state.cards));
   }
 
