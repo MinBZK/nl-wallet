@@ -12,3 +12,13 @@ reason = "`bincode` is a transitive dependency that is no longer maintained but 
 id = "RUSTSEC-2026-0235"
 ignoreUntil = 2027-01-01
 reason = "`rkyv` is a transitive dependency that is only used by `lightningcss` through `parcel_sourcemap`. This last crate has not been updated recently. Additionally, `lightningcss` is only ever used as a build dependency."
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2027-01-01
+reason = "Not vunlerable because `braces` is not used with user input."
+
+[[IgnoredVulns]]
+id = "GHSA-hp3w-g68c-fv3c"
+ignoreUntil = 2027-01-01
+reason = "Not vulnerable no user controlled formats are used. Also this vulnerability is disputed by author."
