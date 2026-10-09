@@ -152,7 +152,7 @@ async fn test_acf_demo_issuer_wallet_issuance() {
     let pin: Pin = "112233".into();
 
     let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
-    let acf = setup_auth_code_env(&db_setup, None).await;
+    let acf = setup_auth_code_env_with_previews(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     // The demo issuer's QR: a static auth-code offer selecting the insurance usecase via issuer_state.
@@ -204,12 +204,7 @@ async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
     let pin: Pin = "112233".into();
 
     let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
-    let mut settings = acf_demo_issuer_settings(db_setup.acf_demo_issuer_url(), None);
-    settings
-        .authorizing_issuer_settings
-        .issuer_settings
-        .credential_preview_endpoint = false;
-    let acf = start_acf_demo_issuer_server(settings).await;
+    let acf = setup_auth_code_env(&db_setup, None).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     let offer_uri = create_auth_code_credential_offer(&acf.public, ISSUER_STATE, "com.example.insurance");
@@ -252,7 +247,7 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
     let pin: Pin = "112233".into();
 
     let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
-    let acf = setup_auth_code_env(&db_setup, None).await;
+    let acf = setup_auth_code_env_with_previews(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     let offer_uri = create_auth_code_credential_offer(&acf.public, "loyalty", "com.example.jum.bonuskaart");
@@ -287,6 +282,17 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
             .any(|attestation| attestation.attestation_type == "com.example.jum.bonuskaart"),
         "the issued loyalty attestation should be present in the wallet",
     );
+}
+
+/// Start the authorization-code flow demo issuer with the Credential Preview Endpoint enabled.
+async fn setup_auth_code_env_with_previews(db_setup: &DbSetup) -> IssuerUrl {
+    let mut settings = acf_demo_issuer_settings(db_setup.acf_demo_issuer_url(), None);
+    settings
+        .authorizing_issuer_settings
+        .issuer_settings
+        .credential_preview_endpoint = true;
+
+    start_acf_demo_issuer_server(settings).await
 }
 
 /// Build the static authorization-code credential offer the demo issuer's QR encodes: a by-value
