@@ -1,2 +1,4 @@
+minimumReleaseAgeExclude:
+  - handlebars@4.7.10
 overrides:
   handlebars@>=4.0.0 <=4.7.9: ^4.7.10
