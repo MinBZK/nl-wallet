@@ -51,7 +51,12 @@ class DashboardScreen : MobileActions() {
 
     // Sometimes the display name of a card is present in the activities button there for it is needed to
     // click an element that does not contain the activities button title
-    fun cardVisible(cardDisplayContent: String) = elementContainingTextExcludingTextVisible(cardDisplayContent, activitiesButtonTitle)
+    fun cardVisible(cardDisplayContent: String): Boolean = try {
+        scrollToElementContainingTextExcludingText(cardDisplayContent, activitiesButtonTitle)
+        elementContainingTextExcludingTextVisible(cardDisplayContent, activitiesButtonTitle)
+    } catch (e: NoSuchElementException) {
+        false
+    }
 
     fun cardRevocationVisible(cardDisplayContent: String): Boolean {
         scrollToElementContainingTexts(listOf(cardDisplayContent, revokedLabel))

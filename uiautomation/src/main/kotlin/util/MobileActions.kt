@@ -109,6 +109,18 @@ open class MobileActions {
         return args
     }
 
+    private fun iosSwipe(direction: String) {
+        repeat(2) {
+            try {
+                (driver as JavascriptExecutor).executeScript("mobile: swipe", iosSwipeArgs(direction))
+                return
+            } catch (_: org.openqa.selenium.StaleElementReferenceException) {
+                // fall through to the next attempt with a freshly resolved scroll view
+            }
+        }
+        (driver as JavascriptExecutor).executeScript("mobile: swipe", mapOf("direction" to direction))
+    }
+
     fun scrollToElementWithText(text: String): WebElement {
         return when (platform()) {
             Platform.ANDROID -> {
@@ -127,10 +139,7 @@ open class MobileActions {
                 repeat(8) { // cap attempts to avoid infinite loops
                     val matches = driver.findElements(AppiumBy.iOSNsPredicateString(predicate))
                     matches.firstOrNull { it.isDisplayed }?.let { return it }
-                    (driver as JavascriptExecutor).executeScript(
-                        "mobile: swipe",
-                        iosSwipeArgs("up")
-                    )
+                    iosSwipe("up")
                 }
                 throw NoSuchElementException("Couldn't bring '$text' into view")
             }
@@ -151,16 +160,14 @@ open class MobileActions {
             Platform.IOS -> {
                 val locator = By.xpath("//*[contains(@name, ${quoteForIos(text)})]")
 
-                // Search toward the bottom first, then back toward the top, so the
-                // element is found regardless of the current scroll position (mirrors
-                // Android's bidirectional UiScrollable.scrollIntoView).
-                for (direction in listOf("up", "down")) {
+                // Rewind toward the start of the list first and only then search forward,
+                // mirroring Android's UiScrollable.scrollIntoView. Searching forward first
+                // spends the whole swipe budget moving away from anything that sits above the
+                // position an earlier step left the list in, and never comes back far enough.
+                for (direction in listOf(TOWARDS_LIST_START, TOWARDS_LIST_END)) {
                     repeat(8) {
                         driver.findElements(locator).firstOrNull { it.isDisplayed }?.let { return it }
-                        (driver as JavascriptExecutor).executeScript(
-                            "mobile: swipe",
-                            iosSwipeArgs(direction)
-                        )
+                        iosSwipe(direction)
                     }
                 }
                 throw NoSuchElementException("Couldn't bring element containing '$text' into view")
@@ -185,13 +192,10 @@ open class MobileActions {
                 // separate elements, so no single element's name contains all the texts. Instead
                 // scroll until every text is simultaneously on screen
                 val locators = partialTexts.map { By.xpath("//*[contains(@name, ${quoteForIos(it)})]") }
-                for (direction in listOf("up", "down")) {
+                for (direction in listOf(TOWARDS_LIST_START, TOWARDS_LIST_END)) {
                     repeat(8) {
                         if (locators.all { loc -> driver.findElements(loc).any { it.isDisplayed } }) return
-                        (driver as JavascriptExecutor).executeScript(
-                            "mobile: swipe",
-                            iosSwipeArgs(direction)
-                        )
+                        iosSwipe(direction)
                     }
                 }
                 throw NoSuchElementException("Couldn't bring element containing all of $partialTexts into view")
@@ -216,16 +220,13 @@ open class MobileActions {
             Platform.IOS -> {
                 val locator = By.xpath("//*[contains(@name, ${quoteForIos(includeText)})]")
 
-                for (direction in listOf("up", "down")) {
+                for (direction in listOf(TOWARDS_LIST_START, TOWARDS_LIST_END)) {
                     repeat(8) {
                         if (driver.findElements(locator).any { it.isDisplayed }) {
                             Thread.sleep(SCREEN_TRANSITION_MILLIS)
                             driver.findElements(locator).firstOrNull { it.isDisplayed }?.let { return it }
                         }
-                        (driver as JavascriptExecutor).executeScript(
-                            "mobile: swipe",
-                            iosSwipeArgs(direction)
-                        )
+                        iosSwipe(direction)
                     }
                 }
                 throw NoSuchElementException("Couldn't bring element containing '$includeText' into view")
@@ -281,10 +282,13 @@ open class MobileActions {
         driver.perform(listOf(swipe))
     }
 
-    fun switchToWebViewContext() {
-        val driver = when (platform()) {
-            Platform.ANDROID -> driver as AndroidDriver
-            Platform.IOS -> driver as IOSDriver        }
+    fun switchToWebViewContext() = when (platform()) {
+        Platform.ANDROID -> switchToAndroidWebViewContext()
+        Platform.IOS -> switchToIosWebViewContext()
+    }
+
+    private fun switchToAndroidWebViewContext() {
+        val driver = driver as AndroidDriver
         val context = driver.context ?: ""
         if (context.startsWith(WEB_VIEW_CONTEXT_PREFIX).not()) {
             // Wait for the web view context to be available
@@ -308,19 +312,63 @@ open class MobileActions {
         }
     }
 
+    // Selecting the newest page would land on the empty tab that the same-device wallet link
+    // leaves behind, and entering such a page stalls until the driver gives up on it. Pick the
+    // newest page that actually holds a document, and keep the current one while it is still open.
+    private fun switchToIosWebViewContext(timeoutMillis: Long = WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS) {
+        val driver = driver as IOSDriver
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        do {
+            val pages = iosWebViewPages(WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS).filterNot { isBlankPage(it.url) }
+            if (pages.any { it.context == (driver.context ?: "") }) return
+            pages.firstOrNull()?.let { page ->
+                driver.context(page.context)
+                Thread.sleep(SCREEN_TRANSITION_MILLIS)
+                return
+            }
+            Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        } while (System.currentTimeMillis() < deadline)
+        logWebViewLandscape()
+        throw TimeoutException("No web view page with a loaded document within ${timeoutMillis}ms")
+    }
+
 
     // Context handles look like "WEBVIEW_<appId>.<pageId>"; page ids increase as pages are
     // opened, so among equally matching pages the highest id is the one the app just opened.
     private fun webViewPageId(handle: String): Long = handle.substringAfterLast('.').toLongOrNull() ?: 0L
 
+    // A page without a real document (a freshly opened, still empty Safari tab) cannot run
+    // JavaScript, so switching into it makes every atom block until it times out.
+    private fun isBlankPage(url: String?) = url.isNullOrBlank() || url == "about:blank"
+
+    data class WebViewPage(val context: String, val title: String?, val url: String?)
+
+    // "mobile: getContexts" reports the page list straight from the Safari remote debugger, so
+    // titles and urls are available without entering a page and executing an atom in it.
+    @Suppress("UNCHECKED_CAST")
+    fun iosWebViewPages(waitForWebViewMillis: Long = 0L): List<WebViewPage> {
+        val contexts = (driver as JavascriptExecutor).executeScript(
+            "mobile: getContexts",
+            mapOf("waitForWebviewMs" to waitForWebViewMillis),
+        ) as? List<Map<String, Any?>> ?: emptyList()
+        return contexts
+            .mapNotNull { context ->
+                val id = context["id"]?.toString()?.takeIf { it.startsWith(WEB_VIEW_CONTEXT_PREFIX) }
+                id?.let { WebViewPage(it, context["title"]?.toString(), context["url"]?.toString()) }
+            }
+            .sortedByDescending { webViewPageId(it.context) }
+    }
+
     fun switchToWebViewWindowContaining(
         locator: By,
         timeoutMillis: Long = WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS,
-    ) {
-        val contextDriver = when (platform()) {
-            Platform.ANDROID -> driver as AndroidDriver
-            Platform.IOS -> driver as IOSDriver
-        }
+    ) = when (platform()) {
+        Platform.ANDROID -> switchToAndroidWebViewWindowContaining(locator, timeoutMillis)
+        Platform.IOS -> switchToIosWebViewPageContaining(locator, timeoutMillis)
+    }
+
+    private fun switchToAndroidWebViewWindowContaining(locator: By, timeoutMillis: Long) {
+        val contextDriver = driver as AndroidDriver
         try {
             WebDriverWait(driver, Duration.ofMillis(timeoutMillis))
                 .ignoring(WebDriverException::class.java)
@@ -342,24 +390,64 @@ open class MobileActions {
         }
     }
 
+    // On iOS every Safari tab is a separate page, and only the frontmost one executes JavaScript.
+    // Probing them all with findElements() blocks for the full atom timeout on each background or
+    // empty tab, which burns the entire budget before the page we need is reached; a flow that
+    // opened a second web view therefore times out on the first one. So pick the page from the
+    // remote debugger page list and only enter the pages that can hold the element at all.
+    private fun switchToIosWebViewPageContaining(locator: By, timeoutMillis: Long) {
+        val contextDriver = driver as IOSDriver
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        // A tab whose web process is suspended never answers an atom, so probing it costs the
+        // full webviewAtomWaitTimeout. Probe such a page once and then leave it alone, otherwise
+        // a single stale tab eats the whole budget and the page we are waiting for is never
+        // reached - a freshly opened tab can need well over ten seconds to leave 'about:blank'.
+        val unresponsive = mutableSetOf<String>()
+        var lastError: Exception? = null
+        do {
+            for (page in iosWebViewPages(WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS)) {
+                if (isBlankPage(page.url) || page.context in unresponsive) continue
+                try {
+                    if (contextDriver.context != page.context) contextDriver.context(page.context)
+                    if (driver.findElements(locator).isNotEmpty()) return
+                } catch (e: TimeoutException) {
+                    println("Web view page ${page.context} (${page.url}) does not respond, skipping it")
+                    unresponsive.add(page.context)
+                    lastError = e
+                } catch (e: WebDriverException) {
+                    lastError = e
+                }
+            }
+            Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        } while (System.currentTimeMillis() < deadline)
+        logWebViewLandscape()
+        throw TimeoutException("No web view page containing $locator within ${timeoutMillis}ms", lastError)
+    }
+
     // Convenience function for debugging
     fun logWebViewLandscape(label: String = "webview-landscape") {
-        val contextDriver = when (platform()) {
-            Platform.ANDROID -> driver as AndroidDriver
-            Platform.IOS -> driver as IOSDriver
-        }
         val landscape = StringBuilder("=== Web view landscape ===\n")
-        contextDriver.contextHandles.forEach { context ->
-            landscape.appendLine("Context: $context")
-            if (context.startsWith(WEB_VIEW_CONTEXT_PREFIX)) {
-                try {
-                    contextDriver.context(context)
-                    driver.windowHandles.forEach { window ->
-                        driver.switchTo().window(window)
-                        landscape.appendLine("  window=$window url=${driver.currentUrl} title=${driver.title}")
+        when (platform()) {
+            // Reading url/title over the remote debugger would hang on exactly the pages that are
+            // interesting here, so report what the page list already tells us.
+            Platform.IOS -> iosWebViewPages().forEach { page ->
+                landscape.appendLine("Context: ${page.context} title=${page.title} url=${page.url}")
+            }
+            Platform.ANDROID -> {
+                val contextDriver = driver as AndroidDriver
+                contextDriver.contextHandles.forEach { context ->
+                    landscape.appendLine("Context: $context")
+                    if (context.startsWith(WEB_VIEW_CONTEXT_PREFIX)) {
+                        try {
+                            contextDriver.context(context)
+                            driver.windowHandles.forEach { window ->
+                                driver.switchTo().window(window)
+                                landscape.appendLine("  window=$window url=${driver.currentUrl} title=${driver.title}")
+                            }
+                        } catch (e: Exception) {
+                            println("  (could not enumerate windows: ${e.message})")
+                        }
                     }
-                } catch (e: Exception) {
-                    println("  (could not enumerate windows: ${e.message})")
                 }
             }
         }
@@ -1042,10 +1130,15 @@ open class MobileActions {
         const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
         const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 4000L
         const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
-        const val WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS = 15_000L
+        const val WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS = 30_000L
         const val DEFAULT_RESET_SLEEP = 10_000L
         const val ANIMATION_SETTLE_MILLIS = 300L
         const val SCREEN_TRANSITION_MILLIS = 1000L
+
+        // Swipe directions, named after what they do to the scroll position rather than to the
+        // finger: swiping down drags the content back towards the start of the list.
+        const val TOWARDS_LIST_START = "down"
+        const val TOWARDS_LIST_END = "up"
 
         const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
         const val NATIVE_APP_CONTEXT = "NATIVE_APP"
