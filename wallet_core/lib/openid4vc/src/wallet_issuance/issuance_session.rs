@@ -1508,6 +1508,7 @@ mod tests {
     use wscd::mock_remote::MockRemoteWscd;
     use wscd::payload::key_attestation::KeyAttestation;
     use wscd::payload::key_attestation::KeyAttestationVerificationError;
+    use wscd::payload::status_claim::TimeBoundedStatusClaim;
     use wscd::wia::mock::MockWiaClient;
 
     use super::*;
@@ -3235,6 +3236,7 @@ mod tests {
                 &public_keys,
                 MOCK_CERTIFICATION_URL.clone(),
                 nonce,
+                TimeBoundedStatusClaim::new_mock(),
                 &self.attestation_key_pair,
                 &MockTimeGenerator::default(),
             )

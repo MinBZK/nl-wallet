@@ -2,6 +2,8 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::num::NonZeroUsize;
 
+use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
@@ -22,6 +24,7 @@ use serde::Serialize;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -73,6 +76,7 @@ use wscd::payload::jwt_proof::JwtProofClaims;
 use wscd::payload::key_attestation::KeyAttestation;
 use wscd::payload::poa::POA_JWT_TYP;
 use wscd::payload::poa::Poa;
+use wscd::payload::status_claim::TimeBoundedStatusClaim;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::payload::wia::WiaPopClaims;
 
@@ -482,10 +486,20 @@ where
                 .map(|wrapped_key| PublicKey::from(*wrapped_key.public_key()))
                 .collect::<VecNonEmpty<_>>();
 
+            // TODO: Implement provision of token status list claim.
+            let key_storage_status = TimeBoundedStatusClaim::new(
+                StatusClaim::StatusList(StatusListClaim {
+                    idx: 0,
+                    uri: "https://not.implemented/".parse().unwrap(),
+                }),
+                DateTimeSeconds::new(DateTime::UNIX_EPOCH),
+            );
+
             let attestation = KeyAttestation::sign(
                 &public_keys,
                 user_state.key_attestation_certification.clone(),
                 request.proof_nonce,
+                key_storage_status,
                 &user_state.key_attestation_key_pair,
                 time,
             )
