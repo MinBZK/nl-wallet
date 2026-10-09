@@ -88,6 +88,28 @@ pub struct AdminTaskCreate {
     pub task_reason: String,
 }
 
+impl From<AdminTaskCreate> for AdminTask {
+    fn from(task: AdminTaskCreate) -> Self {
+        AdminTask {
+            id: task.id,
+            created_at: task.created_at,
+            created_by_user_id: task.created_by_user_id,
+            created_by_display_name: task.created_by_display_name,
+            task_type: task.task_type,
+            task_parameters: task.task_parameters,
+            task_reason: task.task_reason,
+            status: TaskStatus::Created,
+            reviewed_at: None,
+            reviewed_by_user_id: None,
+            reviewed_by_display_name: None,
+            review_comment: None,
+            executed_at: None,
+            execution_result: None,
+            execution_result_details: None,
+        }
+    }
+}
+
 /// Request model for a review verdict, updates [`AdminTask`]
 #[derive(Debug, Clone)]
 pub struct AdminTaskReview {

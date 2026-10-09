@@ -14,6 +14,7 @@ use audit_log::repository::AuditLogRepository;
 use axum::Json;
 use axum::Router;
 use axum::extract::FromRequestParts;
+use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -48,6 +49,7 @@ use wallet_provider_service::admin_portal::AdminPortalConfig;
 use wallet_provider_service::admin_portal::AdminPortalService;
 use wallet_provider_service::admin_portal::LoggedInUser;
 use wallet_provider_service::admin_portal::task::CreateTaskError;
+use wallet_provider_service::admin_portal::task::WithdrawTaskError;
 
 use crate::router_state::UuidV7Generator;
 use crate::settings::AdminPortalSettings;
@@ -64,6 +66,22 @@ impl IntoResponse for CreateTaskApiError {
             CreateTaskError::UnknownTaskType(_) => StatusCode::BAD_REQUEST.into_response(),
             CreateTaskError::MissingPrivilege(_) => StatusCode::FORBIDDEN.into_response(),
             CreateTaskError::Storage(_) | CreateTaskError::AuditLog(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            }
+        }
+    }
+}
+
+struct WithdrawTaskApiError(WithdrawTaskError);
+
+impl IntoResponse for WithdrawTaskApiError {
+    fn into_response(self) -> Response {
+        let Self(error) = self;
+        warn!("withdraw_task failed: {error:?}");
+        match error {
+            WithdrawTaskError::NotFound(_) => StatusCode::NOT_FOUND.into_response(),
+            WithdrawTaskError::InvalidState => StatusCode::CONFLICT.into_response(),
+            WithdrawTaskError::Storage(_) | WithdrawTaskError::AuditLog(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         }
@@ -123,7 +141,12 @@ where
         .route("/auth/callback", get(callback))
         .route("/auth/logout", get(logout))
         .route("/api/me", get(me))
-        .nest("/tasks", Router::new().route("/", post(create_task)))
+        .nest(
+            "/tasks",
+            Router::new()
+                .route("/", post(create_task))
+                .route("/{task_id}/withdraw", post(withdraw_task)),
+        )
         .with_state(state)
 }
 
@@ -369,6 +392,29 @@ where
     }
 }
 
+async fn withdraw_task<R, AR>(
+    State(state): State<Arc<AdminPortalState<R, AR>>>,
+    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    Path(task_id): Path<Uuid>,
+) -> Response
+where
+    R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
+    AR: AuditLogRepository + Send + Sync + 'static,
+{
+    match admin_portal::task::withdraw_task(
+        task_id,
+        &user.user_id,
+        state.service.repository(),
+        &TimeGenerator,
+        &state.audit_log,
+    )
+    .await
+    {
+        Ok(task) => Json(TaskResponse::from(task)).into_response(),
+        Err(error) => WithdrawTaskApiError(error).into_response(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -377,6 +423,7 @@ mod tests {
 
     use audit_log::model::DbAuditLog;
     use audit_log::repository::mock::NoopAuditLogRepository;
+    use axum::body::Body;
     use axum::body::to_bytes;
     use axum::http::Request;
     use axum::http::StatusCode;
@@ -387,10 +434,14 @@ mod tests {
     use crypto::utils::random_string;
     use http_utils::reqwest::test::get_test_trust_anchor;
     use serde_json::Value;
+    use tower::ServiceExt;
     use utils::generator::TimeGenerator;
     use utils::vec_nonempty;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_task::AdminTaskCreate;
+    use wallet_provider_domain::model::admin_task::AdminTaskReview;
+    use wallet_provider_domain::model::admin_task::TaskListView;
     use wallet_provider_domain::repository::AdminPortalSessionRepository;
     use wallet_provider_domain::repository::PersistenceError;
 
@@ -436,6 +487,7 @@ mod tests {
     #[derive(Default)]
     struct InMemoryRepository {
         sessions: Mutex<HashMap<String, AdminPortalUserSession>>,
+        tasks: Mutex<HashMap<Uuid, AdminTask>>,
         errors: bool,
     }
 
@@ -514,6 +566,47 @@ mod tests {
         async fn cleanup_expired_user_sessions(&self, _now: DateTime<Utc>) -> Result<(), PersistenceError> {
             self.handle_error()?;
             Ok(())
+        }
+    }
+
+    impl AdminTaskRepository for InMemoryRepository {
+        async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError> {
+            self.handle_error()?;
+            let task: AdminTask = task.into();
+            self.tasks.lock().unwrap().insert(task.id, task.clone());
+            Ok(task)
+        }
+
+        async fn find_task_by_id(&self, task_id: Uuid) -> Result<Option<AdminTask>, PersistenceError> {
+            self.handle_error()?;
+            Ok(self.tasks.lock().unwrap().get(&task_id).cloned())
+        }
+
+        async fn withdraw_task(
+            &self,
+            task_id: Uuid,
+            user_id: &str,
+            now: DateTime<Utc>,
+        ) -> Result<Option<AdminTask>, PersistenceError> {
+            self.handle_error()?;
+            let mut tasks = self.tasks.lock().unwrap();
+            let Some(task) = tasks.get_mut(&task_id) else {
+                return Ok(None);
+            };
+            if task.created_by_user_id != user_id || task.status != TaskStatus::Created {
+                return Ok(None);
+            }
+            task.status = TaskStatus::Withdrawn;
+            task.reviewed_at = Some(now);
+            Ok(Some(task.clone()))
+        }
+
+        async fn review_task(&self, _review: AdminTaskReview) -> Result<Option<AdminTask>, PersistenceError> {
+            Err(PersistenceError::NoRowsUpdated)
+        }
+
+        async fn list_tasks(&self, _view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError> {
+            Err(PersistenceError::NoRowsUpdated)
         }
     }
 
@@ -760,5 +853,108 @@ mod tests {
         let response = TaskResponse::from(task);
 
         assert_eq!(response.created_by, "User One");
+    }
+
+    #[test]
+    fn withdraw_task_error_status_codes() {
+        for (error, status) in [
+            (WithdrawTaskError::NotFound(Uuid::new_v4()), StatusCode::NOT_FOUND),
+            (WithdrawTaskError::InvalidState, StatusCode::CONFLICT),
+            (
+                WithdrawTaskError::Storage(PersistenceError::NoRowsUpdated),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ),
+            (
+                WithdrawTaskError::AuditLog(Box::new(PersistenceError::NoRowsUpdated)),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ),
+        ] {
+            assert_eq!(WithdrawTaskApiError(error).into_response().status(), status);
+        }
+    }
+
+    #[rstest::rstest]
+    #[case::missing_session(None)]
+    #[case::unknown_session(Some("unknown-session"))]
+    #[tokio::test]
+    async fn withdrawal_requires_authentication(#[case] session: Option<&str>) {
+        let mut request = Request::builder()
+            .method("POST")
+            .uri(format!("/tasks/{}/withdraw", Uuid::new_v4()));
+        if let Some(session) = session {
+            request = request.header(header::COOKIE, format!("sid={session}"));
+        }
+        let response = router(setup_state())
+            .oneshot(request.body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[rstest::rstest]
+    #[case::not_found(false, "user_id", TaskStatus::Created, StatusCode::NOT_FOUND)]
+    #[case::wrong_owner(true, "other-user", TaskStatus::Created, StatusCode::CONFLICT)]
+    #[case::already_approved(true, "user_id", TaskStatus::Approved, StatusCode::CONFLICT)]
+    #[case::success(true, "user_id", TaskStatus::Created, StatusCode::OK)]
+    #[tokio::test]
+    async fn withdrawal_endpoint(
+        #[case] exists: bool,
+        #[case] owner: &str,
+        #[case] status: TaskStatus,
+        #[case] expected_status: StatusCode,
+    ) {
+        let (state, jar) = setup_state_with_valid_user();
+        let id = Uuid::new_v4();
+        if exists {
+            let repository = state.service.repository();
+            repository
+                .insert_task(AdminTaskCreate {
+                    id,
+                    created_at: Utc::now(),
+                    created_by_user_id: owner.to_string(),
+                    created_by_display_name: "Jane Doe".to_string(),
+                    task_type: TaskType::RevokeWallet,
+                    task_parameters: serde_json::json!({}),
+                    task_reason: "reason".to_string(),
+                })
+                .await
+                .unwrap();
+            if status != TaskStatus::Created {
+                // Seed the existing status for cases where the task has already been reviewed.
+                repository.tasks.lock().unwrap().get_mut(&id).unwrap().status = status;
+            }
+        }
+        let request = Request::builder()
+            .method("POST")
+            .uri(format!("/tasks/{id}/withdraw"))
+            .header(
+                header::COOKIE,
+                format!("sid={}", jar.get(SESSION_ID_COOKIE).unwrap().value()),
+            )
+            .body(Body::empty())
+            .unwrap();
+        let app = router(state);
+        let response = app.clone().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), expected_status);
+        if expected_status == StatusCode::OK {
+            let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            let task: Value = serde_json::from_slice(&body).unwrap();
+            assert_eq!(task["taskId"], id.to_string());
+            assert_eq!(task["status"], "withdrawn");
+            assert_eq!(task["createdBy"], "Jane Doe");
+            for field in ["executedAt", "executionResult", "executionResultDetails"] {
+                assert!(task[field].is_null());
+            }
+            let request = Request::builder()
+                .method("POST")
+                .uri(format!("/tasks/{id}/withdraw"))
+                .header(
+                    header::COOKIE,
+                    format!("sid={}", jar.get(SESSION_ID_COOKIE).unwrap().value()),
+                )
+                .body(Body::empty())
+                .unwrap();
+            assert_eq!(app.oneshot(request).await.unwrap().status(), StatusCode::CONFLICT);
+        }
     }
 }

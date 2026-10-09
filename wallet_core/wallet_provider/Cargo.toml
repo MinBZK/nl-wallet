@@ -99,5 +99,6 @@ token_status_list = { path = "../lib/token_status_list", optional = true }
 audit_log = { path = "audit_log", features = ["mock"] }
 rstest.workspace = true
 tempfile.workspace = true
+tower = { workspace = true, features = ["util"] }
 
 http_utils = { path = "../lib/http_utils", features = ["test"] }

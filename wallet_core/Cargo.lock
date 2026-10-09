@@ -10200,6 +10200,7 @@ dependencies = [
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
+ "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",

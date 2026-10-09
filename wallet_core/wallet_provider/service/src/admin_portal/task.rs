@@ -78,6 +78,57 @@ pub async fn create_task<R: AdminTaskRepository>(
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum WithdrawTaskError {
+    #[error("task not found: {0}")]
+    NotFound(Uuid),
+    #[error("task cannot be withdrawn: not created by caller, or not in 'created' status")]
+    InvalidState,
+    #[error("persistence error: {0}")]
+    Storage(#[source] PersistenceError),
+    #[error("error while auditing: {0}")]
+    AuditLog(#[source] Box<dyn Error + Send + Sync>),
+}
+
+impl FromAuditLogError for WithdrawTaskError {
+    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
+        Self::AuditLog(audit_log_error)
+    }
+}
+
+/// Withdraws a task created by the caller that is still in `Created` status.
+#[audited]
+pub async fn withdraw_task<R: AdminTaskRepository>(
+    #[audit] task_id: Uuid,
+    #[audit_user] user_id: &str,
+    repository: &R,
+    time: &impl Generator<DateTime<Utc>>,
+    #[auditor] audit_log: &impl AuditLog,
+) -> Result<AdminTask, WithdrawTaskError> {
+    // Look up the task to distinguish a missing task (NotFound) from an existing task with the wrong owner or status
+    // (InvalidState). The conditional update alone returns None for all of these cases.
+    let existing = repository
+        .find_task_by_id(task_id)
+        .await
+        .map_err(WithdrawTaskError::Storage)?
+        .ok_or(WithdrawTaskError::NotFound(task_id))?;
+
+    if existing.created_by_user_id != user_id || existing.status != TaskStatus::Created {
+        return Err(WithdrawTaskError::InvalidState);
+    }
+
+    // Actually try to withdraw the task now, this repeats the ownership and status checks atomically. A concurrent
+    // withdrawal or review could have changed it in between; None then becomes InvalidState.
+    //
+    // A transaction alone does not prevent this race at PostgreSQL's default isolation level; the conditional update
+    // does.
+    repository
+        .withdraw_task(task_id, user_id, time.generate())
+        .await
+        .map_err(WithdrawTaskError::Storage)?
+        .ok_or(WithdrawTaskError::InvalidState)
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum ReviewTaskError {
     #[error("task not found: {0}")]
     NotFound(Uuid),
@@ -523,5 +574,99 @@ mod tests {
         list_tasks(TaskListViewKind::ToReview, "user-1", &[], &repository, &MockAuditLog)
             .await
             .expect("should list");
+    }
+
+    #[tokio::test]
+    async fn withdraw_task_returns_not_found() {
+        let id = Uuid::new_v4();
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_find_task_by_id()
+            .withf(move |task_id| *task_id == id)
+            .times(1)
+            .returning(|_| Ok(None));
+        let result = withdraw_task(id, "user-1", &repository, &FixedTime(Utc::now()), &MockAuditLog).await;
+        assert_matches!(result, Err(WithdrawTaskError::NotFound(task_id)) if task_id == id);
+    }
+
+    #[rstest::rstest]
+    #[case::other_user("user-2", TaskStatus::Created)]
+    #[case::already_withdrawn("user-1", TaskStatus::Withdrawn)]
+    #[case::already_approved("user-1", TaskStatus::Approved)]
+    #[case::already_rejected("user-1", TaskStatus::Rejected)]
+    #[tokio::test]
+    async fn withdraw_task_rejects_invalid_state(#[case] user_id: &str, #[case] status: TaskStatus) {
+        let id = Uuid::new_v4();
+        let mut task = stub_task(id, TaskType::RevokeWallet, "user-1");
+        task.status = status;
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_find_task_by_id()
+            .times(1)
+            .returning(move |_| Ok(Some(task.clone())));
+        let result = withdraw_task(id, user_id, &repository, &FixedTime(Utc::now()), &MockAuditLog).await;
+        assert_matches!(result, Err(WithdrawTaskError::InvalidState));
+    }
+
+    #[rstest::rstest]
+    #[case::successful_withdrawal(false, false)]
+    #[case::task_changed_after_lookup(true, false)]
+    #[case::storage_failure(false, true)]
+    #[tokio::test]
+    async fn withdraw_task_handles_atomic_update(#[case] task_changed_after_lookup: bool, #[case] storage_error: bool) {
+        let id = Uuid::new_v4();
+        let now = Utc::now();
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_find_task_by_id()
+            .times(1)
+            .returning(move |_| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
+        repository
+            .expect_withdraw_task()
+            .withf(move |task_id, user_id, timestamp| *task_id == id && user_id == "user-1" && *timestamp == now)
+            .times(1)
+            .returning(move |_, _, _| {
+                if storage_error {
+                    return Err(PersistenceError::NoRowsUpdated);
+                }
+                if task_changed_after_lookup {
+                    return Ok(None);
+                }
+                let mut task = stub_task(id, TaskType::RevokeWallet, "user-1");
+                task.status = TaskStatus::Withdrawn;
+                task.reviewed_at = Some(now);
+                Ok(Some(task))
+            });
+        let result = withdraw_task(id, "user-1", &repository, &FixedTime(now), &MockAuditLog).await;
+        if storage_error {
+            assert_matches!(result, Err(WithdrawTaskError::Storage(_)));
+        } else if task_changed_after_lookup {
+            assert_matches!(result, Err(WithdrawTaskError::InvalidState));
+        } else {
+            let task = result.unwrap();
+            assert_eq!(task.status, TaskStatus::Withdrawn);
+            assert_eq!(task.reviewed_at, Some(now));
+            assert_eq!(task.executed_at, None);
+            assert_eq!(task.execution_result, None);
+            assert_eq!(task.execution_result_details, None);
+        }
+    }
+
+    #[tokio::test]
+    async fn withdraw_task_reports_lookup_failure() {
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_find_task_by_id()
+            .times(1)
+            .returning(|_| Err(PersistenceError::NoRowsUpdated));
+        let result = withdraw_task(
+            Uuid::new_v4(),
+            "user-1",
+            &repository,
+            &FixedTime(Utc::now()),
+            &MockAuditLog,
+        )
+        .await;
+        assert_matches!(result, Err(WithdrawTaskError::Storage(_)));
     }
 }
