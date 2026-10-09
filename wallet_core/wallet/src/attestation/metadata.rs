@@ -90,12 +90,6 @@ impl AttestationDisplay for IssuedCredentialMetadata {
     }
 }
 
-impl AttestationDisplay for PresentationComponents {
-    fn into_presentation_components(self) -> PresentationComponents {
-        self
-    }
-}
-
 impl AttestationDisplay for OfferedCredentialMetadata {
     fn into_presentation_components(self) -> PresentationComponents {
         match self {
