@@ -599,6 +599,14 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
         &self.issuer_data.metadata
     }
 
+    pub fn has_credential_preview_endpoint(&self) -> bool {
+        self.issuer_data
+            .metadata
+            .endpoints
+            .credential_preview_endpoint
+            .is_some()
+    }
+
     pub fn type_metadata(&self, id: &CredentialConfigurationId) -> Option<TypeMetadataDocuments> {
         self.issuer_data
             .credential_configs
@@ -2947,9 +2955,6 @@ mod tests {
             Arc::new(MemorySessionStore::default()),
         );
 
-        assert_eq!(
-            issuer.metadata().endpoints.credential_preview_endpoint.is_some(),
-            credential_preview_endpoint
-        );
+        assert_eq!(issuer.has_credential_preview_endpoint(), credential_preview_endpoint);
     }
 }

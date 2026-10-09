@@ -141,7 +141,6 @@ where
     N: NonceStore + Send + Sync + 'static,
 {
     let credential_path = format!("/issuance/{CREDENTIAL_ENDPOINT_PATH}");
-    let has_credential_preview_endpoint = issuer.metadata().endpoints.credential_preview_endpoint.is_some();
 
     let router = Router::new()
         .route("/.well-known/openid-credential-issuer", get(credential_metadata))
@@ -153,7 +152,7 @@ where
         .route(&credential_path, post(credential));
 
     // Only serve the Credential Preview Endpoint when the Credential Issuer Metadata advertises it.
-    let router = if has_credential_preview_endpoint {
+    let router = if issuer.has_credential_preview_endpoint() {
         router.route("/issuance/credential_preview", post(credential_preview))
     } else {
         router
