@@ -186,8 +186,15 @@ fn verify_against_keys<C: DeserializeOwned + JwtTyp>(
     Ok(claims)
 }
 
+/// Algorithms accepted when verifying a userinfo JWT issued by the configured OIDC provider.
+/// Both the validation call site and this module's tests (the ones that need *a* valid,
+/// accepted algorithm rather than specifically testing RS256) read from this constant, so
+/// accepting an additional algorithm in the future is a single change that neither the
+/// validation logic nor the test suite can silently drift out of sync with.
+const ACCEPTED_USERINFO_ALGORITHMS: [Algorithm; 1] = [Algorithm::RS256];
+
 pub fn userinfo_jwt_validation(client_id: impl ToString) -> JwtValidation {
-    let mut validation = JwtValidation::default_with_algorithms([Algorithm::RS256]);
+    let mut validation = JwtValidation::default_with_algorithms(ACCEPTED_USERINFO_ALGORITHMS);
     validation.require_aud(client_id);
     validation
 }
@@ -454,7 +461,7 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_success() {
-        let (jws, jwks) = create_jws(true, Algorithm::RS256);
+        let (jws, jwks) = create_jws(true, ACCEPTED_USERINFO_ALGORITHMS[0]);
 
         let validation = userinfo_jwt_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         let payload =
@@ -471,7 +478,7 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_missing_key_id() {
-        let (jws, jwks) = create_jws(false, Algorithm::RS256);
+        let (jws, jwks) = create_jws(false, ACCEPTED_USERINFO_ALGORITHMS[0]);
 
         let validation = userinfo_jwt_validation("3e58016e-bc2e-40d5-b4b1-a3e25f6193b9");
         let error =
@@ -486,7 +493,7 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_key_not_found() {
-        let (jws, mut jwks) = create_jws(true, Algorithm::RS256);
+        let (jws, mut jwks) = create_jws(true, ACCEPTED_USERINFO_ALGORITHMS[0]);
 
         jwks.keys.first_mut().unwrap().common.key_id = Some("wrong_kid".to_string());
 
@@ -499,7 +506,7 @@ mod tests {
 
     #[test]
     fn test_verify_against_keys_error_wrong_aud() {
-        let (jws, jwks) = create_jws(true, Algorithm::RS256);
+        let (jws, jwks) = create_jws(true, ACCEPTED_USERINFO_ALGORITHMS[0]);
 
         let validation = userinfo_jwt_validation("wrong_aud");
         let error =
@@ -563,7 +570,7 @@ mod tests {
     async fn request_userinfo_signed_and_encrypted_happy_path() {
         let server = MockServer::start_async().await;
         let metadata = create_metadata(&server);
-        let (jws, jwks) = create_jws(true, Algorithm::RS256);
+        let (jws, jwks) = create_jws(true, ACCEPTED_USERINFO_ALGORITHMS[0]);
         let jwe = create_test_jwe(&jws);
 
         let _token_mock = mock_token_endpoint(&server).await;
@@ -623,7 +630,7 @@ mod tests {
     async fn request_userinfo_signed_only_happy_path() {
         let server = MockServer::start_async().await;
         let metadata = create_metadata(&server);
-        let (jws, jwks) = create_jws(true, Algorithm::RS256);
+        let (jws, jwks) = create_jws(true, ACCEPTED_USERINFO_ALGORITHMS[0]);
 
         let _token_mock = mock_token_endpoint(&server).await;
 
@@ -724,7 +731,7 @@ mod tests {
     async fn request_userinfo_encrypted_without_decrypter_error() {
         let server = MockServer::start_async().await;
         let metadata = create_metadata(&server);
-        let (jws, _jwks) = create_jws(true, Algorithm::RS256);
+        let (jws, _jwks) = create_jws(true, ACCEPTED_USERINFO_ALGORITHMS[0]);
         let jwe = create_test_jwe(&jws);
 
         let _token_mock = mock_token_endpoint(&server).await;
