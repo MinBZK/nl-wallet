@@ -683,7 +683,7 @@ pub fn mock_issuance_session(
                             Vec::<String>::new(),
                         )
                     }
-                    (StoredAttestation::MsoMdoc(_), IssuedCredentialMetadata::TypeMetadata(_)) => {
+                    (StoredAttestation::MsoMdoc(_), IssuedCredentialMetadata::TypeMetadata { .. }) => {
                         panic!("an mdoc is described by Credential Metadata, not Type Metadata")
                     }
                     (StoredAttestation::SdJwt(sd_jwt), metadata) => {
@@ -694,13 +694,11 @@ pub fn mock_issuance_session(
                         let attestation_type = claims.vct.clone();
 
                         let (attestation_presentation, extended_vcts) = match metadata {
-                            IssuedCredentialMetadata::TypeMetadata(metadata_documents) => {
-                                let normalized_type_metadata = metadata_documents.clone().to_normalized().unwrap();
-
+                            IssuedCredentialMetadata::TypeMetadata { normalized, .. } => {
                                 let attestation_presentation = AttestationPresentation::create_from_sd_jwt_claims(
                                     AttestationIdentity::Ephemeral,
-                                    normalized_type_metadata.vct().to_string(),
-                                    normalized_type_metadata.clone(),
+                                    normalized.vct().to_string(),
+                                    normalized.clone(),
                                     Box::new(issuer_context.organization().clone()),
                                     AttestationValidity {
                                         revocation_status: None,
@@ -714,8 +712,7 @@ pub fn mock_issuance_session(
                                 )
                                 .unwrap();
 
-                                let extended_vcts =
-                                    normalized_type_metadata.extended_vcts().map(str::to_string).collect();
+                                let extended_vcts = normalized.extended_vcts().map(str::to_string).collect();
 
                                 (attestation_presentation, extended_vcts)
                             }

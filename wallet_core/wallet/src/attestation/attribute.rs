@@ -78,9 +78,6 @@ impl AttestationPresentation {
         issuer_organization: Box<Organization>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
-        let metadata =
-            PresentationComponents::try_from(&credential.metadata).map_err(AttestationError::TypeMetadata)?;
-
         let validity = AttestationValidity {
             revocation_status: None,
             validity_window: ValidityWindow {
@@ -94,7 +91,7 @@ impl AttestationPresentation {
             IssuedCredentialCopies::Mdoc(copies) => Self::create_from_mdoc(
                 AttestationIdentity::Ephemeral,
                 credential.attestation_type.clone(),
-                metadata,
+                credential.metadata.clone(),
                 issuer_organization,
                 validity,
                 copies.first().mdoc.issuer_signed().clone().into_entries_by_namespace(),
@@ -110,7 +107,7 @@ impl AttestationPresentation {
                 Self::create_from_sd_jwt_claims(
                     AttestationIdentity::Ephemeral,
                     credential.attestation_type.clone(),
-                    metadata,
+                    credential.metadata.clone(),
                     issuer_organization,
                     validity,
                     claims,

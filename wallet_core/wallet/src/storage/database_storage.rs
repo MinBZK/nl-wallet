@@ -784,8 +784,8 @@ where
                         not_before: Set(not_before.map(Into::into)),
                         extended_types: Set(ExtendedTypesModel::new(extended_attestation_types)),
                         metadata: Set(match metadata {
-                            IssuedCredentialMetadata::TypeMetadata(documents) => {
-                                AttestationMetadataModel::TypeMetadata(documents)
+                            IssuedCredentialMetadata::TypeMetadata { verified, .. } => {
+                                AttestationMetadataModel::TypeMetadata(verified)
                             }
                             IssuedCredentialMetadata::CredentialMetadata(credential_metadata) => {
                                 AttestationMetadataModel::CredentialMetadata(credential_metadata)
@@ -2344,7 +2344,7 @@ pub(crate) mod tests {
                             None,
                             None,
                             normalized_metadata.extended_vcts(),
-                            IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                            IssuedCredentialMetadata::nl_pid_example(),
                             IssuerRegistration::new_mock(),
                         ),
                         AttestationPresentation::new_mock(),
@@ -2490,7 +2490,7 @@ pub(crate) mod tests {
                         None,
                         None,
                         extended_attestation_types.iter().copied(),
-                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -2679,7 +2679,7 @@ pub(crate) mod tests {
                         sd_jwt.claims().exp,
                         sd_jwt.claims().nbf,
                         normalized_metadata.extended_vcts(),
-                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -2884,7 +2884,7 @@ pub(crate) mod tests {
                         sd_jwt.claims().exp,
                         sd_jwt.claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
-                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuedCredentialMetadata::nl_pid_example(),
                         initial_issuer_registration.clone(),
                     ),
                     attestation_presentation.clone(),
@@ -2951,7 +2951,7 @@ pub(crate) mod tests {
                         None,
                         None,
                         Vec::<String>::new(),
-                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuedCredentialMetadata::nl_pid_example(),
                         renewed_issuer_registration.clone(),
                     ),
                     attestation_presentation,
@@ -3213,7 +3213,7 @@ pub(crate) mod tests {
 
         // Insert sd_jwts
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
-        let metadata_documents = VerifiedTypeMetadataDocuments::nl_pid_example();
+        let metadata = IssuedCredentialMetadata::nl_pid_example();
 
         storage
             .insert_credentials(
@@ -3226,7 +3226,7 @@ pub(crate) mod tests {
                             sd_jwt.claims().exp,
                             sd_jwt.claims().nbf,
                             normalized_metadata.extended_vcts(),
-                            IssuedCredentialMetadata::TypeMetadata(metadata_documents.clone()),
+                            metadata.clone(),
                             IssuerRegistration::new_mock(),
                         ),
                         AttestationPresentation::new_mock(),
@@ -3238,7 +3238,7 @@ pub(crate) mod tests {
                             sd_jwt.claims().exp,
                             sd_jwt.claims().nbf,
                             normalized_metadata.extended_vcts(),
-                            IssuedCredentialMetadata::TypeMetadata(metadata_documents),
+                            metadata,
                             IssuerRegistration::new_mock(),
                         ),
                         AttestationPresentation::new_mock(),
@@ -3442,7 +3442,7 @@ pub(crate) mod tests {
                         sd_jwt.claims().exp,
                         sd_jwt.claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
-                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
                     ),
                     AttestationPresentation::new_mock(),
@@ -3603,7 +3603,7 @@ pub(crate) mod tests {
                         None,
                         None,
                         Vec::<String>::new(),
-                        IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                        IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
                     ),
                     renewed_presentation.clone(),

@@ -1109,7 +1109,10 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         IssuedCredentialCopies::SdJwt(sd_jwts),
                         credential_payloads.into_first(),
                         normalized.extended_vcts().map(String::from).collect(),
-                        IssuedCredentialMetadata::TypeMetadata(verified_metadata),
+                        IssuedCredentialMetadata::TypeMetadata {
+                            verified: verified_metadata,
+                            normalized: normalized.clone(),
+                        },
                     )
                 }
                 (Format::SdJwt, metadata @ OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {

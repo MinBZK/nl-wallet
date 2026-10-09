@@ -16,7 +16,6 @@ use sd_jwt_vc_metadata::LogoMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
 use sd_jwt_vc_metadata::SvgId;
-use sd_jwt_vc_metadata::TypeMetadataChainError;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -80,20 +79,14 @@ impl AttestationDisplay for NormalizedTypeMetadata {
     }
 }
 
-impl TryFrom<&IssuedCredentialMetadata> for PresentationComponents {
-    type Error = TypeMetadataChainError;
-
-    fn try_from(metadata: &IssuedCredentialMetadata) -> Result<Self, Self::Error> {
-        let components = match metadata {
-            IssuedCredentialMetadata::TypeMetadata(documents) => {
-                documents.to_normalized()?.into_presentation_components()
-            }
+impl AttestationDisplay for IssuedCredentialMetadata {
+    fn into_presentation_components(self) -> PresentationComponents {
+        match self {
+            IssuedCredentialMetadata::TypeMetadata { normalized, .. } => normalized.into_presentation_components(),
             IssuedCredentialMetadata::CredentialMetadata(credential_metadata) => {
-                credential_metadata.clone().into_presentation_components()
+                credential_metadata.into_presentation_components()
             }
-        };
-
-        Ok(components)
+        }
     }
 }
 

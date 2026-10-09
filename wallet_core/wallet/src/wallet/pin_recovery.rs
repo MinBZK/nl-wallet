@@ -517,7 +517,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
@@ -1037,7 +1036,7 @@ mod tests {
                         key_identifier: "key_id".to_string(),
                         data: StoredAttestation::SdJwt(sd_jwt.clone()),
                     },
-                    IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                    IssuedCredentialMetadata::nl_pid_example(),
                 ),
             ],
             expect_accept_issuance.then_some(NonZeroU8::MIN),

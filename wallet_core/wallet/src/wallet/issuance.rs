@@ -1922,7 +1922,10 @@ mod tests {
                 key_identifier: "key_id".to_string(),
                 data: StoredAttestation::SdJwt(sd_jwt),
             },
-            IssuedCredentialMetadata::TypeMetadata(metadata_docs),
+            IssuedCredentialMetadata::TypeMetadata {
+                verified: metadata_docs,
+                normalized: normalized_metadata.clone(),
+            },
             StoredAttestationMetadata::TypeMetadata(normalized_metadata),
         )
     }
