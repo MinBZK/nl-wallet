@@ -71,7 +71,6 @@ id = "sd_jwt_pid"
 format = "dc+sd-jwt"
 meta = { vct_values = ["urn:eudi:pid:1"] }
 claims = [
-    { path = ["bsn"] },
     { path = ["given_name"]},
     { path = ["family_name"] },
     { path = ["birthdate"] },
