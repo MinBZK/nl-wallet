@@ -788,8 +788,8 @@
     "invariantErrorScreenWhatCanYouDoTitle": "Wat kun je doen?",
     "issuanceAuthenticateExternallyDescription": "Volg de stappen op de website van de uitgever.\nGa daarna terug naar NL Wallet.",
     "issuanceAuthenticateExternallyTitle": "Ga verder in de browser",
-    "issuanceConfirmIssuerPageAcceptCta": "Ja, ga verder",
-    "issuanceConfirmIssuerPageDeclineCta": "Stop",
+    "issuanceConfirmIssuerPageAcceptCta": "Ja, verder",
+    "issuanceConfirmIssuerPageDeclineCta": "Stoppen",
     "issuanceConfirmIssuerPageDescription": "Je kaart(en) worden aan je NL Wallet toegevoegd nadat je bevestigt met je pincode.",
     "issuanceConfirmIssuerPageTitle": "Wil je je kaart(en) ophalen bij {organization}?",
     "@issuanceConfirmIssuerPageTitle": {
