@@ -5,6 +5,10 @@ declare -A access_certificates=(
     [(wptl,legal_name)]='Ministerie van Economische Zaken'
     [(wptl,oid)]='NTRNL-52813150'
 
+    [(issuer,name)]='NL Wallet Issuer'
+    [(issuer,legal_name)]='Ministerie van Economische Zaken'
+    [(issuer,oid)]='NTRNL-52813150'
+
     [(pid,name)]='RvIG'
     [(pid,legal_name)]='Rijksdienst voor Identiteitsgegevens'
     [(pid,oid)]='NTRNL-27373207'
