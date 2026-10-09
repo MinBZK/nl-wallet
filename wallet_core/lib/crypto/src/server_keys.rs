@@ -411,9 +411,7 @@ pub mod generate {
             result.crl_distribution_points = source
                 .crl_distribution_points
                 .into_iter()
-                .map(|uri| CrlDistributionPoint {
-                    uris: vec![uri.to_string()],
-                })
+                .map(|uri| CrlDistributionPoint { uris: vec![uri.into()] })
                 .collect();
             result.subject_alt_names = source.subject_alt_names.iter().map(Into::into).collect();
 

@@ -83,7 +83,7 @@ impl HttpGbavClient {
 
 impl GbavClient for HttpGbavClient {
     async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error> {
-        info!("Sending GBA-V request to: {}", &self.base_url.clone().into_inner());
+        info!("Sending GBA-V request to: {}", self.base_url);
 
         let mut request_builder = self.http_client.post(self.base_url.clone().into_inner());
 

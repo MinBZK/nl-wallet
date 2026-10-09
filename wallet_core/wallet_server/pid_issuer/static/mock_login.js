@@ -16,14 +16,14 @@
     })
   })
   function checkBsn(bsn) {
-    if (!/^[0-9]{9}$/.test(bsn)) {
+    if (!/^\d{9}$/.test(bsn)) {
       return null
     }
     let sum = 0
     for (let i = 0; i < 8; i++) {
-      sum += (9 - i) * parseInt(bsn[i])
+      sum += (9 - i) * Number.parseInt(bsn[i])
     }
-    sum -= parseInt(bsn[8])
+    sum -= Number.parseInt(bsn[8])
     return sum % 11 === 0
   }
   document.getElementById("custom-bsn").addEventListener("change", function () {

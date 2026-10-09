@@ -162,7 +162,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn pair_transfer(&mut self, uri: &Url) -> Result<(), TransferError> {
+    pub async fn pair_transfer(&mut self, uri: Url) -> Result<(), TransferError> {
         info!("Pairing transfer");
 
         self.validate_transfer_allowed()?;
@@ -633,7 +633,7 @@ mod tests {
         };
 
         wallet
-            .pair_transfer(&transfer_uri.try_into().unwrap())
+            .pair_transfer(transfer_uri.try_into().unwrap())
             .await
             .expect("Wallet pair transfer should have succeeded");
     }
@@ -808,7 +808,7 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         source_wallet
-            .pair_transfer(&transfer_url)
+            .pair_transfer(transfer_url)
             .await
             .expect("Wallet pair transfer should have succeeded");
 
@@ -973,13 +973,13 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         source_wallet
-            .pair_transfer(&transfer_url)
+            .pair_transfer(transfer_url.clone())
             .await
             .expect("Wallet pair transfer should have succeeded");
 
         // Send the wallet payload from the source
 
-        let transfer_query: TransferQuery = (&transfer_url).try_into().unwrap();
+        let transfer_query: TransferQuery = transfer_url.try_into().unwrap();
         let public_key = transfer_query.public_key;
         source_wallet
             .mut_storage()
