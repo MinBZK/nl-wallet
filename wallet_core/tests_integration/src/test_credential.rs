@@ -42,6 +42,7 @@ fn new_nl_pid<'a>(
             mock_pid_example(),
             &MockTimeGenerator::default(),
         ),
+        PID_MDOC_DOCTYPE.to_owned(),
         mock_pid_mdoc_example(),
         Some(type_metadata_documents),
         query_id.parse().unwrap(),

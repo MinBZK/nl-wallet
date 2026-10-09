@@ -1,6 +1,7 @@
 pub const ROOT_PID_ATTESTATION_TYPE: &str = "urn:example:pid:1";
 
 pub const PID_ATTESTATION_TYPE: &str = "urn:example:pid:nl:1";
+pub const PID_MDOC_DOCTYPE: &str = "com.example.nl.pid.1";
 pub const ADDRESS_ATTESTATION_TYPE: &str = "urn:example:pid-address:nl:1";
 
 pub const PID_FAMILY_NAME: &str = "family_name";
