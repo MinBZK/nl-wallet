@@ -550,20 +550,21 @@ where
                 Some(self.process_previews(previews, organization, pid_purpose).await?)
             }
         };
-        let organization = Box::new(issuance_session.issuer_registration().organization().clone());
+
+        let result = match preview_attestations.clone() {
+            Some(attestations) => IssuanceContinueResult::Previews(attestations),
+            None => IssuanceContinueResult::NoPreviews {
+                organization: Box::new(issuance_session.issuer_registration().organization().clone()),
+            },
+        };
 
         self.session.replace(Session::Issuance(WalletIssuanceSession::new(
             pid_purpose,
             SessionState::Issuance {
-                preview_attestations: preview_attestations.clone(),
+                preview_attestations,
                 protocol_state: issuance_session,
             },
         )));
-
-        let result = match preview_attestations {
-            Some(attestations) => IssuanceContinueResult::Previews(attestations),
-            None => IssuanceContinueResult::NoPreviews { organization },
-        };
 
         Ok(result)
     }
