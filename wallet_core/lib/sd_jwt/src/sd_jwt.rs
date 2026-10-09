@@ -19,6 +19,7 @@ use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
+use derive_more::Display;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -422,16 +423,11 @@ impl<H> VerifiedSdJwt<SdJwtVcClaims, H> {
 
 /// A [`VerifiedSdJwt`] together with its decoded claims. The claims are decoded once, when this type is constructed, so
 /// that holding a [`DecodedSdJwt`] guarantees that its claims can be decoded.
-#[derive(Debug, Clone, Eq, PartialEq, SerializeDisplay)]
+#[derive(Debug, Clone, Display, Eq, PartialEq, SerializeDisplay)]
+#[display("{sd_jwt}")]
 pub struct DecodedSdJwt {
     sd_jwt: VerifiedSdJwt,
     decoded_claims: ObjectClaims,
-}
-
-impl Display for DecodedSdJwt {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self.sd_jwt, f)
-    }
 }
 
 impl TryFrom<VerifiedSdJwt> for DecodedSdJwt {
