@@ -232,7 +232,7 @@ impl StoredAttestationCopy {
                 Attributes::from_mdoc_attributes(mdoc.into_issuer_signed().into_entries_by_namespace())
                     .expect("a stored mdoc attestation should convert to Attributes without errors")
             }
-            StoredAttestation::SdJwt(sd_jwt) => Attributes::try_from(sd_jwt.into_parts().1)
+            StoredAttestation::SdJwt(sd_jwt) => Attributes::try_from(sd_jwt.into_decoded_claims())
                 .expect("a stored SD-JWT attestation should convert to Attributes without errors"),
         }
     }
@@ -268,7 +268,7 @@ impl StoredAttestationCopy {
                 config,
             ),
             StoredAttestation::SdJwt(sd_jwt) => attestation_presentation_from_sd_jwt(
-                sd_jwt.into_parts().1,
+                sd_jwt.into_decoded_claims(),
                 self.attestation_id,
                 attestation_type,
                 self.metadata,

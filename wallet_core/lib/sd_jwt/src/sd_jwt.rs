@@ -459,6 +459,10 @@ impl DecodedSdJwt {
         self.sd_jwt
     }
 
+    pub fn into_decoded_claims(self) -> ObjectClaims {
+        self.decoded_claims
+    }
+
     pub fn into_parts(self) -> (VerifiedSdJwt, ObjectClaims) {
         (self.sd_jwt, self.decoded_claims)
     }
