@@ -262,7 +262,7 @@ mod tests {
             }
             Format::SdJwt => {
                 let (sd_jwt, _) = create_example_pid_sd_jwt();
-                let unsigned_presentation = sd_jwt.into_presentation_builder().finish();
+                let unsigned_presentation = sd_jwt.into_sd_jwt().into_presentation_builder().finish();
 
                 DisclosableAttestation::new(
                     Uuid::new_v4(),

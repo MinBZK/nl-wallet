@@ -1,6 +1,6 @@
 use attestation_types::credential_format::Format;
 use mdoc::holder::Mdoc;
-use sd_jwt::sd_jwt::VerifiedSdJwt;
+use sd_jwt::sd_jwt::DecodedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -72,7 +72,7 @@ pub struct MdocCopy {
 #[derive(Debug, Clone)]
 pub struct SdJwtCopy {
     pub key_identifier: String,
-    pub sd_jwt: VerifiedSdJwt,
+    pub sd_jwt: DecodedSdJwt,
 }
 
 #[derive(Debug, Clone)]

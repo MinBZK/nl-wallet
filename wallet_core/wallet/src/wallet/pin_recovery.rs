@@ -426,6 +426,7 @@ where
             .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
 
         let recovery_code_disclosure = pid
+            .into_sd_jwt()
             .into_presentation_builder()
             .disclose(&recovery_code_path)
             .expect("the presence of the recovery code within the PID is guaranteed by continue_pin_recovery()")

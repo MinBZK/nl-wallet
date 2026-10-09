@@ -98,11 +98,7 @@ impl AttestationPresentation {
                 config,
             ),
             IssuedCredentialCopies::SdJwt(copies) => {
-                let claims = copies
-                    .first()
-                    .sd_jwt
-                    .decoded_claims()
-                    .map_err(AttestationError::SdJwtClaims)?;
+                let claims = copies.first().sd_jwt.decoded_claims().clone();
 
                 Self::create_from_sd_jwt_claims(
                     AttestationIdentity::Ephemeral,

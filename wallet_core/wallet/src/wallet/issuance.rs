@@ -833,6 +833,7 @@ where
             .collect();
 
         let recovery_code_disclosure = pid
+            .sd_jwt()
             .clone()
             .into_presentation_builder()
             .disclose(&claim_path)
@@ -944,6 +945,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use rstest::rstest;
+    use sd_jwt::sd_jwt::DecodedSdJwt;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
@@ -1631,7 +1633,7 @@ mod tests {
             ValidityWindow::new_valid_mock(),
             WithKeyIdentifier {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
+                data: StoredAttestation::SdJwt(DecodedSdJwt::try_from(sd_jwt.into_verified()).unwrap()),
             },
             StoredAttestationMetadata::TypeMetadata(type_metadata),
             None,
@@ -2539,7 +2541,7 @@ mod tests {
             ValidityWindow::new_valid_mock(),
             WithKeyIdentifier {
                 key_identifier: "sd_jwt_key_identifier".to_string(),
-                data: StoredAttestation::SdJwt(sd_jwt.into_verified()),
+                data: StoredAttestation::SdJwt(DecodedSdJwt::try_from(sd_jwt.into_verified()).unwrap()),
             },
             StoredAttestationMetadata::TypeMetadata(type_metadata),
             None,

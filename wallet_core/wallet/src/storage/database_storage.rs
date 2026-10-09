@@ -37,7 +37,7 @@ use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
 use openid4vc::wallet_issuance::credential::MdocCopy;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use platform_support::hw_keystore::PlatformEncryptionKey;
-use sd_jwt::sd_jwt::VerifiedSdJwt;
+use sd_jwt::sd_jwt::DecodedSdJwt;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ColumnTrait;
 use sea_orm::Condition;
@@ -327,7 +327,7 @@ impl<K> DatabaseStorage<K> {
                             }
                         }
                         AttestationFormat::SdJwt => {
-                            let sd_jwt = VerifiedSdJwt::dangerous_parse_unverified(
+                            let sd_jwt = DecodedSdJwt::dangerous_parse_unverified(
                                 // Since we put utf-8 bytes into the database, we are certain we also get them out.
                                 String::from_utf8(attestation_bytes.decompress()?).unwrap().as_str(),
                             )?;
@@ -1362,13 +1362,14 @@ fn create_attestation_copy_models(
             .into_nonempty_iter()
             .map(|SdJwtCopy { key_identifier, sd_jwt }| {
                 let issuer_certificate_dn = sd_jwt
+                    .sd_jwt()
                     .issuer_leaf_certificate()
                     .to_canonical_distinguished_name()
                     .expect("the issuer certificate should contain a valid DN at this point");
 
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
 
-                let (status_uri, status_index) = match sd_jwt.into_claims().status {
+                let (status_uri, status_index) = match sd_jwt.into_sd_jwt().into_claims().status {
                     Some(StatusClaim::StatusList(claim)) => (Some(claim.uri.to_string()), Some(claim.idx)),
                     None => (None, None),
                 };
@@ -2307,11 +2308,13 @@ pub(crate) mod tests {
         let mdoc = Mdoc::new_mock().await;
 
         let holder_key = SigningKey::generate();
-        let sd_jwt =
-            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
+        let sd_jwt = DecodedSdJwt::try_from(
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified(),
+        )
+        .unwrap();
 
         let attestation_type = mdoc.doc_type().to_string();
-        assert_eq!(sd_jwt.claims().vct, attestation_type);
+        assert_eq!(sd_jwt.sd_jwt().claims().vct, attestation_type);
 
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
@@ -2474,8 +2477,10 @@ pub(crate) mod tests {
         extended_attestation_types: &[&str],
     ) {
         let holder_key = SigningKey::generate();
-        let sd_jwt =
-            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
+        let sd_jwt = DecodedSdJwt::try_from(
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified(),
+        )
+        .unwrap();
 
         storage
             .insert_credentials(
@@ -2637,8 +2642,10 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let holder_key = SigningKey::generate();
-        let sd_jwt =
-            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
+        let sd_jwt = DecodedSdJwt::try_from(
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified(),
+        )
+        .unwrap();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
             SdJwtCopy {
@@ -2655,7 +2662,7 @@ pub(crate) mod tests {
             },
         ]);
 
-        let attestation_type = sd_jwt.claims().vct.clone();
+        let attestation_type = sd_jwt.sd_jwt().claims().vct.clone();
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
         let attestations = storage
@@ -2676,8 +2683,8 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies,
                         attestation_type.clone(),
-                        sd_jwt.claims().exp,
-                        sd_jwt.claims().nbf,
+                        sd_jwt.sd_jwt().claims().exp,
+                        sd_jwt.sd_jwt().claims().nbf,
                         normalized_metadata.extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
@@ -2842,8 +2849,10 @@ pub(crate) mod tests {
 
         // Create issued_copies that will be inserted into the database
         let holder_key = SigningKey::generate();
-        let sd_jwt =
-            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
+        let sd_jwt = DecodedSdJwt::try_from(
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified(),
+        )
+        .unwrap();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
             SdJwtCopy {
@@ -2860,7 +2869,7 @@ pub(crate) mod tests {
             },
         ]);
 
-        let attestation_type = sd_jwt.claims().vct.clone();
+        let attestation_type = sd_jwt.sd_jwt().claims().vct.clone();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -2881,8 +2890,8 @@ pub(crate) mod tests {
                     CredentialWithMetadata::new(
                         issued_copies.clone(),
                         attestation_type,
-                        sd_jwt.claims().exp,
-                        sd_jwt.claims().nbf,
+                        sd_jwt.sd_jwt().claims().exp,
+                        sd_jwt.sd_jwt().claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         initial_issuer_registration.clone(),
@@ -2916,8 +2925,10 @@ pub(crate) mod tests {
 
         // Create new issued_copies that will be updated
         let holder_key = SigningKey::generate();
-        let sd_jwt =
-            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
+        let sd_jwt = DecodedSdJwt::try_from(
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified(),
+        )
+        .unwrap();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
             SdJwtCopy {
@@ -3131,7 +3142,7 @@ pub(crate) mod tests {
                 revocation_status: None,
                 validity_window: ValidityWindow::new_valid_mock(),
             },
-            sd_jwt.decoded_claims().unwrap(),
+            sd_jwt.decoded_claims().clone(),
             &EmptyPresentationConfig,
         )
         .unwrap();
@@ -3201,15 +3212,17 @@ pub(crate) mod tests {
         let organization = Organization::new_mock();
 
         let holder_key = SigningKey::generate();
-        let sd_jwt =
-            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified();
+        let sd_jwt = DecodedSdJwt::try_from(
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*holder_key.verifying_key())).into_verified(),
+        )
+        .unwrap();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
             key_identifier: "sd_jwt_key_id".to_string(),
             sd_jwt: sd_jwt.clone()
         }]);
 
-        let attestation_type = sd_jwt.claims().vct.clone();
+        let attestation_type = sd_jwt.sd_jwt().claims().vct.clone();
 
         // Insert sd_jwts
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
@@ -3223,8 +3236,8 @@ pub(crate) mod tests {
                         CredentialWithMetadata::new(
                             issued_copies.clone(),
                             attestation_type.clone(),
-                            sd_jwt.claims().exp,
-                            sd_jwt.claims().nbf,
+                            sd_jwt.sd_jwt().claims().exp,
+                            sd_jwt.sd_jwt().claims().nbf,
                             normalized_metadata.extended_vcts(),
                             metadata.clone(),
                             IssuerRegistration::new_mock(),
@@ -3235,8 +3248,8 @@ pub(crate) mod tests {
                         CredentialWithMetadata::new(
                             issued_copies,
                             attestation_type,
-                            sd_jwt.claims().exp,
-                            sd_jwt.claims().nbf,
+                            sd_jwt.sd_jwt().claims().exp,
+                            sd_jwt.sd_jwt().claims().nbf,
                             normalized_metadata.extended_vcts(),
                             metadata,
                             IssuerRegistration::new_mock(),
@@ -3424,9 +3437,12 @@ pub(crate) mod tests {
         key_identifier: &str,
         timestamp: DateTime<Utc>,
         copies: usize,
-    ) -> (Uuid, VerifiedSdJwt) {
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*SigningKey::generate().verifying_key()))
-            .into_verified();
+    ) -> (Uuid, DecodedSdJwt) {
+        let sd_jwt = DecodedSdJwt::try_from(
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*SigningKey::generate().verifying_key()))
+                .into_verified(),
+        )
+        .unwrap();
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
             SdJwtCopy { key_identifier: key_identifier.to_string(), sd_jwt: sd_jwt.clone() }; copies
@@ -3438,9 +3454,9 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        sd_jwt.claims().vct.clone(),
-                        sd_jwt.claims().exp,
-                        sd_jwt.claims().nbf,
+                        sd_jwt.sd_jwt().claims().vct.clone(),
+                        sd_jwt.sd_jwt().claims().exp,
+                        sd_jwt.sd_jwt().claims().nbf,
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
@@ -3589,8 +3605,11 @@ pub(crate) mod tests {
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
             key_identifier: "renewed_key_id".to_string(),
-            sd_jwt: SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*SigningKey::generate().verifying_key()))
-                .into_verified()
+            sd_jwt: DecodedSdJwt::try_from(
+                SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKey::from(*SigningKey::generate().verifying_key()))
+                    .into_verified()
+            )
+            .unwrap()
         }]);
 
         storage

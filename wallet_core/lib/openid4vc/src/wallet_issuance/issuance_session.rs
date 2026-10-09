@@ -43,6 +43,7 @@ use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::AUTHORIZATION;
 use sd_jwt::error::DecoderError;
+use sd_jwt::sd_jwt::DecodedSdJwt;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -1365,6 +1366,7 @@ impl Credentials {
 
                 let sd_jwt = unverified_sd_jwt
                     .into_verified_against_trust_anchors(trust_anchors, &TimeGenerator)
+                    .and_then(DecodedSdJwt::try_from)
                     .map_err(WalletIssuanceError::SdJwtVerification)?;
 
                 let issued_credential_payload = CredentialPayload::from_sd_jwt(sd_jwt.clone())
@@ -1377,7 +1379,7 @@ impl Credentials {
                         .claim_paths(AttributesTraversalBehaviour::OnlyLeaves);
 
                     // Verify whether each claims selective disclosability matches the metadata.
-                    Self::verify_selective_disclosability(&sd_jwt, issued_claims, normalized)?;
+                    Self::verify_selective_disclosability(sd_jwt.sd_jwt(), issued_claims, normalized)?;
                 }
 
                 Self::validate_credential(preview, &public_key, &issued_credential_payload, metadata)?;
@@ -1470,6 +1472,7 @@ fn verify_metadata_integrity<'a>(
         .map(|sd_jwt_copy| {
             sd_jwt_copy
                 .sd_jwt
+                .sd_jwt()
                 .claims()
                 .vct_integrity
                 .as_ref()

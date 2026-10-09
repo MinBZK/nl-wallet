@@ -30,8 +30,8 @@ use mdoc::utils::serialization::TaggedBytes;
 use p256::ecdsa::VerifyingKey;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::builder::SignedSdJwt;
+use sd_jwt::sd_jwt::DecodedSdJwt;
 use sd_jwt::sd_jwt::SdJwtVcClaims;
-use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
@@ -49,10 +49,6 @@ use crate::attributes::ClaimValueError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum PreviewableCredentialPayloadFromSdJwtError {
-    #[error("error converting from SD-JWT: {0}")]
-    #[category(pd)]
-    SdJwtDecoding(#[source] sd_jwt::error::DecoderError),
-
     #[error("error converting claims to attributes: {0}")]
     #[category(pd)]
     InvalidAttributes(#[source] AttributesError),
@@ -103,7 +99,7 @@ impl PreviewableCredentialPayload {
         false
     }
 
-    pub fn from_sd_jwt(sd_jwt: VerifiedSdJwt) -> Result<Self, PreviewableCredentialPayloadFromSdJwtError> {
+    pub fn from_sd_jwt(sd_jwt: DecodedSdJwt) -> Result<Self, PreviewableCredentialPayloadFromSdJwtError> {
         Ok(SplitSdJwtCredential::from_sd_jwt(sd_jwt)?.previewable)
     }
 
@@ -249,7 +245,7 @@ impl CredentialPayload {
         })
     }
 
-    pub fn from_sd_jwt(sd_jwt: VerifiedSdJwt) -> Result<Self, CredentialPayloadFromSdJwtError> {
+    pub fn from_sd_jwt(sd_jwt: DecodedSdJwt) -> Result<Self, CredentialPayloadFromSdJwtError> {
         let split = SplitSdJwtCredential::from_sd_jwt(sd_jwt).map_err(CredentialPayloadFromSdJwtError::Previewable)?;
 
         let StatusClaim::StatusList(status) = split
@@ -433,10 +429,9 @@ struct SplitSdJwtCredential {
 }
 
 impl SplitSdJwtCredential {
-    fn from_sd_jwt(sd_jwt: VerifiedSdJwt) -> Result<Self, PreviewableCredentialPayloadFromSdJwtError> {
-        let attributes = sd_jwt
-            .decoded_claims()
-            .map_err(PreviewableCredentialPayloadFromSdJwtError::SdJwtDecoding)?
+    fn from_sd_jwt(sd_jwt: DecodedSdJwt) -> Result<Self, PreviewableCredentialPayloadFromSdJwtError> {
+        let (sd_jwt, decoded_claims) = sd_jwt.into_parts();
+        let attributes = decoded_claims
             .try_into()
             .map_err(PreviewableCredentialPayloadFromSdJwtError::InvalidAttributes)?;
         let claims = sd_jwt.into_claims();
@@ -1251,11 +1246,15 @@ mod test {
             .unwrap()
             .unwrap()
             .into_verified();
+        let sd_jwt = DecodedSdJwt::try_from(sd_jwt).unwrap();
 
         let payload = CredentialPayload::from_sd_jwt(sd_jwt.clone())
             .expect("creating and validating CredentialPayload from SD-JWT should succeed");
 
-        assert_eq!(payload.previewable_payload.attestation_type, sd_jwt.claims().vct);
+        assert_eq!(
+            payload.previewable_payload.attestation_type,
+            sd_jwt.sd_jwt().claims().vct
+        );
     }
 
     #[test]
@@ -1276,6 +1275,7 @@ mod test {
             .unwrap()
             .unwrap()
             .into_verified();
+        let sd_jwt = DecodedSdJwt::try_from(sd_jwt).unwrap();
 
         let error = CredentialPayload::from_sd_jwt(sd_jwt)
             .expect_err("creating CredentialPayload from an SD-JWT without a status should fail");
