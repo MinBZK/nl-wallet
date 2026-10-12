@@ -12,6 +12,12 @@
 
 ## New features
 
+- Issuers have a new optional setting `credential_preview_endpoint` (default
+  `true`). When set to `false`, the issuer does not serve the non-standard
+  Credential Preview Endpoint, behaving like a standard OpenID4VCI issuer. This
+  is intended for testing the wallet against such issuers; note that the wallet
+  still requires previews for PID and disclosure based issuance.
+
 ## Interoperability improvements
 
 - The `attestation` proof type has been implemented according to OpenID4VCI,

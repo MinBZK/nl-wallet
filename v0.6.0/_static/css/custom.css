@@ -1,0 +1,90 @@
+/* Custom css below */
+
+*, html {
+    scroll-behavior: smooth;
+}
+
+#container{
+    overflow-y: scroll;
+    scroll-behavior: smooth;
+}
+
+.wy-breadcrumbs>li.wy-breadcrumbs-aside {
+    display: none;
+}
+
+div[role="contentinfo"] {
+    display: none;
+}
+
+.wy-nav-content {
+    max-width: 1400px;
+}
+
+.table-notes {
+    margin-bottom: 1rem;
+    font-size: 0.9em;
+    color: var(--pst-color-text-muted, #666);
+}
+.table-notes b,
+.table-notes strong { font-weight: 600; }
+.table-notes sup { font-size: 0.8em; vertical-align: super; }
+
+.rst-content table.docutils ul {
+    margin-bottom: 0;
+}
+
+.rst-content table.docutils td:first-child, .rst-content table.docutils th:first-child, .rst-content table.field-list td:first-child, .rst-content table.field-list th:first-child, .wy-table td:first-child, .wy-table th:first-child {
+    vertical-align: top;
+}
+
+img[alt=c4_legend] { width: 45%; text-align: right; border: 1px gray solid; margin-left: auto; display: block; }
+
+.ltc-implementations,
+.ltc-covers,
+.error-references {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.ltc-implementations { border-left: 3px solid #4a90d9; }
+.ltc-covers          { border-left: 3px solid #4ab04a; }
+.error-references    { border-left: 3px solid #4a90d9; }
+
+.ltc-implementations summary,
+.ltc-covers summary,
+.error-references summary {
+    cursor: pointer;
+}
+
+.ltc-implementations ul,
+.ltc-covers ul,
+.error-references ul {
+    margin-top: 0.4rem;
+}
+
+.rst-content .ltc-implementations code,
+.rst-content .ltc-covers code,
+.ltc-implementations code,
+.ltc-covers code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 0.95em;
+    color: #2c6fbb;
+    white-space: normal;
+}
+
+.ltc-implementations a,
+.ltc-covers a {
+    text-decoration: none;
+}
+
+.ltc-implementations a:hover,
+.ltc-covers a:hover,
+.error-references a:hover {
+    text-decoration: underline;
+}

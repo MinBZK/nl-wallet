@@ -1,0 +1,601 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>v0.6.0 (dev) &mdash; NL Wallet 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=dfe61b34" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8fa8b3e9"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="v0.5.0" href="v0.5.0.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/use-cases.html">Relevant Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/close-proximity-disclosure.html">Disclosure with ISO 18013-5 (close proximity)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-provider-instruction.html">Wallet Provider instructions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC10.1_DeleteWalletUsingRevocationCode.html">Use Case 10.1 Revoke the wallet using the revocation code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.10_DetermineWalletStatus.html">Partial Flow 2.10 Determine wallet status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/notifications.html">Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/crash-reporting.html">Crash Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/keycloak-setup.html">Keycloak Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/pid-issuer-architecture.html">PID Issuer architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="v0.4.0.html">v0.4.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="v0.4.1.html">v0.4.1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="v0.5.0.html">v0.5.0</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">v0.6.0 (dev)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">v0.6.0 (dev)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/release-notes/v0.6.0.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="v0-6-0-dev">
+<h1>v0.6.0 (dev)<a class="headerlink" href="#v0-6-0-dev" title="Link to this heading"></a></h1>
+<section id="upgrading">
+<h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Issuers now require <code class="docutils literal notranslate"><span class="pre">registration_certificate</span></code>: a base64url-encoded WRPRC
+bound to their metadata-signing WRPAC. Helm deployments require this key in
+each issuer’s WRPAC secret. Before updating wallets, deploy the issuers,
+publish their referenced status lists, and ensure the wallet trusts the WRPRC
+signing chains.</p></li>
+<li><p>OpenID4VP disclosure use cases now require a Wallet Relying Party Registration
+Certificate (WRPRC). Configure each verification server and disclosure-based
+issuance server use case with a <code class="docutils literal notranslate"><span class="pre">registration_certificate</span></code>, configure
+<code class="docutils literal notranslate"><span class="pre">wrprc_trust_anchors</span></code>, and publish the referenced WRPRC status list before
+deploying wallet clients. The <code class="docutils literal notranslate"><span class="pre">static_server</span></code> configuration now also requires
+<code class="docutils literal notranslate"><span class="pre">wrprc_publish_dir</span></code>, which identifies the directory containing those status
+lists. The services reject missing or invalid certificates at startup, and the
+wallet rejects requests that are revoked or exceed the certificate’s
+authorization.</p></li>
+<li><p>The wallet now requires a usable Certificate Revocation List (CRL) for every
+Wallet Relying Party Access Certificate (WRPAC) used in signed OpenID4VP
+authorization requests, signed issuer metadata, and close-proximity reader
+authentication. Before deploying wallet clients with this change, publish a
+signed CRL at a stable HTTP(S) URL, rotate existing WRPACs to include that URL
+as a CRL Distribution Point, and verify the CRL endpoint is available. The CRL
+publication and certificate rotation must be deployed before CRL validation is
+enabled in wallet clients. For production, the WRPAC PKI operator must provide
+an automated CRL service; the <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> utility is intended for development
+and is not suitable for operating a production CA. The production service
+must:</p>
+<ul class="simple">
+<li><p>Include a usable CRL Distribution Point in every WRPAC and supplied
+intermediate CA certificate. The root trust anchor is excluded.</p></li>
+<li><p>Publish a complete, DER-encoded X.509 version 2 CRL at each distribution
+point over unauthenticated HTTP(S), reachable by wallet clients. Delta and
+indirect CRLs are not supported.</p></li>
+<li><p>Sign CRLs using the applicable WRPAC issuing CA and ECDSA P-256 with
+SHA-256. Include <code class="docutils literal notranslate"><span class="pre">nextUpdate</span></code> and a monotonically increasing CRL number,
+and retain revoked certificate serial numbers until those certificates
+expire.</p></li>
+<li><p>For CRLs covering WRPACs, publish a complete CRL at least every 24 hours
+until a final CRL is published. This cadence follows from ETSI TS 119
+411-8, <code class="docutils literal notranslate"><span class="pre">REV-6.3.9-01</span></code>, applying ETSI EN 319 411-1, <code class="docutils literal notranslate"><span class="pre">CSS-6.3.9-05</span></code>. Set
+<code class="docutils literal notranslate"><span class="pre">nextUpdate</span></code> to the next scheduled publication, automate renewal before it
+expires, and support immediate publication after an emergency revocation.</p></li>
+<li><p>Keep CRLs at most 5 MiB. Monitor endpoint availability, CRL integrity and
+freshness, and alert before <code class="docutils literal notranslate"><span class="pre">nextUpdate</span></code>; the wallet rejects a WRPAC when
+its applicable CRL cannot be fetched or validated.</p></li>
+</ul>
+</li>
+<li><p>The callback URI for issuance changed from “/return-from-digid” to “/iss”.
+This will need to be updated in relevant applications, like rdo-max and DigiD.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">neither</span></code> value for <code class="docutils literal notranslate"><span class="pre">session_type_return_url</span></code> in the verification server
+configuration is no longer supported; use <code class="docutils literal notranslate"><span class="pre">same_device</span></code> (the default) with a
+<code class="docutils literal notranslate"><span class="pre">return_url_template</span></code> instead.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuance</span></code> section of the Wallet configuration has been paired down as
+follows:</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer_url</span></code> field is now just called <code class="docutils literal notranslate"><span class="pre">url</span></code>.</p></li>
+<li><p>The value at the <code class="docutils literal notranslate"><span class="pre">digid/client_id</span></code> path has been moved to <code class="docutils literal notranslate"><span class="pre">client_id</span></code>.</p></li>
+<li><p>The object contained in <code class="docutils literal notranslate"><span class="pre">digid_http_config</span></code> has been removed.</p></li>
+</ul>
+</li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> configuration has had its <code class="docutils literal notranslate"><span class="pre">digid.http_config</span></code> section renamed
+to <code class="docutils literal notranslate"><span class="pre">digid.client_settings</span></code>. Within this section, the <code class="docutils literal notranslate"><span class="pre">base_url</span></code> field has been
+renamed to <code class="docutils literal notranslate"><span class="pre">oidc_identifier</span></code>, which contains the same value.</p></li>
+<li><p>The supported <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p">client identifier prefix</a> (in the context of OpenID4VP, so a
+“client” here is a relying-party, a verifier) has changed from <code class="docutils literal notranslate"><span class="pre">x509_san_dns</span></code>
+to <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code>. That means our wallet app expects <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code> client ids. In
+our issuer server, the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> field, which is part of a <code class="docutils literal notranslate"><span class="pre">usecase</span></code> needs
+to be updated (in our code that means the <code class="docutils literal notranslate"><span class="pre">demo_issuer</span></code>). For example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;client_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;x509_hash:YYIN_SgqjFj2044q1fpvpa0rxqrXEG0U1xdm2Hw_ohM&quot;</span><span class="p">,</span>
+</pre></div>
+</div>
+<p>The value of <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code> is the base64url-encoded value of the SHA-256 hash
+of the DER-encoded X.509 certificate.</p>
+</li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> sections of both the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> and the
+<code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> have undergone significant changes. These sections have been
+renamed to <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> an are now configured per credential
+format. Each individual section directly represent a Credential Configuration
+as presented in the Issuer Metadata. The full changes are as follows:</p>
+<ul class="simple">
+<li><p>The section key now represents a Credential Configuration identifier,
+where before this was used as the Attestation Type.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">attestation_type</span></code> field was added.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">copies_per_format</span></code> field has been removed and replaced by a <code class="docutils literal notranslate"><span class="pre">format</span></code>
+field and a top-level <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> field, that applies to all issued
+credentials.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">status_list</span></code> section has had a <code class="docutils literal notranslate"><span class="pre">group_name</span></code> field added, in order to
+decouple status lists from the Attestation Type. Normally this value would
+be set to the same value as the Credential Configuration identifier.</p></li>
+</ul>
+</li>
+<li><p>Related to the previous change, the <code class="docutils literal notranslate"><span class="pre">IssuerDocument</span></code> the attestation server
+provides in the context of disclosure-based issuance has had the <code class="docutils literal notranslate"><span class="pre">format</span></code>
+field added.</p></li>
+<li><p>The Wallet Instance Attestation (WIA) configuration has changed, reflecting a
+rename from WUA (Wallet Unit Attestation) and the addition of wallet metadata
+fields:</p>
+<ul class="simple">
+<li><p>In the <strong>Wallet Provider</strong> configuration, all <code class="docutils literal notranslate"><span class="pre">wua_*</span></code> fields have been
+renamed to <code class="docutils literal notranslate"><span class="pre">wia_*</span></code>, and the <code class="docutils literal notranslate"><span class="pre">[wua_status_lists]</span></code> section has been renamed
+to <code class="docutils literal notranslate"><span class="pre">[wia_status_list]</span></code>. Additionally:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">wua_issuer_identifier</span></code> has been replaced by four wallet metadata
+fields: <code class="docutils literal notranslate"><span class="pre">wia_wallet_name</span></code>, <code class="docutils literal notranslate"><span class="pre">wia_wallet_version</span></code>, <code class="docutils literal notranslate"><span class="pre">wia_wallet_link</span></code>
+(optional), and <code class="docutils literal notranslate"><span class="pre">wia_wallet_solution_certification_information</span></code>.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">wia_certificate</span></code> field (base64-encoded DER X.509 certificate) must
+now be provided. The WIA JWT is signed using a certificate chain
+(<code class="docutils literal notranslate"><span class="pre">x5c</span></code> header) instead of a bare key.</p></li>
+</ul>
+</li>
+<li><p>In the <strong>PID Issuer</strong> configuration, <code class="docutils literal notranslate"><span class="pre">wua_issuer_pubkey</span></code> has been replaced
+by <code class="docutils literal notranslate"><span class="pre">wia_trust_anchors</span></code>, a list of base64-encoded DER X.509 CA certificates
+used to validate WIA tokens.</p></li>
+</ul>
+</li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuance</span></code> section of the wallet configuration has been replaced with
+<code class="docutils literal notranslate"><span class="pre">pid_credential_offer</span></code>, which contains a single string value. This string
+value contains a Credential Offer URI that should be used as the basis for PID
+issuance. Note that this URI can contain a Credential Offer either by value or
+by reference and must use the Authorization Code flow.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">type_metadata_uri</span></code> is added to the <code class="docutils literal notranslate"><span class="pre">CredentialConfiguration</span></code> to specify a
+SD-JWT VC type metadata. The preview endpoint is modified to not return the
+type metadata but the <code class="docutils literal notranslate"><span class="pre">CredentialConfigurationId</span></code> instead ensuring type
+metadata fetching is independent of the preview.</p></li>
+<li><p>A new service <code class="docutils literal notranslate"><span class="pre">pacf_issuance_server</span></code> has been added. It is a standalone
+issuance server that issues credentials using the Pre-Authorized Code Flow,
+and requires its own configuration file and database.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">demo_issuer</span></code> configuration has two changes:</p>
+<ul class="simple">
+<li><p>A new top-level <code class="docutils literal notranslate"><span class="pre">pacf_issuance_server_url</span></code> field must be added, pointing
+to the internal server port of the <code class="docutils literal notranslate"><span class="pre">pacf_issuance_server</span></code>.</p></li>
+<li><p>Each entry under <code class="docutils literal notranslate"><span class="pre">usecases</span></code> is now either a Pre-Authorized Code Flow
+usecase (containing only <code class="docutils literal notranslate"><span class="pre">data</span></code>) or a disclosure-based usecase (containing
+<code class="docutils literal notranslate"><span class="pre">data</span></code>, <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, and <code class="docutils literal notranslate"><span class="pre">disclosed</span></code>).</p></li>
+</ul>
+</li>
+<li><p>The SD-JWT VC type metadata is updated to draft 13. This means they will have
+to be updated as follows:</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">lang</span></code> field in <code class="docutils literal notranslate"><span class="pre">DisplayMetadata</span></code> and <code class="docutils literal notranslate"><span class="pre">ClaimDisplayMetadata</span></code> is
+renamed to <code class="docutils literal notranslate"><span class="pre">locale</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ClaimMetadata</span></code> now contains a <code class="docutils literal notranslate"><span class="pre">mandatory</span></code> field that indicates whether
+the claim is mandatory. This should be set to true for all claims that are
+listed in <code class="docutils literal notranslate"><span class="pre">schema.required</span></code>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">schema</span></code> is now dropped from the metadata.</p></li>
+</ul>
+</li>
+<li><p>A new service <code class="docutils literal notranslate"><span class="pre">acf_demo_issuer</span></code> has been added. It is a standalone issuer
+server that issues credentials using the Authorization Code Flow, and requires
+its own configuration file and database.</p></li>
+<li><p>flutter_rust_bridge has been updated to 2.12.0, run
+<code class="docutils literal notranslate"><span class="pre">cargo</span> <span class="pre">install</span> <span class="pre">flutter_rust_bridge_codegen</span> <span class="pre">--locked</span> <span class="pre">--version</span> <span class="pre">2.12.0</span></code> to
+update.</p></li>
+<li><p>The new <code class="docutils literal notranslate"><span class="pre">ALLOW_RELEASE_LOGS</span></code> build flag controls whether profile/release
+builds emit Flutter, Rust, and native platform-support device logs and forward
+Flutter/Rust logs to Sentry Logs. It defaults to <code class="docutils literal notranslate"><span class="pre">false</span></code> and is intended only
+for non-production release builds, such as ont/demo; production builds should
+leave it unset or set it to <code class="docutils literal notranslate"><span class="pre">false</span></code>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> service can now serve a custom DigiD login page, where a
+preconfigured BSN can be selected. For this, the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> offers a
+<code class="docutils literal notranslate"><span class="pre">digid.mock_subjects</span></code> setting.</p></li>
+<li><p>All issuance binaries now require the <code class="docutils literal notranslate"><span class="pre">wia_trust_anchors</span></code> array in their
+configuration file, instead of just the PID issuer.</p></li>
+<li><p>The enum <code class="docutils literal notranslate"><span class="pre">Attribute</span></code> is now a tagged enum. Therefore, attributes configured in
+<code class="docutils literal notranslate"><span class="pre">demo-issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">acf-demo-issuer</span></code> and <code class="docutils literal notranslate"><span class="pre">pacf-issuance-server</span></code> must tag their
+values with the appropriate tag.</p></li>
+<li><p>The Wallet Provider settings now requires a <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> and
+optionally <code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code>. The <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> is used
+to identify the current certificate signing key, and
+<code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code> is used to accept certificates signed with
+previous signing keys after key rollover.</p></li>
+<li><p>The Wallet Provider settings now requires a <code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code>
+instead of <code class="docutils literal notranslate"><span class="pre">instruction_result_signing_key_identifier</span></code>. The
+<code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code> is used to identify the current instruction
+result signing key.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">certificate_public_key</span></code> field in the Wallet configuration has been
+renamed to <code class="docutils literal notranslate"><span class="pre">certificate_public_keys</span></code> and changed to be a map from key
+identifier (kid) to <code class="docutils literal notranslate"><span class="pre">key,</span> <span class="pre">used_from</span></code>. This allows multiple wallet certificate
+signing keys to be present in the Wallet configuration during key rollover.
+The <code class="docutils literal notranslate"><span class="pre">used_from</span></code> field indicates the moment from which the Wallet Provider
+actually signs with that key, because a key must be added to the Wallet
+configuration ahead of the Wallet Provider’s own rollover.</p></li>
+<li><p>The Wallet configuration’s <code class="docutils literal notranslate"><span class="pre">account_server</span></code> section now requires a
+<code class="docutils literal notranslate"><span class="pre">certificate_refresh_threshold_in_days</span></code> field, specifying how long before a
+wallet certificate’s expiry (<code class="docutils literal notranslate"><span class="pre">exp</span></code>) the wallet should proactively request a
+new one.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">attestation_qualification</span></code> field has been removed from credentials, which
+means it is also removed from the <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code> response and from
+issuer credential configuration.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">issuer_uri</span></code> field has been removed from the mdoc MSO and the <code class="docutils literal notranslate"><span class="pre">iss</span></code> claim
+has been removed from SD-JWT VC credentials and the <code class="docutils literal notranslate"><span class="pre">disclosed_attributes</span></code>
+response. Issuer authentication now relies solely on certificate chain
+verification against trust anchors. Consequently the <code class="docutils literal notranslate"><span class="pre">certificate_san</span></code> setting
+has been removed from the issuer configuration.</p></li>
+<li><p>The Wallet Provider settings’ <code class="docutils literal notranslate"><span class="pre">attestation_wrapping_key_identifier</span></code> and
+<code class="docutils literal notranslate"><span class="pre">pin_pubkey_encryption_key_identifier</span></code> fields have been replaced by
+<code class="docutils literal notranslate"><span class="pre">[attestation_wrapping_kid]</span></code> and <code class="docutils literal notranslate"><span class="pre">[pin_pubkey_encryption_kid]</span></code>, each with a
+<code class="docutils literal notranslate"><span class="pre">current</span></code> and optional <code class="docutils literal notranslate"><span class="pre">previous</span></code> key identifier (kid).</p></li>
+<li><p>Every credential configuration with format <code class="docutils literal notranslate"><span class="pre">mso_mdoc</span></code> now requires a
+<code class="docutils literal notranslate"><span class="pre">credential_metadata</span></code> setting that names a JSON file with the Credential
+Metadata for that credential, and the issuer refuses to start without it.
+SD-JWT VC Type Metadata documents can only be used for <code class="docutils literal notranslate"><span class="pre">sd_jwt</span></code> credentials.</p></li>
+<li><p>A credential configuration with format <code class="docutils literal notranslate"><span class="pre">dc+sd-jwt</span></code> is described by either
+SD-JWT VC Type Metadata or Credential Metadata, but not both. Configure
+<code class="docutils literal notranslate"><span class="pre">credential_metadata</span></code> for it when no Type Metadata is available.</p></li>
+<li><p>The attributes of an issuable mdoc document now have exactly two levels of
+keys: a namespace and the name of a data element. Existing <code class="docutils literal notranslate"><span class="pre">IssuableDocuments</span></code>
+should be updated to reflect this.</p></li>
+<li><p>The Wallet Provider Helm chart values for iOS root certificates and Android
+root public keys and Play Store certificate hashes are now arrays. Operators
+should convert their existing CSV values into proper arrays.</p></li>
+</ul>
+</section>
+<section id="new-features">
+<h2>New features<a class="headerlink" href="#new-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The Wallet Provider will now block recovery codes during PIN recovery or PID
+renewal when the newly disclosed recovery code does not match with stored
+recovery code. This is suspicious because it is already checked by the NL
+Wallet app as well.</p></li>
+<li><p>Users can delete non-PID cards from their wallet, via the card detail screen.</p></li>
+<li><p>When a card is deleted, the wallet now stores this in its history.</p></li>
+<li><p>Allow incoming BLE connection through ‘Present QR’ screen. The BLE server is
+now started when this screen is displayed and a remote verifier can connect to
+trigger navigation to the disclosure flow.</p></li>
+<li><p>Parse the ISO 18013-5 “close proximity” DeviceRequest and present it in the
+disclosure screen so the user can share the specified credentials.</p></li>
+<li><p>If the RP’s DCQL request contains a Trusted Authorities Query of type
+Authority Key Identifier, both the verification_server and the wallet will now
+respect this, allowing the RP to request attestations signed by specific
+issuer keys.</p></li>
+<li><p>The verification server will now include <code class="docutils literal notranslate"><span class="pre">session_type</span></code> in the hash
+computation of the <code class="docutils literal notranslate"><span class="pre">ephemeral_id</span></code>, making it impossible for any intermediary
+to change its value.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">time</span></code> field will now only be included in the <code class="docutils literal notranslate"><span class="pre">ephemeral_id</span></code> computation
+for sessions that <strong>do not</strong> use a return URL. As a result, same-device
+sessions (and cross-device sessions that use a return URL) no longer expire,
+fixing a UX issue that occurred when the user took too long to enter their
+PIN.</p></li>
+<li><p>Added an in-app FAQ, reachable from the menu’s “Need help?” entry.</p></li>
+<li><p>Show a dedicated error screen instead of crashing when the app hits an
+invariant/unexpected fatal error.</p></li>
+<li><p>Updated Flutter to 3.47.5</p></li>
+<li><p>Added logic to filter duplicate PID cards using the prioritized list of
+PidAttestations from FlutterConfiguration. This results in no longer showing
+duplicate PID cards in the UI.</p></li>
+<li><p>Add support for credential offer based issuance flow in wallet_app.</p></li>
+<li><p>There is now support for Generic Issuance using the Authorization Code Flow.
+This is demonstrated by the new service <code class="docutils literal notranslate"><span class="pre">acf_demo_issuer</span></code>, which can issue an
+insurance attestation including a user consent page.</p></li>
+<li><p>The wallet uses fields from the Wallet Relying Party Access Certificate when
+showing an organization to the user.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> service can now serve a custom styled DigiD login page, where
+a preconfigured BSN can be selected, or a custom BSN can be entered.</p></li>
+<li><p>A new <code class="docutils literal notranslate"><span class="pre">admin-portal</span></code> service has been added. It is a Vue 3 web GUI for
+administrative tasks such as (de)blocking and revocation, served by NGINX. The
+service ships with a Helm chart (<code class="docutils literal notranslate"><span class="pre">deploy/helm-charts/admin-portal</span></code>), and a
+Docker image built in CI (<code class="docutils literal notranslate"><span class="pre">nl-wallet-admin-portal</span></code>).</p></li>
+<li><p>The Wallet Provider now supports key rollover for the wallet certificate
+related keys (wallet certificate signing key and PIN HMAC key). This is done
+by updating the <code class="docutils literal notranslate"><span class="pre">current_certificate_kid</span></code> and <code class="docutils literal notranslate"><span class="pre">previous_certificate_kids</span></code>
+fields in the Wallet Provider settings.</p></li>
+<li><p>The Wallet Provider now supports key rollover for the instruction result
+signing key. The Wallet Configuration’s <code class="docutils literal notranslate"><span class="pre">instruction_result_public_keys</span></code> field
+maps key identifiers to public keys, and the Wallet Provider’s
+<code class="docutils literal notranslate"><span class="pre">current_instruction_result_kid</span></code> setting selects which key is currently used
+for signing.</p></li>
+<li><p>The Wallet Provider now supports key rollover for the attestation wrapping key
+and the PIN public key encryption key. The <code class="docutils literal notranslate"><span class="pre">current</span></code> field of the
+<code class="docutils literal notranslate"><span class="pre">[attestation_wrapping_kid]</span></code> and <code class="docutils literal notranslate"><span class="pre">[pin_pubkey_encryption_kid]</span></code> settings
+sections selects the key used to encrypt new data, while the <code class="docutils literal notranslate"><span class="pre">previous</span></code> field
+still allows already-stored data to be decrypted during a rollover.</p></li>
+<li><p>Wallet Certificates now expire and are automatically renewed by the wallet
+when needed, without requiring a PIN change. Validity is controlled by the
+Wallet Provider setting <code class="docutils literal notranslate"><span class="pre">wallet_certificate_validity_in_days</span></code>, and renewal
+timing by <code class="docutils literal notranslate"><span class="pre">certificate_refresh_threshold_in_days</span></code> in the Wallet
+configuration.</p></li>
+</ul>
+</section>
+<section id="interoperability-improvements">
+<h2>Interoperability improvements<a class="headerlink" href="#interoperability-improvements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The verification server now enforces HAIP 1.0 compliance for same-device
+flows: a <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> is always returned to the wallet after a successful
+disclosure. See the Upgrading section for the required configuration change.</p></li>
+<li><p>Sections of both the wallet and issuer code have been updated to be compliant
+with OpenID4VCI 1.0:</p>
+<ul>
+<li><p>The issuer now provides a nonce endpoint, which replaces the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code>
+value in the <code class="docutils literal notranslate"><span class="pre">TokenResponse</span></code>.</p></li>
+<li><p>The PID issuance flow has been changed to use the Authorization Code flow,
+instead of a hybrid implementation of the Authorization Code and
+Pre-authorized Code flow.</p></li>
+<li><p>The issuer and wallet now support and use Pushed Authorization Requests
+(PAR) for the PID issuance flow.</p></li>
+<li><p>The wallet supports retrieving a Credential Offer from a URI that is
+passed using the <code class="docutils literal notranslate"><span class="pre">credential_offer_uri</span></code> query parameter.</p></li>
+<li><p>The wallet includes the correct <code class="docutils literal notranslate"><span class="pre">scope</span></code> value in the Authorization Request
+it sends in the Authorization Code flow, as retrieved from the Issuer
+Metadata. The Issuer issues credentials based on these particular <code class="docutils literal notranslate"><span class="pre">scope</span></code>
+values.</p></li>
+<li><p>The Issuer in turn includes the correct <code class="docutils literal notranslate"><span class="pre">authorization_details</span></code> value in
+its Token Response, containing both the Credential Configuration
+Identifiers and the Credential Identifiers. These values are processed by
+the wallet.</p></li>
+<li><p>The separate Credential Endpoint and Batch Credential Endpoint on the
+<code class="docutils literal notranslate"><span class="pre">Issuer</span></code> have been replaced by a new Credential Endpoint. Instead of
+issuing copies of all credentials offered in the session at once, it only
+provides copies of a single credential, necessitating the Wallet to call
+this endpoint as many times as there are distinct credentials in a
+session.</p></li>
+<li><p>Sending a DELETE to the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> Credential Endpoint in order to reject an
+offered credential has been removed. This is not part of the OpenID4VCI
+specification, the Notitication Endpoint should be used for this instead.
+Currently the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> does not support this endpoint.</p></li>
+</ul>
+</li>
+<li><p>The well-known path is now derived according to spec for Credential Issuer
+Metadata and Oauth 2.0 Authorization Server Metadata when a subpath is
+involved.</p></li>
+<li><p>SD-JWT VC type metadata is updated to draft 13.</p></li>
+<li><p>All issuance servers can serve signed OpenID4VCI metadata with the WRPAC
+certificate.</p></li>
+<li><p>The WIA, also known as the Wallet Attestation in OpenID4VCI, is now no longer
+sent as part of the <code class="docutils literal notranslate"><span class="pre">CredentialRequest</span></code> data structure, but along with the PAR
+and Token Request as defined in the [“OAuth 2.0 Attestation-Based Client
+Authentication” draft specification][2], in accordance with OpenID4VCI 1.0.</p></li>
+<li><p>The wallet requires signed credential issuer metadata.</p></li>
+<li><p>The wallet can now receive and render an ISO mDL. Labeling fields in nested
+objects is not supported yet.</p></li>
+<li><p>mdocs should now be described by Credential Metadata from the Credential
+Issuer Metadata and are completely independent of SD-JWT VC Type Metadata.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">type_metadata_integrity</span></code> field has been removed from the mdoc MSO, as
+mdocs no longer refer to SD-JWT VC Type Metadata.</p></li>
+<li><p>When an SD-JWT does not have <code class="docutils literal notranslate"><span class="pre">type_metadata_uri</span></code>, the wallet will use the
+Credential Metadata from the Credential Issuer Metadata.</p></li>
+<li><p>The wallet can now receive and store mdocs whose MSO declares an
+<code class="docutils literal notranslate"><span class="pre">identifier_list</span></code> status mechanism instead of a <code class="docutils literal notranslate"><span class="pre">status_list</span></code>. Since
+<code class="docutils literal notranslate"><span class="pre">identifier_list</span></code> is not yet supported, the revocation status of these mdocs
+is treated as undetermined.</p></li>
+<li><p>The wallet no longer rejects SD-JWT VC Type Metadata or Credential Issuer
+Metadata that references a logo or background image hosted externally (i.e. a
+<code class="docutils literal notranslate"><span class="pre">uri</span></code> that does not use the <code class="docutils literal notranslate"><span class="pre">data:</span></code> scheme). Such images are now silently
+ignored, instead of causing the credential’s metadata to be rejected.</p></li>
+</ul>
+</section>
+<section id="bug-fixes">
+<h2>Bug fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The issuance server now correctly returns a 406 when it cannot match the
+Accept header in content negotiation.</p></li>
+<li><p>Wallet transfer requests are now bounded to limit peak memory usage on the
+wallet provider. Thanks
+<a class="reference external" href="https://linkedin.com/in/harshbanshpal/">Harsh Banshpal</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="v0.5.0.html" class="btn btn-neutral float-left" title="v0.5.0" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.6.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="v0.6.0.html">v0.6.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../main/release-notes/v0.6.0.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

@@ -207,6 +207,13 @@ be the same for the same Wallet Provider.</p></li>
 </section>
 <section id="new-features">
 <h2>New features<a class="headerlink" href="#new-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Issuers have a new optional setting <code class="docutils literal notranslate"><span class="pre">credential_preview_endpoint</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">true</span></code>). When set to <code class="docutils literal notranslate"><span class="pre">false</span></code>, the issuer does not serve the non-standard
+Credential Preview Endpoint, behaving like a standard OpenID4VCI issuer. This
+is intended for testing the wallet against such issuers; note that the wallet
+still requires previews for PID and disclosure based issuance.</p></li>
+</ul>
 </section>
 <section id="interoperability-improvements">
 <h2>Interoperability improvements<a class="headerlink" href="#interoperability-improvements" title="Link to this heading"></a></h2>
@@ -255,6 +262,7 @@ to OpenID4VCI 1.0 and its implementation is now effectively dead code.</p></li>
             <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
             <dd><a href="../../v0.4.1/index.html">v0.4.1</a></dd>
             <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
         </dl>
         <dl>
             <dt>Branches</dt>

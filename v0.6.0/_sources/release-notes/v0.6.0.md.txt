@@ -1,0 +1,331 @@
+# v0.6.0 (dev)
+
+## Upgrading
+
+- Issuers now require `registration_certificate`: a base64url-encoded WRPRC
+  bound to their metadata-signing WRPAC. Helm deployments require this key in
+  each issuer's WRPAC secret. Before updating wallets, deploy the issuers,
+  publish their referenced status lists, and ensure the wallet trusts the WRPRC
+  signing chains.
+- OpenID4VP disclosure use cases now require a Wallet Relying Party Registration
+  Certificate (WRPRC). Configure each verification server and disclosure-based
+  issuance server use case with a `registration_certificate`, configure
+  `wrprc_trust_anchors`, and publish the referenced WRPRC status list before
+  deploying wallet clients. The `static_server` configuration now also requires
+  `wrprc_publish_dir`, which identifies the directory containing those status
+  lists. The services reject missing or invalid certificates at startup, and the
+  wallet rejects requests that are revoked or exceed the certificate's
+  authorization.
+- The wallet now requires a usable Certificate Revocation List (CRL) for every
+  Wallet Relying Party Access Certificate (WRPAC) used in signed OpenID4VP
+  authorization requests, signed issuer metadata, and close-proximity reader
+  authentication. Before deploying wallet clients with this change, publish a
+  signed CRL at a stable HTTP(S) URL, rotate existing WRPACs to include that URL
+  as a CRL Distribution Point, and verify the CRL endpoint is available. The CRL
+  publication and certificate rotation must be deployed before CRL validation is
+  enabled in wallet clients. For production, the WRPAC PKI operator must provide
+  an automated CRL service; the `wallet_ca` utility is intended for development
+  and is not suitable for operating a production CA. The production service
+  must:
+    - Include a usable CRL Distribution Point in every WRPAC and supplied
+      intermediate CA certificate. The root trust anchor is excluded.
+    - Publish a complete, DER-encoded X.509 version 2 CRL at each distribution
+      point over unauthenticated HTTP(S), reachable by wallet clients. Delta and
+      indirect CRLs are not supported.
+    - Sign CRLs using the applicable WRPAC issuing CA and ECDSA P-256 with
+      SHA-256. Include `nextUpdate` and a monotonically increasing CRL number,
+      and retain revoked certificate serial numbers until those certificates
+      expire.
+    - For CRLs covering WRPACs, publish a complete CRL at least every 24 hours
+      until a final CRL is published. This cadence follows from ETSI TS 119
+      411-8, `REV-6.3.9-01`, applying ETSI EN 319 411-1, `CSS-6.3.9-05`. Set
+      `nextUpdate` to the next scheduled publication, automate renewal before it
+      expires, and support immediate publication after an emergency revocation.
+    - Keep CRLs at most 5 MiB. Monitor endpoint availability, CRL integrity and
+      freshness, and alert before `nextUpdate`; the wallet rejects a WRPAC when
+      its applicable CRL cannot be fetched or validated.
+- The callback URI for issuance changed from "/return-from-digid" to "/iss".
+  This will need to be updated in relevant applications, like rdo-max and DigiD.
+- The `neither` value for `session_type_return_url` in the verification server
+  configuration is no longer supported; use `same_device` (the default) with a
+  `return_url_template` instead.
+- The `pid_issuance` section of the Wallet configuration has been paired down as
+  follows:
+    - The `pid_issuer_url` field is now just called `url`.
+    - The value at the `digid/client_id` path has been moved to `client_id`.
+    - The object contained in `digid_http_config` has been removed.
+- The `pid_issuer` configuration has had its `digid.http_config` section renamed
+  to `digid.client_settings`. Within this section, the `base_url` field has been
+  renamed to `oidc_identifier`, which contains the same value.
+- The supported [client identifier prefix][1] (in the context of OpenID4VP, so a
+  "client" here is a relying-party, a verifier) has changed from `x509_san_dns`
+  to `x509_hash`. That means our wallet app expects `x509_hash` client ids. In
+  our issuer server, the `client_id` field, which is part of a `usecase` needs
+  to be updated (in our code that means the `demo_issuer`). For example:
+
+    ```json
+    "client_id": "x509_hash:YYIN_SgqjFj2044q1fpvpa0rxqrXEG0U1xdm2Hw_ohM",
+    ```
+
+    The value of `x509_hash` is the base64url-encoded value of the SHA-256 hash
+    of the DER-encoded X.509 certificate.
+
+- The `attestation_settings` sections of both the `pid_issuer` and the
+  `issuance_server` have undergone significant changes. These sections have been
+  renamed to `credential_configurations` an are now configured per credential
+  format. Each individual section directly represent a Credential Configuration
+  as presented in the Issuer Metadata. The full changes are as follows:
+    - The section key now represents a Credential Configuration identifier,
+      where before this was used as the Attestation Type.
+    - The `attestation_type` field was added.
+    - The `copies_per_format` field has been removed and replaced by a `format`
+      field and a top-level `batch_size` field, that applies to all issued
+      credentials.
+    - The `status_list` section has had a `group_name` field added, in order to
+      decouple status lists from the Attestation Type. Normally this value would
+      be set to the same value as the Credential Configuration identifier.
+- Related to the previous change, the `IssuerDocument` the attestation server
+  provides in the context of disclosure-based issuance has had the `format`
+  field added.
+- The Wallet Instance Attestation (WIA) configuration has changed, reflecting a
+  rename from WUA (Wallet Unit Attestation) and the addition of wallet metadata
+  fields:
+    - In the **Wallet Provider** configuration, all `wua_*` fields have been
+      renamed to `wia_*`, and the `[wua_status_lists]` section has been renamed
+      to `[wia_status_list]`. Additionally:
+        - `wua_issuer_identifier` has been replaced by four wallet metadata
+          fields: `wia_wallet_name`, `wia_wallet_version`, `wia_wallet_link`
+          (optional), and `wia_wallet_solution_certification_information`.
+        - A `wia_certificate` field (base64-encoded DER X.509 certificate) must
+          now be provided. The WIA JWT is signed using a certificate chain
+          (`x5c` header) instead of a bare key.
+    - In the **PID Issuer** configuration, `wua_issuer_pubkey` has been replaced
+      by `wia_trust_anchors`, a list of base64-encoded DER X.509 CA certificates
+      used to validate WIA tokens.
+- The `pid_issuance` section of the wallet configuration has been replaced with
+  `pid_credential_offer`, which contains a single string value. This string
+  value contains a Credential Offer URI that should be used as the basis for PID
+  issuance. Note that this URI can contain a Credential Offer either by value or
+  by reference and must use the Authorization Code flow.
+- A `type_metadata_uri` is added to the `CredentialConfiguration` to specify a
+  SD-JWT VC type metadata. The preview endpoint is modified to not return the
+  type metadata but the `CredentialConfigurationId` instead ensuring type
+  metadata fetching is independent of the preview.
+- A new service `pacf_issuance_server` has been added. It is a standalone
+  issuance server that issues credentials using the Pre-Authorized Code Flow,
+  and requires its own configuration file and database.
+- The `demo_issuer` configuration has two changes:
+    - A new top-level `pacf_issuance_server_url` field must be added, pointing
+      to the internal server port of the `pacf_issuance_server`.
+    - Each entry under `usecases` is now either a Pre-Authorized Code Flow
+      usecase (containing only `data`) or a disclosure-based usecase (containing
+      `data`, `client_id`, and `disclosed`).
+- The SD-JWT VC type metadata is updated to draft 13. This means they will have
+  to be updated as follows:
+    - The `lang` field in `DisplayMetadata` and `ClaimDisplayMetadata` is
+      renamed to `locale`.
+    - `ClaimMetadata` now contains a `mandatory` field that indicates whether
+      the claim is mandatory. This should be set to true for all claims that are
+      listed in `schema.required`.
+    - The `schema` is now dropped from the metadata.
+- A new service `acf_demo_issuer` has been added. It is a standalone issuer
+  server that issues credentials using the Authorization Code Flow, and requires
+  its own configuration file and database.
+- flutter_rust_bridge has been updated to 2.12.0, run
+  `cargo install flutter_rust_bridge_codegen --locked --version 2.12.0` to
+  update.
+- The new `ALLOW_RELEASE_LOGS` build flag controls whether profile/release
+  builds emit Flutter, Rust, and native platform-support device logs and forward
+  Flutter/Rust logs to Sentry Logs. It defaults to `false` and is intended only
+  for non-production release builds, such as ont/demo; production builds should
+  leave it unset or set it to `false`.
+- The `pid_issuer` service can now serve a custom DigiD login page, where a
+  preconfigured BSN can be selected. For this, the `pid_issuer` offers a
+  `digid.mock_subjects` setting.
+- All issuance binaries now require the `wia_trust_anchors` array in their
+  configuration file, instead of just the PID issuer.
+- The enum `Attribute` is now a tagged enum. Therefore, attributes configured in
+  `demo-issuer`, `acf-demo-issuer` and `pacf-issuance-server` must tag their
+  values with the appropriate tag.
+- The Wallet Provider settings now requires a `current_certificate_kid` and
+  optionally `previous_certificate_kids`. The `current_certificate_kid` is used
+  to identify the current certificate signing key, and
+  `previous_certificate_kids` is used to accept certificates signed with
+  previous signing keys after key rollover.
+- The Wallet Provider settings now requires a `current_instruction_result_kid`
+  instead of `instruction_result_signing_key_identifier`. The
+  `current_instruction_result_kid` is used to identify the current instruction
+  result signing key.
+- The `certificate_public_key` field in the Wallet configuration has been
+  renamed to `certificate_public_keys` and changed to be a map from key
+  identifier (kid) to `key, used_from`. This allows multiple wallet certificate
+  signing keys to be present in the Wallet configuration during key rollover.
+  The `used_from` field indicates the moment from which the Wallet Provider
+  actually signs with that key, because a key must be added to the Wallet
+  configuration ahead of the Wallet Provider's own rollover.
+- The Wallet configuration's `account_server` section now requires a
+  `certificate_refresh_threshold_in_days` field, specifying how long before a
+  wallet certificate's expiry (`exp`) the wallet should proactively request a
+  new one.
+- The `attestation_qualification` field has been removed from credentials, which
+  means it is also removed from the `disclosed_attributes` response and from
+  issuer credential configuration.
+- The `issuer_uri` field has been removed from the mdoc MSO and the `iss` claim
+  has been removed from SD-JWT VC credentials and the `disclosed_attributes`
+  response. Issuer authentication now relies solely on certificate chain
+  verification against trust anchors. Consequently the `certificate_san` setting
+  has been removed from the issuer configuration.
+- The Wallet Provider settings' `attestation_wrapping_key_identifier` and
+  `pin_pubkey_encryption_key_identifier` fields have been replaced by
+  `[attestation_wrapping_kid]` and `[pin_pubkey_encryption_kid]`, each with a
+  `current` and optional `previous` key identifier (kid).
+- Every credential configuration with format `mso_mdoc` now requires a
+  `credential_metadata` setting that names a JSON file with the Credential
+  Metadata for that credential, and the issuer refuses to start without it.
+  SD-JWT VC Type Metadata documents can only be used for `sd_jwt` credentials.
+- A credential configuration with format `dc+sd-jwt` is described by either
+  SD-JWT VC Type Metadata or Credential Metadata, but not both. Configure
+  `credential_metadata` for it when no Type Metadata is available.
+- The attributes of an issuable mdoc document now have exactly two levels of
+  keys: a namespace and the name of a data element. Existing `IssuableDocuments`
+  should be updated to reflect this.
+- The Wallet Provider Helm chart values for iOS root certificates and Android
+  root public keys and Play Store certificate hashes are now arrays. Operators
+  should convert their existing CSV values into proper arrays.
+
+[1]:
+    https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p
+
+## New features
+
+- The Wallet Provider will now block recovery codes during PIN recovery or PID
+  renewal when the newly disclosed recovery code does not match with stored
+  recovery code. This is suspicious because it is already checked by the NL
+  Wallet app as well.
+- Users can delete non-PID cards from their wallet, via the card detail screen.
+- When a card is deleted, the wallet now stores this in its history.
+- Allow incoming BLE connection through 'Present QR' screen. The BLE server is
+  now started when this screen is displayed and a remote verifier can connect to
+  trigger navigation to the disclosure flow.
+- Parse the ISO 18013-5 “close proximity” DeviceRequest and present it in the
+  disclosure screen so the user can share the specified credentials.
+- If the RP's DCQL request contains a Trusted Authorities Query of type
+  Authority Key Identifier, both the verification_server and the wallet will now
+  respect this, allowing the RP to request attestations signed by specific
+  issuer keys.
+- The verification server will now include `session_type` in the hash
+  computation of the `ephemeral_id`, making it impossible for any intermediary
+  to change its value.
+- The `time` field will now only be included in the `ephemeral_id` computation
+  for sessions that **do not** use a return URL. As a result, same-device
+  sessions (and cross-device sessions that use a return URL) no longer expire,
+  fixing a UX issue that occurred when the user took too long to enter their
+  PIN.
+- Added an in-app FAQ, reachable from the menu's "Need help?" entry.
+- Show a dedicated error screen instead of crashing when the app hits an
+  invariant/unexpected fatal error.
+- Updated Flutter to 3.47.5
+- Added logic to filter duplicate PID cards using the prioritized list of
+  PidAttestations from FlutterConfiguration. This results in no longer showing
+  duplicate PID cards in the UI.
+- Add support for credential offer based issuance flow in wallet_app.
+- There is now support for Generic Issuance using the Authorization Code Flow.
+  This is demonstrated by the new service `acf_demo_issuer`, which can issue an
+  insurance attestation including a user consent page.
+- The wallet uses fields from the Wallet Relying Party Access Certificate when
+  showing an organization to the user.
+- The `pid_issuer` service can now serve a custom styled DigiD login page, where
+  a preconfigured BSN can be selected, or a custom BSN can be entered.
+- A new `admin-portal` service has been added. It is a Vue 3 web GUI for
+  administrative tasks such as (de)blocking and revocation, served by NGINX. The
+  service ships with a Helm chart (`deploy/helm-charts/admin-portal`), and a
+  Docker image built in CI (`nl-wallet-admin-portal`).
+- The Wallet Provider now supports key rollover for the wallet certificate
+  related keys (wallet certificate signing key and PIN HMAC key). This is done
+  by updating the `current_certificate_kid` and `previous_certificate_kids`
+  fields in the Wallet Provider settings.
+- The Wallet Provider now supports key rollover for the instruction result
+  signing key. The Wallet Configuration's `instruction_result_public_keys` field
+  maps key identifiers to public keys, and the Wallet Provider's
+  `current_instruction_result_kid` setting selects which key is currently used
+  for signing.
+- The Wallet Provider now supports key rollover for the attestation wrapping key
+  and the PIN public key encryption key. The `current` field of the
+  `[attestation_wrapping_kid]` and `[pin_pubkey_encryption_kid]` settings
+  sections selects the key used to encrypt new data, while the `previous` field
+  still allows already-stored data to be decrypted during a rollover.
+- Wallet Certificates now expire and are automatically renewed by the wallet
+  when needed, without requiring a PIN change. Validity is controlled by the
+  Wallet Provider setting `wallet_certificate_validity_in_days`, and renewal
+  timing by `certificate_refresh_threshold_in_days` in the Wallet
+  configuration.
+
+## Interoperability improvements
+
+- The verification server now enforces HAIP 1.0 compliance for same-device
+  flows: a `redirect_uri` is always returned to the wallet after a successful
+  disclosure. See the Upgrading section for the required configuration change.
+- Sections of both the wallet and issuer code have been updated to be compliant
+  with OpenID4VCI 1.0:
+    - The issuer now provides a nonce endpoint, which replaces the `c_nonce`
+      value in the `TokenResponse`.
+    - The PID issuance flow has been changed to use the Authorization Code flow,
+      instead of a hybrid implementation of the Authorization Code and
+      Pre-authorized Code flow.
+    - The issuer and wallet now support and use Pushed Authorization Requests
+      (PAR) for the PID issuance flow.
+    - The wallet supports retrieving a Credential Offer from a URI that is
+      passed using the `credential_offer_uri` query parameter.
+    - The wallet includes the correct `scope` value in the Authorization Request
+      it sends in the Authorization Code flow, as retrieved from the Issuer
+      Metadata. The Issuer issues credentials based on these particular `scope`
+      values.
+    - The Issuer in turn includes the correct `authorization_details` value in
+      its Token Response, containing both the Credential Configuration
+      Identifiers and the Credential Identifiers. These values are processed by
+      the wallet.
+    - The separate Credential Endpoint and Batch Credential Endpoint on the
+      `Issuer` have been replaced by a new Credential Endpoint. Instead of
+      issuing copies of all credentials offered in the session at once, it only
+      provides copies of a single credential, necessitating the Wallet to call
+      this endpoint as many times as there are distinct credentials in a
+      session.
+    - Sending a DELETE to the `Issuer` Credential Endpoint in order to reject an
+      offered credential has been removed. This is not part of the OpenID4VCI
+      specification, the Notitication Endpoint should be used for this instead.
+      Currently the `Issuer` does not support this endpoint.
+- The well-known path is now derived according to spec for Credential Issuer
+  Metadata and Oauth 2.0 Authorization Server Metadata when a subpath is
+  involved.
+- SD-JWT VC type metadata is updated to draft 13.
+- All issuance servers can serve signed OpenID4VCI metadata with the WRPAC
+  certificate.
+- The WIA, also known as the Wallet Attestation in OpenID4VCI, is now no longer
+  sent as part of the `CredentialRequest` data structure, but along with the PAR
+  and Token Request as defined in the ["OAuth 2.0 Attestation-Based Client
+  Authentication" draft specification][2], in accordance with OpenID4VCI 1.0.
+- The wallet requires signed credential issuer metadata.
+- The wallet can now receive and render an ISO mDL. Labeling fields in nested
+  objects is not supported yet.
+- mdocs should now be described by Credential Metadata from the Credential
+  Issuer Metadata and are completely independent of SD-JWT VC Type Metadata.
+- The `type_metadata_integrity` field has been removed from the mdoc MSO, as
+  mdocs no longer refer to SD-JWT VC Type Metadata.
+- When an SD-JWT does not have `type_metadata_uri`, the wallet will use the
+  Credential Metadata from the Credential Issuer Metadata.
+- The wallet can now receive and store mdocs whose MSO declares an
+  `identifier_list` status mechanism instead of a `status_list`. Since
+  `identifier_list` is not yet supported, the revocation status of these mdocs
+  is treated as undetermined.
+- The wallet no longer rejects SD-JWT VC Type Metadata or Credential Issuer
+  Metadata that references a logo or background image hosted externally (i.e. a
+  `uri` that does not use the `data:` scheme). Such images are now silently
+  ignored, instead of causing the credential's metadata to be rejected.
+
+## Bug fixes
+
+- The issuance server now correctly returns a 406 when it cannot match the
+  Accept header in content negotiation.
+- Wallet transfer requests are now bounded to limit peak memory usage on the
+  wallet provider. Thanks
+  [Harsh Banshpal](https://linkedin.com/in/harshbanshpal/)

@@ -1,0 +1,34 @@
+# Use Case 10.1 Revoke the wallet using the revocation code
+
+## Overview
+
+| Aspect                       | Description                                                                                                                                            |
+| ---------------------------- |--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Summary**                  | The user visits the revocation portal and enters its revocation code. When submitted the backend revokes the wallet so that it cannot be used anymore. |
+| **Goal**                     | Rmotely delete the NL Wallet and all data by entering the 18-digit revocation code, so that no one else can access or use the wallet.                  |
+| **Preconditions**            | **None**                                                                                                                                               |
+| **Postconditions**           | <ul><li>Wallet is permanently deleted</li><li>All cards and data are removed</li><li>App will show “Your NL Wallet is deleted” when opened</li></ul>   |
+| **Triggered by**             | <ul><li>User navigates to the revocation portal</li></ul>                                                                                              |
+| **Additional Documentation** | **None**                                                                                                                                               |
+| **Possible errors**          | <ul></ul>                                                                                                                                              |
+| **Logical test cases**       | <ul><li>[LTC74 Revoke wallet with revocation code](../logical-test-cases.md#ltc74)</li></ul>                                                           |
+
+---
+
+## Flow
+
+| #       | Description                                                                                                                                                                                                                                  | Next                                  |
+|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|
+| **1.1** | **System displays page 'Revocation portal'**<ul><li>Message: Do you want to revoke your wallet?</li><li>Input: textfield for revocation code</li><li>Actions: Delete wallet, Cancel, Need help?</li></ul>                                    |                                       |
+| 1.1a    | User submits valid revocation code                                                                                                                                                                                                           | 1.2                                   |
+| 1.1b    | User selects Cancel                                                                                                                                                                                                                          |                                       |
+| 1.1c    | User submits invalid revocation code                                                                                                                                                                                                         | 2                                     |
+| 1.1d    | User selects Need help?                                                                                                                                                                                                                      | Show placeholder 'under construction' |
+| **1.2** | **System displays page 'Your wallet is revoked'**<ul><li>Message: You used you revocation code to delete your wallet on [Timestamp].</li><li>Actions: Back to support, Give feedback or download app in App/Play store, Need help?</li></ul> |                                       |
+| 1.2a    | User selects Back to support                                                                                                                                                                                                                 | 1.1                                   |
+| 1.2b    | User selects Give feedback or download app in app/play store<br>&rarr; System opens play/app store and suspends browser                                                                                                                      |                                       |
+| 1.2c    | User selects Need help?                                                                                                                                                                                                                      | Show placeholder 'under construction' |
+| **2**   | **WHEN REVOCATION CODE IS INVALID**                                                                                                                                                                                                          |                                       |
+| **2.1** | **System displays screen 'Generic error'**<ul><li>Message: Something went wrong, this can have several causes.</li><li>Actions: Try again, Need help?</li></ul>                                                                              |                                       |
+| 2.1a    | User selects Try again                                                                                                                                                                                                                       | 1.1                                   |
+| 2.1b    | User selects Need help?                                                                                                                                                                                                                      | Show placeholder 'under construction' |

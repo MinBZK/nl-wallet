@@ -1,0 +1,1152 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Issuance with OpenID4VCI &mdash; NL Wallet 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=dfe61b34" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.0/dist/mermaid-layout-elk.esm.min.mjs"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.0/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+const defaultStyle = document.createElement('style');
+defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+`;
+document.head.appendChild(defaultStyle);
+
+const fullscreenStyle = document.createElement('style');
+fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+document.head.appendChild(fullscreenStyle);
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        return brightness < 128;
+    }
+    return false;
+};
+
+const load = async () => {
+    await mermaid.run();
+
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(load, 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(load, 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(load, 200);
+        return;
+    }
+
+    const darkTheme = isDarkTheme();
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    const modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    const modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    let previousScrollOffset = [window.scrollX, window.scrollY];
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    const allButtons = [];
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        container.appendChild(fullscreenBtn);
+        allButtons.push(fullscreenBtn);
+    });
+
+    // Update theme classes when theme changes
+    const updateTheme = () => {
+        const dark = isDarkTheme();
+        allButtons.forEach(btn => {
+            if (dark) {
+                btn.classList.add('dark-theme');
+            } else {
+                btn.classList.remove('dark-theme');
+            }
+        });
+        if (dark) {
+            modal.classList.add('dark-theme');
+            modalContent.classList.add('dark-theme');
+            closeBtn.classList.add('dark-theme');
+        } else {
+            modal.classList.remove('dark-theme');
+            modalContent.classList.remove('dark-theme');
+            closeBtn.classList.remove('dark-theme');
+        }
+    };
+
+    // Watch for theme changes
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style']
+    });
+};
+
+window.addEventListener("load", load);
+</script>
+      <script src="../../_static/js/custom.js?v=48752f09"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Mobile App Startup" href="mobile-app-startup.html" />
+    <link rel="prev" title="Disclosure with OpenID4VP" href="disclosure-with-openid4vp.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../use-cases.html">Relevant Use Cases</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="close-proximity-disclosure.html">Disclosure with ISO 18013-5 (close proximity)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wallet-provider-instruction.html">Wallet Provider instructions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC10.1_DeleteWalletUsingRevocationCode.html">Use Case 10.1 Revoke the wallet using the revocation code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.10_DetermineWalletStatus.html">Partial Flow 2.10 Determine wallet status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/notifications.html">Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../development/authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/crash-reporting.html">Crash Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/keycloak-setup.html">Keycloak Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/pid-issuer-architecture.html">PID Issuer architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.4.0.html">v0.4.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.4.1.html">v0.4.1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.5.0.html">v0.5.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/v0.6.0.html">v0.6.0 (dev)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../use-cases.html">Relevant Use Cases</a></li>
+      <li class="breadcrumb-item active">Issuance with OpenID4VCI</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/architecture/use-cases/issuance-with-openid4vci.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="issuance-with-openid4vci">
+<h1>Issuance with OpenID4VCI<a class="headerlink" href="#issuance-with-openid4vci" title="Link to this heading"></a></h1>
+<p>We’ve implemented issuance with <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI 1.0</a> following the <a class="reference external" href="https://openid.github.io/OpenID4VC-HAIP/openid4vc-high-assurance-interoperability-profile-1_0-wg-draft.html">High
+Assurance Interoperability Profile (HAIP)</a>, with attestation preview as a
+custom addition. OpenID4VCI defines two grant flows and we use both across our
+two issuance implementations.</p>
+<p>We currently have two issuance implementations: the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, a specialized
+issuer specifically for Dutch <a class="reference external" href="https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook">PID</a>s, which this page is about, and
+<code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, a disclosure-based-issuance service that can issue all kinds
+of things (which you can <a class="reference internal" href="disclosure-based-issuance.html"><span class="doc std std-doc">read about here</span></a>). The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> uses the
+authorization code flow described below; the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> uses the
+pre-authorized code flow.</p>
+<section id="pre-authorized-code-flow">
+<h2>Pre-authorized code flow<a class="headerlink" href="#pre-authorized-code-flow" title="Link to this heading"></a></h2>
+<p>In the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a> the issuer has already determined the
+attributes to be issued out of band, binds them to a freshly generated
+pre-authorized code in an issuance session, and hands that code to the wallet
+inside an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI Credential Offer</a>. The wallet sends the code to the
+issuer’s <code class="docutils literal notranslate"><span class="pre">/token</span></code> endpoint with
+<code class="docutils literal notranslate"><span class="pre">grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code</span></code>,
+authenticating itself with a Wallet Instance Attestation (WIA) sent in HTTP
+headers (<a class="reference external" href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09">OAuth 2.0 Attestation-Based Client Authentication</a>); the issuer
+verifies the WIA and loads the session keyed by the code to find the attributes
+to issue (this grant carries no PKCE). The wallet then obtains a <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from
+the issuer’s <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-nonce-endpoint">nonce endpoint</a> and exchanges proofs of possession for
+attestations at the <code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoint.</p>
+<p>In our codebase, this flow is implemented by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> (the
+disclosure-based-issuance service); see <a class="reference internal" href="disclosure-based-issuance.html"><span class="doc std std-doc">Disclosure-based Issuance</span></a> for the
+end-to-end picture, including how the disclosed attributes are turned into
+attestations via the <em>attestation server</em>. The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> does not accept the
+pre-authorized code grant — it only accepts the authorization code flow
+described below.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+
+    participant OS
+    participant Wallet
+    participant CI as Credential Issuer
+    participant AS as Authorization Server
+
+    Note over OS,AS: Credential Offer (out of band)
+
+    CI--&gt;&gt;OS: openid-credential-offer://?credential_offer_uri=&lt;url&gt;&lt;br/&gt;(e.g. via QR code or universal link)
+    OS-&gt;&gt;Wallet: open with offer URL
+    Wallet-&gt;&gt;CI: GET &lt;credential_offer_uri&gt;
+    CI-&gt;&gt;Wallet: Credential Offer&lt;br/&gt;{ credential_issuer, credential_configuration_ids,&lt;br/&gt;  grants: { pre-authorized_code:&lt;br/&gt;    { pre-authorized_code, ... } } }
+
+    Note over OS,AS: Discovery
+
+    Wallet--&gt;&gt;CI: discover OpenID4VCI metadata
+    CI--&gt;&gt;Wallet: issuer metadata
+    Wallet-&gt;&gt;Wallet: discover Authorization Server
+    Wallet--&gt;&gt;AS: discover OAuth metadata
+    AS--&gt;&gt;Wallet: oauth metadata
+
+    Note over OS,AS: Token exchange
+
+    Wallet-&gt;&gt;AS: POST Token Request&lt;br/&gt;(grant_type=...:pre-authorized_code,&lt;br/&gt;pre-authorized_code, WIA)
+    AS-&gt;&gt;Wallet: Token Response (access_token)
+
+    Note over OS,AS: Issuance phase
+
+    Wallet-&gt;&gt;CI: POST /previews(access_token)
+    CI-&gt;&gt;Wallet: previews
+
+    loop for every credential
+        Wallet-&gt;&gt;CI: POST Nonce Request
+        CI-&gt;&gt;Wallet: c_nonce
+        Wallet--&gt;&gt;CI: GET metadata
+        CI--&gt;&gt;Wallet: metadata
+        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token) to /credential
+        CI-&gt;&gt;Wallet: Credential Response (attestation copies)
+    end
+    </pre></section>
+<section id="authorization-code-flow-haip">
+<h2>Authorization code flow (HAIP)<a class="headerlink" href="#authorization-code-flow-haip" title="Link to this heading"></a></h2>
+<p>The <a class="reference external" href="https://openid.github.io/OpenID4VC-HAIP/openid4vc-high-assurance-interoperability-profile-1_0-wg-draft.html">HAIP profile</a> mandates the regular Authorization Code Flow with a number
+of additional requirements:</p>
+<ul class="simple">
+<li><p>A <a class="reference external" href="https://www.rfc-editor.org/rfc/rfc9126">Pushed Authorization Request (PAR)</a> is required; all authorization
+parameters are sent server-to-server and the browser only carries a
+<code class="docutils literal notranslate"><span class="pre">request_uri</span></code>;</p></li>
+<li><p><a class="reference external" href="https://www.rfc-editor.org/rfc/rfc7636">PKCE</a> with <code class="docutils literal notranslate"><span class="pre">S256</span></code> is required;</p></li>
+<li><p>The wallet authenticates itself at both <code class="docutils literal notranslate"><span class="pre">/par</span></code> and <code class="docutils literal notranslate"><span class="pre">/token</span></code> with a Wallet
+Instance Attestation (WIA), carried in <code class="docutils literal notranslate"><span class="pre">OAuth-Client-Attestation</span></code> and
+<code class="docutils literal notranslate"><span class="pre">OAuth-Client-Attestation-PoP</span></code> headers (<a class="reference external" href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09">OAuth 2.0 Attestation-Based Client
+Authentication</a>);</p></li>
+<li><p>Access tokens are sender-constrained with <a class="reference external" href="https://www.rfc-editor.org/rfc/rfc9449">DPoP</a>. The <code class="docutils literal notranslate"><span class="pre">/token</span></code> response
+has <code class="docutils literal notranslate"><span class="pre">token_type=DPoP</span></code>, and every subsequent request at the credential issuer
+carries both an <code class="docutils literal notranslate"><span class="pre">Authorization:</span> <span class="pre">DPoP</span> <span class="pre">&lt;access_token&gt;</span></code> header and a fresh DPoP
+proof JWT (which includes <code class="docutils literal notranslate"><span class="pre">ath</span></code>, the hash of the access token);</p></li>
+<li><p>Issuance uses a single <code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoint that accepts a <code class="docutils literal notranslate"><span class="pre">proofs</span></code> array,
+carrying one Proof of Possession per attestation private key.</p></li>
+</ul>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+
+    participant OS
+    participant Wallet
+    participant CI as Credential Issuer
+    participant AS as Authorization Server
+
+    CI--&gt;&gt;OS: openid-credential-offer://?credential_offer_uri=&lt;url&gt;&lt;br/&gt;(e.g. via QR code or universal link)
+    OS-&gt;&gt;Wallet: open with offer URL
+    Wallet-&gt;&gt;CI: GET &lt;credential_offer_uri&gt;
+    CI-&gt;&gt;Wallet: Credential Offer&lt;br/&gt;{ credential_issuer, credential_configuration_ids,&lt;br/&gt;  grants: { authorization_code:&lt;br/&gt;    { ... } } }
+
+    Note over OS,AS: Discovery phase
+
+    Wallet--&gt;&gt;CI: discover OpenID4VCI metadata
+    CI--&gt;&gt;Wallet: { credential_issuer,&lt;br/&gt;  credential_configurations_supported,&lt;br/&gt;  authorization_servers, nonce_endpoint,&lt;br/&gt;  credential_endpoint, ... }
+
+    Wallet-&gt;&gt;Wallet: discover Authorization Server
+
+    Wallet--&gt;&gt;AS: discover OAuth metadata
+    AS--&gt;&gt;Wallet: { pushed_authorization_request_endpoint,&lt;br/&gt;  authorization_endpoint, token_endpoint, ... }
+
+    Note over OS,AS: Authentication phase
+
+    Wallet-&gt;&gt;AS: POST PAR (WIA)
+    AS-&gt;&gt;Wallet: request_uri
+    Wallet-&gt;&gt;OS: open browser (URL)
+    OS-&gt;&gt;AS: (browser) GET Authorization Request (request_uri)
+    AS-&gt;&gt;OS: Authorization Response (code)
+    OS-&gt;&gt;Wallet: openWallet(code)
+    Wallet-&gt;&gt;AS: POST Token Request (code, WIA)
+    AS-&gt;&gt;Wallet: Token Response (access_token)
+
+    Note over OS,AS: Issuance phase
+
+    Wallet-&gt;&gt;CI: POST /previews(access_token)
+    CI-&gt;&gt;Wallet: previews
+
+    loop for every credential
+        Wallet-&gt;&gt;CI: POST Nonce Request
+        CI-&gt;&gt;Wallet: c_nonce
+        Wallet--&gt;&gt;CI: GET /metadata
+        CI--&gt;&gt;Wallet: metadata
+        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token) to /credential
+        CI-&gt;&gt;Wallet: Credential Response (attestation copies)
+    end
+    </pre></section>
+<section id="pid-issuance">
+<h2>PID issuance<a class="headerlink" href="#pid-issuance" title="Link to this heading"></a></h2>
+<p>The NL Wallet requires at least the SD JWT format for PID attestations. The MSO
+mDoc format can be issued as well. The attestation type and paths to the <code class="docutils literal notranslate"><span class="pre">login</span></code>
+claim and the <code class="docutils literal notranslate"><span class="pre">recovery_code</span></code> are dynamically configured. See the
+<code class="docutils literal notranslate"><span class="pre">pid_attributes</span></code> field in the <code class="docutils literal notranslate"><span class="pre">wallet-config.json</span></code> for details.</p>
+<p>In the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, the Authorization Server and Credential Issuer roles are
+combined: the wallet talks to a single <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>, which hosts its own <code class="docutils literal notranslate"><span class="pre">/par</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">/token</span></code>, <code class="docutils literal notranslate"><span class="pre">/nonce</span></code> and <code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoints. Behind the scenes,
+the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> delegates the actual user authentication to an upstream OpenID
+Connect provider — in practice <a class="reference external" href="https://github.com/minvws/nl-rdo-max">RDO Max</a> acting as a DigiD broker.</p>
+<p>For the internal structure of the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>, see
+<a class="reference internal" href="../../development/pid-issuer-architecture.html"><span class="std std-doc">PID Issuer architecture</span></a>.</p>
+<section id="pid-issuance-oauth-flow-overview">
+<h3>PID issuance OAuth flow overview<a class="headerlink" href="#pid-issuance-oauth-flow-overview" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> runs two independent OAuth 2.0 authorization-code exchanges
+that share no parameters:</p>
+<ol class="arabic simple">
+<li><p><strong>Wallet ↔ PID Issuer</strong> — the HAIP exchange described above. The wallet
+pushes a PAR, calls <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, eventually receives an
+authorization code at its own <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, and exchanges it at the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s <code class="docutils literal notranslate"><span class="pre">/token</span></code>. The wallet’s <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code>,
+PKCE pair, WIA and DPoP all terminate at the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>.</p></li>
+<li><p><strong>PID Issuer ↔ RDO Max</strong> — a second, freshly minted exchange the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>
+starts while handling the wallet’s <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>. Every parameter here is the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s own: its DigiD <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, its own <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> (the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code>), a random <code class="docutils literal notranslate"><span class="pre">state</span></code> (the <code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>), its
+own PKCE pair, <code class="docutils literal notranslate"><span class="pre">scope=openid</span></code> and a fresh OIDC <code class="docutils literal notranslate"><span class="pre">nonce</span></code>. RDO Max redirects
+back to the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>’s callback — <strong>never to the wallet</strong>.</p></li>
+</ol>
+<p>The <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> terminates the upstream round-trip at its own callback,
+generates its <strong>own</strong> authorization code, and only then redirects the browser
+back to the wallet. RDO Max never redirects the browser to the wallet directly.
+The two exchanges are linked solely by a server-side <strong>state-bridge</strong> entry,
+keyed by the <code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>, that remembers the wallet’s original
+<code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code> and PKCE challenge (and the upstream PKCE verifier)
+while the user is away at DigiD.</p>
+<p>Because the upstream round-trip is terminated at the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>, the upstream
+<code class="docutils literal notranslate"><span class="pre">/token</span></code> + <code class="docutils literal notranslate"><span class="pre">/userinfo</span></code> exchange (which yields the BSN) and the BRP attribute
+lookup happen <strong>in the <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code> handler</strong>, before the wallet ever calls
+<code class="docutils literal notranslate"><span class="pre">/token</span></code>. By the time the wallet exchanges its code at <code class="docutils literal notranslate"><span class="pre">/token</span></code>, the attributes
+are already determined and stored in the issuance session, so <code class="docutils literal notranslate"><span class="pre">/token</span></code> only
+verifies the wallet’s PKCE <code class="docutils literal notranslate"><span class="pre">code_verifier</span></code> and WIA, and issues the access token
+— there is no upstream interaction at <code class="docutils literal notranslate"><span class="pre">/token</span></code>. If anything fails in the
+callback (BSN, BRP, document build), the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> redirects the browser back
+to the wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> with an OAuth <code class="docutils literal notranslate"><span class="pre">error</span></code> response.</p>
+<p>Parameter handling, <strong>wallet ↔ PID Issuer</strong> (everything terminates at the PID
+Issuer):</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Handling</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code></p></td>
+<td><p>validated against accepted wallet client ids; never forwarded</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code></p></td>
+<td><p>wallet’s universal link; the PID Issuer redirects here with its own code</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
+<td><p>remembered in the state bridge, echoed on the final wallet redirect</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">code_challenge</span></code>/<code class="docutils literal notranslate"><span class="pre">_method</span></code></p></td>
+<td><p>wallet’s PKCE (<code class="docutils literal notranslate"><span class="pre">c1</span></code>, <code class="docutils literal notranslate"><span class="pre">S256</span></code>); verified at the PID Issuer’s <code class="docutils literal notranslate"><span class="pre">/token</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scope</span></code></p></td>
+<td><p>the requested PID credential configuration</p></td>
+</tr>
+<tr class="row-odd"><td><p>WIA headers</p></td>
+<td><p>wallet &lt;-&gt; PID Issuer only</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DPoP</span></code> header</p></td>
+<td><p>wallet &lt;-&gt; PID Issuer only</p></td>
+</tr>
+</tbody>
+</table>
+<p>Parameter handling, <strong>PID Issuer → RDO Max</strong> (all freshly generated by the PID
+Issuer, on both upstream <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> and <code class="docutils literal notranslate"><span class="pre">/token</span></code>):</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code></p></td>
+<td><p>the PID Issuer’s DigiD client id</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code></p></td>
+<td><p>the PID Issuer’s own <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
+<td><p>random <code class="docutils literal notranslate"><span class="pre">issuer_state</span></code>; keys the state-bridge entry</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">code_challenge</span></code>/<code class="docutils literal notranslate"><span class="pre">_method</span></code></p></td>
+<td><p>the PID Issuer’s own PKCE pair (<code class="docutils literal notranslate"><span class="pre">c2</span></code>, <code class="docutils literal notranslate"><span class="pre">S256</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scope</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">openid</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nonce</span></code> (OIDC)</p></td>
+<td><p>fresh random, required by nl-rdo-max</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">code_verifier</span></code> (<code class="docutils literal notranslate"><span class="pre">/token</span></code>)</p></td>
+<td><p>the PID Issuer’s own verifier (<code class="docutils literal notranslate"><span class="pre">v2</span></code>); upstream client auth applied</p></td>
+</tr>
+</tbody>
+</table>
+<p>To keep the diagram focused on the OpenID4VCI / RDO Max delegation, the
+wallet-side DPoP layer and the Wallet Instance Attestation (WIA) are omitted
+below — both sit strictly between the wallet and the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> and do not
+affect the delegation to RDO Max.</p>
+<p>PKCE tracer values: the wallet uses <code class="docutils literal notranslate"><span class="pre">(v1,</span> <span class="pre">c1)</span></code> toward the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>; the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> uses <code class="docutils literal notranslate"><span class="pre">(v2,</span> <span class="pre">c2)</span></code> toward RDO Max. Each verifier is checked only by
+the party that issued the challenge.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+
+    participant OS
+    participant Wallet
+    participant PI as PID Issuer
+    participant RDO as RDO Max
+
+    %% ---- Optional issuer-initiated Credential Offer ----
+    Note over OS,RDO: Credential Offer (optional, issuer-initiated)
+
+    PI--&gt;&gt;OS: openid-credential-offer://?credential_offer_uri=&lt;url&gt;&lt;br/&gt;(e.g. via QR code or same-device link)
+    OS-&gt;&gt;Wallet: open with offer URL
+    Wallet-&gt;&gt;PI: GET &lt;credential_offer_uri&gt;
+    PI-&gt;&gt;Wallet: { credential_issuer, credential_configuration_ids:&lt;br/&gt;  [&quot;eu.europa.ec.eudi.pid_vc_sd_jwt&quot;],&lt;br/&gt;  grants: { authorization_code: { issuer_state: &quot;s_iss&quot; } } }
+
+    %% ---- Metadata discovery ----
+    Wallet--&gt;&gt;PI: GET /.well-known/openid-credential-issuer
+    PI--&gt;&gt;Wallet: { credential_issuer, credential_configurations_supported,&lt;br/&gt;  authorization_servers, nonce_endpoint,&lt;br/&gt;  credential_endpoint, ... }
+    Wallet-&gt;&gt;Wallet: pick AS from authorization_servers[]
+
+    Note over OS,RDO: Authentication phase
+
+    Wallet--&gt;&gt;PI: GET /.well-known/oauth-authorization-server
+    PI--&gt;&gt;Wallet: { pushed_authorization_request_endpoint,&lt;br/&gt;  authorization_endpoint, token_endpoint,&lt;br/&gt;  require_pushed_authorization_requests: true }
+
+    Wallet-&gt;&gt;Wallet: generate PKCE_W (v1, c1 = S256(v1)),&lt;br/&gt;state=s1
+
+    %% ---- PAR ----
+    Wallet-&gt;&gt;PI: POST /par
+    note right of Wallet: response_type=code&lt;br/&gt;client_id=nl-wallet-app&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&lt;br/&gt;code_challenge=c1, code_challenge_method=S256&lt;br/&gt;state=s1&lt;br/&gt;scope=eu.europa.ec.eudi.pid_vc_sd_jwt&lt;br/&gt;issuer_state=s_iss   ← if from offer
+    PI-&gt;&gt;PI: store PAR keyed by request_uri
+    PI-&gt;&gt;Wallet: 201 { request_uri: &quot;urn:...abc&quot;, expires_in: 60 }
+
+    %% ---- Front-channel authorization ----
+    Wallet-&gt;&gt;OS: open browser → GET &lt;PID_Issuer&gt;/authorize?&lt;br/&gt;client_id=nl-wallet-app&amp;request_uri=urn:...abc
+    OS-&gt;&gt;PI: GET /authorize?client_id=nl-wallet-app&amp;request_uri=urn:...abc
+    PI-&gt;&gt;PI: consume PAR, validate client_id
+    PI--&gt;&gt;RDO: GET /.well-known/openid-configuration&lt;br/&gt;(first upstream use, cached thereafter)
+    RDO--&gt;&gt;PI: upstream OIDC metadata&lt;br/&gt;(authorization_endpoint, token_endpoint, userinfo_endpoint)
+    PI-&gt;&gt;PI: generate PKCE_P (v2, c2) and random issuer_state=s2,&lt;br/&gt;store state_bridge[s2] = {&lt;br/&gt;  wallet_redirect_uri=&lt;wallet_ul&gt;, wallet_state=s1,&lt;br/&gt;  wallet_code_challenge=c1, upstream_code_verifier=v2 }
+    PI-&gt;&gt;OS: 302 Location: &lt;RDO&gt;/authorize?&lt;br/&gt;response_type=code&amp;client_id=pid-issuer-digid&amp;&lt;br/&gt;redirect_uri=&lt;PI&gt;/digid/callback&amp;&lt;br/&gt;code_challenge=c2&amp;code_challenge_method=S256&amp;&lt;br/&gt;state=s2&amp;scope=openid&amp;nonce=&lt;random&gt;
+    OS-&gt;&gt;RDO: GET /authorize?...
+    note over OS,RDO: user authenticates via DigiD
+    RDO-&gt;&gt;OS: 302 Location: &lt;PI&gt;/digid/callback?&lt;br/&gt;code=up_code&amp;state=s2
+    OS-&gt;&gt;PI: GET /digid/callback?code=up_code&amp;state=s2
+
+    %% ---- Upstream token + userinfo, BRP, mint issuer code ----
+    PI-&gt;&gt;PI: consume state_bridge[s2] → { wallet_*, v2 }
+    PI-&gt;&gt;RDO: POST /token&lt;br/&gt;(grant_type=authorization_code, code=up_code,&lt;br/&gt;redirect_uri=&lt;PI&gt;/digid/callback, code_verifier=v2,&lt;br/&gt;client_id=pid-issuer-digid, upstream client auth)
+    RDO-&gt;&gt;PI: { access_token: &lt;upstream_at&gt;, ... }
+    PI-&gt;&gt;RDO: GET /userinfo (Authorization: Bearer &lt;upstream_at&gt;)
+    RDO-&gt;&gt;PI: BSN (encrypted JWE)
+    PI-&gt;&gt;PI: Lookup attributes in BRP,&lt;br/&gt;build PID documents (SD-JWT + mdoc),&lt;br/&gt;mint authorization code=code1,&lt;br/&gt;store AuthCodeIssued session[code1] = {&lt;br/&gt;  documents, wallet_code_challenge=c1 }
+    PI-&gt;&gt;OS: 302 Location: &lt;wallet_ul&gt;?code=code1&amp;state=s1
+    OS-&gt;&gt;Wallet: openWallet(code=code1, state=s1)
+    Wallet-&gt;&gt;Wallet: verify state == s1
+
+    %% ---- Token exchange ----
+    Wallet-&gt;&gt;PI: POST /token
+    note right of Wallet: grant_type=authorization_code&lt;br/&gt;code=code1&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&lt;br/&gt;code_verifier=v1      ← wallet's PKCE&lt;br/&gt;client_id=nl-wallet-app
+    PI-&gt;&gt;PI: load session[code1],&lt;br/&gt;verify S256(v1) == c1 (wallet PKCE),&lt;br/&gt;no upstream interaction
+    PI-&gt;&gt;Wallet: { access_token: &lt;at&gt;, token_type: &quot;Bearer&quot;,&lt;br/&gt;  expires_in: 3600,&lt;br/&gt;  authorization_details: [{..., credential_identifiers:[...]}] }
+
+    Note over OS,RDO: Issuance phase
+
+    Wallet-&gt;&gt;PI: POST /previews&lt;br/&gt;Authorization: Bearer &lt;at&gt;
+    PI-&gt;&gt;Wallet: previews
+
+    loop for every credential
+        Wallet-&gt;&gt;PI: POST /nonce
+        PI-&gt;&gt;Wallet: { c_nonce: &quot;n1&quot; }
+        Wallet--&gt;&gt;PI: GET /.well-known/openid-credential-issuer&lt;br/&gt;(usually cached)
+        PI--&gt;&gt;Wallet: issuer metadata
+        Wallet-&gt;&gt;PI: POST /credential&lt;br/&gt;Authorization: Bearer &lt;at&gt;
+        note right of Wallet: credential_configuration_id:&lt;br/&gt;  &quot;eu.europa.ec.eudi.pid_vc_sd_jwt&quot;&lt;br/&gt;proofs: { jwt: [&lt;PoP_1&gt;, &lt;PoP_2&gt;, ...] }
+        PI-&gt;&gt;Wallet: { credentials: [{ credential: &quot;&lt;sd-jwt-vc&gt;&quot; }, ...] }
+    end
+    </pre></section>
+</section>
+<section id="timeouts-and-expiry">
+<h2>Timeouts and expiry<a class="headerlink" href="#timeouts-and-expiry" title="Link to this heading"></a></h2>
+<p>Issuance spans several hops — an out-of-band offer, one or two OAuth
+round-trips, and a multi-step issuance phase — and each hop is bounded by its
+own, independent clock. Where a timeout becomes visible, and whether it can be
+surfaced to the wallet at all, depends on <em>which</em> clock expired and <em>which</em> flow
+is in play.</p>
+<section id="the-clocks">
+<h3>The clocks<a class="headerlink" href="#the-clocks" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Clock</p></th>
+<th class="head"><p>Flow</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Where set</p></th>
+<th class="head"><p>Bounds</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>PAR entry TTL</p></td>
+<td><p>auth-code</p></td>
+<td><p>60 s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PAR_TTL</span></code></p></td>
+<td><p>time between <code class="docutils literal notranslate"><span class="pre">/par</span></code> and the front-channel <code class="docutils literal notranslate"><span class="pre">/authorize</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>State-bridge entry TTL</p></td>
+<td><p>auth-code</p></td>
+<td><p>30 min</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">STATE_BRIDGE_ENTRY_TTL</span></code></p></td>
+<td><p>the whole user-agent round-trip through the upstream IdP (or consent page)</p></td>
+</tr>
+<tr class="row-even"><td><p>State-bridge delete leeway</p></td>
+<td><p>auth-code</p></td>
+<td><p>24 h</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">STATE_BRIDGE_DELETE_LEEWAY</span></code></p></td>
+<td><p>extra grace after the TTL in which an <em>expired</em> entry stays recoverable</p></td>
+</tr>
+<tr class="row-odd"><td><p>Issuance session inactivity</p></td>
+<td><p>both</p></td>
+<td><p>30 min</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SessionStoreTimeouts::expiration</span></code></p></td>
+<td><p>inactivity between <code class="docutils literal notranslate"><span class="pre">/token</span></code>, previews and <code class="docutils literal notranslate"><span class="pre">/credential</span></code>; also a pre-authorized code’s lifetime</p></td>
+</tr>
+<tr class="row-even"><td><p>Upstream IdP session</p></td>
+<td><p>auth-code (PID)</p></td>
+<td><p>external</p></td>
+<td><p>nl-rdo-max</p></td>
+<td><p>how long DigiD keeps the login state while the user authenticates</p></td>
+</tr>
+</tbody>
+</table>
+<p>The issuance session also has deletion timeouts (<code class="docutils literal notranslate"><span class="pre">successful_deletion</span></code>, 5 min;
+<code class="docutils literal notranslate"><span class="pre">failed_deletion</span></code>, 4 h) that govern <em>cleanup</em> after the session is done or
+expired, mirroring the state bridge’s split between expiration and deletion.</p>
+</section>
+<section id="where-an-expiry-surfaces">
+<h3>Where an expiry surfaces<a class="headerlink" href="#where-an-expiry-surfaces" title="Link to this heading"></a></h3>
+<p>The decisive question is whether the expiry is hit on a <strong>wallet→issuer API
+call</strong> (which can carry a structured error back to the wallet) or <strong>during a
+front-channel browser redirect</strong> (where the only way back to the wallet is the
+<code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, which may no longer be recoverable).</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Failure mode</p></th>
+<th class="head"><p>Hit on</p></th>
+<th class="head"><p>Wire signal</p></th>
+<th class="head"><p>Wallet result</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Pre-authorized code reused / session gone</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/token</span></code> call</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">invalid_grant</span></code> (RFC 6749 §5.2)</p></td>
+<td><p>“QR code no longer valid” screen</p></td>
+</tr>
+<tr class="row-odd"><td><p>Issuance session expired mid-issuance</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/credential</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">invalid_token</span></code> (RFC 6750, 401)</p></td>
+<td><p>“session expired” screen</p></td>
+</tr>
+<tr class="row-even"><td><p>State-bridge entry expired, within leeway</p></td>
+<td><p>browser</p></td>
+<td><p>OAuth <code class="docutils literal notranslate"><span class="pre">invalid_request</span></code> redirect</p></td>
+<td><p>redirect-uri error</p></td>
+</tr>
+<tr class="row-odd"><td><p>State-bridge entry deleted (after leeway)</p></td>
+<td><p>browser</p></td>
+<td><p>plain-text 400</p></td>
+<td><p><strong>dead-end</strong> — nothing reaches wallet</p></td>
+</tr>
+<tr class="row-even"><td><p>Upstream IdP (DigiD) abandoned / timed out</p></td>
+<td><p>browser</p></td>
+<td><p>none (callback never runs)</p></td>
+<td><p><strong>dead-end</strong> — nothing reaches wallet</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p><strong>Pre-authorized code, reused or expired</strong> (<code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>). The wallet
+POSTs the code to <code class="docutils literal notranslate"><span class="pre">/token</span></code> but the session is gone or already <code class="docutils literal notranslate"><span class="pre">Done</span></code>. This
+maps to the spec’s <code class="docutils literal notranslate"><span class="pre">invalid_grant</span></code>; the wallet recognises a pre-authorized
+<code class="docutils literal notranslate"><span class="pre">invalid_grant</span></code> and shows a “QR code no longer valid” screen. It is a plain
+API call, so the error reaches the wallet cleanly.</p></li>
+<li><p><strong>Issuance session expired mid-issuance</strong> (both flows). The holder dwells on a
+preview or the PIN screen past the inactivity timeout and the session is
+cleaned up. The next <code class="docutils literal notranslate"><span class="pre">/credential</span></code> call presents an access token whose session
+no longer exists, which maps to <code class="docutils literal notranslate"><span class="pre">invalid_token</span></code>; the wallet shows a “session
+expired” screen. Also an API call, so it surfaces cleanly.</p></li>
+<li><p><strong>Auth-code browser dead-end</strong> (both <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> and <code class="docutils literal notranslate"><span class="pre">acf_demo_issuer</span></code>).
+During the front-channel round-trip — DigiD for the PID issuer, the local
+consent page for the acf-demo issuer — the state-bridge entry expires. The
+callback then arrives carrying only the opaque <code class="docutils literal notranslate"><span class="pre">state</span></code> (the bridge key); the
+wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> lived <em>solely</em> inside that entry. Two sub-cases:</p>
+<ul>
+<li><p><strong>Within the delete leeway</strong>, the entry is expired-but-still-present, so
+the callback recovers the <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> and redirects the browser back to
+the wallet with an OAuth error (<code class="docutils literal notranslate"><span class="pre">invalid_request</span></code>). The wallet surfaces
+this as a redirect-uri error rather than a dead-end. This is exactly what
+the leeway buys.</p></li>
+<li><p><strong>After the leeway</strong>, the entry has been deleted, nothing links back to
+the wallet, and the callback dead-ends as a plain-text <code class="docutils literal notranslate"><span class="pre">400</span></code> in the
+browser.</p></li>
+</ul>
+</li>
+<li><p><strong>Upstream/DigiD timeout</strong> (PID only). If the user abandons or times out <em>at
+DigiD</em>, RDO Max never redirects back to the issuer, so our <code class="docutils literal notranslate"><span class="pre">/digid/callback</span></code>
+never runs and nothing server-side can observe it. The browser dead-ends at
+RDO Max. Only wallet-side detection of the abandoned step-out can catch this.</p></li>
+</ul>
+</section>
+<section id="relating-the-clocks">
+<h3>Relating the clocks<a class="headerlink" href="#relating-the-clocks" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>The <strong>state-bridge TTL must be at least the upstream IdP session TTL</strong>.
+Otherwise a login the user completed in time upstream could still find its
+bridge entry expired on the way back, turning a success into the dead-end
+above. The current 30 min is a placeholder; it should track the real DigiD
+session lifetime.</p></li>
+<li><p>The <strong>delete leeway is deliberately far longer than the TTL</strong> (24 h vs 30
+min), so a user who steps away mid-flow and returns much later still gets a
+graceful error redirect instead of a dead-end. The bridge entry holds no
+personal data (only the wallet’s <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code> and PKCE challenge),
+so retaining it that long is cheap.</p></li>
+</ul>
+<p>The code-level mechanics of the state-bridge dead-end and its leeway live in the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> — see
+<a class="reference internal" href="../../development/pid-issuer-architecture.html#internal-flow-par-authorize-callback-and-token"><span class="std std-ref">PID Issuer architecture</span></a>.</p>
+</section>
+</section>
+<section id="key-generation-and-usage-during-issuance">
+<h2>Key generation and usage during issuance<a class="headerlink" href="#key-generation-and-usage-during-issuance" title="Link to this heading"></a></h2>
+<section id="wallet-app">
+<h3>Wallet App<a class="headerlink" href="#wallet-app" title="Link to this heading"></a></h3>
+<p>The wallet uses the Wallet Backend to generate attestation private keys and sign
+the issuer’s nonce with them. It does this by sending a <code class="docutils literal notranslate"><span class="pre">PerformIssuance</span></code>
+<a class="reference internal" href="wallet-provider-instruction.html"><span class="std std-doc">instruction</span></a>, which returns one Proof of
+Possession (PoP) per generated key by signing the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from the issuer.</p>
+<p>For PID issuance, a WIA is additionally required. The wallet sends an
+<a class="reference internal" href="wallet-provider-instruction.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">IssueWia</span></code></span></a> instruction, which returns a
+fresh WIA (signed with the WB’s certificate chain) together with a disclosure
+PoP that binds the WIA to the current request.</p>
+<p>The following sequence diagram depicts how this happens.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    %% Force ordering by explicitly setting up participants
+    participant wallet as Wallet Core (App)
+    participant wallet_provider as Wallet Backend
+    participant hsm as WB HSM
+    participant db as WB Database
+
+    wallet-&gt;&gt;+wallet_provider: instruction: perform_issuance(c_nonce, key_count)
+    wallet_provider -&gt;&gt;+ hsm: generateECDSAPrivateKeys(key_count)
+    hsm -&gt;&gt; hsm: generate ECDSA private keys&lt;br/&gt;encrypt each private key with attestationWrappingKey
+    hsm --&gt;&gt;- wallet_provider: encryptedECDSAPrivateKeys, ECDSAPublicKeys
+    wallet_provider -&gt;&gt;+ db : storeAttestationKeys(encryptedAttestationPrivateKeys, attestationPublicKeys)
+    db --&gt;&gt;- wallet_provider: OK
+    loop for every encryptedAttestationPrivateKey
+        wallet_provider -&gt;&gt;+ hsm: sign(encryptedAttestationPrivateKey, c_nonce)
+        hsm -&gt;&gt; hsm: Decrypt encryptedAttestationPrivateKey with attestationWrappingKey&lt;br/&gt;sign c_nonce with decrypted key
+        hsm --&gt;&gt;- wallet_provider: PoP
+    end
+    wallet_provider--&gt;&gt;-wallet: instruction response: keyIdentifiers, PoPs
+
+    opt WIA required (PID issuance)
+        wallet-&gt;&gt;+wallet_provider: instruction: issue_wia(nonce, aud)
+        wallet_provider -&gt;&gt;+ hsm: generateECDSAPrivateKey()
+        hsm -&gt;&gt; hsm: generate WIA signing key&lt;br/&gt;encrypt with attestationWrappingKey
+        hsm --&gt;&gt;- wallet_provider: encryptedWIAPrivateKey, WIAPublicKey
+        wallet_provider -&gt;&gt; wallet_provider: buildWIAContent(walletMetadata, statusClaim)
+        wallet_provider -&gt;&gt;+ hsm: sign WIA content with wiaSigningKey (x5c)
+        hsm --&gt;&gt;- wallet_provider: WIA JWT
+        wallet_provider -&gt;&gt;+ hsm: sign disclosure PoP with wiaSigningKey
+        hsm --&gt;&gt;- wallet_provider: disclosure PoP
+        wallet_provider -&gt;&gt;+ db: storeWIAKey(encryptedWIAPrivateKey)
+        db --&gt;&gt;- wallet_provider: OK
+        wallet_provider--&gt;&gt;-wallet: instruction response: WiaDisclosure (WIA JWT + disclosure PoP)
+    end
+    </pre><!-- References -->
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="disclosure-with-openid4vp.html" class="btn btn-neutral float-left" title="Disclosure with OpenID4VP" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mobile-app-startup.html" class="btn btn-neutral float-right" title="Mobile App Startup" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.6.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="../../../v0.4.0/architecture/use-cases/issuance-with-openid4vci.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.4.1/architecture/use-cases/issuance-with-openid4vci.html">v0.4.1</a></dd>
+            <dd><a href="../../../v0.5.0/architecture/use-cases/issuance-with-openid4vci.html">v0.5.0</a></dd>
+            <dd><a href="issuance-with-openid4vci.html">v0.6.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../../main/architecture/use-cases/issuance-with-openid4vci.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>
