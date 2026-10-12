@@ -352,6 +352,7 @@ Use this checklist to verify all steps have been completed after release executi
 | Pre-release flag set                        |        | "Set as a pre-release" flag enabled                                                 |
 | GitHub release published                    |        | Release successfully published on GitHub                                            |
 
+## References
 
 [1]: https://semver.org/
 [2]: https://www.atlassian.com/agile/tutorials/versions/
