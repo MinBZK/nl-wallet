@@ -798,7 +798,7 @@ mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::num::NonZeroU8;
-    use std::num::NonZeroU16;
+    use std::time::Duration;
 
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
@@ -919,7 +919,7 @@ mod tests {
                 storage_url: None,
                 list_size: NonZeroU31::try_new(100_000).unwrap(),
                 create_threshold_ratio: Ratio::try_new(0.1).unwrap(),
-                expiry_in_hours: NonZeroU16::new(24).unwrap(),
+                expiry: Duration::from_hours(24),
                 refresh_threshold_ratio: Ratio::try_new(0.25).unwrap(),
                 ttl_in_minutes: None,
                 serve: true,
