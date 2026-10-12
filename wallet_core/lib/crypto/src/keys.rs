@@ -25,7 +25,7 @@ const AES_GCM_IV_BYTES_SIZE: usize = 12;
 #[derive(Debug, thiserror::Error)]
 pub enum PublicKeyError {
     #[error("invalid RSA key size: {0}")]
-    UnsupportedRsaKeySize(RsaMin2048PublicKeyError),
+    UnsupportedRsaKeySize(#[source] RsaMin2048PublicKeyError),
 }
 
 #[nutype(derive(Debug, Clone, AsRef, TryFrom, Into, PartialEq, Eq, Hash, Serialize, Deserialize), validate(predicate = |k| k.size() >= 256))]

@@ -198,10 +198,12 @@ impl<T> TypedCose<CoseSign1, T> {
                 trust_anchors,
             )
             .map_err(CoseError::CertificateVerify)?;
-        match certificate.public_key() {
-            PublicKey::ESP256(verifying_key) => self.verify_and_parse(verifying_key),
-            _ => Err(CoseError::UnsupportedCertificateAlgorithm),
-        }
+
+        let PublicKey::ESP256(verifying_key) = certificate.public_key() else {
+            return Err(CoseError::UnsupportedCertificateAlgorithm);
+        };
+
+        self.verify_and_parse(verifying_key)
     }
 
     async fn verify_against_trust_anchors_with_chain_and_crl(
@@ -222,10 +224,12 @@ impl<T> TypedCose<CoseSign1, T> {
                 CertificateCrlVerificationError::CertificateVerify(source) => CoseError::CertificateVerify(source),
                 error => CoseError::CertificateCrl(error),
             })?;
-        match x5chain.first().public_key() {
-            PublicKey::ESP256(verifying_key) => self.verify_and_parse(verifying_key),
-            _ => Err(CoseError::UnsupportedCertificateAlgorithm),
-        }
+
+        let PublicKey::ESP256(verifying_key) = x5chain.first().public_key() else {
+            return Err(CoseError::UnsupportedCertificateAlgorithm);
+        };
+
+        self.verify_and_parse(verifying_key)
     }
 }
 

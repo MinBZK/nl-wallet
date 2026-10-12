@@ -40,14 +40,14 @@ impl KeyPair {
     }
 
     fn check_verifying_key(public_key: &VerifyingKey, certificate: &BorrowingCertificate) -> Result<(), KeyPairError> {
-        match certificate.public_key() {
-            PublicKey::ESP256(cert_public_key) => {
-                if public_key != cert_public_key {
-                    return Err(KeyPairError::KeyMismatch);
-                }
-            }
-            _ => Err(KeyPairError::UnsupportedKeyAlgorithm)?,
+        let PublicKey::ESP256(cert_public_key) = certificate.public_key() else {
+            return Err(KeyPairError::UnsupportedKeyAlgorithm);
         };
+
+        if public_key != cert_public_key {
+            return Err(KeyPairError::KeyMismatch);
+        }
+
         Ok(())
     }
 }

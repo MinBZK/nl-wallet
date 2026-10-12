@@ -491,12 +491,10 @@ mod tests {
                         let leaf_certificate = BorrowingCertificate::from_der(certificate_chain.into_first())
                             .expect("leaf should be a valid X.509 certificate");
 
-                        match leaf_certificate.public_key() {
-                            PublicKey::ESP256(verifying_key) => *verifying_key,
-                            _ => {
-                                panic!("registration certificate should be signed with a P256 key");
-                            }
-                        }
+                        let PublicKey::ESP256(verifying_key) = leaf_certificate.public_key() else {
+                            panic!("registration certificate should be signed with a P256 key");
+                        };
+                        *verifying_key
                     }
                     _ => {
                         panic!("registration message should contain attestation for the correct platform");
