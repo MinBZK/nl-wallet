@@ -653,7 +653,7 @@ pub struct UserState<R, F, H, K, S> {
     pub key_attestation_certification: Url,
     pub attestation_wrapping_kids: KidPair,
     pub pid_issuer_trust_anchors: TrustAnchors,
-    pub status_list_service: S,
+    pub wia_status_list: S,
 }
 
 impl<GRC, PIC> AccountServer<GRC, PIC> {
@@ -2036,7 +2036,7 @@ pub mod mock {
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_kid: Kid,
         pid_issuer_trust_anchors: TrustAnchors,
-        status_list_service: S,
+        wia_status_list: S,
     ) -> UserState<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
         let key_attestation_key_pair = MOCK_WPTL_CA.generate_key_attestation_mock().unwrap();
 
@@ -2053,7 +2053,7 @@ pub mod mock {
                 previous: None,
             },
             pid_issuer_trust_anchors,
-            status_list_service,
+            wia_status_list,
         }
     }
 
@@ -3900,7 +3900,7 @@ mod tests {
             key_attestation_certification: user_state.key_attestation_certification,
             attestation_wrapping_kids: user_state.attestation_wrapping_kids,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
-            status_list_service: user_state.status_list_service,
+            wia_status_list: user_state.wia_status_list,
         };
 
         let instruction_result_signing_key = SigningKey::generate();

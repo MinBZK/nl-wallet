@@ -592,7 +592,7 @@ where
     let now: DateTime<Utc> = generators.generate();
     let exp = now + user_state.wia_status_tracking_validity;
     let status_claim = user_state
-        .status_list_service
+        .wia_status_list
         .obtain_status_claims(
             wia_id,
             Some(exp.into()),
@@ -2184,7 +2184,7 @@ mod tests {
 
         let mut user_state = user_state_with_ca(wallet_user_repo, wrapping_kid, &issuer_ca).await;
         user_state
-            .status_list_service
+            .wia_status_list
             .expect_revoke_attestation_batches()
             .times(2)
             .returning(|_| Ok(()));

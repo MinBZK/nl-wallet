@@ -210,7 +210,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         let repositories = Repositories::from(db.clone());
         let flags = WalletRepoFlags::try_new(repositories.clone(), settings.flags_refresh_delay).await?;
         flags.start_refresh_job();
-        let status_list_service = PostgresStatusListService::try_new(
+        let wia_status_list = PostgresStatusListService::try_new(
             WIA_ATTESTATION_TYPE_IDENTIFIER,
             db.to_connection(),
             settings
@@ -221,8 +221,8 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             flags.clone(),
         )
         .await?;
-        status_list_service.initialize_lists().await?;
-        let status_list_refresh_task = status_list_service.start_refresh_job();
+        wia_status_list.initialize_lists().await?;
+        let status_list_refresh_task = wia_status_list.start_refresh_job();
 
         let pin_policy = PinPolicy::new(
             settings.pin_policy.rounds,
@@ -283,7 +283,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 wia_status_tracking_validity: settings.wia_settings.wia_status_tracking_validity,
                 attestation_wrapping_kids: settings.attestation_wrapping_kid,
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
-                status_list_service,
+                wia_status_list,
             },
             status_list_refresh_task,
         };
