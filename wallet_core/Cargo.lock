@@ -10133,9 +10133,11 @@ dependencies = [
 name = "wallet_configuration"
 version = "0.7.0-dev"
 dependencies = [
+ "anyhow",
  "attestation_data",
  "attestation_types",
  "chrono",
+ "clap",
  "crypto",
  "derive_more",
  "error_category",
@@ -10145,6 +10147,7 @@ dependencies = [
  "openid4vc",
  "rustls-pki-types",
  "serde",
+ "serde_json",
  "serde_with",
  "thiserror 2.0.17",
  "url",
