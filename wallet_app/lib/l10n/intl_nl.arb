@@ -624,6 +624,8 @@
     "genericRelyingPartyErrorDescription": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van de organisatie waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de organisatie.",
     "genericRelyingPartyErrorDescriptionWithOrganizationName": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
     "genericRelyingPartyErrorTitle": "Sorry, er gaat iets mis",
+    "helpOverviewScreenContactSubtitle": "Bel ons als je vraag er niet bij staat.",
+    "helpOverviewScreenTourSubtitle": "Bekijk wat je kunt doen met NL Wallet.",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
     "helpSheetErrorCode": "Foutcode: {code}",
     "@helpSheetErrorCode": {
@@ -973,7 +975,7 @@
     "menuScreenScanQrCta": "Scan QR-code",
     "menuScreenSettingsCta": "Instellingen en beveiliging",
     "menuScreenTitle": "Menu",
-    "menuScreenTourCta": "Rondleiding door de app",
+    "menuScreenTourCta": "Ontdek hoe NL Wallet werkt",
     "menuScreenWCAGPageAnnouncement": "Menu in lijst {count} stuks",
     "missingAttributesPageBackToWebsiteCta": "Terug naar website",
     "missingAttributesPageCloseCta": "Sluiten",
