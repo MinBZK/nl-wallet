@@ -64,6 +64,9 @@ function get() {
     # Wallet web:
     echo "wallet_web: $(cd "$project_root/wallet_web" && cat package.json | jq -r '.version')"
 
+    # Wallet admin portal:
+    echo "wallet_admin_portal: $(cd "$project_root/wallet_admin_portal" && cat package.json | jq -r '.version')"
+
     exit 0
 }
 
@@ -76,7 +79,7 @@ function set() {
         local non_prefixed_version="${version#v}"
 
         # Tell us about it.
-        error "Setting versions of wallet_app, wallet_core, wallet_docs, and wallet_web to: $non_prefixed_version"
+        error "Setting versions of wallet_app, wallet_core, wallet_docs, wallet_web and wallet_admin_portal to: $non_prefixed_version"
 
         # Wallet app (pubspec.yaml):
         $sed -i "s|^version:[\s]*.*$|version: $non_prefixed_version|" "$project_root/wallet_app/pubspec.yaml" > /dev/null 2>&1
@@ -95,6 +98,10 @@ function set() {
         # Wallet web (package.json):
         jq ".version = \"$non_prefixed_version\"" "$project_root/wallet_web/package.json" > "/tmp/wallet_web_package_json_$$" 2>&1
         mv "/tmp/wallet_web_package_json_$$" "$project_root/wallet_web/package.json" > /dev/null 2>&1
+
+        # Wallet admin portal (package.json):
+        jq ".version = \"$non_prefixed_version\"" "$project_root/wallet_admin_portal/package.json" > "/tmp/wallet_admin_portal_package_json_$$" 2>&1
+        mv "/tmp/wallet_admin_portal_package_json_$$" "$project_root/wallet_admin_portal/package.json" > /dev/null 2>&1
 
         # Inform about doing lock upgrades.
         error ""
