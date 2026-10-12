@@ -2,7 +2,6 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::num::NonZeroUsize;
 
-use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
@@ -19,7 +18,6 @@ use itertools::Itertools;
 use jwt::SignedJwt;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
-use serde::Deserialize;
 use serde::Serialize;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
@@ -73,7 +71,6 @@ use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 use wscd::payload::jwt_proof::JwtProof;
 use wscd::payload::jwt_proof::JwtProofClaims;
-use wscd::payload::poa::POA_JWT_TYP;
 use wscd::payload::poa::Poa;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::payload::wia::WiaPopClaims;
@@ -170,6 +167,7 @@ impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for DiscloseRecoveryCode {}
 impl ValidateInstruction for DeleteKeys {}
+impl ValidateInstruction for Sign {}
 
 impl ValidateInstruction for IssueWia {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -178,24 +176,6 @@ impl ValidateInstruction for IssueWia {
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)
-    }
-}
-
-impl ValidateInstruction for Sign {
-    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        default_validation(wallet_user)?;
-
-        if self
-            .messages_with_identifiers
-            .iter()
-            .any(|(msg, _)| is_poa_message(msg))
-        {
-            let user = &wallet_user.id;
-            warn!("user {user} attempted to sign a PoA via the Sign instruction instead of ConstructPoa");
-            return Err(InstructionValidationError::PoaMessage);
-        }
-
-        Ok(())
     }
 }
 
@@ -1472,49 +1452,6 @@ where
     }
 }
 
-/// Test if the `message` is the payload of a PoA JWT, i.e. `header.body` where `header` is the base64url encoding
-/// of a JSON object containing `"typ":"poa+jwt"`.
-///
-/// This function must be used by the signing instructions to prevent a user from signing a PoA without
-/// using the intended `ConstructPoa` instruction for that. It should therefore be resistant to "tricks"
-/// such as include whitespace in the JSON or mess with the casing of the casing of the value of the `typ` field.
-///
-/// Since this function is executed for every single message that the WP signs for a wallet, before JSON deserialization
-/// of the header we do a number of cheaper checks to return early if the passed message is clearly not a PoA JWT
-/// payload.
-fn is_poa_message(message: &[u8]) -> bool {
-    // A JWT payload contains a single dot which is not located at the beginning of the string.
-    let predicate = |&x| x == b'.';
-    let dot_pos = match message.iter().position(predicate) {
-        None | Some(0) => return false, // a string without dot, or whose first character is a dot is not a JWT payload
-        Some(dot_pos) => {
-            if message.iter().skip(dot_pos + 1).any(predicate) {
-                return false; // a string with more than one dot is not a JWT payload
-            }
-
-            dot_pos
-        }
-    };
-
-    let first_part = &message[0..dot_pos];
-    let Ok(decoded) = BASE64_URL_SAFE_NO_PAD.decode(first_part) else {
-        return false; // not a PoA in case of Base64url decoding errors
-    };
-
-    // We use a custom `Header` struct here as opposed to `jsonwebtoken::Header` so as to only deserialize
-    // the `typ` field and not any of the other ones in `jsonwebtoken::Header`.
-    #[derive(Deserialize)]
-    struct Header {
-        typ: String,
-    }
-
-    let Ok(header) = serde_json::from_slice::<Header>(&decoded) else {
-        return false; // not a PoA in case of JSON deserialization errors
-    };
-
-    header.typ.to_ascii_lowercase() == POA_JWT_TYP
-}
-
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -1525,7 +1462,6 @@ mod tests {
     use std::sync::LazyLock;
     use std::sync::Mutex;
 
-    use base64::prelude::*;
     use chrono::Utc;
     use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
@@ -1599,7 +1535,6 @@ mod tests {
     use crate::instructions::HandleInstruction;
     use crate::instructions::InstructionError;
     use crate::instructions::ValidateInstruction;
-    use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
 
     pub async fn user_state<R>(
@@ -2277,47 +2212,6 @@ mod tests {
             .expect_err("PIN recovery should have failed");
 
         assert_matches!(err, InstructionError::PinRecoveryAccountMismatch);
-    }
-
-    fn mock_jwt_payload(header: &str) -> Vec<u8> {
-        (BASE64_URL_SAFE_NO_PAD.encode(header) + "." + &BASE64_URL_SAFE_NO_PAD.encode("{}")).into_bytes()
-    }
-
-    #[rstest]
-    #[case(mock_jwt_payload(r#"{"typ":"poa+jwt"}"#), true)]
-    #[case(mock_jwt_payload(r#"{"typ":"poa+JWT"}"#), true)] // accept any casing of the field value
-    #[case(mock_jwt_payload(r#"{"typ":"PoA+jWt"}"#), true)]
-    #[case(mock_jwt_payload(r#"{"typ": "poa+jwt"}"#), true)] // whitespace in the JSON doesn't matter
-    #[case(mock_jwt_payload(r#"{ "typ":"poa+jwt"}"#), true)]
-    #[case(mock_jwt_payload(r#" {"typ": "poa+jwt"}"#), true)]
-    #[case(mock_jwt_payload(r#"{ "typ": "poa+jwt"}"#), true)]
-    #[case(mock_jwt_payload(r#"{	"typ":"poa+jwt"}"#), true)]
-    #[case(
-        mock_jwt_payload(
-            r#"{"typ"
-:"poa+jwt"}"#
-        ),
-        true
-    )]
-    #[case(
-        mock_jwt_payload(
-            r#" {	"typ":
-"poa+jwt"}"#
-        ),
-        true
-    )]
-    #[case(mock_jwt_payload(r#"{"Typ":"poa+jwt"}"#), false)] // a differently cased field name is a different field
-    #[case(mock_jwt_payload(r#"{" typ":"poa+jwt"}"#), false)] // whitespace in the field name is a different field
-    #[case(mock_jwt_payload(r#"{"typ":" poa+jwt"}"#), false)] // or in the field value
-    #[case(mock_jwt_payload(r#"{"typ":"jwt"}"#), false)] // an ordinary JWT is not a PoA
-    #[case(mock_jwt_payload(r#"{"typ":42}"#), false)] // Invalid JSON is not a PoA
-    #[case(mock_jwt_payload(r#"{"typ"}"#), false)]
-    #[case(".blah".to_string().into_bytes(), false)]
-    #[case([".".to_string().into_bytes(), mock_jwt_payload(r#"{"typ":"jwt"}"#)].concat(), false)]
-    #[case([mock_jwt_payload(r#"{"typ":"poa+jwt"}"#), ".blah".to_string().into_bytes()].concat(), false)]
-    #[test]
-    fn test_is_poa_message(#[case] msg: Vec<u8>, #[case] is_poa: bool) {
-        assert_eq!(is_poa_message(&msg), is_poa);
     }
 
     async fn handle_issuance_instruction<R, I: HandleInstruction<Result = R>>(
