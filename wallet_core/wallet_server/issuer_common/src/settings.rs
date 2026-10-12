@@ -155,6 +155,11 @@ pub struct IssuerSettings {
     /// The maximum amount of copies of a credential that the holder can request.
     pub batch_size: NonZeroU8,
 
+    /// Whether to offer the (non-standard) Credential Preview Endpoint. Without it, the wallet does not show the
+    /// credentials before they are issued.
+    #[serde(default = "default_credential_preview_endpoint")]
+    pub credential_preview_endpoint: bool,
+
     #[serde(flatten)]
     #[debug(skip)]
     pub server_settings: Settings,
@@ -165,6 +170,10 @@ pub struct IssuerSettings {
     /// Attestation (WIA) and the signing certificate for Key Attestations must be verified using these anchors.
     #[debug(skip)]
     pub wptl_trust_anchors: TrustAnchors,
+}
+
+fn default_credential_preview_endpoint() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Default, AsRef)]
@@ -710,6 +719,7 @@ impl IssuerSettings {
             self.batch_size,
             self.wallet_client_ids,
             credential_configs,
+            self.credential_preview_endpoint,
             self.wptl_trust_anchors,
             Arc::new(sessions),
             proof_nonce_store,
@@ -882,6 +892,7 @@ mod tests {
             .unwrap(),
             wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
+            credential_preview_endpoint: true,
             server_settings: Settings {
                 wallet_server: Server {
                     ip: "127.0.0.1".parse().unwrap(),

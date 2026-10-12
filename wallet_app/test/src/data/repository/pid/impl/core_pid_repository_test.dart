@@ -61,7 +61,8 @@ void main() {
       );
       final expectedAttributes = cardMapper.map(testAttestation).attributes;
 
-      when(core.continueIssuance(mockContinueUri)).thenAnswer((realInvocation) async => [testAttestation]);
+      when(core.continueIssuance(mockContinueUri))
+          .thenAnswer((realInvocation) async => IssuanceContinueResult.previews([testAttestation]));
       expect(await pidRepository.continuePidIssuance(mockContinueUri), expectedAttributes);
       verify(core.continueIssuance(mockContinueUri));
     });

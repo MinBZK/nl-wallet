@@ -206,6 +206,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   PlatformInt64 dco_decode_isize(dynamic raw);
 
   @protected
+  IssuanceContinueResult dco_decode_issuance_continue_result(dynamic raw);
+
+  @protected
   IssuanceStartResult dco_decode_issuance_start_result(dynamic raw);
 
   @protected
@@ -544,6 +547,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   PlatformInt64 sse_decode_isize(SseDeserializer deserializer);
+
+  @protected
+  IssuanceContinueResult sse_decode_issuance_continue_result(SseDeserializer deserializer);
 
   @protected
   IssuanceStartResult sse_decode_issuance_start_result(SseDeserializer deserializer);
@@ -1540,6 +1546,25 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_issuance_continue_result(
+    IssuanceContinueResult apiObj,
+    wire_cst_issuance_continue_result wireObj,
+  ) {
+    if (apiObj is IssuanceContinueResult_Previews) {
+      var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
+      wireObj.tag = 0;
+      wireObj.kind.Previews.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is IssuanceContinueResult_NoPreviews) {
+      var pre_organization = cst_encode_box_autoadd_organization(apiObj.organization);
+      wireObj.tag = 1;
+      wireObj.kind.NoPreviews.organization = pre_organization;
+      return;
+    }
+  }
+
+  @protected
   void cst_api_fill_to_wire_issuance_start_result(IssuanceStartResult apiObj, wire_cst_issuance_start_result wireObj) {
     if (apiObj is IssuanceStartResult_AuthorizationUrl) {
       var pre_field0 = cst_encode_String(apiObj.field0);
@@ -1551,6 +1576,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
       wireObj.tag = 1;
       wireObj.kind.Previews.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is IssuanceStartResult_NoPreviews) {
+      var pre_organization = cst_encode_box_autoadd_organization(apiObj.organization);
+      wireObj.tag = 2;
+      wireObj.kind.NoPreviews.organization = pre_organization;
       return;
     }
   }
@@ -2183,6 +2214,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_isize(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_issuance_continue_result(IssuanceContinueResult self, SseSerializer serializer);
 
   @protected
   void sse_encode_issuance_start_result(IssuanceStartResult self, SseSerializer serializer);
@@ -4575,6 +4609,27 @@ final class wire_cst_flutter_version_state extends ffi.Struct {
   external FlutterVersionStateKind kind;
 }
 
+final class wire_cst_IssuanceContinueResult_Previews extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
+}
+
+final class wire_cst_IssuanceContinueResult_NoPreviews extends ffi.Struct {
+  external ffi.Pointer<wire_cst_organization> organization;
+}
+
+final class IssuanceContinueResultKind extends ffi.Union {
+  external wire_cst_IssuanceContinueResult_Previews Previews;
+
+  external wire_cst_IssuanceContinueResult_NoPreviews NoPreviews;
+}
+
+final class wire_cst_issuance_continue_result extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external IssuanceContinueResultKind kind;
+}
+
 final class wire_cst_IssuanceStartResult_AuthorizationUrl extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
 }
@@ -4583,10 +4638,16 @@ final class wire_cst_IssuanceStartResult_Previews extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
 }
 
+final class wire_cst_IssuanceStartResult_NoPreviews extends ffi.Struct {
+  external ffi.Pointer<wire_cst_organization> organization;
+}
+
 final class IssuanceStartResultKind extends ffi.Union {
   external wire_cst_IssuanceStartResult_AuthorizationUrl AuthorizationUrl;
 
   external wire_cst_IssuanceStartResult_Previews Previews;
+
+  external wire_cst_IssuanceStartResult_NoPreviews NoPreviews;
 }
 
 final class wire_cst_issuance_start_result extends ffi.Struct {

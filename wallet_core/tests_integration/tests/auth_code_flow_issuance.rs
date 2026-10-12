@@ -27,6 +27,7 @@ use tests_integration::common::*;
 use url::Url;
 use utils::vec_at_least::VecNonEmptyUnique;
 use utils::vec_nonempty;
+use wallet::IssuanceContinueResult;
 use wallet::IssuanceStartResult;
 use wallet::Pin;
 use wscd::mock::MOCK_WALLET_CLIENT_ID;
@@ -150,7 +151,7 @@ async fn test_acf_demo_issuer_wallet_issuance() {
     let pin: Pin = "112233".into();
 
     let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
-    let acf = setup_auth_code_env(&db_setup, None).await;
+    let acf = setup_auth_code_env_with_previews(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     // The demo issuer's QR: a static auth-code offer selecting the insurance usecase via issuer_state.
@@ -167,13 +168,16 @@ async fn test_acf_demo_issuer_wallet_issuance() {
 
     // Drive the consent page, then hand the wallet the resulting redirect to exchange for previews.
     let redirect_uri = fake_consent_auth(authorization_url).await;
-    let previews = wallet
+    let IssuanceContinueResult::Previews(previews) = wallet
         .continue_issuance(redirect_uri)
         .await
-        .expect("should continue issuance after consent");
+        .expect("should continue issuance after consent")
+    else {
+        panic!("expected previews");
+    };
 
-    assert_eq!(previews.len(), 1);
-    assert_eq!(previews.first().unwrap().attestation_type, "com.example.insurance");
+    assert_eq!(previews.len().get(), 1);
+    assert_eq!(previews.first().attestation_type, "com.example.insurance");
 
     wallet.accept_issuance(pin).await.expect("should accept issuance");
 
@@ -184,6 +188,51 @@ async fn test_acf_demo_issuer_wallet_issuance() {
             .any(|attestation| attestation.attestation_type == "com.example.insurance"),
         "the issued insurance attestation should be present in the wallet",
     );
+}
+
+/// Full wallet driven issuance for the authorization-code flow demo issuer, configured without the Credential Preview
+/// Endpoint.
+///
+/// The wallet receives no previews, only the issuer organization to show to the user, and stores the issued
+/// insurance attestation as a new attestation after acceptance.
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm)]
+async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
+    let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
+    let pin: Pin = "112233".into();
+
+    let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let acf = setup_auth_code_env(&db_setup, None).await;
+    let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
+
+    let offer_uri = create_auth_code_credential_offer(&acf.public, ISSUER_STATE, "com.example.insurance");
+
+    let IssuanceStartResult::AuthorizationUrl(authorization_url) = wallet
+        .start_issuance_from_offer(offer_uri)
+        .await
+        .expect("should start issuance from offer")
+    else {
+        panic!("expected an authorization URL for the auth-code flow");
+    };
+
+    let redirect_uri = fake_consent_auth(authorization_url).await;
+    let IssuanceContinueResult::NoPreviews { organization } = wallet
+        .continue_issuance(redirect_uri)
+        .await
+        .expect("should continue issuance after consent")
+    else {
+        panic!("expected no previews");
+    };
+
+    wallet.accept_issuance(pin).await.expect("should accept issuance");
+
+    let attestations = wallet_attestations(&mut wallet).await;
+    let attestation = attestations
+        .iter()
+        .find(|attestation| attestation.attestation_type == "com.example.insurance")
+        .expect("the issued insurance attestation should be present in the wallet");
+    assert_eq!(attestation.issuer, organization);
 }
 
 /// Full wallet-driven issuance for the loyalty card use case, which uses [`UsecaseKind::Immediate`]:
@@ -197,7 +246,7 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
     let pin: Pin = "112233".into();
 
     let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
-    let acf = setup_auth_code_env(&db_setup, None).await;
+    let acf = setup_auth_code_env_with_previews(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     let offer_uri = create_auth_code_credential_offer(&acf.public, "loyalty", "com.example.jum.bonuskaart");
@@ -212,13 +261,16 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
 
     // For Immediate usecases, /authorize skips the consent page and redirects straight to the wallet.
     let redirect_uri = follow_authorization_redirects(authorization_url).await;
-    let previews = wallet
+    let IssuanceContinueResult::Previews(previews) = wallet
         .continue_issuance(redirect_uri)
         .await
-        .expect("should continue issuance after immediate authorization");
+        .expect("should continue issuance after immediate authorization")
+    else {
+        panic!("expected previews");
+    };
 
-    assert_eq!(previews.len(), 1);
-    assert_eq!(previews.first().unwrap().attestation_type, "com.example.jum.bonuskaart");
+    assert_eq!(previews.len().get(), 1);
+    assert_eq!(previews.first().attestation_type, "com.example.jum.bonuskaart");
 
     wallet.accept_issuance(pin).await.expect("should accept issuance");
 
@@ -229,6 +281,17 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
             .any(|attestation| attestation.attestation_type == "com.example.jum.bonuskaart"),
         "the issued loyalty attestation should be present in the wallet",
     );
+}
+
+/// Start the authorization-code flow demo issuer with the Credential Preview Endpoint enabled.
+async fn setup_auth_code_env_with_previews(db_setup: &DbSetup) -> IssuerUrl {
+    let mut settings = acf_demo_issuer_settings(db_setup.acf_demo_issuer_url(), None);
+    settings
+        .authorizing_issuer_settings
+        .issuer_settings
+        .credential_preview_endpoint = true;
+
+    start_acf_demo_issuer_server(settings).await
 }
 
 /// Build the static authorization-code credential offer the demo issuer's QR encodes: a by-value

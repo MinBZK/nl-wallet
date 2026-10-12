@@ -779,6 +779,18 @@
     "invariantErrorScreenWhatCanYouDoTitle": "What can you do?",
     "issuanceAuthenticateExternallyDescription": "Follow the steps on the issuer’s website.\nThen return to NL Wallet.",
     "issuanceAuthenticateExternallyTitle": "Continue in your browser",
+    "issuanceConfirmIssuerPageAcceptCta": "Yes, continue",
+    "issuanceConfirmIssuerPageDeclineCta": "Stop",
+    "issuanceConfirmIssuerPageDescription": "Your card(s) will be added to your NL Wallet after you confirm with your PIN.",
+    "issuanceConfirmIssuerPageTitle": "Do you want to get your card(s) from {organization}?",
+    "@issuanceConfirmIssuerPageTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
     "issuanceConfirmPinPageTitle": "Agree with your PIN",
     "issuanceLoadingCardsDescription": "Cards are being retrieved",
     "issuanceLoadingCardsTitle": "Please wait",

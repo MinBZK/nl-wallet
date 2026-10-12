@@ -298,6 +298,7 @@ mod tests {
             HashSet::new(),
             CredentialConfigurations::try_new([("credential_config_id".to_string().into(), credential_config)].into())
                 .unwrap(),
+            true,
             wptl_trust_anchors,
             sessions,
             MemoryNonceStore::new(),

@@ -44,6 +44,7 @@ use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::AUTHORIZATION;
 use sd_jwt::error::DecoderError;
+use sd_jwt::sd_jwt::DecodedSdJwt;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -1063,7 +1064,10 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         IssuedCredentialCopies::SdJwt(sd_jwts),
                         credential_payloads.into_first(),
                         normalized.extended_vcts().map(String::from).collect(),
-                        IssuedCredentialMetadata::TypeMetadata(verified_metadata),
+                        IssuedCredentialMetadata::TypeMetadata {
+                            verified: verified_metadata,
+                            normalized: normalized.clone(),
+                        },
                     )
                 }
                 (Format::SdJwt, metadata @ OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
@@ -1215,10 +1219,10 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(credentials)
     }
 
-    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
+    fn credential_previews(&self) -> Option<impl NonEmptyIterator<Item = OfferedCredentialPreview<'_>>> {
         match &self.session_state.offered_credentials {
             OfferedCredentials::WithPreviews(creds) => {
-                Some(creds.iter().map(|(offered_credential, credential_payload)| {
+                Some(creds.nonempty_iter().map(|(offered_credential, credential_payload)| {
                     let metadata = self
                         .session_state
                         .metadata
@@ -1325,6 +1329,7 @@ impl Credentials {
 
                 let sd_jwt = unverified_sd_jwt
                     .into_verified_against_trust_anchors(issuer_trust_anchors, &TimeGenerator)
+                    .and_then(DecodedSdJwt::try_from)
                     .map_err(WalletIssuanceError::SdJwtVerification)?;
 
                 let issued_credential_payload = CredentialPayload::from_sd_jwt(sd_jwt.clone())
@@ -1337,7 +1342,7 @@ impl Credentials {
                         .claim_paths(AttributesTraversalBehaviour::OnlyLeaves);
 
                     // Verify whether each claims selective disclosability matches the metadata.
-                    Self::verify_selective_disclosability(&sd_jwt, issued_claims, normalized)?;
+                    Self::verify_selective_disclosability(sd_jwt.sd_jwt(), issued_claims, normalized)?;
                 }
 
                 Self::validate_credential(preview, &public_key, &issued_credential_payload, metadata)?;
@@ -1430,6 +1435,7 @@ fn verify_metadata_integrity<'a>(
         .map(|sd_jwt_copy| {
             sd_jwt_copy
                 .sd_jwt
+                .sd_jwt()
                 .claims()
                 .vct_integrity
                 .as_ref()
@@ -1821,7 +1827,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
+        let Ok(preview) = session.credential_previews().unwrap().into_iter().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
@@ -2243,7 +2249,7 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
+        let Ok(preview) = session.credential_previews().unwrap().into_iter().exactly_one() else {
             panic!("issuance session should contain exactly one preview")
         };
 
@@ -2286,6 +2292,7 @@ mod tests {
         let Ok(credential_preview) = session
             .credential_previews()
             .expect("issuance session should contain previews")
+            .into_iter()
             .exactly_one()
         else {
             panic!("issuance session should contain exactly one preview")

@@ -2476,6 +2476,29 @@ impl SseDecode for isize {
     }
 }
 
+impl SseDecode for crate::models::issuance::IssuanceContinueResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_field0 =
+                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceContinueResult::Previews(var_field0);
+            }
+            1 => {
+                let mut var_organization = <crate::models::organization::Organization>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceContinueResult::NoPreviews {
+                    organization: var_organization,
+                };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseDecode for crate::models::issuance::IssuanceStartResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2489,6 +2512,12 @@ impl SseDecode for crate::models::issuance::IssuanceStartResult {
                 let mut var_field0 =
                     <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
                 return crate::models::issuance::IssuanceStartResult::Previews(var_field0);
+            }
+            2 => {
+                let mut var_organization = <crate::models::organization::Organization>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceStartResult::NoPreviews {
+                    organization: var_organization,
+                };
             }
             _ => {
                 unimplemented!("");
@@ -3910,6 +3939,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::image::ImageWithMetadata>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceContinueResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::issuance::IssuanceContinueResult::Previews(field0) => {
+                [0.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::issuance::IssuanceContinueResult::NoPreviews { organization } => {
+                [1.into_dart(), organization.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::issuance::IssuanceContinueResult {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::issuance::IssuanceContinueResult>
+    for crate::models::issuance::IssuanceContinueResult
+{
+    fn into_into_dart(self) -> crate::models::issuance::IssuanceContinueResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceStartResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -3918,6 +3971,9 @@ impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceStartRes
             }
             crate::models::issuance::IssuanceStartResult::Previews(field0) => {
                 [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::issuance::IssuanceStartResult::NoPreviews { organization } => {
+                [2.into_dart(), organization.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -5014,6 +5070,25 @@ impl SseEncode for isize {
     }
 }
 
+impl SseEncode for crate::models::issuance::IssuanceContinueResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::issuance::IssuanceContinueResult::Previews(field0) => {
+                <i32>::sse_encode(0, serializer);
+                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
+            }
+            crate::models::issuance::IssuanceContinueResult::NoPreviews { organization } => {
+                <i32>::sse_encode(1, serializer);
+                <crate::models::organization::Organization>::sse_encode(organization, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseEncode for crate::models::issuance::IssuanceStartResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5025,6 +5100,10 @@ impl SseEncode for crate::models::issuance::IssuanceStartResult {
             crate::models::issuance::IssuanceStartResult::Previews(field0) => {
                 <i32>::sse_encode(1, serializer);
                 <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
+            }
+            crate::models::issuance::IssuanceStartResult::NoPreviews { organization } => {
+                <i32>::sse_encode(2, serializer);
+                <crate::models::organization::Organization>::sse_encode(organization, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -6315,6 +6394,24 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::issuance::IssuanceContinueResult> for wire_cst_issuance_continue_result {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::issuance::IssuanceContinueResult {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Previews };
+                    crate::models::issuance::IssuanceContinueResult::Previews(ans.field0.cst_decode())
+                }
+                1 => {
+                    let ans = unsafe { self.kind.NoPreviews };
+                    crate::models::issuance::IssuanceContinueResult::NoPreviews {
+                        organization: ans.organization.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
     impl CstDecode<crate::models::issuance::IssuanceStartResult> for wire_cst_issuance_start_result {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::issuance::IssuanceStartResult {
@@ -6326,6 +6423,12 @@ mod io {
                 1 => {
                     let ans = unsafe { self.kind.Previews };
                     crate::models::issuance::IssuanceStartResult::Previews(ans.field0.cst_decode())
+                }
+                2 => {
+                    let ans = unsafe { self.kind.NoPreviews };
+                    crate::models::issuance::IssuanceStartResult::NoPreviews {
+                        organization: ans.organization.cst_decode(),
+                    }
                 }
                 _ => unreachable!(),
             }
@@ -7081,6 +7184,19 @@ mod io {
         }
     }
     impl Default for wire_cst_image_with_metadata {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_issuance_continue_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: IssuanceContinueResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_issuance_continue_result {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -8406,6 +8522,29 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_issuance_continue_result {
+        tag: i32,
+        kind: IssuanceContinueResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union IssuanceContinueResultKind {
+        Previews: wire_cst_IssuanceContinueResult_Previews,
+        NoPreviews: wire_cst_IssuanceContinueResult_NoPreviews,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssuanceContinueResult_Previews {
+        field0: *mut wire_cst_list_attestation_presentation,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssuanceContinueResult_NoPreviews {
+        organization: *mut wire_cst_organization,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_issuance_start_result {
         tag: i32,
         kind: IssuanceStartResultKind,
@@ -8415,6 +8554,7 @@ mod io {
     pub union IssuanceStartResultKind {
         AuthorizationUrl: wire_cst_IssuanceStartResult_AuthorizationUrl,
         Previews: wire_cst_IssuanceStartResult_Previews,
+        NoPreviews: wire_cst_IssuanceStartResult_NoPreviews,
         nil__: (),
     }
     #[repr(C)]
@@ -8426,6 +8566,11 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_IssuanceStartResult_Previews {
         field0: *mut wire_cst_list_attestation_presentation,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssuanceStartResult_NoPreviews {
+        organization: *mut wire_cst_organization,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

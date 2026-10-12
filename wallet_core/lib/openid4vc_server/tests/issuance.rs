@@ -9,6 +9,8 @@ use std::time::Duration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use attestation_types::credential_format::Format;
+use axum::body::Body;
+use axum::http::Request;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
@@ -39,11 +41,13 @@ use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequestIdentifier;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::Credentials;
+use openid4vc::credential_configurations::CredentialConfigurationFormat;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
 use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
+use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use openid4vc::metadata::issuer_metadata::IssuerInfo;
 use openid4vc::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
@@ -60,6 +64,7 @@ use openid4vc::test::mock_type_metadata;
 use openid4vc::test::mock_type_metadata_with_required_attr;
 use openid4vc::test::setup_mock_authorizing_issuer_from_sd_jwt_metadata;
 use openid4vc::test::setup_mock_issuer;
+use openid4vc::test::setup_mock_issuer_with_metadata;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::token::VciTokenRequest;
 use openid4vc::token::VciTokenResponse;
@@ -88,9 +93,11 @@ use reqwest::redirect::Policy;
 use rstest::rstest;
 use sd_jwt_vc_metadata::TypeMetadata;
 use tokio::net::TcpListener;
+use tower::ServiceExt;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::mock_remote::MockRemoteWscd;
@@ -230,7 +237,7 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 
 fn verify_issued_credentials<'a>(
     issued_creds: Vec<CredentialWithMetadata>,
-    credential_previews: impl Iterator<Item = OfferedCredentialPreview<'a>>,
+    credential_previews: impl NonEmptyIterator<Item = OfferedCredentialPreview<'a>>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
@@ -331,7 +338,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
 
     let received_redirect: Url = authorize_response
         .headers()
-        .get(reqwest::header::LOCATION)
+        .get(header::LOCATION)
         .expect("authorize response should carry a Location header")
         .to_str()
         .unwrap()
@@ -355,7 +362,7 @@ async fn authorization_code_flow(
     let server = start_auth_code_flow_server(attestation_count).await;
     let mut session = start_issuance_session(&server).await;
 
-    assert_eq!(session.credential_previews().unwrap().count(), attestation_count.get());
+    assert_eq!(session.credential_previews().unwrap().count(), attestation_count);
 
     let wscd = MockRemoteWscd::new_with_wptl_ca(&server.wptl_ca);
     let issued_creds = session
@@ -394,7 +401,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let mut session = start_issuance_session(&server).await;
 
-    let Ok(preview) = session.credential_previews().unwrap().exactly_one() else {
+    let Ok(preview) = session.credential_previews().unwrap().into_iter().exactly_one() else {
         panic!("issuance session should contain exactly one preview");
     };
 
@@ -1841,4 +1848,31 @@ async fn openid_metadata_error(#[case] accept_header: &str, #[case] status_code:
 
     let response = request.header(ACCEPT, accept_header).send().await.unwrap();
     assert_eq!(response.status(), status_code);
+}
+
+#[rstest]
+#[tokio::test]
+async fn test_credential_preview_endpoint_only_served_when_enabled(
+    #[values(true, false)] credential_preview_endpoint: bool,
+) {
+    let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
+        "https://example.com/".parse().unwrap(),
+        vec![CredentialConfigurationFormat::new_sd_jwt_credential_metadata(
+            MOCK_ATTESTATION_TYPES[0].to_string(),
+            CredentialMetadata::new_example(&["first_name"]),
+        )],
+        credential_preview_endpoint,
+        Arc::new(MemorySessionStore::default()),
+    );
+
+    let response = create_issuance_router(Arc::new(issuer))
+        .oneshot(
+            Request::post("/issuance/credential_preview")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status() == StatusCode::NOT_FOUND, !credential_preview_endpoint);
 }

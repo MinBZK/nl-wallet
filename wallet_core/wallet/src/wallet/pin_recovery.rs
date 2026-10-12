@@ -262,8 +262,7 @@ where
         let pid_preview = Self::pid_preview(
             issuance_session
                 .credential_previews()
-                .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPreviews))?
-                .collect_vec()
+                .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPidPreviews))?
                 .into_iter(),
             pid_config,
         )?;
@@ -433,6 +432,7 @@ where
             .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
 
         let recovery_code_disclosure = pid
+            .into_sd_jwt()
             .into_presentation_builder()
             .disclose(&recovery_code_path)
             .expect("the presence of the recovery code within the PID is guaranteed by continue_pin_recovery()")
@@ -524,7 +524,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
@@ -633,7 +632,7 @@ mod tests {
             client
                 .expect_credential_previews()
                 .once()
-                .return_const(vec![(preview, normalized_metadata)].into());
+                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -890,7 +889,7 @@ mod tests {
             client
                 .expect_credential_previews()
                 .once()
-                .return_const(vec![(preview, normalized_metadata)].into());
+                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -941,7 +940,7 @@ mod tests {
                 client
                     .expect_credential_previews()
                     .once()
-                    .return_const(vec![(preview, normalized_metadata)].into());
+                    .return_const(vec_nonempty![(preview, normalized_metadata)].into());
 
                 Ok(client)
             });
@@ -1044,7 +1043,7 @@ mod tests {
                         key_identifier: "key_id".to_string(),
                         data: StoredAttestation::SdJwt(sd_jwt.clone()),
                     },
-                    IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                    IssuedCredentialMetadata::nl_pid_example(),
                 ),
             ],
             expect_accept_issuance.then_some(NonZeroU8::MIN),

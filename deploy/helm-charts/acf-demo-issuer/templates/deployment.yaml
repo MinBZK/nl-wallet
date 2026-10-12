@@ -98,6 +98,8 @@ spec:
               value: {{ join "," .Values.walletRedirectUris | quote }}
             - name: ACF_DEMO_ISSUER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
+            - name: ACF_DEMO_ISSUER__CREDENTIAL_PREVIEW_ENDPOINT
+              value: {{ .Values.credentialPreviewEndpoint | quote }}
             {{- if .Values.typeMetadata }}
             - name: ACF_DEMO_ISSUER__TYPE_METADATA
               value: {{ join "," .Values.typeMetadata | quote }}

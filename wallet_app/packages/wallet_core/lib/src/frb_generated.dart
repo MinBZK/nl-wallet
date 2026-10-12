@@ -149,7 +149,7 @@ abstract class WalletCoreApi extends BaseApi {
     required String pin,
   });
 
-  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri});
+  Future<IssuanceContinueResult> crateApiFullContinueIssuance({required String uri});
 
   Future<void> crateApiFullContinuePinRecovery({required String uri});
 
@@ -853,7 +853,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri}) {
+  Future<IssuanceContinueResult> crateApiFullContinueIssuance({required String uri}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -861,7 +861,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           return wire.wire__crate__api__full__continue_issuance(port_, arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_attestation_presentation,
+          decodeSuccessData: dco_decode_issuance_continue_result,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullContinueIssuanceConstMeta,
@@ -2549,6 +2549,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  IssuanceContinueResult dco_decode_issuance_continue_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return IssuanceContinueResult_Previews(
+          dco_decode_list_attestation_presentation(raw[1]),
+        );
+      case 1:
+        return IssuanceContinueResult_NoPreviews(
+          organization: dco_decode_box_autoadd_organization(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   IssuanceStartResult dco_decode_issuance_start_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
@@ -2559,6 +2576,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 1:
         return IssuanceStartResult_Previews(
           dco_decode_list_attestation_presentation(raw[1]),
+        );
+      case 2:
+        return IssuanceStartResult_NoPreviews(
+          organization: dco_decode_box_autoadd_organization(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -3647,6 +3668,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  IssuanceContinueResult sse_decode_issuance_continue_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_list_attestation_presentation(deserializer);
+        return IssuanceContinueResult_Previews(var_field0);
+      case 1:
+        var var_organization = sse_decode_box_autoadd_organization(deserializer);
+        return IssuanceContinueResult_NoPreviews(organization: var_organization);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
   IssuanceStartResult sse_decode_issuance_start_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3658,6 +3696,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 1:
         var var_field0 = sse_decode_list_attestation_presentation(deserializer);
         return IssuanceStartResult_Previews(var_field0);
+      case 2:
+        var var_organization = sse_decode_box_autoadd_organization(deserializer);
+        return IssuanceStartResult_NoPreviews(organization: var_organization);
       default:
         throw UnimplementedError('');
     }
@@ -5084,6 +5125,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_issuance_continue_result(IssuanceContinueResult self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case IssuanceContinueResult_Previews(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_list_attestation_presentation(field0, serializer);
+      case IssuanceContinueResult_NoPreviews(organization: final organization):
+        sse_encode_i_32(1, serializer);
+        sse_encode_box_autoadd_organization(organization, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_issuance_start_result(IssuanceStartResult self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
@@ -5093,6 +5147,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case IssuanceStartResult_Previews(field0: final field0):
         sse_encode_i_32(1, serializer);
         sse_encode_list_attestation_presentation(field0, serializer);
+      case IssuanceStartResult_NoPreviews(organization: final organization):
+        sse_encode_i_32(2, serializer);
+        sse_encode_box_autoadd_organization(organization, serializer);
     }
   }
 

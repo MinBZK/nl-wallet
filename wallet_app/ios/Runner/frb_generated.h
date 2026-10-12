@@ -527,6 +527,24 @@ typedef struct wire_cst_flutter_version_state {
   union FlutterVersionStateKind kind;
 } wire_cst_flutter_version_state;
 
+typedef struct wire_cst_IssuanceContinueResult_Previews {
+  struct wire_cst_list_attestation_presentation *field0;
+} wire_cst_IssuanceContinueResult_Previews;
+
+typedef struct wire_cst_IssuanceContinueResult_NoPreviews {
+  struct wire_cst_organization *organization;
+} wire_cst_IssuanceContinueResult_NoPreviews;
+
+typedef union IssuanceContinueResultKind {
+  struct wire_cst_IssuanceContinueResult_Previews Previews;
+  struct wire_cst_IssuanceContinueResult_NoPreviews NoPreviews;
+} IssuanceContinueResultKind;
+
+typedef struct wire_cst_issuance_continue_result {
+  int32_t tag;
+  union IssuanceContinueResultKind kind;
+} wire_cst_issuance_continue_result;
+
 typedef struct wire_cst_IssuanceStartResult_AuthorizationUrl {
   struct wire_cst_list_prim_u_8_strict *field0;
 } wire_cst_IssuanceStartResult_AuthorizationUrl;
@@ -535,9 +553,14 @@ typedef struct wire_cst_IssuanceStartResult_Previews {
   struct wire_cst_list_attestation_presentation *field0;
 } wire_cst_IssuanceStartResult_Previews;
 
+typedef struct wire_cst_IssuanceStartResult_NoPreviews {
+  struct wire_cst_organization *organization;
+} wire_cst_IssuanceStartResult_NoPreviews;
+
 typedef union IssuanceStartResultKind {
   struct wire_cst_IssuanceStartResult_AuthorizationUrl AuthorizationUrl;
   struct wire_cst_IssuanceStartResult_Previews Previews;
+  struct wire_cst_IssuanceStartResult_NoPreviews NoPreviews;
 } IssuanceStartResultKind;
 
 typedef struct wire_cst_issuance_start_result {

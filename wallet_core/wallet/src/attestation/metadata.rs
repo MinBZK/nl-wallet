@@ -7,6 +7,7 @@ use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use openid4vc::metadata::issuer_metadata::Logo as CredentialLogo;
 use openid4vc::metadata::issuer_metadata::NameLocale;
 use openid4vc::wallet_issuance::OfferedCredentialMetadata;
+use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
 use sd_jwt_vc_metadata::BackgroundImageMetadata;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
@@ -74,6 +75,17 @@ impl AttestationDisplay for NormalizedTypeMetadata {
         PresentationComponents {
             display_metadata,
             claims,
+        }
+    }
+}
+
+impl AttestationDisplay for IssuedCredentialMetadata {
+    fn into_presentation_components(self) -> PresentationComponents {
+        match self {
+            IssuedCredentialMetadata::TypeMetadata { normalized, .. } => normalized.into_presentation_components(),
+            IssuedCredentialMetadata::CredentialMetadata(credential_metadata) => {
+                credential_metadata.into_presentation_components()
+            }
         }
     }
 }
