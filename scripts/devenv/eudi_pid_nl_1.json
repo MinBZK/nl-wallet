@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-jOHMhxZJYl0UwCj+XvTkyZ4JTecvNnW4ecsijg92qC8=",
+  "extends#integrity": "sha256-kpfXYgtotSEnVQmAjmHKc8rXkbosnre4G53g1CNLE80=",
   "display": [
     {
       "locale": "en-US",
@@ -333,6 +333,214 @@
       ],
       "sd": "always",
       "mandatory": true
+    },
+    {
+      "path": ["birth_given_name"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Birth given name",
+          "description": "First name(s) of the person at birth, including any middle names"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Voornaam bij geboorte",
+          "description": "Voornaam of voornamen van de persoon bij geboorte"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["personal_administrative_number"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Personal administrative number",
+          "description": "A value assigned to the person that is unique among all personal administrative numbers issued by the provider"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Administratief nummer",
+          "description": "Persoonlijk administratief nummer dat uniek is binnen alle door de aanbieder uitgegeven nummers"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["email"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Email address",
+          "description": "Email address of the person"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "E-mailadres",
+          "description": "E-mailadres van de persoon"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["phone_number"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Phone number",
+          "description": "Mobile telephone number of the person"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Telefoonnummer",
+          "description": "Mobiel telefoonnummer van de persoon"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["picture"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Portrait",
+          "description": "Facial image of the person"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Pasfoto",
+          "description": "Pasfoto van de persoon"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["issuing_jurisdiction"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuing jurisdiction",
+          "description": "Country subdivision code of the jurisdiction that issued the person identification data"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Jurisdictie van afgifte",
+          "description": "Code van de jurisdictie die de persoonsgegevens heeft afgegeven"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["document_number"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Document number",
+          "description": "A number for the person identification data, assigned by the provider"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Documentnummer",
+          "description": "Documentnummer van de persoonsgegevens, toegekend door de aanbieder"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["date_of_issuance"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuance date",
+          "description": "Date when the person identification data was issued"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Datum van afgifte",
+          "description": "Datum waarop de persoonsgegevens zijn afgegeven"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["date_of_expiry"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Expiry date",
+          "description": "Date when the administrative validity period of the person identification data expires"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Vervaldatum",
+          "description": "Datum waarop de administratieve geldigheid van de persoonsgegevens vervalt"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["trust_anchor"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Trust anchor",
+          "description": "URL at which a machine-readable version of the trust anchor used for verifying the PID can be found"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Trust anchor",
+          "description": "URL waar een machineleesbare versie van de trust anchor voor PID-verificatie te vinden is"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["attestation_legal_category"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Attestation legal category",
+          "description": "Indicates that this attestation has been issued as a PID"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Juridische categorie attestatie",
+          "description": "Geeft aan dat deze attestatie is uitgegeven als PID"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "region"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Region",
+          "description": "State, province, district or local area of the address"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Regio",
+          "description": "Provincie, district of regio van het adres"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "formatted"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Full address",
+          "description": "Full formatted address of the person"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Volledig adres",
+          "description": "Volledig, geformatteerd adres van de persoon"
+        }
+      ],
+      "sd": "always"
     }
   ]
 }

@@ -6,6 +6,7 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde_with::skip_serializing_none;
 
+use crate::pid::rulebook::constants::PID_BIRTH_PLACE_GROUP;
 use crate::pid::rulebook::constants::PID_BSN;
 use crate::pid::rulebook::constants::PID_FAMILY_NAME;
 use crate::pid::rulebook::constants::PID_GIVEN_NAME;
@@ -17,7 +18,6 @@ use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_CITY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_COUNTRY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_POSTAL_CODE;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_STREET;
-use crate::pid::rulebook::constants::PID_PLACE_OF_BIRTH_GROUP;
 use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
 use crate::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
 use crate::pid::rulebook::constants::PID_SD_JWT_BIRTH_DATE;
@@ -163,7 +163,7 @@ impl BrpPerson {
                 given_names.map(|names| (String::from(PID_GIVEN_NAME), Attribute::Text(names))),
                 Some((String::from(PID_BSN), Attribute::Text(self.bsn))),
                 sex.map(|sex| (PID_SEX.to_owned(), sex)),
-                place_of_birth.map(|attribute| (PID_PLACE_OF_BIRTH_GROUP.to_owned(), attribute)),
+                place_of_birth.map(|attribute| (PID_BIRTH_PLACE_GROUP.to_owned(), attribute)),
             ]
             .into_iter()
             .flatten()

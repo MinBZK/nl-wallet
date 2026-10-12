@@ -302,6 +302,214 @@
           "locale": "nl-NL"
         }
       ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "given_name_birth"
+      ],
+      "display": [
+        {
+          "name": "Birth given name",
+          "locale": "en-US"
+        },
+        {
+          "name": "Voornaam bij geboorte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "personal_administrative_number"
+      ],
+      "display": [
+        {
+          "name": "Personal administrative number",
+          "locale": "en-US"
+        },
+        {
+          "name": "Administratief nummer",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "email_address"
+      ],
+      "display": [
+        {
+          "name": "Email address",
+          "locale": "en-US"
+        },
+        {
+          "name": "E-mailadres",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "mobile_phone_number"
+      ],
+      "display": [
+        {
+          "name": "Phone number",
+          "locale": "en-US"
+        },
+        {
+          "name": "Telefoonnummer",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "portrait"
+      ],
+      "display": [
+        {
+          "name": "Portrait",
+          "locale": "en-US"
+        },
+        {
+          "name": "Pasfoto",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "issuing_jurisdiction"
+      ],
+      "display": [
+        {
+          "name": "Issuing jurisdiction",
+          "locale": "en-US"
+        },
+        {
+          "name": "Jurisdictie van afgifte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "document_number"
+      ],
+      "display": [
+        {
+          "name": "Document number",
+          "locale": "en-US"
+        },
+        {
+          "name": "Documentnummer",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "issuance_date"
+      ],
+      "display": [
+        {
+          "name": "Issuance date",
+          "locale": "en-US"
+        },
+        {
+          "name": "Datum van afgifte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "expiry_date"
+      ],
+      "display": [
+        {
+          "name": "Expiry date",
+          "locale": "en-US"
+        },
+        {
+          "name": "Vervaldatum",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "trust_anchor"
+      ],
+      "display": [
+        {
+          "name": "Trust anchor",
+          "locale": "en-US"
+        },
+        {
+          "name": "Trust anchor",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "attestation_legal_category"
+      ],
+      "display": [
+        {
+          "name": "Attestation legal category",
+          "locale": "en-US"
+        },
+        {
+          "name": "Juridische categorie attestatie",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "resident_state"
+      ],
+      "display": [
+        {
+          "name": "Region",
+          "locale": "en-US"
+        },
+        {
+          "name": "Regio",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "resident_address"
+      ],
+      "display": [
+        {
+          "name": "Full address",
+          "locale": "en-US"
+        },
+        {
+          "name": "Volledig adres",
+          "locale": "nl-NL"
+        }
+      ]
     }
   ]
 }
