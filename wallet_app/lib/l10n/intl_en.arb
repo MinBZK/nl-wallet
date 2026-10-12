@@ -615,6 +615,8 @@
     "genericRelyingPartyErrorDescription": "This action was unsuccessful. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
     "genericRelyingPartyErrorDescriptionWithOrganizationName": "This action was unsuccessful. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
     "genericRelyingPartyErrorTitle": "Sorry, something went wrong",
+    "helpOverviewScreenContactSubtitle": "Call us if your question is not listed.",
+    "helpOverviewScreenTourSubtitle": "See what you can do with NL Wallet.",
     "helpSheetDescription": "Contact support. The following data could be required.",
     "helpSheetErrorCode": "Error code: {code}",
     "@helpSheetErrorCode": {
@@ -976,7 +978,7 @@
     "menuScreenScanQrCta": "Scan QR code",
     "menuScreenSettingsCta": "Settings and security",
     "menuScreenTitle": "Menu",
-    "menuScreenTourCta": "App tour",
+    "menuScreenTourCta": "See how NL Wallet works",
     "menuScreenWCAGPageAnnouncement": "Menu in list {count} items",
     "missingAttributesPageBackToWebsiteCta": "Back to website",
     "missingAttributesPageCloseCta": "Close",
