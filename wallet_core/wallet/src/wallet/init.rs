@@ -6,7 +6,7 @@ use std::time::Duration;
 use crypto::x509::crl::CertificateCrlVerifier;
 #[cfg(any(test, feature = "test"))]
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
-#[cfg(any(test, feature = "test"))]
+#[cfg(feature = "test")]
 use crypto::x509::crl::mock::MockCrlFetcher;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
