@@ -103,21 +103,6 @@ function set() {
         jq ".version = \"$non_prefixed_version\"" "$project_root/wallet_admin_portal/package.json" > "/tmp/wallet_admin_portal_package_json_$$" 2>&1
         mv "/tmp/wallet_admin_portal_package_json_$$" "$project_root/wallet_admin_portal/package.json" > /dev/null 2>&1
 
-        # Inform about doing lock upgrades.
-        error ""
-        error "Note that at least npm's package-lock.json does not get updated with the"
-        error "version that is now active in package.json, so you might also consider"
-        error "upgrading your lock file. For completeness sake, here's how to do that"
-        error "for our types of project (rust, flutter and node/javascript):"
-        error ""
-        error "    cd \"$project_root/wallet_core\" && cargo update"
-        error "    cd \"$project_root/wallet_app\" && flutter pub upgrade"
-        error "    cd \"$project_root/wallet_web\" && npm i --package-lock-only"
-        error ""
-        error "Caveat emptor! Of course assuming you have sane version specs in your"
-        error "Cargo.toml, pubspec.yaml and/or package.json, and assuming you know what"
-        error "you're doing when your're upgrading possibly *all* your dependencies!"
-
         exit 0
     else
         error "Invalid version number specified: $version"
