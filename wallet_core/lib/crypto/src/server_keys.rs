@@ -248,18 +248,6 @@ pub mod generate {
 
         pub fn create_from_keypair(
             keypair: rcgen::KeyPair,
-            configuration: CertificateConfiguration,
-        ) -> Result<Self, CertificateGenerationError> {
-            let params = CertificateParams::from(configuration);
-            let certificate = params
-                .self_signed(&keypair)
-                .map_err(CertificateGenerationError::GeneratingFailed)?;
-            let issuer: Issuer<'static, _> = Issuer::new(params, keypair);
-            Self::new(issuer, certificate.into(), 0)
-        }
-
-        /// Generate a new self-signed CA key pair, constrained to the specified number of intermediates CAs.
-        pub fn generate_with_intermediate_count(
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
             intermediate_count: u8,
@@ -271,13 +259,21 @@ pub mod generate {
                 .try_into()
                 .map_err(CertificateGenerationError::GeneratingFailed)?;
 
-            let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
             let certificate = params
-                .self_signed(&key_pair)
+                .self_signed(&keypair)
                 .map_err(CertificateGenerationError::GeneratingFailed)?;
-            let issuer = Issuer::new(params, key_pair);
-
+            let issuer: Issuer<'static, _> = Issuer::new(params, keypair);
             Self::new(issuer, certificate.into(), intermediate_count)
+        }
+
+        /// Generate a new self-signed CA key pair, constrained to the specified number of intermediates CAs.
+        pub fn generate_with_intermediate_count(
+            distinguished_name: DistinguishedName,
+            configuration: CertificateConfiguration,
+            intermediate_count: u8,
+        ) -> Result<Self, CertificateGenerationError> {
+            let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
+            Self::create_from_keypair(key_pair, distinguished_name, configuration, intermediate_count)
         }
 
         /// Generate a new self-signed CA key pair, constrained to having no intermediate CAs.

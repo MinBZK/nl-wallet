@@ -511,7 +511,8 @@ mod tests {
     #[rstest]
     fn borrowing_certificate_works_with_p384() {
         let key_pair = rcgen::KeyPair::generate_for(&PKCS_ECDSA_P384_SHA384).unwrap();
-        let ca = Ca::create_from_keypair(key_pair, Default::default()).unwrap();
+        let ca =
+            Ca::create_from_keypair(key_pair, DistinguishedName::create_mock("ca"), Default::default(), 0).unwrap();
         assert_matches!(
             ca.as_borrowing_certificate().unwrap().public_key(),
             PublicKey::ESP384(_)
@@ -533,7 +534,8 @@ mod tests {
     #[case::rsa4096(include_str!("../../test/rsa4096.pem"))]
     fn borrowing_certificate_works_with_rsa(#[case] private_key_pem: &str) {
         let key_pair = rcgen::KeyPair::from_pem(private_key_pem).unwrap();
-        let ca = Ca::create_from_keypair(key_pair, Default::default()).unwrap();
+        let ca =
+            Ca::create_from_keypair(key_pair, DistinguishedName::create_mock("ca"), Default::default(), 0).unwrap();
         assert_matches!(ca.as_borrowing_certificate().unwrap().public_key(), PublicKey::RSA(_));
 
         // Test if it can verify
