@@ -10172,6 +10172,7 @@ dependencies = [
  "config",
  "cookie",
  "crypto",
+ "db_test",
  "derive_more",
  "futures",
  "health_checkers",

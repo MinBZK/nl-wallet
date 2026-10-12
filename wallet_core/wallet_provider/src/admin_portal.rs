@@ -353,37 +353,40 @@ where
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "web_test", derive(Serialize))]
 #[serde(rename_all = "camelCase")]
-struct CreateTaskRequest {
-    task_type: String,
+pub struct CreateTaskRequest {
+    pub task_type: String,
     #[serde(default = "serde_json::Map::new")]
-    task_parameters: serde_json::Map<String, serde_json::Value>,
-    task_reason: String,
+    pub task_parameters: serde_json::Map<String, serde_json::Value>,
+    pub task_reason: String,
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "web_test", derive(Serialize))]
 #[serde(rename_all = "camelCase")]
-struct ReviewTaskRequest {
-    verdict: ReviewVerdict,
-    review_comment: String,
+pub struct ReviewTaskRequest {
+    pub verdict: ReviewVerdict,
+    pub review_comment: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "web_test", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
-struct TaskResponse {
-    task_id: Uuid,
-    created_at: DateTime<Utc>,
-    created_by: String,
-    task_type: TaskType,
-    task_parameters: JsonValue,
-    task_reason: String,
-    status: TaskStatus,
-    reviewed_at: Option<DateTime<Utc>>,
-    reviewed_by: Option<String>,
-    review_comment: Option<String>,
-    executed_at: Option<DateTime<Utc>>,
-    execution_result: Option<String>,
-    execution_result_details: Option<JsonValue>,
+pub struct TaskResponse {
+    pub task_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub created_by: String,
+    pub task_type: TaskType,
+    pub task_parameters: JsonValue,
+    pub task_reason: String,
+    pub status: TaskStatus,
+    pub reviewed_at: Option<DateTime<Utc>>,
+    pub reviewed_by: Option<String>,
+    pub review_comment: Option<String>,
+    pub executed_at: Option<DateTime<Utc>>,
+    pub execution_result: Option<String>,
+    pub execution_result_details: Option<JsonValue>,
 }
 
 impl From<AdminTask> for TaskResponse {
