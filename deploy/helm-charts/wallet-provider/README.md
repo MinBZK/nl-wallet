@@ -195,12 +195,6 @@
 | `wiaCertificate`   | WIA signing certificate (base64-encoded DER) | `nil` |
 | `wiaWalletVersion` | Version of the wallet solution               | `nil` |
 
-### Key Attestation parameters
-
-| Name                        | Description                                              | Value |
-| --------------------------- | -------------------------------------------------------- | ----- |
-| `keyAttestationCertificate` | Key Attestation signing certificate (base64-encoded DER) | `nil` |
-
 ### WIA status list parameters
 
 | Name                            | Description                                              | Value |
@@ -209,6 +203,18 @@
 | `wiaStatusList.certificate`     | WIA status list certificate                              | `nil` |
 | `wiaStatusList.volumeClaimName` | Name of PVC where the WIA status lists are published     | `nil` |
 | `wiaStatusList.volumeClaimPath` | Path in the PVC where the WIA status lists are published | `nil` |
+
+### Key Attestation parameters
+
+| Name                        | Description                                              | Value |
+| --------------------------- | -------------------------------------------------------- | ----- |
+| `keyAttestationCertificate` | Key Attestation signing certificate (base64-encoded DER) | `nil` |
+
+### Key Storage status list parameters
+
+| Name                               | Description                                              | Value |
+| ---------------------------------- | -------------------------------------------------------- | ----- |
+| `keyStorageStatusList.certificate` | Key Storage status list certificate (base64-encoded DER) | `nil` |
 
 ### Migration parameters
 

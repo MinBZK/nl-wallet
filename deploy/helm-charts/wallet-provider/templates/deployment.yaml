@@ -72,6 +72,9 @@ spec:
                   name: nl-wallet-hsm-config
                   key: user_pin
 
+            - name: WALLET_PROVIDER__PUBLIC_URL
+              value: {{ include "common.urls.combineDomainAndContext" (list (first .Values.httpRoute.hostnames) .Values.httpRoute.contextPath) }}
+
             # Sources:
             # - https://www.apple.com/certificateauthority/Apple_App_Attestation_Root_CA.pem
             # - wallet_core/lib/apple_app_attest/assets/mock_ca.crt.pem
@@ -161,6 +164,9 @@ spec:
 
             - name: WALLET_PROVIDER__KEY_ATTESTATION_CERTIFICATE
               value: {{ .Values.keyAttestationCertificate }}
+
+            - name: WALLET_PROVIDER__KEY_STORAGE_STATUS_LIST__KEY_CERTIFICATE
+              value: {{ .Values.keyStorageStatusList.certificate }}
 
             - name: WALLET_PROVIDER__STRUCTURED_LOGGING
               value: "true"
