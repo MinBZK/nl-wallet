@@ -16,6 +16,7 @@ import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
+import '../../common/widget/divider_side.dart';
 import '../../common/widget/list/list_item.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
@@ -87,12 +88,12 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
               sliver: _buildSharedAttributeCardsSliver(),
             ),
             const SliverSizedBox(height: 24),
-            const SliverDivider(),
             SliverToBoxAdapter(
               child: RequestDetailCommonBuilders.buildPolicy(
                 context,
                 organization: relyingParty,
                 policy: policy,
+                side: DividerSide.top,
               ),
             ),
             SliverFillRemaining(

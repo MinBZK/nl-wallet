@@ -18,13 +18,11 @@ import '../../info/info_screen.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../screen/placeholder_screen.dart';
 import '../screen/request_details_screen.dart';
-import '../widget/app_image.dart';
 import '../widget/button/link_button.dart';
 import '../widget/button/list_button.dart';
 import '../widget/card/shared_attributes_card.dart';
 import '../widget/list/list_item.dart';
 import '../widget/menu_item.dart';
-import '../widget/organization/organization_logo.dart';
 
 class RequestDetailCommonBuilders {
   RequestDetailCommonBuilders._();
@@ -69,9 +67,6 @@ class RequestDetailCommonBuilders {
   }) {
     final countryLabel = CountryCodeFormatter.format(organization.countryCode);
     return MenuItem(
-      leftIcon: organization.logo == null
-          ? null
-          : OrganizationLogo(image: organization.logo!, size: kMenuItemNormalIconSize),
       dividerSide: side,
       label: Text(
         context.l10n.requestDetailScreenAboutOrganizationCta(organization.displayName),
@@ -183,6 +178,7 @@ class RequestDetailCommonBuilders {
     DividerSide side = DividerSide.none,
   }) {
     final privacyPolicyUrl = organization.privacyPolicyUri ?? policy.privacyPolicyUrl;
+    if (privacyPolicyUrl == null) return const SizedBox.shrink();
     return Column(
       mainAxisSize: .min,
       children: [
@@ -208,14 +204,13 @@ class RequestDetailCommonBuilders {
                     child: Text.rich(context.l10n.privacySectionTitle.toTextSpan(context)),
                   ),
                 ),
-                SizedBox(height: privacyPolicyUrl != null ? 8 : 0),
-                if (privacyPolicyUrl != null)
-                  LinkButton(
-                    text: Text.rich(context.l10n.privacySectionCta.toTextSpan(context)),
-                    onPressed: () => launchUrlStringCatching(privacyPolicyUrl),
-                    icon: const Icon(Icons.north_east_outlined, size: 16),
-                    mainAxisAlignment: .spaceBetween,
-                  ),
+                const SizedBox(height: 8),
+                LinkButton(
+                  text: Text.rich(context.l10n.privacySectionCta.toTextSpan(context)),
+                  onPressed: () => launchUrlStringCatching(privacyPolicyUrl),
+                  icon: const Icon(Icons.north_east_outlined, size: 16),
+                  mainAxisAlignment: .spaceBetween,
+                ),
               ],
             ),
           ),
@@ -241,13 +236,6 @@ class RequestDetailCommonBuilders {
         onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
       ),
       dividerSide: side,
-      trailing: ExcludeSemantics(
-        child: SizedBox(
-          height: 36,
-          width: 36,
-          child: organization.logo == null ? null : AppImage(asset: organization.logo!),
-        ),
-      ),
     );
   }
 

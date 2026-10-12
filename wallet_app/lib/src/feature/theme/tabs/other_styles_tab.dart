@@ -138,9 +138,8 @@ final _kSampleOrganization = Organization(
   id: 'id',
   legalName: 'Organization Legal Name',
   displayName: 'Organization Display Name',
-  type: 'Category'.untranslated,
+  publicBody: true,
   description: 'Organization description'.untranslated,
-  logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
   countryCode: 'NL',
   organizationId: 'NLID-123456',
 );

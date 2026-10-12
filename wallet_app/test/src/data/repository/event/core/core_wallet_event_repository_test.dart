@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/event/core/core_wallet_event_repository.dart';
-import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/card/format/attestation_format.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
 import 'package:wallet/src/domain/model/card/status/card_status.dart';
@@ -45,9 +44,7 @@ void main() {
         id: 'issuer-id',
         legalName: '',
         displayName: '',
-        type: {},
         description: {},
-        logo: SvgImage(''),
         countryCode: '',
         organizationId: 'NLID-123456',
       ),
@@ -273,9 +270,7 @@ void main() {
           id: 'rp-id',
           legalName: '',
           displayName: '',
-          type: {},
           description: {},
-          logo: SvgImage(''),
           countryCode: '',
           organizationId: 'NLID-123456',
         ),

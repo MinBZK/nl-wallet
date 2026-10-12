@@ -4,14 +4,12 @@ import 'package:intl/intl.dart';
 import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
-import '../../../../util/extension/wallet_event_extension.dart';
 import '../../../../util/formatter/wallet_event_title_formatter.dart';
 import '../../../../util/mapper/event/wallet_event_status_color_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_icon_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_text_mapper.dart';
 import '../card/wallet_card_item.dart';
 import '../menu_item.dart';
-import '../organization/organization_logo.dart';
 
 const _kThumbnailSize = 40.0;
 
@@ -54,8 +52,7 @@ class WalletEventRow extends StatelessWidget {
     );
   }
 
-  /// For card related operations (issued/renewed/expired/deleted) show the card as a thumbnail,
-  /// otherwise show the organization logo as the thumbnail.
+  /// For card related operations (issued/renewed/expired/deleted) show the card as a thumbnail.
   Widget? _buildThumbnail(BuildContext context, WalletEvent event) {
     final card = switch (event) {
       DeletionEvent() => event.card,
@@ -75,7 +72,6 @@ class WalletEventRow extends StatelessWidget {
       );
     }
 
-    final logo = event.relyingPartyOrIssuer.logo;
-    return logo == null ? null : OrganizationLogo(image: logo, size: _kThumbnailSize);
+    return null;
   }
 }
