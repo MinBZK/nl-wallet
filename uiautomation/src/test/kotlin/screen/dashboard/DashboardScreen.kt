@@ -72,8 +72,9 @@ class DashboardScreen : MobileActions() {
     }
 
     fun tapRevocationNotification(cardDisplayName: String) {
-        scrollToElementContainingText(cardRevocationBannerTitle.replace("{card}", cardDisplayName))
-        clickElementContainingText(cardRevocationBannerTitle.replace("{card}", cardDisplayName))
+        val bannerTitle = cardRevocationBannerTitle.replace("{card}", cardDisplayName)
+        scrollToElementContainingText(bannerTitle)
+        clickTallestElementContainingText(bannerTitle)
     }
 
     // TODO: Remove conditions for click after PVW-6367

@@ -45,7 +45,7 @@ internal fun buildIOSOptions(
         setCapability("appium:wdaLaunchTimeout", 60000)
         setCapability("appium:wdaConnectionTimeout", 180000)
         setCapability("appium:webkitResponseTimeout", 20000)
-        setCapability("appium:webviewAtomWaitTimeout", 5000)
+        setCapability("appium:webviewAtomWaitTimeout", 15000)
         setCapability("appium:boundElementsByIndex", true)
         setCapability("appium:customSnapshotTimeout", 15)
         setCapability("appium:settings[respectSystemAlerts]", true)
