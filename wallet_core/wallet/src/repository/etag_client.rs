@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::hash::Hash;
+use std::io::ErrorKind;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::path::PathBuf;
@@ -42,22 +43,27 @@ impl<T, B, E> EtagHttpClient<T, B, E> {
         etag_dir.join(filename)
     }
 
-    async fn read_latest_etag(
-        resource_identifier: Filename,
-        etag_dir: &Path,
-    ) -> Result<Option<HeaderValue>, FileStorageError> {
+    async fn read_latest_etag(resource_identifier: Filename, etag_dir: &Path) -> Option<HeaderValue> {
         let etag_file = Self::etag_file(resource_identifier, etag_dir);
-        if !fs::try_exists(&etag_file).await? {
-            return Ok(None);
-        }
 
-        let content = fs::read(&etag_file).await?;
+        let content = match fs::read(&etag_file).await {
+            Ok(content) => content,
+            Err(err) if err.kind() == ErrorKind::NotFound => {
+                return None;
+            }
+            Err(err) => {
+                warn!("Could not read ETag header file from {}: {err}", etag_file.display());
+                return None;
+            }
+        };
         match HeaderValue::from_bytes(&content) {
-            Ok(etag) => Ok(Some(etag)),
-            Err(error) => {
-                warn!("Invalid stored ETag header value, deleting stored ETag file: {error}");
-                fs::remove_file(&etag_file).await?;
-                Ok(None)
+            Ok(etag) => Some(etag),
+            Err(err) => {
+                warn!("Invalid stored ETag header value, deleting stored ETag file: {err}");
+                if let Err(err) = fs::remove_file(&etag_file).await {
+                    warn!("Could not remove ETag file {}: {err}", etag_file.display());
+                }
+                None
             }
         }
     }
@@ -89,9 +95,7 @@ where
             .get_or_try_init(client_builder, IntoReqwestClient::try_into_client)
             .map_err(HttpClientError::Networking)?;
 
-        let latest_etag = Self::read_latest_etag(self.resource_identifier.clone(), &self.etag_dir)
-            .await
-            .map_err(HttpClientError::EtagFile)?;
+        let latest_etag = Self::read_latest_etag(self.resource_identifier.clone(), &self.etag_dir).await;
 
         let response = client
             .send_custom_get(
