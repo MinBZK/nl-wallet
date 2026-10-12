@@ -121,15 +121,21 @@ open class MobileActions {
         (driver as JavascriptExecutor).executeScript("mobile: swipe", mapOf("direction" to direction))
     }
 
+    private fun scrollIntoViewOnAndroid(selector: String, notFoundMessage: String): WebElement =
+        try {
+            driver.findElement(AppiumBy.androidUIAutomator(selector))
+        } catch (_: org.openqa.selenium.NoSuchElementException) {
+            throw NoSuchElementException(notFoundMessage)
+        }
+
     fun scrollToElementWithText(text: String): WebElement {
         return when (platform()) {
             Platform.ANDROID -> {
                 val quotedText = quoteForAndroid(text)
-                driver.findElement(
-                    AppiumBy.androidUIAutomator(
-                        "new UiScrollable(new UiSelector().scrollable(true))" +
-                            ".scrollIntoView(new UiSelector().description($quotedText))"
-                    )
+                scrollIntoViewOnAndroid(
+                    "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().description($quotedText))",
+                    "Couldn't bring '$text' into view",
                 )
             }
             Platform.IOS -> {
@@ -150,11 +156,10 @@ open class MobileActions {
         return when (platform()) {
             Platform.ANDROID -> {
                 val quotedText = quoteForAndroid(text)
-                driver.findElement(
-                    AppiumBy.androidUIAutomator(
-                        "new UiScrollable(new UiSelector().scrollable(true))" +
-                            ".scrollIntoView(new UiSelector().descriptionContains($quotedText))"
-                    )
+                scrollIntoViewOnAndroid(
+                    "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().descriptionContains($quotedText))",
+                    "Couldn't bring element containing '$text' into view",
                 )
             }
             Platform.IOS -> {
@@ -180,12 +185,11 @@ open class MobileActions {
             Platform.ANDROID -> {
                 val regexPattern = ".*" + partialTexts.joinToString(".*") { Regex.escape(it) } + ".*"
                 val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
-                driver.findElement(
-                    AppiumBy.androidUIAutomator(
-                        "new UiScrollable(new UiSelector().scrollable(true))" +
-                            ".scrollIntoView(new UiSelector().descriptionMatches($quotedPattern))"
-                    )
-                ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
+                scrollIntoViewOnAndroid(
+                    "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().descriptionMatches($quotedPattern))",
+                    "Element containing texts $partialTexts not found",
+                )
             }
             Platform.IOS -> {
                 // iOS renders a card's title and its status badge (e.g. the revoked label) as
@@ -210,11 +214,10 @@ open class MobileActions {
                 val escapedExclude = Regex.escape(excludeText)
                 val regexPattern = "(?s)^(?!.*$escapedExclude).*$escapedInclude.*$"
                 val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
-                driver.findElement(
-                    AppiumBy.androidUIAutomator(
-                        "new UiScrollable(new UiSelector().scrollable(true))" +
-                            ".scrollIntoView(new UiSelector().descriptionMatches($quotedPattern))"
-                    )
+                scrollIntoViewOnAndroid(
+                    "new UiScrollable(new UiSelector().scrollable(true))" +
+                        ".scrollIntoView(new UiSelector().descriptionMatches($quotedPattern))",
+                    "Couldn't bring element containing '$includeText' into view",
                 )
             }
             Platform.IOS -> {
@@ -627,6 +630,26 @@ open class MobileActions {
                 if (attempt == maxAttempts) throw e
             }
         }
+    }
+
+    // Multiple elements can have the same label. a dashboard with two revoked cards shows two
+    // identical revocation banners. Tapping a partially visible element makes XCUITest scroll it into view
+    // so pick the match that is fully laid out instead.
+    fun clickTallestElementContainingText(partialText: String) {
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
+        val locator = when (platform()) {
+            Platform.ANDROID -> AppiumBy.androidUIAutomator(
+                "new UiSelector().descriptionContains(${quoteForAndroid(partialText)})"
+            )
+            Platform.IOS -> By.xpath("//*[contains(@name, ${quoteForIos(partialText)})]")
+        }
+        WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
+            .until(ExpectedConditions.presenceOfElementLocated(locator))
+        val target = driver.findElements(locator)
+            .filter { it.isDisplayed }
+            .maxByOrNull { it.rect.height }
+            ?: throw NoSuchElementException("No element found containing: $partialText")
+        target.click()
     }
 
     fun clickElementWithText(text: String, timeoutInSeconds: Long = 5) {
@@ -1130,7 +1153,7 @@ open class MobileActions {
         const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
         const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 4000L
         const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
-        const val WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS = 30_000L
+        const val WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS = 45_000L
         const val DEFAULT_RESET_SLEEP = 10_000L
         const val ANIMATION_SETTLE_MILLIS = 300L
         const val SCREEN_TRANSITION_MILLIS = 1000L

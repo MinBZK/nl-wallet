@@ -16,7 +16,12 @@ class CardDetailScreen : MobileActions() {
     private val deleteCardButton = l10n.getString("cardDetailScreenCardDeleteCta")
     private val deleteCardDialogDeleteButton = l10n.getString("deleteCardDialogConfirmCta")
 
-    fun visible() = elementContainingTextVisible(cardDetailScreenCardDataCta)
+    fun visible(): Boolean = try {
+        scrollToElementContainingText(cardDetailScreenCardDataCta)
+        elementContainingTextVisible(cardDetailScreenCardDataCta)
+    } catch (_: NoSuchElementException) {
+        false
+    }
 
     fun pidCardVisible() = elementContainingTextVisible(pidIdTitleText)
 

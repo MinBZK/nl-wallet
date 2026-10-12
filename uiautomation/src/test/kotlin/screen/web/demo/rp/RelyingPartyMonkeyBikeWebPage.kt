@@ -12,7 +12,10 @@ class RelyingPartyMonkeyBikeWebPage : MobileActions() {
 
     private val loginFailedMessage = By.xpath("//div[@role='alert' and contains(./span/text(), 'Inloggen mislukt. Probeer het opnieuw.')]")
 
-    fun loginFailedMessageVisible() = isWebElementVisible(findWebElement(loginFailedMessage))
+    fun loginFailedMessageVisible(): Boolean {
+        switchToWebViewWindowContaining(loginFailedMessage)
+        return isWebElementVisible(findWebElement(loginFailedMessage))
+    }
 
     fun openSameDeviceWalletFlow() {
         body.clickStartButton()
