@@ -42,7 +42,7 @@ const kSampleCityTheHague = 'Den Haag';
 const kSupermarketId = 'supermarket';
 
 const _kRvigOrganizationName = 'Rijksdienst voor Identiteits­gegevens';
-final _kRvigOrganization = const Organization(
+const _kRvigOrganization = Organization(
   //id: kRvigId,
   legalName: _kRvigOrganizationName,
   displayName: _kRvigOrganizationName,
@@ -64,6 +64,9 @@ final _kRvigOrganization = const Organization(
   privacyPolicyUrl: 'https://www.rvig.nl/over-deze-site/privacyverklaring-rijksdienst-voor-identiteitsgegevens',
   identifier: 'NTRNL-27373207',
   countryCode: 'NL',
+  publicBody: true,
+  personType: PersonType.LegalPerson,
+  supportUri: 'https://www.rvig.nl/contact',
 );
 
 final _kRdwOrganization = Organization(
@@ -79,6 +82,8 @@ final _kRdwOrganization = Organization(
   ],
   identifier: 'NTRNL-27374436',
   countryCode: 'NL',
+  publicBody: true,
+  personType: PersonType.LegalPerson,
 );
 
 final _kDuoOrganization = Organization(
@@ -94,6 +99,8 @@ final _kDuoOrganization = Organization(
   ],
   identifier: 'NTRNL-50973029',
   countryCode: 'NL',
+  publicBody: true,
+  personType: PersonType.LegalPerson,
 );
 
 final _kEmployerOrganization = Organization(
@@ -109,6 +116,8 @@ final _kEmployerOrganization = Organization(
   ],
   identifier: 'NTRNL-98765431',
   countryCode: 'NL',
+  publicBody: true,
+  personType: PersonType.LegalPerson,
 );
 
 final _kJustisOrganization = Organization(
@@ -124,6 +133,8 @@ final _kJustisOrganization = Organization(
   ],
   identifier: 'NTRNL-27378698',
   countryCode: 'NL',
+  publicBody: true,
+  personType: PersonType.LegalPerson,
 );
 
 const _kMarketPlaceOrganization = Organization(
@@ -142,15 +153,20 @@ const _kMarketPlaceOrganization = Organization(
   countryCode: 'NL',
   webUrl: 'https://www.marktplek.nl',
   privacyPolicyUrl: 'https://www.marktplek.nl/privacy',
+  publicBody: false,
+  personType: PersonType.LegalPerson,
+  supportUri: 'klantenservice@marktplek.nl',
 );
 
 final _kBarOrganization = Organization(
   //id: kBarId,
-  legalName: 'Cafe de Dobbelaar',
+  legalName: 'Henk Dobbelaar',
   displayName: 'Cafe de Dobbelaar',
   serviceDescription: [ServiceDescription(translations: 'Familiecafe sinds 1984.'.untranslated)],
   identifier: 'NTRNL-98765420',
   countryCode: 'NL',
+  publicBody: false,
+  personType: PersonType.NaturalPerson,
 );
 
 final _kHealthInsurerOrganization = Organization(
@@ -166,6 +182,8 @@ final _kHealthInsurerOrganization = Organization(
   ],
   identifier: 'NTRNL-98765421',
   countryCode: 'NL',
+  publicBody: false,
+  personType: PersonType.LegalPerson,
 );
 
 final _kHousingCorporationOrganization = Organization(
@@ -180,6 +198,9 @@ final _kHousingCorporationOrganization = Organization(
   webUrl: 'https://beterwonen.nl',
   identifier: 'NTRNL-98765422',
   countryCode: 'NL',
+  publicBody: false,
+  personType: PersonType.LegalPerson,
+  supportUri: 'https://beterwonen.nl/contact',
 );
 
 final _kCarRentalOrganization = Organization(
@@ -189,6 +210,8 @@ final _kCarRentalOrganization = Organization(
   serviceDescription: [ServiceDescription(translations: 'Betrouwbaar huren.'.untranslated)],
   identifier: 'NTRNL-98765423',
   countryCode: 'NL',
+  publicBody: false,
+  personType: PersonType.LegalPerson,
 );
 
 final _kFirstAidOrganization = Organization(
@@ -204,6 +227,8 @@ final _kFirstAidOrganization = Organization(
   ],
   identifier: 'NTRNL-98765424',
   countryCode: 'NL',
+  publicBody: false,
+  personType: PersonType.LegalPerson,
 );
 
 const _kMunicipalityAmsterdamOrganization = Organization(
@@ -222,6 +247,9 @@ const _kMunicipalityAmsterdamOrganization = Organization(
   identifier: 'NTRNL-34366966',
   webUrl: 'https://www.amsterdam.nl',
   privacyPolicyUrl: 'https://www.amsterdam.nl/privacy',
+  publicBody: true,
+  personType: PersonType.LegalPerson,
+  supportUri: 'https://www.amsterdam.nl/contact',
 );
 
 final _kMunicipalityTheHagueOrganization = Organization(
@@ -238,6 +266,9 @@ final _kMunicipalityTheHagueOrganization = Organization(
   identifier: 'NTRNL-27370927',
   countryCode: 'NL',
   webUrl: 'https://www.denhaag.nl',
+  publicBody: true,
+  personType: PersonType.LegalPerson,
+  supportUri: 'https://www.denhaag.nl/contact',
 );
 
 const _kBankOrganization = Organization(
@@ -255,6 +286,9 @@ const _kBankOrganization = Organization(
   identifier: 'NTRNL-12345678',
   countryCode: 'NL',
   webUrl: 'https://jouwbank.nl',
+  publicBody: false,
+  personType: PersonType.LegalPerson,
+  supportUri: 'https://jouwbank.nl/contact',
 );
 
 const _kMonkeyBikeOrganization = Organization(
@@ -275,6 +309,9 @@ const _kMonkeyBikeOrganization = Organization(
   countryCode: 'NL',
   webUrl: 'https://flitsbezorger-monkeybike.nl',
   identifier: 'NTRNL-3945-2932',
+  publicBody: false,
+  personType: PersonType.LegalPerson,
+  supportUri: 'https://flitsbezorger-monkeybike.nl/contact',
 );
 
 final _kPharmacyOrganization = Organization(
@@ -285,6 +322,9 @@ final _kPharmacyOrganization = Organization(
   identifier: 'NTRNL-1234-1234',
   countryCode: 'NL',
   webUrl: 'https://denoordapotheek.nl',
+  publicBody: false,
+  personType: PersonType.LegalPerson,
+  supportUri: 'https://denoordapotheek.nl/contact',
 );
 
 final _kSupermarket = Organization(
@@ -296,4 +336,7 @@ final _kSupermarket = Organization(
   identifier: 'NTRNL-1337-1337',
   countryCode: 'NL',
   webUrl: 'https://example.org',
+  publicBody: false,
+  personType: PersonType.LegalPerson,
+  supportUri: 'https://example.org/support',
 );

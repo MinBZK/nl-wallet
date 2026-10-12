@@ -9,13 +9,9 @@ class OrganizationLogo extends StatelessWidget {
   final AppImageData image;
   final double size;
 
-  /// Optional fixed value used as the [BorderRadius], when you don't want to base it on the logo's size.
-  final double? fixedRadius;
-
   const OrganizationLogo({
     required this.image,
     required this.size,
-    this.fixedRadius,
     super.key,
   });
 
@@ -25,7 +21,7 @@ class OrganizationLogo extends StatelessWidget {
       width: size,
       height: size,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(fixedRadius ?? (size / _kBorderRadiusFactor)),
+        borderRadius: BorderRadius.circular(size / _kBorderRadiusFactor),
         child: AppImage(asset: image, fit: BoxFit.contain),
       ),
     );

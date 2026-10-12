@@ -22,6 +22,7 @@ import 'package:wallet/src/domain/model/help/help_topic.dart';
 import 'package:wallet/src/domain/model/help/topic_block.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
+import 'package:wallet/src/domain/model/person_type.dart';
 import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
@@ -175,13 +176,22 @@ abstract class WalletMockData {
     id: 'id',
     legalName: 'Organization Legal Name',
     displayName: 'Organization Display Name',
-    type: 'Type'.untranslated,
+    publicBody: false,
+    personType: PersonType.legalPerson,
     description: 'Organization description'.untranslated,
-    logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
     privacyPolicyUri: 'https://example.org/privacy',
     supportUri: 'https://example.org/support',
     organizationId: '12345678',
     countryCode: 'NL',
+  );
+
+  static final Organization naturalPersonOrganization = organization.copyWith(
+    legalName: 'Jantje Smith',
+    displayName: 'Smith Plumber Services',
+    personType: PersonType.naturalPerson,
+    description:
+        'Smith Plumber Services helps with leaks, blocked drains, pipes, taps, toilets and heating.'.untranslated,
+    organizationId: 'NL12345678901',
   );
 
   static final DataAttribute textDataAttribute = DataAttribute.untranslated(

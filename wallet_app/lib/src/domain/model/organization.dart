@@ -1,9 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'app_image_data.dart';
 import 'attribute/converter/localized_text_converter.dart';
-import 'converter/app_image_data_converter.dart';
 import 'localized_text.dart';
+import 'person_type.dart';
 
 part 'organization.freezed.dart';
 part 'organization.g.dart';
@@ -14,9 +13,9 @@ abstract class Organization with _$Organization {
     required String id,
     required String legalName,
     required String displayName,
-    @LocalizedTextConverter() LocalizedText? type,
+    bool? publicBody,
+    PersonType? personType,
     @LocalizedTextConverter() LocalizedText? description,
-    @AppImageDataConverter() AppImageData? logo,
     String? webUri,
     String? supportUri,
     String? privacyPolicyUri,

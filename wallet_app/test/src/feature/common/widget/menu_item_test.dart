@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/feature/common/widget/button/list_button.dart';
 import 'package:wallet/src/feature/common/widget/menu_item.dart';
 import 'package:wallet/src/feature/common/widget/organization/organization_logo.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/wallet_mock_data.dart';
 import '../../../test_util/golden_utils.dart';
 
 void main() {
@@ -158,9 +158,10 @@ void main() {
         /// Note that the icon itself is not scaled, only the container. This should mainly be used for logos.
         await tester.pumpWidgetWithAppWrapper(
           MenuItem(
-            leftIcon: WalletMockData.organization.logo == null
-                ? null
-                : OrganizationLogo(image: WalletMockData.organization.logo!, size: kMenuItemNormalIconSize),
+            leftIcon: const OrganizationLogo(
+              image: AppAssetImage(WalletAssets.logo_rijksoverheid),
+              size: kMenuItemNormalIconSize,
+            ),
             label: const Text('Label'),
             subtitle: const Text('Subtitle'),
             onPressed: () {},
@@ -178,9 +179,10 @@ void main() {
         /// Note that the icon itself is not scaled, only the container. This should mainly be used for logos.
         await tester.pumpWidgetWithAppWrapper(
           MenuItem(
-            leftIcon: WalletMockData.organization.logo == null
-                ? null
-                : OrganizationLogo(image: WalletMockData.organization.logo!, size: kMenuItemLargeIconSize),
+            leftIcon: const OrganizationLogo(
+              image: AppAssetImage(WalletAssets.logo_rijksoverheid),
+              size: kMenuItemLargeIconSize,
+            ),
             label: const Text('Label'),
             subtitle: const Text('Subtitle'),
             largeIcon: true,
