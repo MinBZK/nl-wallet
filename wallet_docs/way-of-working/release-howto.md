@@ -353,5 +353,5 @@ execution:
 
 ## References
 
-1. [Semantic Versioning](https://semver.org/)
-2. [Agile Versions](https://www.atlassian.com/agile/tutorials/versions/)
+[1]: https://semver.org/
+[2]: https://www.atlassian.com/agile/tutorials/versions/
