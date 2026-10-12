@@ -353,7 +353,5 @@ Use this checklist to verify all steps have been completed after release executi
 | GitHub release published                    |        | Release successfully published on GitHub                                            |
 
 
-## References
-
-1. [Semantic Versioning](https://semver.org/)
-2. [Agile Versions](https://www.atlassian.com/agile/tutorials/versions/)
+[1]: https://semver.org/
+[2]: https://www.atlassian.com/agile/tutorials/versions/
