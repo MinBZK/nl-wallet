@@ -218,7 +218,7 @@ where
     ) {
         Ok(Some(_)) => state
             .issuer
-            .signed_metadata(ISSUER_METADATA_TTL, TimeGenerator)
+            .signed_metadata(ISSUER_METADATA_TTL, &TimeGenerator)
             .await
             .map(IntoResponse::into_response)
             .map_err(|err| {
@@ -348,7 +348,7 @@ where
     let access_token = authorization_header.into();
     let response = state
         .issuer
-        .process_credential_request(&access_token, dpop, credential_request)
+        .process_credential_request(&access_token, dpop, credential_request, &TimeGenerator)
         .await
         .inspect_err(|error| warn!("processing credential request failed: {}", error))?;
 

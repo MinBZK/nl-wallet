@@ -32,6 +32,7 @@ use chrono::Utc;
 use chrono::serde::ts_seconds;
 use crypto::PublicKey;
 use crypto::keys::SecureEcdsaKey;
+use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
 use derive_more::From;
@@ -69,6 +70,7 @@ use serde_with::serde_as;
 use token_status_list::status_list_service::StatusListService;
 use tracing::debug;
 use tracing::warn;
+use url::Url;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -126,6 +128,7 @@ use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA512;
 use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
+use wscd::payload::key_attestation::KeyAttestationSigningError;
 use wscd::payload::poa::PoaSigning;
 
 use crate::flags::WalletFlags;
@@ -310,8 +313,8 @@ pub enum InstructionError {
     #[error("public key conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
 
-    #[error("error signing PoP: {0}")]
-    PopSigning(#[source] JwtSignError),
+    #[error("could not sign OpenID4VCI key attestation: {0}")]
+    KeyAttestationSigning(#[source] KeyAttestationSigningError),
 
     #[error("SD JWT error: {0}")]
     SdJwtError(#[from] sd_jwt::error::DecoderError),
@@ -646,6 +649,8 @@ pub struct UserState<R, F, H, K, S> {
     pub wallet_user_hsm: H,
     pub wia_issuer: WiaIssuer<K>,
     pub wia_status_tracking_validity: Duration,
+    pub key_attestation_key_pair: KeyPair<K>,
+    pub key_attestation_certification: Url,
     pub attestation_wrapping_kids: KidPair,
     pub pid_issuer_trust_anchors: TrustAnchors,
     pub status_list_service: S,
@@ -1936,6 +1941,8 @@ pub mod mock {
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
     pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
 
+    pub static MOCK_WPTL_CA: LazyLock<Ca> = LazyLock::new(|| Ca::generate_wptl_mock_ca().unwrap());
+
     pub static RECOVERY_CODE_CONFIG: LazyLock<RecoveryCodeConfig> = LazyLock::new(|| {
         RecoveryCodeConfig(
             [(
@@ -2031,12 +2038,16 @@ pub mod mock {
         pid_issuer_trust_anchors: TrustAnchors,
         status_list_service: S,
     ) -> UserState<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
+        let key_attestation_key_pair = MOCK_WPTL_CA.generate_key_attestation_mock().unwrap();
+
         UserState::<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
             repositories,
             flags,
             wallet_user_hsm,
-            wia_issuer: MockWiaIssuer::new_mock(),
+            wia_issuer: MockWiaIssuer::new_mock(&MOCK_WPTL_CA),
             wia_status_tracking_validity: Duration::from_hours(24),
+            key_attestation_key_pair,
+            key_attestation_certification: "https://wallet-provider.example.com/certification".parse().unwrap(),
             attestation_wrapping_kids: KidPair {
                 current: wrapping_kid,
                 previous: None,
@@ -2285,6 +2296,7 @@ mod tests {
     use super::mock_play_integrity::MockPlayIntegrityClient;
     use crate::account_server::RecoveryCodeConfig;
     use crate::account_server::WalletCertificateError;
+    use crate::account_server::mock::user_state;
     use crate::flags::WalletFlags;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::PinCheckOptions;
@@ -2294,7 +2306,6 @@ mod tests {
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::verify_wallet_certificate;
-    use crate::wia_issuer::mock::MockWiaIssuer;
 
     fn verified_recovery_code_sd_jwt() -> VerifiedSdJwt {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -2379,20 +2390,15 @@ mod tests {
             });
 
         let hsm = setup_hsm().await;
-        let user_state = UserState {
-            repositories: wallet_user_repo,
-            flags: StubWalletFlags::default(),
-            wallet_user_hsm: hsm,
-            wia_issuer: MockWiaIssuer::new_mock(),
-            wia_status_tracking_validity: Duration::from_hours(24),
-            attestation_wrapping_kids: KidPair {
-                current: wrapping_kid,
-                previous: None,
-            },
-            pid_issuer_trust_anchors: TrustAnchors::empty(), /* not needed in these
-                                                              * tests */
-            status_list_service: MockStatusListService::default(),
-        };
+        let user_state = user_state(
+            wallet_user_repo,
+            StubWalletFlags::default(),
+            hsm,
+            wrapping_kid,
+            // Not needed in these tests.
+            TrustAnchors::empty(),
+            MockStatusListService::default(),
+        );
 
         let challenge = account_server
             .registration_challenge(certificate_signing_key, &user_state)
@@ -2525,6 +2531,7 @@ mod tests {
             StubWalletFlags::default(),
             hsm,
             wrapping_kid,
+            // Not needed in these tests.
             TrustAnchors::empty(),
             mock_status_list_service(),
         );
@@ -3725,7 +3732,6 @@ mod tests {
 
         let instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                aud: "aud".to_string(),
                 key_requests: vec_nonempty![IssuanceKeySetRequest {
                     key_count: NonZeroU8::MIN,
                     proof_nonce: Some(Nonce::from("nonce".to_string())),
@@ -3831,7 +3837,6 @@ mod tests {
 
         let pin_recovery_instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                aud: "aud".to_string(),
                 key_requests: vec_nonempty![IssuanceKeySetRequest {
                     key_count: NonZeroU8::MIN,
                     proof_nonce: Some(Nonce::from("nonce".to_string())),
@@ -3891,6 +3896,8 @@ mod tests {
             wallet_user_hsm: user_state.wallet_user_hsm,
             wia_issuer: user_state.wia_issuer,
             wia_status_tracking_validity: Duration::from_hours(24),
+            key_attestation_key_pair: user_state.key_attestation_key_pair,
+            key_attestation_certification: user_state.key_attestation_certification,
             attestation_wrapping_kids: user_state.attestation_wrapping_kids,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
             status_list_service: user_state.status_list_service,
@@ -3985,19 +3992,14 @@ mod tests {
         WalletCertificateSetup,
         MockAccountServer,
     ) {
-        let user_state = UserState {
-            repositories: MockTransactionalWalletUserRepository::new(),
-            flags: StubWalletFlags::default(),
-            wallet_user_hsm: setup_hsm().await,
-            wia_issuer: MockWiaIssuer::new_mock(),
-            wia_status_tracking_validity: Duration::from_hours(24),
-            attestation_wrapping_kids: KidPair {
-                current: Kid::try_from("my_wrapping_kid".to_string()).unwrap(),
-                previous: None,
-            },
-            pid_issuer_trust_anchors: TrustAnchors::empty(),
-            status_list_service: MockStatusListService::default(),
-        };
+        let user_state = user_state(
+            MockTransactionalWalletUserRepository::new(),
+            StubWalletFlags::default(),
+            setup_hsm().await,
+            Kid::try_from("my_wrapping_kid".to_string()).unwrap(),
+            TrustAnchors::empty(),
+            MockStatusListService::default(),
+        );
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(
             &setup.signing_pubkey,
@@ -4211,7 +4213,6 @@ mod tests {
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
         let instruction = StartPinRecovery {
             issuance_instruction: PerformIssuance {
-                aud: "aud".to_string(),
                 key_requests: vec_nonempty![IssuanceKeySetRequest {
                     key_count: NonZeroU8::MIN,
                     proof_nonce: Some(Nonce::from("nonce".to_string())),

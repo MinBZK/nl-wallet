@@ -3,7 +3,6 @@ use std::num::NonZeroU8;
 
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::credential_format::Format;
-use crypto::trust_anchor::TrustAnchors;
 use jwt::nonce::Nonce;
 use nonempty_collections::IntoNonEmptyIterator;
 use serde::Deserialize;
@@ -15,6 +14,7 @@ use wscd::payload::wia::WiaDisclosure;
 use wscd::wia::WiaClient;
 use wscd::wia::mock::MockWiaClient;
 
+use super::AcceptIssuanceTrustAnchors;
 use super::AuthorizationSession;
 use super::CredentialSelection;
 use super::IssuanceDiscovery;
@@ -187,11 +187,12 @@ mockall::mock! {
 }
 
 impl IssuanceSession for MockIssuanceSession {
-    async fn accept_issuance<W>(
+    async fn accept_issuance<'a, W, G>(
         &mut self,
         max_copy_count: NonZeroU8,
-        _: &TrustAnchors,
-        _: &W,
+        _trust_anchors: AcceptIssuanceTrustAnchors<'a>,
+        _wscd: &W,
+        _time: &G,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
         self.accept(max_copy_count)
     }

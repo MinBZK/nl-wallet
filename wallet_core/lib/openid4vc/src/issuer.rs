@@ -30,12 +30,9 @@ use futures::join;
 use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use jwt::Algorithm;
-use jwt::JwtValidation;
 use jwt::SignedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
-use jwt::error::JwtVerifyError;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
 use oauth::dpop::Dpop;
@@ -64,8 +61,11 @@ use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 use utils::vec_nonempty;
 use uuid::Uuid;
+use wscd::payload::key_attestation::KeyAttestationVerificationError;
+use wscd::payload::key_attestation::KeyAttestationVerificationResult;
 use wscd::payload::wia::WIA_CLIENT_AUTH_METHOD;
 use wscd::payload::wia::WiaClaims;
 use wscd::payload::wia::WiaDisclosure;
@@ -242,20 +242,20 @@ pub enum CredentialRequestError {
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
 
-    #[error("missing credential request proof of possession")]
-    MissingCredentialRequestPoP,
+    #[error("missing credential request proof")]
+    MissingCredentialRequestProof,
+
+    #[error("verification of the \"jwt\" proof type is not supported")]
+    JwtProofTypeUnsupported,
 
     #[error("too many copies of a credential were requested: {0}")]
     TooManyCopiesRequested(NonZeroUsize),
 
-    #[error("invalid proof JWT: {0}")]
-    InvalidProofJwt(#[source] JwtVerifyError),
+    #[error("attestation proof is invalid: {0}")]
+    InvalidAttestationProof(#[source] KeyAttestationVerificationError),
 
     #[error("nonce is not provided in credential request proof")]
     MissingProofNonce,
-
-    #[error("provided proof public keys contain duplicate values")]
-    ProofKeysNotDistinct,
 
     #[error("could not check proof nonce against nonce storage: {0}")]
     ProofNonceStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -439,10 +439,9 @@ pub struct IssuerData<K, L> {
     metadata: IssuerMetadata,
     metadata_keypair: KeyPair<K>,
 
-    /// Public key of the WIA issuer.
-    wia_trust_anchors: TrustAnchors,
-
-    jwt_proof_validation: JwtValidation,
+    /// The trust anchors for the Wallet Provider Trusted List. Both the signing certificate for the Wallet Instance
+    /// Attestation (WIA) and the signing certificate for Key Attestations must be verified using these anchors.
+    wp_trusted_list_anchors: TrustAnchors,
 }
 
 impl<K, L> IssuerData<K, L> {
@@ -454,12 +453,8 @@ impl<K, L> IssuerData<K, L> {
         server_url: BaseUrl,
         metadata: IssuerMetadata,
         metadata_keypair: KeyPair<K>,
-        wia_trust_anchors: TrustAnchors,
+        wp_trusted_list_anchors: TrustAnchors,
     ) -> Self {
-        let mut jwt_proof_validation = JwtValidation::default_with_algorithms([Algorithm::ES256]);
-        jwt_proof_validation.require_iss(accepted_wallet_client_ids.clone());
-        jwt_proof_validation.require_aud(metadata.credential_issuer.clone());
-
         Self {
             credential_configs,
             batch_size,
@@ -467,8 +462,7 @@ impl<K, L> IssuerData<K, L> {
             server_url,
             metadata,
             metadata_keypair,
-            wia_trust_anchors,
-            jwt_proof_validation,
+            wp_trusted_list_anchors,
         }
     }
 
@@ -513,7 +507,7 @@ impl<K, L> IssuerData<K, L> {
         let expected_aud = self.metadata.credential_issuer.as_ref();
 
         wia_disclosure.verify(
-            &self.wia_trust_anchors,
+            &self.wp_trusted_list_anchors,
             expected_aud,
             self.accepted_wallet_client_ids_vec(),
             client_id,
@@ -623,7 +617,7 @@ where
     pub async fn signed_metadata<G: Generator<DateTime<Utc>>>(
         &self,
         ttl: Duration,
-        time_generator: G,
+        time_generator: &G,
     ) -> Result<SignedJwt<SignedIssuerMetadataPayload<'_>, HeaderWithX5c>, JwtSignError> {
         let iat = time_generator.generate();
         let exp = iat + ttl;
@@ -654,7 +648,7 @@ where
         wallet_client_ids: HashSet<String>,
         credential_configs: CredentialConfigurations<K, L>,
         credential_preview_endpoint: bool,
-        wia_trust_anchors: TrustAnchors,
+        wp_trusted_list_anchors: TrustAnchors,
         sessions: Arc<S>,
         nonce_store: N,
     ) -> Self {
@@ -698,7 +692,7 @@ where
             server_url.into_inner(),
             metadata,
             metadata_keypair,
-            wia_trust_anchors,
+            wp_trusted_list_anchors,
         );
 
         let nonce_store = Arc::new(nonce_store);
@@ -988,12 +982,16 @@ where
     S: SessionStore<IssuanceData>,
     N: NonceStore,
 {
-    pub async fn process_credential_request(
+    pub async fn process_credential_request<G>(
         &self,
         access_token: &AccessToken,
         dpop: Dpop,
         credential_request: CredentialRequest,
-    ) -> Result<CredentialResponse, CredentialRequestError> {
+        time: &G,
+    ) -> Result<CredentialResponse, CredentialRequestError>
+    where
+        G: Generator<DateTime<Utc>>,
+    {
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
         let session = self
             .get_session(code)
@@ -1007,6 +1005,7 @@ where
                 dpop,
                 &self.issuer_data,
                 self.nonce_store.as_ref(),
+                time,
             )
             .await;
 
@@ -1416,18 +1415,21 @@ impl Session<AccessTokenIssued> {
         Ok(())
     }
 
-    async fn process_credential_request<K, L, N>(
+    #[expect(clippy::too_many_arguments, reason = "internal method")]
+    async fn process_credential_request<K, L, N, G>(
         &self,
         credential_request: CredentialRequest,
         access_token: &AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
         nonce_store: &N,
+        time: &G,
     ) -> Result<CredentialResponse, CredentialRequestError>
     where
         K: EcdsaKey,
         L: StatusListService,
         N: NonceStore,
+        G: Generator<DateTime<Utc>>,
     {
         // First, check that the request is authorized.
         self.check_credential_endpoint_access(
@@ -1438,21 +1440,15 @@ impl Session<AccessTokenIssued> {
 
         let session_data = self.session_data();
 
-        // Verify all of the received proofs of possession and collect all of the nonces used in them.
-        let (public_keys, nonces): (VecNonEmpty<_>, VecNonEmpty<_>) = credential_request
-            .verify(issuer_data.jwt_proof_validation.clone(), issuer_data.batch_size)?
-            .into_nonempty_iter()
-            .unzip();
-
-        // Verify that all of the used nonces are valid.
-        let nonce_status = nonce_store
-            .check_nonce_status_and_remove(&nonces)
-            .await
-            .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
-
-        if !matches!(nonce_status, NonceStatus::AllValid) {
-            return Err(CredentialRequestError::InvalidNonce);
-        }
+        // Verify the received proof of cryptographic key material and collect all of the public keys.
+        let public_keys = credential_request
+            .verify(
+                issuer_data.batch_size,
+                &issuer_data.wp_trusted_list_anchors,
+                nonce_store,
+                time,
+            )
+            .await?;
 
         // Find the credential on offer in the session, based on the identifier in the request.
         let credential = match credential_request.identifier {
@@ -1534,50 +1530,62 @@ impl<T: IssuanceState> Session<T> {
 }
 
 impl CredentialRequest {
-    fn verify(
+    async fn verify<N, G>(
         &self,
-        jwt_proof_validation: JwtValidation,
         batch_size: NonZeroU8,
-    ) -> Result<VecNonEmpty<(PublicKey, Nonce)>, CredentialRequestError> {
+        wp_trusted_list_anchors: &TrustAnchors,
+        nonce_store: &N,
+        time: &G,
+    ) -> Result<VecNonEmptyUnique<PublicKey>, CredentialRequestError>
+    where
+        N: NonceStore,
+        G: Generator<DateTime<Utc>>,
+    {
         // The issuer requires key binding proofs, as is indicated in the Issuer Metadata.
-        let CredentialRequestProofs::Jwt(jwts) = self
-            .proofs
-            .as_ref()
-            .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?;
+        let key_attestation = match self.proofs.as_ref() {
+            Some(CredentialRequestProofs::Attestation([key_attestation])) => key_attestation,
+            Some(CredentialRequestProofs::Jwt(_)) => {
+                return Err(CredentialRequestError::JwtProofTypeUnsupported);
+            }
+            None => {
+                return Err(CredentialRequestError::MissingCredentialRequestProof);
+            }
+        };
 
-        // If the holder povided more proofs than the `batch_size` indicated in the Issuer Metadata, it is requesting
-        // more credentials than the issuer allows, so return an error.
-        if jwts.len() > batch_size.into() {
-            return Err(CredentialRequestError::TooManyCopiesRequested(jwts.len()));
+        // Verify that the Key Attestation JWT is valid, the public keys are distinct and the attack potential
+        // resistance is sufficient.
+        //
+        // NB: We intentionally choose to ignore and not validate the `status` claim here. This Issuer implementation
+        //     does not to be fully compliant and we assume that the Wallet Provider will instead use the
+        //     `key_storage_status` as specified by TS3.
+        //
+        // TODO (PVW-6239): Verify the `key_storage_status` claim.
+        let KeyAttestationVerificationResult {
+            attested_keys, nonce, ..
+        } = key_attestation
+            .verify(wp_trusted_list_anchors, time)
+            .map_err(CredentialRequestError::InvalidAttestationProof)?;
+
+        // As this issuer offers a nonce endpoint, use of the nonce in the proof payload is mandatory.
+        let nonce = nonce.ok_or(CredentialRequestError::MissingProofNonce)?;
+
+        // Verify that the used nonce is valid.
+        let nonce_status = nonce_store
+            .check_nonce_status_and_remove(std::iter::once(&nonce))
+            .await
+            .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
+
+        if !matches!(nonce_status, NonceStatus::AllValid) {
+            return Err(CredentialRequestError::InvalidNonce);
         }
 
-        // Verify all of the provided JWKs and extract the nonce values from their payloads.
-        let jwt_count = jwts.len();
-        let public_keys_and_nonces = jwts
-            .into_nonempty_iter()
-            .zip(utils::vec_at_least::repeat_n(jwt_proof_validation, jwt_count))
-            .map(|(jwt, jwt_proof_validation)| {
-                let (_header, payload, public_key) = jwt
-                    .parse_and_verify_with_jwk(jwt_proof_validation)
-                    .map_err(CredentialRequestError::InvalidProofJwt)?;
-
-                let nonce = payload.nonce.ok_or(CredentialRequestError::MissingProofNonce)?;
-
-                Ok((public_key, nonce))
-            })
-            .collect::<Result<VecNonEmpty<_>, _>>()?;
-
-        // Check that each of the JWKs contained a public key distinct from all of the others.
-        let unique_public_keys = public_keys_and_nonces
-            .iter()
-            .map(|(public_key, _nonce)| public_key)
-            .collect::<HashSet<_>>();
-
-        if unique_public_keys.len() != jwt_count.get() {
-            return Err(CredentialRequestError::ProofKeysNotDistinct);
+        // If the holder povided more attested keys than the `batch_size` indicated in the Issuer Metadata, it is
+        // requesting more credentials than the issuer allows, so return an error.
+        if attested_keys.len() > batch_size.into() {
+            return Err(CredentialRequestError::TooManyCopiesRequested(attested_keys.len()));
         }
 
-        Ok(public_keys_and_nonces)
+        Ok(attested_keys)
     }
 }
 
@@ -1725,7 +1733,7 @@ mod tests {
 
     use attestation_types::status_claim::StatusClaim;
     use chrono::Timelike;
-    use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_string;
     use derive_more::Debug;
@@ -1749,9 +1757,7 @@ mod tests {
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
-    use wscd::payload::jwt_proof::JwtProofClaims;
     use wscd::wia::WiaClient;
     use wscd::wia::mock::MockWiaClient;
 
@@ -1782,6 +1788,7 @@ mod tests {
     use crate::test::setup_mock_issuer_with_metadata;
     use crate::token::VciTokenRequest;
     use crate::token::VciTokenResponse;
+    use crate::wallet_issuance::AcceptIssuanceTrustAnchors;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
@@ -1886,7 +1893,7 @@ mod tests {
         let time_generator = MockTimeGenerator::default();
         let ttl = Duration::from_secs(300);
         let now = time_generator.generate();
-        let signed_metadata = issuer.signed_metadata(ttl, time_generator.clone()).await.unwrap();
+        let signed_metadata = issuer.signed_metadata(ttl, &time_generator).await.unwrap();
 
         let payload = signed_metadata
             .into_unverified()
@@ -1961,7 +1968,7 @@ mod tests {
 
     // Error injection tests
 
-    fn setup_simple_mock_issuer() -> (MockIssuer, TrustAnchors, IssuerIdentifier, KeyPair) {
+    fn setup_simple_mock_issuer() -> (MockIssuer, TrustAnchors, IssuerIdentifier, Ca) {
         let issuer_identifier: IssuerIdentifier = "https://example.com/".parse().unwrap();
 
         let (attestation_type, _, metadata_documents) =
@@ -1972,13 +1979,13 @@ mod tests {
             .map(|(format, (attestation_type, metadata_documents))| (format, attestation_type, metadata_documents))
             .collect();
 
-        let (issuer, trust_anchor, wia_keypair, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, trust_anchor, wptl_ca, _, _) = setup_mock_issuer_attestation_types_and_metadata(
             issuer_identifier.clone(),
             attestations,
             Arc::new(MemorySessionStore::default()),
         );
 
-        (issuer, trust_anchor, issuer_identifier, wia_keypair)
+        (issuer, trust_anchor, issuer_identifier, wptl_ca)
     }
 
     /// An implementation of [`VcMessageClient`] that dispatches messages directly to the contained
@@ -2110,6 +2117,7 @@ mod tests {
                     &self.access_token(access_token),
                     self.dpop_header(dpop_header),
                     self.tamper_credential_request(credential_request.clone()),
+                    &MockTimeGenerator::default(),
                 )
                 .await
                 .map_err(|error| {
@@ -2123,8 +2131,8 @@ mod tests {
     async fn start_and_accept_err(
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
-        trust_anchors: TrustAnchors,
-        wia_keypair: KeyPair,
+        issuer_trust_anchors: TrustAnchors,
+        wptl_ca: &Ca,
     ) -> WalletIssuanceError {
         let credential_offer = message_client
             .issuer
@@ -2171,15 +2179,22 @@ mod tests {
                     .unwrap(),
             ),
             VciTokenRequest::new_mock_with_pre_authorized_code(code),
-            &MockWiaClient::new_with_wia_keypair(wia_keypair),
+            &MockWiaClient::from_ca(wptl_ca),
             &oauth_metadata.oauth_metadata.issuer,
         )
         .await
         .unwrap();
 
-        let wscd = MockRemoteWscd::new(vec![]);
+        let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
+        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+
         session
-            .accept_issuance(NonZeroU8::MIN, &trust_anchors, &wscd)
+            .accept_issuance(
+                NonZeroU8::MIN,
+                AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+                &MockRemoteWscd::new_with_wptl_ca(&wptl_ca),
+                &MockTimeGenerator::default(),
+            )
             .await
             .unwrap_err()
     }
@@ -2245,7 +2260,7 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_wia_from_untrusted_issuer() {
-        let (issuer, _trust_anchor, issuer_identifier, _wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, _wptl_ca) = setup_simple_mock_issuer();
 
         // WIA signed by a freshly generated CA that is not in the issuer's trust anchors.
         let bad_wia = MockWiaClient::new()
@@ -2268,10 +2283,10 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_wia_with_wrong_audience() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
         // WIA signed by the trusted key pair but targeting a different audience.
-        let bad_wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let bad_wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia("https://wrong-issuer.example.com".to_string(), None)
             .await
             .unwrap();
@@ -2291,11 +2306,11 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_wia_with_disallowed_client_id() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
         // WIA signed by the trusted key pair, targeting the correct audience, but with a client id that
         // is not among the issuer's accepted wallet client ids.
-        let bad_wia = MockWiaClient::new_with_client_id(wia_keypair, "not-an-accepted-client".to_string())
+        let bad_wia = MockWiaClient::from_ca_with_client_id(&wptl_ca, "not-an-accepted-client".to_string())
             .issue_wia(issuer_identifier.to_string(), None)
             .await
             .unwrap();
@@ -2341,11 +2356,11 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_accepts_valid_wia_nonce() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
 
         let nonce = issuer.generate_nonce().await.unwrap();
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(issuer_identifier.to_string(), Some(nonce))
             .await
             .unwrap();
@@ -2355,10 +2370,10 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_missing_wia_nonce() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
 
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(issuer_identifier.to_string(), None)
             .await
             .unwrap();
@@ -2372,11 +2387,12 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_unknown_wia_nonce() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
+
         let (token_request, dpop) = mock_token_request_and_dpop(&issuer).await;
 
         // This nonce was never issued by (and thus never stored in) the issuer.
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(issuer_identifier.to_string(), Some(Nonce::new_random()))
             .await
             .unwrap();
@@ -2390,10 +2406,10 @@ mod tests {
 
     #[tokio::test]
     async fn token_request_rejects_replayed_wia_nonce() {
-        let (issuer, _trust_anchor, issuer_identifier, wia_keypair) = setup_simple_mock_issuer();
+        let (issuer, _trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
         let nonce = issuer.generate_nonce().await.unwrap();
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(issuer_identifier.to_string(), Some(nonce))
             .await
             .unwrap();
@@ -2416,13 +2432,13 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_access_token() {
-        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             wrong_access_token: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, &wptl_ca).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err)
@@ -2432,13 +2448,13 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_dpop() {
-        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             invalidate_dpop: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, &wptl_ca).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err)
@@ -2448,13 +2464,13 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_pop() {
-        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             invalidate_pop: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, &wptl_ca).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err)
@@ -2467,7 +2483,6 @@ mod tests {
         None,
         WrongDpopNonce,
         IncorrectPreparedCredentialFormat,
-        WrongProofAud,
         SingleProofKey,
         MissingProofNonce,
         UnknownProofNonce,
@@ -2482,7 +2497,7 @@ mod tests {
         copy_count: NonZeroUsize,
         failure: CredentialRequestFailure,
     ) -> (MockIssuer, TrustAnchors, AccessToken, Dpop, CredentialRequest) {
-        let (issuer, trust_anchors, issuer_identifier, _wia_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchors, _issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
         // Create tokens and DPoP variables.
         let session_token = SessionToken::new_random();
@@ -2516,44 +2531,32 @@ mod tests {
             prepared_credential.format = Format::MsoMdoc;
         }
 
-        // Sign `copy_count` number of JWT proofs.
-        let aud = if failure == CredentialRequestFailure::WrongProofAud {
-            "wrong_aud".to_string()
+        // Sign a key attestation.
+        let nonce = if failure == CredentialRequestFailure::MissingProofNonce {
+            None
+        } else if failure == CredentialRequestFailure::UnknownProofNonce {
+            Some("unknown_nonce".to_string().into())
         } else {
-            issuer_identifier.to_string()
+            Some(issuer.generate_nonce().now_or_never().unwrap().unwrap())
         };
 
         let single_proof_key = (failure == CredentialRequestFailure::SingleProofKey).then(SigningKey::generate);
-
-        let proofs = utils::vec_at_least::repeat_n(aud, copy_count)
-            .map(|aud| {
-                let nonce = if failure == CredentialRequestFailure::MissingProofNonce {
-                    None
-                } else if failure == CredentialRequestFailure::UnknownProofNonce {
-                    Some("unknown_nonce".to_string().into())
-                } else {
-                    Some(issuer.generate_nonce().now_or_never().unwrap().unwrap())
-                };
-
-                let claims = JwtProofClaims::new(
-                    MOCK_WALLET_CLIENT_ID.to_string(),
-                    aud,
-                    nonce,
-                    &MockTimeGenerator::default(),
-                );
-
+        let verifying_keys = utils::vec_at_least::repeat_n((), copy_count)
+            .map(|_| {
                 let holder_private_key = match single_proof_key.as_ref() {
                     Some(key) => key,
                     None => &SigningKey::generate(),
                 };
 
-                SignedJwt::sign_with_jwk(&claims, holder_private_key)
-                    .now_or_never()
-                    .unwrap()
-                    .unwrap()
-                    .into()
+                *holder_private_key.verifying_key()
             })
-            .collect();
+            .collect::<VecNonEmpty<_>>();
+
+        let key_attestation = MockRemoteWscd::new_with_wptl_ca(&wptl_ca).sign_key_attestation(
+            verifying_keys,
+            nonce,
+            &MockTimeGenerator::default(),
+        );
 
         // Populate a `CredentialRequest` that can be used to have the credential issued, its contents depending on the
         // `CredentialRequestFailure` enum.
@@ -2562,7 +2565,7 @@ mod tests {
                 CredentialRequestIdentifier::CredentialConfigurationId(
                     prepared_credential.credential_configuration_id.clone(),
                 ),
-                proofs,
+                key_attestation,
             )
         } else {
             let identifier = if failure == CredentialRequestFailure::UnknownCredentialIdentifier {
@@ -2571,7 +2574,10 @@ mod tests {
                 prepared_credential.id.to_string().into()
             };
 
-            CredentialRequest::new(CredentialRequestIdentifier::CredentialIdentifier(identifier), proofs)
+            CredentialRequest::new(
+                CredentialRequestIdentifier::CredentialIdentifier(identifier),
+                key_attestation,
+            )
         };
 
         // Create a fixture to populate the `Issuer` session, containing the `PreparedCredential`.
@@ -2605,14 +2611,20 @@ mod tests {
             CredentialRequestFailure::None,
         );
 
-        let CredentialRequestProofs::Jwt(proofs) = credential_request.proofs.as_ref().unwrap();
-        let public_keys = proofs
-            .iter()
-            .map(|proof| jwk_to_public_key(&proof.dangerous_parse_header_unverified().unwrap().jwk).unwrap())
-            .collect_vec();
+        let public_keys = match credential_request.proofs.as_ref() {
+            Some(CredentialRequestProofs::Attestation([key_attestation])) => {
+                let (_header, claims) = key_attestation.as_ref().dangerous_parse_unverified().unwrap();
+                claims
+                    .attested_keys
+                    .iter()
+                    .map(|jwk| jwk_to_public_key(jwk).unwrap())
+                    .collect_vec()
+            }
+            _ => unreachable!(),
+        };
 
         let response = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect("processing CredentialRequest should succeed");
 
@@ -2706,7 +2718,12 @@ mod tests {
         // Processing a Credential Request with an Access Token that is too short to contain an appended Session Token
         // should result in an error.
         let error = issuer
-            .process_credential_request(&"short".to_string().into(), dpop, credential_request)
+            .process_credential_request(
+                &"short".to_string().into(),
+                dpop,
+                credential_request,
+                &MockTimeGenerator::default(),
+            )
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2721,7 +2738,12 @@ mod tests {
 
         // Processing a Credential Request with an unknown Session Token should result in an error.
         let error = issuer
-            .process_credential_request(&random_string(64).into(), dpop, credential_request)
+            .process_credential_request(
+                &random_string(64).into(),
+                dpop,
+                credential_request,
+                &MockTimeGenerator::default(),
+            )
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2741,7 +2763,7 @@ mod tests {
 
         // Processing a Credential Request with an unknown Access Token should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2759,7 +2781,7 @@ mod tests {
 
         // Processing a Credential Request with an incorrect DPoP should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2771,20 +2793,21 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_process_credential_request_error_invalid_proof_jwt() {
+    async fn test_process_credential_request_error_invalid_attestation_proof() {
         let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
             Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::WrongProofAud,
+            3.try_into().unwrap(),
+            CredentialRequestFailure::SingleProofKey,
         );
 
-        // Processing a Credential Request with an invalid proof JWT should result in an error.
+        // Processing a Credential Request with multiple proof JWTs that all contain the same public key should result
+        // in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
-        assert_matches!(error, CredentialRequestError::InvalidProofJwt(_));
+        assert_matches!(error, CredentialRequestError::InvalidAttestationProof(_));
     }
 
     #[rstest]
@@ -2798,30 +2821,11 @@ mod tests {
 
         // Processing a Credential Request with a proof JWT that does not contain a nonce should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
         assert_matches!(error, CredentialRequestError::MissingProofNonce);
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_process_credential_request_error_proof_keys_not_distinct() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            3.try_into().unwrap(),
-            CredentialRequestFailure::SingleProofKey,
-        );
-
-        // Processing a Credential Request with multiple proof JWTs that all contain the same public key should result
-        // in an error.
-        let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
-            .await
-            .expect_err("processing CredentialRequest should fail");
-
-        assert_matches!(error, CredentialRequestError::ProofKeysNotDistinct);
     }
 
     #[rstest]
@@ -2835,7 +2839,7 @@ mod tests {
 
         // Processing a Credential Request with a proof JWT that contains an unknown nonce should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2853,7 +2857,7 @@ mod tests {
 
         // Processing a Credential Request with too many proof JWT should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2871,7 +2875,7 @@ mod tests {
 
         // Processing a Credential Request with an unknown Credential ID should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2889,7 +2893,7 @@ mod tests {
 
         // Processing a Credential Request for a Credential Configuration ID should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2908,7 +2912,7 @@ mod tests {
         // Processing a Credential Request when the issuer has an inconsistent `PreparedCredential` in its session state
         // should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request)
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 

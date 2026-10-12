@@ -13,6 +13,7 @@ pub enum CertificateUsage {
     Mdl,
     StatusListSigning,
     Wia,
+    KeyAttestation,
 }
 
 const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
@@ -20,6 +21,8 @@ const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
 const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
 // The .128 is made up, the real child node is TBD
 const EXTENDED_KEY_USAGE_WIA: &Oid = &oid!(1.3.6.1.5.5.7.3.128);
+// The .129 is made up, the real child node is TBD
+const EXTENDED_KEY_USAGE_KEY_ATTESTATION: &Oid = &oid!(1.3.6.1.5.5.7.3.129);
 
 #[derive(thiserror::Error, Debug)]
 pub enum CertificateUsageError {
@@ -48,15 +51,12 @@ impl CertificateUsage {
         let mut result = None;
         for key_usage_oid in &ext_key_usage.other {
             let cert_usage = {
-                // Unfortunately we cannot use a match statement here.
-                if key_usage_oid == EXTENDED_KEY_USAGE_MDL {
-                    Some(Self::Mdl)
-                } else if key_usage_oid == EXTENDED_KEY_USAGE_TSL {
-                    Some(Self::StatusListSigning)
-                } else if key_usage_oid == EXTENDED_KEY_USAGE_WIA {
-                    Some(Self::Wia)
-                } else {
-                    None
+                match key_usage_oid {
+                    oid if oid == EXTENDED_KEY_USAGE_MDL => Some(Self::Mdl),
+                    oid if oid == EXTENDED_KEY_USAGE_TSL => Some(Self::StatusListSigning),
+                    oid if oid == EXTENDED_KEY_USAGE_WIA => Some(Self::Wia),
+                    oid if oid == EXTENDED_KEY_USAGE_KEY_ATTESTATION => Some(Self::KeyAttestation),
+                    _ => None,
                 }
             };
             match (result, cert_usage) {
@@ -75,6 +75,7 @@ impl CertificateUsage {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
             CertificateUsage::StatusListSigning => EXTENDED_KEY_USAGE_TSL,
             CertificateUsage::Wia => EXTENDED_KEY_USAGE_WIA,
+            CertificateUsage::KeyAttestation => EXTENDED_KEY_USAGE_KEY_ATTESTATION,
         }
     }
 
@@ -88,7 +89,10 @@ impl CertificateUsage {
             // ISO/IEC 18013-5:2021, Table B.3 requires digitalSignature only for mdoc signers.
             // This issuer profile is also used for SD-JWT signing.
             Self::Mdl => vec![rcgen::KeyUsagePurpose::DigitalSignature],
-            Self::StatusListSigning | Self::Wia => Vec::new(),
+            // ETSI EN 319 412-2, section 4.3.2 requires a key usage; type C is digitalSignature only.
+            Self::StatusListSigning | Self::Wia | Self::KeyAttestation => {
+                vec![rcgen::KeyUsagePurpose::DigitalSignature]
+            }
         }
     }
 
@@ -127,7 +131,12 @@ mod tests {
 
     #[rstest]
     fn certificate_usage_to_oid_from_extension(
-        #[values(CertificateUsage::Mdl, CertificateUsage::StatusListSigning, CertificateUsage::Wia)]
+        #[values(
+            CertificateUsage::Mdl,
+            CertificateUsage::StatusListSigning,
+            CertificateUsage::Wia,
+            CertificateUsage::KeyAttestation
+        )]
         cert_usage: CertificateUsage,
     ) {
         let oid_bytes = cert_usage.as_oid_bytes();

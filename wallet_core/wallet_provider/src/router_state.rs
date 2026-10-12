@@ -11,6 +11,7 @@ use crypto::server_keys::KeyPair;
 use derive_more::AsRef;
 use derive_more::Into;
 use futures::future::try_join_all;
+use futures::try_join;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::Hsm;
 use hsm::service::HsmError;
@@ -234,15 +235,25 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 .collect::<Result<_, _>>()?,
         );
 
-        let wia_issuer = WiaIssuer::new(
+        let (wia_key_pair, key_attestation_key_pair) = try_join!(
             KeyPair::new(
                 HsmEcdsaKey::new(
                     settings.wia_settings.wia_signing_key_identifier,
                     wallet_user_hsm.clone(),
                 ),
                 settings.wia_settings.wia_certificate,
+            ),
+            KeyPair::new(
+                HsmEcdsaKey::new(
+                    settings.key_attestation_settings.key_attestation_signing_key_identifier,
+                    wallet_user_hsm.clone(),
+                ),
+                settings.key_attestation_settings.key_attestation_certificate,
             )
-            .await?,
+        )?;
+
+        let wia_issuer = WiaIssuer::new(
+            wia_key_pair,
             NL_WALLET_CLIENT_ID.to_string(),
             WiaWalletInfo {
                 wallet_name: settings.wia_settings.wia_wallet_name,
@@ -267,6 +278,8 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 flags,
                 wallet_user_hsm,
                 wia_issuer,
+                key_attestation_key_pair,
+                key_attestation_certification: settings.key_attestation_settings.key_attestation_certification,
                 wia_status_tracking_validity: settings.wia_settings.wia_status_tracking_validity,
                 attestation_wrapping_kids: settings.attestation_wrapping_kid,
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,

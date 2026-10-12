@@ -20,7 +20,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
-use wscd::payload::jwt_proof::JwtProof;
+use wscd::payload::key_attestation::KeyAttestation;
 use wscd::payload::poa::Poa;
 use wscd::payload::wia::WiaDisclosure;
 
@@ -171,7 +171,6 @@ impl InstructionAndResult for StartPinRecovery {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuance {
-    pub aud: String,
     pub key_requests: VecNonEmpty<IssuanceKeySetRequest>,
 }
 
@@ -183,20 +182,20 @@ pub struct IssuanceKeySetRequest {
     pub proof_nonce: Option<Nonce>,
 }
 
-/// The result of a [`PerformIssuance`] issuance instruction, which contains a 2-dimensional list of per-key results in
-/// the form [`IssuanceKeyResult`]. The outer list refers to the inciting instruction's [`IssuanceKeySetRequest`]s and
-/// the inner list refers to number of individual keys requested.
+/// The result of a [`PerformIssuance`] issuance instruction, which contains a list of [`IssuanceKeySetResult`]s, one
+/// for each of the inciting instruction's [`IssuanceKeySetRequest`]s.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformIssuanceResult {
-    pub keys: VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>,
+    pub key_sets: VecNonEmpty<IssuanceKeySetResult>,
 }
 
-/// Part of [`PerformIssuanceResult`], reflects the result of the generation of a particular key, consisting of both the
-/// identifier for that key and a cryptographic proof, which contains the requested nonce, if provided.
+/// Part of [`PerformIssuanceResult`], reflects the result of the generation of a particular set of keys, consisting of
+/// both the identifiers for that set and the OpenID4VCI key attestation, which contains the requested nonce, if
+/// provided.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct IssuanceKeyResult {
-    pub key_identifier: String,
-    pub pop: JwtProof,
+pub struct IssuanceKeySetResult {
+    pub identifiers: VecNonEmpty<String>,
+    pub attestation: KeyAttestation,
 }
 
 impl InstructionAndResult for PerformIssuance {

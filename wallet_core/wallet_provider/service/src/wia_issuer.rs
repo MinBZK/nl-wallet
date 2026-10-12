@@ -110,7 +110,6 @@ where
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use crypto::server_keys::generate::Ca;
-    use crypto::x509::DistinguishedName;
     use p256::ecdsa::SigningKey;
     use wscd::payload::wia::WiaWalletInfo;
 
@@ -119,12 +118,9 @@ pub mod mock {
     pub type MockWiaIssuer = WiaIssuer<SigningKey>;
 
     impl MockWiaIssuer {
-        pub fn new_mock() -> Self {
+        pub fn new_mock(wp_trusted_list_ca: &Ca) -> Self {
             Self {
-                keypair: Ca::generate(DistinguishedName::create_mock("wia.ca.example.com"), Default::default())
-                    .unwrap()
-                    .generate_wia_mock()
-                    .unwrap(),
+                keypair: wp_trusted_list_ca.generate_wia_mock().unwrap(),
                 sub: "sub".to_string(),
                 wallet_info: WiaWalletInfo::new_mock(),
             }
@@ -151,7 +147,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_wptl_mock_ca().unwrap();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let sub = "sub";
 

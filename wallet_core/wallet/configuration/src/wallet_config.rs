@@ -17,6 +17,7 @@ use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
+use openid4vc::wallet_issuance::AcceptIssuanceTrustAnchors;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -71,6 +72,10 @@ impl WalletConfiguration {
     pub fn wrprc_trust_anchors(&self) -> &TrustAnchors {
         &self.wrprc_trust_anchors
     }
+
+    pub fn accept_issuance_anchors(&self) -> AcceptIssuanceTrustAnchors<'_> {
+        AcceptIssuanceTrustAnchors::new(&self.issuer_trust_anchors, &self.account_server.wptl_trust_anchors)
+    }
 }
 
 impl EnvironmentSpecific for WalletConfiguration {
@@ -109,7 +114,7 @@ pub struct AccountServerConfiguration {
     #[serde_as(as = "HashMap<_, Base64>")]
     pub instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
     #[debug(skip)]
-    pub wia_trust_anchors: TrustAnchors,
+    pub wptl_trust_anchors: TrustAnchors,
     #[serde(rename = "certificate_refresh_threshold_in_days", with = "utils::duration_days")]
     pub certificate_refresh_threshold: Duration,
 }

@@ -143,6 +143,12 @@ pub mod generate {
         CertificateParse(#[source] CertificateParseError),
     }
 
+    /// Key usages for CA certificates, which sign other certificates and CRLs.
+    ///
+    /// - RFC 5280, section 4.2.1.3: CAs must include the key usage extension.
+    /// - ISO/IEC 18013-5:2021, Table B.1: only keyCertSign and cRLSign.
+    const CA_KEY_USAGES: [KeyUsagePurpose; 2] = [KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+
     fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateGenerationError> {
         SigningKey::from_pkcs8_der(keypair.serialized_der())
             .map_err(|error| CertificateGenerationError::GeneratingPrivateKey(Box::new(error)))
@@ -182,9 +188,10 @@ pub mod generate {
         ) -> Result<Self, CertificateGenerationError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(intermediate_count));
-            // ISO/IEC 18013-5:2021, Table B.1: IACA Key Usage is keyCertSign and cRLSign only.
-            params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
-            params.distinguished_name = distinguished_name.into();
+            params.key_usages = CA_KEY_USAGES.to_vec();
+            params.distinguished_name = distinguished_name
+                .try_into()
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
 
             let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
             let certificate = params
@@ -300,8 +307,10 @@ pub mod generate {
 
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::Ca(constraint);
-            params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
-            params.distinguished_name = distinguished_name.into();
+            params.key_usages = CA_KEY_USAGES.to_vec();
+            params.distinguished_name = distinguished_name
+                .try_into()
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
 
             let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
             let certificate = params
@@ -320,7 +329,9 @@ pub mod generate {
         ) -> Result<BorrowingCertificate, CertificateGenerationError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
-            params.distinguished_name = distinguished_name.into();
+            params.distinguished_name = distinguished_name
+                .try_into()
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
 
             let certificate = params
                 .signed_by(pk, &self.issuer)
@@ -373,16 +384,21 @@ pub mod generate {
 
             let mut self_signed_params = CertificateParams::from(configuration.clone());
             self_signed_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-            self_signed_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
-            self_signed_params.distinguished_name = distinguished_name.clone().into();
+            self_signed_params.key_usages = CA_KEY_USAGES.to_vec();
+            self_signed_params.distinguished_name = distinguished_name
+                .clone()
+                .try_into()
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
             let self_signed_cert = self_signed_params
                 .self_signed(&key_pair)
                 .map_err(CertificateGenerationError::GeneratingFailed)?;
 
             let mut cross_params = CertificateParams::from(configuration);
             cross_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-            cross_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
-            cross_params.distinguished_name = distinguished_name.into();
+            cross_params.key_usages = CA_KEY_USAGES.to_vec();
+            cross_params.distinguished_name = distinguished_name
+                .try_into()
+                .map_err(CertificateGenerationError::GeneratingFailed)?;
             let cross_cert = cross_params
                 .signed_by(&key_pair, &self.issuer)
                 .map_err(CertificateGenerationError::GeneratingFailed)?;
@@ -428,17 +444,21 @@ pub mod generate {
         use crate::x509::CertificateUsage;
         use crate::x509::crl::mock::MOCK_CRL_DISTRIBUTION_POINT;
 
-        pub static WRPAC_CA_DN: LazyLock<DistinguishedName> =
-            LazyLock::new(|| DistinguishedName::create_mock("CA wrpac"));
-
         pub static ISSUER_CA_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_mock("CA issuer"));
         pub static ISSUER_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert issuer"));
         pub static PID_ISSUER_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("PID"));
-        pub static WIA_CERT_DN: LazyLock<DistinguishedName> = LazyLock::new(|| DistinguishedName::create_mock("WIA"));
 
+        pub static WPTL_CA_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("WPTL issuer"));
+        pub static WIA_CERT_DN: LazyLock<DistinguishedName> = LazyLock::new(|| DistinguishedName::create_mock("WIA"));
+        pub static KEY_ATTESTATION_CERT_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("Key Attestation"));
+
+        pub static WRPAC_CA_DN: LazyLock<DistinguishedName> =
+            LazyLock::new(|| DistinguishedName::create_mock("CA wrpac"));
         pub static VERIFIER_CERT_DN: LazyLock<DistinguishedName> =
             LazyLock::new(|| DistinguishedName::create_legal_person_mock("Cert verifier"));
 
@@ -449,10 +469,6 @@ pub mod generate {
                     CertificateConfiguration::default(),
                 )
                 .unwrap()
-            }
-
-            pub fn generate_wrpac_mock_ca() -> Result<Self, CertificateGenerationError> {
-                Self::generate(WRPAC_CA_DN.clone(), Default::default())
             }
 
             pub fn generate_issuer_mock_ca() -> Result<Self, CertificateGenerationError> {
@@ -466,6 +482,13 @@ pub mod generate {
                         exclude_aki: true,
                         ..Default::default()
                     },
+                )
+            }
+
+            pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
+                self.generate_key_pair(
+                    ISSUER_CERT_DN.clone(),
+                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
                 )
             }
 
@@ -483,6 +506,49 @@ pub mod generate {
                 )
             }
 
+            pub fn generate_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
+                self.generate_key_pair(
+                    ISSUER_CERT_DN.clone(),
+                    CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
+                )
+            }
+
+            pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
+                self.generate_key_pair(
+                    PID_ISSUER_CERT_DN.clone(),
+                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                )
+            }
+
+            pub fn generate_pid_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
+                self.generate_key_pair(
+                    PID_ISSUER_CERT_DN.clone(),
+                    CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
+                )
+            }
+
+            pub fn generate_wptl_mock_ca() -> Result<Self, CertificateGenerationError> {
+                Self::generate(WPTL_CA_DN.clone(), Default::default())
+            }
+
+            pub fn generate_wia_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
+                self.generate_key_pair(
+                    WIA_CERT_DN.clone(),
+                    CertificateConfiguration::with_usage(CertificateUsage::Wia),
+                )
+            }
+
+            pub fn generate_key_attestation_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
+                self.generate_key_pair(
+                    KEY_ATTESTATION_CERT_DN.clone(),
+                    CertificateConfiguration::with_usage(CertificateUsage::KeyAttestation),
+                )
+            }
+
+            pub fn generate_wrpac_mock_ca() -> Result<Self, CertificateGenerationError> {
+                Self::generate(WRPAC_CA_DN.clone(), Default::default())
+            }
+
             pub fn generate_wrpac_verifier_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(VERIFIER_CERT_DN.clone(), Default::default())
             }
@@ -494,41 +560,6 @@ pub mod generate {
                         crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
                         ..Default::default()
                     },
-                )
-            }
-
-            pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(
-                    PID_ISSUER_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-                )
-            }
-
-            pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(
-                    ISSUER_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-                )
-            }
-
-            pub fn generate_wia_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(
-                    WIA_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::Wia),
-                )
-            }
-
-            pub fn generate_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(
-                    ISSUER_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
-                )
-            }
-
-            pub fn generate_pid_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
-                self.generate_key_pair(
-                    PID_ISSUER_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
                 )
             }
 

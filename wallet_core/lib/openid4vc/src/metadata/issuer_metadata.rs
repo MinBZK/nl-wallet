@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::num::NonZeroU64;
 use std::ops::Not;
 
@@ -43,6 +44,7 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use wscd::payload::key_attestation::AttackPotentialResistance;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
@@ -388,7 +390,7 @@ impl CredentialConfiguration {
     pub fn new_mdoc_ecdsa_p256_sha256(
         doctype: String,
         scope: Scope,
-        proof_types: Vec<ProofType>,
+        proof_types: HashSet<ProofType>,
         credential_metadata: CredentialMetadata,
     ) -> Self {
         Self {
@@ -402,7 +404,7 @@ impl CredentialConfiguration {
     pub fn new_sd_jwt_ecdsa_p256_sha256(
         vct: String,
         scope: Scope,
-        proof_types: Vec<ProofType>,
+        proof_types: HashSet<ProofType>,
         credential_metadata: CredentialMetadata,
         type_metadata_uri: Option<IssuerUrl>,
     ) -> Self {
@@ -520,20 +522,27 @@ pub struct CryptographicBinding {
 }
 
 impl CryptographicBinding {
-    fn new_mdoc_ecdsa_p256_sha256(proof_types: Vec<ProofType>) -> Self {
+    fn new_mdoc_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
         Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::CoseKey, proof_types)
     }
 
-    fn new_sd_jwt_ecdsa_p256_sha256(proof_types: Vec<ProofType>) -> Self {
+    fn new_sd_jwt_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
         Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::Jwk, proof_types)
     }
 
-    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod, proof_types: Vec<ProofType>) -> Self {
+    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod, proof_types: HashSet<ProofType>) -> Self {
         Self {
             cryptographic_binding_methods_supported: vec_nonempty![binding_method],
             proof_types_supported: proof_types
                 .into_iter()
-                .map(|proof_type| (proof_type, ProofMetadata::new_ecdsa_p256_sha256()))
+                .map(|proof_type| {
+                    let requires_key_attestation = matches!(proof_type, ProofType::Attestation);
+
+                    (
+                        proof_type,
+                        ProofMetadata::new_ecdsa_p256_sha256(requires_key_attestation),
+                    )
+                })
                 .collect(),
         }
     }
@@ -587,10 +596,15 @@ pub struct ProofMetadata {
 }
 
 impl ProofMetadata {
-    fn new_ecdsa_p256_sha256() -> Self {
+    fn new_ecdsa_p256_sha256(requires_key_attestation: bool) -> Self {
+        let key_attestations_required = requires_key_attestation.then(|| KeyAttestationsRequired {
+            key_storage: HashSet::from([AttackPotentialResistance::Iso18045High]),
+            user_authentication: HashSet::from([AttackPotentialResistance::Iso18045High]),
+        });
+
         Self {
             proof_signing_alg_values_supported: vec_nonempty![JwsAlgorithm::ES256],
-            key_attestations_required: None,
+            key_attestations_required,
         }
     }
 }
@@ -603,25 +617,13 @@ impl ProofMetadata {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyAttestationsRequired {
-    /// A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
-    pub key_storage: Option<VecNonEmpty<AttackPotentialResistance>>,
+    /// OPTIONAL. A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub key_storage: HashSet<AttackPotentialResistance>,
 
-    /// A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
-    pub user_authentication: Option<VecNonEmpty<AttackPotentialResistance>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AttackPotentialResistance {
-    Iso18045High,
-    Iso18045Moderate,
-    #[serde(rename = "iso_18045_enhanced-basic")]
-    Iso18045EnhancedBasic,
-    Iso18045Basic,
-
-    // Allow the issuer to announce an attack potential resistance that the wallet doesn't support.
-    #[serde(untagged)]
-    Other(String),
+    /// OPTIONAL. A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub user_authentication: HashSet<AttackPotentialResistance>,
 }
 
 /// Information relevant to the usage and display of issued Credentials. Credential Format-specific mechanisms can

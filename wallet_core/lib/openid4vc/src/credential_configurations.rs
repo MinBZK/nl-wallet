@@ -311,8 +311,11 @@ impl<K, L> CredentialConfigurations<K, L> {
             .map(|(config_id, config)| {
                 let scope = config.scope.clone();
 
-                // TODO (PVW-5548): Add "attestation" proof type.
-                let proof_types = vec![ProofType::Jwt];
+                // Even though support for both the `attestation` and `jwt` proof types is mandatory, we decide to only
+                // implement the `attestation` proof type here, as this Issuer implementation need not be fully
+                // compliant. The `jwt` proof type does not add significant additional benefits over the `attestation`
+                // proof type.
+                let proof_types = HashSet::from([ProofType::Attestation]);
 
                 let credential_configuration = match &config.format {
                     CredentialConfigurationFormat::MsoMdoc {
@@ -489,7 +492,7 @@ mod tests {
                 .keys()
                 .cloned()
                 .collect::<HashSet<_>>();
-            assert_eq!(proof_types, HashSet::from([ProofType::Jwt]));
+            assert_eq!(proof_types, HashSet::from([ProofType::Attestation]));
         }
 
         let mdoc_config = metadata_configs
