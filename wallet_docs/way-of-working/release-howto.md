@@ -10,7 +10,7 @@ member can do a release, and knows what steps and which roles are involved.
   documentation we can refer to (config file changes, schema changes, etc)
 - The definitions of done of any merged feature always includes any relevant
   unit-, integration and/or end-to-end tests (i.e., features are tested)
-- You have `cargo-edit` and `git-filter-repo` installed
+- You have `cargo-edit` installed
 
 ## What constitutes a release?
 
@@ -26,7 +26,22 @@ a release themselves.
 
 This section of the guide documents all the steps we do when we do a release.
 
-### Step 1: Make sure the release on Jira is green and complete
+### Step 1: Freeze git main branch
+
+To avoid someone accidentally or otherwise sniping in another change, you can
+temporarily "freeze" the main branch. To do this in GitLab, you can follow these
+steps:
+
+1. Go to the project page, click `Settings`, go to `Repository`;
+2. Click `Expand` on `Branch rules` and see the `main` branch there;
+3. Set `Allowed to merge` to specifically **your** user account;
+
+After doing the above, no one except you can merge to the `main branch`.
+
+Don't forget to undo the above when you're done (at least after you've completed
+steps 6 and 7).
+
+### Step 2: Make sure the release on Jira is green and complete
 
 We use [Jira Releases][2] (also sort-of interchangably called "versions") to
 keep track of things we want to have in a release and administrate for which
@@ -49,10 +64,6 @@ to the backlog and the `In Progress` issue can be moved to done. For certain
 issues an exception can be made; these issues will be partly released and thus
 will get multiple fix versions in the future.
 
-When the release is "green" (i.e., all relevant issues are in the `Done` state)
-you know that the relevant features and fixes have been merged in the `main`
-branch, and you can create a release tag (which we do later on in this guide).
-
 The `nightly-git-jira-check` job automatically keeps Jira issues up-to-date with
 GitLab MRs by setting the correct fixVersion based on merged branches. So by the
 time you're prepping the release, Jira should already reflect the correct state,
@@ -69,13 +80,13 @@ created in which all MRs that are missing a Jira key are logged. Add this file
 to the release ticket in Jira or a separate ticket belonging to the release to
 ensure a quick way to determinate what has been released.
 
-### Step 2: Make sure Figma links are up-to-date in README.md
+### Step 3: Make sure Figma links are up-to-date in README.md
 
 We have links to Figma in our `README.md` file. We always update these before we
 tag the release. Obtain the up-to-date links from the UX team, create an MR and
 update the README.
 
-### Step 3: Confirm appropiate tests and reports have been done for this release
+### Step 4: Confirm appropiate tests and reports have been done for this release
 
 We do most testing in an automated fashion using our CI/CD pipeline. There are
 however still a few things we confirm. Most notably:
@@ -110,7 +121,7 @@ If there are any findings which can't be accepted or worked around, they will
 probably block the release and need to be addressed or otherwise accepted before
 further release-steps can occur.
 
-### Step 4: Release approval
+### Step 5: Release approval
 
 The release in Jira is green, manual and automated testing is done and the other
 things we confirm in the previous step are all ok or accepted. The product owner
@@ -126,22 +137,6 @@ the steps to execute the release.
 If for some reason the release is not approved, then we as a team need to
 address any issues and concerns raised by the PO and/or SDM before further
 release-steps can occur.
-
-### Step 5: Freeze git main branch
-
-To avoid someone accidentally or otherwise sniping in another change, you can
-temporarily "freeze" the main branch. To do this in GitLab, you can follow these
-steps:
-
-1. Go to the project page, click `Settings`, go to `Repository settings`;
-2. Click `Expand` on `Protected branches` and see the `main` branch there;
-3. Set `Allowed to merge` to `None`;
-4. Set `Allowed to push and merge` to specifically **your** user account;
-
-After doing the above, no one except you can merge or push to the `main branch`.
-
-Don't forget to undo the above when you're done (at least after you've completed
-steps 6 and 7).
 
 ### Step 6: Set release version and tag
 
