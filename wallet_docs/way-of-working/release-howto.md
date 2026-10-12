@@ -87,9 +87,12 @@ however still a few things we confirm. Most notably:
   the link)
 - OSV scanner ran and results accepted (see `osv-scanner` job in pipeline)
 - ZAP scanner ran and results accepted (see ZAP in Quality Time)
-- Trivy scan ran and results accepted (See Check `trivy-scan` job in `Trigger vulnerability scanning` pipeline)
-- Dependency check ran and results accepted (see `dependency-check` job in pipeline)
-- SBOM uploaded to Dependency-track and results accepted (see `upload-sbom-to-dependency-track` job in pipeline)
+- Trivy scan ran and results accepted (See Check `trivy-scan` job in
+  `Trigger vulnerability scanning` pipeline)
+- Dependency check ran and results accepted (see `dependency-check` job in
+  pipeline)
+- SBOM uploaded to Dependency-track and results accepted (see
+  `upload-sbom-to-dependency-track` job in pipeline)
 - No blocker or critical Sonar findings (you can check our Sonar instance for
   these findings, ask around for the link if you don't have it)
 - A11y scan that ran on Browserstack are evaluated and actual a11y issues are
@@ -188,15 +191,15 @@ We currently (2025-12-17) collect 6 artifacts from our GitLab CI/CD pipeline:
 - `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for this
   release.
 - `wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet issuance
-  server for issuers with migrations binary, for glibc-based Linux systems
-  built with Debian trixie.
+  server for issuers with migrations binary, for glibc-based Linux systems built
+  with Debian trixie.
 - `wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet issuance
   server for issuers with migrations binary using statically linked musl.
 - `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet
-  verification server for relying parties  with migrations binary, for
+  verification server for relying parties with migrations binary, for
   glibc-based Linux systems built with Debian trixie.
 - `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet
-  verification server for relying parties  with migrations binary using
+  verification server for relying parties with migrations binary using
   statically linked musl.
 - `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for issuers and
   relying parties, to assist with integrating issuers and relying party
@@ -310,12 +313,12 @@ release description.
 
 ### Pre-Approval Checklist (Steps 1-4)
 
-The checklist below can be used to verify everything is in place before release approval can be
-requested by the software quality engineer. Alternatively it can be used to explain possible exceptions
-from the different aspects and steps.
+The checklist below can be used to verify everything is in place before release
+approval can be requested by the software quality engineer. Alternatively it can
+be used to explain possible exceptions from the different aspects and steps.
 
 | Aspect/Step                                                  | Ok/Nok | Explain                                                                                          |
-|--------------------------------------------------------------|--------|--------------------------------------------------------------------------------------------------|
+| ------------------------------------------------------------ | ------ | ------------------------------------------------------------------------------------------------ |
 | Jira release is green - all issues in Done state             |        | Verify progress bar on Jira releases page, check all issues are Done except release-related ones |
 | `nightly-git-jira-check` job log verified                    |        | Check job log for inconsistencies: wrong versions, multiple fixVersions, missing Jira keys       |
 | `verify-release-check` artifact reviewed and added to Jira   |        | Artifact with MRs missing Jira keys added to release ticket                                      |
@@ -334,10 +337,11 @@ from the different aspects and steps.
 
 ### Final Release Verification Checklist (Steps 5-10)
 
-Use this checklist to verify all steps have been completed after release execution:
+Use this checklist to verify all steps have been completed after release
+execution:
 
 | Aspect/Step                                 | Ok/Nok | Explain                                                                             |
-|---------------------------------------------|--------|-------------------------------------------------------------------------------------|
+| ------------------------------------------- | ------ | ----------------------------------------------------------------------------------- |
 | Release version set and MR merged           |        | `version.sh -s vX.Y.Z` executed, MR merged successfully                             |
 | Release tag created and pushed              |        | `git tag vX.Y.Z` executed, tag pushed with `git push --tags`                        |
 | Development version set and MR merged       |        | `version.sh -s vX.Y.Z-dev` executed, MR merged quickly                              |
@@ -351,7 +355,6 @@ Use this checklist to verify all steps have been completed after release executi
 | Release description added to GitHub release |        | Complete release description markdown inserted                                      |
 | Pre-release flag set                        |        | "Set as a pre-release" flag enabled                                                 |
 | GitHub release published                    |        | Release successfully published on GitHub                                            |
-
 
 ## References
 
