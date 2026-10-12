@@ -601,3 +601,20 @@ async fn test_reviewable_returns_authorized_tasks_of_other_users_oldest_first() 
         .collect::<Vec<_>>();
     assert_eq!(reviewable, vec![older, newer]);
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_reviewable_with_no_authorized_task_types_returns_empty() {
+    let db = TestDatabase::new().await;
+    let alice = User::new("alice");
+    let bob = User::new("bob");
+    db.create_task(&bob, at(0), TaskType::RevokeWallet)
+        .await
+        .expect("should create task");
+
+    let reviewable = db
+        .reviewable(&alice, vec![])
+        .await
+        .expect("should list reviewable tasks");
+
+    assert!(reviewable.is_empty());
+}
