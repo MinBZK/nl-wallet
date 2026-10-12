@@ -22,6 +22,7 @@ use crate::pid::rulebook::constants::PID_GIVEN_NAME;
 use crate::pid::rulebook::constants::PID_ISSUING_AUTHORITY;
 use crate::pid::rulebook::constants::PID_ISSUING_COUNTRY;
 use crate::pid::rulebook::constants::PID_MDOC_BIRTH_DATE;
+use crate::pid::rulebook::constants::PID_MDOC_FAMILY_NAME_BIRTH;
 use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_MDOC_NATIONALITY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_CITY;
@@ -32,6 +33,7 @@ use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
 use crate::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
 use crate::pid::rulebook::constants::PID_SD_JWT_BIRTH_DATE;
 use crate::pid::rulebook::constants::PID_SD_JWT_COUNTRY;
+use crate::pid::rulebook::constants::PID_SD_JWT_FAMILY_NAME_BIRTH;
 use crate::pid::rulebook::constants::PID_SD_JWT_HOUSE_NUMBER;
 use crate::pid::rulebook::constants::PID_SD_JWT_LOCALITY;
 use crate::pid::rulebook::constants::PID_SD_JWT_NATIONALITIES;
@@ -148,6 +150,10 @@ pub fn mock_pid_example() -> Attributes {
             ]),
         ),
         (vec![PID_SEX], Attribute::Number(2)),
+        (
+            vec![PID_SD_JWT_FAMILY_NAME_BIRTH],
+            Attribute::Text("Jansen".to_string()),
+        ),
         (vec![PID_ISSUING_COUNTRY], Attribute::Text("NL".to_owned())),
         (
             vec![PID_ISSUING_AUTHORITY],
@@ -204,6 +210,10 @@ pub fn mock_pid_mdoc_example() -> Attributes {
             ]),
         ),
         (vec![PID_MDOC_NAMESPACE, PID_SEX], Attribute::Number(2)),
+        (
+            vec![PID_MDOC_NAMESPACE, PID_MDOC_FAMILY_NAME_BIRTH],
+            Attribute::Text("Jansen".to_string()),
+        ),
         (
             vec![PID_MDOC_NAMESPACE, PID_ISSUING_COUNTRY],
             Attribute::Text("NL".to_owned()),

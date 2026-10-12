@@ -23,6 +23,17 @@
       "mandatory": true
     },
     {
+      "path": ["birth_family_name"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Birth name",
+          "description": "Family name of the person at birth, including any prefixes"
+        }
+      ],
+      "sd": "always"
+    },
+    {
       "path": ["given_name"],
       "display": [
         {

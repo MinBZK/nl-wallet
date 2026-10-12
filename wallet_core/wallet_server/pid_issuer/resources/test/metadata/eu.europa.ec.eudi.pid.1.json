@@ -36,6 +36,22 @@
     {
       "path": [
         "eu.europa.ec.eudi.pid.1",
+        "family_name_birth"
+      ],
+      "display": [
+        {
+          "name": "Birth name",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboortenaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
         "given_name"
       ],
       "mandatory": true,

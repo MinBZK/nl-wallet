@@ -30,6 +30,9 @@ pub const PID_MDOC_BIRTH_DATE: &str = "birth_date";
 pub const PID_SD_JWT_NATIONALITIES: &str = "nationalities";
 pub const PID_MDOC_NATIONALITY: &str = "nationality";
 
+pub const PID_SD_JWT_FAMILY_NAME_BIRTH: &str = "birth_family_name";
+pub const PID_MDOC_FAMILY_NAME_BIRTH: &str = "family_name_birth";
+
 pub const PID_SD_JWT_ADDRESS_GROUP: &str = "address";
 pub const PID_SD_JWT_STREET_ADDRESS: &str = "street_address";
 pub const PID_SD_JWT_HOUSE_NUMBER: &str = "house_number";

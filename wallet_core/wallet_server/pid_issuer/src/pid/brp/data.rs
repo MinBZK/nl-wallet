@@ -10,6 +10,7 @@ use crate::pid::rulebook::constants::PID_BSN;
 use crate::pid::rulebook::constants::PID_FAMILY_NAME;
 use crate::pid::rulebook::constants::PID_GIVEN_NAME;
 use crate::pid::rulebook::constants::PID_MDOC_BIRTH_DATE;
+use crate::pid::rulebook::constants::PID_MDOC_FAMILY_NAME_BIRTH;
 use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_MDOC_NATIONALITY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_CITY;
@@ -21,6 +22,7 @@ use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
 use crate::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
 use crate::pid::rulebook::constants::PID_SD_JWT_BIRTH_DATE;
 use crate::pid::rulebook::constants::PID_SD_JWT_COUNTRY;
+use crate::pid::rulebook::constants::PID_SD_JWT_FAMILY_NAME_BIRTH;
 use crate::pid::rulebook::constants::PID_SD_JWT_HOUSE_NUMBER;
 use crate::pid::rulebook::constants::PID_SD_JWT_LOCALITY;
 use crate::pid::rulebook::constants::PID_SD_JWT_NATIONALITIES;
@@ -57,29 +59,57 @@ pub struct BrpPerson {
     #[serde(rename = "geboorte")]
     birth: BrpBirth,
 
-    #[serde(rename = "nationaliteiten", default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(rename = "nationaliteiten", default)]
     nationalities: Vec<BrpNationality>,
 
     #[serde(rename = "verblijfplaats")]
     residence: BrpResidence,
+
+    #[serde(rename = "partners", default)]
+    partners: Vec<BrpPartner>,
 }
 
 impl BrpPerson {
     pub fn bsn(&self) -> &str {
         &self.bsn
     }
+
+    fn current_partner(&self) -> Option<&BrpPartner> {
+        self.partners
+            .iter()
+            .find(|partner| partner.start.is_some() && partner.end.is_none())
+    }
+
+    // Computes the family name as it should be displayed (including partner name, if applicable), falls back to the own
+    // name
+    fn family_name(&self) -> String {
+        let own_name = || self.name.name_with_prefix();
+        let partner_name = || self.current_partner().map(|partner| partner.name.name_with_prefix());
+
+        match self.name.name_usage.code {
+            BrpNameUsageCode::Own => own_name(),
+            BrpNameUsageCode::Partner => partner_name().unwrap_or_else(own_name),
+            BrpNameUsageCode::OwnThenPartner => partner_name()
+                .map(|partner| format!("{}-{partner}", own_name()))
+                .unwrap_or_else(own_name),
+            BrpNameUsageCode::PartnerThenOwn => partner_name()
+                .map(|partner| format!("{partner}-{}", own_name()))
+                .unwrap_or_else(own_name),
+        }
+    }
 }
 
 impl BrpPerson {
     pub fn into_sd_jwt_attributes(self, recovery_code: Attribute, issuer_metadata: PidIssuerMetadata) -> Attributes {
         let address_attributes = self.residence.clone().into_sd_jwt_address_attributes();
-        let (mut attributes, birth_date, nationality) = self.common_attributes();
+        let (mut attributes, birth_date, nationality, family_name_birth) = self.common_attributes();
 
         attributes.insert(
             String::from(PID_SD_JWT_BIRTH_DATE),
             Attribute::Text(birth_date.format("%Y-%m-%d").to_string()), // ISO-8601 string
         );
         attributes.insert(String::from(PID_SD_JWT_NATIONALITIES), nationality);
+        attributes.insert(String::from(PID_SD_JWT_FAMILY_NAME_BIRTH), family_name_birth);
         attributes.extend(issuer_metadata.into_attributes());
         attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
         attributes.insert(
@@ -92,11 +122,12 @@ impl BrpPerson {
 
     pub fn into_mdoc_attributes(self, recovery_code: Attribute, issuer_metadata: PidIssuerMetadata) -> Attributes {
         let address_attributes = self.residence.clone().into_mdoc_address_attributes();
-        let (mut attributes, birth_date, nationality) = self.common_attributes();
+        let (mut attributes, birth_date, nationality, family_name_birth) = self.common_attributes();
 
         // In mdoc, `birth_date` should be encoded as `full-date` (CBOR tag 1004)
         attributes.insert(PID_MDOC_BIRTH_DATE.to_owned(), Attribute::Date(birth_date));
         attributes.insert(PID_MDOC_NATIONALITY.to_owned(), nationality);
+        attributes.insert(PID_MDOC_FAMILY_NAME_BIRTH.to_owned(), family_name_birth);
         attributes.extend(issuer_metadata.into_attributes());
         attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
         attributes.extend(address_attributes);
@@ -107,10 +138,12 @@ impl BrpPerson {
         )]))
     }
 
-    /// Everything but `birth_date` and `nationality`, since those have different key/value formats for mdoc and SD-JWT.
-    fn common_attributes(self) -> (IndexMap<String, Attribute>, NaiveDate, Attribute) {
+    /// Everything but `birth_date`, `nationality` and `family_name_birth`, since those have different key/value
+    /// formats or keys for mdoc and SD-JWT.
+    fn common_attributes(self) -> (IndexMap<String, Attribute>, NaiveDate, Attribute, Attribute) {
         let given_names = self.name.given_names.clone();
-        let family_name = self.name.into_name_with_prefix();
+        let family_name = self.family_name();
+        let family_name_birth = Attribute::Text(self.name.name_with_prefix());
         let sex = self
             .gender
             .map(|gender| Attribute::from(RulebookSex::from(gender.code)));
@@ -137,7 +170,7 @@ impl BrpPerson {
             .collect::<Vec<(String, Attribute)>>(),
         );
 
-        (attributes, birth_date, nationality)
+        (attributes, birth_date, nationality, family_name_birth)
     }
 }
 
@@ -229,17 +262,52 @@ pub struct BrpName {
 
     #[serde(rename = "geslachtsnaam")]
     family_name: String,
+
+    #[serde(rename = "aanduidingNaamgebruik")]
+    name_usage: BrpNameUsage,
 }
 
 impl BrpName {
-    fn into_name_with_prefix(self) -> String {
-        if let Some(prefix) = self.family_name_prefix {
-            format!("{} {}", prefix, self.family_name)
-        } else {
-            self.family_name
+    fn name_with_prefix(&self) -> String {
+        match &self.family_name_prefix {
+            Some(prefix) => format!("{prefix} {}", self.family_name),
+            None => self.family_name.clone(),
         }
     }
 }
+
+#[derive(Clone, Deserialize)]
+pub struct BrpNameUsage {
+    code: BrpNameUsageCode,
+}
+
+#[derive(Clone, Copy, Deserialize)]
+pub enum BrpNameUsageCode {
+    #[serde(rename = "P")]
+    Partner,
+    #[serde(rename = "N")]
+    OwnThenPartner,
+    #[serde(rename = "V")]
+    PartnerThenOwn,
+    #[serde(rename = "E")]
+    Own,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct BrpPartner {
+    #[serde(rename = "naam")]
+    name: BrpName,
+
+    #[serde(rename = "aangaanHuwelijkPartnerschap")]
+    start: Option<BrpPartnershipEvent>,
+
+    #[serde(rename = "ontbindingHuwelijkPartnerschap")]
+    end: Option<BrpPartnershipEvent>,
+}
+
+// Only presence/absence is relevant for determining the current partner; its contents are unused.
+#[derive(Clone, Deserialize)]
+pub struct BrpPartnershipEvent {}
 
 #[derive(Clone, Deserialize)]
 pub struct BrpBirth {
@@ -2524,6 +2592,21 @@ mod tests {
         assert_eq!(expected_house_number, brp_person.residence.address.locator_designator());
     }
 
+    #[rstest]
+    #[case("naamgebruik-eigen", "van Buren")]
+    #[case("naamgebruik-partner", "Postma")]
+    #[case("naamgebruik-partner-first", "ten Hag-van Buren")]
+    #[case("naamgebruik-partner-last", "van Buren-ten Hag")]
+    #[case("prefix-family-name", "van Buren")]
+    // Naamgebruik indicates the partner's name should be used, but there is no current partner on record: falls
+    // back to the own name rather than erroring.
+    #[case("naamgebruik-illegal", "van Buren")]
+    fn should_handle_naamgebruik(#[case] json_file_name: &str, #[case] expected_family_name: &str) {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
+        let brp_person = brp_persons.persons.first().unwrap();
+        assert_eq!(expected_family_name, brp_person.family_name());
+    }
+
     #[test]
     fn should_convert_brp_person_to_sd_jwt_issuable_vec() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
@@ -2566,6 +2649,10 @@ mod tests {
                             "value": "BE"
                         }
                     ]
+                },
+                "birth_family_name": {
+                    "type": "text",
+                    "value": "Jansen"
                 },
                 "sex": {
                     "type": "number",
@@ -2658,6 +2745,10 @@ mod tests {
                                     "value": "BE"
                                 }
                             ]
+                        },
+                        "family_name_birth": {
+                            "type": "text",
+                            "value": "Jansen"
                         },
                         "sex": {
                             "type": "number",

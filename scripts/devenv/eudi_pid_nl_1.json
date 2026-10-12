@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-BpPZ9W+Jc/JgGzw/70fMab7+R3Z5E8jYZ2Z8clWNYQw=",
+  "extends#integrity": "sha256-jOHMhxZJYl0UwCj+XvTkyZ4JTecvNnW4ecsijg92qC8=",
   "display": [
     {
       "locale": "en-US",
@@ -47,6 +47,22 @@
       ],
       "sd": "always",
       "mandatory": true
+    },
+    {
+      "path": ["birth_family_name"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Birth name",
+          "description": "Family name of the person at birth, including any prefixes"
+        },
+        {
+          "locale": "nl-NL",
+          "label": "Geboortenaam",
+          "description": "Achternaam van de persoon bij geboorte, inclusief voorvoegsels"
+        }
+      ],
+      "sd": "always"
     },
     {
       "path": ["given_name"],
