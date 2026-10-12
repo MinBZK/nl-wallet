@@ -18,8 +18,7 @@ use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::crl::CertificateCrlVerifier;
-use crypto::x509::crl::mock::MockCrlFetcher;
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use derive_more::Constructor;
 use indexmap::IndexMap;
 use oauth::errors::AuthorizationErrorCode;
@@ -246,8 +245,8 @@ pub fn setup_mock_issuer<G>(
 ) -> (
     MockIssuer<G>,
     TrustAnchors,
-    KeyPair,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    Ca,
+    MockCertificateCrlVerifier,
     MockRegistrationCertificate,
 )
 where
@@ -270,8 +269,8 @@ pub fn setup_mock_issuer_from_sd_jwt_metadata<G>(
 ) -> (
     MockIssuer<G>,
     TrustAnchors,
-    KeyPair,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    Ca,
+    MockCertificateCrlVerifier,
     MockRegistrationCertificate,
 )
 where
@@ -303,8 +302,8 @@ pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
 ) -> (
     MockIssuer<G>,
     TrustAnchors,
-    KeyPair,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    Ca,
+    MockCertificateCrlVerifier,
     MockRegistrationCertificate,
 )
 where
@@ -342,18 +341,20 @@ pub fn setup_mock_issuer_with_metadata<G>(
 ) -> (
     MockIssuer<G>,
     TrustAnchors,
-    KeyPair,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    Ca,
+    MockCertificateCrlVerifier,
     MockRegistrationCertificate,
 )
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
-    let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let metadata_keypair = ca.generate_wrpac_issuer_mock_with_crl().unwrap();
-    let issuance_keypair = ca.generate_issuer_mock().unwrap();
-    let trust_anchors = TrustAnchors::from(&ca);
-    let wia_keypair = ca.generate_wia_mock().unwrap();
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
+    let metadata_keypair = issuer_ca.generate_wrpac_issuer_mock_with_crl().unwrap();
+    let issuance_keypair = issuer_ca.generate_issuer_mock().unwrap();
+
+    let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
+    let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
 
     let registration_certificate = MockRegistrationCertificate::new_issuer(
         metadata_keypair.certificate(),
@@ -398,17 +399,17 @@ where
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
         credential_configs,
-        trust_anchors.clone(),
+        wptl_trust_anchors,
         sessions,
         MemoryNonceStore::new(),
     );
 
-    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&issuer_ca);
 
     (
         issuer,
-        trust_anchors,
-        wia_keypair,
+        issuer_trust_anchors,
+        wptl_ca,
         crl_verifier,
         registration_certificate,
     )
@@ -425,22 +426,22 @@ pub fn setup_mock_authorizing_issuer_from_sd_jwt_metadata<G>(
 ) -> (
     MockAuthorizingIssuer<G>,
     TrustAnchors,
-    KeyPair,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    Ca,
+    MockCertificateCrlVerifier,
     MockRegistrationCertificate,
 )
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let par_store = MemoryStore::new(PAR_TTL);
-    let (issuer, trust_anchors, wia_keypair, crl_verifier, registration_certificate) =
+    let (issuer, trust_anchors, wptl_ca, crl_verifier, registration_certificate) =
         setup_mock_issuer_from_sd_jwt_metadata(issuer_identifier, type_metadata, sessions);
     let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow, wallet_redirect_uris);
 
     (
         authorizing_issuer,
         trust_anchors,
-        wia_keypair,
+        wptl_ca,
         crl_verifier,
         registration_certificate,
     )

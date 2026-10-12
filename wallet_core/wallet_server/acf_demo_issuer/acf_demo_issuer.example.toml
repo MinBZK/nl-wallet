@@ -14,8 +14,9 @@ structured_logging = false
 # Array of CAs with trusted issuers
 issuer_trust_anchors = ["MII..."]
 
-# Array of CAs for Wallet Instance Attestation (WIA) certificates
-wia_trust_anchors = ["MII..."]
+# CAs in the Wallet Provider Trusted List, under which both the Wallet Instance Attestation (WIA) and Key Attestation
+# are validated.
+wptl_trust_anchors = ["MII..."]
 
 # The wallet must be able to reach the server at this URL. The consent page is served at
 # `<public_url>/consent`.

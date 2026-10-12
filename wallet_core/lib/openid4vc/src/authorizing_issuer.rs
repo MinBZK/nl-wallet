@@ -402,7 +402,7 @@ mod tests {
 
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
-    use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use jwt::nonce::Nonce;
     use oauth::errors::AuthorizationErrorCode;
@@ -496,11 +496,11 @@ mod tests {
         Arc<MockIssuer>,
         MemoryStore<String, VciAuthorizationRequest>,
         Arc<MemorySessionStore<IssuanceData>>,
-        KeyPair,
+        Ca,
     ) {
         let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
         let sessions = Arc::new(MemorySessionStore::default());
-        let (issuer, _, wia_keypair, _, _) = setup_mock_issuer(
+        let (issuer, _, wptl_ca, _, _) = setup_mock_issuer(
             issuer_identifier,
             MOCK_ATTESTATION_TYPES.len().try_into().unwrap(),
             Arc::clone(&sessions),
@@ -511,7 +511,7 @@ mod tests {
             par_store.store_inner(request_uri, request);
         }
 
-        (Arc::new(issuer), par_store, sessions, wia_keypair)
+        (Arc::new(issuer), par_store, sessions, wptl_ca)
     }
 
     /// Builds an [`AuthorizingIssuer`], building on [`issuer_and_par`] and resulting in the provided
@@ -519,10 +519,10 @@ mod tests {
     fn create_authorizing_issuer(
         entries: Vec<(String, VciAuthorizationRequest)>,
         outcome: AuthorizeOutcome,
-    ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>, KeyPair) {
-        let (issuer, par_store, sessions, wia_keypair) = issuer_and_par(entries);
+    ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>, Ca) {
+        let (issuer, par_store, sessions, wptl_ca) = issuer_and_par(entries);
         let auth_issuer = AuthorizingIssuer::new(issuer, par_store, FixedOutcomeFlow(outcome), allowed_redirect_uris());
-        (auth_issuer, sessions, wia_keypair)
+        (auth_issuer, sessions, wptl_ca)
     }
 
     /// Minimal [`AuthorizationCodeFlow`] that returns a preconfigured outcome, so `process_authorize`
@@ -552,13 +552,13 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_stores_request_and_returns_response() {
-        let (authorizing_issuer, _sessions, wia_keypair) =
+        let (authorizing_issuer, _sessions, wptl_ca) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let response = authorizing_issuer
             .process_pushed_authorization_request(
                 vci_request(MOCK_WALLET_CLIENT_ID),
-                &MockWiaClient::new_with_wia_keypair(wia_keypair)
+                &MockWiaClient::from_ca(&wptl_ca)
                     .issue_wia(
                         authorizing_issuer.issuer.issuer_identifier().to_string(),
                         Some(authorizing_issuer.issuer().generate_nonce().await.unwrap()),
@@ -604,7 +604,7 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_rejects_authorization_details() {
-        let (authorizing_issuer, _sessions, wia_keypair) =
+        let (authorizing_issuer, _sessions, wptl_ca) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let mut request = vci_request(MOCK_WALLET_CLIENT_ID);
@@ -616,7 +616,7 @@ mod tests {
             .unwrap(),
         );
 
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(
                 authorizing_issuer.issuer.issuer_identifier().to_string(),
                 Some(authorizing_issuer.issuer().generate_nonce().await.unwrap()),
@@ -637,13 +637,13 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_rejects_missing_wia_nonce() {
-        let (authorizing_issuer, _sessions, wia_keypair) =
+        let (authorizing_issuer, _sessions, wptl_ca) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let error = authorizing_issuer
             .process_pushed_authorization_request(
                 vci_request(MOCK_WALLET_CLIENT_ID),
-                &MockWiaClient::new_with_wia_keypair(wia_keypair)
+                &MockWiaClient::from_ca(&wptl_ca)
                     .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), None)
                     .await
                     .unwrap(),
@@ -657,14 +657,14 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_rejects_unknown_wia_nonce() {
-        let (authorizing_issuer, _sessions, wia_keypair) =
+        let (authorizing_issuer, _sessions, wptl_ca) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         // This nonce was never issued by (and thus never stored in) the issuer.
         let error = authorizing_issuer
             .process_pushed_authorization_request(
                 vci_request(MOCK_WALLET_CLIENT_ID),
-                &MockWiaClient::new_with_wia_keypair(wia_keypair)
+                &MockWiaClient::from_ca(&wptl_ca)
                     .issue_wia(
                         authorizing_issuer.issuer.issuer_identifier().to_string(),
                         Some(Nonce::new_random()),
@@ -681,11 +681,11 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_rejects_replayed_wia_nonce() {
-        let (authorizing_issuer, _sessions, wia_keypair) =
+        let (authorizing_issuer, _sessions, wptl_ca) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let nonce = authorizing_issuer.issuer.generate_nonce().await.unwrap();
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(authorizing_issuer.issuer.issuer_identifier().to_string(), Some(nonce))
             .await
             .unwrap();
@@ -707,7 +707,7 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_rejects_disallowed_redirect_uri() {
-        let (issuer, par_store, _sessions, wia_keypair) = issuer_and_par(vec![]);
+        let (issuer, par_store, _sessions, wptl_ca) = issuer_and_par(vec![]);
         // The client_id is accepted, but the allowlist does not contain WALLET_REDIRECT_URI, so the
         // request must be rejected on the redirect_uri check alone.
         let authorizing_issuer = AuthorizingIssuer::new(
@@ -720,7 +720,7 @@ mod tests {
         let error = authorizing_issuer
             .process_pushed_authorization_request(
                 vci_request(MOCK_WALLET_CLIENT_ID),
-                &MockWiaClient::new_with_wia_keypair(wia_keypair)
+                &MockWiaClient::from_ca(&wptl_ca)
                     .issue_wia(
                         authorizing_issuer.issuer.issuer_identifier().to_string(),
                         Some(authorizing_issuer.issuer().generate_nonce().await.unwrap()),
@@ -738,7 +738,7 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_rejects_wia_from_untrusted_issuer() {
-        let (authorizing_issuer, _sessions, _wia_keypair) =
+        let (authorizing_issuer, _sessions, _wptl_ca) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         // MockWiaClient::new() issues a WIA signed by a freshly generated CA that is not in the
@@ -762,12 +762,12 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_rejects_wia_with_wrong_audience() {
-        let (authorizing_issuer, _sessions, wia_keypair) =
+        let (authorizing_issuer, _sessions, wptl_ca) =
             create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         // The WIA is signed by the trusted key pair but targets a different audience, so the
         // audience check inside verify_wia must reject it.
-        let wia = MockWiaClient::new_with_wia_keypair(wia_keypair)
+        let wia = MockWiaClient::from_ca(&wptl_ca)
             .issue_wia(
                 "https://wrong-issuer.example.com".to_string(),
                 Some(authorizing_issuer.issuer().generate_nonce().await.unwrap()),

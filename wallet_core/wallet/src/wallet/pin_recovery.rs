@@ -24,6 +24,7 @@ use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use url::Url;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -384,7 +385,12 @@ where
 
         // Since all we need is to extract the recovery code, request just a single copy of the SD-JWT PID credential.
         let issuance_result = issuance_session
-            .accept_issuance(NonZeroU8::MIN, config.issuer_trust_anchors(), &pin_recovery_wscd)
+            .accept_issuance(
+                NonZeroU8::MIN,
+                config.accept_issuance_anchors(),
+                &pin_recovery_wscd,
+                &TimeGenerator,
+            )
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session));
 
@@ -1058,9 +1064,8 @@ mod tests {
 
         async fn perform_issuance(
             &self,
-            _aud: String,
             _key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
+        ) -> Result<VecNonEmpty<IssuanceKeyResult>, Self::Error> {
             unimplemented!()
         }
     }

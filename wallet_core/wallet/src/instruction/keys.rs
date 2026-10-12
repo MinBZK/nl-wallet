@@ -122,7 +122,6 @@ where
 }
 
 fn build_perform_issuance_instruction(
-    aud: String,
     key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
 ) -> PerformIssuance {
     let key_requests = key_counts_and_nonces
@@ -130,19 +129,14 @@ fn build_perform_issuance_instruction(
         .map(|(key_count, proof_nonce)| IssuanceKeySetRequest { key_count, proof_nonce })
         .collect();
 
-    PerformIssuance { aud, key_requests }
+    PerformIssuance { key_requests }
 }
 
-fn key_results_from_issuance_result(result: PerformIssuanceResult) -> VecNonEmpty<VecNonEmpty<IssuanceKeyResult>> {
+fn key_results_from_issuance_result(result: PerformIssuanceResult) -> VecNonEmpty<IssuanceKeyResult> {
     result
-        .keys
+        .key_sets
         .into_nonempty_iter()
-        .map(|proofs| {
-            proofs
-                .into_nonempty_iter()
-                .map(|proof| IssuanceKeyResult::new(proof.key_identifier, proof.pop))
-                .collect()
-        })
+        .map(|set_result| IssuanceKeyResult::new(set_result.identifiers, set_result.attestation))
         .collect()
 }
 
@@ -157,12 +151,11 @@ where
 
     async fn perform_issuance(
         &self,
-        aud: String,
         key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
+    ) -> Result<VecNonEmpty<IssuanceKeyResult>, Self::Error> {
         let issuance_result = self
             .instruction_client
-            .send(build_perform_issuance_instruction(aud, key_counts_and_nonces))
+            .send(build_perform_issuance_instruction(key_counts_and_nonces))
             .await?;
 
         let key_results = key_results_from_issuance_result(issuance_result);
@@ -241,13 +234,12 @@ where
 
     async fn perform_issuance(
         &self,
-        aud: String,
         key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
+    ) -> Result<VecNonEmpty<IssuanceKeyResult>, Self::Error> {
         let result = self
             .instruction_client
             .send(StartPinRecovery {
-                issuance_instruction: build_perform_issuance_instruction(aud, key_counts_and_nonces),
+                issuance_instruction: build_perform_issuance_instruction(key_counts_and_nonces),
                 pin_pubkey: self.pin_key.into(),
             })
             .await?;

@@ -292,10 +292,23 @@ function generate_wp_aes_key {
 }
 
 # Generate an EC root CA
+#
+# $1 - Short name of the CA. If `access_certificates` contains a legal name and organization identifier for this
+#      short name, the CA certificate subject includes them.
 function generate_root_ca {
     echo -e "${INFO}Generating Issuer CA key pair${NC}"
+    local ca_args=(
+        --common-name "CA $1"
+    )
+    if [[ -n ${access_certificates[($1,legal_name)]:-} ]]; then
+        ca_args+=(
+            --organization-name "${access_certificates[($1,legal_name)]}"
+            --organization-id "${access_certificates[($1,oid)]}"
+        )
+    fi
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "CA $1" \
+        "${ca_args[@]}" \
         --file-prefix "${TARGET_DIR}/ca.$1" \
         --force
     openssl x509 -in "${TARGET_DIR}/ca.$1.crt.pem" -outform DER -out "${TARGET_DIR}/ca.$1.crt.der"
@@ -385,17 +398,40 @@ function generate_wia_signing_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca cert-pub --type wia \
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
-        --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
-        --common-name "${access_certificates[(wia,name)]}" \
-        --organization-name "${access_certificates[(wia,legal_name)]}" \
-        --organization-id "${access_certificates[(wia,oid)]}" \
+        --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --common-name "${access_certificates[(wptl,name)]}" \
+        --organization-name "${access_certificates[(wptl,legal_name)]}" \
+        --organization-id "${access_certificates[(wptl,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_signing" \
         --force
 
     # Convert the PEM certificate to DER format
     openssl x509 -in "${TARGET_DIR}/wallet_provider/wia_signing.crt.pem" \
         -outform DER -out "${TARGET_DIR}/wallet_provider/wia_signing.crt.der"
+}
+
+# Generate an EC key pair for key attestations
+function generate_key_attestation_signing_key_pair {
+    echo -e "${INFO}Generating Key Attestation key pair in HSM${NC}"
+
+    generate_hsm_key_pair key_attestation_signing_key wallet_provider/key_attestation_signing_key.pub.pem
+
+    # Generate a certificate for the public key
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca cert-pub --type key-attestation \
+        --public-key-file "${TARGET_DIR}/wallet_provider/key_attestation_signing_key.pub.pem" \
+        --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --common-name "${access_certificates[(wptl,name)]}" \
+        --organization-name "${access_certificates[(wptl,legal_name)]}" \
+        --organization-id "${access_certificates[(wptl,oid)]}" \
+        --file-prefix "${TARGET_DIR}/wallet_provider/key_attestation_signing" \
+        --force
+
+    # Convert the PEM certificate to DER format
+    openssl x509 -in "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.der"
 }
 
 # Generate an EC key pair for the wallet_provider
@@ -408,11 +444,11 @@ function generate_wia_tsl_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca cert-pub --type tsl \
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
-        --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
-        --common-name "${access_certificates[(wia,name)]}" \
-        --organization-name "${access_certificates[(wia,legal_name)]}" \
-        --organization-id "${access_certificates[(wia,oid)]}" \
+        --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --common-name "${access_certificates[(wptl,name)]}" \
+        --organization-name "${access_certificates[(wptl,legal_name)]}" \
+        --organization-id "${access_certificates[(wptl,oid)]}" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_tsl" \
         --force
 
