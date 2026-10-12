@@ -22,6 +22,7 @@ A use case is specified by a single document (`UC[nr]_[name].md`) which contains
 ### Use Case overview
 
 The UC overview contains a table with the following elements:
+
 | Aspect                       | Description                                                                                                                                            |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Summary**                  | A brief summary of the interaction between user and system, including at least the primary scenario and possibly some important alternative scenarios. |
@@ -38,6 +39,7 @@ The UC overview contains a table with the following elements:
 The UC flow description describes the complete interaction between user and system. It includes every possible user action, every system response, important system decision points and processing actions.
 
 The flow description is in table form and looks something like this:
+
 | #       | Description                                                                                     | Next | 
 | ------- | ----------------------------------------------------------------------------------------------- | ---- |
 | **1**   | **PRIMARY SCENARIO**                                                                            |      | 

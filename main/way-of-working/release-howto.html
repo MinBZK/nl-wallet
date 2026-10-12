@@ -164,7 +164,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.1.html">v0.4.1</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.5.0.html">v0.5.0</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.6.0.html">v0.6.0 (dev)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.6.0.html">v0.6.0</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.7.0.html">v0.6.0 (dev)</a></li>
 </ul>
 
@@ -204,12 +204,12 @@ member can do a release, and knows what steps and which roles are involved.</p>
 documentation we can refer to (config file changes, schema changes, etc)</p></li>
 <li><p>The definitions of done of any merged feature always includes any relevant
 unit-, integration and/or end-to-end tests (i.e., features are tested)</p></li>
-<li><p>You have <code class="docutils literal notranslate"><span class="pre">cargo-edit</span></code> and <code class="docutils literal notranslate"><span class="pre">git-filter-repo</span></code> installed</p></li>
+<li><p>You have <code class="docutils literal notranslate"><span class="pre">cargo-edit</span></code> installed</p></li>
 </ul>
 </section>
 <section id="what-constitutes-a-release">
 <h2>What constitutes a release?<a class="headerlink" href="#what-constitutes-a-release" title="Link to this heading"></a></h2>
-<p>A release is a commit in our Git repository that we tag with a [semver][1]
+<p>A release is a commit in our Git repository that we tag with a <a class="reference external" href="https://semver.org/">semver</a>
 version tag, and for which we make source code and binaries available.</p>
 <p>To do a release, we have a whole bunch of steps we execute. Some of these steps
 are manual, some are automated in our CI/CD environment. This guide documents
@@ -219,9 +219,23 @@ a release themselves.</p>
 <section id="doing-a-release">
 <h2>Doing a release<a class="headerlink" href="#doing-a-release" title="Link to this heading"></a></h2>
 <p>This section of the guide documents all the steps we do when we do a release.</p>
-<section id="step-1-make-sure-the-release-on-jira-is-green-and-complete">
-<h3>Step 1: Make sure the release on Jira is green and complete<a class="headerlink" href="#step-1-make-sure-the-release-on-jira-is-green-and-complete" title="Link to this heading"></a></h3>
-<p>We use [Jira Releases][2] (also sort-of interchangably called “versions”) to
+<section id="step-1-freeze-git-main-branch">
+<h3>Step 1: Freeze git main branch<a class="headerlink" href="#step-1-freeze-git-main-branch" title="Link to this heading"></a></h3>
+<p>To avoid someone accidentally or otherwise sniping in another change, you can
+temporarily “freeze” the main branch. To do this in GitLab, you can follow these
+steps:</p>
+<ol class="arabic simple">
+<li><p>Go to the project page, click <code class="docutils literal notranslate"><span class="pre">Settings</span></code>, go to <code class="docutils literal notranslate"><span class="pre">Repository</span></code>;</p></li>
+<li><p>Click <code class="docutils literal notranslate"><span class="pre">Expand</span></code> on <code class="docutils literal notranslate"><span class="pre">Branch</span> <span class="pre">rules</span></code> and see the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch there;</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">Allowed</span> <span class="pre">to</span> <span class="pre">merge</span></code> to specifically <strong>your</strong> user account;</p></li>
+</ol>
+<p>After doing the above, no one except you can merge to the <code class="docutils literal notranslate"><span class="pre">main</span> <span class="pre">branch</span></code>.</p>
+<p>Don’t forget to undo the above when you’re done (at least after you’ve completed
+steps 6 and 7).</p>
+</section>
+<section id="step-2-make-sure-the-release-on-jira-is-green-and-complete">
+<h3>Step 2: Make sure the release on Jira is green and complete<a class="headerlink" href="#step-2-make-sure-the-release-on-jira-is-green-and-complete" title="Link to this heading"></a></h3>
+<p>We use <a class="reference external" href="https://www.atlassian.com/agile/tutorials/versions/">Jira Releases</a> (also sort-of interchangably called “versions”) to
 keep track of things we want to have in a release and administrate for which
 Jira items code has been merged within the release period for that version. When
 you go to our <code class="docutils literal notranslate"><span class="pre">PVW</span></code> project page on Jira, and click on the “boat” icon on the
@@ -239,9 +253,6 @@ next release. In this open subtasks under the <code class="docutils literal notr
 to the backlog and the <code class="docutils literal notranslate"><span class="pre">In</span> <span class="pre">Progress</span></code> issue can be moved to done. For certain
 issues an exception can be made; these issues will be partly released and thus
 will get multiple fix versions in the future.</p>
-<p>When the release is “green” (i.e., all relevant issues are in the <code class="docutils literal notranslate"><span class="pre">Done</span></code> state)
-you know that the relevant features and fixes have been merged in the <code class="docutils literal notranslate"><span class="pre">main</span></code>
-branch, and you can create a release tag (which we do later on in this guide).</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">nightly-git-jira-check</span></code> job automatically keeps Jira issues up-to-date with
 GitLab MRs by setting the correct fixVersion based on merged branches. So by the
 time you’re prepping the release, Jira should already reflect the correct state,
@@ -258,14 +269,14 @@ created in which all MRs that are missing a Jira key are logged. Add this file
 to the release ticket in Jira or a separate ticket belonging to the release to
 ensure a quick way to determinate what has been released.</p>
 </section>
-<section id="step-2-make-sure-figma-links-are-up-to-date-in-readme-md">
-<h3>Step 2: Make sure Figma links are up-to-date in README.md<a class="headerlink" href="#step-2-make-sure-figma-links-are-up-to-date-in-readme-md" title="Link to this heading"></a></h3>
+<section id="step-3-make-sure-figma-links-are-up-to-date-in-readme-md">
+<h3>Step 3: Make sure Figma links are up-to-date in README.md<a class="headerlink" href="#step-3-make-sure-figma-links-are-up-to-date-in-readme-md" title="Link to this heading"></a></h3>
 <p>We have links to Figma in our <code class="docutils literal notranslate"><span class="pre">README.md</span></code> file. We always update these before we
 tag the release. Obtain the up-to-date links from the UX team, create an MR and
 update the README.</p>
 </section>
-<section id="step-3-confirm-appropiate-tests-and-reports-have-been-done-for-this-release">
-<h3>Step 3: Confirm appropiate tests and reports have been done for this release<a class="headerlink" href="#step-3-confirm-appropiate-tests-and-reports-have-been-done-for-this-release" title="Link to this heading"></a></h3>
+<section id="step-4-confirm-appropiate-tests-and-reports-have-been-done-for-this-release">
+<h3>Step 4: Confirm appropiate tests and reports have been done for this release<a class="headerlink" href="#step-4-confirm-appropiate-tests-and-reports-have-been-done-for-this-release" title="Link to this heading"></a></h3>
 <p>We do most testing in an automated fashion using our CI/CD pipeline. There are
 however still a few things we confirm. Most notably:</p>
 <ul class="simple">
@@ -276,9 +287,12 @@ instance that our software quality engineer uses for this, you can ask him for
 the link)</p></li>
 <li><p>OSV scanner ran and results accepted (see <code class="docutils literal notranslate"><span class="pre">osv-scanner</span></code> job in pipeline)</p></li>
 <li><p>ZAP scanner ran and results accepted (see ZAP in Quality Time)</p></li>
-<li><p>Trivy scan ran and results accepted (See Check <code class="docutils literal notranslate"><span class="pre">trivy-scan</span></code> job in <code class="docutils literal notranslate"><span class="pre">Trigger</span> <span class="pre">vulnerability</span> <span class="pre">scanning</span></code> pipeline)</p></li>
-<li><p>Dependency check ran and results accepted (see <code class="docutils literal notranslate"><span class="pre">dependency-check</span></code> job in pipeline)</p></li>
-<li><p>SBOM uploaded to Dependency-track and results accepted (see <code class="docutils literal notranslate"><span class="pre">upload-sbom-to-dependency-track</span></code> job in pipeline)</p></li>
+<li><p>Trivy scan ran and results accepted (See Check <code class="docutils literal notranslate"><span class="pre">trivy-scan</span></code> job in
+<code class="docutils literal notranslate"><span class="pre">Trigger</span> <span class="pre">vulnerability</span> <span class="pre">scanning</span></code> pipeline)</p></li>
+<li><p>Dependency check ran and results accepted (see <code class="docutils literal notranslate"><span class="pre">dependency-check</span></code> job in
+pipeline)</p></li>
+<li><p>SBOM uploaded to Dependency-track and results accepted (see
+<code class="docutils literal notranslate"><span class="pre">upload-sbom-to-dependency-track</span></code> job in pipeline)</p></li>
 <li><p>No blocker or critical Sonar findings (you can check our Sonar instance for
 these findings, ask around for the link if you don’t have it)</p></li>
 <li><p>A11y scan that ran on Browserstack are evaluated and actual a11y issues are
@@ -294,8 +308,8 @@ any remarks or findings.</p>
 probably block the release and need to be addressed or otherwise accepted before
 further release-steps can occur.</p>
 </section>
-<section id="step-4-release-approval">
-<h3>Step 4: Release approval<a class="headerlink" href="#step-4-release-approval" title="Link to this heading"></a></h3>
+<section id="step-5-release-approval">
+<h3>Step 5: Release approval<a class="headerlink" href="#step-5-release-approval" title="Link to this heading"></a></h3>
 <p>The release in Jira is green, manual and automated testing is done and the other
 things we confirm in the previous step are all ok or accepted. The product owner
 <em>and</em> the software delivery manager now need to reply to the e-mail from the
@@ -308,21 +322,6 @@ the steps to execute the release.</p>
 <p>If for some reason the release is not approved, then we as a team need to
 address any issues and concerns raised by the PO and/or SDM before further
 release-steps can occur.</p>
-</section>
-<section id="step-5-freeze-git-main-branch">
-<h3>Step 5: Freeze git main branch<a class="headerlink" href="#step-5-freeze-git-main-branch" title="Link to this heading"></a></h3>
-<p>To avoid someone accidentally or otherwise sniping in another change, you can
-temporarily “freeze” the main branch. To do this in GitLab, you can follow these
-steps:</p>
-<ol class="arabic simple">
-<li><p>Go to the project page, click <code class="docutils literal notranslate"><span class="pre">Settings</span></code>, go to <code class="docutils literal notranslate"><span class="pre">Repository</span> <span class="pre">settings</span></code>;</p></li>
-<li><p>Click <code class="docutils literal notranslate"><span class="pre">Expand</span></code> on <code class="docutils literal notranslate"><span class="pre">Protected</span> <span class="pre">branches</span></code> and see the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch there;</p></li>
-<li><p>Set <code class="docutils literal notranslate"><span class="pre">Allowed</span> <span class="pre">to</span> <span class="pre">merge</span></code> to <code class="docutils literal notranslate"><span class="pre">None</span></code>;</p></li>
-<li><p>Set <code class="docutils literal notranslate"><span class="pre">Allowed</span> <span class="pre">to</span> <span class="pre">push</span> <span class="pre">and</span> <span class="pre">merge</span></code> to specifically <strong>your</strong> user account;</p></li>
-</ol>
-<p>After doing the above, no one except you can merge or push to the <code class="docutils literal notranslate"><span class="pre">main</span> <span class="pre">branch</span></code>.</p>
-<p>Don’t forget to undo the above when you’re done (at least after you’ve completed
-steps 6 and 7).</p>
 </section>
 <section id="step-6-set-release-version-and-tag">
 <h3>Step 6: Set release version and tag<a class="headerlink" href="#step-6-set-release-version-and-tag" title="Link to this heading"></a></h3>
@@ -365,15 +364,15 @@ version tags.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-sbom_vX.Y.Z_generic.zip</span></code>: The software-bill-of-materials for this
 release.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip</span></code>: The wallet issuance
-server for issuers with migrations binary, for glibc-based Linux systems
-built with Debian trixie.</p></li>
+server for issuers with migrations binary, for glibc-based Linux systems built
+with Debian trixie.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip</span></code>: The wallet issuance
 server for issuers with migrations binary using statically linked musl.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip</span></code>: The wallet
-verification server for relying parties  with migrations binary, for
+verification server for relying parties with migrations binary, for
 glibc-based Linux systems built with Debian trixie.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip</span></code>: The wallet
-verification server for relying parties  with migrations binary using
+verification server for relying parties with migrations binary using
 statically linked musl.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-web_vX.Y.Z_generic.zip</span></code>: The javascript helper library for issuers and
 relying parties, to assist with integrating issuers and relying party
@@ -481,9 +480,9 @@ release description.</p>
 <h2>Release Checklists<a class="headerlink" href="#release-checklists" title="Link to this heading"></a></h2>
 <section id="pre-approval-checklist-steps-1-4">
 <h3>Pre-Approval Checklist (Steps 1-4)<a class="headerlink" href="#pre-approval-checklist-steps-1-4" title="Link to this heading"></a></h3>
-<p>The checklist below can be used to verify everything is in place before release approval can be
-requested by the software quality engineer. Alternatively it can be used to explain possible exceptions
-from the different aspects and steps.</p>
+<p>The checklist below can be used to verify everything is in place before release
+approval can be requested by the software quality engineer. Alternatively it can
+be used to explain possible exceptions from the different aspects and steps.</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Aspect/Step</p></th>
@@ -557,7 +556,8 @@ from the different aspects and steps.</p>
 </section>
 <section id="final-release-verification-checklist-steps-5-10">
 <h3>Final Release Verification Checklist (Steps 5-10)<a class="headerlink" href="#final-release-verification-checklist-steps-5-10" title="Link to this heading"></a></h3>
-<p>Use this checklist to verify all steps have been completed after release execution:</p>
+<p>Use this checklist to verify all steps have been completed after release
+execution:</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Aspect/Step</p></th>
@@ -624,10 +624,6 @@ from the different aspects and steps.</p>
 </section>
 <section id="references">
 <h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
-<ol class="arabic simple">
-<li><p><a class="reference external" href="https://semver.org/">Semantic Versioning</a></p></li>
-<li><p><a class="reference external" href="https://www.atlassian.com/agile/tutorials/versions/">Agile Versions</a></p></li>
-</ol>
 </section>
 </section>
 

@@ -164,7 +164,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.1.html">v0.4.1</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.5.0.html">v0.5.0</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.6.0.html">v0.6.0 (dev)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.6.0.html">v0.6.0</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.7.0.html">v0.6.0 (dev)</a></li>
 </ul>
 
@@ -339,19 +339,65 @@ configuration files.</p>
 <section id="decide-on-required-metadata-for-your-tas">
 <h3>Decide on required metadata for your TAS<a class="headerlink" href="#decide-on-required-metadata-for-your-tas" title="Link to this heading"></a></h3>
 <p>The TAS contains the following particularly important data elements:</p>
-<p><strong>ROOT</strong> | Key | Type | Description | | ————- | —— |
-————————————————— | | <code class="docutils literal notranslate"><span class="pre">vct</span></code> | string |
-Verifiable credential type field | | <code class="docutils literal notranslate"><span class="pre">name</span></code> | string | Readable name of this
-verifiable credential | | <code class="docutils literal notranslate"><span class="pre">description</span></code> | string | Description of this
-verifiable credential | | <code class="docutils literal notranslate"><span class="pre">display</span></code> | array | Array of display objects, one per
-language | | <code class="docutils literal notranslate"><span class="pre">claims</span></code> | array | Array of claim objects |</p>
+<p><strong>ROOT</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vct</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Verifiable credential type field</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Readable name of this verifiable credential</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Description of this verifiable credential</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">display</span></code></p></td>
+<td><p>array</p></td>
+<td><p>Array of display objects, one per language</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">claims</span></code></p></td>
+<td><p>array</p></td>
+<td><p>Array of claim objects</p></td>
+</tr>
+</tbody>
+</table>
 <p>Claims have the following elements:</p>
-<p><strong>CLAIMS</strong> | Key | Type | Description | | ————- | —— |
-————————————————— | | <code class="docutils literal notranslate"><span class="pre">path</span></code> | array | An
-array of strings describing the claim path | | <code class="docutils literal notranslate"><span class="pre">display</span></code> | array | Array of
-display objects, one per language | | <code class="docutils literal notranslate"><span class="pre">sd</span></code> | string | Indicates whether a claim
-is selectively disclosable| | <code class="docutils literal notranslate"><span class="pre">svg_id</span></code> | string | Template identifier for the
-SVG rendering metadata |</p>
+<p><strong>CLAIMS</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">path</span></code></p></td>
+<td><p>array</p></td>
+<td><p>An array of strings describing the claim path</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">display</span></code></p></td>
+<td><p>array</p></td>
+<td><p>Array of display objects, one per language</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sd</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Indicates whether a claim is selectively disclosable</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">svg_id</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Template identifier for the SVG rendering metadata</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="creating-the-technical-attestation-schema-json-document">
 <h3>Creating the technical attestation schema JSON document<a class="headerlink" href="#creating-the-technical-attestation-schema-json-document" title="Link to this heading"></a></h3>

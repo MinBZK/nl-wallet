@@ -1,4 +1,4 @@
-# v0.6.0 (dev)
+# v0.6.0
 
 ## Upgrading
 
@@ -320,6 +320,8 @@
   Metadata that references a logo or background image hosted externally (i.e. a
   `uri` that does not use the `data:` scheme). Such images are now silently
   ignored, instead of causing the credential's metadata to be rejected.
+
+[2]: https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10
 
 ## Bug fixes
 
