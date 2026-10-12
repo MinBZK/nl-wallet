@@ -50,6 +50,7 @@ cookie.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "into", "from_str"] }
 futures = { workspace = true, features = ["async-await"] }
 http.workspace = true
+itertools.workspace = true
 log.workspace = true
 metrics.workspace = true
 metrics-exporter-prometheus.workspace = true

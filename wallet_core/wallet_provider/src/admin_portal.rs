@@ -32,6 +32,7 @@ use chrono::Utc;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_pinned_client_builder;
 use http_utils::urls::BaseUrl;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
@@ -50,7 +51,9 @@ use wallet_provider_service::admin_portal::AdminPortalConfig;
 use wallet_provider_service::admin_portal::AdminPortalService;
 use wallet_provider_service::admin_portal::LoggedInUser;
 use wallet_provider_service::admin_portal::task::CreateTaskError;
+use wallet_provider_service::admin_portal::task::ListTasksError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
+use wallet_provider_service::admin_portal::task::TaskListViewKind;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
 
 use crate::router_state::UuidV7Generator;
@@ -101,6 +104,20 @@ impl IntoResponse for ReviewTaskApiError {
             ReviewTaskError::MissingPrivilege(_) => StatusCode::FORBIDDEN.into_response(),
             ReviewTaskError::InvalidState => StatusCode::CONFLICT.into_response(),
             ReviewTaskError::Storage(_) | ReviewTaskError::AuditLog(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            }
+        }
+    }
+}
+
+struct ListTasksApiError(ListTasksError);
+
+impl IntoResponse for ListTasksApiError {
+    fn into_response(self) -> Response {
+        let Self(error) = self;
+        warn!("list_tasks failed: {error:?}");
+        match error {
+            ListTasksError::Storage(_) | ListTasksError::AuditLog(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         }
@@ -163,7 +180,7 @@ where
         .nest(
             "/tasks",
             Router::new()
-                .route("/", post(create_task))
+                .route("/", post(create_task).get(list_tasks))
                 .route("/{task_id}/withdraw", post(withdraw_task))
                 .route("/{task_id}/review", post(review_task)),
         )
@@ -471,6 +488,35 @@ where
     }
 }
 
+#[derive(Debug, Deserialize)]
+struct ListTasksQuery {
+    view: TaskListViewKind,
+}
+
+async fn list_tasks<R, AR>(
+    State(state): State<Arc<AdminPortalState<R, AR>>>,
+    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    Query(query): Query<ListTasksQuery>,
+) -> Response
+where
+    R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
+    AR: AuditLogRepository + Send + Sync + 'static,
+{
+    let result = admin_portal::task::list_tasks(
+        query.view,
+        &user.user_id,
+        &user.privileges,
+        state.service.repository(),
+        &state.audit_log,
+    )
+    .await;
+
+    match result {
+        Ok(tasks) => Json(tasks.into_iter().map(TaskResponse::from).collect_vec()).into_response(),
+        Err(error) => ListTasksApiError(error).into_response(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -519,6 +565,14 @@ mod tests {
                 display_name: source.display_name.to_owned(),
                 privileges: source.privileges.iter().map(ToString::to_string).collect(),
             }
+        }
+    }
+
+    /// Builds a [`LoggedInUser`] from `user`, replacing its privileges with just `task_type`.
+    fn with_privilege(user: &ConstLoggedInUser, task_type: TaskType) -> LoggedInUser {
+        LoggedInUser {
+            privileges: vec![task_type.to_string()],
+            ..user.into()
         }
     }
 
@@ -691,9 +745,32 @@ mod tests {
             Ok(Some(task.clone()))
         }
 
-        async fn list_tasks(&self, _view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError> {
+        async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError> {
             self.handle_error()?;
-            Err(PersistenceError::NoRowsUpdated)
+            let tasks = self.tasks.lock().unwrap();
+            let mut matching: Vec<AdminTask> = tasks
+                .values()
+                .filter(|task| match &view {
+                    TaskListView::OpenTasks { user_id } => {
+                        task.created_by_user_id == *user_id && task.status == TaskStatus::Created
+                    }
+                    TaskListView::History { user_id } => {
+                        (task.created_by_user_id == *user_id || task.reviewed_by_user_id.as_deref() == Some(user_id))
+                            && task.status != TaskStatus::Created
+                    }
+                    TaskListView::Reviewable {
+                        user_id,
+                        authorized_task_types,
+                    } => {
+                        task.status == TaskStatus::Created
+                            && task.created_by_user_id != *user_id
+                            && authorized_task_types.contains(&task.task_type)
+                    }
+                })
+                .cloned()
+                .collect();
+            matching.sort_by_key(|task| task.created_at);
+            Ok(matching)
         }
     }
 
@@ -800,6 +877,22 @@ mod tests {
         (state, jar)
     }
 
+    /// Calls the `list_tasks` handler as `user`, asserts it succeeds, and returns the decoded task list.
+    async fn list_tasks_for(
+        state: Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>>,
+        user: LoggedInUser,
+        view: TaskListViewKind,
+    ) -> Vec<Value> {
+        let response = list_tasks(
+            State(state),
+            AuthenticatedAdminUser(user),
+            Query(ListTasksQuery { view }),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        json_body(response).await
+    }
+
     #[tokio::test]
     async fn login_reports_server_error_when_oidc_provider_is_unreachable() {
         let state = setup_state();
@@ -891,6 +984,11 @@ mod tests {
         request.into_parts().0
     }
 
+    async fn json_body<T: serde::de::DeserializeOwned>(response: Response) -> T {
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        serde_json::from_slice(&body).unwrap()
+    }
+
     #[tokio::test]
     async fn authenticated_admin_user_without_session_cookie_is_rejected_with_401() {
         let state = setup_state();
@@ -955,8 +1053,7 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
         assert!(!response.headers().contains_key(header::SET_COOKIE));
-        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let json: Value = serde_json::from_slice(&body).unwrap();
+        let json: Value = json_body(response).await;
         assert_eq!(
             json,
             serde_json::json!({"displayName": "Jane Doe", "privileges": ["admin"]})
@@ -1070,8 +1167,7 @@ mod tests {
         let response = app.clone().oneshot(request).await.unwrap();
         assert_eq!(response.status(), expected_status);
         if expected_status == StatusCode::OK {
-            let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-            let task: Value = serde_json::from_slice(&body).unwrap();
+            let task: Value = json_body(response).await;
             assert_eq!(task["taskId"], id.to_string());
             assert_eq!(task["status"], "withdrawn");
             assert_eq!(task["createdBy"], "Jane Doe");
@@ -1133,12 +1229,8 @@ mod tests {
     async fn review_task_fails_for_same_user() {
         let task_id = Uuid::new_v4();
         let task_type = TaskType::RevokeWallet;
-        let alice = ConstLoggedInUser {
-            privileges: &[TaskType::RevokeWallet],
-            ..ALICE.clone()
-        };
-        let (state, _) = setup_state_with_valid_user_and_task(task_id, task_type, &alice);
-        let reviewer_user_alice = AuthenticatedAdminUser((&alice).into());
+        let (state, _) = setup_state_with_valid_user_and_task(task_id, task_type, &ALICE);
+        let reviewer_user_alice = AuthenticatedAdminUser(with_privilege(&ALICE, task_type));
         let result = review_task(
             State(state),
             reviewer_user_alice,
@@ -1156,10 +1248,7 @@ mod tests {
     async fn review_task_fails_for_other_user_without_correct_privilege() {
         let task_id = Uuid::new_v4();
         let (state, _) = setup_state_with_valid_user_and_task(task_id, TaskType::RevokeWallet, &ALICE);
-        let reviewer_user = AuthenticatedAdminUser(LoggedInUser {
-            privileges: vec![TaskType::BlockUser.to_string()],
-            ..(&BOB).into()
-        });
+        let reviewer_user = AuthenticatedAdminUser(with_privilege(&BOB, TaskType::BlockUser));
         let result = review_task(
             State(state),
             reviewer_user,
@@ -1178,10 +1267,7 @@ mod tests {
         let task_id = Uuid::new_v4();
         let task_type = TaskType::RevokeWallet;
         let (state, _) = setup_state_with_valid_user_and_task(task_id, task_type, &ALICE);
-        let reviewer_user = AuthenticatedAdminUser(LoggedInUser {
-            privileges: vec![task_type.to_string()],
-            ..(&BOB).into()
-        });
+        let reviewer_user = AuthenticatedAdminUser(with_privilege(&BOB, task_type));
         let result = review_task(
             State(state),
             reviewer_user,
@@ -1193,5 +1279,88 @@ mod tests {
         )
         .await;
         assert_eq!(result.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn list_tasks_requires_authentication() {
+        let request = Request::builder()
+            .method("GET")
+            .uri("/tasks?view=open")
+            .body(Body::empty())
+            .unwrap();
+        let response = router(setup_state()).oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn list_tasks_returns_server_error_when_database_fails() {
+        let state = setup_state_with_database_errors();
+        let user = AuthenticatedAdminUser((&ALICE).into());
+
+        let result = list_tasks(
+            State(state),
+            user,
+            Query(ListTasksQuery {
+                view: TaskListViewKind::Open,
+            }),
+        )
+        .await;
+
+        assert_eq!(result.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[tokio::test]
+    async fn list_tasks_open_returns_only_callers_own_created_tasks() {
+        let task_id = Uuid::new_v4();
+        let (state, _) = setup_state_with_valid_user_and_task(task_id, TaskType::RevokeWallet, &ALICE);
+
+        let tasks = list_tasks_for(state.clone(), (&ALICE).into(), TaskListViewKind::Open).await;
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0]["taskId"], task_id.to_string());
+
+        let tasks = list_tasks_for(state, (&BOB).into(), TaskListViewKind::Open).await;
+        assert!(tasks.is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_tasks_to_review_filters_by_privilege_and_excludes_own_tasks() {
+        let task_id = Uuid::new_v4();
+        let (state, _) = setup_state_with_valid_user_and_task(task_id, TaskType::RevokeWallet, &ALICE);
+
+        // Bob has the matching privilege and didn't create the task: it shows up.
+        let tasks = list_tasks_for(
+            state.clone(),
+            with_privilege(&BOB, TaskType::RevokeWallet),
+            TaskListViewKind::ToReview,
+        )
+        .await;
+        assert_eq!(tasks.len(), 1);
+
+        // Bob without the matching privilege sees nothing.
+        let tasks = list_tasks_for(
+            state.clone(),
+            with_privilege(&BOB, TaskType::BlockUser),
+            TaskListViewKind::ToReview,
+        )
+        .await;
+        assert!(tasks.is_empty());
+
+        // Alice, the creator, never sees her own task in this view, even with the privilege.
+        let tasks = list_tasks_for(
+            state,
+            with_privilege(&ALICE, TaskType::RevokeWallet),
+            TaskListViewKind::ToReview,
+        )
+        .await;
+        assert!(tasks.is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_tasks_history_excludes_still_open_tasks() {
+        let task_id = Uuid::new_v4();
+        let (state, _) = setup_state_with_valid_user_and_task(task_id, TaskType::RevokeWallet, &ALICE);
+
+        let tasks = list_tasks_for(state, (&ALICE).into(), TaskListViewKind::History).await;
+        assert!(tasks.is_empty());
     }
 }
