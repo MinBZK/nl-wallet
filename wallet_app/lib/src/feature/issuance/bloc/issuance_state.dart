@@ -173,6 +173,23 @@ class IssuanceReviewCards extends IssuanceState {
   List<Object?> get props => [selectableCards, ...super.props];
 }
 
+/// Asks the user to confirm receiving cards from [organization], for an issuer that does not provide previews.
+class IssuanceConfirmIssuer extends IssuanceState {
+  final Organization organization;
+  final bool afterBackPressed;
+
+  const IssuanceConfirmIssuer({required this.organization, this.afterBackPressed = false});
+
+  @override
+  bool get didGoBack => afterBackPressed;
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kIssuanceSteps);
+
+  @override
+  List<Object?> get props => [organization, ...super.props];
+}
+
 class IssuanceProvidePinForIssuance extends IssuanceState {
   final List<WalletCard> cards;
 

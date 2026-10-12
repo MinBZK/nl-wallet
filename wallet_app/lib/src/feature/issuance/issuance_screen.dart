@@ -45,6 +45,7 @@ import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
 import 'issuance_request_details_screen.dart';
 import 'issuance_stop_sheet.dart';
+import 'page/issuance_confirm_issuer_page.dart';
 import 'page/issuance_confirm_pin_for_disclosure_page.dart';
 import 'page/issuance_confirm_pin_for_issuance_page.dart';
 import 'page/issuance_review_cards_page.dart';
@@ -141,6 +142,7 @@ class IssuanceScreen extends StatelessWidget {
           IssuanceCheckOrganization() => _buildCheckOrganizationPage(context, state),
           IssuanceMissingAttributes() => _buildMissingAttributes(context, state),
           IssuanceReviewCards() => _buildReviewCardsPage(context, state),
+          IssuanceConfirmIssuer() => _buildConfirmIssuerPage(context, state),
           IssuanceCompleted() => _buildIssuanceCompletedPage(context, state),
           IssuanceStopped() => _buildStoppedPage(context, state),
           IssuanceError(:final error, :final returnUrl) => _buildGenericErrorPage(context, error, returnUrl: returnUrl),
@@ -259,6 +261,14 @@ class IssuanceScreen extends StatelessWidget {
       offeredCards: state.offeredCards,
       renewedCards: state.renewedCards,
       onAccept: (acceptedCards) => context.bloc.add(IssuanceApproveCards(cards: acceptedCards)),
+      onDecline: () => _stopIssuance(context),
+    );
+  }
+
+  Widget _buildConfirmIssuerPage(BuildContext context, IssuanceConfirmIssuer state) {
+    return IssuanceConfirmIssuerPage(
+      organization: state.organization,
+      onAccept: () => context.bloc.add(const IssuanceIssuerApproved()),
       onDecline: () => _stopIssuance(context),
     );
   }
@@ -400,6 +410,7 @@ class IssuanceScreen extends StatelessWidget {
         renewedCards: state.renewedCards,
         offeredCards: state.offeredCards,
       ),
+      IssuanceConfirmIssuer() => IssuanceConfirmIssuerPage.resolveTitle(context, state.organization),
       IssuanceCompleted() => context.l10n.issuanceSuccessPageTitle(state.addedCards.length),
       IssuanceStopped() => context.l10n.issuanceStoppedPageTitle,
       IssuanceError(:final error) => ErrorPage.titleFromError(context, error),

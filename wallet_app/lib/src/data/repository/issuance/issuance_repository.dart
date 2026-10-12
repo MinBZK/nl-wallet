@@ -1,4 +1,5 @@
 import '../../../domain/model/card/wallet_card.dart';
+import '../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
 
 export '../../../domain/model/disclosure/start_disclosure_result.dart';
@@ -10,7 +11,7 @@ abstract class IssuanceRepository {
 
   Future<List<WalletCard>> discloseForIssuance(String pin, List<int> selectedIndices);
 
-  Future<List<WalletCard>> continueIssuance(String uri);
+  Future<ContinueIssuanceResult> continueIssuance(String uri);
 
   Future<void> acceptIssuance(String pin, Iterable<WalletCard> cards);
 }
