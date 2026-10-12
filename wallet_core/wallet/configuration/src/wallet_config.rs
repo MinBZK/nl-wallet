@@ -24,6 +24,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
+use utils::duration::DurationDays;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -115,7 +116,8 @@ pub struct AccountServerConfiguration {
     pub instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
     #[debug(skip)]
     pub wptl_trust_anchors: TrustAnchors,
-    #[serde(rename = "certificate_refresh_threshold_in_days", with = "utils::duration_days")]
+    #[serde(rename = "certificate_refresh_threshold_in_days")]
+    #[serde_as(as = "DurationDays")]
     pub certificate_refresh_threshold: Duration,
 }
 

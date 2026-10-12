@@ -38,6 +38,7 @@ use status_lists::publish::PublishDir;
 use status_lists::settings::ExpiryLessThanTtl;
 use status_lists::settings::StatusListsSettings;
 use url::Url;
+use utils::duration::DurationDays;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_provider_domain::keys::Kid;
@@ -81,7 +82,8 @@ pub struct Settings {
     pub instruction_challenge_timeout: Duration,
 
     /// How long a Wallet Certificate is valid
-    #[serde(rename = "wallet_certificate_validity_in_days", with = "utils::duration_days")]
+    #[serde(rename = "wallet_certificate_validity_in_days")]
+    #[serde_as(as = "DurationDays")]
     pub wallet_certificate_validity: Duration,
 
     /// Issuer trust anchors are used to validate the received PID SD JWT with Recovery Code disclosure
@@ -98,7 +100,8 @@ pub struct WiaSettings {
     pub wia_certificate: BorrowingCertificate,
     pub wia_signing_key_identifier: String,
 
-    #[serde(rename = "wia_status_tracking_validity_in_days", with = "utils::duration_days")]
+    #[serde(rename = "wia_status_tracking_validity_in_days")]
+    #[serde_as(as = "DurationDays")]
     pub wia_status_tracking_validity: Duration,
 
     pub wia_status_list: WiaStatusListsSettings,
