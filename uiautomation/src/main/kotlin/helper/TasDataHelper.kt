@@ -108,7 +108,7 @@ class TasDataHelper {
     //Loyalty functions
     fun getLoyaltyDisplayName() = findDisplayName(loyaltyTAS)
 
-    private fun getLoyaltyCardMetadataPath() = getProjectFile("scripts/devenv/com.example.jum.bonuskaart.mdoc.json")
+    private fun getLoyaltyCardMetadataPath() = getProjectFile("scripts/devenv/com.example.jum.bonuskaart.sd_jwt.json")
 
     //Museum Maandkaart functions
 

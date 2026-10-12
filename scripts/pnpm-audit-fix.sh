@@ -10,7 +10,7 @@ while IFS= read -r -d '' lockfile; do
     echo "Fixing $lockfile..."
     cd "$(dirname "$lockfile")"
     pnpm audit --fix || true
-    pnpm install
+    pnpm install --no-frozen-lockfile
 done < <(find "$BASE_DIR" -name pnpm-lock.yaml -not -path '*/node_modules/*' -print0)
 
 cd "$BASE_DIR"

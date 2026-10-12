@@ -581,20 +581,7 @@
     "generalOsVersionText": "OS version:",
     "generalPageChangeWCAGAnnouncement": "Showing page {current} of {total}.",
     "generalPolicyAllTermsCta": "All terms",
-    "generalPolicyDataCanBeDeleted": "You can have data deleted.",
-    "generalPolicyDataCanNotBeDeleted": "You can not delete data",
     "generalPolicyDataIsSignature": "By signing the agreement will be definitive",
-    "generalPolicyDataRetentionDuration": "{days, plural, one {Data will be stored for {days} day} other {Data will be stored for {days} days}}",
-    "@generalPolicyDataRetentionDuration": {
-        "placeholders": {
-            "days": {
-                "example": "30",
-                "type": "int"
-            }
-        }
-    },
-    "generalPolicyDataWillBeShared": "Your data will be shared with other organizations",
-    "generalPolicyDataWillNotBeShared": "Your data will not be shared with other organizations",
     "generalRetry": "Try again",
     "generalSeconds": "{seconds, plural, one {{seconds} second} other {{seconds} seconds}}",
     "@generalSeconds": {
@@ -1109,36 +1096,8 @@
     "placeholderScreenContractDescription": "The contract will be displayed here.",
     "placeholderScreenGenericDescription": "Please try again later.",
     "placeholderScreenHeadline": "Sorry, this page is still under construction.",
-    "policyScreenDataCanBeDeleted": "You can have data deleted",
-    "policyScreenDataCanBeDeletedDescription": "The organization offers a way to have your data deleted.",
-    "policyScreenDataCanNotBeDeleted": "You cannot have data deleted",
-    "policyScreenDataCanNotBeDeletedDescription": "The organization does not offer a way to have your data deleted.",
     "policyScreenDataIsSignature": "By continuing the agreements will be definitive",
-    "policyScreenDataNotBeStored": "Your data will not be stored",
-    "policyScreenDataNotBeStoredDescription": "Your data will only be used during this session and not stored for later use.",
     "policyScreenDataPurposeDescription": "Your data is not used for anything besides the stated purpose.",
-    "policyScreenDataRetentionDuration": "{months, plural, one {Data will be stored for {months} month} other {Data will be stored for {months} months}}",
-    "@policyScreenDataRetentionDuration": {
-        "placeholders": {
-            "months": {
-                "example": "30",
-                "type": "int"
-            }
-        }
-    },
-    "policyScreenDataRetentionDurationDescription": "{months, plural, one {Your data will be stored for {months} month. It will then be deleted automatically.} other {Your data will be stored for {months} months. They will then be deleted automatically.}}",
-    "@policyScreenDataRetentionDurationDescription": {
-        "placeholders": {
-            "months": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "policyScreenDataWillBeShared": "Data will be shared with other organizations",
-    "policyScreenDataWillBeSharedDescription": "Your data will be shared with other companies or organizations",
-    "policyScreenDataWillNotBeShared": "Data will not be shared with other organizations",
-    "policyScreenDataWillNotBeSharedDescription": "Your data will not be shared with other companies or organizations",
     "policyScreenPolicySectionPolicyCta": "privacy policy",
     "policyScreenPolicySectionText": "Read more in the {policy} of the {organization}. Here you can read more about how the {organization} will use your data.",
     "@policyScreenPolicySectionText": {

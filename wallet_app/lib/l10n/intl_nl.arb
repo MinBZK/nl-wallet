@@ -577,20 +577,7 @@
     "generalOsVersionText": "Besturingssysteem:",
     "generalPageChangeWCAGAnnouncement": "Pagina {current} van {total} wordt nu weergegeven.",
     "generalPolicyAllTermsCta": "Alle voorwaarden",
-    "generalPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-    "generalPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
     "generalPolicyDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
-    "generalPolicyDataRetentionDuration": "{days, plural, one {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
-    "@generalPolicyDataRetentionDuration": {
-        "placeholders": {
-            "days": {
-                "example": "30",
-                "type": "int"
-            }
-        }
-    },
-    "generalPolicyDataWillBeShared": "Je gegevens worden gedeeld met andere organisaties",
-    "generalPolicyDataWillNotBeShared": "Je gegevens worden niet gedeeld met andere organisaties",
     "generalRetry": "Probeer opnieuw",
     "generalSeconds": "{seconds, plural, one {{seconds} seconde} other {{seconds} seconden}}",
     "@generalSeconds": {
@@ -1105,36 +1092,8 @@
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
     "placeholderScreenGenericDescription": "Probeer het later opnieuw.",
     "placeholderScreenHeadline": "Helaas, aan deze pagina wordt nog gewerkt.",
-    "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
-    "policyScreenDataCanBeDeletedDescription": "De organisatie biedt een manier om je gegevens te laten verwijderen.",
-    "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
-    "policyScreenDataCanNotBeDeletedDescription": "De organisatie biedt geen manier om je gegevens te laten verwijderen.",
     "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
-    "policyScreenDataNotBeStored": "Je gegevens worden niet bewaard",
-    "policyScreenDataNotBeStoredDescription": "Je gegevens worden alleen gebruikt in deze sessie en niet verder opgeslagen.",
     "policyScreenDataPurposeDescription": "De gegevens worden niet voor andere doelen gebruikt.",
-    "policyScreenDataRetentionDuration": "{months, plural, one {Gegevens worden {months} maand bewaard} other {Gegevens worden {months} maanden bewaard}}",
-    "@policyScreenDataRetentionDuration": {
-        "placeholders": {
-            "months": {
-                "example": "30",
-                "type": "int"
-            }
-        }
-    },
-    "policyScreenDataRetentionDurationDescription": "{months, plural, one {Je gegeven wordt {months} maand bewaard in je dossier. Daarna wordt het automatisch verwijderd.} other {Je gegevens worden {months} maanden bewaard in je dossier. Daarna worden ze automatisch verwijderd.}}",
-    "@policyScreenDataRetentionDurationDescription": {
-        "placeholders": {
-            "months": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "policyScreenDataWillBeShared": "Gegevens worden gedeeld met andere organisaties",
-    "policyScreenDataWillBeSharedDescription": "Je gegevens worden gedeeld met andere bedrijven of organisaties.",
-    "policyScreenDataWillNotBeShared": "Gegevens worden niet gedeeld met andere organisaties",
-    "policyScreenDataWillNotBeSharedDescription": "Je gegevens worden niet gedeeld met andere bedrijven of organisaties",
     "policyScreenPolicySectionPolicyCta": "privacyverklaring",
     "policyScreenPolicySectionText": "Lees meer in het {policy} van {organization}. Hierin lees je meer over hoe {organization} je gegevens gaat gebruiken.",
     "@policyScreenPolicySectionText": {

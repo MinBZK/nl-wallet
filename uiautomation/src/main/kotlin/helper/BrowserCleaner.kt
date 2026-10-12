@@ -74,5 +74,7 @@ private fun closeAllIosSafariTabs(driver: IOSDriver) {
         ?: driver.findElements(closeBothLocator).firstOrNull()
         ?: driver.findElement(closeThisLocator)
     closeButton.click()
+    wait.until(ExpectedConditions.invisibilityOfElementLocated(closeThisLocator))
+    Thread.sleep(SCREEN_TRANSITION_MILLIS)
     try { driver.terminateApp(SAFARI_BUNDLE_ID) } catch (_: Exception) {}
 }
