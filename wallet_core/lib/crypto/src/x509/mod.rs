@@ -200,31 +200,7 @@ impl BorrowingCertificate {
                 .map_err(|error| CertificateParseError::EndEntityCertificateParsing(Box::new(error)))?;
             let (_, x509_cert) =
                 X509Certificate::from_der(cert.as_bytes()).map_err(CertificateParseError::X509CertificateParsing)?;
-
-            let public_key = match x509_cert
-                .public_key()
-                .parsed()
-                .map_err(CertificateParseError::X509Error)?
-            {
-                x509_parser::public_key::PublicKey::RSA(public_key) => {
-                    let modulus = BigUint::from_bytes_be(public_key.modulus);
-                    let exponent = BigUint::from_bytes_be(public_key.exponent);
-                    let public_key = RsaPublicKey::new(modulus, exponent).map_err(CertificateParseError::RsaError)?;
-                    PublicKey::try_from(public_key).map_err(CertificateParseError::UnsupportedRsaKeySize)?
-                }
-                x509_parser::public_key::PublicKey::EC(public_key) => match public_key.key_size() {
-                    256 => PublicKey::ESP256(
-                        p256::ecdsa::VerifyingKey::from_sec1_bytes(public_key.data())
-                            .map_err(CertificateParseError::EcP256PublicKeyParseError)?,
-                    ),
-                    384 => PublicKey::ESP384(
-                        p384::ecdsa::VerifyingKey::from_sec1_bytes(public_key.data())
-                            .map_err(CertificateParseError::EcP384PublicKeyParseError)?,
-                    ),
-                    size => Err(CertificateParseError::UnsupportedEcKeySize(size))?,
-                },
-                _ => Err(CertificateParseError::UnsupportedPublicKeyAlgorithm)?,
-            };
+            let public_key = public_key_from_certificate(&x509_cert)?;
 
             Ok::<_, CertificateParseError>(ParsedCertificate {
                 end_entity_cert,
@@ -451,6 +427,35 @@ impl Eq for BorrowingCertificate {}
 impl Hash for BorrowingCertificate {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.as_ref().hash(state);
+    }
+}
+
+fn public_key_from_certificate(x509_cert: &X509Certificate<'_>) -> Result<PublicKey, CertificateParseError> {
+    match x509_cert
+        .public_key()
+        .parsed()
+        .map_err(CertificateParseError::X509Error)?
+    {
+        x509_parser::public_key::PublicKey::RSA(public_key) => {
+            let modulus = BigUint::from_bytes_be(public_key.modulus);
+            let exponent = BigUint::from_bytes_be(public_key.exponent);
+            let public_key = RsaPublicKey::new(modulus, exponent).map_err(CertificateParseError::RsaError)?;
+            PublicKey::try_from(public_key).map_err(CertificateParseError::UnsupportedRsaKeySize)
+        }
+        x509_parser::public_key::PublicKey::EC(public_key) => match public_key.key_size() {
+            256 => {
+                let verifying_key = p256::ecdsa::VerifyingKey::from_sec1_bytes(public_key.data())
+                    .map_err(CertificateParseError::EcP256PublicKeyParseError)?;
+                Ok(PublicKey::ESP256(verifying_key))
+            }
+            384 => {
+                let verifying_key = p384::ecdsa::VerifyingKey::from_sec1_bytes(public_key.data())
+                    .map_err(CertificateParseError::EcP384PublicKeyParseError)?;
+                Ok(PublicKey::ESP384(verifying_key))
+            }
+            size => Err(CertificateParseError::UnsupportedEcKeySize(size)),
+        },
+        _ => Err(CertificateParseError::UnsupportedPublicKeyAlgorithm),
     }
 }
 
