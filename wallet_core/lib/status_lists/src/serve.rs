@@ -44,7 +44,7 @@ static STATUSLIST_JWT_CONTENT_TYPE: LazyLock<HeaderValue> = LazyLock::new(|| {
 #[derive(Debug, Clone)]
 struct RouterState {
     publish_dir: Arc<PublishDir>,
-    cache_control: HeaderValue,
+    ttl: Option<Duration>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -120,24 +120,15 @@ pub fn create_serve_router<'a>(
         .fold(Router::new(), |router, (path, route_source)| {
             let state = RouterState {
                 publish_dir: Arc::new(route_source.publish_dir),
-                cache_control: cache_control_header_for_ttl(route_source.ttl),
+                ttl: route_source.ttl,
             };
 
             router.nest(
                 path,
                 Router::new().route("/{id}", get(serve_status_list)).with_state(state),
             )
-        })
-        .layer(middleware::from_fn(add_vary_header))
-        // The HTTP endpoint SHOULD support the use of Cross-Origin Resource Sharing (CORS) [...] to enable
-        // Browser-based clients to access it
-        .layer(
-            CorsLayer::new()
-                .allow_methods([Method::GET, Method::HEAD, Method::OPTIONS])
-                .allow_origin(Any),
-        )
-        // The HTTP response SHOULD use gzip Content-Encoding as defined in [RFC9110].
-        .layer(CompressionLayer::new());
+        });
+    let router = add_status_list_middleware(router);
 
     Ok(router)
 }
@@ -150,6 +141,20 @@ fn cache_control_header_for_ttl(ttl: Option<Duration>) -> HeaderValue {
 
     // Convert to HeaderValue, unwrap is safe since string is ASCII.
     HeaderValue::from_str(cache_control).unwrap()
+}
+
+pub fn add_status_list_middleware(router: Router) -> Router {
+    router
+        .layer(middleware::from_fn(add_vary_header))
+        // The HTTP endpoint SHOULD support the use of Cross-Origin Resource Sharing (CORS) [...] to enable
+        // Browser-based clients to access it
+        .layer(
+            CorsLayer::new()
+                .allow_methods([Method::GET, Method::HEAD, Method::OPTIONS])
+                .allow_origin(Any),
+        )
+        // The HTTP response SHOULD use gzip Content-Encoding as defined in [RFC9110].
+        .layer(CompressionLayer::new())
 }
 
 async fn add_vary_header(request: Request, next: Next) -> Response {
@@ -165,28 +170,35 @@ async fn serve_status_list(
     Path(id): Path<ExternalId>,
     State(state): State<RouterState>,
 ) -> Result<Response, StatusCode> {
-    check_accept(headers.get(header::ACCEPT))?;
-
     let path = state.publish_dir.jwt_path(&id);
     let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
 
-    let etag = EntityTag::from_data(&bytes);
-    if let Some(request_etag) = headers.get(header::IF_NONE_MATCH)
+    http_response_for_status_list_body(&headers, state.ttl, bytes)
+}
+
+pub fn http_response_for_status_list_body(
+    request_headers: &HeaderMap,
+    ttl: Option<Duration>,
+    status_list_body: Vec<u8>,
+) -> Result<Response, StatusCode> {
+    check_accept(request_headers.get(header::ACCEPT))?;
+
+    let etag = EntityTag::from_data(&status_list_body);
+    if let Some(request_etag) = request_headers.get(header::IF_NONE_MATCH)
         && check_if_none_match(request_etag, &etag)?
     {
         return Err(StatusCode::NOT_MODIFIED);
     };
 
-    Ok((
-        [
-            (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
-            (header::CACHE_CONTROL, state.cache_control),
-            // Unwrap is safe since etag is ASCII
-            (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
-        ],
-        bytes,
-    )
-        .into_response())
+    let response_headers = [
+        (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
+        (header::CACHE_CONTROL, cache_control_header_for_ttl(ttl)),
+        // Unwrap is safe since etag is ASCII
+        (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
+    ];
+    let response = (response_headers, status_list_body).into_response();
+
+    Ok(response)
 }
 
 fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, StatusCode> {
