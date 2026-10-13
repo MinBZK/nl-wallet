@@ -24,9 +24,10 @@ impl<const MULTIPLIER: u64> SerializeAs<Duration> for DurationMultipleSeconds<MU
     where
         S: Serializer,
     {
-        if MULTIPLIER == 0 {
-            return Err(ser::Error::custom("cannot divide seconds by 0"));
-        }
+        // Have serialization using a type with a MULTIPLIER of 0 fail to compile, as this will result in a panic
+        // because of division by 0. Note that we do not apply this to deserialization as it will simply result in a 0
+        // duration and not panic.
+        const { assert!(MULTIPLIER > 0, "MULTIPLIER must be non-zero") };
 
         let seconds = source.as_secs();
         let (increments, remainder) = (seconds / MULTIPLIER, seconds % MULTIPLIER);
@@ -69,7 +70,6 @@ mod test {
     use serde_with::serde_as;
 
     use super::DurationDays;
-    use super::DurationMultipleSeconds;
 
     #[serde_as]
     #[derive(Debug, Serialize, Deserialize)]
@@ -82,16 +82,6 @@ mod test {
 
         let json = serde_json::to_string(&Wrapper(duration)).expect("serializing wrapper with duration should succeed");
         assert_eq!(json, "7");
-    }
-
-    #[test]
-    fn test_deserialize_error_zero_multiplier() {
-        #[serde_as]
-        #[derive(Debug, Serialize)]
-        struct ZeroMultiplierWrapper(#[serde_as(as = "DurationMultipleSeconds<0>")] Duration);
-
-        let _error = serde_json::to_string(&ZeroMultiplierWrapper(Duration::from_secs(1)))
-            .expect_err("serializing wrapper with duration should fail");
     }
 
     #[test]
