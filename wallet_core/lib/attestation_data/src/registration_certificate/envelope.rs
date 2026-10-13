@@ -30,6 +30,8 @@ pub enum RegistrationCertificateJwtParseError {
 pub enum RegistrationCertificateEnvelopeParseError {
     #[error("could not decode registration certificate as Base64: {0}")]
     Base64(#[source] DecodeError),
+    #[error("could not parse registration certificate as JWT: {0}")]
+    Jwt(#[source] RegistrationCertificateJwtParseError),
     #[error("could not parse registration certificate as JWT ({jwt}) or CWT ({cwt})")]
     NeitherFormat {
         jwt: RegistrationCertificateJwtParseError,
@@ -75,9 +77,16 @@ impl TryFrom<&[u8]> for RegistrationCertificateEnvelope {
 impl TryFrom<String> for RegistrationCertificateEnvelope {
     type Error = RegistrationCertificateEnvelopeParseError;
 
-    fn try_from(base64: String) -> Result<Self, Self::Error> {
+    fn try_from(data: String) -> Result<Self, Self::Error> {
+        // ETSI TS 119 472-2 requires the base64url encoding of the serialized registration certificate. Since a compact
+        // JWT already consists of base64url-encoded parts, some implementations include it without encoding it again.
+        // We choose to accept that as well: a compact JWT always contains a '.', while base64url never does.
+        if data.contains('.') {
+            return Self::parse_jwt(data.as_bytes()).map_err(RegistrationCertificateEnvelopeParseError::Jwt);
+        }
+
         let bytes = BASE64_URL_SAFE_NO_PAD
-            .decode(base64)
+            .decode(data)
             .map_err(RegistrationCertificateEnvelopeParseError::Base64)?;
 
         Self::try_from(bytes.as_slice())
