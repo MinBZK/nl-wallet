@@ -20,13 +20,6 @@ pub enum TaskType {
     RevokeSolution,
 }
 
-impl TaskType {
-    pub fn to_privilege(&self) -> String {
-        let name = serde_json::to_string(&self).expect("plain enums serialize correctly");
-        format!("privilege_{name}")
-    }
-}
-
 /// The lifecycle status of an [`AdminTask`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
