@@ -217,7 +217,7 @@ rstest = "0.26.1"
 # held back by sea-orm / sqlx via libsqlite3-sys
 rusqlite = "0.32.1"
 rustix = "1.1.2"
-rustls = { version = "0.23.35", default-features = false, features = ["logging", "std", "tls12", "ring"] }
+rustls = { version = "0.23.35", default-features = false, features = ["logging", "std", "ring"] }
 rustls-pki-types = { version = "1.13.1", features = ["std"] }
 rustls-webpki = { version = "0.103.8", features = ["ring"] }
 sanitize-filename = "0.6.0"
