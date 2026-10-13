@@ -603,9 +603,7 @@ where
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         tempfile::tempdir().unwrap().keep(),
         wallet_config,
-    )
-    .await
-    .unwrap();
+    );
 
     config_repository
         .fetch(&config_server_config.http_config)
