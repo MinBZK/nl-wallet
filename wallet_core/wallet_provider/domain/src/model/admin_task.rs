@@ -119,7 +119,7 @@ pub struct AdminTaskReview {
 /// Request model for task lists
 #[derive(Debug, Clone)]
 pub enum TaskListView {
-    OpenTasks {
+    Open {
         user_id: String,
     },
     History {

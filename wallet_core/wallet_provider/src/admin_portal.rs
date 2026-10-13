@@ -717,7 +717,7 @@ mod tests {
             let mut matching: Vec<AdminTask> = tasks
                 .values()
                 .filter(|task| match &view {
-                    TaskListView::OpenTasks { user_id } => {
+                    TaskListView::Open { user_id } => {
                         task.created_by_user_id == *user_id && task.status == TaskStatus::Created
                     }
                     TaskListView::History { user_id } => {
@@ -1297,7 +1297,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn list_tasks_to_review_filters_by_privilege_and_excludes_own_tasks() {
+    async fn list_tasks_reviewable_filters_by_privilege_and_excludes_own_tasks() {
         let task_id = Uuid::new_v4();
         let (state, _) = setup_state_with_valid_user_and_task(task_id, TaskType::RevokeWallet, &ALICE);
 
@@ -1305,7 +1305,7 @@ mod tests {
         let tasks = list_tasks_for(
             state.clone(),
             with_privilege(&BOB, TaskType::RevokeWallet),
-            TaskListViewKind::ToReview,
+            TaskListViewKind::Reviewable,
         )
         .await;
         assert_eq!(tasks.len(), 1);
@@ -1314,7 +1314,7 @@ mod tests {
         let tasks = list_tasks_for(
             state.clone(),
             with_privilege(&BOB, TaskType::BlockUser),
-            TaskListViewKind::ToReview,
+            TaskListViewKind::Reviewable,
         )
         .await;
         assert!(tasks.is_empty());
@@ -1323,7 +1323,7 @@ mod tests {
         let tasks = list_tasks_for(
             state,
             with_privilege(&ALICE, TaskType::RevokeWallet),
-            TaskListViewKind::ToReview,
+            TaskListViewKind::Reviewable,
         )
         .await;
         assert!(tasks.is_empty());

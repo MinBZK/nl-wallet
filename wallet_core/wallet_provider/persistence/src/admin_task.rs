@@ -158,7 +158,7 @@ where
 {
     let condition =
         match view {
-            TaskListView::OpenTasks { user_id } => Condition::all()
+            TaskListView::Open { user_id } => Condition::all()
                 .add(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
                 .add(admin_task::Column::CreatedByUserId.eq(user_id)),
             TaskListView::History { user_id } => Condition::all()

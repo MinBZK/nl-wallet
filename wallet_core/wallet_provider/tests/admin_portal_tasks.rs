@@ -307,7 +307,7 @@ async fn test_list_tasks_history_succeeds() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_list_tasks_to_review_succeeds() {
+async fn test_list_tasks_reviewable_succeeds() {
     let (app, repositories, _db_setup) = test_app().await;
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
@@ -316,7 +316,7 @@ async fn test_list_tasks_to_review_succeeds() {
 
     let request = Request::builder()
         .method("GET")
-        .uri("/tasks?view=to_review")
+        .uri("/tasks?view=reviewable")
         .header(header::COOKIE, cookie)
         .body(Body::empty())
         .unwrap();

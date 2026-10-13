@@ -198,7 +198,7 @@ pub async fn review_task<R: AdminTaskRepository>(
 pub enum TaskListViewKind {
     Open,
     History,
-    ToReview,
+    Reviewable,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -226,9 +226,9 @@ pub async fn list_tasks<R: AdminTaskRepository>(
     let user_id = user_id.to_string();
 
     let view = match view_kind {
-        TaskListViewKind::Open => TaskListView::OpenTasks { user_id },
+        TaskListViewKind::Open => TaskListView::Open { user_id },
         TaskListViewKind::History => TaskListView::History { user_id },
-        TaskListViewKind::ToReview => TaskListView::Reviewable {
+        TaskListViewKind::Reviewable => TaskListView::Reviewable {
             user_id,
             authorized_task_types: authorized_task_types.iter().copied().collect(),
         },
@@ -510,7 +510,7 @@ mod tests {
         let mut repository = MockAdminTaskRepository::new();
         repository
             .expect_list_tasks()
-            .withf(|view| matches!(view, TaskListView::OpenTasks { user_id } if user_id == "user-1"))
+            .withf(|view| matches!(view, TaskListView::Open { user_id } if user_id == "user-1"))
             .returning(|_| Ok(vec![]));
 
         list_tasks(
@@ -544,7 +544,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn list_tasks_to_review_passes_authorized_task_types() {
+    async fn list_tasks_reviewable_passes_authorized_task_types() {
         let mut repository = MockAdminTaskRepository::new();
         repository
             .expect_list_tasks()
@@ -558,7 +558,7 @@ mod tests {
             .returning(|_| Ok(vec![]));
 
         list_tasks(
-            TaskListViewKind::ToReview,
+            TaskListViewKind::Reviewable,
             "user-1",
             &HashSet::from([TaskType::RevokeWallet]),
             &repository,
@@ -569,7 +569,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn list_tasks_to_review_without_authorized_task_types_still_calls_repository_with_empty_types() {
+    async fn list_tasks_reviewable_without_authorized_task_types_still_calls_repository_with_empty_types() {
         let mut repository = MockAdminTaskRepository::new();
         repository
             .expect_list_tasks()
@@ -577,7 +577,7 @@ mod tests {
             .returning(|_| Ok(vec![]));
 
         list_tasks(
-            TaskListViewKind::ToReview,
+            TaskListViewKind::Reviewable,
             "user-1",
             &HashSet::new(),
             &repository,

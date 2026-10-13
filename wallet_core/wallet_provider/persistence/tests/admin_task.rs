@@ -117,7 +117,7 @@ impl TestDatabase {
     }
 
     async fn open_tasks(&self, user: &User) -> Result<Vec<AdminTask>, PersistenceError> {
-        self.list(TaskListView::OpenTasks {
+        self.list(TaskListView::Open {
             user_id: user.id.clone(),
         })
         .await
