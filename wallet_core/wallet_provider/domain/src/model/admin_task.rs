@@ -59,6 +59,7 @@ pub struct AdminTask {
     pub task_parameters: JsonValue,
     pub task_reason: String,
     pub status: TaskStatus,
+    pub withdrawn_at: Option<DateTime<Utc>>,
     pub reviewed_at: Option<DateTime<Utc>>,
     pub reviewed_by_user_id: Option<String>,
     pub reviewed_by_display_name: Option<String>,
@@ -69,7 +70,7 @@ pub struct AdminTask {
 }
 
 /// Request model to create a new [`AdminTask`].
-/// Will create it with `status = Created` and the `reviewed_*`/`executed_*`/`execution_result*` fields as `None`.
+/// Will create it with `status = Created` and all optional fields set to `None`.
 #[derive(Debug, Clone)]
 pub struct AdminTaskCreate {
     pub id: Uuid,
@@ -92,6 +93,7 @@ impl From<AdminTaskCreate> for AdminTask {
             task_parameters: task.task_parameters,
             task_reason: task.task_reason,
             status: TaskStatus::Created,
+            withdrawn_at: None,
             reviewed_at: None,
             reviewed_by_user_id: None,
             reviewed_by_display_name: None,

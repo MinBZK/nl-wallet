@@ -26,7 +26,7 @@ pub enum CreateTaskError {
     #[error("missing privilege for task type {0}")]
     MissingPrivilege(TaskType),
     #[error("persistence error: {0}")]
-    Storage(#[from] PersistenceError),
+    Storage(#[source] PersistenceError),
     #[error("error while auditing: {0}")]
     AuditLog(#[source] Box<dyn Error + Send + Sync>),
 }
@@ -69,7 +69,8 @@ pub async fn create_task<R: AdminTaskRepository>(
             task_parameters: task_parameters.clone(),
             task_reason: task_reason.to_string(),
         })
-        .await?;
+        .await
+        .map_err(CreateTaskError::Storage)?;
 
     Ok(task)
 }
@@ -134,7 +135,7 @@ pub enum ReviewTaskError {
     #[error("task cannot be reviewed: created by caller, or not in 'created' status")]
     InvalidState,
     #[error("persistence error: {0}")]
-    Storage(#[from] PersistenceError),
+    Storage(#[source] PersistenceError),
     #[error("error while auditing: {0}")]
     AuditLog(#[source] Box<dyn Error + Send + Sync>),
 }
@@ -160,7 +161,8 @@ pub async fn review_task<R: AdminTaskRepository>(
 ) -> Result<AdminTask, ReviewTaskError> {
     let existing = repository
         .find_task_by_id(task_id)
-        .await?
+        .await
+        .map_err(ReviewTaskError::Storage)?
         .ok_or(ReviewTaskError::NotFound(task_id))?;
 
     if existing.status != TaskStatus::Created || existing.created_by_user_id == reviewer_user_id {
@@ -181,7 +183,8 @@ pub async fn review_task<R: AdminTaskRepository>(
     };
     let updated = repository
         .review_task(review)
-        .await?
+        .await
+        .map_err(ReviewTaskError::Storage)?
         .ok_or(ReviewTaskError::InvalidState)?;
 
     Ok(updated)
@@ -201,7 +204,7 @@ pub enum TaskListViewKind {
 #[derive(Debug, thiserror::Error)]
 pub enum ListTasksError {
     #[error("persistence error: {0}")]
-    Storage(#[from] PersistenceError),
+    Storage(#[source] PersistenceError),
     #[error("error while auditing: {0}")]
     AuditLog(#[source] Box<dyn Error + Send + Sync>),
 }
@@ -231,7 +234,7 @@ pub async fn list_tasks<R: AdminTaskRepository>(
         },
     };
 
-    let tasks = repository.list_tasks(view).await?;
+    let tasks = repository.list_tasks(view).await.map_err(ListTasksError::Storage)?;
 
     Ok(tasks)
 }
@@ -275,6 +278,7 @@ mod tests {
             task_parameters: json!({}),
             task_reason: "reason".to_string(),
             status: TaskStatus::Created,
+            withdrawn_at: None,
             reviewed_at: None,
             reviewed_by_user_id: None,
             reviewed_by_display_name: None,
@@ -641,7 +645,7 @@ mod tests {
                 }
                 let mut task = stub_task(id, TaskType::RevokeWallet, "user-1");
                 task.status = TaskStatus::Withdrawn;
-                task.reviewed_at = Some(now);
+                task.withdrawn_at = Some(now);
                 Ok(Some(task))
             });
         let result = withdraw_task(id, "user-1", &repository, &FixedTime(now), &MockAuditLog).await;
@@ -652,7 +656,8 @@ mod tests {
         } else {
             let task = result.unwrap();
             assert_eq!(task.status, TaskStatus::Withdrawn);
-            assert_eq!(task.reviewed_at, Some(now));
+            assert_eq!(task.withdrawn_at, Some(now));
+            assert_eq!(task.reviewed_at, None);
             assert_eq!(task.executed_at, None);
             assert_eq!(task.execution_result, None);
             assert_eq!(task.execution_result_details, None);

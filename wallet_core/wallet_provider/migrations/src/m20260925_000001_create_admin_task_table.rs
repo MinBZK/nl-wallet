@@ -21,6 +21,7 @@ impl MigrationTrait for Migration {
                     .col(json(AdminTask::TaskParameters).default(Expr::cust("'{}'::jsonb")))
                     .col(string(AdminTask::TaskReason))
                     .col(string(AdminTask::Status))
+                    .col(timestamp_with_time_zone_null(AdminTask::WithdrawnAt))
                     .col(timestamp_with_time_zone_null(AdminTask::ReviewedAt))
                     .col(string_null(AdminTask::ReviewedByUserId))
                     .col(string_null(AdminTask::ReviewedByDisplayName))
@@ -77,6 +78,7 @@ enum AdminTask {
     TaskParameters,
     TaskReason,
     Status,
+    WithdrawnAt,
     ReviewedAt,
     ReviewedByUserId,
     ReviewedByDisplayName,

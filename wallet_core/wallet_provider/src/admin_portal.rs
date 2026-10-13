@@ -350,6 +350,7 @@ pub struct TaskResponse {
     pub task_parameters: JsonValue,
     pub task_reason: String,
     pub status: TaskStatus,
+    pub withdrawn_at: Option<DateTime<Utc>>,
     pub reviewed_at: Option<DateTime<Utc>>,
     pub reviewed_by: Option<String>,
     pub review_comment: Option<String>,
@@ -368,6 +369,7 @@ impl From<AdminTask> for TaskResponse {
             task_parameters: task.task_parameters,
             task_reason: task.task_reason,
             status: task.status,
+            withdrawn_at: task.withdrawn_at,
             reviewed_at: task.reviewed_at,
             reviewed_by: task.reviewed_by_display_name,
             review_comment: task.review_comment,
@@ -679,7 +681,7 @@ mod tests {
                 return Ok(None);
             }
             task.status = TaskStatus::Withdrawn;
-            task.reviewed_at = Some(now);
+            task.withdrawn_at = Some(now);
             Ok(Some(task.clone()))
         }
 
@@ -1036,6 +1038,7 @@ mod tests {
             task_parameters: serde_json::json!({}),
             task_reason: "reason".to_string(),
             status: TaskStatus::Created,
+            withdrawn_at: None,
             reviewed_at: None,
             reviewed_by_user_id: None,
             reviewed_by_display_name: None,

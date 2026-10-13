@@ -29,6 +29,7 @@ impl From<AdminTaskCreate> for admin_task::ActiveModel {
             task_parameters: Set(task.task_parameters),
             task_reason: Set(task.task_reason),
             status: Set(TaskStatus::Created.to_string()),
+            withdrawn_at: Set(None),
             reviewed_at: Set(None),
             reviewed_by_user_id: Set(None),
             reviewed_by_display_name: Set(None),
@@ -53,6 +54,7 @@ impl TryFrom<admin_task::Model> for AdminTask {
             task_parameters: model.task_parameters,
             task_reason: model.task_reason,
             status: model.status.parse().map_err(PersistenceError::EnumConversion)?,
+            withdrawn_at: model.withdrawn_at.map(Into::into),
             reviewed_at: model.reviewed_at.map(Into::into),
             reviewed_by_user_id: model.reviewed_by_user_id,
             reviewed_by_display_name: model.reviewed_by_display_name,
@@ -104,7 +106,7 @@ where
 {
     let model = admin_task::ActiveModel {
         status: Set(TaskStatus::Withdrawn.to_string()),
-        reviewed_at: Set(Some(now.into())),
+        withdrawn_at: Set(Some(now.into())),
         ..Default::default()
     };
     let task = admin_task::Entity::update_many()
@@ -213,6 +215,7 @@ mod tests {
             task_parameters: sea_orm::JsonValue::from("parameters"),
             task_reason: "task reason".into(),
             status: "approved".into(),
+            withdrawn_at: None,
             reviewed_at: Some(
                 DateTime::from_timestamp(1_700_000_100, 0)
                     .unwrap()
@@ -261,6 +264,7 @@ mod tests {
             assert_eq!(active.task_parameters, Set(row.task_parameters));
             assert_eq!(active.task_reason, Set(row.task_reason));
             assert_eq!(active.status, Set("created".to_owned()));
+            assert_eq!(active.withdrawn_at, Set(None));
             assert_eq!(active.reviewed_at, Set(None));
             assert_eq!(active.reviewed_by_user_id, Set(None));
             assert_eq!(active.reviewed_by_display_name, Set(None));
@@ -299,6 +303,7 @@ mod tests {
                     task_parameters: row.task_parameters.clone(),
                     task_reason: row.task_reason.clone(),
                     status,
+                    withdrawn_at: row.withdrawn_at.map(Into::into),
                     reviewed_at: row.reviewed_at.map(Into::into),
                     reviewed_by_user_id: row.reviewed_by_user_id.clone(),
                     reviewed_by_display_name: row.reviewed_by_display_name.clone(),
@@ -334,6 +339,7 @@ mod tests {
     #[test]
     fn model_preserves_absent_optional_fields() {
         let row = admin_task::Model {
+            withdrawn_at: None,
             reviewed_at: None,
             reviewed_by_user_id: None,
             reviewed_by_display_name: None,
@@ -344,6 +350,7 @@ mod tests {
             ..model()
         };
         let task = AdminTask::try_from(row).unwrap();
+        assert_eq!(task.withdrawn_at, None);
         assert_eq!(task.reviewed_at, None);
         assert_eq!(task.reviewed_by_user_id, None);
         assert_eq!(task.reviewed_by_display_name, None);

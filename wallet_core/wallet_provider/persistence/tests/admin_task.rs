@@ -162,6 +162,7 @@ async fn test_insert_and_find_task_by_id() {
         task_parameters: create.task_parameters,
         task_reason: create.task_reason,
         status: TaskStatus::Created,
+        withdrawn_at: None,
         reviewed_at: None,
         reviewed_by_user_id: None,
         reviewed_by_display_name: None,
@@ -212,7 +213,8 @@ async fn test_withdraw_succeeds_for_creator_of_created_task() {
         .expect("task should be withdrawn");
 
     assert_eq!(withdrawn.status, TaskStatus::Withdrawn);
-    assert_eq!(withdrawn.reviewed_at, Some(at(1)));
+    assert_eq!(withdrawn.withdrawn_at, Some(at(1)));
+    assert_eq!(withdrawn.reviewed_at, None);
     assert_eq!(withdrawn.reviewed_by_user_id, None);
     assert_eq!(db.find(task.id).await.expect("should query task"), Some(withdrawn));
 }
