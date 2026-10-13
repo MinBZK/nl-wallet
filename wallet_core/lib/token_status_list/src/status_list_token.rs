@@ -40,6 +40,12 @@ impl StatusListToken {
             status_list,
         }
     }
+
+    pub fn into_inner(self) -> UnverifiedJwt<StatusListClaims, HeaderWithX5c> {
+        let Self(inner) = self;
+
+        inner
+    }
 }
 
 pub struct StatusListTokenBuilder {

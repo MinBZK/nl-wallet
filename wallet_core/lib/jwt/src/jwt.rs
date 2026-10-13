@@ -147,6 +147,10 @@ impl<T, H> UnverifiedJwt<T, H> {
         &self.serialization
     }
 
+    pub fn into_serialization(self) -> String {
+        self.serialization
+    }
+
     pub fn signed_slice(&self) -> &str {
         &self.serialization[..self.payload_end]
     }

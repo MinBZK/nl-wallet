@@ -141,6 +141,7 @@ use crate::keys::WalletCertificateSigningKey;
 use crate::keys::pin_pubkey_encryption_key_identifier;
 use crate::pin_policy::PinRecoveryPinPolicy;
 use crate::revocation::RevocationError;
+use crate::status_list::KeyStorageStatusList;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
@@ -651,9 +652,11 @@ pub struct UserState<R, F, H, K, S> {
     pub wia_status_tracking_validity: Duration,
     pub key_attestation_key_pair: KeyPair<K>,
     pub key_attestation_certification: Url,
+    pub key_storage_status_tracking_validity: Duration,
     pub attestation_wrapping_kids: KidPair,
     pub pid_issuer_trust_anchors: TrustAnchors,
     pub wia_status_list: S,
+    pub key_storage_status_list: KeyStorageStatusList<K, F>,
 }
 
 impl<GRC, PIC> AccountServer<GRC, PIC> {
@@ -2030,30 +2033,38 @@ pub mod mock {
     pub type MockUserState =
         UserState<WalletUserTestRepo, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService>;
 
-    pub fn user_state<R, F, S>(
+    pub fn user_state<R, S>(
         repositories: R,
-        flags: F,
+        flags: StubWalletFlags,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_kid: Kid,
         pid_issuer_trust_anchors: TrustAnchors,
         wia_status_list: S,
-    ) -> UserState<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
+    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, S> {
         let key_attestation_key_pair = MOCK_WPTL_CA.generate_key_attestation_mock().unwrap();
+        let key_storage_tsl_key_pair = MOCK_WPTL_CA.generate_key_storage_status_list_mock().unwrap();
 
-        UserState::<R, F, MockPkcs11Client<HsmError>, SigningKey, S> {
+        UserState {
             repositories,
-            flags,
+            flags: flags.clone(),
             wallet_user_hsm,
             wia_issuer: MockWiaIssuer::new_mock(&MOCK_WPTL_CA),
             wia_status_tracking_validity: Duration::from_hours(24),
             key_attestation_key_pair,
             key_attestation_certification: "https://wallet-provider.example.com/certification".parse().unwrap(),
+            key_storage_status_tracking_validity: Duration::from_hours(24),
             attestation_wrapping_kids: KidPair {
                 current: wrapping_kid,
                 previous: None,
             },
             pid_issuer_trust_anchors,
             wia_status_list,
+            key_storage_status_list: KeyStorageStatusList::new(
+                "https://wallet-provider.example.com/certification".parse().unwrap(),
+                Duration::from_hours(1),
+                key_storage_tsl_key_pair,
+                flags,
+            ),
         }
     }
 
@@ -3898,9 +3909,11 @@ mod tests {
             wia_status_tracking_validity: Duration::from_hours(24),
             key_attestation_key_pair: user_state.key_attestation_key_pair,
             key_attestation_certification: user_state.key_attestation_certification,
+            key_storage_status_tracking_validity: user_state.key_storage_status_tracking_validity,
             attestation_wrapping_kids: user_state.attestation_wrapping_kids,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
             wia_status_list: user_state.wia_status_list,
+            key_storage_status_list: user_state.key_storage_status_list,
         };
 
         let instruction_result_signing_key = SigningKey::generate();

@@ -2,8 +2,6 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::num::NonZeroUsize;
 
-use attestation_types::status_claim::StatusClaim;
-use attestation_types::status_claim::StatusListClaim;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
@@ -469,6 +467,9 @@ where
         ));
     }
 
+    let key_storage_maintenance_period =
+        DateTimeSeconds::new(time.generate() + user_state.key_storage_status_tracking_validity);
+
     let (set_results, wrapped_keys): (Vec<_>, Vec<_>) = future::try_join_all(instruction.key_requests.into_iter().map(
         async |request| -> Result<_, InstructionError> {
             let (identifiers, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
@@ -488,11 +489,8 @@ where
 
             // TODO: Implement provision of token status list claim.
             let key_storage_status = TimeBoundedStatusClaim::new(
-                StatusClaim::StatusList(StatusListClaim {
-                    idx: 0,
-                    uri: "https://not.implemented/".parse().unwrap(),
-                }),
-                DateTimeSeconds::new(DateTime::UNIX_EPOCH),
+                user_state.key_storage_status_list.status_claim.clone(),
+                key_storage_maintenance_period,
             );
 
             let attestation = KeyAttestation::sign(
