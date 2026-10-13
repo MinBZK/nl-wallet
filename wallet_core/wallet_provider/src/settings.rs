@@ -355,20 +355,33 @@ impl WiaStatusListsSettings {
         self,
         hsm: Pkcs11Hsm,
     ) -> Result<StatusListConfig<HsmEcdsaKey>, WiaStatusListsSettingsError> {
+        // Take the last path element from the base URL as the context_path. It is an error if the base URL does not
+        // contain a path.
         let context_path = self
             .base_url
             .as_ref()
             .path_segments()
-            .unwrap()
+            .expect("a BaseUrl always has path segments")
             .next_back()
-            .ok_or(WiaStatusListsSettingsError::BaseUrlWithoutPath(self.base_url.clone()))?
+            .expect("Url::path_segments() returns at least one string when returning Some()")
             .to_string();
+
+        if context_path.is_empty() {
+            return Err(WiaStatusListsSettingsError::BaseUrlWithoutPath(self.base_url));
+        }
+
+        // Modify the base URL by removing the last path element, i.e. context_path.
+        let mut url = self.base_url.into_inner();
+        url.path_segments_mut()
+            .expect("a BaseUrl always has path segments")
+            .pop();
+        let base_url = url.try_into().expect("the source URL is a BaseUrl");
 
         let key_pair = KeyPair::new(HsmEcdsaKey::new(self.key_identifier, hsm), self.key_certificate).await?;
 
         let config = self
             .list_settings
-            .to_config(self.base_url, context_path, self.publish_dir, key_pair)?;
+            .to_config(base_url, context_path, self.publish_dir, key_pair)?;
 
         Ok(config)
     }
