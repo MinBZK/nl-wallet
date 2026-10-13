@@ -334,7 +334,8 @@ pub mod generate {
         }
 
         pub fn to_trust_anchors(&self) -> TrustAnchors {
-            TrustAnchors::try_from(vec![self.to_borrowing_trust_anchor()]).expect("cannot create trust anchors")
+            TrustAnchors::try_from_trust_anchors([self.to_borrowing_trust_anchor()])
+                .expect("cannot create trust anchors")
         }
 
         /// Generate a signed CRL from this CA, revoking the given certificates.

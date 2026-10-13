@@ -170,20 +170,18 @@ impl TryFrom<IndexSet<BorrowingCertificate>> for TrustAnchors {
 }
 
 #[cfg(any(test, feature = "examples", feature = "generate"))]
-impl TryFrom<Vec<BorrowingTrustAnchor>> for TrustAnchors {
-    type Error = CertificateParseError;
-
-    fn try_from(trust_anchors: Vec<BorrowingTrustAnchor>) -> Result<Self, Self::Error> {
-        let certificates: IndexSet<BorrowingCertificate> = trust_anchors
-            .iter()
-            .map(|ta| BorrowingCertificate::from_der(ta.as_ref()))
+impl TrustAnchors {
+    pub fn try_from_trust_anchors(
+        trust_anchors: impl IntoIterator<Item = BorrowingTrustAnchor>,
+    ) -> Result<Self, CertificateParseError> {
+        let (certificates, trust_anchors) = trust_anchors
+            .into_iter()
+            .map(|ta| BorrowingCertificate::from_der(ta.as_ref()).map(|cert| (cert, ta.to_owned_trust_anchor())))
             .try_collect()?;
-
-        let owned_anchors = trust_anchors.iter().map(|ta| ta.to_owned_trust_anchor()).collect();
 
         Ok(Self {
             certificates,
-            trust_anchors: owned_anchors,
+            trust_anchors,
         })
     }
 }

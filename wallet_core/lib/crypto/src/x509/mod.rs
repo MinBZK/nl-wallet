@@ -894,7 +894,7 @@ mod tests {
                 None,
                 from_ref(&intermediate_cert),
                 &time,
-                &TrustAnchors::try_from(vec![intermediate_ta, ca_ta.clone()]).unwrap(),
+                &TrustAnchors::try_from_trust_anchors([intermediate_ta, ca_ta.clone()]).unwrap(),
             )
             .expect_err("should detect TrustAnchorInChain");
         assert_matches!(error, CertificateVerifyError::TrustAnchorInChain);

@@ -2766,7 +2766,7 @@ mod tests {
             HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         ) {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
-            let issuer_trust_anchors = TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap();
+            let issuer_trust_anchors = TrustAnchors::try_from_trust_anchors([ca.to_borrowing_trust_anchor()]).unwrap();
 
             let issuer_key = ca.generate_pid_issuer_mock().unwrap();
 
