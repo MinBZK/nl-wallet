@@ -453,7 +453,6 @@ function generate_demo_issuer_key_pairs {
 function generate_demo_issuer_issuance_key_pairs {
     generate_demo_issuer_issuance_key_pair "$1" issuer
     generate_demo_issuer_issuance_key_pair "$1" tsl issuer
-    generate_demo_issuer_issuance_key_pair "$1" wrpac
 }
 
 # Generate EC issuance key pair for the demo_issuer

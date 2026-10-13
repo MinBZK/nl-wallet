@@ -517,10 +517,6 @@ DEMO_ISSUER_KEY_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.key.d
 export DEMO_ISSUER_KEY_INSURANCE_TSL
 DEMO_ISSUER_CRT_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_TSL
-DEMO_ISSUER_KEY_INSURANCE_WRPAC=$(< "${TARGET_DIR}/demo_issuer/insurance.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_INSURANCE_WRPAC
-DEMO_ISSUER_CRT_INSURANCE_WRPAC=$(< "${TARGET_DIR}/demo_issuer/insurance.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_INSURANCE_WRPAC
 
 generate_demo_issuer_key_pairs housing
 DEMO_ISSUER_KEY_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.key.der" ${BASE64})
@@ -550,10 +546,6 @@ DEMO_ISSUER_KEY_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.key.der" 
 export DEMO_ISSUER_KEY_LOYALTY_TSL
 DEMO_ISSUER_CRT_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_LOYALTY_TSL
-DEMO_ISSUER_KEY_LOYALTY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/loyalty.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_LOYALTY_WRPAC
-DEMO_ISSUER_CRT_LOYALTY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/loyalty.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_LOYALTY_WRPAC
 
 generate_demo_issuer_issuance_key_pairs museum_maandkaart
 DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_ISSUER=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuer.key.der" ${BASE64})
@@ -564,10 +556,6 @@ DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maan
 export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL
 DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL
-DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC
-DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC
 
 generate_demo_issuer_issuance_key_pairs mdl
 DEMO_ISSUER_KEY_MDL_ISSUER=$(< "${TARGET_DIR}/demo_issuer/mdl.issuer.key.der" ${BASE64})
@@ -578,10 +566,6 @@ DEMO_ISSUER_KEY_MDL_TSL=$(< "${TARGET_DIR}/demo_issuer/mdl.tsl.key.der" ${BASE64
 export DEMO_ISSUER_KEY_MDL_TSL
 DEMO_ISSUER_CRT_MDL_TSL=$(< "${TARGET_DIR}/demo_issuer/mdl.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MDL_TSL
-DEMO_ISSUER_KEY_MDL_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mdl.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_MDL_WRPAC
-DEMO_ISSUER_CRT_MDL_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mdl.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_MDL_WRPAC
 
 generate_demo_issuer_issuance_key_pairs mvc
 DEMO_ISSUER_KEY_MVC_ISSUER=$(< "${TARGET_DIR}/demo_issuer/mvc.issuer.key.der" ${BASE64})
@@ -592,10 +576,6 @@ DEMO_ISSUER_KEY_MVC_TSL=$(< "${TARGET_DIR}/demo_issuer/mvc.tsl.key.der" ${BASE64
 export DEMO_ISSUER_KEY_MVC_TSL
 DEMO_ISSUER_CRT_MVC_TSL=$(< "${TARGET_DIR}/demo_issuer/mvc.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MVC_TSL
-DEMO_ISSUER_KEY_MVC_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mvc.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_MVC_WRPAC
-DEMO_ISSUER_CRT_MVC_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mvc.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_MVC_WRPAC
 
 # Each issuance service publishes a WRPRC bound to its metadata-signing WRPAC.
 generate_issuance_registration_certificate pid 7 \
