@@ -82,6 +82,13 @@ impl LoggedInUser {
     }
 }
 
+/// Identifies the user by their user ID, e.g. as the `#[audit_user]` of an audited operation.
+impl AsRef<str> for LoggedInUser {
+    fn as_ref(&self) -> &str {
+        &self.user_id
+    }
+}
+
 /// Errors from [`AdminPortalService::authorization_url`] (the `/auth/login` flow).
 #[derive(Debug, thiserror::Error)]
 pub enum LoginError {
@@ -181,10 +188,6 @@ impl<R> AdminPortalService<R> {
             oidc_client: OidcHttpClient::new(HttpClient::new(client), issuer),
             repository,
         }
-    }
-
-    pub fn repository(&self) -> &R {
-        &self.repository
     }
 
     pub fn session_ttl(&self) -> Duration {

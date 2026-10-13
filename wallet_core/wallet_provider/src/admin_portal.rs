@@ -46,7 +46,6 @@ use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminPortalSessionRepository;
 use wallet_provider_domain::repository::AdminTaskRepository;
-use wallet_provider_service::admin_portal;
 use wallet_provider_service::admin_portal::AdminPortalConfig;
 use wallet_provider_service::admin_portal::AdminPortalService;
 use wallet_provider_service::admin_portal::LoggedInUser;
@@ -54,6 +53,7 @@ use wallet_provider_service::admin_portal::task::CreateTaskError;
 use wallet_provider_service::admin_portal::task::ListTasksError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
+use wallet_provider_service::admin_portal::task::TaskService;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
 
 use crate::router_state::UuidV7Generator;
@@ -95,6 +95,7 @@ impl IntoResponse for TaskApiError {
 
 pub struct AdminPortalState<R, AR> {
     service: AdminPortalService<R>,
+    tasks: TaskService<R, TimeGenerator, UuidV7Generator>,
     public_url: BaseUrl,
     audit_log: DbAuditLog<AR, UuidV7Generator>,
 }
@@ -104,7 +105,10 @@ impl<R, AR> AdminPortalState<R, AR> {
         settings: AdminPortalSettings,
         repository: R,
         audit_log: DbAuditLog<AR, UuidV7Generator>,
-    ) -> Result<Self, reqwest::Error> {
+    ) -> Result<Self, reqwest::Error>
+    where
+        R: Clone,
+    {
         let certs = settings
             .keycloak_trust_anchors
             .into_iter()
@@ -121,11 +125,13 @@ impl<R, AR> AdminPortalState<R, AR> {
                 login_attempt_ttl: settings.login_attempt_ttl,
             },
             client,
-            repository,
+            repository.clone(),
         );
+        let tasks = TaskService::new(repository, TimeGenerator, UuidV7Generator);
 
         Ok(Self {
             service,
+            tasks,
             public_url: settings.public_url,
             audit_log,
         })
@@ -389,20 +395,17 @@ where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
     AR: AuditLogRepository + Send + Sync + 'static,
 {
-    let task = admin_portal::task::create_task(
-        &payload.task_type,
-        &JsonValue::Object(payload.task_parameters),
-        &payload.task_reason,
-        &user.user_id,
-        &user.display_name,
-        &user.authorized_task_types(),
-        state.service.repository(),
-        &TimeGenerator,
-        &UuidV7Generator,
-        &state.audit_log,
-    )
-    .await
-    .map_err(TaskApiError::Create)?;
+    let task = state
+        .tasks
+        .create_task(
+            &payload.task_type,
+            &JsonValue::Object(payload.task_parameters),
+            &payload.task_reason,
+            &user,
+            &state.audit_log,
+        )
+        .await
+        .map_err(TaskApiError::Create)?;
 
     Ok((StatusCode::CREATED, Json(TaskResponse::from(task))))
 }
@@ -416,15 +419,11 @@ where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
     AR: AuditLogRepository + Send + Sync + 'static,
 {
-    let task = admin_portal::task::withdraw_task(
-        task_id,
-        &user.user_id,
-        state.service.repository(),
-        &TimeGenerator,
-        &state.audit_log,
-    )
-    .await
-    .map_err(TaskApiError::Withdraw)?;
+    let task = state
+        .tasks
+        .withdraw_task(task_id, &user, &state.audit_log)
+        .await
+        .map_err(TaskApiError::Withdraw)?;
 
     Ok(Json(TaskResponse::from(task)))
 }
@@ -439,19 +438,17 @@ where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
     AR: AuditLogRepository + Send + Sync + 'static,
 {
-    let task = admin_portal::task::review_task(
-        task_id,
-        payload.verdict,
-        &payload.review_comment,
-        &user.user_id,
-        &user.display_name,
-        &user.authorized_task_types(),
-        state.service.repository(),
-        &TimeGenerator,
-        &state.audit_log,
-    )
-    .await
-    .map_err(TaskApiError::Review)?;
+    let task = state
+        .tasks
+        .review_task(
+            task_id,
+            payload.verdict,
+            &payload.review_comment,
+            &user,
+            &state.audit_log,
+        )
+        .await
+        .map_err(TaskApiError::Review)?;
 
     Ok(Json(TaskResponse::from(task)))
 }
@@ -470,15 +467,11 @@ where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
     AR: AuditLogRepository + Send + Sync + 'static,
 {
-    let tasks = admin_portal::task::list_tasks(
-        query.view,
-        &user.user_id,
-        &user.authorized_task_types(),
-        state.service.repository(),
-        &state.audit_log,
-    )
-    .await
-    .map_err(TaskApiError::List)?;
+    let tasks = state
+        .tasks
+        .list_tasks(query.view, &user, &state.audit_log)
+        .await
+        .map_err(TaskApiError::List)?;
 
     Ok(Json(tasks.into_iter().map(TaskResponse::from).collect_vec()))
 }
@@ -568,10 +561,10 @@ mod tests {
     }
 
     /// A minimal in-memory [`AdminPortalSessionRepository`], so the HTTP layer can be tested without a database.
-    #[derive(Default)]
+    #[derive(Clone, Default)]
     struct InMemoryRepository {
-        sessions: Mutex<HashMap<String, AdminPortalUserSession>>,
-        tasks: Mutex<HashMap<Uuid, AdminTask>>,
+        sessions: Arc<Mutex<HashMap<String, AdminPortalUserSession>>>,
+        tasks: Arc<Mutex<HashMap<Uuid, AdminTask>>>,
         errors: bool,
     }
 
@@ -781,8 +774,16 @@ mod tests {
         Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>>,
         CookieJar,
     ) {
+        setup_state_with_valid_user_and_repository(InMemoryRepository::default())
+    }
+
+    fn setup_state_with_valid_user_and_repository(
+        repository: InMemoryRepository,
+    ) -> (
+        Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>>,
+        CookieJar,
+    ) {
         let session_id = random_string(12);
-        let repository = InMemoryRepository::default();
         repository.sessions.lock().unwrap().insert(
             session_id.clone(),
             AdminPortalUserSession {
@@ -1101,10 +1102,10 @@ mod tests {
         #[case] status: TaskStatus,
         #[case] expected_status: StatusCode,
     ) {
-        let (state, jar) = setup_state_with_valid_user();
+        let repository = InMemoryRepository::default();
+        let (state, jar) = setup_state_with_valid_user_and_repository(repository.clone());
         let id = Uuid::new_v4();
         if exists {
-            let repository = state.service.repository();
             repository
                 .insert_task(AdminTaskCreate {
                     id,
