@@ -61,66 +61,35 @@ use crate::settings::AdminPortalSettings;
 
 const SESSION_ID_COOKIE: &str = "sid";
 
-struct CreateTaskApiError(CreateTaskError);
-
-impl IntoResponse for CreateTaskApiError {
-    fn into_response(self) -> Response {
-        let CreateTaskApiError(error) = self;
-        warn!("create_task failed: {error:?}");
-        match error {
-            CreateTaskError::UnknownTaskType(_) => StatusCode::BAD_REQUEST.into_response(),
-            CreateTaskError::MissingPrivilege(_) => StatusCode::FORBIDDEN.into_response(),
-            CreateTaskError::Storage(_) | CreateTaskError::AuditLog(_) => {
-                StatusCode::INTERNAL_SERVER_ERROR.into_response()
-            }
-        }
-    }
+/// Failure of a `/tasks` endpoint, mapped to the matching HTTP status code.
+#[derive(Debug)]
+enum TaskApiError {
+    Create(CreateTaskError),
+    Withdraw(WithdrawTaskError),
+    Review(ReviewTaskError),
+    List(ListTasksError),
 }
 
-struct WithdrawTaskApiError(WithdrawTaskError);
-
-impl IntoResponse for WithdrawTaskApiError {
+impl IntoResponse for TaskApiError {
     fn into_response(self) -> Response {
-        let Self(error) = self;
-        warn!("withdraw_task failed: {error:?}");
-        match error {
-            WithdrawTaskError::NotFound(_) => StatusCode::NOT_FOUND.into_response(),
-            WithdrawTaskError::InvalidState => StatusCode::CONFLICT.into_response(),
-            WithdrawTaskError::Storage(_) | WithdrawTaskError::AuditLog(_) => {
-                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        warn!("task endpoint failed: {self:?}");
+        let status = match self {
+            Self::Create(CreateTaskError::UnknownTaskType(_)) => StatusCode::BAD_REQUEST,
+            Self::Create(CreateTaskError::MissingPrivilege(_)) | Self::Review(ReviewTaskError::MissingPrivilege(_)) => {
+                StatusCode::FORBIDDEN
             }
-        }
-    }
-}
-
-struct ReviewTaskApiError(ReviewTaskError);
-
-impl IntoResponse for ReviewTaskApiError {
-    fn into_response(self) -> Response {
-        let Self(error) = self;
-        warn!("review_task failed: {error:?}");
-        match error {
-            ReviewTaskError::NotFound(_) => StatusCode::NOT_FOUND.into_response(),
-            ReviewTaskError::MissingPrivilege(_) => StatusCode::FORBIDDEN.into_response(),
-            ReviewTaskError::InvalidState => StatusCode::CONFLICT.into_response(),
-            ReviewTaskError::Storage(_) | ReviewTaskError::AuditLog(_) => {
-                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            Self::Withdraw(WithdrawTaskError::NotFound(_)) | Self::Review(ReviewTaskError::NotFound(_)) => {
+                StatusCode::NOT_FOUND
             }
-        }
-    }
-}
-
-struct ListTasksApiError(ListTasksError);
-
-impl IntoResponse for ListTasksApiError {
-    fn into_response(self) -> Response {
-        let Self(error) = self;
-        warn!("list_tasks failed: {error:?}");
-        match error {
-            ListTasksError::Storage(_) | ListTasksError::AuditLog(_) => {
-                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            Self::Withdraw(WithdrawTaskError::InvalidState) | Self::Review(ReviewTaskError::InvalidState) => {
+                StatusCode::CONFLICT
             }
-        }
+            Self::Create(CreateTaskError::Storage(_) | CreateTaskError::AuditLog(_))
+            | Self::Withdraw(WithdrawTaskError::Storage(_) | WithdrawTaskError::AuditLog(_))
+            | Self::Review(ReviewTaskError::Storage(_) | ReviewTaskError::AuditLog(_))
+            | Self::List(ListTasksError::Storage(_) | ListTasksError::AuditLog(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        status.into_response()
     }
 }
 
@@ -413,42 +382,39 @@ async fn create_task<R, AR>(
     State(state): State<Arc<AdminPortalState<R, AR>>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Json(payload): Json<CreateTaskRequest>,
-) -> Response
+) -> Result<impl IntoResponse, TaskApiError>
 where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
     AR: AuditLogRepository + Send + Sync + 'static,
 {
-    let result = admin_portal::task::create_task(
+    let task = admin_portal::task::create_task(
         &payload.task_type,
         &JsonValue::Object(payload.task_parameters),
         &payload.task_reason,
         &user.user_id,
         &user.display_name,
-        &user.privileges,
+        &user.authorized_task_types(),
         state.service.repository(),
         &TimeGenerator,
         &UuidV7Generator,
         &state.audit_log,
     )
     .await
-    .map_err(CreateTaskApiError);
+    .map_err(TaskApiError::Create)?;
 
-    match result {
-        Ok(task) => (StatusCode::CREATED, Json(TaskResponse::from(task))).into_response(),
-        Err(error) => error.into_response(),
-    }
+    Ok((StatusCode::CREATED, Json(TaskResponse::from(task))))
 }
 
 async fn withdraw_task<R, AR>(
     State(state): State<Arc<AdminPortalState<R, AR>>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Path(task_id): Path<Uuid>,
-) -> Response
+) -> Result<Json<TaskResponse>, TaskApiError>
 where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
     AR: AuditLogRepository + Send + Sync + 'static,
 {
-    match admin_portal::task::withdraw_task(
+    let task = admin_portal::task::withdraw_task(
         task_id,
         &user.user_id,
         state.service.repository(),
@@ -456,10 +422,9 @@ where
         &state.audit_log,
     )
     .await
-    {
-        Ok(task) => Json(TaskResponse::from(task)).into_response(),
-        Err(error) => WithdrawTaskApiError(error).into_response(),
-    }
+    .map_err(TaskApiError::Withdraw)?;
+
+    Ok(Json(TaskResponse::from(task)))
 }
 
 async fn review_task<R, AR>(
@@ -467,28 +432,26 @@ async fn review_task<R, AR>(
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Path(task_id): Path<Uuid>,
     Json(payload): Json<ReviewTaskRequest>,
-) -> Response
+) -> Result<Json<TaskResponse>, TaskApiError>
 where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
     AR: AuditLogRepository + Send + Sync + 'static,
 {
-    let result = admin_portal::task::review_task(
+    let task = admin_portal::task::review_task(
         task_id,
         payload.verdict,
         &payload.review_comment,
         &user.user_id,
         &user.display_name,
-        &user.privileges,
+        &user.authorized_task_types(),
         state.service.repository(),
         &TimeGenerator,
         &state.audit_log,
     )
-    .await;
+    .await
+    .map_err(TaskApiError::Review)?;
 
-    match result {
-        Ok(task) => Json(TaskResponse::from(task)).into_response(),
-        Err(error) => ReviewTaskApiError(error).into_response(),
-    }
+    Ok(Json(TaskResponse::from(task)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -500,24 +463,22 @@ async fn list_tasks<R, AR>(
     State(state): State<Arc<AdminPortalState<R, AR>>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Query(query): Query<ListTasksQuery>,
-) -> Response
+) -> Result<Json<Vec<TaskResponse>>, TaskApiError>
 where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
     AR: AuditLogRepository + Send + Sync + 'static,
 {
-    let result = admin_portal::task::list_tasks(
+    let tasks = admin_portal::task::list_tasks(
         query.view,
         &user.user_id,
-        &user.privileges,
+        &user.authorized_task_types(),
         state.service.repository(),
         &state.audit_log,
     )
-    .await;
+    .await
+    .map_err(TaskApiError::List)?;
 
-    match result {
-        Ok(tasks) => Json(tasks.into_iter().map(TaskResponse::from).collect_vec()).into_response(),
-        Err(error) => ListTasksApiError(error).into_response(),
-    }
+    Ok(Json(tasks.into_iter().map(TaskResponse::from).collect_vec()))
 }
 
 #[cfg(test)]
@@ -891,7 +852,8 @@ mod tests {
             AuthenticatedAdminUser(user),
             Query(ListTasksQuery { view }),
         )
-        .await;
+        .await
+        .into_response();
         assert_eq!(response.status(), StatusCode::OK);
         json_body(response).await
     }
@@ -1102,7 +1064,7 @@ mod tests {
                 StatusCode::INTERNAL_SERVER_ERROR,
             ),
         ] {
-            assert_eq!(WithdrawTaskApiError(error).into_response().status(), status);
+            assert_eq!(TaskApiError::Withdraw(error).into_response().status(), status);
         }
     }
 
@@ -1207,7 +1169,8 @@ mod tests {
                 review_comment: "Good Job!".to_owned(),
             }),
         )
-        .await;
+        .await
+        .into_response();
         assert_eq!(result.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 
@@ -1224,7 +1187,8 @@ mod tests {
                 review_comment: "Good Job!".to_owned(),
             }),
         )
-        .await;
+        .await
+        .into_response();
         assert_eq!(result.status(), StatusCode::NOT_FOUND);
     }
 
@@ -1243,7 +1207,8 @@ mod tests {
                 review_comment: "Good Job!".to_owned(),
             }),
         )
-        .await;
+        .await
+        .into_response();
         assert_eq!(result.status(), StatusCode::CONFLICT);
     }
 
@@ -1261,7 +1226,8 @@ mod tests {
                 review_comment: "Good Job!".to_owned(),
             }),
         )
-        .await;
+        .await
+        .into_response();
         assert_eq!(result.status(), StatusCode::FORBIDDEN);
     }
 
@@ -1280,7 +1246,8 @@ mod tests {
                 review_comment: "Good Job!".to_owned(),
             }),
         )
-        .await;
+        .await
+        .into_response();
         assert_eq!(result.status(), StatusCode::OK);
     }
 
@@ -1307,7 +1274,8 @@ mod tests {
                 view: TaskListViewKind::Open,
             }),
         )
-        .await;
+        .await
+        .into_response();
 
         assert_eq!(result.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }

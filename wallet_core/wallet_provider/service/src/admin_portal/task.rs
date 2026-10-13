@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::error::Error;
 
 use audit_log::audited;
@@ -6,7 +7,6 @@ use audit_log::model::FromAuditLogError;
 use chrono::DateTime;
 use chrono::Utc;
 use serde_json::Value as JsonValue;
-use strum::IntoEnumIterator;
 use utils::generator::Generator;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
@@ -45,7 +45,7 @@ pub async fn create_task<R: AdminTaskRepository>(
     #[audit] task_reason: &str,
     #[audit_user] user_id: &str,
     user_display_name: &str,
-    privileges: &[String],
+    authorized_task_types: &HashSet<TaskType>,
     repository: &R,
     time: &impl Generator<DateTime<Utc>>,
     uuid: &impl Generator<Uuid>,
@@ -55,10 +55,7 @@ pub async fn create_task<R: AdminTaskRepository>(
         .parse()
         .map_err(|_| CreateTaskError::UnknownTaskType(task_type.to_string()))?;
 
-    if !privileges
-        .iter()
-        .any(|privilege| privilege == &parsed_task_type.to_string())
-    {
+    if !authorized_task_types.contains(&parsed_task_type) {
         return Err(CreateTaskError::MissingPrivilege(parsed_task_type));
     }
 
@@ -156,7 +153,7 @@ pub async fn review_task<R: AdminTaskRepository>(
     #[audit] review_comment: &str,
     #[audit_user] reviewer_user_id: &str,
     reviewer_display_name: &str,
-    privileges: &[String],
+    authorized_task_types: &HashSet<TaskType>,
     repository: &R,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
@@ -170,10 +167,7 @@ pub async fn review_task<R: AdminTaskRepository>(
         return Err(ReviewTaskError::InvalidState);
     }
 
-    if !privileges
-        .iter()
-        .any(|privilege| privilege == &existing.task_type.to_string())
-    {
+    if !authorized_task_types.contains(&existing.task_type) {
         return Err(ReviewTaskError::MissingPrivilege(existing.task_type));
     }
 
@@ -222,7 +216,7 @@ impl FromAuditLogError for ListTasksError {
 pub async fn list_tasks<R: AdminTaskRepository>(
     #[audit] view_kind: TaskListViewKind,
     #[audit_user] user_id: &str,
-    privileges: &[String],
+    authorized_task_types: &HashSet<TaskType>,
     repository: &R,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<Vec<AdminTask>, ListTasksError> {
@@ -231,15 +225,10 @@ pub async fn list_tasks<R: AdminTaskRepository>(
     let view = match view_kind {
         TaskListViewKind::Open => TaskListView::OpenTasks { user_id },
         TaskListViewKind::History => TaskListView::History { user_id },
-        TaskListViewKind::ToReview => {
-            let authorized_task_types = TaskType::iter()
-                .filter(|task_type| privileges.iter().any(|privilege| privilege == &task_type.to_string()))
-                .collect();
-            TaskListView::Reviewable {
-                user_id,
-                authorized_task_types,
-            }
-        }
+        TaskListViewKind::ToReview => TaskListView::Reviewable {
+            user_id,
+            authorized_task_types: authorized_task_types.iter().copied().collect(),
+        },
     };
 
     let tasks = repository.list_tasks(view).await?;
@@ -306,7 +295,7 @@ mod tests {
             "reason",
             "user-1",
             "User One",
-            &["revoke_wallet".to_string()],
+            &HashSet::from([TaskType::RevokeWallet]),
             &repository,
             &FixedTime(Utc::now()),
             &FixedUuid(Uuid::new_v4()),
@@ -327,7 +316,7 @@ mod tests {
             "reason",
             "user-1",
             "User One",
-            &["block_user".to_string()],
+            &HashSet::from([TaskType::BlockUser]),
             &repository,
             &FixedTime(Utc::now()),
             &FixedUuid(Uuid::new_v4()),
@@ -361,7 +350,7 @@ mod tests {
             "because",
             "user-1",
             "User One",
-            &["revoke_wallet".to_string()],
+            &HashSet::from([TaskType::RevokeWallet]),
             &repository,
             &FixedTime(now),
             &FixedUuid(id),
@@ -386,7 +375,7 @@ mod tests {
             "comment",
             "user-2",
             "User Two",
-            &["revoke_wallet".to_string()],
+            &HashSet::from([TaskType::RevokeWallet]),
             &repository,
             &FixedTime(Utc::now()),
             &MockAuditLog,
@@ -410,7 +399,7 @@ mod tests {
             "comment",
             "user-1",
             "User One",
-            &["revoke_wallet".to_string()],
+            &HashSet::from([TaskType::RevokeWallet]),
             &repository,
             &FixedTime(Utc::now()),
             &MockAuditLog,
@@ -439,7 +428,7 @@ mod tests {
             "comment",
             "user-2",
             "User Two",
-            &["revoke_wallet".to_string()],
+            &HashSet::from([TaskType::RevokeWallet]),
             &repository,
             &FixedTime(Utc::now()),
             &MockAuditLog,
@@ -463,7 +452,7 @@ mod tests {
             "comment",
             "user-2",
             "User Two",
-            &["block_user".to_string()],
+            &HashSet::from([TaskType::BlockUser]),
             &repository,
             &FixedTime(Utc::now()),
             &MockAuditLog,
@@ -501,7 +490,7 @@ mod tests {
             "looks good",
             "user-2",
             "User Two",
-            &["revoke_wallet".to_string()],
+            &HashSet::from([TaskType::RevokeWallet]),
             &repository,
             &FixedTime(now),
             &MockAuditLog,
@@ -520,9 +509,15 @@ mod tests {
             .withf(|view| matches!(view, TaskListView::OpenTasks { user_id } if user_id == "user-1"))
             .returning(|_| Ok(vec![]));
 
-        list_tasks(TaskListViewKind::Open, "user-1", &[], &repository, &MockAuditLog)
-            .await
-            .expect("should list");
+        list_tasks(
+            TaskListViewKind::Open,
+            "user-1",
+            &HashSet::new(),
+            &repository,
+            &MockAuditLog,
+        )
+        .await
+        .expect("should list");
     }
 
     #[tokio::test]
@@ -533,13 +528,19 @@ mod tests {
             .withf(|view| matches!(view, TaskListView::History { user_id } if user_id == "user-1"))
             .returning(|_| Ok(vec![]));
 
-        list_tasks(TaskListViewKind::History, "user-1", &[], &repository, &MockAuditLog)
-            .await
-            .expect("should list");
+        list_tasks(
+            TaskListViewKind::History,
+            "user-1",
+            &HashSet::new(),
+            &repository,
+            &MockAuditLog,
+        )
+        .await
+        .expect("should list");
     }
 
     #[tokio::test]
-    async fn list_tasks_to_review_resolves_task_types_from_privileges() {
+    async fn list_tasks_to_review_passes_authorized_task_types() {
         let mut repository = MockAdminTaskRepository::new();
         repository
             .expect_list_tasks()
@@ -555,7 +556,7 @@ mod tests {
         list_tasks(
             TaskListViewKind::ToReview,
             "user-1",
-            &["revoke_wallet".to_string(), "unrelated_privilege".to_string()],
+            &HashSet::from([TaskType::RevokeWallet]),
             &repository,
             &MockAuditLog,
         )
@@ -564,16 +565,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn list_tasks_to_review_with_no_matching_privileges_still_calls_repository_with_empty_types() {
+    async fn list_tasks_to_review_without_authorized_task_types_still_calls_repository_with_empty_types() {
         let mut repository = MockAdminTaskRepository::new();
         repository
             .expect_list_tasks()
             .withf(|view| matches!(view, TaskListView::Reviewable { authorized_task_types, .. } if authorized_task_types.is_empty()))
             .returning(|_| Ok(vec![]));
 
-        list_tasks(TaskListViewKind::ToReview, "user-1", &[], &repository, &MockAuditLog)
-            .await
-            .expect("should list");
+        list_tasks(
+            TaskListViewKind::ToReview,
+            "user-1",
+            &HashSet::new(),
+            &repository,
+            &MockAuditLog,
+        )
+        .await
+        .expect("should list");
     }
 
     #[tokio::test]

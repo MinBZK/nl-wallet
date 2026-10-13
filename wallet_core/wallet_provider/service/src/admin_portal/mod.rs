@@ -43,6 +43,7 @@ use tracing::warn;
 use url::Url;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminPortalSessionRepository;
 use wallet_provider_domain::repository::PersistenceError;
 
@@ -69,6 +70,16 @@ pub struct LoggedInUser {
     pub user_id: String,
     pub display_name: String,
     pub privileges: Vec<String>,
+}
+
+impl LoggedInUser {
+    /// The task types this user may create and review, i.e. the privileges that name a [`TaskType`].
+    pub fn authorized_task_types(&self) -> HashSet<TaskType> {
+        self.privileges
+            .iter()
+            .filter_map(|privilege| privilege.parse().ok())
+            .collect()
+    }
 }
 
 /// Errors from [`AdminPortalService::authorization_url`] (the `/auth/login` flow).
