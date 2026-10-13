@@ -30,8 +30,6 @@ use webpki::RevocationCheckDepth;
 use webpki::RevocationOptionsBuilder;
 use webpki::UnknownStatusPolicy;
 use webpki::ring::ECDSA_P256_SHA256;
-use webpki::ring::ECDSA_P256_SHA384;
-use webpki::ring::ECDSA_P384_SHA256;
 use webpki::ring::ECDSA_P384_SHA384;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
@@ -265,17 +263,19 @@ impl BorrowingCertificate {
             .collect_vec();
 
         let supported_sig_algs = [
+            // Recommended (R)
             ECDSA_P256_SHA256,
-            ECDSA_P256_SHA384,
-            ECDSA_P384_SHA256,
             ECDSA_P384_SHA384,
+            RSA_PSS_2048_8192_SHA256_LEGACY_KEY,
+            RSA_PSS_2048_8192_SHA384_LEGACY_KEY,
+            RSA_PSS_2048_8192_SHA512_LEGACY_KEY,
+            // Legacy (L) — still permitted; retained for CA interop until RSA <3000 bits
+            // are phased out per ETSI TS 119 312 v2.1.1 Table 6 (cut-off 2026-12-31
+            // for new certs, max validity 2028-12-31).
             RSA_PKCS1_2048_8192_SHA256,
             RSA_PKCS1_2048_8192_SHA384,
             RSA_PKCS1_2048_8192_SHA512,
             RSA_PKCS1_3072_8192_SHA384,
-            RSA_PSS_2048_8192_SHA256_LEGACY_KEY,
-            RSA_PSS_2048_8192_SHA384_LEGACY_KEY,
-            RSA_PSS_2048_8192_SHA512_LEGACY_KEY,
         ];
         let time = UnixTime::since_unix_epoch(Duration::from_secs(
             time.generate()
