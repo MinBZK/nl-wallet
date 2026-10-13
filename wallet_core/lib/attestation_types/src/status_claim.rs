@@ -35,10 +35,17 @@ pub struct StatusListClaim {
 #[cfg(feature = "mock")]
 impl StatusClaim {
     pub fn new_mock() -> Self {
-        StatusClaim::StatusList(StatusListClaim {
+        StatusClaim::StatusList(StatusListClaim::new_mock())
+    }
+}
+
+#[cfg(feature = "mock")]
+impl StatusListClaim {
+    pub fn new_mock() -> Self {
+        StatusListClaim {
             idx: 1,
             uri: "https://example.com/statuslists/1".parse().unwrap(),
-        })
+        }
     }
 }
 

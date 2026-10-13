@@ -1,21 +1,50 @@
-use tracing::warn;
-
-use super::image::Image;
 use super::localize::LocalizedString;
-use super::localize::LocalizedStrings;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PersonType {
+    NaturalPerson,
+    LegalPerson,
+}
+
+impl From<wallet::attestation_data::SubjectType> for PersonType {
+    fn from(value: wallet::attestation_data::SubjectType) -> Self {
+        match value {
+            wallet::attestation_data::SubjectType::NaturalPerson => Self::NaturalPerson,
+            wallet::attestation_data::SubjectType::LegalPerson => Self::LegalPerson,
+        }
+    }
+}
+
+pub struct ServiceDescription {
+    pub translations: Vec<LocalizedString>,
+}
+
+impl From<wallet::attestation_data::ServiceDescription> for ServiceDescription {
+    fn from(value: wallet::attestation_data::ServiceDescription) -> Self {
+        Self {
+            translations: value
+                .translations
+                .into_iter()
+                .map(|translation| LocalizedString {
+                    language: translation.lang,
+                    value: translation.value,
+                })
+                .collect(),
+        }
+    }
+}
 
 pub struct Organization {
     pub legal_name: String,
     pub display_name: String,
-    pub description: Vec<LocalizedString>,
-    pub image: Option<Image>,
+    pub service_description: Vec<ServiceDescription>,
     pub web_url: Option<String>,
     pub privacy_policy_url: Option<String>,
     pub identifier: String,
-    pub city: Option<Vec<LocalizedString>>,
-    pub category: Vec<LocalizedString>,
-    pub department: Option<Vec<LocalizedString>>,
     pub country_code: String,
+    pub support_uri: Option<String>,
+    pub public_body: Option<bool>,
+    pub person_type: Option<PersonType>,
 }
 
 impl From<wallet::attestation_data::Organization> for Organization {
@@ -23,19 +52,14 @@ impl From<wallet::attestation_data::Organization> for Organization {
         Organization {
             legal_name: value.legal_name,
             display_name: value.display_name,
-            description: LocalizedStrings(value.description).into(),
-            image: value.logo.and_then(|l| {
-                Image::try_from(l)
-                    .inspect_err(|e| warn!("error converting logo, not showing: {e}"))
-                    .ok()
-            }),
+            service_description: value.description.into_iter().map(Into::into).collect(),
             identifier: value.identifier,
-            city: value.city.map(|city| LocalizedStrings(city).into()),
-            category: LocalizedStrings(value.category).into(),
-            department: value.department.map(|department| LocalizedStrings(department).into()),
             country_code: value.country_code,
-            web_url: value.web_url.map(|url| url.to_string()),
+            web_url: value.web_url.map(Into::into),
             privacy_policy_url: value.privacy_policy_url.map(|url| url.to_string()),
+            support_uri: value.support_uri,
+            public_body: value.public_body,
+            person_type: value.person_type.map(Into::into),
         }
     }
 }

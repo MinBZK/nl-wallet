@@ -69,6 +69,7 @@ build-admin-portal:
     - set -euxo pipefail
     - cd wallet_admin_portal
     - pnpm install --frozen-lockfile
+    - pnpm run format-check
     - pnpm run lint
     - pnpm run type-check
     - pnpm run coverage

@@ -15,8 +15,6 @@ browsertests-format-lint:
   needs:
     - job: build-env-ont
       artifacts: true
-    - job: deploy-apps-ont
-      artifacts: false
   before_script:
     - cd browsertests
     - pnpm install --frozen-lockfile
@@ -77,6 +75,30 @@ run-revocation-portal-browsertest-test-ont:
       - browsertests/packages/revocation-portal/allure-results/
     reports:
       junit: browsertests/packages/revocation-portal/test-results/*.xml
+
+run-admin-portal-browsertest-test-ont:
+  extends: .run-browsertest-common
+  before_script:
+    - !reference [.run-browsertest-common, before_script]
+    - export AP_OPERATOR_PASSWORD="$(kubectl get secret nl-wallet-keycloak-passwords  --output=jsonpath='{.data.administrator}' | base64 --decode)"
+    - export AP_TEAMLEAD_PASSWORD="$(kubectl get secret nl-wallet-keycloak-passwords --output=jsonpath='{.data.manager}' | base64 --decode)"
+    - export AP_SUPERUSER_PASSWORD="$(kubectl get secret nl-wallet-keycloak-passwords --output=jsonpath='{.data.destroyer}' | base64 --decode)"
+  script:
+    - cd packages/admin-portal
+    - pnpm run test:ci
+  after_script:
+    - deploy/bin/store-artifact.sh browsertests/packages/admin-portal/test-results/results.xml
+      qt/quality-time/junit-results/browsertest-admin-portal.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-admin-portal.zip
+      browsertests/packages/admin-portal/allure-results/*
+  artifacts:
+    name: browsertest-admin-portal
+    when: always
+    paths:
+      - browsertests/packages/admin-portal/test-results/
+      - browsertests/packages/admin-portal/allure-results/
+    reports:
+      junit: browsertests/packages/admin-portal/test-results/*.xml
 
 run-digid-bridge-test-ont:
   extends:

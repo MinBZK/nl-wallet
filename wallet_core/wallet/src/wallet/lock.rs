@@ -8,7 +8,6 @@ use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
 use tracing::instrument;
-use tracing::warn;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_configuration::wallet_config::WalletConfiguration;

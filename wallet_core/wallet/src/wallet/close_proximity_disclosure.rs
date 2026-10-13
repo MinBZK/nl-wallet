@@ -2,8 +2,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
 use chrono::DateTime;
 use chrono::Utc;
 use ciborium::value::Value;
@@ -11,7 +11,7 @@ use crypto::CredentialEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -240,7 +240,7 @@ pub enum CloseProximityDisclosureError {
     InvalidDocRequest(#[from] mdoc::Error),
 
     #[error("reader access certificate validation failed")]
-    InvalidReaderCertificate(#[source] CertificateError),
+    InvalidReaderCertificate(#[source] CertificateVerifyError),
 
     #[error("reader access certificate CRL verification failed")]
     ReaderCertificateCrlVerification(#[source] CertificateCrlVerificationError),
@@ -452,11 +452,12 @@ where
             }
         };
 
+        let organization = Organization::try_from(&verifier_certificate).map_err(DisclosureError::Organization)?;
         let (candidate_attestations, shared_data_with_relying_party_before) = self
             .prepare_disclosure(
                 &device_request.items_requests().collect_vec(),
                 &wallet_config.pid_attributes,
-                &verifier_certificate,
+                &organization,
             )
             .await?;
 
@@ -465,7 +466,6 @@ where
             .flatten() // remove entries for which no suitable candidates were found
             .collect::<Vec<_>>();
 
-        let organization = Organization::try_from(&verifier_certificate).map_err(DisclosureError::Organization)?;
         let session_type = SessionType::CrossDevice; // all close proximity disclosure sessions are cross-device
         let disclosure_type = DisclosureType::Regular; // all close proximity disclosure sessions are regular
         let purpose = RedirectUriPurpose::Browser; // irrelevant for close proximity disclosure sessions
@@ -803,7 +803,7 @@ async fn verify_device_request_with_crl(
                 .verify_with_crl(session_transcript, time, trust_anchors, crl_verifier)
                 .await
                 .map_err(|error| match error {
-                    mdoc::Error::Cose(CoseError::Certificate(error)) => {
+                    mdoc::Error::Cose(CoseError::CertificateVerify(error)) => {
                         CloseProximityDisclosureError::InvalidReaderCertificate(error)
                     }
                     mdoc::Error::Cose(CoseError::CertificateCrl(error)) => {
@@ -864,8 +864,8 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::auth::Organization;
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::organization::Organization;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -880,8 +880,7 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::CertificateCrlVerifier;
-    use crypto::x509::crl::mock::MockCrlFetcher;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
@@ -1597,7 +1596,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1611,7 +1610,7 @@ mod tests {
         let (device_request, session_transcript, trust_anchors) =
             setup_device_request(vec![items_request], None, false).await;
 
-        let verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA);
+        let verifier = MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA);
         let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
@@ -1656,7 +1655,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1685,7 +1684,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1711,7 +1710,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1734,7 +1733,7 @@ mod tests {
             &other_session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1758,7 +1757,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1803,7 +1802,7 @@ mod tests {
             &session_transcript,
             &MockTimeGenerator::default(),
             &trust_anchors,
-            &CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&WRPAC_CA),
+            &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
 
@@ -1995,7 +1994,7 @@ mod tests {
 
         let remote_key1 = MockRemoteEcdsaKey::new(key_id1, key1);
         let remote_key2 = MockRemoteEcdsaKey::new(key_id2, key2);
-        let wscd = MockRemoteWscd::new(vec![remote_key1, remote_key2]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![remote_key1, remote_key2]);
 
         let device_response =
             TestWalletMockStorage::<LocalConfigurationRepository>::create_close_proximity_device_response(

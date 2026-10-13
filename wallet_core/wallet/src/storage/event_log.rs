@@ -1,5 +1,5 @@
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
 use chrono::DateTime;
 use chrono::Utc;
 use entity::disclosure_event::EventStatus;

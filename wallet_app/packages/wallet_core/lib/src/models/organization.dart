@@ -4,50 +4,46 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
-import 'image.dart';
 import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 class Organization {
   final String legalName;
   final String displayName;
-  final List<LocalizedString> description;
-  final Image? image;
+  final List<ServiceDescription> serviceDescription;
   final String? webUrl;
   final String? privacyPolicyUrl;
   final String identifier;
-  final List<LocalizedString>? city;
-  final List<LocalizedString> category;
-  final List<LocalizedString>? department;
   final String countryCode;
+  final String? supportUri;
+  final bool? publicBody;
+  final PersonType? personType;
 
   const Organization({
     required this.legalName,
     required this.displayName,
-    required this.description,
-    this.image,
+    required this.serviceDescription,
     this.webUrl,
     this.privacyPolicyUrl,
     required this.identifier,
-    this.city,
-    required this.category,
-    this.department,
     required this.countryCode,
+    this.supportUri,
+    this.publicBody,
+    this.personType,
   });
 
   @override
   int get hashCode =>
       legalName.hashCode ^
       displayName.hashCode ^
-      description.hashCode ^
-      image.hashCode ^
+      serviceDescription.hashCode ^
       webUrl.hashCode ^
       privacyPolicyUrl.hashCode ^
       identifier.hashCode ^
-      city.hashCode ^
-      category.hashCode ^
-      department.hashCode ^
-      countryCode.hashCode;
+      countryCode.hashCode ^
+      supportUri.hashCode ^
+      publicBody.hashCode ^
+      personType.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -56,13 +52,33 @@ class Organization {
           runtimeType == other.runtimeType &&
           legalName == other.legalName &&
           displayName == other.displayName &&
-          description == other.description &&
-          image == other.image &&
+          serviceDescription == other.serviceDescription &&
           webUrl == other.webUrl &&
           privacyPolicyUrl == other.privacyPolicyUrl &&
           identifier == other.identifier &&
-          city == other.city &&
-          category == other.category &&
-          department == other.department &&
-          countryCode == other.countryCode;
+          countryCode == other.countryCode &&
+          supportUri == other.supportUri &&
+          publicBody == other.publicBody &&
+          personType == other.personType;
+}
+
+enum PersonType {
+  NaturalPerson,
+  LegalPerson,
+}
+
+class ServiceDescription {
+  final List<LocalizedString> translations;
+
+  const ServiceDescription({
+    required this.translations,
+  });
+
+  @override
+  int get hashCode => translations.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ServiceDescription && runtimeType == other.runtimeType && translations == other.translations;
 }

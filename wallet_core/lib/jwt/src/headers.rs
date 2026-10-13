@@ -5,7 +5,7 @@
 //!
 //! Notes
 //! - All headers are convertible to/from `jsonwebtoken::Header` to interoperate with lower-level APIs.
-//! - `HeaderWithTyp::default()` sets `alg` to `ES256` and `typ` to `T::TYP`, which is `"jwt"` by default.
+//! - `HeaderWithTyp::default()` sets `alg` to `ES256` and `typ` to `T::TYP`, which is `"JWT"` by default.
 use std::borrow::Cow;
 
 use base64::prelude::*;

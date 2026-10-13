@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'help_topic_screen_argument.dart';
@@ -9,6 +9,7 @@ part of 'help_topic_screen_argument.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -23,16 +24,21 @@ mixin _$HelpTopicScreenArgument {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HelpTopicScreenArgument&&(identical(other.topicId, topicId) || other.topicId == topicId)&&const DeepCollectionEquality().equals(other.visitedTopicIds, visitedTopicIds));
+  final _this = this as HelpTopicScreenArgument;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HelpTopicScreenArgument&&(identical(other.topicId, _this.topicId) || other.topicId == _this.topicId)&&const DeepCollectionEquality().equals(other.visitedTopicIds, _this.visitedTopicIds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,topicId,const DeepCollectionEquality().hash(visitedTopicIds));
+int get hashCode {
+  final _this = this as HelpTopicScreenArgument;
+  return Object.hash(runtimeType,_this.topicId,const DeepCollectionEquality().hash(_this.visitedTopicIds));
+}
 
 @override
 String toString() {
-  return 'HelpTopicScreenArgument(topicId: $topicId, visitedTopicIds: $visitedTopicIds)';
+  final _this = this as HelpTopicScreenArgument;
+  return 'HelpTopicScreenArgument(topicId: ${_this.topicId}, visitedTopicIds: ${_this.visitedTopicIds})';
 }
 
 
@@ -175,7 +181,7 @@ return $default(_that.topicId,_that.visitedTopicIds);case _:
 @JsonSerializable()
 
 class _HelpTopicScreenArgument implements HelpTopicScreenArgument {
-  const _HelpTopicScreenArgument({required this.topicId, final  List<String> visitedTopicIds = const <String>[]}): _visitedTopicIds = visitedTopicIds;
+  const _HelpTopicScreenArgument({required this.topicId,  List<String> visitedTopicIds = const <String>[]}): _visitedTopicIds = visitedTopicIds;
   factory _HelpTopicScreenArgument.fromJson(Map<String, dynamic> json) => _$HelpTopicScreenArgumentFromJson(json);
 
 @override final  String topicId;
@@ -195,16 +201,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HelpTopicScreenArgument&&(identical(other.topicId, topicId) || other.topicId == topicId)&&const DeepCollectionEquality().equals(other._visitedTopicIds, _visitedTopicIds));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _HelpTopicScreenArgument&&(identical(other.topicId, topicId) || other.topicId == topicId)&&const DeepCollectionEquality().equals(other.visitedTopicIds, _visitedTopicIds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,topicId,const DeepCollectionEquality().hash(_visitedTopicIds));
+int get hashCode {
+    return Object.hash(runtimeType,topicId,const DeepCollectionEquality().hash(_visitedTopicIds));
+}
 
 @override
 String toString() {
-  return 'HelpTopicScreenArgument(topicId: $topicId, visitedTopicIds: $visitedTopicIds)';
+    return 'HelpTopicScreenArgument(topicId: $topicId, visitedTopicIds: $visitedTopicIds)';
 }
 
 

@@ -202,7 +202,7 @@ mod tests {
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
-                preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+                preview_attestations: Some(vec_nonempty![AttestationPresentation::new_mock()]),
                 protocol_state: MockIssuanceSession::default(),
             },
         }));

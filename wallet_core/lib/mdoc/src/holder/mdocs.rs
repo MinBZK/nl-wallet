@@ -78,7 +78,6 @@ impl Mdoc {
 
 #[cfg(any(test, feature = "test"))]
 mod test {
-    use attestation_types::status_claim::StatusClaim;
     use chrono::DateTime;
     use chrono::TimeDelta;
     use chrono::Utc;
@@ -94,6 +93,7 @@ mod test {
     use crate::iso::mdocs::Entry;
     use crate::iso::mdocs::IssuerNameSpaces;
     use crate::iso::mdocs::IssuerSignedItemBytes;
+    use crate::iso::mdocs::MdocStatus;
     use crate::iso::mdocs::MobileSecurityObject;
     use crate::iso::mdocs::MobileSecurityObjectVersion;
     use crate::iso::mdocs::ValidityInfo;
@@ -109,6 +109,7 @@ mod test {
         pub async fn new_unverified_from_data(
             doc_type: String,
             name_spaces: IndexMap<String, Vec<Entry>>,
+            status: Option<MdocStatus>,
             ca: &Ca,
             device_key: &impl CredentialEcdsaKey,
             time_generator: &impl Generator<DateTime<Utc>>,
@@ -134,7 +135,7 @@ mod test {
                     valid_until: (time + TimeDelta::days(365)).into(),
                     expected_update: None,
                 },
-                status: Some(StatusClaim::new_mock()),
+                status,
             };
 
             let mso_tagged = TaggedBytes(mso);
@@ -165,6 +166,7 @@ mod test {
 #[cfg(any(test, feature = "mock_example_constructors"))]
 pub mod mock {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::status_claim::StatusListClaim;
     use chrono::DateTime;
     use chrono::Utc;
     use ciborium::Value;
@@ -182,6 +184,7 @@ pub mod mock {
     use crate::examples::IsoCertTimeGenerator;
     use crate::iso::disclosure::DeviceResponse;
     use crate::iso::mdocs::Entry;
+    use crate::iso::mdocs::MdocStatus;
 
     impl Mdoc {
         /// Out of the example data structures in the standard, assemble an mdoc.
@@ -212,12 +215,27 @@ pub mod mock {
         }
 
         pub async fn new_mock_with_ca_and_key(ca: &Ca, device_key: &MockRemoteEcdsaKey) -> Self {
-            Self::new_unverified_nl_pid_example(ca, device_key, &MockTimeGenerator::default()).await
+            Self::new_unverified_nl_pid_example(
+                ca,
+                device_key,
+                Some(MdocStatus::StatusList(StatusListClaim::new_mock())),
+                &MockTimeGenerator::default(),
+            )
+            .await
+        }
+
+        pub async fn new_mock_with_ca_key_and_status(
+            ca: &Ca,
+            device_key: &MockRemoteEcdsaKey,
+            status: Option<MdocStatus>,
+        ) -> Self {
+            Self::new_unverified_nl_pid_example(ca, device_key, status, &MockTimeGenerator::default()).await
         }
 
         pub async fn new_unverified_nl_pid_example(
             ca: &Ca,
             device_key: &impl CredentialEcdsaKey,
+            status: Option<MdocStatus>,
             time_generator: &impl Generator<DateTime<Utc>>,
         ) -> Self {
             Self::new_unverified_from_data(
@@ -239,6 +257,7 @@ pub mod mock {
                         },
                     ],
                 )]),
+                status,
                 ca,
                 device_key,
                 time_generator,

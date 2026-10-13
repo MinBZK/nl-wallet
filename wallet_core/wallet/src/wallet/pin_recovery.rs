@@ -24,6 +24,7 @@ use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use url::Url;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -180,6 +181,7 @@ where
                     &CredentialSelection::ByCredentialKind(credential_kinds),
                     &self.new_remote_wia_client(attested_key.to_owned(), registration_data, config),
                     config.wrpac_trust_anchors(),
+                    config.wrprc_trust_anchors(),
                 ),
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
@@ -244,7 +246,6 @@ where
         let issuance_session = authorization_session
             .start_issuance(
                 &redirect_uri,
-                config.issuer_trust_anchors(),
                 &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
             )
             .await
@@ -260,17 +261,16 @@ where
         let pid_config = &config.pid_attributes;
         let pid_preview = Self::pid_preview(
             issuance_session
-                .previews_with_metadata()
-                .collect_vec()
-                .into_iter()
-                .map(|(preview, _)| preview),
+                .credential_previews()
+                .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPidPreviews))?
+                .into_iter(),
             pid_config,
         )?;
 
         self.compare_recovery_code_against_stored(pid_preview, pid_config)
             .await?;
 
-        let pid_attestation_type = pid_preview.credential_payload.attestation_type.clone();
+        let pid_attestation_type = pid_preview.attestation_type.clone();
         let recovery_code_path = pid_config.recovery_code_path(&pid_attestation_type)?;
 
         self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
@@ -384,7 +384,12 @@ where
 
         // Since all we need is to extract the recovery code, request just a single copy of the SD-JWT PID credential.
         let issuance_result = issuance_session
-            .accept_issuance(NonZeroU8::MIN, config.issuer_trust_anchors(), &pin_recovery_wscd)
+            .accept_issuance(
+                NonZeroU8::MIN,
+                config.accept_issuance_anchors(),
+                &pin_recovery_wscd,
+                &TimeGenerator,
+            )
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session));
 
@@ -427,6 +432,7 @@ where
             .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
 
         let recovery_code_disclosure = pid
+            .into_sd_jwt()
             .into_presentation_builder()
             .disclose(&recovery_code_path)
             .expect("the presence of the recovery code within the PID is guaranteed by continue_pin_recovery()")
@@ -499,7 +505,6 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
@@ -512,13 +517,13 @@ mod tests {
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
     use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
@@ -609,7 +614,7 @@ mod tests {
         setup_issuer_metadata_mock(&mut wallet);
 
         let redirect_uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
-        assert!(redirect_uri.to_string().starts_with(AUTH_URL));
+        assert!(redirect_uri.as_str().starts_with(AUTH_URL));
     }
 
     #[tokio::test]
@@ -625,9 +630,9 @@ mod tests {
                 create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
 
             client
-                .expect_previews_with_metadata()
+                .expect_credential_previews()
                 .once()
-                .return_const(vec![(preview, normalized_metadata)].into());
+                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -656,6 +661,7 @@ mod tests {
                     },
                     StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
                     None,
+                    IssuerRegistration::new_mock(),
                 )])
             });
 
@@ -881,9 +887,9 @@ mod tests {
                 .prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
 
             client
-                .expect_previews_with_metadata()
+                .expect_credential_previews()
                 .once()
-                .return_const(vec![(preview, normalized_metadata)].into());
+                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -932,9 +938,9 @@ mod tests {
                     .unwrap();
 
                 client
-                    .expect_previews_with_metadata()
+                    .expect_credential_previews()
                     .once()
-                    .return_const(vec![(preview, normalized_metadata)].into());
+                    .return_const(vec_nonempty![(preview, normalized_metadata)].into());
 
                 Ok(client)
             });
@@ -962,6 +968,7 @@ mod tests {
                     },
                     StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
                     None,
+                    IssuerRegistration::new_mock(),
                 )])
             });
 
@@ -1036,7 +1043,7 @@ mod tests {
                         key_identifier: "key_id".to_string(),
                         data: StoredAttestation::SdJwt(sd_jwt.clone()),
                     },
-                    IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                    IssuedCredentialMetadata::nl_pid_example(),
                 ),
             ],
             expect_accept_issuance.then_some(NonZeroU8::MIN),
@@ -1056,9 +1063,8 @@ mod tests {
 
         async fn perform_issuance(
             &self,
-            _aud: String,
             _key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
+        ) -> Result<VecNonEmpty<IssuanceKeyResult>, Self::Error> {
             unimplemented!()
         }
     }

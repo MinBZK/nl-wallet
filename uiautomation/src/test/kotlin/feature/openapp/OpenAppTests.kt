@@ -58,6 +58,7 @@ class OpenAppTests : TestBase() {
         pinScreen.closeApp()
         pinScreen.openApp()
         assertTrue(demoScreen.visible(), "Demo screen not visible")
+        demoScreen.captureA11ySnapshot("DemoScreen")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

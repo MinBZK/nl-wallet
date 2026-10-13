@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'revocation_data.dart';
@@ -9,6 +9,7 @@ part of 'revocation_data.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -28,16 +29,21 @@ $RevocationDataCopyWith<RevocationData> get copyWith => _$RevocationDataCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationData&&(identical(other.revocationReason, revocationReason) || other.revocationReason == revocationReason)&&(identical(other.canRegisterNewAccount, canRegisterNewAccount) || other.canRegisterNewAccount == canRegisterNewAccount));
+  final _this = this as RevocationData;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RevocationData&&(identical(other.revocationReason, _this.revocationReason) || other.revocationReason == _this.revocationReason)&&(identical(other.canRegisterNewAccount, _this.canRegisterNewAccount) || other.canRegisterNewAccount == _this.canRegisterNewAccount));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,revocationReason,canRegisterNewAccount);
+int get hashCode {
+  final _this = this as RevocationData;
+  return Object.hash(runtimeType,_this.revocationReason,_this.canRegisterNewAccount);
+}
 
 @override
 String toString() {
-  return 'RevocationData(revocationReason: $revocationReason, canRegisterNewAccount: $canRegisterNewAccount)';
+  final _this = this as RevocationData;
+  return 'RevocationData(revocationReason: ${_this.revocationReason}, canRegisterNewAccount: ${_this.canRegisterNewAccount})';
 }
 
 
@@ -66,7 +72,7 @@ class _$RevocationDataCopyWithImpl<$Res>
 /// Create a copy of RevocationData
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? revocationReason = null,Object? canRegisterNewAccount = null,}) {
-  return _then(_self.copyWith(
+  return _then(RevocationData(
 revocationReason: null == revocationReason ? _self.revocationReason : revocationReason // ignore: cast_nullable_to_non_nullable
 as RevocationReason,canRegisterNewAccount: null == canRegisterNewAccount ? _self.canRegisterNewAccount : canRegisterNewAccount // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -229,16 +235,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RevocationData&&(identical(other.revocationReason, revocationReason) || other.revocationReason == revocationReason)&&(identical(other.canRegisterNewAccount, canRegisterNewAccount) || other.canRegisterNewAccount == canRegisterNewAccount));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _RevocationData&&(identical(other.revocationReason, revocationReason) || other.revocationReason == revocationReason)&&(identical(other.canRegisterNewAccount, canRegisterNewAccount) || other.canRegisterNewAccount == canRegisterNewAccount));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,revocationReason,canRegisterNewAccount);
+int get hashCode {
+    return Object.hash(runtimeType,revocationReason,canRegisterNewAccount);
+}
 
 @override
 String toString() {
-  return 'RevocationData(revocationReason: $revocationReason, canRegisterNewAccount: $canRegisterNewAccount)';
+    return 'RevocationData(revocationReason: $revocationReason, canRegisterNewAccount: $canRegisterNewAccount)';
 }
 
 

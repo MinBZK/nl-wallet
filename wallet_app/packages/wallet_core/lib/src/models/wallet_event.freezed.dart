@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'wallet_event.dart';
@@ -9,6 +9,7 @@ part of 'wallet_event.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -25,16 +26,21 @@ $WalletEventCopyWith<WalletEvent> get copyWith => _$WalletEventCopyWithImpl<Wall
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletEvent&&(identical(other.id, id) || other.id == id)&&(identical(other.dateTime, dateTime) || other.dateTime == dateTime));
+  final _this = this as WalletEvent;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletEvent&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.dateTime, _this.dateTime) || other.dateTime == _this.dateTime));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,dateTime);
+int get hashCode {
+  final _this = this as WalletEvent;
+  return Object.hash(runtimeType,_this.id,_this.dateTime);
+}
 
 @override
 String toString() {
-  return 'WalletEvent(id: $id, dateTime: $dateTime)';
+  final _this = this as WalletEvent;
+  return 'WalletEvent(id: ${_this.id}, dateTime: ${_this.dateTime})';
 }
 
 
@@ -213,7 +219,7 @@ return deletion(_that.id,_that.dateTime,_that.attestation);case _:
 
 
 class WalletEvent_Disclosure extends WalletEvent {
-  const WalletEvent_Disclosure({required this.id, required this.dateTime, required this.relyingParty, required final  List<LocalizedString> purpose, final  List<AttestationPresentation>? sharedAttestations, required this.requestPolicy, required this.status, required this.typ}): _purpose = purpose,_sharedAttestations = sharedAttestations,super._();
+  const WalletEvent_Disclosure({required this.id, required this.dateTime, required this.relyingParty, required  List<LocalizedString> purpose,  List<AttestationPresentation>? sharedAttestations, required this.requestPolicy, required this.status, required this.typ}): _purpose = purpose,_sharedAttestations = sharedAttestations,super._();
   
 
 @override final  String id;
@@ -249,16 +255,18 @@ $WalletEvent_DisclosureCopyWith<WalletEvent_Disclosure> get copyWith => _$Wallet
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletEvent_Disclosure&&(identical(other.id, id) || other.id == id)&&(identical(other.dateTime, dateTime) || other.dateTime == dateTime)&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other._purpose, _purpose)&&const DeepCollectionEquality().equals(other._sharedAttestations, _sharedAttestations)&&(identical(other.requestPolicy, requestPolicy) || other.requestPolicy == requestPolicy)&&(identical(other.status, status) || other.status == status)&&(identical(other.typ, typ) || other.typ == typ));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletEvent_Disclosure&&(identical(other.id, id) || other.id == id)&&(identical(other.dateTime, dateTime) || other.dateTime == dateTime)&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other.purpose, _purpose)&&const DeepCollectionEquality().equals(other.sharedAttestations, _sharedAttestations)&&(identical(other.requestPolicy, requestPolicy) || other.requestPolicy == requestPolicy)&&(identical(other.status, status) || other.status == status)&&(identical(other.typ, typ) || other.typ == typ));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,dateTime,relyingParty,const DeepCollectionEquality().hash(_purpose),const DeepCollectionEquality().hash(_sharedAttestations),requestPolicy,status,typ);
+int get hashCode {
+    return Object.hash(runtimeType,id,dateTime,relyingParty,const DeepCollectionEquality().hash(_purpose),const DeepCollectionEquality().hash(_sharedAttestations),requestPolicy,status,typ);
+}
 
 @override
 String toString() {
-  return 'WalletEvent.disclosure(id: $id, dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, sharedAttestations: $sharedAttestations, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
+    return 'WalletEvent.disclosure(id: $id, dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, sharedAttestations: $sharedAttestations, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
 }
 
 
@@ -325,16 +333,18 @@ $WalletEvent_IssuanceCopyWith<WalletEvent_Issuance> get copyWith => _$WalletEven
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletEvent_Issuance&&(identical(other.id, id) || other.id == id)&&(identical(other.dateTime, dateTime) || other.dateTime == dateTime)&&(identical(other.attestation, attestation) || other.attestation == attestation)&&(identical(other.renewed, renewed) || other.renewed == renewed));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletEvent_Issuance&&(identical(other.id, id) || other.id == id)&&(identical(other.dateTime, dateTime) || other.dateTime == dateTime)&&(identical(other.attestation, attestation) || other.attestation == attestation)&&(identical(other.renewed, renewed) || other.renewed == renewed));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,dateTime,attestation,renewed);
+int get hashCode {
+    return Object.hash(runtimeType,id,dateTime,attestation,renewed);
+}
 
 @override
 String toString() {
-  return 'WalletEvent.issuance(id: $id, dateTime: $dateTime, attestation: $attestation, renewed: $renewed)';
+    return 'WalletEvent.issuance(id: $id, dateTime: $dateTime, attestation: $attestation, renewed: $renewed)';
 }
 
 
@@ -396,16 +406,18 @@ $WalletEvent_DeletionCopyWith<WalletEvent_Deletion> get copyWith => _$WalletEven
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletEvent_Deletion&&(identical(other.id, id) || other.id == id)&&(identical(other.dateTime, dateTime) || other.dateTime == dateTime)&&(identical(other.attestation, attestation) || other.attestation == attestation));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletEvent_Deletion&&(identical(other.id, id) || other.id == id)&&(identical(other.dateTime, dateTime) || other.dateTime == dateTime)&&(identical(other.attestation, attestation) || other.attestation == attestation));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,dateTime,attestation);
+int get hashCode {
+    return Object.hash(runtimeType,id,dateTime,attestation);
+}
 
 @override
 String toString() {
-  return 'WalletEvent.deletion(id: $id, dateTime: $dateTime, attestation: $attestation)';
+    return 'WalletEvent.deletion(id: $id, dateTime: $dateTime, attestation: $attestation)';
 }
 
 

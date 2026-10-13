@@ -70,7 +70,7 @@ class DeleteCardTests : TestBase() {
         setUp(testInfo)
 
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickMuseumMaandkaartButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.acceptOpenWalletDialog()
@@ -87,6 +87,7 @@ class DeleteCardTests : TestBase() {
         cardDetailScreen.clickConfirmDeleteCard()
         pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(cardDeletedScreen.visible(), "Card deleted screen is not visible")
+        cardDeletedScreen.captureA11ySnapshot("CardDeleted")
 
         cardDeletedScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()
@@ -95,6 +96,6 @@ class DeleteCardTests : TestBase() {
         dashboardScreen.clickMenuButton()
         menuScreen.clickHistoryButton()
         assertTrue(historyOverviewScreen.cardDeletedEventVisible(), "history event is not visible")
-
+        historyOverviewScreen.captureA11ySnapshot("HistoryCardDeletedEvent")
     }
 }

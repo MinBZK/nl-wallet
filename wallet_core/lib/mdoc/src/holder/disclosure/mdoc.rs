@@ -66,6 +66,7 @@ mod examples {
 
     use super::PartialMdoc;
     use crate::holder::Mdoc;
+    use crate::iso::mdocs::MdocStatus;
 
     static PID_EXAMPLE_CLAIM_PATHS: LazyLock<Vec<VecNonEmpty<ClaimPath>>> = LazyLock::new(|| {
         ["bsn", "given_name", "family_name"]
@@ -83,6 +84,18 @@ mod examples {
         /// Create a mock [`DisclosureMdoc`] with all the attributes from the PID example.
         pub fn new_mock_with_ca_and_key(ca: &Ca, device_key: &MockRemoteEcdsaKey) -> Self {
             let mdoc = Mdoc::new_mock_with_ca_and_key(ca, device_key).now_or_never().unwrap();
+
+            Self::try_new(mdoc, PID_EXAMPLE_CLAIM_PATHS.iter()).unwrap()
+        }
+
+        pub fn new_mock_with_ca_key_and_status(
+            ca: &Ca,
+            device_key: &MockRemoteEcdsaKey,
+            status: Option<MdocStatus>,
+        ) -> Self {
+            let mdoc = Mdoc::new_mock_with_ca_key_and_status(ca, device_key, status)
+                .now_or_never()
+                .unwrap();
 
             Self::try_new(mdoc, PID_EXAMPLE_CLAIM_PATHS.iter()).unwrap()
         }

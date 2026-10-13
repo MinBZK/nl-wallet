@@ -356,7 +356,6 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use rstest::rstest;
-    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use uuid::Uuid;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
@@ -761,14 +760,14 @@ mod tests {
                     key_identifier: "key_id".to_string(),
                     data: StoredAttestation::SdJwt(sd_jwt.clone()),
                 },
-                IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                IssuedCredentialMetadata::nl_pid_example(),
             )],
             None,
         );
         Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
-                preview_attestations: attestations,
+                preview_attestations: Some(attestations),
                 protocol_state: pid_issuer,
             },
         })

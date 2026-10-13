@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'notification.dart';
@@ -9,6 +9,7 @@ part of 'notification.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$DisplayTarget {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DisplayTarget);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisplayTarget);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'DisplayTarget()';
+    return 'DisplayTarget()';
 }
 
 
@@ -190,16 +191,18 @@ $DisplayTarget_OsCopyWith<DisplayTarget_Os> get copyWith => _$DisplayTarget_OsCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DisplayTarget_Os&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisplayTarget_Os&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,notifyAt);
+int get hashCode {
+    return Object.hash(runtimeType,notifyAt);
+}
 
 @override
 String toString() {
-  return 'DisplayTarget.os(notifyAt: $notifyAt)';
+    return 'DisplayTarget.os(notifyAt: $notifyAt)';
 }
 
 
@@ -251,7 +254,7 @@ class DisplayTarget_Dashboard extends DisplayTarget {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DisplayTarget_Dashboard);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisplayTarget_Dashboard);
 }
 
 
@@ -260,7 +263,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'DisplayTarget.dashboard()';
+    return 'DisplayTarget.dashboard()';
 }
 
 
@@ -283,16 +286,21 @@ $NotificationTypeCopyWith<NotificationType> get copyWith => _$NotificationTypeCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationType&&(identical(other.card, card) || other.card == card));
+  final _this = this as NotificationType;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationType&&(identical(other.card, _this.card) || other.card == _this.card));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,card);
+int get hashCode {
+  final _this = this as NotificationType;
+  return Object.hash(runtimeType,_this.card);
+}
 
 @override
 String toString() {
-  return 'NotificationType(card: $card)';
+  final _this = this as NotificationType;
+  return 'NotificationType(card: ${_this.card})';
 }
 
 
@@ -485,16 +493,18 @@ $NotificationType_CardExpiredCopyWith<NotificationType_CardExpired> get copyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationType_CardExpired&&(identical(other.card, card) || other.card == card));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationType_CardExpired&&(identical(other.card, card) || other.card == card));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,card);
+int get hashCode {
+    return Object.hash(runtimeType,card);
+}
 
 @override
 String toString() {
-  return 'NotificationType.cardExpired(card: $card)';
+    return 'NotificationType.cardExpired(card: $card)';
 }
 
 
@@ -552,16 +562,18 @@ $NotificationType_CardExpiresSoonCopyWith<NotificationType_CardExpiresSoon> get 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationType_CardExpiresSoon&&(identical(other.card, card) || other.card == card)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationType_CardExpiresSoon&&(identical(other.card, card) || other.card == card)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,card,expiresAt);
+int get hashCode {
+    return Object.hash(runtimeType,card,expiresAt);
+}
 
 @override
 String toString() {
-  return 'NotificationType.cardExpiresSoon(card: $card, expiresAt: $expiresAt)';
+    return 'NotificationType.cardExpiresSoon(card: $card, expiresAt: $expiresAt)';
 }
 
 
@@ -619,16 +631,18 @@ $NotificationType_RevokedCopyWith<NotificationType_Revoked> get copyWith => _$No
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationType_Revoked&&(identical(other.card, card) || other.card == card));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationType_Revoked&&(identical(other.card, card) || other.card == card));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,card);
+int get hashCode {
+    return Object.hash(runtimeType,card);
+}
 
 @override
 String toString() {
-  return 'NotificationType.revoked(card: $card)';
+    return 'NotificationType.revoked(card: $card)';
 }
 
 

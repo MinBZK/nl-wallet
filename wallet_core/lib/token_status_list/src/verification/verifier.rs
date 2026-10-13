@@ -4,7 +4,6 @@ use std::time::Duration;
 use std::time::Instant;
 
 use attestation_types::status_claim::StatusClaim;
-use attestation_types::status_claim::StatusClaim::StatusList;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
@@ -117,7 +116,7 @@ where
         status_claim: StatusClaim,
         time: &impl Generator<DateTime<Utc>>,
     ) -> RevocationStatus {
-        let StatusList(StatusListClaim { uri, idx }) = status_claim;
+        let StatusClaim::StatusList(StatusListClaim { uri, idx }) = status_claim;
 
         let result = self
             .cache
@@ -165,7 +164,7 @@ where
         let status_list_token = self.client.fetch(url.clone()).await.map_err(Arc::new)?;
 
         let claims = status_list_token
-            .parse_and_verify(issuer_trust_anchors, attestation_signing_certificate_dn, &url, time)
+            .parse_and_verify(issuer_trust_anchors, attestation_signing_certificate_dn, url, time)
             .map_err(Arc::new)?;
 
         Ok(claims)

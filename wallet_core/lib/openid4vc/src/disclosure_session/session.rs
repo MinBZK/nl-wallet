@@ -1,12 +1,12 @@
 use std::collections::VecDeque;
 use std::hash::Hash;
 
+use attestation_data::organization::Organization;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
-use crypto::x509::BorrowingCertificate;
 use dcql::normalized::NormalizedCredentialRequests;
 use itertools::Itertools;
 use jwe::algorithm::EncryptionAlgorithm;
@@ -36,7 +36,7 @@ use crate::verifier::SessionType;
 pub struct VpDisclosureSession<H> {
     client: H,
     session_type: SessionType,
-    certificate: BorrowingCertificate,
+    organization: Organization,
     auth_request: NormalizedVpAuthorizationRequest,
     selected_encryption_algorithm: EncryptionAlgorithm,
 }
@@ -45,14 +45,14 @@ impl<H> VpDisclosureSession<H> {
     pub(super) fn new(
         client: H,
         session_type: SessionType,
-        certificate: BorrowingCertificate,
+        organization: Organization,
         auth_request: NormalizedVpAuthorizationRequest,
         selected_encryption_algorithm: EncryptionAlgorithm,
     ) -> Self {
         Self {
             client,
             session_type,
-            certificate,
+            organization,
             auth_request,
             selected_encryption_algorithm,
         }
@@ -71,8 +71,8 @@ where
         &self.auth_request.credential_requests
     }
 
-    fn certificate(&self) -> &BorrowingCertificate {
-        &self.certificate
+    fn organization(&self) -> &Organization {
+        &self.organization
     }
 
     async fn terminate(self) -> Result<Option<Url>, VpSessionError> {
@@ -284,6 +284,7 @@ mod tests {
     use std::sync::Arc;
     use std::sync::LazyLock;
 
+    use attestation_data::organization::Organization;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use crypto::PublicKey;
@@ -349,7 +350,7 @@ mod tests {
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,
-            certificate: verifier_session.key_pair.certificate().clone(),
+            organization: Organization::new_mock(),
             auth_request,
             selected_encryption_algorithm,
         };
@@ -373,7 +374,7 @@ mod tests {
         VpDisclosureSession {
             client: error_client,
             session_type: disclosure_session.session_type,
-            certificate: disclosure_session.certificate,
+            organization: disclosure_session.organization,
             auth_request: disclosure_session.auth_request,
             selected_encryption_algorithm: disclosure_session.selected_encryption_algorithm,
         }
@@ -397,7 +398,7 @@ mod tests {
         .try_into()
         .unwrap();
 
-        let wscd = MockRemoteWscd::new(vec![mdoc_key]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![mdoc_key]);
 
         (requests, attestations, wscd)
     }
@@ -413,7 +414,7 @@ mod tests {
         let issuer_key_pair = ca.generate_issuer_mock().unwrap();
         let sd_jwt_key = MockRemoteEcdsaKey::new_random("sd_jwt_key".to_string());
         let sd_jwt_public_key = *sd_jwt_key.verifying_key();
-        let wscd = MockRemoteWscd::new(vec![sd_jwt_key]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![sd_jwt_key]);
 
         let verified_sd_jwt =
             SignedSdJwt::pid_example(&issuer_key_pair, &PublicKey::from(sd_jwt_public_key)).into_verified();

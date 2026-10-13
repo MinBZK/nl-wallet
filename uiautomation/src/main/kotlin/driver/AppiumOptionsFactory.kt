@@ -40,6 +40,7 @@ internal fun buildIOSOptions(
         setCapability("appium:autoAcceptAlerts", acceptAlerts)
         setCapability("appium:showXcodeLog", true)
         setCapability("appium:includeSafariInWebviews", true)
+        setCapability("appium:safariIgnoreWebHostnames", "about:blank")
         setCapability("appium:nativeWebTap", false)
         setCapability("appium:wdaLaunchTimeout", 60000)
         setCapability("appium:wdaConnectionTimeout", 180000)

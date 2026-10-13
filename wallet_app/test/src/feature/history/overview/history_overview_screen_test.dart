@@ -160,7 +160,7 @@ void main() {
       expect(find.text(l10n.generalRetry), findsOneWidget);
     });
 
-    testWidgets('ltc22 ltc23 Disclosure events displays type, verifier name, logo, and timestamp', (tester) async {
+    testWidgets('ltc22 ltc23 Disclosure events displays type, verifier name and timestamp', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
@@ -176,7 +176,6 @@ void main() {
       expect(find.text(l10n.cardHistoryDisclosureSuccess), findsOneWidget);
       expect(find.text(l10n.cardHistoryLoginSuccess), findsOneWidget);
       expect(find.text(WalletMockData.organization.displayName), findsExactly(2));
-      expect(find.byType(Image), findsExactly(2));
     });
 
     testWidgets('ltc22 ltc23 Rejected sharing event shows user aborted indication', (tester) async {

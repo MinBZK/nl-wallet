@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'wallet_banner.dart';
@@ -9,6 +9,7 @@ part of 'wallet_banner.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$WalletBanner {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletBanner);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletBanner);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletBanner()';
+    return 'WalletBanner()';
 }
 
 
@@ -208,16 +209,18 @@ $UpdateAvailableBannerCopyWith<UpdateAvailableBanner> get copyWith => _$UpdateAv
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UpdateAvailableBanner&&(identical(other.state, state) || other.state == state));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is UpdateAvailableBanner&&(identical(other.state, state) || other.state == state));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,state);
+int get hashCode {
+    return Object.hash(runtimeType,state);
+}
 
 @override
 String toString() {
-  return 'WalletBanner.updateAvailable(state: $state)';
+    return 'WalletBanner.updateAvailable(state: $state)';
 }
 
 
@@ -269,7 +272,7 @@ class TourSuggestionBanner implements WalletBanner {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TourSuggestionBanner);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is TourSuggestionBanner);
 }
 
 
@@ -278,7 +281,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletBanner.tourSuggestion()';
+    return 'WalletBanner.tourSuggestion()';
 }
 
 
@@ -307,16 +310,18 @@ $CardExpiresSoonBannerCopyWith<CardExpiresSoonBanner> get copyWith => _$CardExpi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardExpiresSoonBanner&&(identical(other.card, card) || other.card == card)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardExpiresSoonBanner&&(identical(other.card, card) || other.card == card)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,card,expiresAt);
+int get hashCode {
+    return Object.hash(runtimeType,card,expiresAt);
+}
 
 @override
 String toString() {
-  return 'WalletBanner.cardExpiresSoon(card: $card, expiresAt: $expiresAt)';
+    return 'WalletBanner.cardExpiresSoon(card: $card, expiresAt: $expiresAt)';
 }
 
 
@@ -383,16 +388,18 @@ $CardExpiredBannerCopyWith<CardExpiredBanner> get copyWith => _$CardExpiredBanne
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardExpiredBanner&&(identical(other.card, card) || other.card == card));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardExpiredBanner&&(identical(other.card, card) || other.card == card));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,card);
+int get hashCode {
+    return Object.hash(runtimeType,card);
+}
 
 @override
 String toString() {
-  return 'WalletBanner.cardExpired(card: $card)';
+    return 'WalletBanner.cardExpired(card: $card)';
 }
 
 
@@ -458,16 +465,18 @@ $CardRevokedBannerCopyWith<CardRevokedBanner> get copyWith => _$CardRevokedBanne
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardRevokedBanner&&(identical(other.card, card) || other.card == card));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardRevokedBanner&&(identical(other.card, card) || other.card == card));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,card);
+int get hashCode {
+    return Object.hash(runtimeType,card);
+}
 
 @override
 String toString() {
-  return 'WalletBanner.cardRevoked(card: $card)';
+    return 'WalletBanner.cardRevoked(card: $card)';
 }
 
 

@@ -300,83 +300,53 @@ final _kCreateMbAccountRequestedAttributes = [
 
 // region InteractionPolicies
 
-final _kEmployerPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
+const _kEmployerPolicy = RequestPolicy(
   // dataPurpose: 'Gegevens controle',
-  dataSharedWithThirdParties: false,
-  dataDeletionPossible: true,
   policyUrl: _kMockUrl,
 );
 
-final _kMockMarketPlacePolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
+const _kMockMarketPlacePolicy = RequestPolicy(
   // dataPurpose: 'Registreren',
-  dataSharedWithThirdParties: false,
-  dataDeletionPossible: true,
   policyUrl: _kMockUrl,
 );
 
-final _kMockBarPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.zero,
+const _kMockBarPolicy = RequestPolicy(
   // dataPurpose: 'Leeftijd controle',
-  dataSharedWithThirdParties: false,
-  dataDeletionPossible: false,
   policyUrl: _kMockUrl,
 );
 
-final _kMockCarRentalPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
+const _kMockCarRentalPolicy = RequestPolicy(
   // dataPurpose: 'Rijvaardigheid',
-  dataSharedWithThirdParties: false,
-  dataDeletionPossible: true,
   policyUrl: _kMockUrl,
 );
 
-final _kMockFirstAidPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 365),
+const _kMockFirstAidPolicy = RequestPolicy(
   // dataPurpose: 'Zorgverlening',
-  dataSharedWithThirdParties: true,
-  dataDeletionPossible: true,
   policyUrl: _kMockUrl,
 );
 
-final _kMockMunicipalityGenericPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
+const _kMockMunicipalityGenericPolicy = RequestPolicy(
   // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
-  dataSharedWithThirdParties: false,
-  dataDeletionPossible: true,
   policyUrl: _kMockUrl,
 );
 
-final _kMockBankPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
+const _kMockBankPolicy = RequestPolicy(
   // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
-  dataSharedWithThirdParties: false,
-  dataDeletionPossible: true,
   policyUrl: _kMockUrl,
 );
 
-final _kMockHousingCorpPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
+const _kMockHousingCorpPolicy = RequestPolicy(
   // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
-  dataSharedWithThirdParties: false,
-  dataDeletionPossible: true,
   policyUrl: _kMockUrl,
 );
 
-final _kMonkeyBikePolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
+const _kMonkeyBikePolicy = RequestPolicy(
   // dataPurpose: 'Gegevens worden ook gebruikt voor andere doelen',
   // dataPurposeDescription: 'De gegevens kunnen worden gebruikt voor marketing en personalisatie.',
-  dataSharedWithThirdParties: true,
-  dataDeletionPossible: true,
   policyUrl: _kMockUrl,
 );
 
-final _kMunicipalityAmsterdamPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 365),
-  dataSharedWithThirdParties: false,
-  dataDeletionPossible: false,
+const _kMunicipalityAmsterdamPolicy = RequestPolicy(
   policyUrl: 'https://www.amsterdam.nl/privacy',
 );
 

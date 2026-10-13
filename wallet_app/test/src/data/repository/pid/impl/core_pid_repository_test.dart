@@ -5,7 +5,6 @@ import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_value_mapper.dart';
 import 'package:wallet/src/util/mapper/card/attribute/claim_display_metadata_mapper.dart';
-import 'package:wallet/src/util/mapper/card/attribute/localized_labels_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/card/metadata_mapper.dart';
 import 'package:wallet/src/util/mapper/card/status/card_status_mapper.dart';
@@ -33,7 +32,7 @@ void main() {
     when(core.observeConfig()).thenAnswer((_) => Stream.value(CoreMockData.flutterConfiguration));
     cardMapper = CardMapper(
       CardAttributeMapper(CardAttributeValueMapper(ImageMapper()), ClaimDisplayMetadataMapper()),
-      OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
+      OrganizationMapper(),
       DisplayMetadataMapper(ImageMapper()),
       CardStatusMapper(),
     );
@@ -62,7 +61,8 @@ void main() {
       );
       final expectedAttributes = cardMapper.map(testAttestation).attributes;
 
-      when(core.continueIssuance(mockContinueUri)).thenAnswer((realInvocation) async => [testAttestation]);
+      when(core.continueIssuance(mockContinueUri))
+          .thenAnswer((realInvocation) async => IssuanceContinueResult.previews([testAttestation]));
       expect(await pidRepository.continuePidIssuance(mockContinueUri), expectedAttributes);
       verify(core.continueIssuance(mockContinueUri));
     });

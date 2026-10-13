@@ -43,15 +43,16 @@ abstract class CoreMockData {
   static const Organization organization = Organization(
     legalName: 'legalName',
     displayName: 'displayName',
-    description: [LocalizedString(language: 'en', value: 'description')],
+    serviceDescription: [
+      ServiceDescription(
+        translations: [LocalizedString(language: 'en', value: 'description')],
+      ),
+    ],
     identifier: 'identifier',
-    category: [LocalizedString(language: 'en', value: 'category')],
     countryCode: 'NL',
   );
 
   static const RequestPolicy policy = RequestPolicy(
-    dataSharedWithThirdParties: true,
-    dataDeletionPossible: true,
     policyUrl: 'https://example.org',
   );
 

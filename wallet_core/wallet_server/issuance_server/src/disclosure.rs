@@ -159,22 +159,26 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_data::validity::IssuanceValidity;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use chrono::Days;
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use dcql::unique_id_vec::UniqueIdVec;
     use indexmap::IndexMap;
     use oauth::errors::ErrorWithCode;
-    use openid4vc::credential_configurations::CredentialConfigurationParameters;
+    use openid4vc::credential_configurations::CredentialConfiguration;
+    use openid4vc::credential_configurations::CredentialConfigurationFormat;
+    use openid4vc::credential_configurations::CredentialConfigurationTypeMetadata;
+    use openid4vc::credential_configurations::CredentialConfigurations;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::issuable_document::IssuableDocument;
@@ -254,16 +258,26 @@ mod tests {
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let metadata_keypair = ca.generate_wrpac_issuer_mock().unwrap();
-        let issuance_keypair = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuance_keypair = ca.generate_issuer_mock().unwrap();
+        let registration_certificate = MockRegistrationCertificate::new_issuer(
+            metadata_keypair.certificate(),
+            [CredentialKind::new(Format::SdJwt, "com.example.degree".to_string())],
+        );
 
         let mut status_list = MockStatusListService::new();
         status_list
             .expect_start_refresh_job()
             .return_once(|| tokio::task::spawn(async {}).abort_handle());
 
-        let config_params = CredentialConfigurationParameters {
-            credential_kind: CredentialKind::new(Format::SdJwt, "com.example.degree".to_string()),
-            credential_metadata: None,
+        let credential_config = CredentialConfiguration {
+            scope: "credential_config_id".parse().unwrap(),
+            format: CredentialConfigurationFormat::new_sd_jwt_type_metadata(
+                CredentialConfigurationTypeMetadata::try_new(
+                    "com.example.degree",
+                    TypeMetadataDocuments::degree_example().1,
+                )
+                .unwrap(),
+            ),
             key_pair: KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),
                 issuance_keypair.certificate().to_owned(),
@@ -271,23 +285,24 @@ mod tests {
             .unwrap(),
             status_list,
             valid_days: Days::new(1),
-            type_metadata: Some(TypeMetadataDocuments::degree_example().1),
         };
 
         // Normally this is its own CA; here we just reuse the ca we have.
-        let wia_trust_anchors = vec![ca.to_borrowing_trust_anchor()].try_into().unwrap();
+        let wptl_trust_anchors = TrustAnchors::from(&ca);
 
-        Issuer::try_new(
+        Issuer::new(
             "https://example.com".parse().unwrap(),
             metadata_keypair,
+            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
             NonZeroU8::MIN,
             HashSet::new(),
-            [("credential_config_id".to_string().into(), config_params)].into(),
-            wia_trust_anchors,
+            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), credential_config)].into())
+                .unwrap(),
+            true,
+            wptl_trust_anchors,
             sessions,
             MemoryNonceStore::new(),
         )
-        .unwrap()
     }
 
     #[tokio::test]

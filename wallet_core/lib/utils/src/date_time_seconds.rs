@@ -10,7 +10,7 @@ use serde_with::serde_as;
 
 /// Newtype around `DateTime<Utc>` having only seconds precision.
 #[serde_as]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Into, AsRef, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Into, AsRef, Serialize, Deserialize)]
 pub struct DateTimeSeconds(#[serde_as(as = "TimestampSeconds<i64>")] DateTime<Utc>);
 
 impl DateTimeSeconds {

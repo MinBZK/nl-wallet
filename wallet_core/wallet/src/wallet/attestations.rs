@@ -81,6 +81,7 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::validity::ValidityWindow;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use uuid::Uuid;
@@ -130,7 +131,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let (sd_jwt, sd_jwt_metadata) = create_example_pid_sd_jwt();
-        let attestation_type = sd_jwt.claims().vct.clone();
+        let attestation_type = sd_jwt.sd_jwt().claims().vct.clone();
         let (mdoc, mdoc_metadata) = create_example_pid_mdoc(&SigningKey::generate());
 
         let storage = wallet.mut_storage();
@@ -146,6 +147,7 @@ mod tests {
                     },
                     StoredAttestationMetadata::TypeMetadata(sd_jwt_metadata),
                     None,
+                    IssuerRegistration::new_mock(),
                 ),
                 StoredAttestationCopy::new(
                     Uuid::new_v4(),
@@ -157,6 +159,7 @@ mod tests {
                     },
                     StoredAttestationMetadata::CredentialMetadata(mdoc_metadata),
                     None,
+                    IssuerRegistration::new_mock(),
                 ),
             ])
         });

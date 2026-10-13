@@ -73,7 +73,7 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
             targetXyzBankWebPage = RelyingPartyXyzBankWebPage()
             targetAmsterdamWebPage = RelyingPartyAmsterdamWebPage()
             targetIndexWebPage.openUrlInBrowser(DEMO_INDEX_URL)
-            targetIndexWebPage.switchToWebViewContext()
+            targetIndexWebPage.switchToIndexPage()
         }
     }
 
@@ -93,6 +93,7 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
             Thread.sleep(MobileActions.SET_FRAME_SYNC_MAX_WAIT_MILLIS)
 
             // PVW-6101 Check for contact
+            sourceUrlCheckScreen.captureA11ySnapshot("DisclosureUrlCheck")
             sourceUrlCheckScreen.clickContinueButton()
             assertTrue(sourceDisclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getDisplayNameOfOrganization(XYZ_BANK)))
 

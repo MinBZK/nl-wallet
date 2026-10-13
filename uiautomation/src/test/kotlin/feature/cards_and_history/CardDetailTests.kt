@@ -54,6 +54,7 @@ class CardDetailTests : TestBase() {
             { assertTrue(cardDetailScreen.pidCardVisible(), "card face for detail screen is not visible and/or correct") },
             { assertTrue(cardDetailScreen.issuerAndHistoryStates(), "issuer and/or history state not not visible and/or correct") }
         )
+        cardDetailScreen.captureA11ySnapshot("CardDetail")
 
         cardDetailScreen.clickCardDataButton()
         val nationalities = gbaData.getNationalities(DEFAULT_BSN)
@@ -68,9 +69,11 @@ class CardDetailTests : TestBase() {
             { assertTrue(cardDataScreen.dataLabelAbsent(cardMetadata.getPidClaimLabel("recovery_code")), "recovery code is visible") },
             { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
         )
+        cardDataScreen.captureA11ySnapshot("CardData")
 
         cardDataScreen.clickDataIncorrectButton()
         assertTrue(cardDataIncorrectScreen.visible(), "card data incorrect screen is not visible")
+        cardDataIncorrectScreen.captureA11ySnapshot("CardDataIncorrect")
 
         cardDataIncorrectScreen.goBack()
         cardDataScreen.clickBottomBackButton()

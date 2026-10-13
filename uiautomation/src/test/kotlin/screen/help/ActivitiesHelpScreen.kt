@@ -1,7 +1,6 @@
 package screen.help
 
-import domain.Platform
-import org.openqa.selenium.By
+import helper.LocalizationHelper.Translation.HELP_TOPIC_CARD_ACTIVITY_NOT_RECOGNISED
 import util.MobileActions
 
 class ActivitiesHelpScreen : MobileActions() {
@@ -10,6 +9,7 @@ class ActivitiesHelpScreen : MobileActions() {
     private val somethingElseButton = l10n.getString("helpTopicScreenSomethingElseCta")
     private val cardActivitiesButton = l10n.getString("cardHistoryScreenTitle")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
+    private val firstCardActivitiesTopic = l10n.translate(HELP_TOPIC_CARD_ACTIVITY_NOT_RECOGNISED)
 
     fun visible() = elementContainingTextVisible(title)
 
@@ -23,14 +23,5 @@ class ActivitiesHelpScreen : MobileActions() {
         clickElementWithText(somethingElseButton)
     }
 
-    fun clickFirstHelpGroupButton() {
-        when (platform()) {
-            Platform.ANDROID -> driver.findElement(
-                By.xpath("(//*[@scrollable='true']//*[@clickable='true'])[1]")
-            ).click()
-            Platform.IOS -> driver.findElement(
-                By.xpath("//XCUIElementTypeScrollView//XCUIElementTypeButton[1]")
-            ).click()
-        }
-    }
+    fun clickFirstCardActivitiesTopicButton() = clickElementContainingText(firstCardActivitiesTopic)
 }

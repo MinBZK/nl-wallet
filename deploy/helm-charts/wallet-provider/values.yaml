@@ -266,6 +266,11 @@ wiaStatusList:
   volumeClaimName: null
   volumeClaimPath: null
 
+## @section Key Attestation parameters
+## @param keyAttestationCertificate Key Attestation signing certificate (base64-encoded DER)
+##
+keyAttestationCertificate: null
+
 ## @section Migration parameters
 ## Parameters for the migration configuration
 ## @param migration.labels Additional labels for the migration job

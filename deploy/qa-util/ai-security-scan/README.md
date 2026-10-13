@@ -38,7 +38,7 @@ point them at the repository root (`../../..`):
 
 ```bash
 cd deploy/qa-util/ai-security-scan
-claude --sandbox
+claude
 
 # Full scan of a workspace member, seeded by the threat model if present
 > /vuln-scan ../../../wallet_core/lib/jwt
@@ -60,7 +60,7 @@ present. Example for the Rust core:
 
 ```bash
 cd deploy/qa-util/ai-security-scan
-claude --sandbox
+claude
 > /threat-model bootstrap ../../../wallet_core
 ```
 

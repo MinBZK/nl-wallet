@@ -3,12 +3,12 @@ use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::time::Duration;
 
+use attestation_data::organization::Organization;
+use attestation_data::organization::OrganizationError;
 use attestation_data::registration_certificate::BoundRegistrationCertificate;
 use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
-use attestation_data::x509::CertificateType;
-use attestation_data::x509::CertificateTypeError;
 use attestation_data::x509::RelyingParty;
 use chrono::DateTime;
 use chrono::Utc;
@@ -17,8 +17,9 @@ use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateParseError;
 use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateVerifyError;
 use dcql::Query;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
@@ -185,11 +186,11 @@ pub enum CertificateVerificationError {
     #[error("missing trust anchors, expected at least 1")]
     MissingTrustAnchors,
     #[error("invalid certificate `{1}`: {0}")]
-    InvalidCertificate(#[source] CertificateError, String),
+    InvalidCertificate(#[source] CertificateVerifyError, String),
     #[error("invalid key pair `{1}`: {0}")]
-    InvalidKeyPair(#[source] CertificateError, String),
-    #[error("no CertificateType found in certificate `{1}`: {0}")]
-    NoCertificateType(#[source] CertificateTypeError, String),
+    InvalidKeyPair(#[source] CertificateParseError, String),
+    #[error("invalid organization in certificate `{1}`: {0}")]
+    InvalidOrganization(#[source] OrganizationError, String),
 }
 
 pub struct VerifierUseCase<'a> {
@@ -243,12 +244,8 @@ pub fn verify_key_pairs(
             .verify(usage, &[], time, trust_anchors)
             .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
-        if let Some(usage) = usage
-            && CertificateType::has_certificate_type(usage)
-        {
-            CertificateType::from_certificate(&key_pair.certificate)
-                .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.to_string()))?;
-        }
+        Organization::try_from(&key_pair.certificate)
+            .map_err(|e| CertificateVerificationError::InvalidOrganization(e, key_pair_id.to_string()))?;
     }
 
     Ok(())

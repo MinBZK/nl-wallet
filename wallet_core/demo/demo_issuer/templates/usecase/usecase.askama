@@ -7,19 +7,19 @@
 {% block styles %}
 {% match usecase %}
 {% when "university_mdoc" | "university_sd_jwt" %}
-    <link rel="stylesheet" href="../static/css/university.css" />
+  <link rel="stylesheet" href="../static/css/university.css" />
 {% when "insurance" %}
-    <link rel="stylesheet" href="../static/css/insurance.css" />
+  <link rel="stylesheet" href="../static/css/insurance.css" />
 {% when "housing" %}
-    <link rel="stylesheet" href="../static/css/housing.css" />
+  <link rel="stylesheet" href="../static/css/housing.css" />
 {% when "loyalty" %}
-    <link rel="stylesheet" href="../static/css/loyalty.css" />
+  <link rel="stylesheet" href="../static/css/loyalty.css" />
 {% when "museum_maandkaart" %}
-    <link rel="stylesheet" href="../static/css/museum_maandkaart.css" />
+  <link rel="stylesheet" href="../static/css/museum_maandkaart.css" />
 {% when "mdl" %}
-    <link rel="stylesheet" href="../static/css/mdl.css" />
+  <link rel="stylesheet" href="../static/css/mdl.css" />
 {% when "mvc" %}
-    <link rel="stylesheet" href="../static/css/mvc.css" />
+  <link rel="stylesheet" href="../static/css/mvc.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}
@@ -31,28 +31,28 @@
 
 {% block content %}
 {% match usecase %}
-    {% when "university_mdoc" | "university_sd_jwt" %}
-        {% include "university.askama" %}
-    {% when "insurance" %}
-        {% include "insurance.askama" %}
-    {% when "housing" %}
-        {% include "housing.askama" %}
-    {% when "loyalty" %}
-      {% include "loyalty.askama" %}
-    {% when "museum_maandkaart" %}
-      {% include "museum_maandkaart.askama" %}
-    {% when "mdl" %}
-      {% include "mdl.askama" %}
-    {% when "mvc" %}
-      {% include "mvc.askama" %}
-    {% else %}
-        <nl-wallet-button
-            text={{ base.trans.add_to_nl_wallet }}
-            same-device-ul="{{ same_device_ul }}"
-            cross-device-ul="{{ cross_device_ul }}"
-            help-base-url="{{ help_base_url }}"
-            lang="{{ base.selected_lang }}">
-        </nl-wallet-button>
+  {% when "university_mdoc" | "university_sd_jwt" %}
+    {% include "university.askama" %}
+  {% when "insurance" %}
+    {% include "insurance.askama" %}
+  {% when "housing" %}
+    {% include "housing.askama" %}
+  {% when "loyalty" %}
+   {% include "loyalty.askama" %}
+  {% when "museum_maandkaart" %}
+   {% include "museum_maandkaart.askama" %}
+  {% when "mdl" %}
+   {% include "mdl.askama" %}
+  {% when "mvc" %}
+   {% include "mvc.askama" %}
+  {% else %}
+    <nl-wallet-button
+      text={{ base.trans.add_to_nl_wallet }}
+      same-device-ul="{{ same_device_ul }}"
+      cross-device-ul="{{ cross_device_ul }}"
+      help-base-url="{{ help_base_url }}"
+      lang="{{ base.selected_lang }}">
+    </nl-wallet-button>
 {% endmatch %}
 
 {# should be last for accessibility purposes #}

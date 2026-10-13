@@ -1214,8 +1214,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::CertificateCrlVerifier;
-    use crypto::x509::crl::mock::MockCrlFetcher;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::CredentialQueryIdentifier;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequest;
@@ -1410,7 +1409,7 @@ mod tests {
         let response_uri = "https://cert.rp.example.com/response_uri".parse().unwrap();
 
         let registration_certificate =
-            MockRegistrationCertificate::new(rp_keypair.certificate(), credential_requests.clone().into());
+            MockRegistrationCertificate::new_verifier(rp_keypair.certificate(), credential_requests.clone().into());
         let registration_certificate =
             RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
@@ -1477,7 +1476,7 @@ mod tests {
     async fn test_authorization_request_jwt() {
         let (ca, rp_keypair, _, mut auth_request) = setup_mdoc();
         let trust_anchor = TrustAnchors::from(&ca);
-        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
         auth_request.state = Some("authorization_state".to_string());
 
         let auth_request_jwt =
@@ -1502,7 +1501,7 @@ mod tests {
                 .await
                 .unwrap();
 
-        let verifier = CertificateCrlVerifier::<MockCrlFetcher>::default();
+        let verifier = MockCertificateCrlVerifier::default();
         let result =
             VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
 
@@ -2636,7 +2635,7 @@ mod tests {
         .unwrap();
 
         let key_identifier = holder_key.identifier.clone();
-        let wscd = MockRemoteWscd::new(vec![holder_key]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![holder_key]);
 
         let partial_mdocs = HashMap::from([("mdoc_0".parse().unwrap(), vec_nonempty![(partial_mdoc, key_identifier)])]);
         let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, &wscd);
@@ -2697,7 +2696,7 @@ mod tests {
         let holder_public_key1 = PublicKey::from(*holder_key1.verifying_key());
         let holder_key2 = MockRemoteEcdsaKey::new_random("sd_jwt_key_2".to_string());
         let holder_public_key2 = PublicKey::from(*holder_key2.verifying_key());
-        let wscd = MockRemoteWscd::new(vec![holder_key1, holder_key2]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![holder_key1, holder_key2]);
 
         // Create two `UnsignedSdJwtPresentation`s with the requested attributes.
         let verified_sd_jwt1 = SignedSdJwt::pid_example(&issuer_key_pair, &holder_public_key1).into_verified();
@@ -2842,7 +2841,7 @@ mod tests {
         )
         .unwrap();
 
-        let wscd = MockRemoteWscd::new(vec![mdoc_holder_key.clone()]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![mdoc_holder_key.clone()]);
 
         let poa_input = JwtPoaInput::new(None, "".to_string());
         let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(

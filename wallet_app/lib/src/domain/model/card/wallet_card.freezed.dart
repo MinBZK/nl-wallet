@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'wallet_card.dart';
@@ -9,6 +9,7 @@ part of 'wallet_card.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -35,16 +36,21 @@ $WalletCardCopyWith<WalletCard> get copyWith => _$WalletCardCopyWithImpl<WalletC
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletCard&&(identical(other.attestationId, attestationId) || other.attestationId == attestationId)&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.format, format) || other.format == format)&&(identical(other.issuer, issuer) || other.issuer == issuer)&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other.attributes, attributes)&&const DeepCollectionEquality().equals(other.metadata, metadata));
+  final _this = this as WalletCard;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletCard&&(identical(other.attestationId, _this.attestationId) || other.attestationId == _this.attestationId)&&(identical(other.attestationType, _this.attestationType) || other.attestationType == _this.attestationType)&&(identical(other.format, _this.format) || other.format == _this.format)&&(identical(other.issuer, _this.issuer) || other.issuer == _this.issuer)&&(identical(other.status, _this.status) || other.status == _this.status)&&const DeepCollectionEquality().equals(other.attributes, _this.attributes)&&const DeepCollectionEquality().equals(other.metadata, _this.metadata));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,attestationId,attestationType,format,issuer,status,const DeepCollectionEquality().hash(attributes),const DeepCollectionEquality().hash(metadata));
+int get hashCode {
+  final _this = this as WalletCard;
+  return Object.hash(runtimeType,_this.attestationId,_this.attestationType,_this.format,_this.issuer,_this.status,const DeepCollectionEquality().hash(_this.attributes),const DeepCollectionEquality().hash(_this.metadata));
+}
 
 @override
 String toString() {
-  return 'WalletCard(attestationId: $attestationId, attestationType: $attestationType, format: $format, issuer: $issuer, status: $status, attributes: $attributes, metadata: $metadata)';
+  final _this = this as WalletCard;
+  return 'WalletCard(attestationId: ${_this.attestationId}, attestationType: ${_this.attestationType}, format: ${_this.format}, issuer: ${_this.issuer}, status: ${_this.status}, attributes: ${_this.attributes}, metadata: ${_this.metadata})';
 }
 
 
@@ -73,7 +79,7 @@ class _$WalletCardCopyWithImpl<$Res>
 /// Create a copy of WalletCard
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? attestationId = freezed,Object? attestationType = null,Object? format = null,Object? issuer = null,Object? status = null,Object? attributes = null,Object? metadata = null,}) {
-  return _then(_self.copyWith(
+  return _then(WalletCard(
 attestationId: freezed == attestationId ? _self.attestationId : attestationId // ignore: cast_nullable_to_non_nullable
 as String?,attestationType: null == attestationType ? _self.attestationType : attestationType // ignore: cast_nullable_to_non_nullable
 as String,format: null == format ? _self.format : format // ignore: cast_nullable_to_non_nullable
@@ -240,7 +246,7 @@ return $default(_that.attestationId,_that.attestationType,_that.format,_that.iss
 @JsonSerializable()
 
 class _WalletCard extends WalletCard {
-  const _WalletCard({this.attestationId, required this.attestationType, required this.format, required this.issuer, required this.status, required final  List<DataAttribute> attributes, final  List<CardDisplayMetadata> metadata = const []}): _attributes = attributes,_metadata = metadata,super._();
+  const _WalletCard({this.attestationId, required this.attestationType, required this.format, required this.issuer, required this.status, required  List<DataAttribute> attributes,  List<CardDisplayMetadata> metadata = const []}): _attributes = attributes,_metadata = metadata,super._();
   factory _WalletCard.fromJson(Map<String, dynamic> json) => _$WalletCardFromJson(json);
 
 /// ID of the attestation, null when the card is not persisted in the database
@@ -285,16 +291,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WalletCard&&(identical(other.attestationId, attestationId) || other.attestationId == attestationId)&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.format, format) || other.format == format)&&(identical(other.issuer, issuer) || other.issuer == issuer)&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other._attributes, _attributes)&&const DeepCollectionEquality().equals(other._metadata, _metadata));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _WalletCard&&(identical(other.attestationId, attestationId) || other.attestationId == attestationId)&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.format, format) || other.format == format)&&(identical(other.issuer, issuer) || other.issuer == issuer)&&(identical(other.status, status) || other.status == status)&&const DeepCollectionEquality().equals(other.attributes, _attributes)&&const DeepCollectionEquality().equals(other.metadata, _metadata));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,attestationId,attestationType,format,issuer,status,const DeepCollectionEquality().hash(_attributes),const DeepCollectionEquality().hash(_metadata));
+int get hashCode {
+    return Object.hash(runtimeType,attestationId,attestationType,format,issuer,status,const DeepCollectionEquality().hash(_attributes),const DeepCollectionEquality().hash(_metadata));
+}
 
 @override
 String toString() {
-  return 'WalletCard(attestationId: $attestationId, attestationType: $attestationType, format: $format, issuer: $issuer, status: $status, attributes: $attributes, metadata: $metadata)';
+    return 'WalletCard(attestationId: $attestationId, attestationType: $attestationType, format: $format, issuer: $issuer, status: $status, attributes: $attributes, metadata: $metadata)';
 }
 
 

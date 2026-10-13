@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart' as mocktail;
 import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
@@ -13,9 +14,12 @@ import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.d
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import 'package:wallet/src/feature/common/widget/button/icon/close_icon_button.dart';
+import 'package:wallet/src/feature/common/widget/button/icon/help_icon_button.dart';
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import 'package:wallet/src/feature/issuance/issuance_request_details_screen.dart';
 import 'package:wallet/src/feature/issuance/issuance_screen.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_confirm_issuer_page.dart';
 import 'package:wallet/src/feature/issuance/page/issuance_review_cards_page.dart';
 import 'package:wallet/src/feature/organization/approve/organization_approve_page.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
@@ -265,6 +269,28 @@ void main() {
         surfaceSize: iphoneXSizeLandscape,
       );
       await screenMatchesGolden('review_multi_cards.dark.landscape');
+    });
+
+    testGoldens('IssuanceConfirmIssuer Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceConfirmIssuer(organization: WalletMockData.organization),
+        ),
+      );
+      await screenMatchesGolden('confirm_issuer.light');
+    });
+
+    testGoldens('IssuanceConfirmIssuer Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceConfirmIssuer(organization: WalletMockData.organization),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('confirm_issuer.dark.landscape');
     });
 
     testGoldens('ltc5 IssuanceProvidePinForIssuance Light', (tester) async {
@@ -547,6 +573,28 @@ void main() {
       await screenMatchesGolden('relying_party_error.light');
     });
 
+    testGoldens('IssuancePreAuthorizedCodeExpiredError Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceError(error: PreAuthorizedCodeExpiredError(sourceError: 'test')),
+        ),
+      );
+      await screenMatchesGolden('pre_authorized_code_expired_error.light');
+    });
+
+    testGoldens('IssuancePreAuthorizedCodeExpiredError Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceError(error: PreAuthorizedCodeExpiredError(sourceError: 'test')),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('pre_authorized_code_expired_error.dark.landscape');
+    });
+
     testGoldens('ltc5 IssuanceCancelledSessionError Dark Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
@@ -563,6 +611,17 @@ void main() {
   });
 
   group('widgets', () {
+    testWidgets('expired qr code error shows a close button instead of a help button', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceError(error: PreAuthorizedCodeExpiredError(sourceError: 'test')),
+        ),
+      );
+      expect(find.byType(HelpIconButton), findsNothing);
+      expect(find.byType(CloseIconButton), findsOneWidget);
+    });
+
     testWidgets('ltc5 continue cta is visible when issuance is completed', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
@@ -624,6 +683,40 @@ void main() {
       // Verify the expected stop sheet description text is shown
       final l10n = await TestUtils.englishLocalizations;
       final organizationName = WalletMockData.card.issuer.displayName;
+      expect(find.text(l10n.issuanceStopSheetDescription(organizationName), findRichText: true), findsOneWidget);
+    });
+    testWidgets('Confirm issuer page shows the issuer and approves on accept', (tester) async {
+      final bloc = MockIssuanceBloc();
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          bloc,
+          IssuanceConfirmIssuer(organization: WalletMockData.organization),
+        ),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      final organizationName = WalletMockData.organization.displayName;
+      expect(find.text(l10n.issuanceConfirmIssuerPageTitle(organizationName), findRichText: true), findsAtLeast(1));
+
+      await tester.tap(find.byKey(kConfirmIssuerAcceptButtonKey));
+      await tester.pumpAndSettle();
+
+      mocktail.verify(() => bloc.add(const IssuanceIssuerApproved())).called(1);
+    });
+
+    testWidgets('When user declines on confirm issuer page, the stop sheet is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceConfirmIssuer(organization: WalletMockData.organization),
+        ),
+      );
+
+      await tester.tap(find.byKey(kConfirmIssuerDeclineButtonKey));
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+      final organizationName = WalletMockData.organization.displayName;
       expect(find.text(l10n.issuanceStopSheetDescription(organizationName), findRichText: true), findsOneWidget);
     });
   });

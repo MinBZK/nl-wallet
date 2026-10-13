@@ -8,8 +8,7 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
-use crypto::x509::crl::CertificateCrlVerifier;
-use crypto::x509::crl::mock::MockCrlFetcher;
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use derive_more::Constructor;
@@ -165,7 +164,7 @@ pub struct MockVerifierSession {
     pub response_uri: BaseUrl,
     pub wallet_messages: Mutex<Vec<WalletMessage>>,
     pub key_pair: KeyPair,
-    pub crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+    pub crl_verifier: MockCertificateCrlVerifier,
     pub registration_certificate: Option<MockRegistrationCertificate>,
     pub vp_formats_supported: VpFormatsSupported,
 }
@@ -182,10 +181,10 @@ impl MockVerifierSession {
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let trust_anchors = TrustAnchors::from(&ca);
         let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
-        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
         let registration_certificate =
-            MockRegistrationCertificate::new(key_pair.certificate(), Query::from(credential_requests.clone()));
+            MockRegistrationCertificate::new_verifier(key_pair.certificate(), Query::from(credential_requests.clone()));
 
         // Generate some OpenID4VP specific session material.
         let nonce = Nonce::new_random();
@@ -236,7 +235,7 @@ impl MockVerifierSession {
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
         let registration_certificate = self.registration_certificate.as_ref().cloned().unwrap_or_else(|| {
-            MockRegistrationCertificate::new(
+            MockRegistrationCertificate::new_verifier(
                 self.key_pair.certificate(),
                 Query::from(self.credential_requests.clone()),
             )

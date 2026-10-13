@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use attestation_data::x509::CertificateTypeError;
 use attestation_types::credential_format::Format;
 use derive_more::Constructor;
 use derive_more::Display;
@@ -86,9 +85,6 @@ pub enum VpVerifierError {
     #[error("incorrect client_id: expected {expected}, found {found}")]
     #[category(critical)]
     IncorrectClientId { expected: String, found: String },
-
-    #[error("error parsing RP certificate: {0}")]
-    RpCertificate(#[source] CertificateTypeError),
 
     #[error("verifier vp_formats_supported does not include required algorithm for format {0}")]
     #[category(critical)]

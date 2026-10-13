@@ -23,6 +23,7 @@ use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
 use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
+use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -35,7 +36,7 @@ use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::crl::CertificateCrlVerifier;
-use crypto::x509::crl::mock::MockCrlFetcher;
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
@@ -50,6 +51,7 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
 use mdoc::DeviceResponse;
+use mdoc::MdocStatus;
 use mdoc::holder::disclosure::PartialMdoc;
 use oauth::errors::AuthorizationErrorResponse;
 use oauth::errors::BoxedErrorWithCode;
@@ -155,7 +157,7 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
 async fn disclosure_direct() {
     let ca = Ca::generate_mock();
     let auth_keypair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
-    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = Nonce::from("nonce".to_string());
@@ -163,7 +165,7 @@ async fn disclosure_direct() {
     let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
     let credential_requests = NormalizedCredentialRequests::new_mock_mdoc_pid_example();
     let registration_certificate =
-        MockRegistrationCertificate::new(auth_keypair.certificate(), Query::from(credential_requests.clone()));
+        MockRegistrationCertificate::new_verifier(auth_keypair.certificate(), Query::from(credential_requests.clone()));
     let registration_certificate =
         RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
@@ -187,6 +189,7 @@ async fn disclosure_direct() {
         &TrustAnchors::from(&ca),
         &crl_verifier,
         &issuer_ca,
+        MdocStatus::StatusList(StatusListClaim::new_mock()),
     )
     .await;
 
@@ -214,12 +217,13 @@ async fn disclosure_direct() {
 async fn disclosure_jwe(
     auth_request: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
     trust_anchors: &TrustAnchors,
-    crl_verifier: &CertificateCrlVerifier<MockCrlFetcher>,
+    crl_verifier: &MockCertificateCrlVerifier,
     issuer_ca: &Ca,
+    status: MdocStatus,
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::generate());
     let partial_mdocs = vec_nonempty![(
-        PartialMdoc::new_mock_with_ca_and_key(issuer_ca, &mdoc_key),
+        PartialMdoc::new_mock_with_ca_key_and_status(issuer_ca, &mdoc_key, Some(status)),
         mdoc_key.identifier.clone()
     )];
     let encryption_nonce = "encryption_nonce".to_string();
@@ -231,7 +235,7 @@ async fn disclosure_jwe(
     let (auth_request, encryption_algorithm) = auth_request.normalize_request(&cert, None).unwrap();
 
     // Compute the disclosure.
-    let wscd = MockRemoteWscd::new(vec![mdoc_key]);
+    let wscd = MockRemoteWscd::new_with_keys(vec![mdoc_key]);
     let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.to_string());
     let (device_responses, poa) = DeviceResponse::sign_multiple_from_partial_mdocs(
         partial_mdocs,
@@ -300,7 +304,7 @@ async fn disclosure_using_message_client(
     // Perform the first part, which creates the disclosure session.
     let client = VpDisclosureClient::new(
         message_client,
-        CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca),
+        MockCertificateCrlVerifier::new_for_ca(&ca),
         registration_certificate_status_list_client,
     );
     let session = client
@@ -362,8 +366,10 @@ impl DirectMockVpMessageClient {
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
 
         let credential_requests = test_credentials.to_normalized_credential_requests(formats.iter().copied());
-        let registration_certificate =
-            MockRegistrationCertificate::new(auth_keypair.certificate(), Query::from(credential_requests.clone()));
+        let registration_certificate = MockRegistrationCertificate::new_verifier(
+            auth_keypair.certificate(),
+            Query::from(credential_requests.clone()),
+        );
         let registration_certificate_envelope =
             RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
@@ -1079,7 +1085,7 @@ async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
 
 struct WalletValidationContext {
     access_certificate_trust_anchors: TrustAnchors,
-    access_certificate_crl_verifier: CertificateCrlVerifier<MockCrlFetcher>,
+    access_certificate_crl_verifier: MockCertificateCrlVerifier,
     registration_certificate_trust_anchors: TrustAnchors,
     registration_certificate_status_list_client: StaticStatusListClient,
 }

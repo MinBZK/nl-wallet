@@ -23,6 +23,7 @@ serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 ssri.workspace = true
 thiserror.workspace = true
+url = { workspace = true, features = ["serde"] }
 
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"

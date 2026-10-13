@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'pid_attestation.dart';
@@ -9,6 +9,7 @@ part of 'pid_attestation.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -25,16 +26,21 @@ $PidAttestationCopyWith<PidAttestation> get copyWith => _$PidAttestationCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PidAttestation&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.format, format) || other.format == format));
+  final _this = this as PidAttestation;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PidAttestation&&(identical(other.attestationType, _this.attestationType) || other.attestationType == _this.attestationType)&&(identical(other.format, _this.format) || other.format == _this.format));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,attestationType,format);
+int get hashCode {
+  final _this = this as PidAttestation;
+  return Object.hash(runtimeType,_this.attestationType,_this.format);
+}
 
 @override
 String toString() {
-  return 'PidAttestation(attestationType: $attestationType, format: $format)';
+  final _this = this as PidAttestation;
+  return 'PidAttestation(attestationType: ${_this.attestationType}, format: ${_this.format})';
 }
 
 
@@ -63,7 +69,7 @@ class _$PidAttestationCopyWithImpl<$Res>
 /// Create a copy of PidAttestation
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? attestationType = null,Object? format = null,}) {
-  return _then(_self.copyWith(
+  return _then(PidAttestation(
 attestationType: null == attestationType ? _self.attestationType : attestationType // ignore: cast_nullable_to_non_nullable
 as String,format: null == format ? _self.format : format // ignore: cast_nullable_to_non_nullable
 as AttestationFormat,
@@ -223,16 +229,18 @@ _$PidAttestationCopyWith<_PidAttestation> get copyWith => __$PidAttestationCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PidAttestation&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.format, format) || other.format == format));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _PidAttestation&&(identical(other.attestationType, attestationType) || other.attestationType == attestationType)&&(identical(other.format, format) || other.format == format));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,attestationType,format);
+int get hashCode {
+    return Object.hash(runtimeType,attestationType,format);
+}
 
 @override
 String toString() {
-  return 'PidAttestation(attestationType: $attestationType, format: $format)';
+    return 'PidAttestation(attestationType: $attestationType, format: $format)';
 }
 
 

@@ -1,11 +1,12 @@
 use async_trait::async_trait;
+use hsm::finalize::Pkcs11FinalizePool;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::HealthChecker;
 use http_utils::health::HealthStatus;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct HsmChecker {
-    pool: r2d2_cryptoki::Pool,
+    pool: Pkcs11FinalizePool,
     check: bool,
 }
 

@@ -11,10 +11,8 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
-use crypto::x509::NO_SAN;
 use crypto::x509::crl::CertificateCrlVerificationError;
-use crypto::x509::crl::CertificateCrlVerifier;
-use crypto::x509::crl::mock::MockCrlFetcher;
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
 use serde::Deserialize;
@@ -151,7 +149,7 @@ async fn signs_and_verifies_with_certificate() {
 async fn verifies_certificate_and_crl() {
     let ca = Ca::generate_mock();
     let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
-    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
     let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair, true)
         .await
         .unwrap();
@@ -168,7 +166,7 @@ async fn verifies_certificate_and_crl() {
 async fn crl_verification_requires_distribution_point() {
     let ca = Ca::generate_mock();
     let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
-    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
     let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair, true)
         .await
         .unwrap();
@@ -199,7 +197,6 @@ async fn verifies_certificate_chain_with_intermediate() {
         .generate_key_pair(
             DistinguishedName::create_mock("leaf"),
             CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-            NO_SAN,
         )
         .unwrap();
     let header = header_with_x5chain(&vec_nonempty![leaf_key_pair.certificate(), &intermediate_certificate]);
@@ -233,7 +230,6 @@ async fn rejects_missing_intermediate_certificate() {
         .generate_key_pair(
             DistinguishedName::create_mock("leaf"),
             CertificateConfiguration::with_usage(CertificateUsage::Mdl),
-            NO_SAN,
         )
         .unwrap();
     let header = header_with_x5chain(&vec_nonempty![leaf_key_pair.certificate()]);
@@ -248,6 +244,6 @@ async fn rejects_missing_intermediate_certificate() {
             &TimeGenerator,
             Some(CertificateUsage::Mdl),
         ),
-        Err(CoseError::Certificate(_))
+        Err(CoseError::CertificateVerify(_))
     ));
 }

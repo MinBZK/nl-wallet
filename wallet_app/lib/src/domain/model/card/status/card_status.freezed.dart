@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'card_status.dart';
@@ -9,6 +9,7 @@ part of 'card_status.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 CardStatus _$CardStatusFromJson(
@@ -66,7 +67,7 @@ mixin _$CardStatus {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatus);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatus);
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -75,7 +76,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'CardStatus()';
+    return 'CardStatus()';
 }
 
 
@@ -251,7 +252,7 @@ return undetermined();case _:
 @JsonSerializable()
 
 class CardStatusValidSoon implements CardStatus {
-  const CardStatusValidSoon({required this.validFrom, final  String? $type}): $type = $type ?? 'validSoon';
+  const CardStatusValidSoon({required this.validFrom,  String? $type}): $type = $type ?? 'validSoon';
   factory CardStatusValidSoon.fromJson(Map<String, dynamic> json) => _$CardStatusValidSoonFromJson(json);
 
 /// Time from which the card is valid
@@ -274,16 +275,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusValidSoon&&(identical(other.validFrom, validFrom) || other.validFrom == validFrom));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusValidSoon&&(identical(other.validFrom, validFrom) || other.validFrom == validFrom));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,validFrom);
+int get hashCode {
+    return Object.hash(runtimeType,validFrom);
+}
 
 @override
 String toString() {
-  return 'CardStatus.validSoon(validFrom: $validFrom)';
+    return 'CardStatus.validSoon(validFrom: $validFrom)';
 }
 
 
@@ -325,7 +328,7 @@ as DateTime,
 @JsonSerializable()
 
 class CardStatusValid implements CardStatus {
-  const CardStatusValid({required this.validUntil, final  String? $type}): $type = $type ?? 'valid';
+  const CardStatusValid({required this.validUntil,  String? $type}): $type = $type ?? 'valid';
   factory CardStatusValid.fromJson(Map<String, dynamic> json) => _$CardStatusValidFromJson(json);
 
 /// Time until the card is valid (expiry date)
@@ -348,16 +351,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusValid&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusValid&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,validUntil);
+int get hashCode {
+    return Object.hash(runtimeType,validUntil);
+}
 
 @override
 String toString() {
-  return 'CardStatus.valid(validUntil: $validUntil)';
+    return 'CardStatus.valid(validUntil: $validUntil)';
 }
 
 
@@ -399,7 +404,7 @@ as DateTime?,
 @JsonSerializable()
 
 class CardStatusExpiresSoon implements CardStatus {
-  const CardStatusExpiresSoon({required this.validUntil, final  String? $type}): $type = $type ?? 'expiresSoon';
+  const CardStatusExpiresSoon({required this.validUntil,  String? $type}): $type = $type ?? 'expiresSoon';
   factory CardStatusExpiresSoon.fromJson(Map<String, dynamic> json) => _$CardStatusExpiresSoonFromJson(json);
 
 /// Time until the card is valid (expiry date)
@@ -422,16 +427,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusExpiresSoon&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusExpiresSoon&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,validUntil);
+int get hashCode {
+    return Object.hash(runtimeType,validUntil);
+}
 
 @override
 String toString() {
-  return 'CardStatus.expiresSoon(validUntil: $validUntil)';
+    return 'CardStatus.expiresSoon(validUntil: $validUntil)';
 }
 
 
@@ -473,7 +480,7 @@ as DateTime,
 @JsonSerializable()
 
 class CardStatusExpired implements CardStatus {
-  const CardStatusExpired({required this.validUntil, final  String? $type}): $type = $type ?? 'expired';
+  const CardStatusExpired({required this.validUntil,  String? $type}): $type = $type ?? 'expired';
   factory CardStatusExpired.fromJson(Map<String, dynamic> json) => _$CardStatusExpiredFromJson(json);
 
 /// Time until the card is valid (expiry date)
@@ -496,16 +503,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusExpired&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusExpired&&(identical(other.validUntil, validUntil) || other.validUntil == validUntil));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,validUntil);
+int get hashCode {
+    return Object.hash(runtimeType,validUntil);
+}
 
 @override
 String toString() {
-  return 'CardStatus.expired(validUntil: $validUntil)';
+    return 'CardStatus.expired(validUntil: $validUntil)';
 }
 
 
@@ -547,7 +556,7 @@ as DateTime,
 @JsonSerializable()
 
 class CardStatusRevoked implements CardStatus {
-  const CardStatusRevoked({final  String? $type}): $type = $type ?? 'revoked';
+  const CardStatusRevoked({ String? $type}): $type = $type ?? 'revoked';
   factory CardStatusRevoked.fromJson(Map<String, dynamic> json) => _$CardStatusRevokedFromJson(json);
 
 
@@ -564,7 +573,7 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusRevoked);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusRevoked);
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -573,7 +582,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'CardStatus.revoked()';
+    return 'CardStatus.revoked()';
 }
 
 
@@ -586,7 +595,7 @@ String toString() {
 @JsonSerializable()
 
 class CardStatusCorrupted implements CardStatus {
-  const CardStatusCorrupted({final  String? $type}): $type = $type ?? 'corrupted';
+  const CardStatusCorrupted({ String? $type}): $type = $type ?? 'corrupted';
   factory CardStatusCorrupted.fromJson(Map<String, dynamic> json) => _$CardStatusCorruptedFromJson(json);
 
 
@@ -603,7 +612,7 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusCorrupted);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusCorrupted);
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -612,7 +621,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'CardStatus.corrupted()';
+    return 'CardStatus.corrupted()';
 }
 
 
@@ -625,7 +634,7 @@ String toString() {
 @JsonSerializable()
 
 class CardStatusUndetermined implements CardStatus {
-  const CardStatusUndetermined({final  String? $type}): $type = $type ?? 'undetermined';
+  const CardStatusUndetermined({ String? $type}): $type = $type ?? 'undetermined';
   factory CardStatusUndetermined.fromJson(Map<String, dynamic> json) => _$CardStatusUndeterminedFromJson(json);
 
 
@@ -642,7 +651,7 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusUndetermined);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CardStatusUndetermined);
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -651,7 +660,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'CardStatus.undetermined()';
+    return 'CardStatus.undetermined()';
 }
 
 

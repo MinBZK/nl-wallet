@@ -11,6 +11,11 @@ class IssuanceOrganizationApproved extends IssuanceEvent {
   const IssuanceOrganizationApproved();
 }
 
+/// The user agrees to receive cards from an issuer that does not provide previews.
+class IssuanceIssuerApproved extends IssuanceEvent {
+  const IssuanceIssuerApproved();
+}
+
 class IssuanceSessionStarted extends IssuanceEvent {
   final String issuanceUri;
   final bool isQrCode;

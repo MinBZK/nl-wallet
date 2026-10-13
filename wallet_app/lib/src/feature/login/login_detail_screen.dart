@@ -13,8 +13,8 @@ import '../common/builder/request_detail_common_builders.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/card/shared_attributes_card.dart';
+import '../common/widget/divider_side.dart';
 import '../common/widget/menu_item.dart';
-import '../common/widget/organization/organization_logo.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
@@ -86,12 +86,12 @@ class LoginDetailScreen extends StatelessWidget {
           _buildOrganizationSection(context),
           const SliverDivider(),
           _buildAttributesSection(context),
-          const SliverDivider(),
           SliverToBoxAdapter(
             child: RequestDetailCommonBuilders.buildPolicy(
               context,
               organization: organization,
               policy: policy,
+              side: DividerSide.top,
             ),
           ),
           const SliverDivider(),
@@ -107,9 +107,6 @@ class LoginDetailScreen extends StatelessWidget {
       child: Semantics(
         button: true,
         child: MenuItem(
-          leftIcon: organization.logo == null
-              ? null
-              : OrganizationLogo(image: organization.logo!, size: kMenuItemNormalIconSize),
           dividerSide: .none,
           label: Text(
             context.l10n.requestDetailScreenAboutOrganizationCta(organization.displayName),

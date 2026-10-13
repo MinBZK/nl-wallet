@@ -126,6 +126,11 @@ impl<T> UnverifiedWrprcCwt<T>
 where
     T: DeserializeOwned,
 {
+    /// Parse the payload without verifying the signature. Only use for trusted, previously validated storage.
+    pub fn dangerous_parse_unverified(&self) -> Result<T, WrprcCwtError> {
+        self.cose.dangerous_parse_unverified().map_err(WrprcCwtError::Cose)
+    }
+
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.
     ///
     /// A `None` certificate usage still validates the certificate path, but does not require a profile-specific

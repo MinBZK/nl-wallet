@@ -89,6 +89,7 @@ class PidIssuanceTests : TestBase() {
             { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(nationalities[0]), "array attribute is not visible") },
             { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(nationalities[1]), "array attribute is not visible") },
         )
+        personalizePidPreviewScreen.captureA11ySnapshot("PersonalizePidPreview")
 
         personalizePidPreviewScreen.scrollToEndOfScreen()
         assertAll(
@@ -98,9 +99,11 @@ class PidIssuanceTests : TestBase() {
             { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(HOUSE_NUMBER, DEFAULT_BSN)), "human readable pid data is not visible") },
             { assertTrue(personalizePidPreviewScreen.confirmButtonsVisible(), "confirm buttons are not visible") }
         )
+        personalizePidPreviewScreen.captureA11ySnapshot("PersonalizePidPreviewBottom")
 
         personalizePidPreviewScreen.clickAcceptButton()
         assertTrue(pinScreen.personalizeConfirmPinScreenVisible(), "confirm screen not visible")
+        pinScreen.captureA11ySnapshot("PersonalizeConfirmPin")
 
         pinScreen.enterPin(DEFAULT_PIN)
         startTransferWalletScreen.createNewWallet()
@@ -109,6 +112,7 @@ class PidIssuanceTests : TestBase() {
             { assertTrue(personalizeSuccessScreen.successMessageVisible(), "success text is not visible") },
             { assertTrue(personalizeSuccessScreen.cardVisible(), "card not visible") }
         )
+        personalizeSuccessScreen.captureA11ySnapshot("PersonalizeSuccess")
 
         personalizeSuccessScreen.clickNextButton()
         assertTrue(dashboardScreen.visible(), "dashboard screen is not visible")
@@ -128,6 +132,7 @@ class PidIssuanceTests : TestBase() {
             { assertTrue(personalizeAuthenticatingWithDigidScreen.goToDigiDSiteButtonVisible(), "go to digid site button is not visible") },
             { assertTrue(personalizeAuthenticatingWithDigidScreen.tryAgainButtonVisible(), "try again button is not visible") },
         )
+        personalizeAuthenticatingWithDigidScreen.captureA11ySnapshot("PersonalizeDigidLoginFailed")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -141,6 +146,7 @@ class PidIssuanceTests : TestBase() {
 
         PersonalizePidPreviewScreen().clickRejectButton()
         assertTrue(personalizePidDataIncorrectScreen.visible(), "personalize pid data incorrect screen is not visible")
+        personalizePidDataIncorrectScreen.captureA11ySnapshot("PersonalizePidDataIncorrect")
         personalizePidDataIncorrectScreen.clickBottomPrimaryButton()
         assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not visible")
     }
@@ -165,6 +171,7 @@ class PidIssuanceTests : TestBase() {
             { assertTrue(noInternetErrorScreen.descriptionVisible(), "description is not visible") },
             { assertTrue(noInternetErrorScreen.tryAgainButtonVisible(), "try again button is not visible") },
         )
+        noInternetErrorScreen.captureA11ySnapshot("NoInternetError")
         noInternetErrorScreen.enableInternetConnection()
     }
 }

@@ -177,18 +177,26 @@ typedef struct wire_cst_list_localized_string {
   int32_t len;
 } wire_cst_list_localized_string;
 
+typedef struct wire_cst_service_description {
+  struct wire_cst_list_localized_string *translations;
+} wire_cst_service_description;
+
+typedef struct wire_cst_list_service_description {
+  struct wire_cst_service_description *ptr;
+  int32_t len;
+} wire_cst_list_service_description;
+
 typedef struct wire_cst_organization {
   struct wire_cst_list_prim_u_8_strict *legal_name;
   struct wire_cst_list_prim_u_8_strict *display_name;
-  struct wire_cst_list_localized_string *description;
-  struct wire_cst_image *image;
+  struct wire_cst_list_service_description *service_description;
   struct wire_cst_list_prim_u_8_strict *web_url;
   struct wire_cst_list_prim_u_8_strict *privacy_policy_url;
   struct wire_cst_list_prim_u_8_strict *identifier;
-  struct wire_cst_list_localized_string *city;
-  struct wire_cst_list_localized_string *category;
-  struct wire_cst_list_localized_string *department;
   struct wire_cst_list_prim_u_8_strict *country_code;
+  struct wire_cst_list_prim_u_8_strict *support_uri;
+  bool *public_body;
+  int32_t *person_type;
 } wire_cst_organization;
 
 typedef struct wire_cst_ValidityStatus_NotYetValid {
@@ -259,9 +267,6 @@ typedef struct wire_cst_record_string_string {
 } wire_cst_record_string_string;
 
 typedef struct wire_cst_request_policy {
-  uint64_t *data_storage_duration_in_minutes;
-  bool data_shared_with_third_parties;
-  bool data_deletion_possible;
   struct wire_cst_list_prim_u_8_strict *policy_url;
 } wire_cst_request_policy;
 
@@ -522,6 +527,24 @@ typedef struct wire_cst_flutter_version_state {
   union FlutterVersionStateKind kind;
 } wire_cst_flutter_version_state;
 
+typedef struct wire_cst_IssuanceContinueResult_Previews {
+  struct wire_cst_list_attestation_presentation *field0;
+} wire_cst_IssuanceContinueResult_Previews;
+
+typedef struct wire_cst_IssuanceContinueResult_NoPreviews {
+  struct wire_cst_organization *organization;
+} wire_cst_IssuanceContinueResult_NoPreviews;
+
+typedef union IssuanceContinueResultKind {
+  struct wire_cst_IssuanceContinueResult_Previews Previews;
+  struct wire_cst_IssuanceContinueResult_NoPreviews NoPreviews;
+} IssuanceContinueResultKind;
+
+typedef struct wire_cst_issuance_continue_result {
+  int32_t tag;
+  union IssuanceContinueResultKind kind;
+} wire_cst_issuance_continue_result;
+
 typedef struct wire_cst_IssuanceStartResult_AuthorizationUrl {
   struct wire_cst_list_prim_u_8_strict *field0;
 } wire_cst_IssuanceStartResult_AuthorizationUrl;
@@ -530,9 +553,14 @@ typedef struct wire_cst_IssuanceStartResult_Previews {
   struct wire_cst_list_attestation_presentation *field0;
 } wire_cst_IssuanceStartResult_Previews;
 
+typedef struct wire_cst_IssuanceStartResult_NoPreviews {
+  struct wire_cst_organization *organization;
+} wire_cst_IssuanceStartResult_NoPreviews;
+
 typedef union IssuanceStartResultKind {
   struct wire_cst_IssuanceStartResult_AuthorizationUrl AuthorizationUrl;
   struct wire_cst_IssuanceStartResult_Previews Previews;
+  struct wire_cst_IssuanceStartResult_NoPreviews NoPreviews;
 } IssuanceStartResultKind;
 
 typedef struct wire_cst_issuance_start_result {
@@ -583,7 +611,6 @@ typedef struct wire_cst_StartDisclosureResult_Request {
   bool shared_data_with_relying_party_before;
   int32_t session_type;
   struct wire_cst_list_localized_string *request_purpose;
-  struct wire_cst_list_prim_u_8_strict *request_origin_base_url;
   int32_t request_type;
 } wire_cst_StartDisclosureResult_Request;
 
@@ -593,7 +620,6 @@ typedef struct wire_cst_StartDisclosureResult_RequestAttributesMissing {
   bool shared_data_with_relying_party_before;
   int32_t session_type;
   struct wire_cst_list_localized_string *request_purpose;
-  struct wire_cst_list_prim_u_8_strict *request_origin_base_url;
 } wire_cst_StartDisclosureResult_RequestAttributesMissing;
 
 typedef union StartDisclosureResultKind {
@@ -804,11 +830,15 @@ struct wire_cst_attribute_value *frbgen_wallet_core_cst_new_box_attribute_value(
 
 struct wire_cst_attestation_presentation *frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(void);
 
+bool *frbgen_wallet_core_cst_new_box_autoadd_bool(bool value);
+
 struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
 
 struct wire_cst_image_with_metadata *frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata(void);
 
 struct wire_cst_organization *frbgen_wallet_core_cst_new_box_autoadd_organization(void);
+
+int32_t *frbgen_wallet_core_cst_new_box_autoadd_person_type(int32_t value);
 
 struct wire_cst_record_string_string *frbgen_wallet_core_cst_new_box_autoadd_record_string_string(void);
 
@@ -817,8 +847,6 @@ struct wire_cst_rendering_metadata *frbgen_wallet_core_cst_new_box_autoadd_rende
 struct wire_cst_request_policy *frbgen_wallet_core_cst_new_box_autoadd_request_policy(void);
 
 int32_t *frbgen_wallet_core_cst_new_box_autoadd_revocation_status(int32_t value);
-
-uint64_t *frbgen_wallet_core_cst_new_box_autoadd_u_64(uint64_t value);
 
 struct wire_cst_wallet_instruction_error *frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error(void);
 
@@ -858,19 +886,22 @@ struct wire_cst_list_record_i_32_notification_type *frbgen_wallet_core_cst_new_l
 
 struct wire_cst_list_record_string_box_attribute_value *frbgen_wallet_core_cst_new_list_record_string_box_attribute_value(int32_t len);
 
+struct wire_cst_list_service_description *frbgen_wallet_core_cst_new_list_service_description(int32_t len);
+
 struct wire_cst_list_wallet_event *frbgen_wallet_core_cst_new_list_wallet_event(int32_t len);
 static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_attribute_value);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_bool);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_organization);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_person_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_record_string_string);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_revocation_status);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_u_64);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_wallet_state);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_app_notification);
@@ -890,6 +921,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_8_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_i_32_notification_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_string_box_attribute_value);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_service_description);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_wallet_event);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg);

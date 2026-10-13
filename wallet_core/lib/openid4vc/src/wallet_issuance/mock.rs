@@ -1,17 +1,20 @@
 use std::cell::RefCell;
 use std::num::NonZeroU8;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
-use crypto::trust_anchor::TrustAnchors;
-use derive_more::From;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_types::credential_format::Format;
 use jwt::nonce::Nonce;
+use nonempty_collections::IntoNonEmptyIterator;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::wia::WiaClient;
 use wscd::wia::mock::MockWiaClient;
 
+use super::AcceptIssuanceTrustAnchors;
 use super::AuthorizationSession;
 use super::CredentialSelection;
 use super::IssuanceDiscovery;
@@ -19,8 +22,10 @@ use super::IssuanceDiscoveryParameters;
 use super::IssuanceFlow;
 use super::IssuanceSession;
 use super::OfferedCredentialMetadata;
+use super::OfferedCredentialPreview;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
+use super::issuer_registration::IssuerRegistration;
 use crate::token::CredentialPreview;
 
 /// A [`WiaClient`] that records the challenge it was given, delegating the actual WIA issuance to a
@@ -70,7 +75,6 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
         _client_id: String,
         _redirect_uri: Url,
-        _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
     where
         W: WiaClient,
@@ -93,7 +97,6 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
     async fn start_pre_authorized_code_flow<'a, W>(
         &self,
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
-        _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>
     where
         W: WiaClient,
@@ -140,16 +143,34 @@ impl AuthorizationSession for MockAuthorizationSession {
     async fn start_issuance(
         self,
         _received_redirect_uri: &Url,
-        _trust_anchors: &TrustAnchors,
         _wia_client: &impl WiaClient,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_issuance_sync()
     }
 }
 
-/// Helper type that allows `mockall` to return references from a mocked method.
-#[derive(From)]
-pub struct MockIssuanceSessionPreviewsWithMetadata(Vec<(CredentialPreview, OfferedCredentialMetadata)>);
+/// Helper type that allows `mockall` to return references from a mocked method. `None` represents a session without
+/// previews.
+pub struct MockIssuanceSessionCredentialPreviews(
+    Option<VecNonEmpty<(Format, PreviewableCredentialPayload, OfferedCredentialMetadata)>>,
+);
+
+impl MockIssuanceSessionCredentialPreviews {
+    pub fn none() -> Self {
+        Self(None)
+    }
+}
+
+impl From<VecNonEmpty<(CredentialPreview, OfferedCredentialMetadata)>> for MockIssuanceSessionCredentialPreviews {
+    fn from(value: VecNonEmpty<(CredentialPreview, OfferedCredentialMetadata)>) -> Self {
+        Self(Some(
+            value
+                .into_nonempty_iter()
+                .map(|(preview, metadata)| (preview.format, preview.credential_payload, metadata))
+                .collect(),
+        ))
+    }
+}
 
 mockall::mock! {
     #[derive(Debug)]
@@ -159,26 +180,35 @@ mockall::mock! {
             max_copy_count: NonZeroU8,
         ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
 
-        pub fn previews_with_metadata(&self) -> &MockIssuanceSessionPreviewsWithMetadata;
+        pub fn credential_previews(&self) -> &MockIssuanceSessionCredentialPreviews;
 
         pub fn issuer(&self) -> &IssuerRegistration;
     }
 }
 
 impl IssuanceSession for MockIssuanceSession {
-    async fn accept_issuance<W>(
+    async fn accept_issuance<'a, W, G>(
         &mut self,
         max_copy_count: NonZeroU8,
-        _: &TrustAnchors,
-        _: &W,
+        _trust_anchors: AcceptIssuanceTrustAnchors<'a>,
+        _wscd: &W,
+        _time: &G,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
         self.accept(max_copy_count)
     }
 
-    fn previews_with_metadata(&self) -> impl Iterator<Item = (&CredentialPreview, &OfferedCredentialMetadata)> {
-        let MockIssuanceSessionPreviewsWithMetadata(inner) = self.previews_with_metadata();
+    fn credential_previews(&self) -> Option<impl NonEmptyIterator<Item = OfferedCredentialPreview<'_>>> {
+        let MockIssuanceSessionCredentialPreviews(inner) = self.credential_previews();
 
-        inner.iter().map(|(preview, metadata)| (preview, metadata))
+        inner.as_ref().map(|inner| {
+            inner
+                .nonempty_iter()
+                .map(|(format, credential_payload, metadata)| OfferedCredentialPreview {
+                    format: *format,
+                    credential_payload,
+                    metadata,
+                })
+        })
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {

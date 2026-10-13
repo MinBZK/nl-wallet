@@ -123,9 +123,10 @@
 
 ### Mock DigiD login
 
-| Name           | Description                                      | Value |
-| -------------- | ------------------------------------------------ | ----- |
-| `mockSubjects` | Selectable mock identities, as a `bsn: name` map | `{}`  |
+| Name            | Description                                          | Value   |
+| --------------- | ---------------------------------------------------- | ------- |
+| `mockSubjects`  | Selectable mock identities, as a `bsn: name` map     | `{}`    |
+| `mockCustomBsn` | Whether the mock DigiD login has a custom bsn option | `false` |
 
 ### Wallet redirect uris
 

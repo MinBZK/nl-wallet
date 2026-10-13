@@ -38,6 +38,7 @@ pub use crate::wallet::DisclosureAttestationOptions;
 pub use crate::wallet::DisclosureProposalPresentation;
 pub use crate::wallet::DisclosureUriSource;
 pub use crate::wallet::InvocationUri;
+pub use crate::wallet::IssuanceContinueResult;
 pub use crate::wallet::IssuanceResult;
 pub use crate::wallet::IssuanceStartResult;
 pub use crate::wallet::LockCallback;
@@ -55,9 +56,10 @@ pub use crate::wallet::WalletState;
 
 pub mod attestation_data {
     pub use attestation_data::attributes::Attribute;
-    pub use attestation_data::auth::LocalizedStrings;
-    pub use attestation_data::auth::Organization;
     pub use attestation_data::disclosure_type::DisclosureType;
+    pub use attestation_data::organization::Organization;
+    pub use attestation_data::organization::ServiceDescription;
+    pub use attestation_data::registration_certificate::SubjectType;
     pub use attestation_data::validity::ValidityWindow;
 }
 

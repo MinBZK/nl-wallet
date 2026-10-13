@@ -1,0 +1,51 @@
+{
+  "display": [
+    {
+      "name": "Jum Bonuskaart",
+      "locale": "en-US",
+      "description": "A loyalty card",
+      "background_color": "f4700a",
+      "text_color": "#ffffff"
+    },
+    {
+      "name": "Jum Bonuskaart",
+      "locale": "nl-NL",
+      "description": "Een loyaliteitskaart",
+      "background_color": "f4700a",
+      "text_color": "#ffffff"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "branch"
+      ],
+      "display": [
+        {
+          "name": "Filiaal",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Branch",
+          "locale": "en-US"
+        }
+      ]
+    },
+    {
+      "path": [
+        "loyalty_number"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Loyaliteitsnummer",
+          "locale": "nl-NL"
+        },
+        {
+          "name": "Loyalty number",
+          "locale": "en-US"
+        }
+      ]
+    }
+  ]
+}

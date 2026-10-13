@@ -138,8 +138,10 @@ database:
 ## @section Credential parameters
 ## Parameters that apply to all credentials
 ## @param batchSize The maximum amount of credentials a holder will be able to request
+## @param credentialPreviewEndpoint Whether to offer the (non-standard) Credential Preview Endpoint
 ##
 batchSize: 10
+credentialPreviewEndpoint: true
 
 ## @section Wallet redirect uris
 ## Exact-match allowlist of `redirect_uri` values the wallet may use in a Pushed Authorization Request.
@@ -156,7 +158,7 @@ typeMetadata: []
 ##
 credentialMetadata:
   - com_example_insurance_metadata_mdoc.json
-  - com_example_jum_bonuskaart_metadata_mdoc.json
+  - com_example_jum_bonuskaart_metadata_sd_jwt.json
 
 ## @section Migration parameters
 ## Parameters for the migration configuration

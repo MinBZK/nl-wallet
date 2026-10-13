@@ -15,6 +15,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::utils::random_bytes;
+use futures::try_join;
 use http_utils::reqwest::HttpClient;
 use http_utils::urls::BaseUrl;
 use jsonwebtoken::DecodingKey;
@@ -36,7 +37,6 @@ use oauth::token::AuthorizationCodeGrantType;
 use oauth::token::TokenRequest;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
-use tokio::try_join;
 use tracing::debug;
 use tracing::info;
 use tracing::warn;
@@ -160,7 +160,7 @@ impl<R> AdminPortalService<R> {
         let issuer_url = config
             .keycloak_url
             .join_base_url(&format!("realms/{}", config.keycloak_realm));
-        let issuer: IssuerIdentifier = issuer_url.to_string().parse().unwrap();
+        let issuer: IssuerIdentifier = String::from(issuer_url.into_inner()).parse().unwrap();
 
         Self {
             keycloak_client_id: config.keycloak_client_id,
@@ -687,7 +687,10 @@ yP3ST1F3e7Cha7l54e71Lg==
         async fn start() -> Self {
             let server = MockServer::start_async().await;
             let keycloak_url = BaseUrl::from_str(&server.base_url()).unwrap();
-            let issuer = keycloak_url.join_base_url(&format!("realms/{TEST_REALM}")).to_string();
+            let issuer = keycloak_url
+                .join_base_url(&format!("realms/{TEST_REALM}"))
+                .into_inner()
+                .into();
 
             Self {
                 server,
@@ -827,7 +830,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         assert_eq!(query["client_id"], TEST_CLIENT_ID);
         assert_eq!(
             query["redirect_uri"],
-            public_url().join("/admin-portal/auth/callback").to_string()
+            String::from(public_url().join("/admin-portal/auth/callback"))
         );
         assert_eq!(
             query["scope"].split(' ').collect::<HashSet<_>>(),

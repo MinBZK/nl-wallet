@@ -88,7 +88,7 @@ class RenewCardTests : TestBase() {
         setUp(testInfo)
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
@@ -101,13 +101,14 @@ class RenewCardTests : TestBase() {
 
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.switchToNativeContext()
         disclosureForIssuanceScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         assertTrue(cardIssuanceScreen.renewCardsSectionTitleVisible(), "renew cards screen not displayed")
+        cardIssuanceScreen.captureA11ySnapshot("CardIssuanceRenew")
 
         cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
@@ -121,6 +122,7 @@ class RenewCardTests : TestBase() {
             { assertTrue(historyOverviewScreen.issuanceSubtitleVisible(), "data is not visible") },
             { assertTrue(historyOverviewScreen.renewCardSubtitleVisible(), "data is not visible") },
         )
+        historyOverviewScreen.captureA11ySnapshot("HistoryRenewEvent")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -144,10 +146,13 @@ class RenewCardTests : TestBase() {
             { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
             { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
         )
+        personalizePidPreviewScreen.captureA11ySnapshot("PersonalizePidPreviewRenew")
 
         personalizePidPreviewScreen.clickAcceptPidRenewalButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
+        //Todo remove after PVW-6367
+        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.clickCard(tasData.getPidDisplayName())
 
         cardDetailScreen.clickCardHistoryButton()

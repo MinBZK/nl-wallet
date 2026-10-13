@@ -19,6 +19,7 @@ use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
+use derive_more::Display;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -417,6 +418,53 @@ impl<H> VerifiedSdJwt<SdJwtVcClaims, H> {
         };
 
         Ok(claims)
+    }
+}
+
+/// A [`VerifiedSdJwt`] together with its decoded claims. The claims are decoded once, when this type is constructed, so
+/// that holding a [`DecodedSdJwt`] guarantees that its claims can be decoded.
+#[derive(Debug, Clone, Display, Eq, PartialEq, SerializeDisplay)]
+#[display("{sd_jwt}")]
+pub struct DecodedSdJwt {
+    sd_jwt: VerifiedSdJwt,
+    decoded_claims: ObjectClaims,
+}
+
+impl TryFrom<VerifiedSdJwt> for DecodedSdJwt {
+    type Error = DecoderError;
+
+    fn try_from(sd_jwt: VerifiedSdJwt) -> Result<Self, Self::Error> {
+        let decoded_claims = sd_jwt.decoded_claims()?;
+
+        Ok(Self { sd_jwt, decoded_claims })
+    }
+}
+
+impl DecodedSdJwt {
+    /// Parses an SD-JWT and decodes its claims without verifying the signature. Note that this should only be used when
+    /// receiving the SD-JWT over a trusted channel.
+    pub fn dangerous_parse_unverified(s: &str) -> Result<Self, DecoderError> {
+        VerifiedSdJwt::dangerous_parse_unverified(s)?.try_into()
+    }
+
+    pub fn sd_jwt(&self) -> &VerifiedSdJwt {
+        &self.sd_jwt
+    }
+
+    pub fn decoded_claims(&self) -> &ObjectClaims {
+        &self.decoded_claims
+    }
+
+    pub fn into_sd_jwt(self) -> VerifiedSdJwt {
+        self.sd_jwt
+    }
+
+    pub fn into_decoded_claims(self) -> ObjectClaims {
+        self.decoded_claims
+    }
+
+    pub fn into_parts(self) -> (VerifiedSdJwt, ObjectClaims) {
+        (self.sd_jwt, self.decoded_claims)
     }
 }
 
@@ -898,6 +946,7 @@ mod test {
 
     use super::*;
     use crate::builder::SdJwtBuilder;
+    use crate::builder::SignedSdJwt;
     use crate::claims::ArrayClaim;
     use crate::disclosure::Disclosure;
     use crate::disclosure::DisclosureContent;
@@ -956,6 +1005,24 @@ mod test {
                 &KeyBindingExampleTimeGenerator,
             )
             .unwrap();
+    }
+
+    #[test]
+    fn test_decoded_sd_jwt_round_trip() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = ca.generate_issuer_mock().unwrap();
+        let holder_key = SigningKey::generate();
+
+        let sd_jwt =
+            SignedSdJwt::pid_example(&issuer_keypair, &PublicKey::from(*holder_key.verifying_key())).into_verified();
+        let decoded = DecodedSdJwt::try_from(sd_jwt.clone()).expect("decoding the claims should succeed");
+
+        assert_eq!(*decoded.decoded_claims(), sd_jwt.decoded_claims().unwrap());
+        assert_eq!(decoded.to_string(), sd_jwt.to_string());
+
+        let parsed = DecodedSdJwt::dangerous_parse_unverified(&decoded.to_string())
+            .expect("parsing and decoding the SD-JWT should succeed");
+        assert_eq!(parsed, decoded);
     }
 
     #[tokio::test]

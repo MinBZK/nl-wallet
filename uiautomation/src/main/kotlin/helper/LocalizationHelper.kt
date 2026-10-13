@@ -17,6 +17,23 @@ class LocalizationHelper {
         it[key]?.toString() ?: throw IllegalArgumentException("Key $key does not exist in '$language'")
     } ?: throw IllegalArgumentException("Language '$language' is not configured")
 
+    enum class Translation(
+        val nl: String,
+        val en: String,
+    ) {
+        HELP_TOPIC_CARD_ACTIVITY_NOT_RECOGNISED(
+            "Ik herken deze kaartactiviteit niet",
+            "I do not recognise this card activity",
+        ),
+    }
+
+    fun translate(translation: Translation): String {
+        return when (language) {
+            "nl" -> translation.nl
+            "en" -> translation.en
+            else -> throw IllegalArgumentException("Language `$language` is not supported")
+        }
+    }
 
     fun getPluralString(key: String, count: Int, placeholders: Map<String, String>): String {
         val template = getString(key)

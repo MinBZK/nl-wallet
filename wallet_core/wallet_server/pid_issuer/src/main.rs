@@ -4,6 +4,8 @@ use anyhow::Result;
 use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
 use http_utils::reqwest::tls_reqwest_client_builder;
+use indexmap::IndexMap;
+use itertools::Itertools;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::pid::digid::DigidMetadataClient;
@@ -37,7 +39,13 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     // Capture the DigiD trust anchors before the client settings are consumed below: the mock login
     // page (if enabled) needs its own HTTP client that trusts nl-rdo-max.
     let digid_trust_anchors = settings.digid.client_settings.trust_anchors.clone();
-    let mock_subjects = settings.digid.mock_subjects;
+    let mock_subjects = settings
+        .digid
+        .mock_subjects
+        .into_iter()
+        .sorted_by(|(k1, v1), (k2, v2)| (v1, k1).cmp(&(v2, k2)))
+        .collect::<IndexMap<_, _>>();
+    let mock_custom_bsn = settings.digid.mock_custom_bsn;
 
     let digid_metadata_client = DigidMetadataClient::try_new(settings.digid.client_settings)?;
     let brp_client = HttpBrpClient::new(settings.brp_server);
@@ -73,7 +81,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             build_mock_login_csp(&settings.authorizing_issuer_settings.wallet_redirect_uris).into_boxed_str(),
         );
 
-        Some(MockLoginState::new(client, mock_subjects, csp))
+        Some(MockLoginState::new(client, mock_subjects, mock_custom_bsn, csp))
     };
     let mock_login_uri = mock_login.as_ref().map(|_| callback_base_url.join(MOCK_LOGIN_PATH));
 

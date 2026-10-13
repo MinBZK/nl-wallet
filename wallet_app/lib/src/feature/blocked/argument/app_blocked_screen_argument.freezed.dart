@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'app_blocked_screen_argument.dart';
@@ -9,6 +9,7 @@ part of 'app_blocked_screen_argument.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -23,16 +24,21 @@ mixin _$AppBlockedScreenArgument {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppBlockedScreenArgument&&(identical(other.reason, reason) || other.reason == reason));
+  final _this = this as AppBlockedScreenArgument;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppBlockedScreenArgument&&(identical(other.reason, _this.reason) || other.reason == _this.reason));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,reason);
+int get hashCode {
+  final _this = this as AppBlockedScreenArgument;
+  return Object.hash(runtimeType,_this.reason);
+}
 
 @override
 String toString() {
-  return 'AppBlockedScreenArgument(reason: $reason)';
+  final _this = this as AppBlockedScreenArgument;
+  return 'AppBlockedScreenArgument(reason: ${_this.reason})';
 }
 
 
@@ -188,16 +194,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppBlockedScreenArgument&&(identical(other.reason, reason) || other.reason == reason));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppBlockedScreenArgument&&(identical(other.reason, reason) || other.reason == reason));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,reason);
+int get hashCode {
+    return Object.hash(runtimeType,reason);
+}
 
 @override
 String toString() {
-  return 'AppBlockedScreenArgument(reason: $reason)';
+    return 'AppBlockedScreenArgument(reason: $reason)';
 }
 
 

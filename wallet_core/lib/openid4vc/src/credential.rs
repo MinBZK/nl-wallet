@@ -18,6 +18,7 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::payload::jwt_proof::JwtProof;
+use wscd::payload::key_attestation::KeyAttestation;
 
 use crate::authorization_details::CredentialId;
 use crate::jwe::JweCompressionAlgorithm;
@@ -49,10 +50,10 @@ pub struct CredentialRequest {
 }
 
 impl CredentialRequest {
-    pub fn new(identifier: CredentialRequestIdentifier, proofs: VecNonEmpty<JwtProof>) -> Self {
+    pub fn new(identifier: CredentialRequestIdentifier, key_attestation: KeyAttestation) -> Self {
         Self {
             identifier,
-            proofs: Some(CredentialRequestProofs::Jwt(proofs)),
+            proofs: Some(CredentialRequestProofs::Attestation([key_attestation])),
             credential_response_encryption: None,
         }
     }
@@ -76,7 +77,7 @@ pub enum CredentialRequestIdentifier {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CredentialRequestProofs {
-    // TODO (PVW-5548): Implement `attestation` proof type and update `jwt` proof type to OpenID4VCI 1.0.
+    Attestation([KeyAttestation; 1]),
     Jwt(VecNonEmpty<JwtProof>),
 }
 
@@ -253,12 +254,15 @@ mod tests {
         };
         assert_eq!(config_id.as_ref(), "org.iso.18013.5.1.mDL");
 
-        let proof_count = credential_request
+        let jwt_proof_count = credential_request
             .proofs
             .as_ref()
-            .map(|CredentialRequestProofs::Jwt(jwts)| jwts.len().get())
+            .and_then(|proofs| match proofs {
+                CredentialRequestProofs::Attestation(_) => None,
+                CredentialRequestProofs::Jwt(jwts) => Some(jwts.len().get()),
+            })
             .unwrap_or_default();
-        assert_eq!(proof_count, 1);
+        assert_eq!(jwt_proof_count, 1);
 
         let json = serde_json::to_value(credential_request).expect("serializing CredentialRequest should succeed");
 
@@ -272,23 +276,23 @@ mod tests {
         let example_json = json!({
             "credential_identifier": "CivilEngineeringDegree-2023",
             "proofs": {
-            "jwt": [
-                        "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2Iiwiand
-                         rIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiblVXQW9BdjNYWml0aDh
-                         FN2kxOU9kYXhPTFlGT3dNLVoyRXVNMDJUaXJUNCIsInkiOiJIc2tIVThCalVpMVU
-                         5WHFpN1N3bWo4Z3dBS18weGtjRGpFV183MVNvc0VZIn19.eyJhdWQiOiJodHRwcz
-                         ovL2NyZWRlbnRpYWwtaXNzdWVyLmV4YW1wbGUuY29tIiwiaWF0IjoxNzAxOTYwND
-                         Q0LCJub25jZSI6IkxhclJHU2JtVVBZdFJZTzZCUTR5bjgifQ.-a3EDsxClUB4O3L
-                         eDD5DVGEnNMT01FCQW4P6-2-BNBqc_Zxf0Qw4CWayLEpqkAomlkLb9zioZoipdP-
-                         jvh1WlA",
-                        "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2Iiwiand
-                         rIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiblVXQW9BdjNYWml0aDh
-                         FN2kxOU9kYXhPTFlGT3dNLVoyRXVNMDJUaXJUNCIsInkiOiJIc2tIVThCalVpMVU
-                         5WHFpN1N3bWo4Z3dBS18weGtjRGpFV183MVNvc0VZIn19.eyJhdWQiOiJodHRwcz
-                         ovL2NyZWRlbnRpYWwtaXNzdWVyLmV4YW1wbGUuY29tIiwiaWF0IjoxNzAxOTYwND
-                         Q0LCJub25jZSI6IkxhclJHU2JtVVBZdFJZTzZCUTR5bjgifQ.-a3EDsxClUB4O3L
-                         eDD5DVGEnNMT01FCQW4P6-2-BNBqc_Zxf0Qw4CWayLEpqkAomlkLb9zioZoipdP-
-                         jvh1WlA"
+                "jwt": [
+                    "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2Iiwiand
+                    rIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiblVXQW9BdjNYWml0aDh
+                    FN2kxOU9kYXhPTFlGT3dNLVoyRXVNMDJUaXJUNCIsInkiOiJIc2tIVThCalVpMVU
+                    5WHFpN1N3bWo4Z3dBS18weGtjRGpFV183MVNvc0VZIn19.eyJhdWQiOiJodHRwcz
+                    ovL2NyZWRlbnRpYWwtaXNzdWVyLmV4YW1wbGUuY29tIiwiaWF0IjoxNzAxOTYwND
+                    Q0LCJub25jZSI6IkxhclJHU2JtVVBZdFJZTzZCUTR5bjgifQ.-a3EDsxClUB4O3L
+                    eDD5DVGEnNMT01FCQW4P6-2-BNBqc_Zxf0Qw4CWayLEpqkAomlkLb9zioZoipdP-
+                    jvh1WlA",
+                    "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2Iiwiand
+                    rIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiblVXQW9BdjNYWml0aDh
+                    FN2kxOU9kYXhPTFlGT3dNLVoyRXVNMDJUaXJUNCIsInkiOiJIc2tIVThCalVpMVU
+                    5WHFpN1N3bWo4Z3dBS18weGtjRGpFV183MVNvc0VZIn19.eyJhdWQiOiJodHRwcz
+                    ovL2NyZWRlbnRpYWwtaXNzdWVyLmV4YW1wbGUuY29tIiwiaWF0IjoxNzAxOTYwND
+                    Q0LCJub25jZSI6IkxhclJHU2JtVVBZdFJZTzZCUTR5bjgifQ.-a3EDsxClUB4O3L
+                    eDD5DVGEnNMT01FCQW4P6-2-BNBqc_Zxf0Qw4CWayLEpqkAomlkLb9zioZoipdP-
+                    jvh1WlA"
                 ]
             }
         });
@@ -301,12 +305,15 @@ mod tests {
         };
         assert_eq!(credential_id.as_ref(), "CivilEngineeringDegree-2023");
 
-        let proof_count = credential_request
+        let jwt_proof_count = credential_request
             .proofs
             .as_ref()
-            .map(|CredentialRequestProofs::Jwt(jwts)| jwts.len().get())
+            .and_then(|proofs| match proofs {
+                CredentialRequestProofs::Attestation(_) => None,
+                CredentialRequestProofs::Jwt(jwts) => Some(jwts.len().get()),
+            })
             .unwrap_or_default();
-        assert_eq!(proof_count, 2);
+        assert_eq!(jwt_proof_count, 2);
 
         let json = serde_json::to_value(credential_request).expect("serializing CredentialRequest should succeed");
 

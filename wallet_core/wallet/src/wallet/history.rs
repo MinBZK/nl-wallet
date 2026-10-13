@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
 use chrono::DateTime;
 use chrono::Utc;
 use error_category::ErrorCategory;
@@ -194,8 +194,8 @@ mod tests {
     use std::assert_matches;
     use std::sync::Arc;
 
-    use attestation_data::auth::Organization;
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::organization::Organization;
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;

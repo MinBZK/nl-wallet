@@ -149,7 +149,7 @@ abstract class WalletCoreApi extends BaseApi {
     required String pin,
   });
 
-  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri});
+  Future<IssuanceContinueResult> crateApiFullContinueIssuance({required String uri});
 
   Future<void> crateApiFullContinuePinRecovery({required String uri});
 
@@ -853,7 +853,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri}) {
+  Future<IssuanceContinueResult> crateApiFullContinueIssuance({required String uri}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -861,7 +861,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           return wire.wire__crate__api__full__continue_issuance(port_, arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_attestation_presentation,
+          decodeSuccessData: dco_decode_issuance_continue_result,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullContinueIssuanceConstMeta,
@@ -2274,6 +2274,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
+  }
+
+  @protected
   Image dco_decode_box_autoadd_image(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_image(raw);
@@ -2289,6 +2295,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Organization dco_decode_box_autoadd_organization(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_organization(raw);
+  }
+
+  @protected
+  PersonType dco_decode_box_autoadd_person_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_person_type(raw);
   }
 
   @protected
@@ -2313,12 +2325,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RevocationStatus dco_decode_box_autoadd_revocation_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_revocation_status(raw);
-  }
-
-  @protected
-  BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_u_64(raw);
   }
 
   @protected
@@ -2543,6 +2549,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  IssuanceContinueResult dco_decode_issuance_continue_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return IssuanceContinueResult_Previews(
+          dco_decode_list_attestation_presentation(raw[1]),
+        );
+      case 1:
+        return IssuanceContinueResult_NoPreviews(
+          organization: dco_decode_box_autoadd_organization(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   IssuanceStartResult dco_decode_issuance_start_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
@@ -2553,6 +2576,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 1:
         return IssuanceStartResult_Previews(
           dco_decode_list_attestation_presentation(raw[1]),
+        );
+      case 2:
+        return IssuanceStartResult_NoPreviews(
+          organization: dco_decode_box_autoadd_organization(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -2662,6 +2689,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  List<ServiceDescription> dco_decode_list_service_description(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_service_description).toList();
+  }
+
+  @protected
   List<WalletEvent> dco_decode_list_wallet_event(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_wallet_event).toList();
@@ -2717,6 +2750,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bool(raw);
+  }
+
+  @protected
   Image? dco_decode_opt_box_autoadd_image(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_image(raw);
@@ -2726,6 +2765,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   ImageWithMetadata? dco_decode_opt_box_autoadd_image_with_metadata(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_image_with_metadata(raw);
+  }
+
+  @protected
+  PersonType? dco_decode_opt_box_autoadd_person_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_person_type(raw);
   }
 
   @protected
@@ -2747,41 +2792,34 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
-  }
-
-  @protected
   List<AttestationPresentation>? dco_decode_opt_list_attestation_presentation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_list_attestation_presentation(raw);
   }
 
   @protected
-  List<LocalizedString>? dco_decode_opt_list_localized_string(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_list_localized_string(raw);
-  }
-
-  @protected
   Organization dco_decode_organization(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11) throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 10) throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return Organization(
       legalName: dco_decode_String(arr[0]),
       displayName: dco_decode_String(arr[1]),
-      description: dco_decode_list_localized_string(arr[2]),
-      image: dco_decode_opt_box_autoadd_image(arr[3]),
-      webUrl: dco_decode_opt_String(arr[4]),
-      privacyPolicyUrl: dco_decode_opt_String(arr[5]),
-      identifier: dco_decode_String(arr[6]),
-      city: dco_decode_opt_list_localized_string(arr[7]),
-      category: dco_decode_list_localized_string(arr[8]),
-      department: dco_decode_opt_list_localized_string(arr[9]),
-      countryCode: dco_decode_String(arr[10]),
+      serviceDescription: dco_decode_list_service_description(arr[2]),
+      webUrl: dco_decode_opt_String(arr[3]),
+      privacyPolicyUrl: dco_decode_opt_String(arr[4]),
+      identifier: dco_decode_String(arr[5]),
+      countryCode: dco_decode_String(arr[6]),
+      supportUri: dco_decode_opt_String(arr[7]),
+      publicBody: dco_decode_opt_box_autoadd_bool(arr[8]),
+      personType: dco_decode_opt_box_autoadd_person_type(arr[9]),
     );
+  }
+
+  @protected
+  PersonType dco_decode_person_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return PersonType.values[raw as int];
   }
 
   @protected
@@ -2879,12 +2917,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RequestPolicy dco_decode_request_policy(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
     return RequestPolicy(
-      dataStorageDurationInMinutes: dco_decode_opt_box_autoadd_u_64(arr[0]),
-      dataSharedWithThirdParties: dco_decode_bool(arr[1]),
-      dataDeletionPossible: dco_decode_bool(arr[2]),
-      policyUrl: dco_decode_String(arr[3]),
+      policyUrl: dco_decode_opt_String(arr[0]),
     );
   }
 
@@ -2912,6 +2947,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  ServiceDescription dco_decode_service_description(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return ServiceDescription(
+      translations: dco_decode_list_localized_string(arr[0]),
+    );
+  }
+
+  @protected
   StartDisclosureResult dco_decode_start_disclosure_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
@@ -2923,8 +2968,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           sharedDataWithRelyingPartyBefore: dco_decode_bool(raw[4]),
           sessionType: dco_decode_disclosure_session_type(raw[5]),
           requestPurpose: dco_decode_list_localized_string(raw[6]),
-          requestOriginBaseUrl: dco_decode_String(raw[7]),
-          requestType: dco_decode_disclosure_type(raw[8]),
+          requestType: dco_decode_disclosure_type(raw[7]),
         );
       case 1:
         return StartDisclosureResult_RequestAttributesMissing(
@@ -2933,7 +2977,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           sharedDataWithRelyingPartyBefore: dco_decode_bool(raw[3]),
           sessionType: dco_decode_disclosure_session_type(raw[4]),
           requestPurpose: dco_decode_list_localized_string(raw[5]),
-          requestOriginBaseUrl: dco_decode_String(raw[6]),
         );
       default:
         throw Exception("unreachable");
@@ -3340,6 +3383,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bool(deserializer));
+  }
+
+  @protected
   Image sse_decode_box_autoadd_image(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_image(deserializer));
@@ -3355,6 +3404,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Organization sse_decode_box_autoadd_organization(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_organization(deserializer));
+  }
+
+  @protected
+  PersonType sse_decode_box_autoadd_person_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_person_type(deserializer));
   }
 
   @protected
@@ -3379,12 +3434,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RevocationStatus sse_decode_box_autoadd_revocation_status(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_revocation_status(deserializer));
-  }
-
-  @protected
-  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_u_64(deserializer));
   }
 
   @protected
@@ -3619,6 +3668,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  IssuanceContinueResult sse_decode_issuance_continue_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_list_attestation_presentation(deserializer);
+        return IssuanceContinueResult_Previews(var_field0);
+      case 1:
+        var var_organization = sse_decode_box_autoadd_organization(deserializer);
+        return IssuanceContinueResult_NoPreviews(organization: var_organization);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
   IssuanceStartResult sse_decode_issuance_start_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3630,6 +3696,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 1:
         var var_field0 = sse_decode_list_attestation_presentation(deserializer);
         return IssuanceStartResult_Previews(var_field0);
+      case 2:
+        var var_organization = sse_decode_box_autoadd_organization(deserializer);
+        return IssuanceStartResult_NoPreviews(organization: var_organization);
       default:
         throw UnimplementedError('');
     }
@@ -3820,6 +3889,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  List<ServiceDescription> sse_decode_list_service_description(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ServiceDescription>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_service_description(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<WalletEvent> sse_decode_list_wallet_event(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3879,6 +3960,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bool(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   Image? sse_decode_opt_box_autoadd_image(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3895,6 +3987,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_image_with_metadata(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PersonType? sse_decode_opt_box_autoadd_person_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_person_type(deserializer));
     } else {
       return null;
     }
@@ -3934,17 +4037,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_u_64(deserializer));
-    } else {
-      return null;
-    }
-  }
-
-  @protected
   List<AttestationPresentation>? sse_decode_opt_list_attestation_presentation(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3956,43 +4048,37 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<LocalizedString>? sse_decode_opt_list_localized_string(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return (sse_decode_list_localized_string(deserializer));
-    } else {
-      return null;
-    }
-  }
-
-  @protected
   Organization sse_decode_organization(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_legalName = sse_decode_String(deserializer);
     var var_displayName = sse_decode_String(deserializer);
-    var var_description = sse_decode_list_localized_string(deserializer);
-    var var_image = sse_decode_opt_box_autoadd_image(deserializer);
+    var var_serviceDescription = sse_decode_list_service_description(deserializer);
     var var_webUrl = sse_decode_opt_String(deserializer);
     var var_privacyPolicyUrl = sse_decode_opt_String(deserializer);
     var var_identifier = sse_decode_String(deserializer);
-    var var_city = sse_decode_opt_list_localized_string(deserializer);
-    var var_category = sse_decode_list_localized_string(deserializer);
-    var var_department = sse_decode_opt_list_localized_string(deserializer);
     var var_countryCode = sse_decode_String(deserializer);
+    var var_supportUri = sse_decode_opt_String(deserializer);
+    var var_publicBody = sse_decode_opt_box_autoadd_bool(deserializer);
+    var var_personType = sse_decode_opt_box_autoadd_person_type(deserializer);
     return Organization(
       legalName: var_legalName,
       displayName: var_displayName,
-      description: var_description,
-      image: var_image,
+      serviceDescription: var_serviceDescription,
       webUrl: var_webUrl,
       privacyPolicyUrl: var_privacyPolicyUrl,
       identifier: var_identifier,
-      city: var_city,
-      category: var_category,
-      department: var_department,
       countryCode: var_countryCode,
+      supportUri: var_supportUri,
+      publicBody: var_publicBody,
+      personType: var_personType,
     );
+  }
+
+  @protected
+  PersonType sse_decode_person_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return PersonType.values[inner];
   }
 
   @protected
@@ -4078,16 +4164,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   RequestPolicy sse_decode_request_policy(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_dataStorageDurationInMinutes = sse_decode_opt_box_autoadd_u_64(deserializer);
-    var var_dataSharedWithThirdParties = sse_decode_bool(deserializer);
-    var var_dataDeletionPossible = sse_decode_bool(deserializer);
-    var var_policyUrl = sse_decode_String(deserializer);
-    return RequestPolicy(
-      dataStorageDurationInMinutes: var_dataStorageDurationInMinutes,
-      dataSharedWithThirdParties: var_dataSharedWithThirdParties,
-      dataDeletionPossible: var_dataDeletionPossible,
-      policyUrl: var_policyUrl,
-    );
+    var var_policyUrl = sse_decode_opt_String(deserializer);
+    return RequestPolicy(policyUrl: var_policyUrl);
   }
 
   @protected
@@ -4115,6 +4193,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  ServiceDescription sse_decode_service_description(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_translations = sse_decode_list_localized_string(deserializer);
+    return ServiceDescription(translations: var_translations);
+  }
+
+  @protected
   StartDisclosureResult sse_decode_start_disclosure_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4127,7 +4212,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_sharedDataWithRelyingPartyBefore = sse_decode_bool(deserializer);
         var var_sessionType = sse_decode_disclosure_session_type(deserializer);
         var var_requestPurpose = sse_decode_list_localized_string(deserializer);
-        var var_requestOriginBaseUrl = sse_decode_String(deserializer);
         var var_requestType = sse_decode_disclosure_type(deserializer);
         return StartDisclosureResult_Request(
           relyingParty: var_relyingParty,
@@ -4136,7 +4220,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           sharedDataWithRelyingPartyBefore: var_sharedDataWithRelyingPartyBefore,
           sessionType: var_sessionType,
           requestPurpose: var_requestPurpose,
-          requestOriginBaseUrl: var_requestOriginBaseUrl,
           requestType: var_requestType,
         );
       case 1:
@@ -4145,14 +4228,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_sharedDataWithRelyingPartyBefore = sse_decode_bool(deserializer);
         var var_sessionType = sse_decode_disclosure_session_type(deserializer);
         var var_requestPurpose = sse_decode_list_localized_string(deserializer);
-        var var_requestOriginBaseUrl = sse_decode_String(deserializer);
         return StartDisclosureResult_RequestAttributesMissing(
           relyingParty: var_relyingParty,
           missingAttributes: var_missingAttributes,
           sharedDataWithRelyingPartyBefore: var_sharedDataWithRelyingPartyBefore,
           sessionType: var_sessionType,
           requestPurpose: var_requestPurpose,
-          requestOriginBaseUrl: var_requestOriginBaseUrl,
         );
       default:
         throw UnimplementedError('');
@@ -4452,6 +4533,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @protected
   int cst_encode_identify_uri_result(IdentifyUriResult raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_person_type(PersonType raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_32(raw.index);
   }
@@ -4796,6 +4883,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_image(Image self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_image(self, serializer);
@@ -4811,6 +4904,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_box_autoadd_organization(Organization self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_organization(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_person_type(PersonType self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_person_type(self, serializer);
   }
 
   @protected
@@ -4835,12 +4934,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_box_autoadd_revocation_status(RevocationStatus self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_revocation_status(self, serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_u_64(self, serializer);
   }
 
   @protected
@@ -5032,6 +5125,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_issuance_continue_result(IssuanceContinueResult self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case IssuanceContinueResult_Previews(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_list_attestation_presentation(field0, serializer);
+      case IssuanceContinueResult_NoPreviews(organization: final organization):
+        sse_encode_i_32(1, serializer);
+        sse_encode_box_autoadd_organization(organization, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_issuance_start_result(IssuanceStartResult self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
@@ -5041,6 +5147,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case IssuanceStartResult_Previews(field0: final field0):
         sse_encode_i_32(1, serializer);
         sse_encode_list_attestation_presentation(field0, serializer);
+      case IssuanceStartResult_NoPreviews(organization: final organization):
+        sse_encode_i_32(2, serializer);
+        sse_encode_box_autoadd_organization(organization, serializer);
     }
   }
 
@@ -5193,6 +5302,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_list_service_description(List<ServiceDescription> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_service_description(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_wallet_event(List<WalletEvent> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -5242,6 +5360,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bool(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_image(Image? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -5258,6 +5386,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_image_with_metadata(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_person_type(PersonType? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_person_type(self, serializer);
     }
   }
 
@@ -5292,16 +5430,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_box_autoadd_u_64(self, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_opt_list_attestation_presentation(List<AttestationPresentation>? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -5312,29 +5440,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_opt_list_localized_string(List<LocalizedString>? self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_list_localized_string(self, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_organization(Organization self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.legalName, serializer);
     sse_encode_String(self.displayName, serializer);
-    sse_encode_list_localized_string(self.description, serializer);
-    sse_encode_opt_box_autoadd_image(self.image, serializer);
+    sse_encode_list_service_description(self.serviceDescription, serializer);
     sse_encode_opt_String(self.webUrl, serializer);
     sse_encode_opt_String(self.privacyPolicyUrl, serializer);
     sse_encode_String(self.identifier, serializer);
-    sse_encode_opt_list_localized_string(self.city, serializer);
-    sse_encode_list_localized_string(self.category, serializer);
-    sse_encode_opt_list_localized_string(self.department, serializer);
     sse_encode_String(self.countryCode, serializer);
+    sse_encode_opt_String(self.supportUri, serializer);
+    sse_encode_opt_box_autoadd_bool(self.publicBody, serializer);
+    sse_encode_opt_box_autoadd_person_type(self.personType, serializer);
+  }
+
+  @protected
+  void sse_encode_person_type(PersonType self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -5407,10 +5530,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_request_policy(RequestPolicy self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_box_autoadd_u_64(self.dataStorageDurationInMinutes, serializer);
-    sse_encode_bool(self.dataSharedWithThirdParties, serializer);
-    sse_encode_bool(self.dataDeletionPossible, serializer);
-    sse_encode_String(self.policyUrl, serializer);
+    sse_encode_opt_String(self.policyUrl, serializer);
   }
 
   @protected
@@ -5433,6 +5553,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_service_description(ServiceDescription self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_localized_string(self.translations, serializer);
+  }
+
+  @protected
   void sse_encode_start_disclosure_result(StartDisclosureResult self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
@@ -5443,7 +5569,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sharedDataWithRelyingPartyBefore: final sharedDataWithRelyingPartyBefore,
         sessionType: final sessionType,
         requestPurpose: final requestPurpose,
-        requestOriginBaseUrl: final requestOriginBaseUrl,
         requestType: final requestType,
       ):
         sse_encode_i_32(0, serializer);
@@ -5453,7 +5578,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_bool(sharedDataWithRelyingPartyBefore, serializer);
         sse_encode_disclosure_session_type(sessionType, serializer);
         sse_encode_list_localized_string(requestPurpose, serializer);
-        sse_encode_String(requestOriginBaseUrl, serializer);
         sse_encode_disclosure_type(requestType, serializer);
       case StartDisclosureResult_RequestAttributesMissing(
         relyingParty: final relyingParty,
@@ -5461,7 +5585,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sharedDataWithRelyingPartyBefore: final sharedDataWithRelyingPartyBefore,
         sessionType: final sessionType,
         requestPurpose: final requestPurpose,
-        requestOriginBaseUrl: final requestOriginBaseUrl,
       ):
         sse_encode_i_32(1, serializer);
         sse_encode_box_autoadd_organization(relyingParty, serializer);
@@ -5469,7 +5592,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_bool(sharedDataWithRelyingPartyBefore, serializer);
         sse_encode_disclosure_session_type(sessionType, serializer);
         sse_encode_list_localized_string(requestPurpose, serializer);
-        sse_encode_String(requestOriginBaseUrl, serializer);
     }
   }
 

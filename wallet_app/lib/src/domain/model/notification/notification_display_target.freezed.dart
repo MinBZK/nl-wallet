@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'notification_display_target.dart';
@@ -9,6 +9,7 @@ part of 'notification_display_target.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$NotificationDisplayTarget {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationDisplayTarget);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationDisplayTarget);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'NotificationDisplayTarget()';
+    return 'NotificationDisplayTarget()';
 }
 
 
@@ -190,16 +191,18 @@ $OsCopyWith<Os> get copyWith => _$OsCopyWithImpl<Os>(this, _$identity);
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Os&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is Os&&(identical(other.notifyAt, notifyAt) || other.notifyAt == notifyAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,notifyAt);
+int get hashCode {
+    return Object.hash(runtimeType,notifyAt);
+}
 
 @override
 String toString() {
-  return 'NotificationDisplayTarget.os(notifyAt: $notifyAt)';
+    return 'NotificationDisplayTarget.os(notifyAt: $notifyAt)';
 }
 
 
@@ -251,7 +254,7 @@ class Dashboard extends NotificationDisplayTarget {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Dashboard);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is Dashboard);
 }
 
 
@@ -260,7 +263,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'NotificationDisplayTarget.dashboard()';
+    return 'NotificationDisplayTarget.dashboard()';
 }
 
 

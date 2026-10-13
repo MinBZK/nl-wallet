@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crypto::keys::EcdsaKeySend;
-use crypto::x509::CertificateError;
+use crypto::server_keys::KeyPairError;
 use hsm::keys::HsmEcdsaKey;
 use hsm::keys::HsmHmacKey;
 use hsm::service::HsmError;
@@ -54,8 +54,8 @@ pub enum PrivateKeySettingsError {
     #[error("missing `hsm` settings for hardware key with identifier: {0}")]
     MissingHsmSettings(String),
 
-    #[error("invalid certificate settings: {0}")]
-    InvalidCertificate(#[from] CertificateError),
+    #[error("invalid key pair settings: {0}")]
+    InvalidKeyPair(#[from] KeyPairError),
 }
 
 impl PrivateKeyVariant {

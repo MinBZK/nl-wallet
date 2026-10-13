@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'disclosure_screen_argument.dart';
@@ -9,6 +9,7 @@ part of 'disclosure_screen_argument.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -28,16 +29,21 @@ $DisclosureScreenArgumentCopyWith<DisclosureScreenArgument> get copyWith => _$Di
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureScreenArgument&&(identical(other.type, type) || other.type == type));
+  final _this = this as DisclosureScreenArgument;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureScreenArgument&&(identical(other.type, _this.type) || other.type == _this.type));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,type);
+int get hashCode {
+  final _this = this as DisclosureScreenArgument;
+  return Object.hash(runtimeType,_this.type);
+}
 
 @override
 String toString() {
-  return 'DisclosureScreenArgument(type: $type)';
+  final _this = this as DisclosureScreenArgument;
+  return 'DisclosureScreenArgument(type: ${_this.type})';
 }
 
 
@@ -66,7 +72,7 @@ class _$DisclosureScreenArgumentCopyWithImpl<$Res>
 /// Create a copy of DisclosureScreenArgument
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? type = null,}) {
-  return _then(_self.copyWith(
+  return _then(DisclosureScreenArgument(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as DisclosureConnectionType,
   ));
@@ -236,16 +242,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DisclosureScreenArgument&&(identical(other.type, type) || other.type == type));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DisclosureScreenArgument&&(identical(other.type, type) || other.type == type));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,type);
+int get hashCode {
+    return Object.hash(runtimeType,type);
+}
 
 @override
 String toString() {
-  return 'DisclosureScreenArgument(type: $type)';
+    return 'DisclosureScreenArgument(type: $type)';
 }
 
 
@@ -327,7 +335,7 @@ mixin _$DisclosureConnectionType {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureConnectionType);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureConnectionType);
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -336,7 +344,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'DisclosureConnectionType()';
+    return 'DisclosureConnectionType()';
 }
 
 
@@ -482,7 +490,7 @@ return closeProximity();case _:
 @JsonSerializable()
 
 class RemoteDisclosure implements DisclosureConnectionType {
-  const RemoteDisclosure(this.uri, {required this.isQrCode, final  String? $type}): $type = $type ?? 'remote';
+  const RemoteDisclosure(this.uri, {required this.isQrCode,  String? $type}): $type = $type ?? 'remote';
   factory RemoteDisclosure.fromJson(Map<String, dynamic> json) => _$RemoteDisclosureFromJson(json);
 
  final  String uri;
@@ -505,16 +513,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RemoteDisclosure&&(identical(other.uri, uri) || other.uri == uri)&&(identical(other.isQrCode, isQrCode) || other.isQrCode == isQrCode));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is RemoteDisclosure&&(identical(other.uri, uri) || other.uri == uri)&&(identical(other.isQrCode, isQrCode) || other.isQrCode == isQrCode));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,uri,isQrCode);
+int get hashCode {
+    return Object.hash(runtimeType,uri,isQrCode);
+}
 
 @override
 String toString() {
-  return 'DisclosureConnectionType.remote(uri: $uri, isQrCode: $isQrCode)';
+    return 'DisclosureConnectionType.remote(uri: $uri, isQrCode: $isQrCode)';
 }
 
 
@@ -557,7 +567,7 @@ as bool,
 @JsonSerializable()
 
 class CloseProximityDisclosure implements DisclosureConnectionType {
-  const CloseProximityDisclosure({final  String? $type}): $type = $type ?? 'closeProximity';
+  const CloseProximityDisclosure({ String? $type}): $type = $type ?? 'closeProximity';
   factory CloseProximityDisclosure.fromJson(Map<String, dynamic> json) => _$CloseProximityDisclosureFromJson(json);
 
 
@@ -574,7 +584,7 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosure);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosure);
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -583,7 +593,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'DisclosureConnectionType.closeProximity()';
+    return 'DisclosureConnectionType.closeProximity()';
 }
 
 

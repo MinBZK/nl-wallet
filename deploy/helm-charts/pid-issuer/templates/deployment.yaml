@@ -106,17 +106,24 @@ spec:
             - name: PID_ISSUER__DIGID__MOCK_SUBJECTS__{{ $bsn }}
               value: {{ $name | quote }}
             {{- end }}
+            - name: PID_ISSUER__DIGID__MOCK_CUSTOM_BSN
+              value: {{ .Values.mockCustomBsn | quote }}
             - name: PID_ISSUER__BRP_SERVER
               value: "http://brpproxy/"
-            - name: PID_ISSUER__WIA_TRUST_ANCHORS
+            - name: PID_ISSUER__WPTL_TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
-                  key: wia_trust_anchors
+                  key: wptl_trust_anchors
             - name: PID_ISSUER__WALLET_REDIRECT_URIS
               value: {{ join "," .Values.walletRedirectUris | quote }}
             - name: PID_ISSUER__TYPE_METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json"
+            - name: PID_ISSUER__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-pid-issuer-wrpac
+                  key: registration_certificate
             - name: PID_ISSUER__CREDENTIAL_METADATA_KEYPAIR__CERTIFICATE
               valueFrom:
                 secretKeyRef:

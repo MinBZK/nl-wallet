@@ -28,7 +28,7 @@
 //!
 //! ## Traits
 //! * [`JwtTyp`]
-//!   - Define `const TYP: &'static str`, `"jwt"` by default.
+//!   - Define `const TYP: &'static str`, `"JWT"` by default, compared case-insensitively.
 //!   - Verification automatically rejects tokens whose header `typ` does not match.
 //! * [`JwtSub`]
 //!   - Define `const SUB: &'static str` and use helpers:

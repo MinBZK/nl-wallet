@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'wallet_state.dart';
@@ -9,6 +9,7 @@ part of 'wallet_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$WalletState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState()';
+    return 'WalletState()';
 }
 
 
@@ -245,16 +246,18 @@ $WalletState_BlockedCopyWith<WalletState_Blocked> get copyWith => _$WalletState_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Blocked&&(identical(other.reason, reason) || other.reason == reason)&&(identical(other.canRegisterNewAccount, canRegisterNewAccount) || other.canRegisterNewAccount == canRegisterNewAccount));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Blocked&&(identical(other.reason, reason) || other.reason == reason)&&(identical(other.canRegisterNewAccount, canRegisterNewAccount) || other.canRegisterNewAccount == canRegisterNewAccount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,reason,canRegisterNewAccount);
+int get hashCode {
+    return Object.hash(runtimeType,reason,canRegisterNewAccount);
+}
 
 @override
 String toString() {
-  return 'WalletState.blocked(reason: $reason, canRegisterNewAccount: $canRegisterNewAccount)';
+    return 'WalletState.blocked(reason: $reason, canRegisterNewAccount: $canRegisterNewAccount)';
 }
 
 
@@ -307,7 +310,7 @@ class WalletState_Unregistered extends WalletState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Unregistered);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Unregistered);
 }
 
 
@@ -316,7 +319,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState.unregistered()';
+    return 'WalletState.unregistered()';
 }
 
 
@@ -344,16 +347,18 @@ $WalletState_LockedCopyWith<WalletState_Locked> get copyWith => _$WalletState_Lo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Locked&&(identical(other.subState, subState) || other.subState == subState));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Locked&&(identical(other.subState, subState) || other.subState == subState));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,subState);
+int get hashCode {
+    return Object.hash(runtimeType,subState);
+}
 
 @override
 String toString() {
-  return 'WalletState.locked(subState: $subState)';
+    return 'WalletState.locked(subState: $subState)';
 }
 
 
@@ -414,7 +419,7 @@ class WalletState_Empty extends WalletState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Empty);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Empty);
 }
 
 
@@ -423,7 +428,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState.empty()';
+    return 'WalletState.empty()';
 }
 
 
@@ -446,7 +451,7 @@ class WalletState_TransferPossible extends WalletState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_TransferPossible);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_TransferPossible);
 }
 
 
@@ -455,7 +460,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState.transferPossible()';
+    return 'WalletState.transferPossible()';
 }
 
 
@@ -483,16 +488,18 @@ $WalletState_TransferringCopyWith<WalletState_Transferring> get copyWith => _$Wa
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Transferring&&(identical(other.role, role) || other.role == role));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Transferring&&(identical(other.role, role) || other.role == role));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,role);
+int get hashCode {
+    return Object.hash(runtimeType,role);
+}
 
 @override
 String toString() {
-  return 'WalletState.transferring(role: $role)';
+    return 'WalletState.transferring(role: $role)';
 }
 
 
@@ -544,7 +551,7 @@ class WalletState_InDisclosureFlow extends WalletState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_InDisclosureFlow);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_InDisclosureFlow);
 }
 
 
@@ -553,7 +560,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState.inDisclosureFlow()';
+    return 'WalletState.inDisclosureFlow()';
 }
 
 
@@ -576,7 +583,7 @@ class WalletState_InIssuanceFlow extends WalletState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_InIssuanceFlow);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_InIssuanceFlow);
 }
 
 
@@ -585,7 +592,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState.inIssuanceFlow()';
+    return 'WalletState.inIssuanceFlow()';
 }
 
 
@@ -608,7 +615,7 @@ class WalletState_InPinChangeFlow extends WalletState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_InPinChangeFlow);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_InPinChangeFlow);
 }
 
 
@@ -617,7 +624,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState.inPinChangeFlow()';
+    return 'WalletState.inPinChangeFlow()';
 }
 
 
@@ -640,7 +647,7 @@ class WalletState_InPinRecoveryFlow extends WalletState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_InPinRecoveryFlow);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_InPinRecoveryFlow);
 }
 
 
@@ -649,7 +656,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState.inPinRecoveryFlow()';
+    return 'WalletState.inPinRecoveryFlow()';
 }
 
 
@@ -672,7 +679,7 @@ class WalletState_Ready extends WalletState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Ready);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletState_Ready);
 }
 
 
@@ -681,7 +688,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'WalletState.ready()';
+    return 'WalletState.ready()';
 }
 
 

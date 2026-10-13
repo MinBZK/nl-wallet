@@ -12,14 +12,22 @@ wallet_client_ids = [""]
 # issuance redirect URI: <universal_link_base>/iss.
 wallet_redirect_uris = ["walletdebuginteraction://wallet.edi.rijksoverheid.nl/iss"]
 
-issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
-wia_trust_anchors = ["MII..."]    # CAs for WIA certificates
+# CAs for issuer certificates
+issuer_trust_anchors = ["MII..."]
 
-# Files containing SD-JWT Type Metadata documents
-metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"]
+# CAs in the Wallet Provider Trusted List, under which both the Wallet Instance Attestation (WIA) and Key Attestation
+# are validated.
+wptl_trust_anchors = ["MII..."]
+
+# Files containing SD-JWT VC Type Metadata documents. Note: only applicable to credential configurations with the
+# `dc+sd-jwt` credential format.
+type_metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"]
 
 # The maximum amount of credentials a holder will be able to request, in the range 1-255
 batch_size = 10
+
+# Base64url-encoded WRPRC bound to the WRPAC in credential_metadata_keypair
+registration_certificate = "<base64url-encoded WRPRC>"
 
 [storage]
 url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
@@ -62,6 +70,11 @@ oidc_identifier = "https://localhost:8006"
 # the same host in practice.
 trust_anchors = [""]
 
+# Configuration fields for credential_configurations (only the metadata field is described here)
+# * credential_metadata: Path to a JSON file containing the Credential Metadata
+#   for this credential configuration. This is mandatory for "mso_mdoc". For
+#   "dc+sd-jwt" either provide this or SD-JWT VC Type Metadata through the
+#   top-level type_metadata setting, but not both.
 [credential_configurations."com.example.pid_sdjwt"]
 format = "dc+sd-jwt"
 attestation_type = "com.example.pid"

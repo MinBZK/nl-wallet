@@ -18,25 +18,21 @@ final kGoldenSize = const Size(300, 94);
 void main() {
   late AppLocalizations l10n;
 
-  DisclosureEvent disclosureAt(DateTime time, {Organization? relyingParty}) =>
-      WalletEvent.disclosure(
-            dateTime: time,
-            status: EventStatus.success,
-            relyingParty: relyingParty ?? WalletMockData.organization,
-            purpose: 'disclosure'.untranslated,
-            cards: [WalletMockData.card],
-            policy: WalletMockData.policy,
-            type: DisclosureType.regular,
-          )
-          as DisclosureEvent;
+  DisclosureEvent disclosureAt(DateTime time, {Organization? relyingParty}) => WalletEvent.disclosure(
+    dateTime: time,
+    status: EventStatus.success,
+    relyingParty: relyingParty ?? WalletMockData.organization,
+    purpose: 'disclosure'.untranslated,
+    cards: [WalletMockData.card],
+    policy: WalletMockData.policy,
+    type: DisclosureType.regular,
+  ) as DisclosureEvent;
 
-  DeletionEvent deletionAt(DateTime time) =>
-      WalletEvent.deletion(
-            dateTime: time,
-            status: EventStatus.success,
-            card: WalletMockData.card,
-          )
-          as DeletionEvent;
+  DeletionEvent deletionAt(DateTime time) => WalletEvent.deletion(
+    dateTime: time,
+    status: EventStatus.success,
+    card: WalletMockData.card,
+  ) as DeletionEvent;
 
   setUp(() async {
     l10n = await TestUtils.englishLocalizations;

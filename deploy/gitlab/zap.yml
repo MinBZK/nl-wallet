@@ -100,6 +100,18 @@ zap-scan-revocation-portal:
   variables:
     SUT: "REVOCATION_PORTAL"
 
+zap-scan-admin-portal:
+  extends:
+    - .zap-scan-base
+    - .env-k8s
+  before_script:
+    - !reference [.zap-scan-base, before_script]
+    - export AP_OPERATOR_PASSWORD="$(kubectl get secret nl-wallet-keycloak-passwords  --output=jsonpath='{.data.administrator}' | base64 --decode)"
+  script:
+    - !reference [.run-zap-scan, script]
+  variables:
+    SUT: "ADMIN_PORTAL"
+
 zap-scan-publish-results:
   rules: !reference [.zap-base, rules]
   needs:
@@ -110,5 +122,6 @@ zap-scan-publish-results:
     - { job: zap-scan-issuance-server }
     - { job: zap-scan-verification-server }
     - { job: zap-scan-revocation-portal }
+    - { job: zap-scan-admin-portal }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/zap.zip zapreports/*.xml

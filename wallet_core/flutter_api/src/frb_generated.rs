@@ -1814,6 +1814,16 @@ impl CstDecode<isize> for isize {
         self
     }
 }
+impl CstDecode<crate::models::organization::PersonType> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::organization::PersonType {
+        match self {
+            0 => crate::models::organization::PersonType::NaturalPerson,
+            1 => crate::models::organization::PersonType::LegalPerson,
+            _ => unreachable!("Invalid variant for PersonType: {}", self),
+        }
+    }
+}
 impl CstDecode<crate::models::pin::PinValidationResult> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::pin::PinValidationResult {
@@ -2466,6 +2476,29 @@ impl SseDecode for isize {
     }
 }
 
+impl SseDecode for crate::models::issuance::IssuanceContinueResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_field0 =
+                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceContinueResult::Previews(var_field0);
+            }
+            1 => {
+                let mut var_organization = <crate::models::organization::Organization>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceContinueResult::NoPreviews {
+                    organization: var_organization,
+                };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseDecode for crate::models::issuance::IssuanceStartResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2479,6 +2512,12 @@ impl SseDecode for crate::models::issuance::IssuanceStartResult {
                 let mut var_field0 =
                     <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
                 return crate::models::issuance::IssuanceStartResult::Previews(var_field0);
+            }
+            2 => {
+                let mut var_organization = <crate::models::organization::Organization>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceStartResult::NoPreviews {
+                    organization: var_organization,
+                };
             }
             _ => {
                 unimplemented!("");
@@ -2677,6 +2716,20 @@ impl SseDecode for Vec<(String, Box<crate::models::attestation::AttributeValue>)
     }
 }
 
+impl SseDecode for Vec<crate::models::organization::ServiceDescription> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::models::organization::ServiceDescription>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::models::wallet_event::WalletEvent> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2748,6 +2801,17 @@ impl SseDecode for Option<String> {
     }
 }
 
+impl SseDecode for Option<bool> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<bool>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::models::image::Image> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2764,6 +2828,17 @@ impl SseDecode for Option<crate::models::image::ImageWithMetadata> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<crate::models::image::ImageWithMetadata>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::models::organization::PersonType> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::models::organization::PersonType>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -2805,17 +2880,6 @@ impl SseDecode for Option<crate::models::revocation::RevocationStatus> {
     }
 }
 
-impl SseDecode for Option<u64> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(<u64>::sse_decode(deserializer));
-        } else {
-            return None;
-        }
-    }
-}
-
 impl SseDecode for Option<Vec<crate::models::attestation::AttestationPresentation>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2829,45 +2893,43 @@ impl SseDecode for Option<Vec<crate::models::attestation::AttestationPresentatio
     }
 }
 
-impl SseDecode for Option<Vec<crate::models::localize::LocalizedString>> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(<Vec<crate::models::localize::LocalizedString>>::sse_decode(
-                deserializer,
-            ));
-        } else {
-            return None;
-        }
-    }
-}
-
 impl SseDecode for crate::models::organization::Organization {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_legalName = <String>::sse_decode(deserializer);
         let mut var_displayName = <String>::sse_decode(deserializer);
-        let mut var_description = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-        let mut var_image = <Option<crate::models::image::Image>>::sse_decode(deserializer);
+        let mut var_serviceDescription =
+            <Vec<crate::models::organization::ServiceDescription>>::sse_decode(deserializer);
         let mut var_webUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_privacyPolicyUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_identifier = <String>::sse_decode(deserializer);
-        let mut var_city = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
-        let mut var_category = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-        let mut var_department = <Option<Vec<crate::models::localize::LocalizedString>>>::sse_decode(deserializer);
         let mut var_countryCode = <String>::sse_decode(deserializer);
+        let mut var_supportUri = <Option<String>>::sse_decode(deserializer);
+        let mut var_publicBody = <Option<bool>>::sse_decode(deserializer);
+        let mut var_personType = <Option<crate::models::organization::PersonType>>::sse_decode(deserializer);
         return crate::models::organization::Organization {
             legal_name: var_legalName,
             display_name: var_displayName,
-            description: var_description,
-            image: var_image,
+            service_description: var_serviceDescription,
             web_url: var_webUrl,
             privacy_policy_url: var_privacyPolicyUrl,
             identifier: var_identifier,
-            city: var_city,
-            category: var_category,
-            department: var_department,
             country_code: var_countryCode,
+            support_uri: var_supportUri,
+            public_body: var_publicBody,
+            person_type: var_personType,
+        };
+    }
+}
+
+impl SseDecode for crate::models::organization::PersonType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::models::organization::PersonType::NaturalPerson,
+            1 => crate::models::organization::PersonType::LegalPerson,
+            _ => unreachable!("Invalid variant for PersonType: {}", inner),
         };
     }
 }
@@ -2977,14 +3039,8 @@ impl SseDecode for crate::models::attestation::RenderingMetadata {
 impl SseDecode for crate::models::disclosure::RequestPolicy {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_dataStorageDurationInMinutes = <Option<u64>>::sse_decode(deserializer);
-        let mut var_dataSharedWithThirdParties = <bool>::sse_decode(deserializer);
-        let mut var_dataDeletionPossible = <bool>::sse_decode(deserializer);
-        let mut var_policyUrl = <String>::sse_decode(deserializer);
+        let mut var_policyUrl = <Option<String>>::sse_decode(deserializer);
         return crate::models::disclosure::RequestPolicy {
-            data_storage_duration_in_minutes: var_dataStorageDurationInMinutes,
-            data_shared_with_third_parties: var_dataSharedWithThirdParties,
-            data_deletion_possible: var_dataDeletionPossible,
             policy_url: var_policyUrl,
         };
     }
@@ -3026,6 +3082,16 @@ impl SseDecode for crate::models::revocation::RevocationStatus {
     }
 }
 
+impl SseDecode for crate::models::organization::ServiceDescription {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_translations = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
+        return crate::models::organization::ServiceDescription {
+            translations: var_translations,
+        };
+    }
+}
+
 impl SseDecode for crate::models::disclosure::StartDisclosureResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3039,7 +3105,6 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                 let mut var_sharedDataWithRelyingPartyBefore = <bool>::sse_decode(deserializer);
                 let mut var_sessionType = <crate::models::disclosure::DisclosureSessionType>::sse_decode(deserializer);
                 let mut var_requestPurpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-                let mut var_requestOriginBaseUrl = <String>::sse_decode(deserializer);
                 let mut var_requestType = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
                 return crate::models::disclosure::StartDisclosureResult::Request {
                     relying_party: var_relyingParty,
@@ -3048,7 +3113,6 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                     shared_data_with_relying_party_before: var_sharedDataWithRelyingPartyBefore,
                     session_type: var_sessionType,
                     request_purpose: var_requestPurpose,
-                    request_origin_base_url: var_requestOriginBaseUrl,
                     request_type: var_requestType,
                 };
             }
@@ -3059,14 +3123,12 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                 let mut var_sharedDataWithRelyingPartyBefore = <bool>::sse_decode(deserializer);
                 let mut var_sessionType = <crate::models::disclosure::DisclosureSessionType>::sse_decode(deserializer);
                 let mut var_requestPurpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-                let mut var_requestOriginBaseUrl = <String>::sse_decode(deserializer);
                 return crate::models::disclosure::StartDisclosureResult::RequestAttributesMissing {
                     relying_party: var_relyingParty,
                     missing_attributes: var_missingAttributes,
                     shared_data_with_relying_party_before: var_sharedDataWithRelyingPartyBefore,
                     session_type: var_sessionType,
                     request_purpose: var_requestPurpose,
-                    request_origin_base_url: var_requestOriginBaseUrl,
                 };
             }
             _ => {
@@ -3877,6 +3939,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::image::ImageWithMetadata>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceContinueResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::issuance::IssuanceContinueResult::Previews(field0) => {
+                [0.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::issuance::IssuanceContinueResult::NoPreviews { organization } => {
+                [1.into_dart(), organization.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::issuance::IssuanceContinueResult {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::issuance::IssuanceContinueResult>
+    for crate::models::issuance::IssuanceContinueResult
+{
+    fn into_into_dart(self) -> crate::models::issuance::IssuanceContinueResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceStartResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -3885,6 +3971,9 @@ impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceStartRes
             }
             crate::models::issuance::IssuanceStartResult::Previews(field0) => {
                 [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::issuance::IssuanceStartResult::NoPreviews { organization } => {
+                [2.into_dart(), organization.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -3968,15 +4057,14 @@ impl flutter_rust_bridge::IntoDart for crate::models::organization::Organization
         [
             self.legal_name.into_into_dart().into_dart(),
             self.display_name.into_into_dart().into_dart(),
-            self.description.into_into_dart().into_dart(),
-            self.image.into_into_dart().into_dart(),
+            self.service_description.into_into_dart().into_dart(),
             self.web_url.into_into_dart().into_dart(),
             self.privacy_policy_url.into_into_dart().into_dart(),
             self.identifier.into_into_dart().into_dart(),
-            self.city.into_into_dart().into_dart(),
-            self.category.into_into_dart().into_dart(),
-            self.department.into_into_dart().into_dart(),
             self.country_code.into_into_dart().into_dart(),
+            self.support_uri.into_into_dart().into_dart(),
+            self.public_body.into_into_dart().into_dart(),
+            self.person_type.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3986,6 +4074,24 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::organization::Organization
     for crate::models::organization::Organization
 {
     fn into_into_dart(self) -> crate::models::organization::Organization {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::organization::PersonType {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::NaturalPerson => 0.into_dart(),
+            Self::LegalPerson => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::organization::PersonType {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::organization::PersonType>
+    for crate::models::organization::PersonType
+{
+    fn into_into_dart(self) -> crate::models::organization::PersonType {
         self
     }
 }
@@ -4086,13 +4192,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::RenderingMeta
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::RequestPolicy {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.data_storage_duration_in_minutes.into_into_dart().into_dart(),
-            self.data_shared_with_third_parties.into_into_dart().into_dart(),
-            self.data_deletion_possible.into_into_dart().into_dart(),
-            self.policy_url.into_into_dart().into_dart(),
-        ]
-        .into_dart()
+        [self.policy_url.into_into_dart().into_dart()].into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::disclosure::RequestPolicy {}
@@ -4148,6 +4248,20 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::revocation::RevocationStat
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::organization::ServiceDescription {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.translations.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::organization::ServiceDescription {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::organization::ServiceDescription>
+    for crate::models::organization::ServiceDescription
+{
+    fn into_into_dart(self) -> crate::models::organization::ServiceDescription {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosureResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -4158,7 +4272,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
-                request_origin_base_url,
                 request_type,
             } => [
                 0.into_dart(),
@@ -4168,7 +4281,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 shared_data_with_relying_party_before.into_into_dart().into_dart(),
                 session_type.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
-                request_origin_base_url.into_into_dart().into_dart(),
                 request_type.into_into_dart().into_dart(),
             ]
             .into_dart(),
@@ -4178,7 +4290,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
-                request_origin_base_url,
             } => [
                 1.into_dart(),
                 relying_party.into_into_dart().into_dart(),
@@ -4186,7 +4297,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 shared_data_with_relying_party_before.into_into_dart().into_dart(),
                 session_type.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
-                request_origin_base_url.into_into_dart().into_dart(),
             ]
             .into_dart(),
             _ => {
@@ -4960,6 +5070,25 @@ impl SseEncode for isize {
     }
 }
 
+impl SseEncode for crate::models::issuance::IssuanceContinueResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::issuance::IssuanceContinueResult::Previews(field0) => {
+                <i32>::sse_encode(0, serializer);
+                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
+            }
+            crate::models::issuance::IssuanceContinueResult::NoPreviews { organization } => {
+                <i32>::sse_encode(1, serializer);
+                <crate::models::organization::Organization>::sse_encode(organization, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseEncode for crate::models::issuance::IssuanceStartResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4971,6 +5100,10 @@ impl SseEncode for crate::models::issuance::IssuanceStartResult {
             crate::models::issuance::IssuanceStartResult::Previews(field0) => {
                 <i32>::sse_encode(1, serializer);
                 <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
+            }
+            crate::models::issuance::IssuanceStartResult::NoPreviews { organization } => {
+                <i32>::sse_encode(2, serializer);
+                <crate::models::organization::Organization>::sse_encode(organization, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -5129,6 +5262,16 @@ impl SseEncode for Vec<(String, Box<crate::models::attestation::AttributeValue>)
     }
 }
 
+impl SseEncode for Vec<crate::models::organization::ServiceDescription> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::models::organization::ServiceDescription>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::models::wallet_event::WalletEvent> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5188,6 +5331,16 @@ impl SseEncode for Option<String> {
     }
 }
 
+impl SseEncode for Option<bool> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <bool>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::models::image::Image> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5204,6 +5357,16 @@ impl SseEncode for Option<crate::models::image::ImageWithMetadata> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::models::image::ImageWithMetadata>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::models::organization::PersonType> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::models::organization::PersonType>::sse_encode(value, serializer);
         }
     }
 }
@@ -5238,16 +5401,6 @@ impl SseEncode for Option<crate::models::revocation::RevocationStatus> {
     }
 }
 
-impl SseEncode for Option<u64> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <u64>::sse_encode(value, serializer);
-        }
-    }
-}
-
 impl SseEncode for Option<Vec<crate::models::attestation::AttestationPresentation>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5258,30 +5411,35 @@ impl SseEncode for Option<Vec<crate::models::attestation::AttestationPresentatio
     }
 }
 
-impl SseEncode for Option<Vec<crate::models::localize::LocalizedString>> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <Vec<crate::models::localize::LocalizedString>>::sse_encode(value, serializer);
-        }
-    }
-}
-
 impl SseEncode for crate::models::organization::Organization {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.legal_name, serializer);
         <String>::sse_encode(self.display_name, serializer);
-        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.description, serializer);
-        <Option<crate::models::image::Image>>::sse_encode(self.image, serializer);
+        <Vec<crate::models::organization::ServiceDescription>>::sse_encode(self.service_description, serializer);
         <Option<String>>::sse_encode(self.web_url, serializer);
         <Option<String>>::sse_encode(self.privacy_policy_url, serializer);
         <String>::sse_encode(self.identifier, serializer);
-        <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.city, serializer);
-        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.category, serializer);
-        <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.department, serializer);
         <String>::sse_encode(self.country_code, serializer);
+        <Option<String>>::sse_encode(self.support_uri, serializer);
+        <Option<bool>>::sse_encode(self.public_body, serializer);
+        <Option<crate::models::organization::PersonType>>::sse_encode(self.person_type, serializer);
+    }
+}
+
+impl SseEncode for crate::models::organization::PersonType {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::models::organization::PersonType::NaturalPerson => 0,
+                crate::models::organization::PersonType::LegalPerson => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
@@ -5383,10 +5541,7 @@ impl SseEncode for crate::models::attestation::RenderingMetadata {
 impl SseEncode for crate::models::disclosure::RequestPolicy {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Option<u64>>::sse_encode(self.data_storage_duration_in_minutes, serializer);
-        <bool>::sse_encode(self.data_shared_with_third_parties, serializer);
-        <bool>::sse_encode(self.data_deletion_possible, serializer);
-        <String>::sse_encode(self.policy_url, serializer);
+        <Option<String>>::sse_encode(self.policy_url, serializer);
     }
 }
 
@@ -5427,6 +5582,13 @@ impl SseEncode for crate::models::revocation::RevocationStatus {
     }
 }
 
+impl SseEncode for crate::models::organization::ServiceDescription {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.translations, serializer);
+    }
+}
+
 impl SseEncode for crate::models::disclosure::StartDisclosureResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5438,7 +5600,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
-                request_origin_base_url,
                 request_type,
             } => {
                 <i32>::sse_encode(0, serializer);
@@ -5448,7 +5609,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
                 <crate::models::disclosure::DisclosureSessionType>::sse_encode(session_type, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(request_purpose, serializer);
-                <String>::sse_encode(request_origin_base_url, serializer);
                 <crate::models::disclosure::DisclosureType>::sse_encode(request_type, serializer);
             }
             crate::models::disclosure::StartDisclosureResult::RequestAttributesMissing {
@@ -5457,7 +5617,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
-                request_origin_base_url,
             } => {
                 <i32>::sse_encode(1, serializer);
                 <crate::models::organization::Organization>::sse_encode(relying_party, serializer);
@@ -5465,7 +5624,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
                 <crate::models::disclosure::DisclosureSessionType>::sse_encode(session_type, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(request_purpose, serializer);
-                <String>::sse_encode(request_origin_base_url, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -6004,6 +6162,12 @@ mod io {
             CstDecode::<crate::models::attestation::AttestationPresentation>::cst_decode(*wrap).into()
         }
     }
+    impl CstDecode<bool> for *mut bool {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> bool {
+            unsafe { *flutter_rust_bridge::for_generated::box_from_leak_ptr(self) }
+        }
+    }
     impl CstDecode<crate::models::image::Image> for *mut wire_cst_image {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::image::Image {
@@ -6023,6 +6187,13 @@ mod io {
         fn cst_decode(self) -> crate::models::organization::Organization {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
             CstDecode::<crate::models::organization::Organization>::cst_decode(*wrap).into()
+        }
+    }
+    impl CstDecode<crate::models::organization::PersonType> for *mut i32 {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::organization::PersonType {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::organization::PersonType>::cst_decode(*wrap).into()
         }
     }
     impl CstDecode<(String, String)> for *mut wire_cst_record_string_string {
@@ -6051,12 +6222,6 @@ mod io {
         fn cst_decode(self) -> crate::models::revocation::RevocationStatus {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
             CstDecode::<crate::models::revocation::RevocationStatus>::cst_decode(*wrap).into()
-        }
-    }
-    impl CstDecode<u64> for *mut u64 {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> u64 {
-            unsafe { *flutter_rust_bridge::for_generated::box_from_leak_ptr(self) }
         }
     }
     impl CstDecode<crate::models::instruction::WalletInstructionError> for *mut wire_cst_wallet_instruction_error {
@@ -6229,6 +6394,24 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::issuance::IssuanceContinueResult> for wire_cst_issuance_continue_result {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::issuance::IssuanceContinueResult {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Previews };
+                    crate::models::issuance::IssuanceContinueResult::Previews(ans.field0.cst_decode())
+                }
+                1 => {
+                    let ans = unsafe { self.kind.NoPreviews };
+                    crate::models::issuance::IssuanceContinueResult::NoPreviews {
+                        organization: ans.organization.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
     impl CstDecode<crate::models::issuance::IssuanceStartResult> for wire_cst_issuance_start_result {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::issuance::IssuanceStartResult {
@@ -6240,6 +6423,12 @@ mod io {
                 1 => {
                     let ans = unsafe { self.kind.Previews };
                     crate::models::issuance::IssuanceStartResult::Previews(ans.field0.cst_decode())
+                }
+                2 => {
+                    let ans = unsafe { self.kind.NoPreviews };
+                    crate::models::issuance::IssuanceStartResult::NoPreviews {
+                        organization: ans.organization.cst_decode(),
+                    }
                 }
                 _ => unreachable!(),
             }
@@ -6417,6 +6606,16 @@ mod io {
             vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
+    impl CstDecode<Vec<crate::models::organization::ServiceDescription>> for *mut wire_cst_list_service_description {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::organization::ServiceDescription> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
     impl CstDecode<Vec<crate::models::wallet_event::WalletEvent>> for *mut wire_cst_list_wallet_event {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<crate::models::wallet_event::WalletEvent> {
@@ -6477,15 +6676,14 @@ mod io {
             crate::models::organization::Organization {
                 legal_name: self.legal_name.cst_decode(),
                 display_name: self.display_name.cst_decode(),
-                description: self.description.cst_decode(),
-                image: self.image.cst_decode(),
+                service_description: self.service_description.cst_decode(),
                 web_url: self.web_url.cst_decode(),
                 privacy_policy_url: self.privacy_policy_url.cst_decode(),
                 identifier: self.identifier.cst_decode(),
-                city: self.city.cst_decode(),
-                category: self.category.cst_decode(),
-                department: self.department.cst_decode(),
                 country_code: self.country_code.cst_decode(),
+                support_uri: self.support_uri.cst_decode(),
+                public_body: self.public_body.cst_decode(),
+                person_type: self.person_type.cst_decode(),
             }
         }
     }
@@ -6560,9 +6758,6 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::disclosure::RequestPolicy {
             crate::models::disclosure::RequestPolicy {
-                data_storage_duration_in_minutes: self.data_storage_duration_in_minutes.cst_decode(),
-                data_shared_with_third_parties: self.data_shared_with_third_parties.cst_decode(),
-                data_deletion_possible: self.data_deletion_possible.cst_decode(),
                 policy_url: self.policy_url.cst_decode(),
             }
         }
@@ -6587,6 +6782,14 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::organization::ServiceDescription> for wire_cst_service_description {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::organization::ServiceDescription {
+            crate::models::organization::ServiceDescription {
+                translations: self.translations.cst_decode(),
+            }
+        }
+    }
     impl CstDecode<crate::models::disclosure::StartDisclosureResult> for wire_cst_start_disclosure_result {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::disclosure::StartDisclosureResult {
@@ -6600,7 +6803,6 @@ mod io {
                         shared_data_with_relying_party_before: ans.shared_data_with_relying_party_before.cst_decode(),
                         session_type: ans.session_type.cst_decode(),
                         request_purpose: ans.request_purpose.cst_decode(),
-                        request_origin_base_url: ans.request_origin_base_url.cst_decode(),
                         request_type: ans.request_type.cst_decode(),
                     }
                 }
@@ -6612,7 +6814,6 @@ mod io {
                         shared_data_with_relying_party_before: ans.shared_data_with_relying_party_before.cst_decode(),
                         session_type: ans.session_type.cst_decode(),
                         request_purpose: ans.request_purpose.cst_decode(),
-                        request_origin_base_url: ans.request_origin_base_url.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -6987,6 +7188,19 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_issuance_continue_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: IssuanceContinueResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_issuance_continue_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
     impl NewWithNullPtr for wire_cst_issuance_start_result {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -7043,15 +7257,14 @@ mod io {
             Self {
                 legal_name: core::ptr::null_mut(),
                 display_name: core::ptr::null_mut(),
-                description: core::ptr::null_mut(),
-                image: core::ptr::null_mut(),
+                service_description: core::ptr::null_mut(),
                 web_url: core::ptr::null_mut(),
                 privacy_policy_url: core::ptr::null_mut(),
                 identifier: core::ptr::null_mut(),
-                city: core::ptr::null_mut(),
-                category: core::ptr::null_mut(),
-                department: core::ptr::null_mut(),
                 country_code: core::ptr::null_mut(),
+                support_uri: core::ptr::null_mut(),
+                public_body: core::ptr::null_mut(),
+                person_type: core::ptr::null_mut(),
             }
         }
     }
@@ -7141,9 +7354,6 @@ mod io {
     impl NewWithNullPtr for wire_cst_request_policy {
         fn new_with_null_ptr() -> Self {
             Self {
-                data_storage_duration_in_minutes: core::ptr::null_mut(),
-                data_shared_with_third_parties: Default::default(),
-                data_deletion_possible: Default::default(),
                 policy_url: core::ptr::null_mut(),
             }
         }
@@ -7162,6 +7372,18 @@ mod io {
         }
     }
     impl Default for wire_cst_revocation_code_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_service_description {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                translations: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_service_description {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -7727,6 +7949,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_bool(value: bool) -> *mut bool {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_image() -> *mut wire_cst_image {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_image::new_with_null_ptr())
     }
@@ -7740,6 +7967,11 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_organization() -> *mut wire_cst_organization {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_organization::new_with_null_ptr())
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_person_type(value: i32) -> *mut i32 {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
     }
 
     #[unsafe(no_mangle)]
@@ -7760,11 +7992,6 @@ mod io {
 
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_revocation_status(value: i32) -> *mut i32 {
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_u_64(value: u64) -> *mut u64 {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
     }
 
@@ -7986,6 +8213,20 @@ mod io {
         let wrap = wire_cst_list_record_string_box_attribute_value {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
                 <wire_cst_record_string_box_attribute_value>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_service_description(
+        len: i32,
+    ) -> *mut wire_cst_list_service_description {
+        let wrap = wire_cst_list_service_description {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_service_description>::new_with_null_ptr(),
                 len,
             ),
             len,
@@ -8281,6 +8522,29 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_issuance_continue_result {
+        tag: i32,
+        kind: IssuanceContinueResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union IssuanceContinueResultKind {
+        Previews: wire_cst_IssuanceContinueResult_Previews,
+        NoPreviews: wire_cst_IssuanceContinueResult_NoPreviews,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssuanceContinueResult_Previews {
+        field0: *mut wire_cst_list_attestation_presentation,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssuanceContinueResult_NoPreviews {
+        organization: *mut wire_cst_organization,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_issuance_start_result {
         tag: i32,
         kind: IssuanceStartResultKind,
@@ -8290,6 +8554,7 @@ mod io {
     pub union IssuanceStartResultKind {
         AuthorizationUrl: wire_cst_IssuanceStartResult_AuthorizationUrl,
         Previews: wire_cst_IssuanceStartResult_Previews,
+        NoPreviews: wire_cst_IssuanceStartResult_NoPreviews,
         nil__: (),
     }
     #[repr(C)]
@@ -8301,6 +8566,11 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_IssuanceStartResult_Previews {
         field0: *mut wire_cst_list_attestation_presentation,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssuanceStartResult_NoPreviews {
+        organization: *mut wire_cst_organization,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -8406,6 +8676,12 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_list_service_description {
+        ptr: *mut wire_cst_service_description,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_list_wallet_event {
         ptr: *mut wire_cst_wallet_event,
         len: i32,
@@ -8456,15 +8732,14 @@ mod io {
     pub struct wire_cst_organization {
         legal_name: *mut wire_cst_list_prim_u_8_strict,
         display_name: *mut wire_cst_list_prim_u_8_strict,
-        description: *mut wire_cst_list_localized_string,
-        image: *mut wire_cst_image,
+        service_description: *mut wire_cst_list_service_description,
         web_url: *mut wire_cst_list_prim_u_8_strict,
         privacy_policy_url: *mut wire_cst_list_prim_u_8_strict,
         identifier: *mut wire_cst_list_prim_u_8_strict,
-        city: *mut wire_cst_list_localized_string,
-        category: *mut wire_cst_list_localized_string,
-        department: *mut wire_cst_list_localized_string,
         country_code: *mut wire_cst_list_prim_u_8_strict,
+        support_uri: *mut wire_cst_list_prim_u_8_strict,
+        public_body: *mut bool,
+        person_type: *mut i32,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -8536,9 +8811,6 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_request_policy {
-        data_storage_duration_in_minutes: *mut u64,
-        data_shared_with_third_parties: bool,
-        data_deletion_possible: bool,
         policy_url: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
@@ -8566,6 +8838,11 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_service_description {
+        translations: *mut wire_cst_list_localized_string,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_start_disclosure_result {
         tag: i32,
         kind: StartDisclosureResultKind,
@@ -8586,7 +8863,6 @@ mod io {
         shared_data_with_relying_party_before: bool,
         session_type: i32,
         request_purpose: *mut wire_cst_list_localized_string,
-        request_origin_base_url: *mut wire_cst_list_prim_u_8_strict,
         request_type: i32,
     }
     #[repr(C)]
@@ -8597,7 +8873,6 @@ mod io {
         shared_data_with_relying_party_before: bool,
         session_type: i32,
         request_purpose: *mut wire_cst_list_localized_string,
-        request_origin_base_url: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

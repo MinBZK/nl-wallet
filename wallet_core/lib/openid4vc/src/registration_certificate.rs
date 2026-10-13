@@ -3,6 +3,7 @@ use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
 use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
 use attestation_data::registration_certificate::RegistrationCertificateValidationError;
+use attestation_data::registration_certificate::StatusValidatedRegistrationCertificate;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use attestation_data::x509::RelyingPartyError;
@@ -16,9 +17,9 @@ use utils::generator::Generator;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateError {
-    #[error("Authorization Request does not contain a registration certificate")]
+    #[error("no registration certificate found")]
     Missing,
-    #[error("Authorization Request contains multiple registration certificates")]
+    #[error("multiple registration certificates found")]
     Multiple,
     #[error("registration certificate has an invalid envelope: {0}")]
     Envelope(#[source] RegistrationCertificateEnvelopeError),
@@ -34,15 +35,16 @@ pub enum RegistrationCertificateError {
     Authorization(#[source] RegistrationCertificateAuthorizationError),
 }
 
-/// Validate a registration certificate and ensure that it authorizes the DCQL query.
-pub async fn validate_registration_certificate_and_query<C>(
+/// Validate a registration certificate's envelope, WRPAC binding, validity and status.
+///
+/// This does not check authorization for disclosure or issuance.
+pub async fn validate_registration_certificate<C>(
     registration_certificate: &RegistrationCertificateEnvelope,
-    query: &Query,
     access_certificate: &BorrowingCertificate,
     registration_certificate_trust_anchors: &TrustAnchors,
     revocation_verifier: &RevocationVerifier<C>,
     time: &impl Generator<chrono::DateTime<chrono::Utc>>,
-) -> Result<(), RegistrationCertificateError>
+) -> Result<StatusValidatedRegistrationCertificate, RegistrationCertificateError>
 where
     C: StatusListClient,
 {
@@ -62,7 +64,7 @@ where
     let certificate = payload
         .validate_binding_and_time(&access_subject, time.generate())
         .map_err(RegistrationCertificateError::BindingAndTime)?;
-    let certificate = certificate
+    certificate
         .validate_status(
             revocation_verifier,
             registration_certificate_trust_anchors,
@@ -70,11 +72,35 @@ where
             time,
         )
         .await
-        .map_err(RegistrationCertificateError::Status)?;
+        .map_err(RegistrationCertificateError::Status)
+}
+
+/// Validate a registration certificate and ensure that it authorizes the DCQL query.
+pub async fn validate_registration_certificate_and_query<C>(
+    registration_certificate: &RegistrationCertificateEnvelope,
+    query: &Query,
+    access_certificate: &BorrowingCertificate,
+    registration_certificate_trust_anchors: &TrustAnchors,
+    revocation_verifier: &RevocationVerifier<C>,
+    time: &impl Generator<chrono::DateTime<chrono::Utc>>,
+) -> Result<StatusValidatedRegistrationCertificate, RegistrationCertificateError>
+where
+    C: StatusListClient,
+{
+    let certificate = validate_registration_certificate(
+        registration_certificate,
+        access_certificate,
+        registration_certificate_trust_anchors,
+        revocation_verifier,
+        time,
+    )
+    .await?;
 
     certificate
         .validate_query_authorization(query)
-        .map_err(RegistrationCertificateError::Authorization)
+        .map_err(RegistrationCertificateError::Authorization)?;
+
+    Ok(certificate)
 }
 
 #[cfg(test)]
@@ -93,7 +119,6 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::DistinguishedName;
-    use crypto::x509::NO_SAN;
     use dcql::Query;
     use rstest::rstest;
     use token_status_list::status_list::StatusType;
@@ -101,6 +126,7 @@ mod tests {
     use utils::generator::TimeGenerator;
 
     use super::RegistrationCertificateError;
+    use super::validate_registration_certificate;
     use super::validate_registration_certificate_and_query;
 
     enum EnvelopeFormat {
@@ -139,6 +165,7 @@ mod tests {
             &TimeGenerator,
         )
         .await
+        .map(|_| ())
     }
 
     #[rstest]
@@ -152,6 +179,23 @@ mod tests {
             EnvelopeFormat::Cwt => authority.issue_cwt(access_key_pair.certificate(), query.clone()),
         };
         let envelope = registration_certificate_envelope(&certificate);
+
+        let revocation_verifier =
+            RevocationVerifier::new_without_caching(Arc::new(authority.status_list_client.clone()));
+        let validated_certificate = validate_registration_certificate(
+            &envelope,
+            access_key_pair.certificate(),
+            &authority.trust_anchors,
+            &revocation_verifier,
+            &TimeGenerator,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            validated_certificate.payload().id.as_deref(),
+            Some("mock-registration-certificate")
+        );
 
         validate(
             &envelope,
@@ -199,7 +243,6 @@ mod tests {
                     "other-organization-identifier".to_string(),
                 ),
                 Default::default(),
-                NO_SAN,
             )
             .unwrap();
 

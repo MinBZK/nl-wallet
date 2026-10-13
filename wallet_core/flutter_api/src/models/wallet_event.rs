@@ -3,6 +3,7 @@ use itertools::Itertools;
 use super::attestation::AttestationPresentation;
 use super::disclosure::DisclosureType;
 use super::disclosure::RequestPolicy;
+use super::disclosure::request_purpose;
 use super::localize::LocalizedString;
 use super::organization::Organization;
 
@@ -71,25 +72,9 @@ impl From<wallet::WalletEvent> for WalletEvent {
                 WalletEvent::Disclosure {
                     id: id.to_string(),
                     date_time: timestamp.to_rfc3339(),
+                    purpose: request_purpose(&organization),
+                    request_policy: RequestPolicy::new(organization.privacy_policy_url.as_ref()),
                     relying_party: (*organization).into(),
-                    // TODO (PVW-6111): Replace with fields from registration certificate
-                    purpose: vec![
-                        LocalizedString {
-                            language: "en".into(),
-                            value: "Disclosure".into(),
-                        },
-                        LocalizedString {
-                            language: "nl".into(),
-                            value: "Onthullen".into(),
-                        },
-                    ],
-                    // TODO (PVW-6111): Replace with fields from registration certificate
-                    request_policy: RequestPolicy {
-                        data_storage_duration_in_minutes: Some(525600),
-                        data_shared_with_third_parties: false,
-                        data_deletion_possible: false,
-                        policy_url: "https://example.com".to_string(),
-                    },
                     shared_attestations: (!attestations.is_empty()).then_some(attestations),
                     status: status.into(),
                     typ: r#type.into(),
@@ -115,5 +100,50 @@ impl From<wallet::DisclosureStatus> for DisclosureStatus {
             wallet::DisclosureStatus::Cancelled => DisclosureStatus::Cancelled,
             wallet::DisclosureStatus::Error => DisclosureStatus::Error,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use serde_json::json;
+    use wallet::attestation_data::Organization;
+
+    use super::WalletEvent;
+
+    #[rstest]
+    #[case::registered(Some("Verify your identity"), "Verify your identity")]
+    #[case::proximity(None, "Disclosure")]
+    fn disclosure_history_registration_fields(
+        #[case] registered_purpose: Option<&str>,
+        #[case] expected: &str,
+        #[values(None, Some("https://example.org/privacy"))] privacy_policy_url: Option<&str>,
+    ) {
+        let mut stored = serde_json::to_value(Organization::default()).unwrap();
+        if let Some(purpose) = registered_purpose {
+            stored["purpose"] = json!([{ "lang": "en", "value": purpose }]);
+        }
+        if let Some(url) = privacy_policy_url {
+            stored["privacyPolicyUrl"] = json!(url);
+        }
+        let event = WalletEvent::from(wallet::WalletEvent::Disclosure {
+            id: Default::default(),
+            timestamp: Default::default(),
+            organization: Box::new(serde_json::from_value(stored).unwrap()),
+            attestations: vec![],
+            status: wallet::DisclosureStatus::Success,
+            r#type: wallet::attestation_data::DisclosureType::Regular,
+        });
+        let WalletEvent::Disclosure {
+            purpose,
+            request_policy,
+            ..
+        } = event
+        else {
+            panic!("expected disclosure event");
+        };
+        assert_eq!(purpose[0].language, "en");
+        assert_eq!(purpose[0].value, expected);
+        assert_eq!(request_policy.policy_url.as_deref(), privacy_policy_url);
     }
 }

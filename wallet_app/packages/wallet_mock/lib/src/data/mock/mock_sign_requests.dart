@@ -3,7 +3,6 @@ import 'package:wallet_core/core.dart';
 import '../../util/extension/string_extension.dart';
 import '../model/requested_attribute.dart';
 import '../model/sign_request.dart';
-import 'mock_assets.dart';
 import 'mock_organizations.dart';
 
 final List<SignRequest> kSignRequests = [kRentalRequest];
@@ -14,9 +13,7 @@ final kRentalRequest = SignRequest(
   trustProvider: Organization(
     legalName: 'Veilig Ondertekenen B.V.',
     displayName: 'Veilig Ondertekenen B.V.',
-    category: 'Contracten'.untranslated,
-    description: ''.untranslated,
-    image: const Image.asset(path: MockAssets.logo_sign_provider),
+    serviceDescription: [ServiceDescription(translations: ''.untranslated)],
     identifier: 'NTRNL-98765411',
     countryCode: 'NL',
   ),
@@ -30,10 +27,7 @@ final kRentalRequest = SignRequest(
     RequestedAttribute(key: 'mock_lastName', label: 'Achternaam'),
     RequestedAttribute(key: 'mock_birthDate', label: 'Geboortedatum'),
   ],
-  policy: RequestPolicy(
-    dataDeletionPossible: false,
-    dataSharedWithThirdParties: false,
-    dataStorageDurationInMinutes: BigInt.zero,
+  policy: const RequestPolicy(
     policyUrl: 'https://example.org',
   ),
 );

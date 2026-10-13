@@ -10,16 +10,13 @@ current_instruction_result_kid = "0"
 # Identifier for key used to generate revocation code HMACs that are stored in the database
 revocation_code_key_identifier = "revocation_code_key"
 
+# Certificate with which the WIA is signed
+wia_certificate = "MIIBlDCC..."
+
 # Identifier for key used to issue WIAs to wallets
 wia_signing_key_identifier = "wia_signing_key"
 
 # Number of days a WIA remains valid for status tracking purposes
-# wia_status_tracking_validity_in_days = 365
-
-# Certificate with which the WIA is signed
-wia_certificate = "MIIBlDCC..."
-
-# How long the revocation status of the WIA is tracked and published
 # wia_status_tracking_validity_in_days = 365
 
 # Human-readable name of the wallet solution
@@ -34,8 +31,20 @@ wia_wallet_version = "1.0.0"
 # Certification information for the wallet solution
 # wia_wallet_solution_certification_information = "https://wallet.edi.rijksoverheid.nl"
 
+# Certificate with which OpenID4VCI key attestations are signed
+key_attestation_certificate = "MIIBlDCC..."
+
+# Identifier for the private key used to issue OpenID4VCI key attestations to wallets
+key_attestation_signing_key_identifier = "key_attestation_signing_key"
+
+# Certification information about the WSCD or keystore, in the form of a URL
+# key_attestation_certification = "https://wallet.edi.rijksoverheid.nl"
+
 # Delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
+
+# How long, in days, a Wallet Certificate is valid
+# wallet_certificate_validity_in_days = 90
 
 # Indicates if the revoke-solution API endpoint should be enabled
 #revoke_solution_enabled = false
@@ -114,7 +123,7 @@ root_certificates = [
 ]
 
 [android]
-# The root certificate received during key attestation is checked against all of these public keys.
+# The root certificate received during Android key attestation is checked against all of these public keys.
 # They can be either RSA or ECDSA keys, base64 encoded in PKCS 8 format.
 root_public_keys = [
     "MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAr7bHgiuxpwHsK7Qui8xUFmOr75gvMsd/dTEDDJdSSxtf6An7xyqpRR90PL2abxM1dEqlXnf2tqw1Ne4Xwl5jlRfdnJLmN0pTy/4lj4/7tv0Sk3iiKkypnEUtR6WfMgH0QZfKHM1+di+y9TFRtv6y//0rb+T+W8a9nsNL/ggjnar86461qO0rOs2cXjp3kOG1FEJ5MVmFmBGtnrKpa73XpXyTqRxB/M0n1n/W9nGqC4FSYa04T6N5RIZGBN2z2MT5IKGbFlbC8UrW0DxW7AYImQQcHtGl/m00QLVWutHQoVJYnFPlXTcHYvASLu+RhhsbDmxMgJJ0mcDpvsC4PjvB+TxywElgS70vE0XmLD+OJtvsBslHZvPBKCOdT0MS+tgSOIfga+z1Z1g7+DVagf7quvmag8jfPioyKvxnK/EgsTUVi2ghzq8wm27ud/mIM7AY2qEORR8Go3TVB4HzWQgpZrt3i5MIlCaY504LzSRiigHCzAPlHws+W0rB5N+er5/2pJKnfBSDiCiFAVtCLOZ7gLiMm0jhO2B6tUXHI/+MRPjy02i59lINMRRev56GKtcd9qO/0kUJWdZTdA2XoS82ixPvZtXQpUpuL12ab+9EaDK8Z4RHJYYfCT3Q5vNAXaiWQ+8PTWm2QgBR/bkwSWc+NpUFgNPN9PvQi8WEg5UmAGMCAwEAAQ==",

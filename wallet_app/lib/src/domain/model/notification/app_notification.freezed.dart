@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'app_notification.dart';
@@ -9,6 +9,7 @@ part of 'app_notification.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -25,16 +26,21 @@ $AppNotificationCopyWith<AppNotification> get copyWith => _$AppNotificationCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.displayTargets, displayTargets));
+  final _this = this as AppNotification;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppNotification&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.type, _this.type) || other.type == _this.type)&&const DeepCollectionEquality().equals(other.displayTargets, _this.displayTargets));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,type,const DeepCollectionEquality().hash(displayTargets));
+int get hashCode {
+  final _this = this as AppNotification;
+  return Object.hash(runtimeType,_this.id,_this.type,const DeepCollectionEquality().hash(_this.displayTargets));
+}
 
 @override
 String toString() {
-  return 'AppNotification(id: $id, type: $type, displayTargets: $displayTargets)';
+  final _this = this as AppNotification;
+  return 'AppNotification(id: ${_this.id}, type: ${_this.type}, displayTargets: ${_this.displayTargets})';
 }
 
 
@@ -63,7 +69,7 @@ class _$AppNotificationCopyWithImpl<$Res>
 /// Create a copy of AppNotification
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? type = null,Object? displayTargets = null,}) {
-  return _then(_self.copyWith(
+  return _then(AppNotification(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as NotificationType,displayTargets: null == displayTargets ? _self.displayTargets : displayTargets // ignore: cast_nullable_to_non_nullable
@@ -217,7 +223,7 @@ return $default(_that.id,_that.type,_that.displayTargets);case _:
 
 
 class _AppNotification implements AppNotification {
-  const _AppNotification({required this.id, required this.type, required final  List<NotificationDisplayTarget> displayTargets}): _displayTargets = displayTargets;
+  const _AppNotification({required this.id, required this.type, required  List<NotificationDisplayTarget> displayTargets}): _displayTargets = displayTargets;
   
 
 @override final  int id;
@@ -240,16 +246,18 @@ _$AppNotificationCopyWith<_AppNotification> get copyWith => __$AppNotificationCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._displayTargets, _displayTargets));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.displayTargets, _displayTargets));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,type,const DeepCollectionEquality().hash(_displayTargets));
+int get hashCode {
+    return Object.hash(runtimeType,id,type,const DeepCollectionEquality().hash(_displayTargets));
+}
 
 @override
 String toString() {
-  return 'AppNotification(id: $id, type: $type, displayTargets: $displayTargets)';
+    return 'AppNotification(id: $id, type: $type, displayTargets: $displayTargets)';
 }
 
 

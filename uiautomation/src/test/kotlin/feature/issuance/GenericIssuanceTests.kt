@@ -52,12 +52,13 @@ class GenericIssuanceTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickLoyaltyButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.acceptOpenWalletDialog()
 
         cardIssuanceScreen.switchToNativeContext()
+        cardIssuanceScreen.captureA11ySnapshot("CardIssuanceLoyalty")
         cardIssuanceScreen.clickAddCardButton()
         pinScreen.enterPin(DEFAULT_PIN)
 
@@ -66,6 +67,7 @@ class GenericIssuanceTests : TestBase() {
         assertTrue(dashboardScreen.cardVisible(tasData.getLoyaltyDisplayName()), "Loyalty card not visible on dashboard")
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getLoyaltyDisplayName()), "Loyalty card not visible on dashboard")
+        dashboardScreen.captureA11ySnapshot("DashboardWithLoyaltyCard")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -74,7 +76,7 @@ class GenericIssuanceTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickInsuranceButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.acceptOpenWalletDialog()
@@ -85,6 +87,7 @@ class GenericIssuanceTests : TestBase() {
 
         cardIssuanceScreen.switchToNativeContext()
         assertTrue(cardIssuanceScreen.addCardButtonVisible(), "Card issuance screen not visible after consent")
+        cardIssuanceScreen.captureA11ySnapshot("CardIssuanceInsuranceWithConsent")
         cardIssuanceScreen.clickAddCardButton()
         pinScreen.enterPin(DEFAULT_PIN)
 
@@ -92,6 +95,7 @@ class GenericIssuanceTests : TestBase() {
         dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceDisplayName()), "Insurance card not visible on dashboard")
+        dashboardScreen.captureA11ySnapshot("DashboardWithInsuranceCard")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -101,12 +105,13 @@ class GenericIssuanceTests : TestBase() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
 
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickMuseumMaandkaartButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.acceptOpenWalletDialog()
 
         cardIssuanceScreen.switchToNativeContext()
+        cardIssuanceScreen.captureA11ySnapshot("CardIssuanceMuseumMaandkaart")
         cardIssuanceScreen.clickAddCardButton()
         pinScreen.enterPin(DEFAULT_PIN)
 
@@ -117,6 +122,7 @@ class GenericIssuanceTests : TestBase() {
             dashboardScreen.cardVisible(tasData.getMuseumMaandkaartDisplayName()),
             "Museum maandkaart card not visible on dashboard"
         )
+        dashboardScreen.captureA11ySnapshot("DashboardWithMuseumMaandkaartCard")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -126,7 +132,7 @@ class GenericIssuanceTests : TestBase() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
 
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickDrivingLicenseButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.acceptOpenWalletDialog()
@@ -163,7 +169,7 @@ class GenericIssuanceTests : TestBase() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
 
-        indexWebPage.switchToWebViewContext()
+        indexWebPage.switchToIndexPage()
         indexWebPage.clickRegistrationCertificateButton()
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.acceptOpenWalletDialog()

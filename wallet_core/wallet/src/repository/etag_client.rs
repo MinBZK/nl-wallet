@@ -16,7 +16,6 @@ use tracing::warn;
 
 use super::FileStorageError;
 use super::Filename;
-use super::HttpClient;
 use super::HttpClientError;
 use super::HttpResponse;
 use crate::reqwest::CachedReqwestClient;
@@ -82,16 +81,21 @@ impl<T, B, E> EtagHttpClient<T, B, E> {
     }
 }
 
-impl<T, B, E> HttpClient<T, B> for EtagHttpClient<T, B, E>
+impl<T, B, E> EtagHttpClient<T, B, E>
 where
-    T: FromStr + Send + Sync,
+    T: FromStr,
     T::Err: Error + Send + Sync + 'static,
-    B: IntoReqwestClient + Clone + Hash + Send + Sync,
-    E: From<HttpClientError> + Error + Send + Sync + 'static,
+    B: IntoReqwestClient + Clone + Hash,
+    E: From<HttpClientError>,
 {
-    type Error = E;
-
-    async fn fetch(&self, client_builder: &B) -> Result<HttpResponse<T>, Self::Error> {
+    /// Fetches the resource, sending along the `ETag` of the last accepted response. If the resource has been
+    /// modified, the response is parsed and passed to `accept`. Only if that succeeds, the `ETag` of the response is
+    /// stored.
+    pub async fn fetch_and_accept<R>(
+        &self,
+        client_builder: &B,
+        accept: impl FnOnce(T) -> Result<R, E>,
+    ) -> Result<HttpResponse<R>, E> {
         let client = self
             .cached_client
             .get_or_try_init(client_builder, IntoReqwestClient::try_into_client)
@@ -124,23 +128,24 @@ where
             return Ok(HttpResponse::NotModified);
         }
 
-        if let Some(etag) = response.headers().get(header::ETAG) {
-            self.store_latest_etag(etag).await.map_err(HttpClientError::EtagFile)?;
-            *self.latest_etag.lock() = Some(etag.to_owned());
+        let etag = response.headers().get(header::ETAG).cloned();
+
+        let body = response.text().await.map_err(|_| HttpClientError::EmptyBody)?;
+        let parsed = body.parse().map_err(|e: T::Err| HttpClientError::Parse(e.into()))?;
+        let accepted = accept(parsed)?;
+
+        if let Some(etag) = etag {
+            self.store_latest_etag(&etag).await.map_err(HttpClientError::EtagFile)?;
+            *self.latest_etag.lock() = Some(etag);
         }
 
-        match response.text().await.ok() {
-            Some(b) => {
-                let parsed = HttpResponse::Parsed(b.parse().map_err(|e: T::Err| HttpClientError::Parse(e.into()))?);
-                Ok(parsed)
-            }
-            _ => Err(HttpClientError::EmptyBody)?,
-        }
+        Ok(HttpResponse::Parsed(accepted))
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::convert::Infallible;
     use std::str::FromStr;
 
@@ -152,7 +157,6 @@ mod test {
 
     use super::EtagHttpClient;
     use crate::repository::Filename;
-    use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
     use crate::repository::HttpResponse;
 
@@ -198,11 +202,11 @@ mod test {
 
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
 
-        let response = client.fetch(&client_builder).await.unwrap();
+        let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
         mock_ok.assert_async().await;
 
-        let response = client.fetch(&client_builder).await.unwrap();
+        let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::NotModified));
         mock_not_modified.assert_async().await;
     }
@@ -258,12 +262,65 @@ mod test {
                 .await
                 .unwrap();
 
-        let response = client.fetch(&client_builder).await.unwrap();
+        let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
         mock_ok1.assert_async().await;
 
-        let response = client.fetch(&client_builder).await.unwrap();
+        let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
         mock_ok2.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn test_etag_http_client_rejected() {
+        let server = MockServer::start_async().await;
+        let base_url = server.base_url().parse().unwrap();
+
+        let mock_ok = server
+            .mock_async(|when, then| {
+                when.method(GET)
+                    .header_missing(header::IF_NONE_MATCH.as_str())
+                    .path("/config");
+
+                then.status(200).header(header::ETAG.as_str(), "etag");
+            })
+            .await;
+
+        let etag_dir = tempfile::tempdir().unwrap();
+        let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
+        let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
+            EtagHttpClient::new("config".parse().unwrap(), etag_dir.path().to_path_buf())
+                .await
+                .unwrap();
+
+        // Reject the response, which should not result in its ETag being stored.
+        let result = client
+            .fetch_and_accept(&client_builder, |_| Err::<Stub, _>(HttpClientError::EmptyBody))
+            .await;
+        let Err(error) = result else {
+            panic!("rejecting the response should result in an error");
+        };
+        assert_matches!(error, HttpClientError::EmptyBody);
+        assert!(
+            fs::read_dir(etag_dir.path())
+                .await
+                .unwrap()
+                .next_entry()
+                .await
+                .unwrap()
+                .is_none()
+        );
+
+        // The next request should therefore not include the ETag, so the response is received and evaluated again.
+        let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
+        assert!(matches!(response, HttpResponse::Parsed(_)));
+        mock_ok.assert_calls_async(2).await;
+
+        // Now that the response has been accepted, its ETag should have been stored.
+        let etag_file = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::etag_file(
+            "config".parse().unwrap(),
+            etag_dir.path(),
+        );
+        assert_eq!(fs::read(&etag_file).await.unwrap(), b"etag");
     }
 }

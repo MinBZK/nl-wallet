@@ -127,6 +127,7 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::validity::ValidityWindow;
+    use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use parking_lot::Mutex;
     use uuid::Uuid;
 
@@ -158,6 +159,7 @@ mod tests {
                 },
                 StoredAttestationMetadata::TypeMetadata(sd_jwt_metadata),
                 None,
+                IssuerRegistration::new_mock(),
             )])
         });
 

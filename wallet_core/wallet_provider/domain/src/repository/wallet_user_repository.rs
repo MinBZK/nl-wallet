@@ -141,6 +141,13 @@ pub trait WalletUserRepository {
         user_state: WalletUserState,
     ) -> Result<()>;
 
+    async fn update_encrypted_pin_pubkey(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &WalletId,
+        encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
+    ) -> Result<()>;
+
     async fn commit_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &WalletId) -> Result<()>;
 
     async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &WalletId) -> Result<()>;
@@ -445,6 +452,15 @@ pub mod mock {
             _wallet_id: &WalletId,
             _encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
             _user_state: WalletUserState,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn update_encrypted_pin_pubkey(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &WalletId,
+            _encrypted_pin_pubkey: WithKid<Encrypted<VerifyingKey>>,
         ) -> Result<()> {
             Ok(())
         }

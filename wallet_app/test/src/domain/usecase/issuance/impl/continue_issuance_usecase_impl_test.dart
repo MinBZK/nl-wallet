@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
+import 'package:wallet/src/domain/model/issuance/continue_issuance_result.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/impl/continue_issuance_usecase_impl.dart';
@@ -20,13 +21,25 @@ void main() {
   group('ContinueIssuanceUseCase', () {
     test('Success: returns a list of cards when repo succeeds', () async {
       const sampleUri = 'https://example.org';
-      final sampleCards = [WalletMockData.card];
-      when(mockRepo.continueIssuance(sampleUri)).thenAnswer((_) async => sampleCards);
+      final sampleResult = ContinueIssuancePreviews([WalletMockData.card]);
+      when(mockRepo.continueIssuance(sampleUri)).thenAnswer((_) async => sampleResult);
 
       final result = await usecase.invoke(sampleUri);
 
       expect(result.hasError, isFalse);
-      expect(result.value, sampleCards);
+      expect(result.value, sampleResult);
+      verify(mockRepo.continueIssuance(sampleUri)).called(1);
+    });
+
+    test('Success: returns the issuer when repo succeeds without previews', () async {
+      const sampleUri = 'https://example.org';
+      final sampleResult = ContinueIssuanceNoPreviews(organization: WalletMockData.organization);
+      when(mockRepo.continueIssuance(sampleUri)).thenAnswer((_) async => sampleResult);
+
+      final result = await usecase.invoke(sampleUri);
+
+      expect(result.hasError, isFalse);
+      expect(result.value, sampleResult);
       verify(mockRepo.continueIssuance(sampleUri)).called(1);
     });
 

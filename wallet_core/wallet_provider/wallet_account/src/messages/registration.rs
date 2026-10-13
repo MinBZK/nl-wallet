@@ -73,6 +73,9 @@ pub struct WalletCertificateClaims {
 
     #[serde(with = "ts_seconds")]
     pub iat: DateTime<Utc>,
+
+    #[serde(with = "ts_seconds")]
+    pub exp: DateTime<Utc>,
 }
 
 impl JwtSub for WalletCertificateClaims {

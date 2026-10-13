@@ -44,7 +44,7 @@ use crate::verifier::SessionType;
 pub struct VpDisclosureClient<H = HttpVpMessageClient, F = HttpCrlFetcher, C = HttpStatusListClient> {
     client: H,
     crl_verifier: CertificateCrlVerifier<F>,
-    registration_certificate_revocation_verifier: RevocationVerifier<C>,
+    wrprc_revocation_verifier: RevocationVerifier<C>,
 }
 
 impl<H, F, C> VpDisclosureClient<H, F, C>
@@ -55,7 +55,7 @@ where
         Self {
             client,
             crl_verifier,
-            registration_certificate_revocation_verifier: RevocationVerifier::new_with_defaults(
+            wrprc_revocation_verifier: RevocationVerifier::new_with_defaults(
                 Arc::new(status_list_client),
                 TimeGenerator,
             ),
@@ -75,9 +75,9 @@ where
             }) => Some(VpAuthorizationErrorCode::UnsupportedResponseType),
 
             // Invalid request.
-            VpVerifierError::AuthRequestValidation(_)
-            | VpVerifierError::IncorrectClientId { .. }
-            | VpVerifierError::RpCertificate(_) => Some(VpAuthorizationErrorCode::InvalidRequest),
+            VpVerifierError::AuthRequestValidation(_) | VpVerifierError::IncorrectClientId { .. } => {
+                Some(VpAuthorizationErrorCode::InvalidRequest)
+            }
 
             // None.
             VpVerifierError::Request(_) => None,
@@ -221,11 +221,11 @@ where
                 &dcql_query,
                 &certificate,
                 trust_anchors.wrprc,
-                &self.registration_certificate_revocation_verifier,
+                &self.wrprc_revocation_verifier,
                 &TimeGenerator,
             )
             .await
-            .map(|()| (auth_request, selected_encryption_algorithm))
+            .map(|registration| (auth_request, selected_encryption_algorithm, (&registration).into()))
             .map_err(|error| {
                 VpVerifierError::AuthRequestValidation(AuthRequestValidationError::RegistrationCertificate(Box::new(
                     error,
@@ -234,7 +234,7 @@ where
             Err(error) => Err(error),
         };
 
-        let (auth_request, selected_encryption_algorithm) = match (auth_request_result, response_uri) {
+        let (auth_request, selected_encryption_algorithm, organization) = match (auth_request_result, response_uri) {
             (Err(error), Some(response_uri)) => {
                 return Err(VpSessionError::Verifier(
                     self.report_error_back(response_uri, state, error).await,
@@ -284,7 +284,7 @@ where
         let session = VpDisclosureSession::new(
             self.client.clone(),
             source_session_type,
-            certificate,
+            organization,
             auth_request,
             selected_encryption_algorithm,
         );
@@ -305,7 +305,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
     use attestation_data::registration_certificate::RegistrationCertificateValidationError;
-    use attestation_data::registration_certificate::mock::registration_certificate_payload;
+    use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -315,8 +315,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::crl::CertificateCrlVerifier;
-    use crypto::x509::crl::mock::MockCrlFetcher;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
@@ -561,15 +560,12 @@ mod tests {
             }
         );
 
-        assert_eq!(
-            disclosure_session.certificate(),
-            verifier_session.key_pair.certificate()
-        );
+        assert_eq!(disclosure_session.organization().display_name, "Mock verifier");
 
         // Create an attestation and disclose it.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let attestation_key = MockRemoteEcdsaKey::new_random("attestation_key".to_string());
-        let wscd = MockRemoteWscd::new(vec![attestation_key.clone()]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![attestation_key.clone()]);
 
         let attestations = match credential_format {
             Format::MsoMdoc => {
@@ -825,7 +821,7 @@ mod tests {
             None,
             NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
         );
-        let mut payload = registration_certificate_payload(
+        let mut payload = verifier_registration_certificate_payload(
             verifier_session.key_pair.certificate(),
             verifier_session.credential_requests.clone().into(),
         );
@@ -889,7 +885,7 @@ mod tests {
         // Calling `VpDisclosureClient::start()` with an invalid request URI object should result in an error.
         let client = VpDisclosureClient::new(
             MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
             status_list_client(),
         );
 
@@ -913,7 +909,7 @@ mod tests {
     fn test_vp_disclosure_client_start_error_unsupported_request_object_as_value() {
         let client = VpDisclosureClient::new(
             MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
             status_list_client(),
         );
 
@@ -952,7 +948,7 @@ mod tests {
     fn test_vp_disclosure_client_start_error_unsupported_request_object_as_query_parameters() {
         let client = VpDisclosureClient::new(
             MockErrorFactoryVpMessageClient::new(|| panic!("message client should not be called"), false),
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
             status_list_client(),
         );
 
@@ -1113,7 +1109,7 @@ mod tests {
 
         let client = VpDisclosureClient::new(
             error_client,
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
             status_list_client(),
         );
         let error = client

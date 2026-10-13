@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use chrono::DateTime;
 use chrono::Utc;
 use crypto::keys::SecureEcdsaKey;
 use hsm::model::Hsm;
@@ -9,6 +12,7 @@ use jwt::SignedJwt;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use tracing::debug;
+use utils::generator::Generator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::keys::Kid;
@@ -39,7 +43,9 @@ pub async fn new_wallet_certificate<H>(
     wallet_id: WalletId,
     wallet_hw_pubkey: VerifyingKey,
     wallet_pin_pubkey: &VerifyingKey,
+    validity: Duration,
     hsm: &H,
+    time: &impl Generator<DateTime<Utc>>,
 ) -> Result<WalletCertificate, WalletCertificateError>
 where
     H: Hsm<Error = HsmError>,
@@ -51,6 +57,7 @@ where
     )
     .await?;
 
+    let iat = time.generate();
     let cert = WalletCertificateClaims {
         wallet_id: wallet_id.into(),
         hw_pubkey: wallet_hw_pubkey.into(),
@@ -58,7 +65,8 @@ where
         version: WALLET_CERTIFICATE_VERSION,
 
         iss: issuer,
-        iat: Utc::now(),
+        iat,
+        exp: iat + validity,
     };
 
     SignedJwt::sign_with_sub_and_kid(cert, wallet_certificate_signing_key)
@@ -360,7 +368,9 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::time::Duration;
 
+    use chrono::Utc;
     use crypto::PublicKey;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
@@ -373,6 +383,7 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
     use token_status_list::status_list_service::mock::MockStatusListService;
+    use utils::generator::mock::MockTimeGenerator;
     use wallet_provider_domain::keys::KidPair;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
@@ -454,7 +465,9 @@ mod tests {
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
+            Duration::from_secs(60),
             &hsm,
+            &MockTimeGenerator::default(),
         )
         .await
         .unwrap();
@@ -492,7 +505,9 @@ mod tests {
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
+            Duration::from_secs(60),
             &hsm,
+            &MockTimeGenerator::default(),
         )
         .await
         .unwrap();
@@ -532,7 +547,9 @@ mod tests {
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
+            Duration::from_secs(60),
             &hsm,
+            &MockTimeGenerator::default(),
         )
         .await
         .unwrap();
@@ -582,7 +599,9 @@ mod tests {
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
+            Duration::from_secs(60),
             &hsm,
+            &MockTimeGenerator::default(),
         )
         .await
         .unwrap();
@@ -615,7 +634,9 @@ mod tests {
             "wallet_id_1".to_owned().into(),
             hw_pubkey,
             &setup.pin_pubkey,
+            Duration::from_secs(60),
             &hsm,
+            &MockTimeGenerator::default(),
         )
         .await
         .unwrap();
@@ -637,5 +658,46 @@ mod tests {
         )
         .await
         .expect_err("certificate with incorrect hardware key should not validate");
+    }
+
+    #[tokio::test]
+    async fn expired_wallet_certificate_should_not_validate() {
+        let setup = mock::WalletCertificateSetup::new().await;
+        let hsm = setup_hsm().await;
+        let hw_pubkey = *SigningKey::generate().verifying_key();
+
+        // Sign the certificate with an `exp` that lies in the past
+        let wallet_certificate = new_wallet_certificate(
+            "issuer_1".to_owned(),
+            &mock::CERTIFICATE_KID,
+            &setup.signing_key,
+            "wallet_id_1".to_owned().into(),
+            hw_pubkey,
+            &setup.pin_pubkey,
+            Duration::from_secs(60),
+            &hsm,
+            &MockTimeGenerator::new(Utc::now() - Duration::from_secs(3600)),
+        )
+        .await
+        .unwrap();
+
+        let user_state = init_user_state(hw_pubkey, setup.encrypted_pin_pubkey, hsm);
+
+        verify_wallet_certificate(
+            &wallet_certificate,
+            &HashMap::from([(
+                setup.signing_key.kid().to_owned(),
+                PublicKey::from(setup.signing_pubkey),
+            )]),
+            &KidPair {
+                current: mock::ENCRYPTION_KID.clone(),
+                previous: None,
+            },
+            PinCheckOptions::default(),
+            |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            &user_state,
+        )
+        .await
+        .expect_err("expired certificate should not validate");
     }
 }

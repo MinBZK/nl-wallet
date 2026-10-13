@@ -1,12 +1,14 @@
 public_url = 'http://${SERVICES_HOST}:${ACF_DEMO_ISSUER_PORT}/'
 wallet_client_ids = ["${NL_WALLET_CLIENT_ID}"]
 batch_size = 4
+registration_certificate = "${ACF_DEMO_ISSUER_REGISTRATION_CERTIFICATE}"
 wallet_redirect_uris = ["${WALLET_REDIRECT_URI}"]
+credential_preview_endpoint = false
 
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
-wia_trust_anchors = ["${WIA_CA_CRT}"]
+wptl_trust_anchors = ["${WPTL_CA_CRT}"]
 
 [credential_metadata_keypair]
 private_key_type = "software"
@@ -46,14 +48,14 @@ attributes = { "com.example.insurance" = { type = "object", value = { product = 
 kind = "immediate"
 
 [[usecases.loyalty.documents]]
-format = "mso_mdoc"
+format = "dc+sd-jwt"
 attestation_type = "com.example.jum.bonuskaart"
-attributes = { "com.example.jum.bonuskaart" = { type = "object", value = { branch = { type = "text", value = "Demodam" }, loyalty_number = { type = "text", value = "{{INSERT_RANDOM_VALUE}}" } } } }
+attributes = { branch = { type = "text", value = "Demodam" }, loyalty_number = { type = "text", value = "{{INSERT_RANDOM_VALUE}}" } }
 
 [credential_configurations."com.example.jum.bonuskaart"]
-format = "mso_mdoc"
+format = "dc+sd-jwt"
 attestation_type = "com.example.jum.bonuskaart"
-credential_metadata = "com.example.jum.bonuskaart.mdoc.json"
+credential_metadata = "com.example.jum.bonuskaart.sd_jwt.json"
 valid_days = 365
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_LOYALTY_ISSUER}"

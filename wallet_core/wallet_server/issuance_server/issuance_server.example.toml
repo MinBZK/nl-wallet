@@ -15,8 +15,9 @@ wrpac_trust_anchors = ["MII..."]
 # Array of CAs for WRPRC certificates
 wrprc_trust_anchors = ["MII..."]
 
-# Array of CAs for Wallet Instance Attestation (WIA) certificates
-wia_trust_anchors = ["MII..."]
+# CAs in the Wallet Provider Trusted List, under which both the Wallet Instance Attestation (WIA) and Key Attestation
+# are validated.
+wptl_trust_anchors = ["MII..."]
 
 # The wallet must be able to reach the server at this URL
 public_url = 'http://localhost:8001/'
@@ -31,11 +32,15 @@ universal_link_base_url = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/
 # Default value: https://wallet.edi.rijksoverheid.nl
 wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 
-# Files containing SD-JWT Type Metadata documents for issued attestations
-metadata = ["com_example_address_metadata.json"]
+# Files containing SD-JWT VC Type Metadata documents for issued attestations. Note: only applicable to credential
+# configurations with the `dc+sd-jwt` credential format.
+type_metadata = ["com_example_address_metadata.json"]
 
 # The maximum amount of credentials a holder will be able to request, in the range 1-255
 batch_size = 10
+
+# Base64url-encoded WRPRC bound to the WRPAC in credential_metadata_keypair
+registration_certificate = "<base64url-encoded WRPRC>"
 
 # Public and private endpoint for the issuer
 [wallet_server]
@@ -118,6 +123,10 @@ error_ttl_in_sec = 0
 # * private_key: Base64 encoded DER format private key, or string
 # * certificate: Base64 encoded DER format certificate
 # * valid_days: How long are these attestations valid, in days
+# * credential_metadata: Path to a JSON file containing the Credential Metadata
+#   for this credential configuration. This is mandatory for "mso_mdoc". For
+#   "dc+sd-jwt" either provide this or SD-JWT VC Type Metadata through the
+#   top-level type_metadata setting, but not both.
 # * status_list_base_url: The url where status list objects can get fetched
 #
 

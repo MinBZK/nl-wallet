@@ -10,17 +10,11 @@ _Organization _$OrganizationFromJson(Map<String, dynamic> json) => _Organization
   id: json['id'] as String,
   legalName: json['legalName'] as String,
   displayName: json['displayName'] as String,
-  type: _$JsonConverterFromJson<Map<String, dynamic>, Map<Locale, String>>(
-    json['type'],
-    const LocalizedTextConverter().fromJson,
-  ),
+  publicBody: json['publicBody'] as bool?,
+  personType: $enumDecodeNullable(_$PersonTypeEnumMap, json['personType']),
   description: _$JsonConverterFromJson<Map<String, dynamic>, Map<Locale, String>>(
     json['description'],
     const LocalizedTextConverter().fromJson,
-  ),
-  logo: _$JsonConverterFromJson<Map<String, dynamic>, AppImageData>(
-    json['logo'],
-    const AppImageDataConverter().fromJson,
   ),
   webUri: json['webUri'] as String?,
   supportUri: json['supportUri'] as String?,
@@ -33,23 +27,22 @@ Map<String, dynamic> _$OrganizationToJson(_Organization instance) => <String, dy
   'id': instance.id,
   'legalName': instance.legalName,
   'displayName': instance.displayName,
-  'type': _$JsonConverterToJson<Map<String, dynamic>, Map<Locale, String>>(
-    instance.type,
-    const LocalizedTextConverter().toJson,
-  ),
+  'publicBody': instance.publicBody,
+  'personType': _$PersonTypeEnumMap[instance.personType],
   'description': _$JsonConverterToJson<Map<String, dynamic>, Map<Locale, String>>(
     instance.description,
     const LocalizedTextConverter().toJson,
-  ),
-  'logo': _$JsonConverterToJson<Map<String, dynamic>, AppImageData>(
-    instance.logo,
-    const AppImageDataConverter().toJson,
   ),
   'webUri': instance.webUri,
   'supportUri': instance.supportUri,
   'privacyPolicyUri': instance.privacyPolicyUri,
   'countryCode': instance.countryCode,
   'organizationId': instance.organizationId,
+};
+
+const _$PersonTypeEnumMap = {
+  PersonType.legalPerson: 'legalPerson',
+  PersonType.naturalPerson: 'naturalPerson',
 };
 
 Value? _$JsonConverterFromJson<Json, Value>(

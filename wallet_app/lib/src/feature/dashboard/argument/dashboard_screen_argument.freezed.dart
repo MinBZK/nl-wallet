@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'dashboard_screen_argument.dart';
@@ -9,6 +9,7 @@ part of 'dashboard_screen_argument.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -23,16 +24,21 @@ mixin _$DashboardScreenArgument {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardScreenArgument&&const DeepCollectionEquality().equals(other.cards, cards));
+  final _this = this as DashboardScreenArgument;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardScreenArgument&&const DeepCollectionEquality().equals(other.cards, _this.cards));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(cards));
+int get hashCode {
+  final _this = this as DashboardScreenArgument;
+  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.cards));
+}
 
 @override
 String toString() {
-  return 'DashboardScreenArgument(cards: $cards)';
+  final _this = this as DashboardScreenArgument;
+  return 'DashboardScreenArgument(cards: ${_this.cards})';
 }
 
 
@@ -175,7 +181,7 @@ return $default(_that.cards);case _:
 @JsonSerializable()
 
 class _DashboardScreenArgument implements DashboardScreenArgument {
-  const _DashboardScreenArgument({required final  List<WalletCard> cards}): _cards = cards;
+  const _DashboardScreenArgument({required  List<WalletCard> cards}): _cards = cards;
   factory _DashboardScreenArgument.fromJson(Map<String, dynamic> json) => _$DashboardScreenArgumentFromJson(json);
 
  final  List<WalletCard> _cards;
@@ -194,16 +200,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardScreenArgument&&const DeepCollectionEquality().equals(other._cards, _cards));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardScreenArgument&&const DeepCollectionEquality().equals(other.cards, _cards));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_cards));
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_cards));
+}
 
 @override
 String toString() {
-  return 'DashboardScreenArgument(cards: $cards)';
+    return 'DashboardScreenArgument(cards: $cards)';
 }
 
 

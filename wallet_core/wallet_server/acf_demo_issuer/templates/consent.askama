@@ -11,48 +11,48 @@
 
 {% block content %}
 {#- The language selector submits a GET form to this same page; `state` and `usecase` are carried as
-    hidden fields so a language switch preserves them (a GET form replaces the entire query string). -#}
+  hidden fields so a language switch preserves them (a GET form replaces the entire query string). -#}
 <aside>
-    <div class="lang-selector">
-        <label tabindex="0" role="navigation" for="lang_toggle">{{ base.selected_lang|upper }}</label>
-        <input tabindex="-1" id="lang_toggle" type="checkbox" aria-hidden="true"></input>
-        <form class="lang-modal" method="GET">
-            <input type="hidden" name="state" value="{{ state }}">
-            <input type="hidden" name="usecase" value="{{ usecase }}">
-            {% for lang in base.available_languages.to_owned() %}
-            <button tabindex="0" type="submit" name="lang" value="{{ lang }}" {% if lang == base.selected_lang %}disabled{% endif %}>{{ base.trans[lang] }}</button>
-            {% endfor %}
-        </form>
-    </div>
+  <div class="lang-selector">
+    <label tabindex="0" role="navigation" for="lang_toggle">{{ base.selected_lang|upper }}</label>
+    <input tabindex="-1" id="lang_toggle" type="checkbox" aria-hidden="true"></input>
+    <form class="lang-modal" method="GET">
+      <input type="hidden" name="state" value="{{ state }}">
+      <input type="hidden" name="usecase" value="{{ usecase }}">
+      {% for lang in base.available_languages.to_owned() %}
+      <button tabindex="0" type="submit" name="lang" value="{{ lang }}" {% if lang == base.selected_lang %}disabled{% endif %}>{{ base.trans[lang] }}</button>
+      {% endfor %}
+    </form>
+  </div>
 </aside>
 {% call header::header(base.trans.insurance_title, web_utils::OPTION_STR_NONE, web_utils::OPTION_STR_NONE) %}
 <main>
-    <section>
-        <h2>{{ base.trans.insurance_consent_body }}</h2>
-    </section>
-    {% if !doc_previews.is_empty() %}
-    <section class="doc-previews">
-        {% for doc in doc_previews %}
-        <div class="card">
-            <h3>{{ doc.attestation_type }}</h3>
-            <dl>
-                {% for (key, value) in &doc.attributes %}
-                <div>
-                    <dt>{{ key }}</dt>
-                    <dd>{{ value }}</dd>
-                </div>
-                {% endfor %}
-            </dl>
+  <section>
+    <h2>{{ base.trans.insurance_consent_body }}</h2>
+  </section>
+  {% if !doc_previews.is_empty() %}
+  <section class="doc-previews">
+    {% for doc in doc_previews %}
+    <div class="card">
+      <h3>{{ doc.attestation_type }}</h3>
+      <dl>
+        {% for (key, value) in &doc.attributes %}
+        <div>
+          <dt>{{ key }}</dt>
+          <dd>{{ value }}</dd>
         </div>
         {% endfor %}
-    </section>
-    {% endif %}
-    <section class="buttons">
-        <form method="post" action="?state={{ state }}">
-            <button type="submit">
-                <span>{{ base.trans.add_to_nl_wallet }}</span>
-            </button>
-        </form>
-    </section>
+      </dl>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+  <section class="buttons">
+    <form method="post" action="?state={{ state }}">
+      <button type="submit">
+        <span>{{ base.trans.add_to_nl_wallet }}</span>
+      </button>
+    </form>
+  </section>
 </main>
 {% endblock %}

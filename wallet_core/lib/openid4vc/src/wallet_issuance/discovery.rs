@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroU8;
+use std::sync::Arc;
 
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::crl::CertificateCrlVerifier;
@@ -14,9 +15,13 @@ use jwt::headers::HeaderWithX5c;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::metadata::well_known::WellKnownMetadata;
 use oauth::token::AuthorizationCode;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::reqwest::HttpStatusListClient;
+use token_status_list::verification::verifier::RevocationVerifier;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 use wscd::wia::WiaClient;
 
@@ -29,6 +34,7 @@ use super::authorization::HttpAuthorizationSession;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
+use super::issuer_registration::IssuerRegistration;
 use crate::client_auth::ClientAttestationChallengeMechanism;
 use crate::client_auth::check_client_attestation_metadata;
 use crate::credential_offer::CredentialOffer;
@@ -37,31 +43,44 @@ use crate::credential_offer::Grants;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
+use crate::metadata::issuer_metadata::IssuerInfo;
 use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::issuer_metadata::ProofType;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
+use crate::registration_certificate::RegistrationCertificateError;
+use crate::registration_certificate::validate_registration_certificate;
 use crate::token::VciTokenRequest;
 use crate::wallet_issuance::CredentialSelection;
 
 const BATCH_SIZE_MAX: NonZeroU8 = NonZeroU8::MAX;
 
-pub struct HttpIssuanceDiscovery<F = HttpCrlFetcher> {
+pub struct HttpIssuanceDiscovery<F = HttpCrlFetcher, C = HttpStatusListClient> {
     http_client: HttpClient,
     crl_verifier: CertificateCrlVerifier<F>,
+    wrprc_revocation_verifier: RevocationVerifier<C>,
 }
 
-impl<F> HttpIssuanceDiscovery<F> {
-    pub fn new(http_client: HttpClient, crl_verifier: CertificateCrlVerifier<F>) -> Self {
+impl<F, C> HttpIssuanceDiscovery<F, C>
+where
+    C: StatusListClient,
+{
+    pub fn new(http_client: HttpClient, crl_verifier: CertificateCrlVerifier<F>, status_list_client: C) -> Self {
         Self {
             http_client,
             crl_verifier,
+            wrprc_revocation_verifier: RevocationVerifier::new_with_defaults(
+                Arc::new(status_list_client),
+                TimeGenerator,
+            ),
         }
     }
 }
 
-impl<F> IssuanceDiscovery for HttpIssuanceDiscovery<F>
+impl<F, C> IssuanceDiscovery for HttpIssuanceDiscovery<F, C>
 where
     F: CrlFetcher,
+    C: StatusListClient,
 {
     type Authorization = HttpAuthorizationSession;
     type Issuance = HttpIssuanceSession;
@@ -71,7 +90,6 @@ where
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
         client_id: String,
         redirect_uri: Url,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>
     where
         W: WiaClient,
@@ -81,11 +99,12 @@ where
             selection,
             wia_client,
             wrpac_trust_anchors,
+            wrprc_trust_anchors,
         } = common_parameters;
 
-        let (credential_configurations, credential_issuer, issuer_endpoints, batch_size, flow) = self
-            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors)
-            .await?;
+        let (credential_configurations, credential_issuer, issuer_endpoints, issuer_registration, batch_size, flow) =
+            self.resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
+                .await?;
 
         let issuance_flow = match flow {
             CredentialOfferFlow::AuthorizationCode {
@@ -98,6 +117,7 @@ where
                     credential_configurations,
                     credential_issuer,
                     issuer_endpoints,
+                    issuer_registration,
                     batch_size,
                     auth_endpoints,
                     client_id,
@@ -122,12 +142,12 @@ where
                         credential_configurations,
                         credential_issuer,
                         issuer_endpoints,
+                        issuer_registration,
                         batch_size,
                         token_endpoint,
                         challenge_endpoint,
                         wia_client,
                         &authorization_server,
-                        issuer_trust_anchors,
                     )
                     .await?;
 
@@ -152,11 +172,12 @@ where
             selection,
             wia_client,
             wrpac_trust_anchors,
+            wrprc_trust_anchors,
         } = common_parameters;
 
-        let (credential_configurations, credential_identifier, issuer_endpoints, batch_size, flow) = self
-            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors)
-            .await?;
+        let (credential_configurations, credential_identifier, issuer_endpoints, issuer_registration, batch_size, flow) =
+            self.resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
+                .await?;
 
         let CredentialOfferFlow::AuthorizationCode {
             issuer_state,
@@ -172,6 +193,7 @@ where
             credential_configurations,
             credential_identifier,
             issuer_endpoints,
+            issuer_registration,
             batch_size,
             auth_endpoints,
             client_id,
@@ -186,7 +208,6 @@ where
     async fn start_pre_authorized_code_flow<'a, W>(
         &self,
         common_parameters: IssuanceDiscoveryParameters<'a, W>,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>
     where
         W: WiaClient,
@@ -196,11 +217,12 @@ where
             selection,
             wia_client,
             wrpac_trust_anchors,
+            wrprc_trust_anchors,
         } = common_parameters;
 
-        let (credential_configurations, credential_identifier, issuer_endpoints, batch_size, flow) = self
-            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors)
-            .await?;
+        let (credential_configurations, credential_identifier, issuer_endpoints, issuer_registration, batch_size, flow) =
+            self.resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
+                .await?;
 
         let CredentialOfferFlow::PreAuthorizedCode {
             pre_authorized_code,
@@ -217,12 +239,12 @@ where
             credential_configurations,
             credential_identifier,
             issuer_endpoints,
+            issuer_registration,
             batch_size,
             token_endpoint,
             challenge_endpoint,
             wia_client,
             &authorization_server,
-            issuer_trust_anchors,
         )
         .await
     }
@@ -391,9 +413,10 @@ impl CredentialOfferFlow {
     }
 }
 
-impl<F> HttpIssuanceDiscovery<F>
+impl<F, C> HttpIssuanceDiscovery<F, C>
 where
     F: CrlFetcher,
+    C: StatusListClient,
 {
     /// Parse a [`CredentialOffer`] from the URI or fetch it from a remote server, then convert it to a
     /// [`NormalizedCredentialOffer`].
@@ -427,7 +450,8 @@ where
         &self,
         credential_offer: &NormalizedCredentialOffer,
         wrpac_trust_anchors: &TrustAnchors,
-    ) -> Result<(IssuerMetadata, IssuerAuthorizationServerMetadata), WalletIssuanceError> {
+        wrprc_trust_anchors: &TrustAnchors,
+    ) -> Result<(IssuerMetadata, IssuerAuthorizationServerMetadata, IssuerRegistration), WalletIssuanceError> {
         let issuer_metadata_jwt: UnverifiedJwt<SignedIssuerMetadataPayload, HeaderWithX5c> = self
             .http_client
             .get_jwt(IssuerMetadata::well_known_url(&credential_offer.credential_issuer))
@@ -436,7 +460,7 @@ where
             .parse()
             .map_err(WalletIssuanceError::JwtParse)?;
 
-        let issuer_metadata_payload = issuer_metadata_jwt
+        let verified_issuer_metadata = issuer_metadata_jwt
             .into_verified_against_trust_anchors_with_crl(
                 wrpac_trust_anchors,
                 &self.crl_verifier,
@@ -445,8 +469,9 @@ where
                 DEFAULT_VALIDATION.to_owned(),
             )
             .await
-            .map_err(WalletIssuanceError::CredentialIssuerMetadataVerify)?
-            .into_payload();
+            .map_err(WalletIssuanceError::CredentialIssuerMetadataVerify)?;
+        let access_certificate = verified_issuer_metadata.header().x5c.first().clone();
+        let issuer_metadata_payload = verified_issuer_metadata.into_payload();
         if *issuer_metadata_payload.sub != credential_offer.credential_issuer {
             return Err(WalletIssuanceError::CredentialIssuerMetadataIdentifierMismatch {
                 expected: Box::new(credential_offer.credential_issuer.clone()),
@@ -461,6 +486,32 @@ where
                 received: Box::new(issuer_metadata.credential_issuer),
             });
         }
+
+        let registration_certificate = issuer_metadata
+            .issuer_info
+            .iter()
+            .flatten()
+            .filter_map(|info| match info {
+                IssuerInfo::RegistrationCertificate { data } => Some(data),
+                IssuerInfo::Other => None,
+            })
+            .at_most_one()
+            .map_err(|_| RegistrationCertificateError::Multiple)
+            .and_then(|certificate| certificate.ok_or(RegistrationCertificateError::Missing))
+            .map_err(WalletIssuanceError::IssuerRegistrationCertificate)?;
+
+        let validated = validate_registration_certificate(
+            registration_certificate,
+            &access_certificate,
+            wrprc_trust_anchors,
+            &self.wrprc_revocation_verifier,
+            &TimeGenerator,
+        )
+        .await
+        .map_err(WalletIssuanceError::IssuerRegistrationCertificate)?;
+
+        let issuer_registration =
+            IssuerRegistration::new(registration_certificate.clone(), access_certificate, &validated);
 
         let metadata_auth_servers = issuer_metadata.authorization_servers();
         let authorization_server = match credential_offer.authorization_server.as_ref() {
@@ -488,7 +539,7 @@ where
                 .await
                 .map_err(WalletIssuanceError::OauthDiscovery)?;
 
-        Ok((issuer_metadata, oauth_metadata))
+        Ok((issuer_metadata, oauth_metadata, issuer_registration))
     }
 
     /// Parse or fetch the [`CredentialOffer`], fetch both the issuer and OAuth metadata and determine the flow type.
@@ -497,11 +548,13 @@ where
         offer_uri: &Url,
         selection: &CredentialSelection,
         wrpac_trust_anchors: &TrustAnchors,
+        wrprc_trust_anchors: &TrustAnchors,
     ) -> Result<
         (
             HashMap<CredentialConfigurationId, CredentialConfiguration>,
             IssuerIdentifier,
             IssuerEndpoints,
+            IssuerRegistration,
             NonZeroU8,
             CredentialOfferFlow,
         ),
@@ -509,7 +562,9 @@ where
     > {
         let credential_offer = self.process_credential_offer(offer_uri).await?;
 
-        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer, wrpac_trust_anchors).await?;
+        let (issuer_metadata, oauth_metadata, issuer_registration) = self
+            .fetch_metadata(&credential_offer, wrpac_trust_anchors, wrprc_trust_anchors)
+            .await?;
 
         check_client_attestation_metadata(
             &oauth_metadata.oauth_metadata,
@@ -558,6 +613,27 @@ where
             return Err(WalletIssuanceError::NoNonceEndpoint);
         }
 
+        // Check that, if the Credential Configuration requires cryptographic key binding, it supports the "attestation"
+        // proof type. If the Issuer does not require key binding for a particular configuration, the Wallet will send
+        // a proof anyway, which we assume the Issuer either verifies if it supports it or ignores if it does not.
+        let unsupported_proof_config_ids = credential_configs
+            .iter()
+            .filter(|(_id, config)| {
+                config
+                    .cryptographic_binding
+                    .as_ref()
+                    .map(|binding| !binding.proof_types_supported.contains_key(&ProofType::Attestation))
+                    .unwrap_or(false)
+            })
+            .map(|(id, _config)| id.clone())
+            .collect_vec();
+
+        if let Ok(unsupported_proof_config_ids) = VecNonEmpty::try_from(unsupported_proof_config_ids) {
+            return Err(WalletIssuanceError::AttestationProofTypeUnsupported(
+                unsupported_proof_config_ids,
+            ));
+        }
+
         // Now that we have all the Credential Configurations that were part of the Credential Offer extracted from the
         // Issuer Metadata, select only those whose `CredentialKind` was requested.
         let selected_credential_configs = match selection {
@@ -595,6 +671,7 @@ where
             selected_credential_configs.into_iter().collect(),
             credential_issuer,
             issuer_endpoints,
+            issuer_registration,
             batch_size,
             flow,
         ))
@@ -607,12 +684,12 @@ where
         credential_configurations: HashMap<CredentialConfigurationId, CredentialConfiguration>,
         credential_issuer: IssuerIdentifier,
         issuer_endpoints: IssuerEndpoints,
+        issuer_registration: IssuerRegistration,
         batch_size: NonZeroU8,
         token_endpoint: Url,
         challenge_endpoint: Option<Url>,
         wia_client: &impl WiaClient,
         authorization_server: &IssuerIdentifier,
-        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<HttpIssuanceSession, WalletIssuanceError> {
         let message_client = HttpVcMessageClient::new(self.http_client.clone());
 
@@ -628,13 +705,13 @@ where
             credential_configurations,
             credential_issuer,
             issuer_endpoints,
+            issuer_registration,
             batch_size,
             token_endpoint,
             client_auth_challenge,
             token_request,
             wia_client,
             authorization_server,
-            issuer_trust_anchors,
         )
         .await
     }
@@ -648,9 +725,13 @@ mod test {
     use std::collections::HashSet;
     use std::sync::LazyLock;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
-    use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+    use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
+    use attestation_data::registration_certificate::RegistrationCertificateValidationError;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
+    use attestation_data::registration_certificate::mock::issuer_registration_certificate_payload;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -658,7 +739,7 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::CertificateCrlVerifier;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCrlFetcher;
     use futures::future::try_join_all;
     use http::header;
@@ -677,6 +758,8 @@ mod test {
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use serde_json::json;
+    use token_status_list::status_list::StatusType;
+    use token_status_list::verification::client::mock::MockStatusListClient;
     use url::Url;
     use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::mock::MockTimeGenerator;
@@ -696,11 +779,13 @@ mod test {
     use crate::credential_offer::Grants;
     use crate::credential_offer::PreAuthTransactionCode;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
+    use crate::metadata::issuer_metadata::IssuerInfo;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
     use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
+    use crate::registration_certificate::RegistrationCertificateError;
     use crate::token::CredentialPreview;
     use crate::token::VciTokenResponse;
     use crate::wallet_issuance::AuthorizationSession;
@@ -722,10 +807,11 @@ mod test {
     static REDIRECT_URI: LazyLock<Url> = LazyLock::new(|| "https://wallet.example.com/callback".parse().unwrap());
     const AUTHORIZATION_ENDPOINT: &str = "https://auth.example.com/authorize";
 
-    fn mock_discovery() -> HttpIssuanceDiscovery<MockCrlFetcher> {
+    fn mock_discovery() -> HttpIssuanceDiscovery<MockCrlFetcher, MockStatusListClient> {
         HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
-            CertificateCrlVerifier::<MockCrlFetcher>::default(),
+            MockCertificateCrlVerifier::default(),
+            MockStatusListClient::default(),
         )
     }
 
@@ -761,14 +847,19 @@ mod test {
         server: &MockServer,
         options: IssuerMetadataOptions<'_>,
         to_signed_metadata: impl FnOnce(IssuerIdentifier, IssuerMetadata) -> SignedIssuerMetadataPayload<'a>,
-    ) -> (IssuerIdentifier, TrustAnchors, CertificateCrlVerifier<MockCrlFetcher>) {
+    ) -> (
+        IssuerIdentifier,
+        TrustAnchors,
+        MockCertificateCrlVerifier,
+        MockRegistrationCertificate,
+    ) {
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let wrpac_keypair = if options.with_crl {
             ca.generate_wrpac_issuer_mock_with_crl().unwrap()
         } else {
             ca.generate_wrpac_issuer_mock().unwrap()
         };
-        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
         let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
@@ -776,7 +867,6 @@ mod test {
         let mut issuer_metadata_json = json!({
             "credential_issuer": issuer_identifier.to_string(),
             "credential_endpoint": server.url("/issuance/credential"),
-            "credential_preview_endpoint": server.url("/issuance/credential_preview"),
             "batch_credential_issuance": {
                 "batch_size": 1000,
             },
@@ -809,18 +899,85 @@ mod test {
                 }
             },
         });
-        if options.requires_key_binding {
+        if matches!(
+            options.key_binding,
+            KeyBinding::AttestationProofType | KeyBinding::JwtProofType
+        ) {
             let config = &mut issuer_metadata_json["credential_configurations_supported"][CONFIG_ID_MDOC.as_ref()];
-            config["cryptographic_binding_methods_supported"] = json!(["jwk"]);
-            config["proof_types_supported"] = json!({
-                "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
-            });
+            config["cryptographic_binding_methods_supported"] = json!(["cose_key"]);
+
+            if matches!(options.key_binding, KeyBinding::AttestationProofType) {
+                config["proof_types_supported"] = json!({
+                    "attestation": { "proof_signing_alg_values_supported": ["ES256"] }
+                });
+            }
+
+            if matches!(options.key_binding, KeyBinding::JwtProofType) {
+                config["proof_types_supported"] = json!({
+                    "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
+                });
+            }
         }
         if options.has_nonce_endpoint {
             issuer_metadata_json["nonce_endpoint"] = json!(server.url("/issuance/nonce"));
         }
+        if options.has_credential_preview_endpoint {
+            issuer_metadata_json["credential_preview_endpoint"] = json!(server.url("/issuance/credential_preview"));
+        }
 
-        let issuer_metadata = serde_json::from_value(issuer_metadata_json).unwrap();
+        let mut payload = issuer_registration_certificate_payload(
+            wrpac_keypair.certificate(),
+            [Format::MsoMdoc, Format::SdJwt]
+                .map(|format| CredentialKind::new(format, PID_ATTESTATION_TYPE.to_string())),
+        );
+        match options.registration_certificate {
+            RegistrationCertificateScenario::WrongSubject => payload.0["sub"] = json!("another-issuer"),
+            RegistrationCertificateScenario::Expired => {
+                payload.0["iat"] = json!(12345678);
+                payload.0["exp"] = json!(12345679);
+            }
+            RegistrationCertificateScenario::InvalidPayload => payload.0["id"] = json!(null),
+            _ => {}
+        }
+        let authority = MockRegistrationCertificateAuthority::new_with_status(
+            if matches!(
+                options.registration_certificate,
+                RegistrationCertificateScenario::Revoked
+            ) {
+                StatusType::Invalid
+            } else {
+                StatusType::Valid
+            },
+        );
+        let certificate = if matches!(options.registration_certificate, RegistrationCertificateScenario::Cwt) {
+            authority.sign_cwt(&payload)
+        } else {
+            authority.sign_jwt(&payload)
+        };
+        let registration_certificate = MockRegistrationCertificate {
+            certificate,
+            trust_anchors: authority.trust_anchors,
+            status_list_client: if matches!(
+                options.registration_certificate,
+                RegistrationCertificateScenario::UntrustedStatusList
+            ) {
+                MockRegistrationCertificateAuthority::new().status_list_client
+            } else {
+                authority.status_list_client
+            },
+        };
+        let mut issuer_metadata: IssuerMetadata = serde_json::from_value(issuer_metadata_json).unwrap();
+        let issuer_info = IssuerInfo::RegistrationCertificate {
+            data: RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
+        };
+        issuer_metadata.issuer_info = options
+            .has_other_issuer_info
+            .then_some(IssuerInfo::Other)
+            .into_iter()
+            .chain(std::iter::repeat_n(issuer_info, options.registration_certificate_count))
+            .collect_vec()
+            .try_into()
+            .ok();
         let signed_issuer_metadata_payload = to_signed_metadata(issuer_identifier.clone(), issuer_metadata);
         let signed_issuer_metadata = SignedJwt::sign_with_certificate(&signed_issuer_metadata_payload, &wrpac_keypair)
             .await
@@ -865,32 +1022,65 @@ mod test {
             })
             .await;
 
-        (issuer_identifier, TrustAnchors::from(&ca), crl_verifier)
+        (
+            issuer_identifier,
+            TrustAnchors::from(&ca),
+            crl_verifier,
+            registration_certificate,
+        )
+    }
+
+    #[derive(Debug, Clone, Copy, Default)]
+    enum RegistrationCertificateScenario {
+        #[default]
+        Jwt,
+        Cwt,
+        WrongSubject,
+        Expired,
+        InvalidPayload,
+        Revoked,
+        UntrustedStatusList,
+    }
+
+    #[derive(Debug, Clone, Copy, Default)]
+    enum KeyBinding {
+        NotRequired,
+        #[default]
+        AttestationProofType,
+        JwtProofType,
     }
 
     #[derive(Debug, Clone, Copy)]
     struct IssuerMetadataOptions<'a> {
         has_nonce_endpoint: bool,
-        requires_key_binding: bool,
+        has_credential_preview_endpoint: bool,
+        key_binding: KeyBinding,
         grant_types_supported: Option<&'a [&'a str]>,
         has_client_attestation_support: bool,
         with_crl: bool,
+        registration_certificate_count: usize,
+        has_other_issuer_info: bool,
+        registration_certificate: RegistrationCertificateScenario,
     }
 
     impl Default for IssuerMetadataOptions<'static> {
         fn default() -> Self {
             Self {
                 has_nonce_endpoint: true,
-                requires_key_binding: true,
+                has_credential_preview_endpoint: true,
+                key_binding: KeyBinding::default(),
                 grant_types_supported: Some(DEFAULT_GRANT_TYPES_SUPPORTED),
                 has_client_attestation_support: true,
                 with_crl: true,
+                registration_certificate_count: 1,
+                has_other_issuer_info: false,
+                registration_certificate: RegistrationCertificateScenario::default(),
             }
         }
     }
 
-    /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint,
-    /// and a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
+    /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint, and, if enabled in the
+    /// options, a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
     async fn start_httpmock_issuer(
         metadata_options: IssuerMetadataOptions<'_>,
     ) -> (
@@ -898,14 +1088,13 @@ mod test {
         IssuerIdentifier,
         TrustAnchors,
         TrustAnchors,
-        CertificateCrlVerifier<MockCrlFetcher>,
+        MockCertificateCrlVerifier,
+        MockRegistrationCertificate,
     ) {
         let server = MockServer::start_async().await;
 
         // Create CA and issuer certificate for the credential preview.
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair =
-            generate_pid_issuer_mock_with_registration(&issuer_ca, &IssuerRegistration::new_mock()).unwrap();
 
         // Create type metadata for the credential preview.
         let (_, _, type_metadata_documents) = TypeMetadataDocuments::from_single_example(
@@ -919,7 +1108,6 @@ mod test {
             config_id: CONFIG_ID_MDOC.clone(),
             format: Format::MsoMdoc,
             credential_payload,
-            issuer_certificate: issuance_keypair.certificate().clone(),
         };
 
         let preview_response = CredentialPreviewResponse {
@@ -933,7 +1121,7 @@ mod test {
             )),
         );
 
-        let (issuer_identifier, wrpac_trust_anchors, crl_verifier) =
+        let (issuer_identifier, wrpac_trust_anchors, crl_verifier, registration_certificate) =
             httpmock_issuer_add_metadata(&server, metadata_options, default_signed_metadata()).await;
 
         server
@@ -969,16 +1157,20 @@ mod test {
             })
             .await;
 
-        server
-            .mock_async(|when, then| {
-                when.method(POST).path("/issuance/credential_preview");
+        // Only serve the credential preview if the issuer advertises the endpoint. Otherwise, a request to it results
+        // in an error response.
+        if metadata_options.has_credential_preview_endpoint {
+            server
+                .mock_async(|when, then| {
+                    when.method(POST).path("/issuance/credential_preview");
 
-                then.status(200)
-                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
-                    .header("DPoP-Nonce", "mock_dpop_nonce")
-                    .json_body(serde_json::to_value(preview_response).unwrap());
-            })
-            .await;
+                    then.status(200)
+                        .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                        .header("DPoP-Nonce", "mock_dpop_nonce")
+                        .json_body(serde_json::to_value(preview_response).unwrap());
+                })
+                .await;
+        }
 
         (
             server,
@@ -986,6 +1178,7 @@ mod test {
             TrustAnchors::from(&issuer_ca),
             wrpac_trust_anchors,
             crl_verifier,
+            registration_certificate,
         )
     }
 
@@ -1008,6 +1201,7 @@ mod test {
     async fn http_issuance_discovery_start(
         #[case] scenario: IssuanceDiscoveryScenario,
         #[values(false, true)] is_by_reference: bool,
+        #[values(true, false)] has_credential_preview_endpoint: bool,
     ) {
         // Start a mock issuance server, which may or may not have a "grant_types_supported" field.
         let has_grant_types_supported = match &scenario {
@@ -1020,12 +1214,19 @@ mod test {
             } => *has_grant_types_supported,
         };
 
-        let (server, issuer_identifier, issuer_trust_anchors, wrpac_trust_anchors, crl_verifier) =
-            start_httpmock_issuer(IssuerMetadataOptions {
-                grant_types_supported: has_grant_types_supported.then_some(DEFAULT_GRANT_TYPES_SUPPORTED),
-                ..IssuerMetadataOptions::default()
-            })
-            .await;
+        let (
+            server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            grant_types_supported: has_grant_types_supported.then_some(DEFAULT_GRANT_TYPES_SUPPORTED),
+            has_credential_preview_endpoint,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
 
         // Construct a Credential Offer based on the scenario.
         let grants = match scenario {
@@ -1065,6 +1266,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            registration_certificate.status_list_client.clone(),
         );
         let flow = discovery
             .start(
@@ -1073,10 +1275,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await
             .expect("starting issuance should succeed");
@@ -1108,6 +1310,7 @@ mod test {
                             &CredentialSelection::All,
                             &MockWiaClient::new(),
                             &wrpac_trust_anchors,
+                            &registration_certificate.trust_anchors,
                         ),
                         MOCK_WALLET_CLIENT_ID.to_string(),
                         REDIRECT_URI.clone(),
@@ -1117,19 +1320,23 @@ mod test {
 
                 // Staring issuance while expecting a Pre-Authorized Code flow results in an error.
                 let error = discovery
-                    .start_pre_authorized_code_flow(
-                        IssuanceDiscoveryParameters::new(
-                            &offer_url,
-                            &CredentialSelection::All,
-                            &MockWiaClient::new(),
-                            &wrpac_trust_anchors,
-                        ),
-                        &issuer_trust_anchors,
-                    )
+                    .start_pre_authorized_code_flow(IssuanceDiscoveryParameters::new(
+                        &offer_url,
+                        &CredentialSelection::All,
+                        &MockWiaClient::new(),
+                        &wrpac_trust_anchors,
+                        &registration_certificate.trust_anchors,
+                    ))
                     .await
                     .expect_err("staring pre-authorized code issuance should fail");
 
                 assert_matches!(error, WalletIssuanceError::CredentialOfferNoPreAuthorizedCode);
+
+                // Resume one flow from persisted wallet state before exchanging the authorization code.
+                let second_auth_session = HttpAuthorizationSession::restore(
+                    HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+                    serde_json::from_value(serde_json::to_value(second_auth_session.persist()).unwrap()).unwrap(),
+                );
 
                 // Continue issuance for both authorization sessions, turning them into issuance sessions.
                 try_join_all(
@@ -1156,7 +1363,7 @@ mod test {
 
                             // Complete the flow — exchanges the code for a token and fetches credential previews.
                             auth_session
-                                .start_issuance(&received_redirect_uri, &issuer_trust_anchors, &MockWiaClient::new())
+                                .start_issuance(&received_redirect_uri, &MockWiaClient::new())
                                 .await
                         }),
                 )
@@ -1166,15 +1373,13 @@ mod test {
             (IssuanceDiscoveryScenario::PreAuthorizedCode, IssuanceFlow::PreAuthorizedCode { issuance_session }) => {
                 // Start issuance again, this time directly expecting the Pre-Authorized Code flow.
                 let second_issuance_session = discovery
-                    .start_pre_authorized_code_flow(
-                        IssuanceDiscoveryParameters::new(
-                            &offer_url,
-                            &CredentialSelection::All,
-                            &MockWiaClient::new(),
-                            &wrpac_trust_anchors,
-                        ),
-                        &issuer_trust_anchors,
-                    )
+                    .start_pre_authorized_code_flow(IssuanceDiscoveryParameters::new(
+                        &offer_url,
+                        &CredentialSelection::All,
+                        &MockWiaClient::new(),
+                        &wrpac_trust_anchors,
+                        &registration_certificate.trust_anchors,
+                    ))
                     .await
                     .expect("staring pre-authorized code issuance should succeed");
 
@@ -1186,6 +1391,7 @@ mod test {
                             &CredentialSelection::All,
                             &MockWiaClient::new(),
                             &wrpac_trust_anchors,
+                            &registration_certificate.trust_anchors,
                         ),
                         MOCK_WALLET_CLIENT_ID.to_string(),
                         REDIRECT_URI.clone(),
@@ -1204,14 +1410,104 @@ mod test {
         };
 
         for issuance_session in issuance_sessions {
-            // Check that the issuance session contains the expected credential preview.
-            let Ok((preview, _metadata)) = issuance_session.previews_with_metadata().exactly_one() else {
-                panic!("issuance session should contain exactly one preview")
-            };
-            assert_eq!(preview.credential_payload.attestation_type, PID_ATTESTATION_TYPE);
+            let context = issuance_session.issuer_registration();
+            assert_eq!(context.organization().display_name, "Mock issuer");
+            assert_eq!(
+                context.organization().description[0].translations[1].value,
+                "Add digital documents to your wallet to share your details with other organizations."
+            );
+            assert_eq!(
+                context.registration_certificate().to_vec().unwrap(),
+                registration_certificate.certificate
+            );
+            let subject = context.access_certificate().to_distinguished_name().unwrap();
+            assert_eq!(
+                Some(&context.organization().identifier),
+                subject.organization_identifier.as_ref()
+            );
+
+            // Check that the issuance session contains the expected credential preview, if the issuer provides
+            // previews.
+            match issuance_session.credential_previews() {
+                Some(credential_previews) => {
+                    assert!(has_credential_preview_endpoint);
+
+                    let Ok(preview) = credential_previews.into_iter().exactly_one() else {
+                        panic!("issuance session should contain exactly one preview")
+                    };
+                    assert_eq!(preview.credential_payload.attestation_type, PID_ATTESTATION_TYPE);
+                }
+                None => assert!(!has_credential_preview_endpoint),
+            }
 
             // Check that the batch size from the Issuer Metadata was capped.
             assert_eq!(issuance_session.batch_size(), BATCH_SIZE_MAX);
+        }
+    }
+
+    #[rstest]
+    #[case::missing(0, false)]
+    #[case::other_only(0, true)]
+    #[case::multiple(2, false)]
+    #[case::single(1, false)]
+    #[case::single_with_other(1, true)]
+    #[tokio::test]
+    async fn start_registration_certificate_selection(
+        #[case] registration_certificate_count: usize,
+        #[case] has_other_issuer_info: bool,
+    ) {
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            registration_certificate_count,
+            has_other_issuer_info,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client,
+        );
+        let result = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+            )
+            .await;
+
+        match registration_certificate_count {
+            0 => assert_matches!(
+                result,
+                Err(WalletIssuanceError::IssuerRegistrationCertificate(
+                    RegistrationCertificateError::Missing
+                ))
+            ),
+            1 => assert_matches!(result, Ok(IssuanceFlow::PreAuthorizedCode { .. })),
+            _ => assert_matches!(
+                result,
+                Err(WalletIssuanceError::IssuerRegistrationCertificate(
+                    RegistrationCertificateError::Multiple
+                ))
+            ),
         }
     }
 
@@ -1227,10 +1523,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1249,10 +1545,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1276,10 +1572,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1318,10 +1614,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1337,15 +1633,16 @@ mod test {
         let server = MockServer::start_async().await;
 
         // Have the OAuth Authorization Server metadata not include "authorization_code" as a supported grant type.
-        let (credential_issuer, wrpac_trust_anchors, crl_verifier) = httpmock_issuer_add_metadata(
-            &server,
-            IssuerMetadataOptions {
-                grant_types_supported: Some(&["implicit"]),
-                ..IssuerMetadataOptions::default()
-            },
-            default_signed_metadata(),
-        )
-        .await;
+        let (credential_issuer, wrpac_trust_anchors, crl_verifier, registration_certificate) =
+            httpmock_issuer_add_metadata(
+                &server,
+                IssuerMetadataOptions {
+                    grant_types_supported: Some(&["implicit"]),
+                    ..IssuerMetadataOptions::default()
+                },
+                default_signed_metadata(),
+            )
+            .await;
 
         // Construct a Credential Offer that contains no grants.
         let credential_offer = CredentialOffer {
@@ -1358,6 +1655,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            registration_certificate.status_list_client.clone(),
         );
 
         let result = discovery
@@ -1367,10 +1665,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1406,10 +1704,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
+                    &TrustAnchors::empty(),
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
 
@@ -1427,18 +1725,16 @@ mod test {
         let server = MockServer::start_async().await;
 
         // Setup simple metadata server
-        let (credential_issuer, wrpac_trust_anchors, mock_crl_verifier) = httpmock_issuer_add_metadata(
-            &server,
-            IssuerMetadataOptions {
-                has_nonce_endpoint: false,
-                requires_key_binding: false,
-                grant_types_supported: None,
-                with_crl,
-                ..IssuerMetadataOptions::default()
-            },
-            to_signed_metadata,
-        )
-        .await;
+        let (credential_issuer, wrpac_trust_anchors, mock_crl_verifier, registration_certificate) =
+            httpmock_issuer_add_metadata(
+                &server,
+                IssuerMetadataOptions {
+                    with_crl,
+                    ..IssuerMetadataOptions::default()
+                },
+                to_signed_metadata,
+            )
+            .await;
 
         // Construct a Credential Offer
         let credential_offer = CredentialOffer {
@@ -1455,20 +1751,207 @@ mod test {
         } else {
             TrustAnchors::empty()
         };
-        let result = HttpIssuanceDiscovery::new(http_client, mock_crl_verifier)
+        let result = HttpIssuanceDiscovery::new(
+            http_client,
+            mock_crl_verifier,
+            registration_certificate.status_list_client,
+        )
+        .start(
+            IssuanceDiscoveryParameters::new(
+                &offer_url,
+                &CredentialSelection::All,
+                &MockWiaClient::new(),
+                &trust_anchors,
+                &registration_certificate.trust_anchors,
+            ),
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            REDIRECT_URI.clone(),
+        )
+        .await;
+        (credential_issuer, result)
+    }
+
+    #[tokio::test]
+    async fn start_cwt_registration_certificate() {
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            registration_certificate: RegistrationCertificateScenario::Cwt,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client,
+        );
+        let result = discovery
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
-                    &trust_anchors,
+                    &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &TrustAnchors::empty(),
             )
             .await;
-        (credential_issuer, result)
+
+        let IssuanceFlow::PreAuthorizedCode { issuance_session } = result.unwrap() else {
+            panic!("expected pre-authorized flow");
+        };
+        let context = issuance_session.issuer_registration();
+        assert_eq!(context.organization().display_name, "Mock issuer");
+        assert_eq!(
+            context.registration_certificate().to_vec().unwrap(),
+            registration_certificate.certificate
+        );
+    }
+
+    #[rstest]
+    #[case::wrong_subject(RegistrationCertificateScenario::WrongSubject)]
+    #[case::expired(RegistrationCertificateScenario::Expired)]
+    #[case::invalid_payload(RegistrationCertificateScenario::InvalidPayload)]
+    #[case::revoked(RegistrationCertificateScenario::Revoked)]
+    #[case::untrusted_status_list(RegistrationCertificateScenario::UntrustedStatusList)]
+    #[tokio::test]
+    async fn start_invalid_registration_certificate(#[case] scenario: RegistrationCertificateScenario) {
+        let server = MockServer::start_async().await;
+        // No downstream request should be made when issuer authentication fails.
+        let downstream = server
+            .mock_async(|when, then| {
+                when.path_excludes("/.well-known/openid-credential-issuer");
+                then.status(500);
+            })
+            .await;
+        let (credential_issuer, wrpac_trust_anchors, crl_verifier, registration_certificate) =
+            httpmock_issuer_add_metadata(
+                &server,
+                IssuerMetadataOptions {
+                    registration_certificate: scenario,
+                    ..IssuerMetadataOptions::default()
+                },
+                default_signed_metadata(),
+            )
+            .await;
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            credential_issuer,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client,
+        );
+        let error = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+            )
+            .await
+            .unwrap_err();
+        match scenario {
+            RegistrationCertificateScenario::WrongSubject => {
+                assert_matches!(
+                    error,
+                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::BindingAndTime(
+                        RegistrationCertificateValidationError::SubjectIdentifierMismatch {
+                            field: "organizationIdentifier"
+                        }
+                    ))
+                );
+            }
+            RegistrationCertificateScenario::Expired | RegistrationCertificateScenario::InvalidPayload => {
+                assert_matches!(
+                    error,
+                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::Envelope(_))
+                );
+            }
+            RegistrationCertificateScenario::Revoked => {
+                assert_matches!(
+                    error,
+                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::Status(
+                        RegistrationCertificateStatusValidationError::NotValid
+                    ))
+                );
+            }
+            RegistrationCertificateScenario::UntrustedStatusList => {
+                assert_matches!(
+                    error,
+                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::Status(
+                        RegistrationCertificateStatusValidationError::InvalidStatusListReference
+                    ))
+                );
+            }
+            _ => panic!("expected an invalid registration certificate scenario"),
+        }
+        downstream.assert_calls_async(0).await;
+    }
+
+    #[tokio::test]
+    async fn start_untrusted_registration_certificate() {
+        let server = MockServer::start_async().await;
+        let downstream = server
+            .mock_async(|when, then| {
+                when.path_excludes("/.well-known/openid-credential-issuer");
+                then.status(500);
+            })
+            .await;
+        let (credential_issuer, wrpac_trust_anchors, crl_verifier, registration_certificate) =
+            httpmock_issuer_add_metadata(&server, IssuerMetadataOptions::default(), default_signed_metadata()).await;
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            credential_issuer,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client,
+        );
+        let error = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &TrustAnchors::empty(),
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+            )
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            error,
+            WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::Envelope(_))
+        );
+        downstream.assert_calls_async(0).await;
     }
 
     #[tokio::test]
@@ -1545,8 +2028,14 @@ mod test {
 
     #[tokio::test]
     async fn start_authorization_server_mismatch_error() {
-        let (_server, issuer_identifier, issuer_trust_anchors, wrpac_trust_anchors, crl_verifier) =
-            start_httpmock_issuer(IssuerMetadataOptions::default()).await;
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions::default()).await;
 
         // Construct a Pre-Authorized Code Credential Offer with an unknown Authorization Server.
         let credential_offer = CredentialOffer {
@@ -1566,6 +2055,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            registration_certificate.status_list_client.clone(),
         );
 
         let result = discovery
@@ -1575,10 +2065,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await;
 
@@ -1592,8 +2082,14 @@ mod test {
 
     #[tokio::test]
     async fn start_missing_credential_config_id_error() {
-        let (_server, issuer_identifier, issuer_trust_anchors, wrpac_trust_anchors, crl_verifier) =
-            start_httpmock_issuer(IssuerMetadataOptions::default()).await;
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions::default()).await;
 
         // Construct a Pre-Authorized Code Credential Offer with Credential Configurations ID that are not in the Issuer
         // Metadata.
@@ -1612,6 +2108,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            registration_certificate.status_list_client.clone(),
         );
 
         let result = discovery
@@ -1621,10 +2118,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await;
 
@@ -1639,12 +2136,18 @@ mod test {
     async fn start_no_nonce_endpoint_error() {
         // Starting issuance when the issuer metadata indicates that key binding is mandatory, yet offers no nonce
         // endpoint should fail.
-        let (_server, issuer_identifier, issuer_trust_anchors, wrpac_trust_anchors, crl_verifier) =
-            start_httpmock_issuer(IssuerMetadataOptions {
-                has_nonce_endpoint: false,
-                ..IssuerMetadataOptions::default()
-            })
-            .await;
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            has_nonce_endpoint: false,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
@@ -1656,6 +2159,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            registration_certificate.status_list_client.clone(),
         );
 
         let error = discovery
@@ -1665,10 +2169,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await
             .expect_err("starting issuance should fail");
@@ -1676,13 +2180,19 @@ mod test {
         assert_matches!(error, WalletIssuanceError::NoNonceEndpoint);
 
         // When key binding is not mandatory however, the nonce endpoint can be absent.
-        let (_server, issuer_identifier, issuer_trust_anchors, wrpac_trust_anchors, crl_verifier) =
-            start_httpmock_issuer(IssuerMetadataOptions {
-                has_nonce_endpoint: false,
-                requires_key_binding: false,
-                ..IssuerMetadataOptions::default()
-            })
-            .await;
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            has_nonce_endpoint: false,
+            key_binding: KeyBinding::NotRequired,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
@@ -1694,6 +2204,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            registration_certificate.status_list_client.clone(),
         );
         let _flow = discovery
             .start(
@@ -1702,10 +2213,102 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
+            )
+            .await
+            .expect("starting issuance should succeed");
+    }
+
+    #[tokio::test]
+    async fn start_attestation_proof_type_unsupported_error() {
+        // Starting issuance when the issuer metadata indicates that key binding is mandatory, but only supports the
+        // "jwt" proof type should fail.
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            key_binding: KeyBinding::JwtProofType,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
+
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client.clone(),
+        );
+
+        let error = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+            )
+            .await
+            .expect_err("starting issuance should fail");
+
+        assert_matches!(
+            error,
+            WalletIssuanceError::AttestationProofTypeUnsupported(id) if id == vec_nonempty![CONFIG_ID_MDOC.clone()]
+        );
+
+        // When key binding is not mandatory however, starting issuance should succeed.
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions {
+            key_binding: KeyBinding::NotRequired,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
+
+        let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![CONFIG_ID_MDOC.clone()].into(),
+            "fake_pre_auth_code".to_string().into(),
+        ))
+        .to_credential_offer_url();
+
+        let discovery = HttpIssuanceDiscovery::new(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            crl_verifier,
+            registration_certificate.status_list_client.clone(),
+        );
+        let _flow = discovery
+            .start(
+                IssuanceDiscoveryParameters::new(
+                    &offer_url,
+                    &CredentialSelection::All,
+                    &MockWiaClient::new(),
+                    &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
+                ),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
             )
             .await
             .expect("starting issuance should succeed");
@@ -1714,8 +2317,14 @@ mod test {
     #[tokio::test]
     async fn start_credential_kind_not_offered_error() {
         // Starting issuance when the caller requests credential kinds that are not offered should fail.
-        let (_server, issuer_identifier, issuer_trust_anchors, wrpac_trust_anchors, crl_verifier) =
-            start_httpmock_issuer(IssuerMetadataOptions::default()).await;
+        let (
+            _server,
+            issuer_identifier,
+            _issuer_trust_anchors,
+            wrpac_trust_anchors,
+            crl_verifier,
+            registration_certificate,
+        ) = start_httpmock_issuer(IssuerMetadataOptions::default()).await;
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
@@ -1727,6 +2336,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            registration_certificate.status_list_client.clone(),
         );
 
         let requested_kinds = HashSet::from([
@@ -1740,10 +2350,10 @@ mod test {
                     &CredentialSelection::ByCredentialKind(requested_kinds.clone()),
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await
             .expect_err("starting issuance should fail");
@@ -1767,10 +2377,10 @@ mod test {
                     &CredentialSelection::ByCredentialKind(requested_kinds),
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &issuer_trust_anchors,
             )
             .await
             .expect("starting issuance should succeed");
@@ -1780,7 +2390,7 @@ mod test {
     async fn start_no_attestation_based_client_auth_support_error() {
         // Starting issuance when the Authorization Server metadata does not advertise support for
         // Attestation-Based Client Authentication should fail.
-        let (_server, issuer_identifier, trust_anchor, wrpac_trust_anchors, crl_verifier) =
+        let (_server, issuer_identifier, _trust_anchor, wrpac_trust_anchors, crl_verifier, registration_certificate) =
             start_httpmock_issuer(IssuerMetadataOptions {
                 has_client_attestation_support: false,
                 ..IssuerMetadataOptions::default()
@@ -1797,6 +2407,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
+            registration_certificate.status_list_client.clone(),
         );
 
         let error = discovery
@@ -1806,10 +2417,10 @@ mod test {
                     &CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
+                    &registration_certificate.trust_anchors,
                 ),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
-                &trust_anchor,
             )
             .await
             .expect_err("starting issuance should fail");

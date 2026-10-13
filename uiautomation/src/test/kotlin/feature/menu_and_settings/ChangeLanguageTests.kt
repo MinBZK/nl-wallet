@@ -40,6 +40,7 @@ class ChangeLanguageTests : TestBase() {
             { assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible") },
             { assertTrue(changeLanguageScreen.englishScreenTitleVisible(), "english screen title is not visible") }
         )
+        changeLanguageScreen.captureA11ySnapshot("ChangeLanguage")
 
         changeLanguageScreen.clickDutchButton()
         assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")

@@ -15,10 +15,10 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use crypto::server_keys::KeyPair;
+use crypto::server_keys::KeyPairError;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
 use derive_more::From;
 use derive_more::Into;
 use hsm::keys::HsmEcdsaKey;
@@ -28,7 +28,6 @@ use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
-use serde::Deserializer;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
 use serde_with::base64::Base64;
@@ -74,9 +73,16 @@ pub struct Settings {
     #[serde(flatten)]
     pub wia_settings: WiaSettings,
 
+    #[serde(flatten)]
+    pub key_attestation_settings: KeyAttestationSettings,
+
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]
     pub instruction_challenge_timeout: Duration,
+
+    /// How long a Wallet Certificate is valid
+    #[serde(rename = "wallet_certificate_validity_in_days", with = "utils::duration_days")]
+    pub wallet_certificate_validity: Duration,
 
     /// Issuer trust anchors are used to validate the received PID SD JWT with Recovery Code disclosure
     pub pid_issuer_trust_anchors: TrustAnchors,
@@ -92,10 +98,7 @@ pub struct WiaSettings {
     pub wia_certificate: BorrowingCertificate,
     pub wia_signing_key_identifier: String,
 
-    #[serde(
-        rename = "wia_status_tracking_validity_in_days",
-        deserialize_with = "deserialize_duration_days"
-    )]
+    #[serde(rename = "wia_status_tracking_validity_in_days", with = "utils::duration_days")]
     pub wia_status_tracking_validity: Duration,
 
     pub wia_status_list: WiaStatusListsSettings,
@@ -103,6 +106,16 @@ pub struct WiaSettings {
     pub wia_wallet_link: Option<Url>,
     pub wia_wallet_version: String,
     pub wia_wallet_solution_certification_information: String,
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct KeyAttestationSettings {
+    #[serde_as(as = "Base64")]
+    pub key_attestation_certificate: BorrowingCertificate,
+    pub key_attestation_signing_key_identifier: String,
+
+    pub key_attestation_certification: Url,
 }
 
 #[derive(Clone, Deserialize)]
@@ -202,11 +215,6 @@ pub struct Android {
 #[derive(Clone, From, Into)]
 pub struct AndroidRootPublicKey(RootPublicKey);
 
-fn deserialize_duration_days<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
-    let days = u64::deserialize(deserializer)?;
-    Ok(Duration::from_hours(days * 24))
-}
-
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
@@ -224,6 +232,8 @@ impl Settings {
                 "wia_wallet_solution_certification_information",
                 "https://wallet.edi.rijksoverheid.nl",
             )?
+            .set_default("key_attestation_signing_key_identifier", "key_attestation_signing_key")?
+            .set_default("key_attestation_certification", "https://wallet.edi.rijksoverheid.nl")?
             .set_default("audit_log.options.acquire_timeout_in_sec", "10")?
             .set_default("audit_log.options.connect_timeout_in_sec", "3")?
             .set_default("audit_log.options.max_connections", "10")?
@@ -238,6 +248,7 @@ impl Settings {
             .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?
             .set_default("structured_logging", false)?
             .set_default("instruction_challenge_timeout_in_ms", 60_000)?
+            .set_default("wallet_certificate_validity_in_days", 90)?
             .set_default("hsm.max_sessions", 10)?
             .set_default("hsm.max_session_lifetime_in_sec", 900)?
             .set_default("android.allow_sideloading", false)?
@@ -308,7 +319,7 @@ pub enum WiaStatusListsSettingsError {
     ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
 
     #[error("incorrectly configured WIA status list key identifier or certificate: {0}")]
-    PrivateKey(#[from] CertificateError),
+    PrivateKey(#[from] KeyPairError),
 }
 
 impl WiaStatusListsSettings {

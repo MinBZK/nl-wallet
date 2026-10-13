@@ -10,8 +10,6 @@ pub(crate) const CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES: &[u8] =
 
 #[cfg(test)]
 pub(crate) mod test {
-    pub(crate) const RED_DOT_BYTES: &[u8] = include_bytes!("../examples/red-dot.png");
-
     pub(crate) const EXAMPLE_V2_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-v2-metadata.json");
     pub(crate) const EXAMPLE_V3_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-v3-metadata.json");
     // pub(crate) const SD_JWT_VC_SPEC_METADATA_BYTES: &[u8] =

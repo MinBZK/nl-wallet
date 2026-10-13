@@ -30,16 +30,16 @@ class MaintenanceChecker extends StatelessWidget {
       builder: (context, snapshot) {
         final maintenanceState = snapshot.data;
         if (maintenanceState == null) return child;
-        return maintenanceState.when(
-          inMaintenance: (window) {
+        switch (maintenanceState) {
+          case InMaintenance(:final window):
             // In maintenance mode: lock wallet & show maintenance screen
             context.read<LockWalletUseCase>().invoke();
             return MinimalWalletApp(
               child: MaintenanceScreen(maintenanceWindow: window),
             );
-          },
-          noMaintenance: () => child,
-        );
+          case NoMaintenance():
+            return child;
+        }
       },
     );
   }

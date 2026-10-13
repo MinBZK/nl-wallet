@@ -30,7 +30,9 @@ use server_utils::settings::SecretKey;
 use server_utils::store::StoreConnection;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
+use token_status_list::verification::reqwest::HttpStatusListClient;
 use utils::vec_nonempty;
+use wallet::attestation_types::Format;
 use wallet::test::default_wallet_config;
 use wscd::mock::MOCK_WALLET_CLIENT_ID;
 use wscd::wia::mock::MockWiaClient;
@@ -59,9 +61,8 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     // `MockWiaClient` creates its own WIA below rather than obtaining one from a real wallet_provider, so the
     // pid_issuer must be told to trust the CA it is created with.
-    let wia_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let wia_keypair = wia_ca.generate_wia_mock().unwrap();
-    let mut pid_settings = pid_issuer_settings(db_setup.pid_issuer_url(), Some(&wia_ca));
+    let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
+    let mut pid_settings = pid_issuer_settings(db_setup.pid_issuer_url(), Some(&wptl_ca));
     let (static_settings, _) = static_server_settings();
     start_static_crl_server(&static_settings).await;
 
@@ -128,10 +129,14 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let http_client = HttpClient::try_new(default_reqwest_client_builder()).unwrap();
     let crl_verifier =
         CertificateCrlVerifier::new_with_default_cache(default_reqwest_client_builder().build().unwrap());
-    let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client, crl_verifier);
+    let credential_issuer_discovery = HttpIssuanceDiscovery::new(
+        http_client,
+        crl_verifier,
+        HttpStatusListClient::new(default_reqwest_client_builder()).unwrap(),
+    );
 
     let credential_offer = create_pid_credential_offer(&issuer_url.public);
-    let wia_client = MockWiaClient::new_with_wia_keypair(wia_keypair.clone());
+    let wia_client = MockWiaClient::from_ca(&wptl_ca);
     let issuance_flow = credential_issuer_discovery
         .start(
             IssuanceDiscoveryParameters::new(
@@ -139,10 +144,10 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
                 &CredentialSelection::All,
                 &wia_client,
                 wallet_config.wrpac_trust_anchors(),
+                wallet_config.wrprc_trust_anchors(),
             ),
             String::from(MOCK_WALLET_CLIENT_ID),
             redirect_uri,
-            wallet_config.issuer_trust_anchors(),
         )
         .await
         .unwrap();
@@ -168,17 +173,23 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Exchange the authorization code for the attestation previews. This is where the DigiD
     // connector is queried for the BSN and the BRP proxy is queried for the attributes.
     let issuance_session = authorization_session
-        .start_issuance(&redirect_url, wallet_config.issuer_trust_anchors(), &wia_client)
+        .start_issuance(&redirect_url, &wia_client)
         .await
         .unwrap();
 
     let previews = issuance_session
-        .previews_with_metadata()
-        .map(|(preview, _)| preview)
+        .credential_previews()
+        .expect("issuance session should have previews")
+        .into_iter()
         .collect_vec();
     assert_eq!(previews.len(), 2);
 
-    let payload = &previews[0].credential_payload;
+    let payload = previews
+        .into_iter()
+        .find(|preview| preview.format == Format::SdJwt)
+        .expect("previews should include SD-JWT PID")
+        .credential_payload;
+
     assert_eq!(payload.attestation_type, PID_ATTESTATION_TYPE);
 
     let attributes = payload.attributes.as_ref();

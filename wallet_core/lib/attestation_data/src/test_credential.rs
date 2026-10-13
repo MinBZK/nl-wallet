@@ -310,6 +310,7 @@ impl TestCredential {
     ) -> (CredentialPayload, String) {
         let holder_key = wscd.as_ref().create_random_key();
 
+        let StatusClaim::StatusList(status) = &self.status;
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
             PreviewableCredentialPayload {
                 attributes,
@@ -318,7 +319,7 @@ impl TestCredential {
             Utc::now(),
             &PublicKey::from(*holder_key.verifying_key()),
             vct_integrity,
-            self.status.clone(),
+            Some(status.clone()),
         )
         .expect("TestCredential payload preview should convert to CredentialPayload");
 
@@ -356,7 +357,7 @@ impl TestCredential {
         );
 
         let sd_jwt = credential_payload
-            .into_signed_sd_jwt(&normalized_metadata, issuer_keypair)
+            .into_signed_sd_jwt(Some(&normalized_metadata), issuer_keypair)
             .now_or_never()
             .unwrap()
             .expect("TestCredential payload preview should convert to SD-JWT");

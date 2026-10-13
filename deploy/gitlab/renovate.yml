@@ -3,8 +3,7 @@ renovate:
     name: "${HARBOR_REGISTRY}/docker-hub-proxy/renovate/renovate:41@sha256:e998e1218fe572e23278d8808186a310784f7cb2ac8055307183ffc51d3a59e5"
     entrypoint: [""]
   rules:
-    - !reference [.on-schedule-scan, rules]
-    - !reference [.default-branch-manual, rules]
+    - !reference [.on-schedule-security, rules]
   variables:
     RENOVATE_PLATFORM: gitlab
     RENOVATE_ENDPOINT: $CI_SERVER_URL/api/v4

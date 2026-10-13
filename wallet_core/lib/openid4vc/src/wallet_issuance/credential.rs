@@ -1,17 +1,32 @@
 use attestation_types::credential_format::Format;
 use mdoc::holder::Mdoc;
-use sd_jwt::sd_jwt::VerifiedSdJwt;
+use sd_jwt::sd_jwt::DecodedSdJwt;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
+use super::issuer_registration::IssuerRegistration;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 
-/// The metadata that describes an issued credential, which is persisted along with it.
+/// The metadata that describes an issued credential.
 #[derive(Clone, Debug)]
 pub enum IssuedCredentialMetadata {
-    TypeMetadata(VerifiedTypeMetadataDocuments),
+    TypeMetadata {
+        normalized: NormalizedTypeMetadata,
+        verified: VerifiedTypeMetadataDocuments,
+    },
     CredentialMetadata(CredentialMetadata),
+}
+
+#[cfg(any(test, feature = "mock"))]
+impl IssuedCredentialMetadata {
+    pub fn nl_pid_example() -> Self {
+        Self::TypeMetadata {
+            normalized: NormalizedTypeMetadata::nl_pid_example(),
+            verified: VerifiedTypeMetadataDocuments::nl_pid_example(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -22,9 +37,11 @@ pub struct CredentialWithMetadata {
     pub not_before: Option<DateTimeSeconds>,
     pub extended_attestation_types: Vec<String>,
     pub metadata: IssuedCredentialMetadata,
+    pub issuer_registration: IssuerRegistration,
 }
 
 impl CredentialWithMetadata {
+    #[expect(clippy::too_many_arguments, reason = "constructor method")]
     pub fn new(
         copies: IssuedCredentialCopies,
         attestation_type: String,
@@ -32,6 +49,7 @@ impl CredentialWithMetadata {
         not_before: Option<DateTimeSeconds>,
         extended_attestation_types: impl IntoIterator<Item = impl Into<String>>,
         metadata: IssuedCredentialMetadata,
+        issuer_registration: IssuerRegistration,
     ) -> Self {
         Self {
             copies,
@@ -40,6 +58,7 @@ impl CredentialWithMetadata {
             not_before,
             extended_attestation_types: extended_attestation_types.into_iter().map(Into::into).collect(),
             metadata,
+            issuer_registration,
         }
     }
 }
@@ -53,7 +72,7 @@ pub struct MdocCopy {
 #[derive(Debug, Clone)]
 pub struct SdJwtCopy {
     pub key_identifier: String,
-    pub sd_jwt: VerifiedSdJwt,
+    pub sd_jwt: DecodedSdJwt,
 }
 
 #[derive(Debug, Clone)]

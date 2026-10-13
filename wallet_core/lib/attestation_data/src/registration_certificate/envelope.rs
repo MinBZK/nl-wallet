@@ -7,8 +7,8 @@ use chrono::Utc;
 use cose::wrprc_cwt::UnverifiedWrprcCwt;
 use cose::wrprc_cwt::WrprcCwtError;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::CanocalizationError;
 use crypto::x509::CanonicalDistinguishedName;
-use crypto::x509::CertificateError;
 use jwt::DEFAULT_VALIDATION;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtParseError;
@@ -44,7 +44,7 @@ pub enum RegistrationCertificateEnvelopeError {
     #[error("could not verify registration certificate CWT: {0}")]
     Cwt(#[source] WrprcCwtError),
     #[error("could not parse registration-certificate signing-certificate subject: {0}")]
-    SigningCertificateSubject(#[source] CertificateError),
+    SigningCertificateSubject(#[source] CanocalizationError),
 }
 
 /// A registration certificate in JWT or CWT form, with an encoded, unparsed payload.

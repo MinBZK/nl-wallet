@@ -42,15 +42,17 @@ class HelpTests : TestBase() {
         setUp(testInfo)
         menuScreen.clickHelpAndInfoButton()
         assertTrue(helpAndInfoScreen.visible(), "Help buttons are not visible")
+        helpAndInfoScreen.captureA11ySnapshot("HelpAndInfo")
 
         helpAndInfoScreen.clickContactButton()
         assertTrue(contactScreen.visible(), "Contact screen not visible")
+        contactScreen.captureA11ySnapshot("Contact")
 
         contactScreen.clickBottomBackButton()
         helpAndInfoScreen.clickActivitiesHelpButton()
         activitiesHelpScreen.clickCardActivitiesButton()
 
-        activitiesHelpScreen.clickFirstHelpGroupButton()
+        activitiesHelpScreen.clickFirstCardActivitiesTopicButton()
         activitiesHelpScreen.clickSomethingElseButton()
         assertTrue(contactScreen.visible(), "Contact screen not visible")
 
@@ -63,6 +65,6 @@ class HelpTests : TestBase() {
         helpAndInfoScreen.clickBottomBackButton()
         Thread.sleep(ANIMATION_SETTLE_MILLIS)
         helpAndInfoScreen.clickBottomBackButton()
-        assertTrue(menuScreen.menuListButtonsVisible(), "Menu screen not visible")
+        assertTrue(menuScreen.menuVisible(), "Menu screen not visible")
     }
 }

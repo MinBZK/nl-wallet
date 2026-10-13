@@ -73,8 +73,10 @@ class CloseProximityDisclosureTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Dashboard)
         assertTrue(dashboardScreen.visible(), "Dashboard is not visible")
+        dashboardScreen.captureA11ySnapshot("Dashboard")
         dashboardScreen.showQRCode()
         closeProximityQrScreen.centerQr()
+        closeProximityQrScreen.captureA11ySnapshot("CloseProximityQr")
         val qrString = closeProximityQrScreen.getQr()
         val mockBleReaderApp = closeProximityQrScreen.startMockBleReaderApp(
             qrString,
@@ -93,6 +95,7 @@ class CloseProximityDisclosureTests : TestBase() {
             ),
             "Disclosure screen not shown, reader output so far:\n$outputBuffer",
         )
+        disclosureScreen.captureA11ySnapshot("DisclosureApproveOrganization")
         disclosureScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToDashBoard()
@@ -134,6 +137,7 @@ class CloseProximityDisclosureTests : TestBase() {
             attributesMissingErrorScreen.attributesMissingMessageVisible(timeoutInSeconds = READER_STARTUP_TIMEOUT_SECONDS),
             "Attributes missing message not visible, reader output so far:\n$outputBuffer",
         )
+        attributesMissingErrorScreen.captureA11ySnapshot("AttributesMissingError")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -170,5 +174,6 @@ class CloseProximityDisclosureTests : TestBase() {
             pinScreen.enterPin(DEFAULT_PIN)
         }
         assertTrue(bleDisconnectedScreen.visible(), "BLE disconnected screen is not visible")
+        bleDisconnectedScreen.captureA11ySnapshot("BleDisconnected")
     }
 }

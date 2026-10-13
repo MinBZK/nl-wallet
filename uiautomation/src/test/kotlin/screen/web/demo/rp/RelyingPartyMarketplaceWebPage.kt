@@ -12,7 +12,10 @@ class RelyingPartyMarketplaceWebPage : MobileActions() {
 
     private val accountWelcomeTextDutchLocator = By.xpath("//div[@role='alert' and contains(./span/text(), 'Welkom')]")
 
-    fun welcomeMessageVisible() = isWebElementVisible(findWebElement(accountWelcomeTextDutchLocator))
+    fun welcomeMessageVisible(): Boolean {
+        switchToWebViewWindowContaining(accountWelcomeTextDutchLocator)
+        return isWebElementVisible(findWebElement(accountWelcomeTextDutchLocator))
+    }
 
     fun openSameDeviceWalletFlow() {
         body.clickStartButton()

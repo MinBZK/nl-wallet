@@ -87,6 +87,7 @@ class BiometricsTests : TestBase() {
         dashboardScreen.clickMenuButton()
         menuScreen.clickLogoutButton()
         pinScreen.openBiometricLogin()
+        pinScreen.captureA11ySnapshot("BiometricLogin")
         pinScreen.enterBiometric(true)
 
         assertTrue(dashboardScreen.visible(), "Dashboard is not visible")
@@ -118,6 +119,7 @@ class BiometricsTests : TestBase() {
         menuScreen.clickSettingsButton()
         settingsScreen.clickSetupBiometricsButton()
         assertTrue(biometricsSetupScreen.visible(), "Biometric setup is not visible")
+        biometricsSetupScreen.captureA11ySnapshot("BiometricsSetup")
 
         biometricsSetupScreen.toggleBiometricUnlock()
         biometricsSetupScreen.clickCloseButton()

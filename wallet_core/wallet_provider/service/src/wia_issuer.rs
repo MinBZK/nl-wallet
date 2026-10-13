@@ -5,14 +5,13 @@ use chrono::Utc;
 use crypto::PublicKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateNameError;
 use derive_more::Constructor;
 use hsm::keys::HsmEcdsaKey;
 use jwt::SignedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
 use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::Generate;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
@@ -43,11 +42,11 @@ pub enum WiaIssuerError {
     #[error("sign error: {0}")]
     SignError(#[source] JwtSignError),
 
-    #[error("Missing Common Name in WIA issuance certificate")]
+    #[error("missing Common Name in WIA issuance certificate")]
     MissingCommonName,
 
-    #[error("WIA issuance certificate error: {0}")]
-    WiaCertificateError(#[source] CertificateError),
+    #[error("certificate name error: {0}")]
+    CertificateNameError(#[source] CertificateNameError),
 
     #[error("signing PoP failed: {0}")]
     PopSignError(#[source] JwtSignError),
@@ -69,7 +68,7 @@ where
             .keypair
             .certificate()
             .common_name()
-            .map_err(WiaIssuerError::WiaCertificateError)?
+            .map_err(WiaIssuerError::CertificateNameError)?
             .ok_or(WiaIssuerError::MissingCommonName)?
             .to_string();
 
@@ -106,16 +105,11 @@ where
 
         Ok(WiaDisclosure::new(wia, wia_pop))
     }
-
-    pub fn public_key(&self) -> VerifyingKey {
-        *self.keypair.certificate().public_key()
-    }
 }
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use crypto::server_keys::generate::Ca;
-    use crypto::x509::DistinguishedName;
     use p256::ecdsa::SigningKey;
     use wscd::payload::wia::WiaWalletInfo;
 
@@ -124,12 +118,9 @@ pub mod mock {
     pub type MockWiaIssuer = WiaIssuer<SigningKey>;
 
     impl MockWiaIssuer {
-        pub fn new_mock() -> Self {
+        pub fn new_mock(wp_trusted_list_ca: &Ca) -> Self {
             Self {
-                keypair: Ca::generate(DistinguishedName::create_mock("wia.ca.example.com"), Default::default())
-                    .unwrap()
-                    .generate_wia_mock()
-                    .unwrap(),
+                keypair: wp_trusted_list_ca.generate_wia_mock().unwrap(),
                 sub: "sub".to_string(),
                 wallet_info: WiaWalletInfo::new_mock(),
             }
@@ -156,7 +147,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_wptl_mock_ca().unwrap();
         let wia_keypair = ca.generate_wia_mock().unwrap();
         let sub = "sub";
 

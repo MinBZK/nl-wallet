@@ -1,7 +1,7 @@
 pnpm-audit-fix:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   rules:
-    - !reference [.on-schedule-scan, rules]
+    - !reference [.on-schedule-security, rules]
   script:
     - scripts/pnpm-audit-fix.sh
 
@@ -10,7 +10,7 @@ cargo-audit-fix:
   tags:
     - linux
   rules:
-    - !reference [.on-schedule-scan, rules]
+    - !reference [.on-schedule-security, rules]
   script:
     - scripts/cargo-audit-fix.sh
 
@@ -18,6 +18,6 @@ pip-audit-fix:
   tags:
     - linux
   rules:
-    - !reference [.on-schedule-scan, rules]
+    - !reference [.on-schedule-security, rules]
   script:
     - scripts/pip-audit-fix.sh

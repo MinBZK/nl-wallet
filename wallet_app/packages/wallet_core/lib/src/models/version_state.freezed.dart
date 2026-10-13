@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'version_state.dart';
@@ -9,6 +9,7 @@ part of 'version_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -20,7 +21,7 @@ mixin _$FlutterVersionState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState);
 }
 
 
@@ -29,7 +30,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FlutterVersionState()';
+    return 'FlutterVersionState()';
 }
 
 
@@ -203,7 +204,7 @@ class FlutterVersionState_Ok extends FlutterVersionState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Ok);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Ok);
 }
 
 
@@ -212,7 +213,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FlutterVersionState.ok()';
+    return 'FlutterVersionState.ok()';
 }
 
 
@@ -235,7 +236,7 @@ class FlutterVersionState_Notify extends FlutterVersionState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Notify);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Notify);
 }
 
 
@@ -244,7 +245,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FlutterVersionState.notify()';
+    return 'FlutterVersionState.notify()';
 }
 
 
@@ -267,7 +268,7 @@ class FlutterVersionState_Recommend extends FlutterVersionState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Recommend);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Recommend);
 }
 
 
@@ -276,7 +277,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FlutterVersionState.recommend()';
+    return 'FlutterVersionState.recommend()';
 }
 
 
@@ -304,16 +305,18 @@ $FlutterVersionState_WarnCopyWith<FlutterVersionState_Warn> get copyWith => _$Fl
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Warn&&(identical(other.expiresInSeconds, expiresInSeconds) || other.expiresInSeconds == expiresInSeconds));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Warn&&(identical(other.expiresInSeconds, expiresInSeconds) || other.expiresInSeconds == expiresInSeconds));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,expiresInSeconds);
+int get hashCode {
+    return Object.hash(runtimeType,expiresInSeconds);
+}
 
 @override
 String toString() {
-  return 'FlutterVersionState.warn(expiresInSeconds: $expiresInSeconds)';
+    return 'FlutterVersionState.warn(expiresInSeconds: $expiresInSeconds)';
 }
 
 
@@ -365,7 +368,7 @@ class FlutterVersionState_Block extends FlutterVersionState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Block);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is FlutterVersionState_Block);
 }
 
 
@@ -374,7 +377,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'FlutterVersionState.block()';
+    return 'FlutterVersionState.block()';
 }
 
 

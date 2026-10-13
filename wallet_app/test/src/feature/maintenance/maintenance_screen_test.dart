@@ -229,7 +229,7 @@ void main() {
       });
     });
 
-    testWidgets('Help button is displayed', (tester) async {
+    testWidgets('Help button is not displayed', (tester) async {
       await withClock(Clock.fixed(DateTime(2025, 1, 15, 10, 30)), () async {
         final now = clock.now();
         final maintenance = MaintenanceWindow(
@@ -241,7 +241,7 @@ void main() {
           MaintenanceScreen(maintenanceWindow: maintenance),
         );
 
-        expect(find.byType(HelpIconButton), findsOneWidget);
+        expect(find.byType(HelpIconButton), findsNothing);
       });
     });
   });

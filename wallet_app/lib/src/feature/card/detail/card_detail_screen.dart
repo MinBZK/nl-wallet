@@ -29,7 +29,6 @@ import '../../common/widget/card/status/card_status_info_text.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/menu_item.dart';
-import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/text/title_text.dart';
@@ -211,14 +210,13 @@ class CardDetailScreen extends StatelessWidget {
               widthFactor: 0.6,
               child: Hero(
                 tag: card.hashCode,
-                flightShuttleBuilder:
-                    (
-                      BuildContext flightContext,
-                      Animation<double> animation,
-                      HeroFlightDirection flightDirection,
-                      BuildContext fromHeroContext,
-                      BuildContext toHeroContext,
-                    ) => WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeIn),
+                flightShuttleBuilder: (
+                  BuildContext flightContext,
+                  Animation<double> animation,
+                  HeroFlightDirection flightDirection,
+                  BuildContext fromHeroContext,
+                  BuildContext toHeroContext,
+                ) => WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeIn),
                 child: WalletCardItem.fromWalletCard(context, card),
               ),
             ),
@@ -253,7 +251,7 @@ class CardDetailScreen extends StatelessWidget {
         onPressed: card.attestationId == null ? null : () => _onCardHistoryPressed(context, card.attestationId!),
       ),
       MenuItem(
-        leftIcon: card.issuer.logo == null ? null : OrganizationLogo(image: card.issuer.logo!, size: 24),
+        leftIcon: const Icon(Icons.info_outline),
         label: Text.rich(context.l10n.cardDetailScreenIssuerCta.toTextSpan(context)),
         subtitle: Text.rich(card.issuer.displayName.toTextSpan(context)),
         onPressed: () => OrganizationDetailScreen.showPreloaded(

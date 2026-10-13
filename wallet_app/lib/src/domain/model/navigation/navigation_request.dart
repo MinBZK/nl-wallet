@@ -26,7 +26,7 @@ const unlockedWithPidAndReadyPrerequisites = [
   NavigationPrerequisite.walletInReadyState,
 ];
 
-@freezed
+@Freezed(copyWith: false)
 abstract class NavigationRequest with _$NavigationRequest {
   const NavigationRequest._();
 

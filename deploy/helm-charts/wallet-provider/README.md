@@ -195,6 +195,12 @@
 | `wiaCertificate`   | WIA signing certificate (base64-encoded DER) | `nil` |
 | `wiaWalletVersion` | Version of the wallet solution               | `nil` |
 
+### Key Attestation parameters
+
+| Name                        | Description                                              | Value |
+| --------------------------- | -------------------------------------------------------- | ----- |
+| `keyAttestationCertificate` | Key Attestation signing certificate (base64-encoded DER) | `nil` |
+
 ### WIA status list parameters
 
 | Name                            | Description                                              | Value |

@@ -13,10 +13,6 @@ use axum::response::Json;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
-use crypto::keys::EcdsaKey;
-use crypto::p256_der::DerVerifyingKey;
-use futures::TryFutureExt;
-use futures::try_join;
 use health_checkers::hsm::HsmChecker;
 use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
@@ -26,8 +22,6 @@ use metrics_exporter_prometheus::PrometheusBuilder;
 use metrics_exporter_prometheus::PrometheusHandle;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use serde_with::base64::Base64;
-use serde_with::serde_as;
 use tokio::sync::Semaphore;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -55,6 +49,7 @@ use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
+use wallet_account::messages::instructions::RefreshWalletCertificate;
 use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::instructions::Sign;
@@ -174,6 +169,10 @@ where
                     post(change_pin_rollback),
                 )
                 .route(
+                    &format!("/instructions/{}", RefreshWalletCertificate::NAME),
+                    post(refresh_wallet_certificate),
+                )
+                .route(
                     &format!("/instructions/{}", StartPinRecovery::NAME),
                     post(start_pin_recovery),
                 )
@@ -211,13 +210,6 @@ where
                 )
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))
-                .with_state(Arc::clone(&state)),
-        )
-        .nest(
-            "/config",
-            Router::new()
-                .route("/public-keys", get(public_keys))
-                .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         );
 
@@ -406,6 +398,29 @@ async fn change_pin_start<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
+async fn refresh_wallet_certificate<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+    Json(payload): Json<Instruction<RefreshWalletCertificate>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<WalletCertificate>>)> {
+    info!("Received RefreshWalletCertificate instruction");
+
+    let result = state
+        .account_server
+        .handle_refresh_wallet_certificate_instruction(
+            payload,
+            (&state.instruction_result_signing_key, &state.certificate_signing_key),
+            &UuidV4AndTimeGenerator,
+            &state.pin_policy,
+            &state.user_state,
+        )
+        .await
+        .inspect_err(|error| warn!("handling RefreshWalletCertificate instruction failed: {}", error))?;
+
+    let body = InstructionResultMessage { result };
+
+    Ok((StatusCode::OK, body.into()))
+}
+
 async fn change_pin_rollback<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<ChangePinRollback>>,
@@ -449,41 +464,6 @@ async fn start_pin_recovery<GRC, PIC>(
         .inspect_err(|error| warn!("handling ChangePinStart instruction failed: {}", error))?;
 
     let body = InstructionResultMessage { result };
-
-    Ok((StatusCode::OK, body.into()))
-}
-
-#[serde_as]
-#[derive(Serialize)]
-struct PublicKeys {
-    #[serde_as(as = "Base64")]
-    certificate_public_key: DerVerifyingKey,
-    #[serde_as(as = "Base64")]
-    instruction_result_public_key: DerVerifyingKey,
-    #[serde_as(as = "Base64")]
-    wia_signing_key: DerVerifyingKey,
-}
-
-async fn public_keys<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-) -> Result<(StatusCode, Json<PublicKeys>)> {
-    let (certificate_public_key, instruction_result_public_key) = try_join!(
-        state
-            .certificate_signing_key
-            .verifying_key()
-            .map_err(WalletProviderError::Hsm),
-        state
-            .instruction_result_signing_key
-            .verifying_key()
-            .map_err(WalletProviderError::Hsm),
-    )
-    .inspect_err(|error| warn!("getting wallet provider public keys failed: {}", error))?;
-
-    let body = PublicKeys {
-        certificate_public_key: certificate_public_key.into(),
-        instruction_result_public_key: instruction_result_public_key.into(),
-        wia_signing_key: state.user_state.wia_issuer.public_key().into(),
-    };
 
     Ok((StatusCode::OK, body.into()))
 }

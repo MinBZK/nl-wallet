@@ -4,14 +4,13 @@ use std::hash::Hash;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
-use attestation_data::auth::Organization;
-use attestation_data::auth::OrganizationError;
 use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::organization::Organization;
+use attestation_data::organization::OrganizationError;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use chrono::Utc;
-use crypto::x509::BorrowingCertificate;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
 use entity::disclosure_event::EventStatus;
@@ -543,16 +542,14 @@ where
         &self,
         attestation_requests: &[&impl AttestationRequest],
         pid_attributes: &PidAttributesConfiguration,
-        certificate: &BorrowingCertificate,
+        organization: &Organization,
     ) -> Result<(Vec<Option<VecNonEmpty<VpDisclosableAttestation>>>, bool), DisclosureError> {
-        let organization = Organization::try_from(certificate).map_err(DisclosureError::Organization)?;
-
         // Check for recovery code request
         if attestation_requests
             .iter()
             .any(|request| is_request_for_recovery_code(request, pid_attributes))
         {
-            return Err(DisclosureError::RecoveryCodeRequested(organization.into()));
+            return Err(DisclosureError::RecoveryCodeRequested(organization.clone().into()));
         }
 
         // For each disclosure request, fetch the candidates from the database and convert
@@ -567,7 +564,7 @@ where
         .map_err(DisclosureError::AttestationRetrieval)?;
 
         let shared_data_with_relying_party_before = storage
-            .did_share_data_with_relying_party(&organization)
+            .did_share_data_with_relying_party(organization)
             .await
             .map_err(DisclosureError::HistoryRetrieval)?;
 
@@ -614,7 +611,7 @@ where
             .prepare_disclosure(
                 &session.credential_requests().as_ref().iter().collect_vec(),
                 &wallet_config.pid_attributes,
-                session.certificate(),
+                session.organization(),
             )
             .await?;
 
@@ -623,7 +620,7 @@ where
             .zip(session.credential_requests().as_ref());
 
         // Verify whether all non selectively disclosable claims are requested
-        let organization = Organization::try_from(session.certificate()).map_err(DisclosureError::Organization)?;
+        let organization = session.organization().clone();
         Self::verify_non_selectively_disclosable_claims(candidate_attestations.clone(), &organization)?;
 
         let candidate_attestations = candidate_attestations
@@ -736,8 +733,7 @@ where
         &mut self,
         session: WalletDisclosureSession<DCC::Session>,
     ) -> Result<Option<Url>, DisclosureError> {
-        let organization =
-            Organization::try_from(session.protocol_state.certificate()).map_err(DisclosureError::Organization)?;
+        let organization = session.protocol_state.organization().clone();
 
         let return_url = session.protocol_state.terminate().await?;
 
@@ -859,8 +855,7 @@ where
             .increment_usage_count_and_collect_presentations(attestation_values)
             .await;
 
-        let organization =
-            Organization::try_from(session.protocol_state.certificate()).map_err(DisclosureError::Organization)?;
+        let organization = session.protocol_state.organization().clone();
 
         if let Err(error) = result {
             // If storing the event results in an error, log it but do nothing else.
@@ -1005,11 +1000,9 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
-    use attestation_data::auth::Organization;
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use attestation_data::organization::Organization;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
@@ -1127,7 +1120,7 @@ mod tests {
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_verifier_certificate(
-        verifier_certificate: BorrowingCertificate,
+        verifier_certificate: &BorrowingCertificate,
         credential_requests: NormalizedCredentialRequests,
     ) -> MockDisclosureSession {
         let mut disclosure_session = MockDisclosureSession::new();
@@ -1135,8 +1128,8 @@ mod tests {
             .expect_session_type()
             .return_const(SessionType::CrossDevice);
         disclosure_session
-            .expect_certificate()
-            .return_const(verifier_certificate);
+            .expect_organization()
+            .return_const(Organization::try_from(verifier_certificate).unwrap());
         disclosure_session
             .expect_credential_requests()
             .return_const(credential_requests);
@@ -1151,7 +1144,7 @@ mod tests {
         let verifier_certificate = WRPAC_CA.generate_wrpac_verifier_mock().unwrap().certificate().clone();
 
         let disclosure_session =
-            setup_disclosure_session_verifier_certificate(verifier_certificate.clone(), credential_requests);
+            setup_disclosure_session_verifier_certificate(&verifier_certificate, credential_requests);
 
         (disclosure_session, verifier_certificate)
     }
@@ -2087,7 +2080,7 @@ mod tests {
 
         // Attestation issued by a CA that does not include AKI in certificates.
         let ca = Ca::generate_issuer_mock_ca_without_aki().unwrap();
-        let issuance_key = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuance_key = ca.generate_issuer_mock().unwrap();
 
         wallet_expectations_for_aki_tests(
             &mut wallet,
@@ -2120,7 +2113,7 @@ mod tests {
 
         // Attestation issued by a CA that does not include AKI in certificates.
         let ca = Ca::generate_issuer_mock_ca_without_aki().unwrap();
-        let issuance_key = generate_issuer_mock_with_registration(&ca, &IssuerRegistration::new_mock()).unwrap();
+        let issuance_key = ca.generate_issuer_mock().unwrap();
 
         wallet_expectations_for_aki_tests(
             &mut wallet,
@@ -2825,10 +2818,10 @@ mod tests {
             .protocol_state
             .expect_disclose()
             .times(1)
-            .return_once(|_disclosable_attestations| {
+            .return_once(move |_disclosable_attestations| {
                 Err((
                     Box::new(setup_disclosure_session_verifier_certificate(
-                        disclose_verifier_certificate,
+                        &disclose_verifier_certificate,
                         default_pid_credential_requests(Format::MsoMdoc),
                     )),
                     disclosure_error,
@@ -2866,10 +2859,10 @@ mod tests {
             .protocol_state
             .expect_disclose()
             .times(1)
-            .return_once(|_disclosable_attestations| {
+            .return_once(move |_disclosable_attestations| {
                 Err((
                     Box::new(setup_disclosure_session_verifier_certificate(
-                        disclose_verifier_certificate,
+                        &disclose_verifier_certificate,
                         default_pid_credential_requests(Format::MsoMdoc),
                     )),
                     disclosure_error,
@@ -3019,7 +3012,7 @@ mod tests {
             .times(1)
             .return_once(move |_disclosable_attestations| {
                 let mut session = setup_disclosure_session_verifier_certificate(
-                    verifier_certificate,
+                    &verifier_certificate,
                     default_pid_credential_requests(Format::MsoMdoc),
                 );
 
@@ -3202,7 +3195,7 @@ mod tests {
 
         session.protocol_state.expect_disclose().times(1).return_once(move |_| {
             let session = setup_disclosure_session_verifier_certificate(
-                verifier_certificate,
+                &verifier_certificate,
                 default_pid_credential_requests(Format::MsoMdoc),
             );
 
@@ -3272,7 +3265,7 @@ mod tests {
 
         session.protocol_state.expect_disclose().times(1).return_once(move |_| {
             let session = setup_disclosure_session_verifier_certificate(
-                verifier_certificate,
+                &verifier_certificate,
                 default_pid_credential_requests(Format::MsoMdoc),
             );
 

@@ -286,7 +286,7 @@ mod tests {
 
     #[fixture]
     fn ca() -> Ca {
-        Ca::generate_mock()
+        Ca::generate_wptl_mock_ca().unwrap()
     }
 
     #[fixture]

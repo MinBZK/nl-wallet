@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
-use crypto::x509::CertificateError;
+use crypto::x509::CertificateNameError;
 use crypto::x509::KeyIdentifier;
 use dcql::CredentialQueryIdentifier;
 use dcql::disclosure::DisclosedCredential;
@@ -197,7 +197,7 @@ pub enum DisclosedAttestationError {
     MissingIssuerCertificate,
 
     #[error("error reading issuer certificate: {0}")]
-    Certificate(#[from] CertificateError),
+    CertificateNameError(#[from] CertificateNameError),
 
     #[error("empty issuer common name in SD JWT issuer certificate")]
     EmptyIssuerCommonName,

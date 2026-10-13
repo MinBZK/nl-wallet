@@ -30,7 +30,7 @@ url.workspace = true
 x509-parser.workspace = true
 
 crypto = { path = "../lib/crypto", features = ["generate"] }
-attestation_data = { path = "../lib/attestation_data", features = ["generate"] }
+attestation_data.path = "../lib/attestation_data"
 attestation_types.path = "../lib/attestation_types"
 cose.path = "../lib/cose"
 jwt.path = "../lib/jwt"

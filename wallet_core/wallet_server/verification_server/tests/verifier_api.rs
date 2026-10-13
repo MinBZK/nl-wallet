@@ -7,7 +7,6 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
@@ -15,11 +14,10 @@ use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use attestation_data::registration_certificate::mock::StaticStatusListClient;
-use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
@@ -27,8 +25,7 @@ use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::crl::CertificateCrlVerifier;
-use crypto::x509::crl::mock::MockCrlFetcher;
+use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use dcql::CredentialQuery;
 use dcql::Query;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -129,7 +126,7 @@ async fn wallet_server_settings_and_listener(
     TcpListener,
     Ca,
     TrustAnchors,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    MockCertificateCrlVerifier,
     TrustAnchors,
     StaticStatusListClient,
 ) {
@@ -151,9 +148,9 @@ async fn wallet_server_settings_and_listener(
 
     // Set up the use case, based on RP CA and reader registration.
     let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
-    let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&wrpac_ca);
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&wrpac_ca);
     let registration_certificate =
-        MockRegistrationCertificate::new(usecase_keypair.certificate(), request.dcql_query.clone().unwrap());
+        MockRegistrationCertificate::new_verifier(usecase_keypair.certificate(), request.dcql_query.clone().unwrap());
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
@@ -594,7 +591,7 @@ async fn start_disclosure<S>(
     BaseUrl,
     Ca,
     TrustAnchors,
-    CertificateCrlVerifier<MockCrlFetcher>,
+    MockCertificateCrlVerifier,
     TrustAnchors,
     StaticStatusListClient,
 )
@@ -836,17 +833,16 @@ fn prepare_example_credential_payload(
     };
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let issuer_keypair =
-        generate_pid_issuer_mock_with_registration(issuer_ca, &IssuerRegistration::new_mock()).unwrap();
+    let issuer_keypair = issuer_ca.generate_pid_issuer_mock().unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
-    let holder_privkey = wscd.create_random_key();
+    let holder_privkey = wscd.disclosure.create_random_key();
     let payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
         payload_preview,
         Utc::now(),
         &PublicKey::from(*holder_privkey.verifying_key()),
         Some(Integrity::from("")),
-        StatusClaim::new_mock(),
+        Some(StatusListClaim::new_mock()),
     )
     .unwrap();
 
@@ -869,7 +865,7 @@ fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Signed
     let (credential_payload, issuer_keypair, holder_privkey_identifier, metadata) =
         prepare_example_credential_payload(Format::SdJwt, issuer_ca, wscd);
     let sd_jwt = credential_payload
-        .into_signed_sd_jwt(&metadata, &issuer_keypair)
+        .into_signed_sd_jwt(Some(&metadata), &issuer_keypair)
         .now_or_never()
         .unwrap()
         .unwrap();

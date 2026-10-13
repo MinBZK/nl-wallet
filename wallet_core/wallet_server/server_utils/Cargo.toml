@@ -69,4 +69,4 @@ utils.path = "../../lib/utils"
 db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
-attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
+attestation_data = { path = "../../lib/attestation_data", features = ["mock"] }

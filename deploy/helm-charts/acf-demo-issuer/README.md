@@ -110,9 +110,10 @@
 
 ### Credential parameters
 
-| Name        | Description                                                        | Value |
-| ----------- | ------------------------------------------------------------------ | ----- |
-| `batchSize` | The maximum amount of credentials a holder will be able to request | `10`  |
+| Name                        | Description                                                        | Value  |
+| --------------------------- | ------------------------------------------------------------------ | ------ |
+| `batchSize`                 | The maximum amount of credentials a holder will be able to request | `10`   |
+| `credentialPreviewEndpoint` | Whether to offer the (non-standard) Credential Preview Endpoint    | `true` |
 
 ### Wallet redirect uris
 
@@ -122,10 +123,10 @@
 
 ### Metadata parameters
 
-| Name                 | Description                                                               | Value                                                                                          |
-| -------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `typeMetadata`       | List of SD-JWT VC Type Metadata filenames to mount and pass to the server | `[]`                                                                                           |
-| `credentialMetadata` | List of Credential Metadata filenames to mount                            | `["com_example_insurance_metadata_mdoc.json","com_example_jum_bonuskaart_metadata_mdoc.json"]` |
+| Name                 | Description                                                               | Value                                                                                            |
+| -------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `typeMetadata`       | List of SD-JWT VC Type Metadata filenames to mount and pass to the server | `[]`                                                                                             |
+| `credentialMetadata` | List of Credential Metadata filenames to mount                            | `["com_example_insurance_metadata_mdoc.json","com_example_jum_bonuskaart_metadata_sd_jwt.json"]` |
 
 ### Migration parameters
 

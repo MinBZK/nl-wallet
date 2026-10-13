@@ -3,17 +3,14 @@ use std::fmt::Debug;
 use std::ops::Deref;
 
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::data_uri::DataUri;
-use attestation_types::image::Image;
 use itertools::Itertools;
 use nutype::nutype;
 use regex::regex;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::TryFromInto;
-use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
+use url::Url;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -257,6 +254,10 @@ pub struct DisplayMetadata {
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[expect(
+    clippy::large_enum_variant,
+    reason = "SVG templates will be added at some point in the future, so this variant will be expanded (PVW-3924)"
+)]
 pub enum RenderingMetadata {
     Simple {
         /// An object containing information about the logo to be displayed for the type.
@@ -274,27 +275,17 @@ pub enum RenderingMetadata {
     SvgTemplates,
 }
 
-#[serde_as]
-#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogoMetadata {
-    /// Explicitly reject non-embedded images and unsupported mime types
-    #[debug(skip)]
-    #[serde(rename = "uri")]
-    #[serde_as(as = "TryFromInto<DataUri>")]
-    pub image: Image,
+    pub uri: Url,
 
     /// Alternative text for the logo.
     pub alt_text: Option<String>,
 }
 
-#[serde_as]
-#[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BackgroundImageMetadata {
-    /// Explicitly reject non-embedded images and unsupported mime types
-    #[debug(skip)]
-    #[serde(rename = "uri")]
-    #[serde_as(as = "TryFromInto<DataUri>")]
-    pub image: Image,
+    pub uri: Url,
 }
 
 #[skip_serializing_none]
@@ -492,11 +483,8 @@ mod example_constructors {
 mod test {
     use std::assert_matches;
     use std::collections::HashMap;
-    use std::str::FromStr;
 
     use attestation_types::claim_path::ClaimPath;
-    use attestation_types::data_uri::DataUri;
-    use attestation_types::image::ImageError;
     use rstest::rstest;
     use serde_json::json;
     use utils::vec_nonempty;
@@ -505,7 +493,6 @@ mod test {
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::test::EXAMPLE_V2_METADATA_BYTES;
     use crate::examples::test::EXAMPLE_V3_METADATA_BYTES;
-    use crate::examples::test::RED_DOT_BYTES;
     use crate::examples::test::SIMPLE_EMBEDDED_METADATA_BYTES;
     use crate::examples::test::SIMPLE_REMOTE_BACKGROUND_METADATA_BYTES;
     use crate::examples::test::SIMPLE_REMOTE_METADATA_BYTES;
@@ -524,14 +511,12 @@ mod test {
             serde_json::from_slice(SIMPLE_EMBEDDED_METADATA_BYTES).unwrap()
         }
 
-        pub(crate) fn simple_remote_example() -> serde_json::Error {
-            // Explicitly unsupported at the moment, hence the error return
-            serde_json::from_slice::<Self>(SIMPLE_REMOTE_METADATA_BYTES).unwrap_err()
+        pub(crate) fn simple_remote_example() -> Self {
+            serde_json::from_slice(SIMPLE_REMOTE_METADATA_BYTES).unwrap()
         }
 
-        pub(crate) fn simple_remote_background_example() -> serde_json::Error {
-            // Explicitly unsupported at the moment, hence the error return
-            serde_json::from_slice::<Self>(SIMPLE_REMOTE_BACKGROUND_METADATA_BYTES).unwrap_err()
+        pub(crate) fn simple_remote_background_example() -> Self {
+            serde_json::from_slice(SIMPLE_REMOTE_BACKGROUND_METADATA_BYTES).unwrap()
         }
     }
 
@@ -569,16 +554,21 @@ mod test {
         assert_eq!(VCT_EXAMPLE_CREDENTIAL, metadata.as_ref().vct);
     }
 
+    const EMBEDDED_LOGO_URI: &str =
+        "data:image/png;base64,\
+         iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAMBAQAY3Y2wAAAAAElFTkSuQmCC";
+    const REMOTE_LOGO_URI: &str = "https://simple.example.com/red-dot.png";
+
     #[test]
     fn test_deserialize_with_simple_rendering_and_embedded_logo() {
         assert_eq!(
             Some(RenderingMetadata::Simple {
                 logo: Some(LogoMetadata {
-                    image: Image::Png(RED_DOT_BYTES.to_vec()),
+                    uri: EMBEDDED_LOGO_URI.parse().unwrap(),
                     alt_text: Some(String::from("An example PNG logo")),
                 }),
                 background_image: Some(BackgroundImageMetadata {
-                    image: Image::Png(RED_DOT_BYTES.to_vec())
+                    uri: EMBEDDED_LOGO_URI.parse().unwrap(),
                 }),
                 background_color: Some("#FF8000".to_string()),
                 text_color: Some("#0080FF".to_string()),
@@ -590,34 +580,35 @@ mod test {
     #[test]
     fn test_deserialize_with_simple_rendering_and_remote_logo() {
         assert_eq!(
-            "data-url error: not a valid data url at line 14 column 59",
-            UncheckedTypeMetadata::simple_remote_example().to_string(),
+            Some(RenderingMetadata::Simple {
+                logo: Some(LogoMetadata {
+                    uri: REMOTE_LOGO_URI.parse().unwrap(),
+                    alt_text: Some("An example PNG logo".to_owned()),
+                }),
+                background_image: None,
+                background_color: Some("#FF8000".to_owned()),
+                text_color: Some("#0080FF".to_owned()),
+            }),
+            UncheckedTypeMetadata::simple_remote_example().display[0].rendering
         );
     }
 
     #[test]
     fn test_deserialize_with_simple_rendering_and_remote_background() {
         assert_eq!(
-            "data-url error: not a valid data url at line 18 column 59",
-            UncheckedTypeMetadata::simple_remote_background_example().to_string(),
+            Some(RenderingMetadata::Simple {
+                logo: Some(LogoMetadata {
+                    uri: EMBEDDED_LOGO_URI.parse().unwrap(),
+                    alt_text: Some("An example PNG logo".to_owned()),
+                }),
+                background_image: Some(BackgroundImageMetadata {
+                    uri: REMOTE_LOGO_URI.parse().unwrap(),
+                }),
+                background_color: Some("#FF8000".to_owned()),
+                text_color: Some("#0080FF".to_owned()),
+            }),
+            UncheckedTypeMetadata::simple_remote_background_example().display[0].rendering
         );
-    }
-
-    #[rstest]
-    #[case("data:image/png;base64,q80=")]
-    #[case("data:image/jpeg;base64,yv4=")]
-    #[case("data:image/svg+xml;utf8,<svg></svg>")]
-    fn test_try_from_into_image(#[case] uri: &str) {
-        let uri = DataUri::from_str(uri).unwrap();
-        let image: Image = Image::try_from(uri.clone()).unwrap();
-        assert_eq!(uri, image.into());
-    }
-
-    #[test]
-    fn test_image_uri_unsupported_mime_type() {
-        let uri = DataUri::from_str("data:image/webp;base64,q7o=").unwrap();
-        let error = Image::try_from(uri).expect_err("should return error");
-        assert_matches!(error, ImageError::UnsupportedMimeType(mime_type) if mime_type == "image/webp");
     }
 
     #[rstest]

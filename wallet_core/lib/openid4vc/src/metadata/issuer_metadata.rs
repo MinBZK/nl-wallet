@@ -1,11 +1,13 @@
 use std::borrow::Borrow;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::num::NonZeroU64;
 use std::ops::Not;
 
 use attestation_data::metadata::AttestationClaims;
 use attestation_data::metadata::ClaimConstraint;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
@@ -16,6 +18,7 @@ use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
 use http_utils::urls::BaseUrl;
+use itertools::Itertools;
 use jwk_simple::Algorithm;
 use jwk_simple::Key;
 use jwt::JwtTyp;
@@ -24,9 +27,16 @@ use oauth::issuer_identifier::IssuerUrl;
 use oauth::jose::JwsAlgorithm;
 use oauth::metadata::well_known::WellKnownMetadata;
 use oauth::scope::Scope;
+use sd_jwt_vc_metadata::BackgroundImageMetadata;
+use sd_jwt_vc_metadata::ClaimMetadata;
+use sd_jwt_vc_metadata::DisplayMetadata;
+use sd_jwt_vc_metadata::LogoMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::RenderingMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::MapPreventDuplicates;
+use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -34,6 +44,7 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use wscd::payload::key_attestation::AttackPotentialResistance;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
@@ -108,6 +119,9 @@ pub struct IssuerMetadata {
     /// certain language.
     pub display: Option<VecNonEmpty<IssuerDisplay>>,
 
+    /// Information about the issuer, including its registration certificate.
+    pub issuer_info: Option<VecNonEmpty<IssuerInfo>>,
+
     /// Object that describes specifics of the Credential that the Credential Issuer supports issuance of. This object
     /// contains a list of name/value pairs, where each name is a unique identifier of the supported Credential being
     /// described. This identifier is used in the Credential Offer as defined in Section 4.1.1 to communicate to the
@@ -115,6 +129,21 @@ pub struct IssuerMetadata {
     /// Credential.
     #[serde_as(as = "MapPreventDuplicates<_, _>")]
     pub credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "format")]
+pub enum IssuerInfo {
+    #[serde(rename = "registration_cert")]
+    RegistrationCertificate {
+        #[serde_as(as = "TryFromIntoRef<String>")]
+        data: RegistrationCertificateEnvelope,
+    },
+
+    // Allow the issuer to announce formats that the wallet does not support.
+    #[serde(other)]
+    Other,
 }
 
 #[skip_serializing_none]
@@ -316,6 +345,15 @@ pub struct Logo {
     pub alt_text: Option<String>,
 }
 
+impl From<LogoMetadata> for Logo {
+    fn from(value: LogoMetadata) -> Self {
+        Self {
+            uri: value.uri,
+            alt_text: value.alt_text,
+        }
+    }
+}
+
 /// Metadata about a specific Credential.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -346,17 +384,13 @@ pub struct CredentialConfiguration {
     /// Format-specific mechanisms, such as SD-JWT VC display metadata are always preferred by the Wallet over the
     /// information in this object, which serves as the default fallback.
     pub credential_metadata: Option<CredentialMetadata>,
-
-    /// URL to the SD-JWT VC Type Metadata document for this credential. This has precedence over the
-    /// `credential_metadata` field. The URI MUST start with the Credential Issuer's identifier.
-    pub type_metadata_uri: Option<IssuerUrl>,
 }
 
 impl CredentialConfiguration {
     pub fn new_mdoc_ecdsa_p256_sha256(
         doctype: String,
         scope: Scope,
-        proof_types: Vec<ProofType>,
+        proof_types: HashSet<ProofType>,
         credential_metadata: CredentialMetadata,
     ) -> Self {
         Self {
@@ -364,23 +398,21 @@ impl CredentialConfiguration {
             scope: Some(scope),
             cryptographic_binding: Some(CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types)),
             credential_metadata: Some(credential_metadata),
-            type_metadata_uri: None,
         }
     }
 
     pub fn new_sd_jwt_ecdsa_p256_sha256(
         vct: String,
         scope: Scope,
-        proof_types: Vec<ProofType>,
-        credential_metadata: Option<CredentialMetadata>,
-        type_metadata_uri: IssuerUrl,
+        proof_types: HashSet<ProofType>,
+        credential_metadata: CredentialMetadata,
+        type_metadata_uri: Option<IssuerUrl>,
     ) -> Self {
         Self {
-            format: CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct),
+            format: CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct, type_metadata_uri),
             scope: Some(scope),
             cryptographic_binding: Some(CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types)),
-            credential_metadata,
-            type_metadata_uri: Some(type_metadata_uri),
+            credential_metadata: Some(credential_metadata),
         }
     }
 }
@@ -415,6 +447,10 @@ pub enum CredentialFormat {
         /// `credential_signing_alg_values_supported` parameter are case sensitive strings and SHOULD be one of
         /// those JWS Algorithm Names defined in [IANA.JOSE].
         credential_signing_alg_values_supported: Option<VecNonEmpty<JwsAlgorithm>>,
+
+        /// URL to the SD-JWT VC Type Metadata document for this credential. The URI MUST start with the Credential
+        /// Issuer's identifier.
+        type_metadata_uri: Option<IssuerUrl>,
     },
 
     // Allow the issuer to announce formats that the wallet doesn't support.
@@ -436,6 +472,14 @@ impl CredentialFormat {
         }
     }
 
+    pub fn format(&self) -> Option<Format> {
+        match self {
+            Self::MsoMdoc { .. } => Some(Format::MsoMdoc),
+            Self::SdJwt { .. } => Some(Format::SdJwt),
+            Self::Other { .. } => None,
+        }
+    }
+
     pub fn credential_kind(&self) -> Option<CredentialKind> {
         match self {
             Self::MsoMdoc { doctype, .. } => Some(CredentialKind::new(Format::MsoMdoc, doctype.to_string())),
@@ -451,10 +495,11 @@ impl CredentialFormat {
         }
     }
 
-    fn new_sd_jwt_ecdsa_p256_sha256(vct: String) -> Self {
+    fn new_sd_jwt_ecdsa_p256_sha256(vct: String, type_metadata_uri: Option<IssuerUrl>) -> Self {
         Self::SdJwt {
             vct,
             credential_signing_alg_values_supported: Some(vec_nonempty![JwsAlgorithm::ES256]),
+            type_metadata_uri,
         }
     }
 }
@@ -477,20 +522,27 @@ pub struct CryptographicBinding {
 }
 
 impl CryptographicBinding {
-    fn new_mdoc_ecdsa_p256_sha256(proof_types: Vec<ProofType>) -> Self {
+    fn new_mdoc_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
         Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::CoseKey, proof_types)
     }
 
-    fn new_sd_jwt_ecdsa_p256_sha256(proof_types: Vec<ProofType>) -> Self {
+    fn new_sd_jwt_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
         Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::Jwk, proof_types)
     }
 
-    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod, proof_types: Vec<ProofType>) -> Self {
+    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod, proof_types: HashSet<ProofType>) -> Self {
         Self {
             cryptographic_binding_methods_supported: vec_nonempty![binding_method],
             proof_types_supported: proof_types
                 .into_iter()
-                .map(|proof_type| (proof_type, ProofMetadata::new_ecdsa_p256_sha256()))
+                .map(|proof_type| {
+                    let requires_key_attestation = matches!(proof_type, ProofType::Attestation);
+
+                    (
+                        proof_type,
+                        ProofMetadata::new_ecdsa_p256_sha256(requires_key_attestation),
+                    )
+                })
                 .collect(),
         }
     }
@@ -544,10 +596,15 @@ pub struct ProofMetadata {
 }
 
 impl ProofMetadata {
-    fn new_ecdsa_p256_sha256() -> Self {
+    fn new_ecdsa_p256_sha256(requires_key_attestation: bool) -> Self {
+        let key_attestations_required = requires_key_attestation.then(|| KeyAttestationsRequired {
+            key_storage: HashSet::from([AttackPotentialResistance::Iso18045High]),
+            user_authentication: HashSet::from([AttackPotentialResistance::Iso18045High]),
+        });
+
         Self {
             proof_signing_alg_values_supported: vec_nonempty![JwsAlgorithm::ES256],
-            key_attestations_required: None,
+            key_attestations_required,
         }
     }
 }
@@ -560,25 +617,13 @@ impl ProofMetadata {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyAttestationsRequired {
-    /// A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
-    pub key_storage: Option<VecNonEmpty<AttackPotentialResistance>>,
+    /// OPTIONAL. A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub key_storage: HashSet<AttackPotentialResistance>,
 
-    /// A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
-    pub user_authentication: Option<VecNonEmpty<AttackPotentialResistance>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AttackPotentialResistance {
-    Iso18045High,
-    Iso18045Moderate,
-    #[serde(rename = "iso_18045_enhanced-basic")]
-    Iso18045EnhancedBasic,
-    Iso18045Basic,
-
-    // Allow the issuer to announce an attack potential resistance that the wallet doesn't support.
-    #[serde(untagged)]
-    Other(String),
+    /// OPTIONAL. A non-empty array defining values specified in Appendix D.2 accepted by the Credential Issuer.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub user_authentication: HashSet<AttackPotentialResistance>,
 }
 
 /// Information relevant to the usage and display of issued Credentials. Credential Format-specific mechanisms can
@@ -740,6 +785,32 @@ pub struct CredentialDisplay {
     pub text_color: Option<String>,
 }
 
+impl From<DisplayMetadata> for CredentialDisplay {
+    fn from(value: DisplayMetadata) -> Self {
+        let (logo, background_image, background_color, text_color) = match value.rendering {
+            Some(RenderingMetadata::Simple {
+                logo,
+                background_image,
+                background_color,
+                text_color,
+            }) => (logo, background_image, background_color, text_color),
+            Some(RenderingMetadata::SvgTemplates) | None => (None, None, None, None),
+        };
+
+        Self {
+            name_locale: NameLocale {
+                name: Some(value.name),
+                locale: Some(value.locale),
+            },
+            logo: logo.map(Logo::from),
+            description: value.description,
+            background_color,
+            background_image: background_image.map(BackgroundImage::from),
+            text_color,
+        }
+    }
+}
+
 /// Information about the background image of the Credential.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BackgroundImage {
@@ -747,6 +818,12 @@ pub struct BackgroundImage {
     /// Credential Issuer. The Wallet needs to determine the scheme, since the URI value could use the `https:` scheme,
     /// the `data:` scheme, etc.
     pub uri: Url,
+}
+
+impl From<BackgroundImageMetadata> for BackgroundImage {
+    fn from(value: BackgroundImageMetadata) -> Self {
+        Self { uri: value.uri }
+    }
 }
 
 const fn bool_value<const B: bool>() -> bool {
@@ -774,6 +851,55 @@ pub struct CredentialClaim {
     pub display: Option<VecNonEmpty<NameLocale>>,
 }
 
+impl From<ClaimMetadata> for CredentialClaim {
+    fn from(value: ClaimMetadata) -> Self {
+        let display = value
+            .display
+            .into_iter()
+            .map(|display| NameLocale {
+                name: Some(display.label),
+                locale: Some(display.locale),
+            })
+            .collect_vec()
+            .try_into()
+            .ok();
+
+        Self {
+            path: value.path,
+            mandatory: value.mandatory,
+            display,
+        }
+    }
+}
+
+/// Derive Credential Metadata from SD-JWT VC Type Metadata, so that it can be published alongside the Type Metadata for
+/// wallets that only support the former. Note that some properties of the Type Metadata have no equivalent in
+/// Credential Metadata and are therefore omitted: the summary, rendering by SVG template, claim descriptions, selective
+/// disclosure and `svg_id`.
+impl From<&NormalizedTypeMetadata> for CredentialMetadata {
+    fn from(value: &NormalizedTypeMetadata) -> Self {
+        let display = value
+            .display()
+            .iter()
+            .cloned()
+            .map(CredentialDisplay::from)
+            .collect_vec()
+            .try_into()
+            .ok();
+
+        let claims = value
+            .claims()
+            .iter()
+            .cloned()
+            .map(CredentialClaim::from)
+            .collect_vec()
+            .try_into()
+            .ok();
+
+        Self { display, claims }
+    }
+}
+
 impl CredentialMetadata {
     fn claim_descriptions(&self) -> impl Iterator<Item = &CredentialClaim> {
         self.claims.iter().flat_map(|claims| claims.iter())
@@ -792,14 +918,19 @@ impl AttestationClaims for CredentialMetadata {
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::borrow::Cow;
     use std::collections::HashMap;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
     use attestation_data::attributes::AttributesError;
     use attestation_data::metadata::AttestationClaims;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_types::claim_path::ClaimPath;
+    use base64::prelude::*;
     use chrono::DateTime;
+    use crypto::server_keys::generate::Ca;
+    use dcql::Query;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;
@@ -807,22 +938,146 @@ mod tests {
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::issuer_identifier::IssuerUrl;
     use rstest::rstest;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use serde_json::Value;
     use serde_json::json;
     use utils::vec_nonempty;
 
+    use super::BackgroundImage;
     use super::CoseAlgorithmIdentifier;
+    use super::CredentialClaim;
     use super::CredentialConfiguration;
     use super::CredentialDisplay;
     use super::CredentialFormat;
     use super::CredentialMetadata;
     use super::CryptographicBindingMethod;
+    use super::IssuerInfo;
     use super::IssuerMetadata;
     use super::JoinCredentialConfigurationId;
     use super::JwsAlgorithm;
     use super::KnownCoseAlgorithmIdentifier;
+    use super::Logo;
     use super::NameLocale;
     use super::SignedIssuerMetadataPayload;
     use crate::jwe::JweCompressionAlgorithm;
+
+    #[derive(Clone, Copy)]
+    enum RegistrationCertificateFormat {
+        Jwt,
+        Cwt,
+    }
+
+    fn registration_certificate(format: RegistrationCertificateFormat) -> Vec<u8> {
+        let access_key_pair = Ca::generate_wrpac_mock_ca()
+            .unwrap()
+            .generate_wrpac_issuer_mock()
+            .unwrap();
+        let authority = MockRegistrationCertificateAuthority::new();
+        let query = Query::new_mock_mdoc_pid_example();
+
+        match format {
+            RegistrationCertificateFormat::Jwt => authority.issue_jwt(access_key_pair.certificate(), query),
+            RegistrationCertificateFormat::Cwt => authority.issue_cwt(access_key_pair.certificate(), query),
+        }
+    }
+
+    fn issuer_metadata_json() -> Value {
+        json!({
+            "credential_issuer": "https://issuer.example.com",
+            "credential_endpoint": "https://issuer.example.com/credential",
+            "credential_configurations_supported": {},
+        })
+    }
+
+    #[rstest]
+    #[case::jwt(RegistrationCertificateFormat::Jwt)]
+    #[case::cwt(RegistrationCertificateFormat::Cwt)]
+    fn test_issuer_info_registration_certificate_roundtrip(#[case] format: RegistrationCertificateFormat) {
+        let certificate = registration_certificate(format);
+        let mut expected_json = issuer_metadata_json();
+        expected_json["issuer_info"] = json!([{
+            "format": "registration_cert",
+            "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate),
+        }]);
+
+        let metadata: IssuerMetadata = serde_json::from_value(expected_json.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&metadata).unwrap(), expected_json);
+        assert_matches!(
+            metadata.issuer_info.as_ref().unwrap().first(),
+            IssuerInfo::RegistrationCertificate { data } if data.to_vec().unwrap() == certificate
+        );
+
+        let payload = SignedIssuerMetadataPayload {
+            sub: Cow::Owned(metadata.credential_issuer.clone()),
+            metadata: Cow::Owned(metadata),
+            iss: None,
+            iat: DateTime::from_timestamp_secs(1516239022).unwrap().into(),
+            exp: None,
+        };
+        expected_json["sub"] = expected_json["credential_issuer"].clone();
+        expected_json["iat"] = json!(1516239022);
+        assert_eq!(serde_json::to_value(&payload).unwrap(), expected_json);
+
+        let deserialized: SignedIssuerMetadataPayload = serde_json::from_value(expected_json.clone()).unwrap();
+        assert_eq!(serde_json::to_value(deserialized).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn test_issuer_metadata_without_issuer_info() {
+        let expected_json = issuer_metadata_json();
+        let metadata: IssuerMetadata = serde_json::from_value(expected_json.clone()).unwrap();
+
+        assert!(metadata.issuer_info.is_none());
+        assert_eq!(serde_json::to_value(metadata).unwrap(), expected_json);
+    }
+
+    #[test]
+    fn test_issuer_metadata_rejects_empty_issuer_info() {
+        let mut metadata_json = issuer_metadata_json();
+        metadata_json["issuer_info"] = json!([]);
+
+        assert!(serde_json::from_value::<IssuerMetadata>(metadata_json).is_err());
+    }
+
+    #[test]
+    fn test_issuer_info_accepts_unknown_format_alongside_registration_certificate() {
+        let certificate = registration_certificate(RegistrationCertificateFormat::Jwt);
+        let mut metadata_json = issuer_metadata_json();
+        metadata_json["issuer_info"] = json!([
+            { "format": "other_format", "data": { "future": "data" } },
+            { "format": "registration_cert", "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate) },
+        ]);
+
+        let metadata: IssuerMetadata = serde_json::from_value(metadata_json).unwrap();
+        let mut info = metadata.issuer_info.unwrap().into_iter();
+        assert_matches!(info.next(), Some(IssuerInfo::Other));
+        assert_matches!(
+            info.next(),
+            Some(IssuerInfo::RegistrationCertificate { data }) if data.to_vec().unwrap() == certificate
+        );
+        assert!(info.next().is_none());
+    }
+
+    #[rstest]
+    #[case::missing_data(json!({ "format": "registration_cert" }))]
+    #[case::invalid_data_type(json!({ "format": "registration_cert", "data": 42 }))]
+    #[case::invalid_base64(json!({ "format": "registration_cert", "data": "***" }))]
+    #[case::invalid_envelope(json!({
+        "format": "registration_cert",
+        "data": BASE64_URL_SAFE_NO_PAD.encode(b"not a registration certificate"),
+    }))]
+    fn test_issuer_info_rejects_malformed_registration_certificate(#[case] malformed_entry: Value) {
+        let certificate = registration_certificate(RegistrationCertificateFormat::Jwt);
+        let mut metadata_json = issuer_metadata_json();
+        metadata_json["issuer_info"] = json!([
+            { "format": "other_format", "data": { "future": "data" } },
+            { "format": "registration_cert", "data": BASE64_URL_SAFE_NO_PAD.encode(certificate) },
+            malformed_entry,
+        ]);
+
+        assert!(serde_json::from_value::<IssuerMetadata>(metadata_json).is_err());
+    }
 
     #[test]
     fn test_sd_jwt_issuer_metadata_deserialization() {
@@ -1097,7 +1352,8 @@ mod tests {
             &config.format,
             CredentialFormat::SdJwt {
                 vct,
-                credential_signing_alg_values_supported
+                credential_signing_alg_values_supported,
+                ..
             } if vct == "SD_JWT_VC_example_in_OpenID4VCI" &&
                 credential_signing_alg_values_supported
                 .as_ref()
@@ -1450,10 +1706,17 @@ mod tests {
         let credential_config = serde_json::from_value::<CredentialConfiguration>(example_json)
             .expect("deserializing CredentialConfiguration from example JSON should succeed");
 
-        assert_matches!(&credential_config.format, CredentialFormat::SdJwt { .. });
+        let CredentialFormat::SdJwt {
+            vct, type_metadata_uri, ..
+        } = &credential_config.format
+        else {
+            panic!("the example JSON should deserialize as an SD-JWT credential configuration")
+        };
+
+        assert_eq!(vct, "com.example");
         assert_eq!(
-            credential_config.type_metadata_uri,
-            Some("https://example.com/type_metadata".parse().unwrap())
+            type_metadata_uri.as_ref(),
+            Some(&"https://example.com/type_metadata".parse().unwrap())
         );
     }
 
@@ -1482,6 +1745,114 @@ mod tests {
             .expect_err("attributes should not validate against metadata without claims");
 
         assert_matches!(error, AttributesError::AttributesWithoutClaim(paths) if paths == vec![vec!["birth_date"]]);
+    }
+
+    #[test]
+    fn test_credential_metadata_from_type_metadata() {
+        const PIXEL_PNG_DATA_URI: &str =
+            "data:image/png;base64,\
+             iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAMBAQAY3Y2wAAAAAElFTkSuQmCC";
+
+        let type_metadata: UncheckedTypeMetadata = serde_json::from_value(json!({
+            "vct": "com.example.test",
+            "display": [
+                {
+                    "locale": "en",
+                    "name": "Example credential",
+                    "description": "An example",
+                    "summary": "This has no equivalent in Credential Metadata",
+                    "rendering": {
+                        "simple": {
+                            "logo": { "uri": PIXEL_PNG_DATA_URI, "alt_text": "a single pixel" },
+                            "background_image": { "uri": PIXEL_PNG_DATA_URI },
+                            "background_color": "#FFFFFF",
+                            "text_color": "#000000"
+                        }
+                    }
+                },
+                { "locale": "nl", "name": "Voorbeeldattestatie" }
+            ],
+            "claims": [
+                {
+                    "path": ["family_name"],
+                    "display": [
+                        {
+                            "locale": "en",
+                            "label": "Family name",
+                            "description": "This has no equivalent in Credential Metadata"
+                        }
+                    ],
+                    "sd": "always",
+                    "mandatory": true
+                },
+                { "path": ["address", "street"] }
+            ]
+        }))
+        .unwrap();
+
+        let credential_metadata = CredentialMetadata::from(&NormalizedTypeMetadata::from_single_example(type_metadata));
+
+        let expected = CredentialMetadata {
+            display: Some(vec_nonempty![
+                CredentialDisplay {
+                    name_locale: NameLocale {
+                        name: Some(String::from("Example credential")),
+                        locale: Some(String::from("en")),
+                    },
+                    logo: Some(Logo {
+                        uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
+                        alt_text: Some(String::from("a single pixel")),
+                    }),
+                    description: Some(String::from("An example")),
+                    background_color: Some(String::from("#FFFFFF")),
+                    background_image: Some(BackgroundImage {
+                        uri: PIXEL_PNG_DATA_URI.parse().unwrap(),
+                    }),
+                    text_color: Some(String::from("#000000")),
+                },
+                CredentialDisplay {
+                    name_locale: NameLocale {
+                        name: Some(String::from("Voorbeeldattestatie")),
+                        locale: Some(String::from("nl")),
+                    },
+                    logo: None,
+                    description: None,
+                    background_color: None,
+                    background_image: None,
+                    text_color: None,
+                },
+            ]),
+            claims: Some(vec_nonempty![
+                CredentialClaim {
+                    path: ClaimPath::select_by_keys(&["family_name"]),
+                    mandatory: true,
+                    display: Some(vec_nonempty![NameLocale {
+                        name: Some(String::from("Family name")),
+                        locale: Some(String::from("en")),
+                    }]),
+                },
+                CredentialClaim {
+                    path: ClaimPath::select_by_keys(&["address", "street"]),
+                    mandatory: false,
+                    display: None,
+                },
+            ]),
+        };
+
+        assert_eq!(credential_metadata, expected);
+    }
+
+    #[test]
+    fn test_credential_metadata_from_type_metadata_without_display_and_claims() {
+        let type_metadata = UncheckedTypeMetadata {
+            display: vec![],
+            ..UncheckedTypeMetadata::empty_example()
+        };
+
+        let credential_metadata = CredentialMetadata::from(&NormalizedTypeMetadata::from_single_example(type_metadata));
+
+        assert_eq!(credential_metadata.display, None);
+        assert_eq!(credential_metadata.claims, None);
     }
 
     #[test]

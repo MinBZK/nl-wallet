@@ -7,7 +7,7 @@
 use std::fmt::Debug;
 use std::result::Result;
 
-use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::ParseError;
 use chrono::SecondsFormat;
@@ -23,6 +23,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
+use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -270,7 +271,38 @@ pub struct MobileSecurityObject {
     pub validity_info: ValidityInfo,
 
     /// Optional because it is not in the spec.
-    pub status: Option<StatusClaim>,
+    pub status: Option<MdocStatus>,
+}
+
+/// The `identifier_list` element is a CBOR structure with the following CDDL. The value of the Identifier field shall
+/// be unique per MSO.
+///
+/// ```cddl
+/// IdentifierListInfo = {
+///    "id" : Identifier,
+///    "uri": URI,
+///    ? "certificate": Certificate
+///    * tstr => RFU
+/// }
+///
+/// Identifier = bstr
+/// URI = tstr
+/// Certificate = bstr
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct IdentifierListInfo {
+    pub id: Vec<u8>,
+    pub uri: Url,
+    pub certificate: Option<Vec<u8>>,
+}
+
+/// The status of an mdoc, as found in the MSO's `status` element. `identifier_list` is a revocation mechanism that is
+/// currently only specified for mdocs.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MdocStatus {
+    StatusList(StatusListClaim),
+    IdentifierList(IdentifierListInfo),
 }
 
 /// Version of the [`MobileSecurityObject`] structure
@@ -560,12 +592,42 @@ mod test {
 
 #[cfg(test)]
 mod tests {
+    use attestation_types::status_claim::StatusListClaim;
     use rstest::rstest;
     use serde_bytes::ByteBuf;
+    use serde_json::json;
 
     use super::Attributes;
     use super::IssuerSignedItem;
+    use super::MdocStatus;
+    use crate::IdentifierListInfo;
     use crate::utils::serialization::TaggedBytes;
+
+    #[rstest]
+    #[case::status_list(json!({
+        "status_list": {
+            "idx": 0,
+            "uri": "https://example.com/statuslists/1"
+        }
+    }), MdocStatus::StatusList(StatusListClaim {
+        idx: 0,
+        uri: "https://example.com/statuslists/1".parse().unwrap(),
+    }))]
+    #[case::identifier_list(json!({
+        "identifier_list": {
+            "id": hex::decode("cccc").unwrap(),
+            "uri": "https://example.com/identifierlists/1",
+            // "certificate": h'aa...'
+        }
+    }), MdocStatus::IdentifierList(IdentifierListInfo {
+        id: [0xcc, 0xcc].to_vec(),
+        uri: "https://example.com/identifierlists/1".parse().unwrap(),
+        certificate: None,
+    }))]
+    fn test_deserialize_mdoc_status(#[case] value: serde_json::Value, #[case] expected: MdocStatus) {
+        let status: MdocStatus = serde_json::from_value(value).unwrap();
+        assert_eq!(status, expected);
+    }
 
     #[rstest]
     #[case(vec![], false)]
