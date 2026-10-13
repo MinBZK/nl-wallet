@@ -52,7 +52,7 @@ impl<'de, const MULTIPLIER: u64> DeserializeAs<'de, Duration> for DurationMultip
         let increments = NonZeroU64::deserialize(deserializer)?;
         let seconds = increments.get().checked_mul(MULTIPLIER).ok_or_else(|| {
             de::Error::custom(format!(
-                "multiplying {increments} by {MULTIPLIER} seconds would case u64 overflow"
+                "multiplying {increments} by {MULTIPLIER} seconds would cause u64 overflow"
             ))
         })?;
 
