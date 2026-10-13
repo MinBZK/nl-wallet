@@ -32,7 +32,7 @@ impl<const MULTIPLIER: u64> SerializeAs<Duration> for DurationMultipleSeconds<MU
         let seconds = source.as_secs();
         let (increments, remainder) = (seconds / MULTIPLIER, seconds % MULTIPLIER);
 
-        if remainder > 0 {
+        if source.subsec_nanos() != 0 || remainder > 0 {
             return Err(ser::Error::custom(format!(
                 "{seconds} seconds is not a multiple of {MULTIPLIER}",
             )));
@@ -87,6 +87,9 @@ mod test {
     #[test]
     fn test_deserialize_error_no_multiple() {
         let _error = serde_json::to_string(&Wrapper(Duration::from_hours(25)))
+            .expect_err("serializing wrapper with duration should fail");
+
+        let _error = serde_json::to_string(&Wrapper(Duration::from_hours(25) + Duration::from_nanos(42)))
             .expect_err("serializing wrapper with duration should fail");
     }
 
