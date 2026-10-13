@@ -40,9 +40,12 @@ use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
 use webpki::ring::RSA_PSS_2048_8192_SHA256_LEGACY_KEY;
 use webpki::ring::RSA_PSS_2048_8192_SHA384_LEGACY_KEY;
 use webpki::ring::RSA_PSS_2048_8192_SHA512_LEGACY_KEY;
+use x509_parser::asn1_rs::Oid;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
 use x509_parser::nom::AsBytes;
+use x509_parser::oid_registry::OID_EC_P256;
+use x509_parser::oid_registry::OID_NIST_EC_P384;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::ParsedExtension;
 use x509_parser::prelude::X509Certificate;
@@ -110,8 +113,11 @@ pub enum CertificateParseError {
     #[error("EC P384 public key parse error: {0}")]
     EcP384PublicKeyParseError(#[source] p384::ecdsa::Error),
 
-    #[error("EC unsupported key size: {0}")]
-    UnsupportedEcKeySize(usize),
+    #[error("Missing EC curve in public key")]
+    MissingEcCurve,
+
+    #[error("Unsupported EC curve: {0}")]
+    UnsupportedEcCurve(Oid<'static>),
 
     #[error("RSA error: {0}")]
     RsaError(#[source] rsa::Error),
@@ -442,19 +448,29 @@ fn public_key_from_certificate(x509_cert: &X509Certificate<'_>) -> Result<Public
             let public_key = RsaPublicKey::new(modulus, exponent).map_err(CertificateParseError::RsaError)?;
             PublicKey::try_from(public_key).map_err(CertificateParseError::UnsupportedRsaKeySize)
         }
-        x509_parser::public_key::PublicKey::EC(public_key) => match public_key.key_size() {
-            256 => {
-                let verifying_key = p256::ecdsa::VerifyingKey::from_sec1_bytes(public_key.data())
-                    .map_err(CertificateParseError::EcP256PublicKeyParseError)?;
-                Ok(PublicKey::ESP256(verifying_key))
+
+        x509_parser::public_key::PublicKey::EC(point) => {
+            let curve = x509_cert
+                .public_key()
+                .algorithm
+                .parameters()
+                .and_then(|params| params.as_oid().ok())
+                .ok_or(CertificateParseError::MissingEcCurve)?;
+
+            match curve {
+                c if c == OID_EC_P256 => point
+                    .data()
+                    .try_into()
+                    .map(PublicKey::ESP256)
+                    .map_err(CertificateParseError::EcP256PublicKeyParseError),
+                c if c == OID_NIST_EC_P384 => point
+                    .data()
+                    .try_into()
+                    .map(PublicKey::ESP384)
+                    .map_err(CertificateParseError::EcP384PublicKeyParseError),
+                c => Err(CertificateParseError::UnsupportedEcCurve(c.to_owned()))?,
             }
-            384 => {
-                let verifying_key = p384::ecdsa::VerifyingKey::from_sec1_bytes(public_key.data())
-                    .map_err(CertificateParseError::EcP384PublicKeyParseError)?;
-                Ok(PublicKey::ESP384(verifying_key))
-            }
-            size => Err(CertificateParseError::UnsupportedEcKeySize(size)),
-        },
+        }
         _ => Err(CertificateParseError::UnsupportedPublicKeyAlgorithm),
     }
 }
