@@ -26,6 +26,7 @@ use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::RevocationCodeResult;
 use crate::models::instruction::WalletInstructionResult;
+use crate::models::issuance::IssuanceContinueResult;
 use crate::models::issuance::IssuanceStartResult;
 use crate::models::notification::AppNotification;
 use crate::models::notification::NotificationType;
@@ -403,18 +404,14 @@ pub async fn cancel_issuance() -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
-pub async fn continue_issuance(uri: String) -> anyhow::Result<Vec<AttestationPresentation>> {
+pub async fn continue_issuance(uri: String) -> anyhow::Result<IssuanceContinueResult> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;
 
-    let wallet_attestations = wallet.continue_issuance(url).await?;
-    let attestations = wallet_attestations
-        .into_iter()
-        .map(AttestationPresentation::from)
-        .collect();
+    let issuance_continue_result = wallet.continue_issuance(url).await?;
 
-    Ok(attestations)
+    Ok(issuance_continue_result.into())
 }
 
 #[flutter_api_error]

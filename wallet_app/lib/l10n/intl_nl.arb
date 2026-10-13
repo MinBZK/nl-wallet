@@ -576,7 +576,6 @@
     "generalOkCta": "OK",
     "generalOsVersionText": "Besturingssysteem:",
     "generalPageChangeWCAGAnnouncement": "Pagina {current} van {total} wordt nu weergegeven.",
-    "generalPolicyAllTermsCta": "Alle voorwaarden",
     "generalPolicyDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
     "generalRetry": "Probeer opnieuw",
     "generalSeconds": "{seconds, plural, one {{seconds} seconde} other {{seconds} seconden}}",
@@ -611,6 +610,8 @@
     "genericRelyingPartyErrorDescription": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van de organisatie waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de organisatie.",
     "genericRelyingPartyErrorDescriptionWithOrganizationName": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
     "genericRelyingPartyErrorTitle": "Sorry, er gaat iets mis",
+    "helpOverviewScreenContactSubtitle": "Bel ons als je vraag er niet bij staat.",
+    "helpOverviewScreenTourSubtitle": "Bekijk wat je kunt doen met NL Wallet.",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
     "helpSheetErrorCode": "Foutcode: {code}",
     "@helpSheetErrorCode": {
@@ -775,6 +776,18 @@
     "invariantErrorScreenWhatCanYouDoTitle": "Wat kun je doen?",
     "issuanceAuthenticateExternallyDescription": "Volg de stappen op de website van de uitgever.\nGa daarna terug naar NL Wallet.",
     "issuanceAuthenticateExternallyTitle": "Ga verder in de browser",
+    "issuanceConfirmIssuerPageAcceptCta": "Ja, verder",
+    "issuanceConfirmIssuerPageDeclineCta": "Stoppen",
+    "issuanceConfirmIssuerPageDescription": "Je kaart(en) worden aan je NL Wallet toegevoegd nadat je bevestigt met je pincode.",
+    "issuanceConfirmIssuerPageTitle": "Wil je je kaart(en) ophalen bij {organization}?",
+    "@issuanceConfirmIssuerPageTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
     "issuanceConfirmPinPageTitle": "Geef akkoord met pincode",
     "issuanceLoadingCardsDescription": "Kaarten worden opgehaald",
     "issuanceLoadingCardsTitle": "Even geduld",
@@ -960,7 +973,7 @@
     "menuScreenScanQrCta": "Scan QR-code",
     "menuScreenSettingsCta": "Instellingen en beveiliging",
     "menuScreenTitle": "Menu",
-    "menuScreenTourCta": "Rondleiding door de app",
+    "menuScreenTourCta": "Ontdek hoe NL Wallet werkt",
     "menuScreenWCAGPageAnnouncement": "Menu in lijst {count} stuks",
     "missingAttributesPageBackToWebsiteCta": "Terug naar website",
     "missingAttributesPageCloseCta": "Sluiten",
@@ -1024,7 +1037,11 @@
     "organizationDetailScreenCategoryInfo": "Soort organisatie",
     "organizationDetailScreenLegalNameInfo": "Officiële naam",
     "organizationDetailScreenLocationInfo": "Locatie",
-    "organizationDetailScreenOrganizationIdInfo": "Organisatie-ID",
+    "organizationDetailScreenNaturalPersonIdInfo": "Identificatienummer",
+    "organizationDetailScreenNaturalPersonNameInfo": "Voornaam en achternaam",
+    "organizationDetailScreenOrganizationIdInfo": "Bedrijfsidentificatienummer",
+    "organizationDetailScreenOrganizationTypeGovernment": "Overheid",
+    "organizationDetailScreenOrganizationTypeNonGovernment": "Geen overheid",
     "organizationDetailScreenPrivacyInfo": "Privacyverklaring",
     "organizationDetailScreenReportIssueCta": "Wil je een probleem melden?",
     "organizationDetailScreenSomeInteractions": "Je hebt eerder gedeeld met {name}",
@@ -1092,26 +1109,6 @@
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
     "placeholderScreenGenericDescription": "Probeer het later opnieuw.",
     "placeholderScreenHeadline": "Helaas, aan deze pagina wordt nog gewerkt.",
-    "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
-    "policyScreenDataPurposeDescription": "De gegevens worden niet voor andere doelen gebruikt.",
-    "policyScreenPolicySectionPolicyCta": "privacyverklaring",
-    "policyScreenPolicySectionText": "Lees meer in het {policy} van {organization}. Hierin lees je meer over hoe {organization} je gegevens gaat gebruiken.",
-    "@policyScreenPolicySectionText": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            },
-            "policy": {
-                "example": "privacy policy",
-                "type": "String"
-            }
-        }
-    },
-    "policyScreenPolicySectionTitle": "Meer weten?",
-    "policyScreenReportIssueCta": "Wil je een probleem melden?",
-    "policyScreenSubtitle": "De volgende afspraken gelden alléén voor deze uitnodiging tot delen.",
-    "policyScreenTitle": "Afspraken",
     "privacySectionCta": "Lees hoe de organisatie jouw gegevens gebruikt",
     "privacySectionTitle": "Privacybeleid",
     "qrActionButtonSubtitle": "Scan QR of laat je QR-code zien",

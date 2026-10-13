@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
+import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/feature/disclosure/page/disclosure_confirm_data_attributes_page.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 
@@ -20,7 +22,6 @@ void main() {
           DiscloseCardRequest.fromCard(WalletMockData.card),
           DiscloseCardRequest.fromCard(WalletMockData.altCard),
         ],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -41,7 +42,6 @@ void main() {
         onAlternativeCardSelected: (update) {},
         relyingParty: WalletMockData.organization,
         cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -61,7 +61,6 @@ void main() {
         onAlternativeCardSelected: (update) {},
         relyingParty: WalletMockData.organization,
         cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -80,7 +79,6 @@ void main() {
         onAlternativeCardSelected: (update) {},
         relyingParty: WalletMockData.organization,
         cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -104,7 +102,6 @@ void main() {
         onAlternativeCardSelected: (update) {},
         relyingParty: WalletMockData.organization,
         cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -117,5 +114,33 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(acceptButtonFinder);
     expect(isCalled, isTrue);
+  });
+
+  testWidgets('privacy policy section and its divider are hidden without a privacy policy url', (tester) async {
+    final l10n = await TestUtils.englishLocalizations;
+    // Tall enough to build every sliver, so all dividers can be counted.
+    const surfaceSize = Size(375, 3000);
+
+    Future<int> pumpAndCountDividers(Organization relyingParty) async {
+      await tester.pumpWidgetWithAppWrapper(
+        DisclosureConfirmDataAttributesPage(
+          onAcceptPressed: () {},
+          onDeclinePressed: () {},
+          onAlternativeCardSelected: (update) {},
+          relyingParty: relyingParty,
+          cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
+          requestPurpose: 'data purpose'.untranslated,
+        ),
+        surfaceSize: surfaceSize,
+      );
+      return find.byType(Divider).evaluate().length;
+    }
+
+    final withUrl = await pumpAndCountDividers(WalletMockData.organization);
+    expect(find.text(l10n.privacySectionTitle), findsOneWidget);
+
+    final withoutUrl = await pumpAndCountDividers(WalletMockData.organization.copyWith(privacyPolicyUri: null));
+    expect(find.text(l10n.privacySectionTitle), findsNothing);
+    expect(withoutUrl, withUrl - 1);
   });
 }

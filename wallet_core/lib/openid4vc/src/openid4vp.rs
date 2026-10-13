@@ -1214,8 +1214,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::crl::CertificateCrlVerificationError;
-    use crypto::x509::crl::CertificateCrlVerifier;
-    use crypto::x509::crl::mock::MockCrlFetcher;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use dcql::CredentialQueryIdentifier;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequest;
@@ -1477,7 +1476,7 @@ mod tests {
     async fn test_authorization_request_jwt() {
         let (ca, rp_keypair, _, mut auth_request) = setup_mdoc();
         let trust_anchor = TrustAnchors::from(&ca);
-        let crl_verifier = CertificateCrlVerifier::<MockCrlFetcher>::new_for_ca(&ca);
+        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
         auth_request.state = Some("authorization_state".to_string());
 
         let auth_request_jwt =
@@ -1502,7 +1501,7 @@ mod tests {
                 .await
                 .unwrap();
 
-        let verifier = CertificateCrlVerifier::<MockCrlFetcher>::default();
+        let verifier = MockCertificateCrlVerifier::default();
         let result =
             VpAuthorizationRequest::authenticate_request(&auth_request_jwt.into(), &trust_anchor, &verifier).await;
 
@@ -2299,6 +2298,51 @@ mod tests {
     }
 
     #[test]
+    fn registration_certificate_verifier_info_should_accept_compact_jwt_without_base64_encoding() {
+        let (_, access_key_pair, _, auth_request) = setup_mdoc();
+        let authority = MockRegistrationCertificateAuthority::new();
+        let certificate = authority.issue_jwt(
+            access_key_pair.certificate(),
+            Query::from(auth_request.credential_requests),
+        );
+        let compact_jwt = String::from_utf8(certificate.clone()).unwrap();
+
+        let verifier_info = serde_json::from_value::<VerifierInfo>(json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": compact_jwt,
+        }))
+        .unwrap();
+        assert_matches!(
+            &verifier_info,
+            VerifierInfo::RegistrationCertificate {
+                data: RegistrationCertificateEnvelope::Jwt(_)
+            }
+        );
+
+        // Serializing should still result in the base64url encoding required by ETSI TS 119 472-2.
+        assert_eq!(
+            serde_json::to_value(verifier_info).unwrap(),
+            json!({
+                "format": REGISTRATION_CERTIFICATE_FORMAT,
+                "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate),
+            })
+        );
+    }
+
+    #[test]
+    fn registration_certificate_verifier_info_should_reject_malformed_compact_jwt() {
+        let error = serde_json::from_value::<VerifierInfo>(json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": "header.payload",
+        }))
+        .unwrap_err();
+
+        let error = error.to_string();
+        assert!(error.contains("could not parse registration certificate as JWT"));
+        assert!(error.contains("expected 3, found 2"));
+    }
+
+    #[test]
     fn registration_certificate_verifier_info_should_reject_malformed_base64() {
         let error = serde_json::from_value::<VerifierInfo>(json!({
             "format": REGISTRATION_CERTIFICATE_FORMAT,
@@ -2636,7 +2680,7 @@ mod tests {
         .unwrap();
 
         let key_identifier = holder_key.identifier.clone();
-        let wscd = MockRemoteWscd::new(vec![holder_key]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![holder_key]);
 
         let partial_mdocs = HashMap::from([("mdoc_0".parse().unwrap(), vec_nonempty![(partial_mdoc, key_identifier)])]);
         let (vp_token, poa) = setup_mdoc_vp_token(&auth_request, partial_mdocs, &wscd);
@@ -2697,7 +2741,7 @@ mod tests {
         let holder_public_key1 = PublicKey::from(*holder_key1.verifying_key());
         let holder_key2 = MockRemoteEcdsaKey::new_random("sd_jwt_key_2".to_string());
         let holder_public_key2 = PublicKey::from(*holder_key2.verifying_key());
-        let wscd = MockRemoteWscd::new(vec![holder_key1, holder_key2]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![holder_key1, holder_key2]);
 
         // Create two `UnsignedSdJwtPresentation`s with the requested attributes.
         let verified_sd_jwt1 = SignedSdJwt::pid_example(&issuer_key_pair, &holder_public_key1).into_verified();
@@ -2842,7 +2886,7 @@ mod tests {
         )
         .unwrap();
 
-        let wscd = MockRemoteWscd::new(vec![mdoc_holder_key.clone()]);
+        let wscd = MockRemoteWscd::new_with_keys(vec![mdoc_holder_key.clone()]);
 
         let poa_input = JwtPoaInput::new(None, "".to_string());
         let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(

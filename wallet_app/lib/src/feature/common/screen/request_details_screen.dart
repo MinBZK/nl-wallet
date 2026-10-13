@@ -4,7 +4,6 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/policy.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/object_extension.dart';
@@ -34,9 +33,6 @@ class RequestDetailsScreen extends StatelessWidget {
   /// Shared attributes: rendered as a section with 'shared attrs.' header
   final List<WalletCard>? sharedAttributes;
 
-  /// Policy: rendered as the agreement section.
-  final Policy? policy;
-
   /// Whether the requested attribute cards are tappable. False for stopped/cancelled
   /// events (no data was shared, so there are no details to view); failed events keep
   /// the CTA.
@@ -48,7 +44,6 @@ class RequestDetailsScreen extends StatelessWidget {
     this.purpose,
     this.requestedAttributes,
     this.sharedAttributes,
-    this.policy,
     this.requestedAttributesInteractive = true,
     super.key,
   }) : assert(
@@ -61,7 +56,6 @@ class RequestDetailsScreen extends StatelessWidget {
     requestedAttributes: event.cards.takeIf((it) => it.any((card) => card.attributes.isNotEmpty)),
     purpose: event.purpose,
     organization: event.relyingParty,
-    policy: event.policy,
     requestedAttributesInteractive: !event.wasCancelled,
   );
 
@@ -107,11 +101,10 @@ class RequestDetailsScreen extends StatelessWidget {
                         side: DividerSide.top,
                         interactive: requestedAttributesInteractive,
                       ),
-                    if (policy != null && organization != null)
+                    if (organization != null)
                       RequestDetailCommonBuilders.buildPolicy(
                         context,
                         organization: organization!,
-                        policy: policy!,
                         side: DividerSide.top,
                       ),
                     const Divider(),

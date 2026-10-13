@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart' as mocktail;
 import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
@@ -18,6 +19,7 @@ import 'package:wallet/src/feature/common/widget/button/icon/help_icon_button.da
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import 'package:wallet/src/feature/issuance/issuance_request_details_screen.dart';
 import 'package:wallet/src/feature/issuance/issuance_screen.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_confirm_issuer_page.dart';
 import 'package:wallet/src/feature/issuance/page/issuance_review_cards_page.dart';
 import 'package:wallet/src/feature/organization/approve/organization_approve_page.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
@@ -87,7 +89,6 @@ void main() {
           MockIssuanceBloc(),
           IssuanceCheckOrganization(
             organization: WalletMockData.organization,
-            policy: WalletMockData.policy,
             purpose: 'sample purpose'.untranslated,
             cardRequests: [WalletMockData.discloseCardRequestSingleCard],
           ),
@@ -102,7 +103,6 @@ void main() {
           MockIssuanceBloc(),
           IssuanceCheckOrganization(
             organization: WalletMockData.organization,
-            policy: WalletMockData.policy,
             purpose: 'sample purpose'.untranslated,
             cardRequests: [WalletMockData.discloseCardRequestSingleCard],
           ),
@@ -269,6 +269,28 @@ void main() {
       await screenMatchesGolden('review_multi_cards.dark.landscape');
     });
 
+    testGoldens('IssuanceConfirmIssuer Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceConfirmIssuer(organization: WalletMockData.organization),
+        ),
+      );
+      await screenMatchesGolden('confirm_issuer.light');
+    });
+
+    testGoldens('IssuanceConfirmIssuer Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceConfirmIssuer(organization: WalletMockData.organization),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('confirm_issuer.dark.landscape');
+    });
+
     testGoldens('ltc5 IssuanceProvidePinForIssuance Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
@@ -336,7 +358,6 @@ void main() {
           MockIssuanceBloc(),
           IssuanceCheckOrganization(
             organization: WalletMockData.organization,
-            policy: WalletMockData.policy,
             purpose: 'sample purpose'.untranslated,
             cardRequests: [WalletMockData.discloseCardRequestSingleCard],
           ),
@@ -617,7 +638,6 @@ void main() {
           MockIssuanceBloc(),
           IssuanceCheckOrganization(
             organization: WalletMockData.organization,
-            policy: WalletMockData.policy,
             purpose: 'sample purpose'.untranslated,
             cardRequests: [WalletMockData.discloseCardRequestSingleCard],
           ),
@@ -659,6 +679,40 @@ void main() {
       // Verify the expected stop sheet description text is shown
       final l10n = await TestUtils.englishLocalizations;
       final organizationName = WalletMockData.card.issuer.displayName;
+      expect(find.text(l10n.issuanceStopSheetDescription(organizationName), findRichText: true), findsOneWidget);
+    });
+    testWidgets('Confirm issuer page shows the issuer and approves on accept', (tester) async {
+      final bloc = MockIssuanceBloc();
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          bloc,
+          IssuanceConfirmIssuer(organization: WalletMockData.organization),
+        ),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      final organizationName = WalletMockData.organization.displayName;
+      expect(find.text(l10n.issuanceConfirmIssuerPageTitle(organizationName), findRichText: true), findsAtLeast(1));
+
+      await tester.tap(find.byKey(kConfirmIssuerAcceptButtonKey));
+      await tester.pumpAndSettle();
+
+      mocktail.verify(() => bloc.add(const IssuanceIssuerApproved())).called(1);
+    });
+
+    testWidgets('When user declines on confirm issuer page, the stop sheet is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceConfirmIssuer(organization: WalletMockData.organization),
+        ),
+      );
+
+      await tester.tap(find.byKey(kConfirmIssuerDeclineButtonKey));
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+      final organizationName = WalletMockData.organization.displayName;
       expect(find.text(l10n.issuanceStopSheetDescription(organizationName), findRichText: true), findsOneWidget);
     });
   });

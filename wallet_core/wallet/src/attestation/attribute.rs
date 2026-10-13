@@ -2,11 +2,14 @@ use std::collections::HashSet;
 
 use attestation_data::attributes::Attributes;
 use attestation_data::organization::Organization;
+use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use indexmap::IndexMap;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
+use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
+use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use sd_jwt::claims::ObjectClaims;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -67,6 +70,47 @@ impl AttestationPresentation {
             &attributes,
             config,
         )
+    }
+
+    /// Creates an [`AttestationPresentation`] from the first copy of an issued credential.
+    pub(crate) fn create_from_issued(
+        credential: &CredentialWithMetadata,
+        issuer_organization: Box<Organization>,
+        config: &impl AttestationPresentationConfig,
+    ) -> Result<Self, AttestationError> {
+        let validity = AttestationValidity {
+            revocation_status: None,
+            validity_window: ValidityWindow {
+                valid_from: credential.not_before.map(Into::into),
+                valid_until: credential.expiration.map(Into::into),
+            },
+        };
+
+        // TODO (PVW-6251): determine attestation identity to support renewal
+        match &credential.copies {
+            IssuedCredentialCopies::Mdoc(copies) => Self::create_from_mdoc(
+                AttestationIdentity::Ephemeral,
+                credential.attestation_type.clone(),
+                credential.metadata.clone(),
+                issuer_organization,
+                validity,
+                copies.first().mdoc.issuer_signed().clone().into_entries_by_namespace(),
+                config,
+            ),
+            IssuedCredentialCopies::SdJwt(copies) => {
+                let claims = copies.first().sd_jwt.decoded_claims().clone();
+
+                Self::create_from_sd_jwt_claims(
+                    AttestationIdentity::Ephemeral,
+                    credential.attestation_type.clone(),
+                    credential.metadata.clone(),
+                    issuer_organization,
+                    validity,
+                    claims,
+                    config,
+                )
+            }
+        }
     }
 
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.

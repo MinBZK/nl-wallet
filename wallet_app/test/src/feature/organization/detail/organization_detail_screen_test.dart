@@ -32,6 +32,22 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
+    testGoldens('OrganizationDetailSuccess light - natural person', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        OrganizationDetailScreen(
+          onReportIssuePressed: () {},
+        ).withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(
+            organization: WalletMockData.naturalPersonOrganization,
+            sharedDataWithOrganizationBefore: false,
+          ),
+        ),
+      );
+
+      await screenMatchesGolden('success.natural_person.light');
+    });
+
     testGoldens('OrganizationDetailSuccess light - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         OrganizationDetailScreen(
@@ -105,7 +121,9 @@ void main() {
       expect(find.text(title), findsOneWidget);
       expect(find.text(WalletMockData.organization.description!.testValue), findsOneWidget);
       expect(find.text(WalletMockData.organization.legalName), findsOneWidget);
-      expect(find.text(WalletMockData.organization.type!.testValue), findsOneWidget);
+      expect(find.text(l10n.organizationDetailScreenOrganizationTypeNonGovernment), findsOneWidget);
+      expect(find.text(l10n.organizationDetailScreenLegalNameInfo), findsOneWidget);
+      expect(find.text(l10n.organizationDetailScreenOrganizationIdInfo), findsOneWidget);
       expect(find.text(WalletMockData.organization.supportUri!.replaceAll('https://', '')), findsOneWidget);
       expect(find.text(WalletMockData.organization.privacyPolicyUri!.replaceAll('https://', '')), findsOneWidget);
       expect(find.text(WalletMockData.organization.organizationId), findsOneWidget);
@@ -114,6 +132,69 @@ void main() {
       expect(find.text(location!), findsOneWidget);
       expect(find.text(WalletMockData.organization.organizationId), findsOneWidget);
       expect(find.text(l10n.organizationDetailScreenWebsiteInfo), findsNothing);
+    });
+
+    testWidgets('a public body is shown as a government organization', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const OrganizationDetailScreen().withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(
+            organization: WalletMockData.organization.copyWith(publicBody: true),
+            sharedDataWithOrganizationBefore: false,
+          ),
+        ),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.organizationDetailScreenOrganizationTypeGovernment), findsOneWidget);
+    });
+
+    testWidgets('a natural person is shown with name and identification number labels', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const OrganizationDetailScreen().withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(
+            organization: WalletMockData.naturalPersonOrganization,
+            sharedDataWithOrganizationBefore: false,
+          ),
+        ),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.organizationDetailScreenNaturalPersonNameInfo), findsOneWidget);
+      expect(find.text(WalletMockData.naturalPersonOrganization.legalName), findsOneWidget);
+      expect(find.text(l10n.organizationDetailScreenNaturalPersonIdInfo), findsOneWidget);
+      expect(find.text(l10n.organizationDetailScreenLegalNameInfo), findsNothing);
+      expect(find.text(l10n.organizationDetailScreenOrganizationIdInfo), findsNothing);
+    });
+
+    testWidgets('an email support address is shown without the mailto scheme', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const OrganizationDetailScreen().withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(
+            organization: WalletMockData.organization.copyWith(supportUri: 'mailto:support@example.org'),
+            sharedDataWithOrganizationBefore: false,
+          ),
+        ),
+      );
+
+      expect(find.text('support@example.org'), findsOneWidget);
+    });
+
+    testWidgets('organization type is hidden when it is unknown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const OrganizationDetailScreen().withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(
+            organization: WalletMockData.organization.copyWith(publicBody: null),
+            sharedDataWithOrganizationBefore: false,
+          ),
+        ),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.organizationDetailScreenCategoryInfo), findsNothing);
     });
 
     testWidgets('onReportIssuePressed callback is triggered when button is clicked', (tester) async {

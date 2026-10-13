@@ -102,21 +102,26 @@ configuration files.
 
 The TAS contains the following particularly important data elements:
 
-**ROOT** | Key | Type | Description | | ------------- | ------ |
---------------------------------------------------- | | `vct` | string |
-Verifiable credential type field | | `name` | string | Readable name of this
-verifiable credential | | `description` | string | Description of this
-verifiable credential | | `display` | array | Array of display objects, one per
-language | | `claims` | array | Array of claim objects |
+**ROOT**
+
+| Key           | Type   | Description                                 |
+| ------------- | ------ | ------------------------------------------- |
+| `vct`         | string | Verifiable credential type field            |
+| `name`        | string | Readable name of this verifiable credential |
+| `description` | string | Description of this verifiable credential   |
+| `display`     | array  | Array of display objects, one per language  |
+| `claims`      | array  | Array of claim objects                      |
 
 Claims have the following elements:
 
-**CLAIMS** | Key | Type | Description | | ------------- | ------ |
---------------------------------------------------- | | `path` | array | An
-array of strings describing the claim path | | `display` | array | Array of
-display objects, one per language | | `sd` | string | Indicates whether a claim
-is selectively disclosable| | `svg_id` | string | Template identifier for the
-SVG rendering metadata |
+**CLAIMS**
+
+| Key       | Type   | Description                                          |
+| --------- | ------ | ---------------------------------------------------- |
+| `path`    | array  | An array of strings describing the claim path        |
+| `display` | array  | Array of display objects, one per language           |
+| `sd`      | string | Indicates whether a claim is selectively disclosable |
+| `svg_id`  | string | Template identifier for the SVG rendering metadata   |
 
 ### Creating the technical attestation schema JSON document
 

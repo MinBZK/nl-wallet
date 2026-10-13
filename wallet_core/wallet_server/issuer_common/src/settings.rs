@@ -155,15 +155,25 @@ pub struct IssuerSettings {
     /// The maximum amount of copies of a credential that the holder can request.
     pub batch_size: NonZeroU8,
 
+    /// Whether to offer the (non-standard) Credential Preview Endpoint. Without it, the wallet does not show the
+    /// credentials before they are issued.
+    #[serde(default = "default_credential_preview_endpoint")]
+    pub credential_preview_endpoint: bool,
+
     #[serde(flatten)]
     #[debug(skip)]
     pub server_settings: Settings,
 
     pub status_lists: StatusListsSettings,
 
-    /// Trust anchors for verifying the wallet attestation (Wallet Instance Attestation).
+    /// The trust anchors for the Wallet Provider Trusted List. Both the signing certificate for the Wallet Instance
+    /// Attestation (WIA) and the signing certificate for Key Attestations must be verified using these anchors.
     #[debug(skip)]
-    pub wia_trust_anchors: TrustAnchors,
+    pub wptl_trust_anchors: TrustAnchors,
+}
+
+fn default_credential_preview_endpoint() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Default, AsRef)]
@@ -709,7 +719,8 @@ impl IssuerSettings {
             self.batch_size,
             self.wallet_client_ids,
             credential_configs,
-            self.wia_trust_anchors,
+            self.credential_preview_endpoint,
+            self.wptl_trust_anchors,
             Arc::new(sessions),
             proof_nonce_store,
         );
@@ -852,7 +863,7 @@ mod tests {
             .into();
 
         // Normally this is its own CA; here we just reuse the issuer_ca.
-        let wia_trust_anchors = TrustAnchors::from(issuer_ca);
+        let wptl_trust_anchors = TrustAnchors::from(issuer_ca);
 
         IssuerSettings {
             public_url: "https://example.com".parse().unwrap(),
@@ -881,6 +892,7 @@ mod tests {
             .unwrap(),
             wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
+            credential_preview_endpoint: true,
             server_settings: Settings {
                 wallet_server: Server {
                     ip: "127.0.0.1".parse().unwrap(),
@@ -912,7 +924,7 @@ mod tests {
                 ttl_in_minutes: None,
                 serve: true,
             },
-            wia_trust_anchors,
+            wptl_trust_anchors,
         }
     }
 
@@ -956,7 +968,7 @@ mod tests {
             "issuer_trust_anchors": [],
             "wrpac_trust_anchors": [],
             "wrprc_trust_anchors": [],
-            "wia_trust_anchors": [],
+            "wptl_trust_anchors": [],
             "status_lists": {
                 "list_size": 100_000,
                 "create_threshold_ratio": 0.1,
@@ -1122,8 +1134,8 @@ mod tests {
             error,
             IssuerSettingsValidationError::CertificatesSubjectNameMismatch { config_id, attestation, status_list }
                 if config_id.as_ref() == "pid_sdjwt" &&
-                    attestation == "2.5.4.3=DAtDZXJ0IGlzc3Vlcg,2.5.4.6=DAJOTA,2.5.4.10=DBBDZXJ0IGlzc3VlciBCLlYu,1.3.6.1.1.15=DA5OVFJOTC05OTMzMzY3Mw".to_string().into() &&
-                    status_list == "2.5.4.3=DAlkaWZmZXJlbnQ,2.5.4.6=DAJOTA,2.5.4.10=DA5kaWZmZXJlbnQgQi5WLg,1.3.6.1.1.15=DA5OVFJOTC0xOTU3MDE4Ng".to_string().into()
+                    attestation == "2.5.4.3=DAtDZXJ0IGlzc3Vlcg,2.5.4.6=EwJOTA,2.5.4.10=DBBDZXJ0IGlzc3VlciBCLlYu,2.5.4.97=DA5OVFJOTC05OTMzMzY3Mw".to_string().into() &&
+                    status_list == "2.5.4.3=DAlkaWZmZXJlbnQ,2.5.4.6=EwJOTA,2.5.4.10=DA5kaWZmZXJlbnQgQi5WLg,2.5.4.97=DA5OVFJOTC0xOTU3MDE4Ng".to_string().into()
         );
     }
 

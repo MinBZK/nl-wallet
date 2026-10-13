@@ -164,10 +164,11 @@ fn assert_generated_certificate(
     let not_after = crt.validity().not_after.to_datetime();
     assert_eq!(not_after.cmp_range(&end, Duration::minutes(1)), Ordering::Equal);
 
-    // Required key usage as specified in ISO/IEC 18013-5:2021, Tables B.1 and B.3.
+    // Required key usage as specified in ISO/IEC 18013-5:2021, Tables B.1 and B.3, and ETSI EN 319 412-2, section
+    // 4.3.2.
     let expected_flags = if crt.is_ca() {
         Some(0b0110_0000) // keyCertSign and cRLSign only
-    } else if usage == Some(CertificateUsage::Mdl) {
+    } else if usage.is_some() {
         Some(0b0000_0001) // digitalSignature only
     } else {
         None
@@ -1369,6 +1370,69 @@ fn not_a_natural_or_legal_person() -> Result<()> {
             .failure()
             .stderr(predicate_not_a_natural_or_legal_person()?);
     }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_legal_person_ca() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success and stderr output
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    // Assert generated ca files
+    let ca_dn = DistinguishedName::new_legal_person(
+        "CA".to_string(),
+        "NL".to_string(),
+        "Test B.V.".to_string(),
+        "NTRNL-00000002".to_string(),
+    );
+    assert_generated_key(&ca_key)?;
+    assert_generated_certificate(
+        &ca_crt,
+        &ca_dn,
+        &ca_dn,
+        None,
+        OffsetDateTime::now_utc(),
+        OffsetDateTime::now_utc() + DEFAULT_CA_LIFETIME,
+        None,
+    )?;
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn legal_person_ca_requires_both_attributes() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, _) = keypair_paths(&temp, "test-ca");
+
+    for (provided, missing) in [
+        (["--organization-name", "Test B.V."], "--organization-id"),
+        (["--organization-id", "NTRNL-00000002"], "--organization-name"),
+    ] {
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_ca(&ca_prefix)
+            .args(provided)
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains(format!(
+                "the following required arguments were not provided:\n  {missing}"
+            )));
+    }
+    ca_crt.assert(predicate::path::missing());
 
     // Explicitly close the temp folder, for better error reporting
     temp.close()?;

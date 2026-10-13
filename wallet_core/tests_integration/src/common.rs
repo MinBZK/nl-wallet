@@ -724,10 +724,10 @@ pub async fn setup_pre_auth_env(db_setup: &DbSetup) -> IssuerUrl {
 
 /// Start just the authorization-code-flow issuer (`acf_demo_issuer`). Its keys are software-backed, so
 /// no HSM is required.
-pub async fn setup_auth_code_env(db_setup: &DbSetup, wia_ca_override: Option<&Ca>) -> IssuerUrl {
+pub async fn setup_auth_code_env(db_setup: &DbSetup, wptl_ca_override: Option<&Ca>) -> IssuerUrl {
     start_acf_demo_issuer_server(acf_demo_issuer_settings(
         db_setup.acf_demo_issuer_url(),
-        wia_ca_override,
+        wptl_ca_override,
     ))
     .await
 }
@@ -908,7 +908,7 @@ pub async fn start_wallet_provider_with_abort_handle(
     (port, abort_handle)
 }
 
-pub fn pid_issuer_settings(db_url: Url, wia_ca_override: Option<&Ca>) -> PidIssuerSettings {
+pub fn pid_issuer_settings(db_url: Url, wptl_ca_override: Option<&Ca>) -> PidIssuerSettings {
     let mut pid_settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
     pid_settings
@@ -931,11 +931,11 @@ pub fn pid_issuer_settings(db_url: Url, wia_ca_override: Option<&Ca>) -> PidIssu
         .wallet_server
         .port = 0;
 
-    if let Some(wia_ca) = wia_ca_override {
+    if let Some(wptl_ca) = wptl_ca_override {
         pid_settings
             .authorizing_issuer_settings
             .issuer_settings
-            .wia_trust_anchors = TrustAnchors::from(wia_ca);
+            .wptl_trust_anchors = TrustAnchors::from(wptl_ca);
         pid_settings
             .authorizing_issuer_settings
             .issuer_settings
@@ -1172,7 +1172,7 @@ pub fn wallet_issuance_redirect_uri() -> Url {
     issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner()
 }
 
-pub fn acf_demo_issuer_settings(db_url: Url, wia_ca_override: Option<&Ca>) -> AcfDemoIssuerSettings {
+pub fn acf_demo_issuer_settings(db_url: Url, wptl_ca_override: Option<&Ca>) -> AcfDemoIssuerSettings {
     let mut settings =
         AcfDemoIssuerSettings::new("acf_demo_issuer.toml", "acf_demo_issuer").expect("Could not read settings");
 
@@ -1185,8 +1185,8 @@ pub fn acf_demo_issuer_settings(db_url: Url, wia_ca_override: Option<&Ca>) -> Ac
         port: 0,
     });
 
-    if let Some(wia_ca) = wia_ca_override {
-        settings.authorizing_issuer_settings.issuer_settings.wia_trust_anchors = TrustAnchors::from(wia_ca);
+    if let Some(wptl_ca) = wptl_ca_override {
+        settings.authorizing_issuer_settings.issuer_settings.wptl_trust_anchors = TrustAnchors::from(wptl_ca);
         // `MockWiaClient` always issues WIAs with `sub` set to `MOCK_WALLET_CLIENT_ID`.
         settings
             .authorizing_issuer_settings

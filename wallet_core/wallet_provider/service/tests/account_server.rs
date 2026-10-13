@@ -899,7 +899,6 @@ async fn test_attestation_wrapping_key_rollover() {
     let instruction = hw_privkey
         .sign_instruction(
             PerformIssuance {
-                aud: "aud".to_owned(),
                 key_requests: vec_nonempty![IssuanceKeySetRequest {
                     key_count: NonZeroU8::MIN,
                     proof_nonce: None,
@@ -926,10 +925,10 @@ async fn test_attestation_wrapping_key_rollover() {
         .unwrap()
         .1
         .result
-        .keys
+        .key_sets
         .into_first()
-        .into_first()
-        .key_identifier;
+        .identifiers
+        .into_first();
 
     let sign_instruction = |key_identifier: String| Sign {
         messages_with_identifiers: vec![(sha256_array(b"message"), vec![key_identifier])],
@@ -1023,7 +1022,6 @@ async fn test_attestation_wrapping_key_rollover() {
     let instruction = hw_privkey
         .sign_instruction(
             PerformIssuance {
-                aud: "aud".to_owned(),
                 key_requests: vec_nonempty![IssuanceKeySetRequest {
                     key_count: NonZeroU8::MIN,
                     proof_nonce: None,
@@ -1050,10 +1048,10 @@ async fn test_attestation_wrapping_key_rollover() {
         .unwrap()
         .1
         .result
-        .keys
+        .key_sets
         .into_first()
-        .into_first()
-        .key_identifier;
+        .identifiers
+        .into_first();
 
     // Remove the old kid from settings entirely
     user_state.attestation_wrapping_kids = KidPair {

@@ -52,10 +52,6 @@ abstract class CoreMockData {
     countryCode: 'NL',
   );
 
-  static const RequestPolicy policy = RequestPolicy(
-    policyUrl: 'https://example.org',
-  );
-
   static const FlutterConfiguration flutterConfiguration = FlutterConfiguration(
     inactiveWarningTimeout: 0,
     inactiveLockTimeout: 0,

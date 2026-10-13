@@ -661,14 +661,10 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
 
         // Make sure we received the correct number of signatures.
         if signatures.len() != headers_and_payloads.len() {
-            return Err(JwtSignError::Signing(
-                format!(
-                    "incorrect signature count received from WSCD, expected {}, received {}",
-                    headers_and_payloads.len(),
-                    signatures.len()
-                )
-                .into(),
-            ));
+            return Err(JwtSignError::IncorrectSignatureCount {
+                expected: headers_and_payloads.len(),
+                received: signatures.len(),
+            });
         }
 
         // Actually create the JWTs by combining their header, payload and received signature.
@@ -677,15 +673,10 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
             .zip_eq(signatures)
             .map(|(header_and_payload, signatures)| {
                 // Again, make sure we received the correct number of signatures.
-                let signature = signatures.into_iter().exactly_one().map_err(|error| {
-                    JwtSignError::Signing(
-                        format!(
-                            "expected to receive a single signature per JWT from WSCD, received {}",
-                            error.len()
-                        )
-                        .into(),
-                    )
-                })?;
+                let signature = signatures
+                    .into_iter()
+                    .exactly_one()
+                    .map_err(|error| JwtSignError::IncorrectPayloadSignatureCount { received: error.len() })?;
 
                 let jwt = Self::from_header_payload_and_signature(header_and_payload, &signature);
                 Ok(jwt)
@@ -1149,8 +1140,9 @@ where
 /// Trait defining the expected `typ` header value for a JWT payload. Types used as payloads of JWTs must implement this
 /// trait, which enforces that only JWTs with a matching `typ` header are accepted.
 ///
-/// The constant `TYP` is injected into the header during signing and enforced during verification. By default, `TYP` is
-/// `"jwt"`.
+/// The constant `TYP` is injected into the header during signing and enforced during verification. As `typ` contains a
+/// media type, which consists of ASCII characters only, it is compared case-insensitively. By default, `TYP` is
+/// `"JWT"`.
 ///
 /// # Example
 /// ```
@@ -1166,7 +1158,8 @@ pub trait JwtTyp {
     const TYP: &'static str = DEFAULT_JWT_TYP;
 
     fn is_valid_typ(header_typ: Option<&str>) -> Result<(), JwtVerifyError> {
-        if header_typ.is_none_or(|typ| typ != Self::TYP) {
+        // The `typ` header contains a media type, which is case-insensitive and consists of ASCII characters only.
+        if header_typ.is_none_or(|typ| !typ.eq_ignore_ascii_case(Self::TYP)) {
             return Err(JwtVerifyError::UnexpectedTyp(
                 Self::TYP.to_owned(),
                 header_typ.map(str::to_owned),
@@ -1517,6 +1510,45 @@ mod tests {
             .expect_err("should fail because the JWT has the wrong `typ` field");
 
         assert_matches!(parsed, JwtVerifyError::UnexpectedTyp(expected, Some(found)) if expected == OtherMessage::TYP && found == ToyMessage::TYP);
+    }
+
+    #[tokio::test]
+    async fn test_sign_and_verify_with_typ_in_other_case() {
+        let private_key = SigningKey::generate();
+
+        #[derive(Debug, Serialize, Deserialize)]
+        struct LowercaseMessage(ToyMessage);
+
+        impl JwtTyp for LowercaseMessage {
+            const TYP: &'static str = "jwt";
+        }
+
+        let jwt = SignedJwt::sign(&LowercaseMessage(ToyMessage::default()), &private_key)
+            .await
+            .unwrap();
+        // "cast" to an UnverifiedJwt with a `typ` that only differs in case from the one in the header
+        let jwt = UnverifiedJwt {
+            serialization: jwt.0.serialization,
+            payload_end: jwt.0.payload_end,
+            _jwt_type: PhantomData::<(ToyMessage, HeaderWithTyp)>,
+        };
+
+        let jwt_header: HashMap<String, serde_json::Value> = part(0, &jwt.serialization);
+        assert_eq!(
+            *jwt_header.get("typ").unwrap(),
+            serde_json::Value::String(LowercaseMessage::TYP.to_string())
+        );
+        assert_ne!(LowercaseMessage::TYP, ToyMessage::TYP);
+
+        // the JWT should be accepted, as the `typ` header is case-insensitive
+        let (_, parsed) = jwt
+            .parse_and_verify(
+                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                &*ESP256_ONLY_VALIDATION,
+            )
+            .expect("should succeed because the `typ` field only differs in case");
+
+        assert_eq!(parsed, ToyMessage::default());
     }
 
     /// A payload carrying an RFC 7519 `exp` claim, in order to establish how the validations

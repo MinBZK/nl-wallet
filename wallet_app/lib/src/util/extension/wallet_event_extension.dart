@@ -2,17 +2,9 @@ import 'package:collection/collection.dart';
 
 import '../../domain/model/event/event_section.dart';
 import '../../domain/model/event/wallet_event.dart';
-import '../../domain/model/organization.dart';
 import 'date_time_extension.dart';
 
 extension WalletEventExtensions on WalletEvent {
-  Organization get relyingPartyOrIssuer => switch (this) {
-    DeletionEvent() => (this as DeletionEvent).card.issuer,
-    DisclosureEvent() => (this as DisclosureEvent).relyingParty,
-    IssuanceEvent() => (this as IssuanceEvent).card.issuer,
-    SignEvent() => (this as SignEvent).relyingParty,
-  };
-
   bool get wasSuccess => status == EventStatus.success;
 
   bool get wasCancelled => status == EventStatus.cancelled;

@@ -16,12 +16,14 @@ void main() {
     final preAuthOfferEmpty = const StartIssuanceResult.preAuthorizedOffer([]);
     expect(preAuthOfferEmpty.relyingParty, isNull);
 
+    final noPreviews = StartIssuanceResult.noPreviews(organization: WalletMockData.organization);
+    expect(noPreviews.relyingParty, WalletMockData.organization);
+
     final readyToDisclose = StartIssuanceResult.readyToDisclose(
       relyingParty: WalletMockData.organization,
       requestPurpose: 'purpose'.untranslated,
       sessionType: DisclosureSessionType.crossDevice,
       cardRequests: [],
-      policy: WalletMockData.policy,
     );
     expect(readyToDisclose.relyingParty, WalletMockData.organization);
 
@@ -40,12 +42,14 @@ void main() {
     final preAuthOffer = StartIssuanceResult.preAuthorizedOffer([WalletMockData.card]);
     expect(preAuthOffer.sessionType, isNull);
 
+    final noPreviews = StartIssuanceResult.noPreviews(organization: WalletMockData.organization);
+    expect(noPreviews.sessionType, isNull);
+
     final readyToDisclose = StartIssuanceResult.readyToDisclose(
       relyingParty: WalletMockData.organization,
       requestPurpose: 'purpose'.untranslated,
       sessionType: DisclosureSessionType.crossDevice,
       cardRequests: [],
-      policy: WalletMockData.policy,
     );
     expect(readyToDisclose.sessionType, DisclosureSessionType.crossDevice);
 

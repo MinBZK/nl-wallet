@@ -62,6 +62,7 @@ use self::init::WalletCertificateCrlVerifier;
 pub use self::init::WalletClients;
 pub use self::init::WalletInitError;
 pub use self::init::WalletRepositories;
+pub use self::issuance::IssuanceContinueResult;
 pub use self::issuance::IssuanceError;
 pub use self::issuance::IssuanceResult;
 pub use self::issuance::IssuanceStartResult;

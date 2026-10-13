@@ -142,16 +142,23 @@ where
 {
     let credential_path = format!("/issuance/{CREDENTIAL_ENDPOINT_PATH}");
 
-    Router::new()
+    let router = Router::new()
         .route("/.well-known/openid-credential-issuer", get(credential_metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
         .route("/issuance/client_auth_challenge", post(client_auth_challenge))
         .route("/issuance/token", post(token))
         .route("/issuance/type_metadata/{id}", get(type_metadata))
-        .route("/issuance/credential_preview", post(credential_preview))
         .route("/issuance/nonce", post(nonce))
-        .route(&credential_path, post(credential))
-        .with_state(IssuanceState { issuer })
+        .route(&credential_path, post(credential));
+
+    // Only serve the Credential Preview Endpoint when the Credential Issuer Metadata advertises it.
+    let router = if issuer.has_credential_preview_endpoint() {
+        router.route("/issuance/credential_preview", post(credential_preview))
+    } else {
+        router
+    };
+
+    router.with_state(IssuanceState { issuer })
 }
 
 async fn credential_offer<K, L, S, N, PAS, AF>(
@@ -211,7 +218,7 @@ where
     ) {
         Ok(Some(_)) => state
             .issuer
-            .signed_metadata(ISSUER_METADATA_TTL, TimeGenerator)
+            .signed_metadata(ISSUER_METADATA_TTL, &TimeGenerator)
             .await
             .map(IntoResponse::into_response)
             .map_err(|err| {
@@ -341,7 +348,7 @@ where
     let access_token = authorization_header.into();
     let response = state
         .issuer
-        .process_credential_request(&access_token, dpop, credential_request)
+        .process_credential_request(&access_token, dpop, credential_request, &TimeGenerator)
         .await
         .inspect_err(|error| warn!("processing credential request failed: {}", error))?;
 

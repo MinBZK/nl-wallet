@@ -1,21 +1,26 @@
 use std::collections::HashMap;
 use std::num::NonZeroU8;
+use std::sync::LazyLock;
 
+use chrono::DateTime;
+use chrono::Utc;
+use crypto::PublicKey;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
-use crypto::p256_der::verifying_key_sha256;
+use crypto::server_keys::KeyPair;
+use crypto::server_keys::generate::Ca;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use derive_more::AsRef;
 use futures::FutureExt;
 use itertools::Itertools;
-use jwt::SignedJwt;
 use jwt::nonce::Nonce;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use p256::elliptic_curve::Generate;
+use url::Url;
+use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -25,26 +30,44 @@ use crate::issuance::IssuanceKeyResult;
 use crate::issuance::IssuanceWscd;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::payload::jwt_proof::JwtProofClaims;
+use crate::payload::key_attestation::KeyAttestation;
 use crate::payload::poa::Poa;
+
+pub static MOCK_CERTIFICATION_URL: LazyLock<Url> =
+    LazyLock::new(|| "https://wallet-provider.example.com/certification".parse().unwrap());
 
 /// A type that implements both the [`DisclosureWscd`] and [`IssuanceWscd`] traits and can be used in tests. It has the
 /// option of returning `MockRemoteWscdError::Generating` when generating multiple keys and
 /// `MockRemoteWscdError::Signing` when signing multiple, influenced by boolean fields on the type.
 #[derive(Debug, AsRef)]
 pub struct MockRemoteWscd {
+    #[as_ref]
     pub disclosure: DisclosureMockRemoteWscd,
+    attestation_key_pair: KeyPair,
 }
 
 impl MockRemoteWscd {
-    pub fn new(keys: Vec<MockRemoteEcdsaKey>) -> Self {
-        let signing_keys = keys.into_iter().map(|key| (key.identifier, key.key)).collect();
-
-        Self::new_signing_keys(signing_keys)
+    pub fn new() -> Self {
+        Self::new_with_keys(Vec::new())
     }
 
-    fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
+    pub fn new_with_keys(keys: Vec<MockRemoteEcdsaKey>) -> Self {
+        let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
+        let signing_keys = keys.into_iter().map(|key| (key.identifier, key.key)).collect();
+
+        Self::new_with_wptl_ca_and_keys(&wptl_ca, signing_keys)
+    }
+
+    pub fn new_with_wptl_ca(wptl_ca: &Ca) -> Self {
+        Self::new_with_wptl_ca_and_keys(wptl_ca, HashMap::new())
+    }
+
+    fn new_with_wptl_ca_and_keys(wptl_ca: &Ca, signing_keys: HashMap<String, SigningKey>) -> Self {
+        let attestation_key_pair = wptl_ca.generate_key_attestation_mock().unwrap();
+
         Self {
             disclosure: DisclosureMockRemoteWscd::new_signing_keys(signing_keys),
+            attestation_key_pair,
         }
     }
 
@@ -53,18 +76,37 @@ impl MockRemoteWscd {
         use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
         use crypto::examples::Examples;
 
+        let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
         let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
-        Self::new_signing_keys(keys)
+
+        Self::new_with_wptl_ca_and_keys(&wptl_ca, keys)
     }
 
-    pub fn create_random_key(&self) -> MockRemoteEcdsaKey {
-        self.disclosure.create_random_key()
+    pub fn sign_key_attestation<I, G>(&self, verifying_keys: I, nonce: Option<Nonce>, time: &G) -> KeyAttestation
+    where
+        I: IntoNonEmptyIterator<Item = VerifyingKey>,
+        G: Generator<DateTime<Utc>>,
+    {
+        KeyAttestation::sign(
+            verifying_keys
+                .into_nonempty_iter()
+                .map(PublicKey::from)
+                .collect::<VecNonEmpty<_>>()
+                .nonempty_iter(),
+            MOCK_CERTIFICATION_URL.clone(),
+            nonce,
+            &self.attestation_key_pair,
+            time,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap()
     }
 }
 
 impl Default for MockRemoteWscd {
     fn default() -> Self {
-        Self::new_signing_keys(HashMap::new())
+        Self::new()
     }
 }
 
@@ -116,35 +158,25 @@ impl IssuanceWscd for MockRemoteWscd {
 
     async fn perform_issuance(
         &self,
-        aud: String,
         key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-    ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
+    ) -> Result<VecNonEmpty<IssuanceKeyResult>, Self::Error> {
         let time = MockTimeGenerator::default();
-        let mut signing_keys = self.disclosure.signing_keys.lock();
 
-        let nonce_count = key_counts_and_nonces.len();
         let key_results = key_counts_and_nonces
             .into_nonempty_iter()
-            .zip(utils::vec_at_least::repeat_n(aud, nonce_count))
-            .map(|((key_count, nonce), aud)| {
-                let claims = JwtProofClaims::new(MOCK_WALLET_CLIENT_ID.to_string(), aud, nonce, &time);
+            .map(|(key_count, nonce)| {
+                let (verifying_keys, identifiers): (VecNonEmpty<_>, _) =
+                    utils::vec_at_least::repeat_n((), key_count.into())
+                        .map(|_| {
+                            let remote_key = self.disclosure.create_random_key();
 
-                utils::vec_at_least::repeat_n((), key_count.into())
-                    .map(|_| {
-                        let key = SigningKey::generate();
-                        let identifier = verifying_key_sha256(key.verifying_key());
+                            (*remote_key.key.verifying_key(), remote_key.identifier)
+                        })
+                        .unzip();
 
-                        let pop = SignedJwt::sign_with_jwk(&claims, &key)
-                            .now_or_never()
-                            .unwrap()
-                            .unwrap()
-                            .into();
+                let key_attestation = self.sign_key_attestation(verifying_keys, nonce, &time);
 
-                        signing_keys.insert(identifier.clone(), key);
-
-                        IssuanceKeyResult::new(identifier, pop)
-                    })
-                    .collect()
+                IssuanceKeyResult::new(identifiers, key_attestation)
             })
             .collect();
 

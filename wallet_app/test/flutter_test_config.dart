@@ -16,13 +16,13 @@ import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/event/wallet_events_page.dart';
 import 'package:wallet/src/domain/model/help/help_category.dart';
 import 'package:wallet/src/domain/model/help/topic_block.dart';
+import 'package:wallet/src/domain/model/issuance/continue_issuance_result.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/domain/model/pin/check_pin_result.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart';
 import 'package:wallet/src/domain/model/tour/tour_video.dart';
@@ -69,9 +69,8 @@ void _setupMockitoDummies() {
   provideDummy<PidAttestation>(const PidAttestation(attestationType: 'pid', format: .sdJwt));
   provideDummy<MaintenanceWindow>(MaintenanceWindow(startDateTime: DateTime(2000), endDateTime: DateTime(2001)));
 
-  // Organization and policy dummies
+  // Organization dummies
   provideDummy<Organization>(WalletMockData.organization);
-  provideDummy<Policy>(WalletMockData.policy);
 
   // Card status dummies
   provideDummy<CardStatus>(const CardStatusValid(validUntil: null));
@@ -82,6 +81,9 @@ void _setupMockitoDummies() {
   // Core wallet instruction result dummies
   provideDummy<core.WalletInstructionResult>(const core.WalletInstructionResult.ok());
 
+  // Core issuance result dummies
+  provideDummy<core.IssuanceContinueResult>(const core.IssuanceContinueResult.previews([]));
+
   // Disclosure-related dummies
   provideDummy<StartDisclosureResult>(
     StartDisclosureReadyToDisclose(
@@ -89,7 +91,6 @@ void _setupMockitoDummies() {
       requestPurpose: 'requestPurpose'.untranslated,
       sessionType: DisclosureSessionType.crossDevice,
       type: DisclosureType.regular,
-      policy: WalletMockData.policy,
       sharedDataWithOrganizationBefore: false,
       cardRequests: [],
     ),
@@ -119,7 +120,6 @@ void _setupMockitoDummies() {
   provideDummy<domain.StartIssuanceResult>(
     domain.StartIssuanceReadyToDisclose(
       relyingParty: WalletMockData.organization,
-      policy: WalletMockData.policy,
       sessionType: DisclosureSessionType.sameDevice,
       cardRequests: [],
       requestPurpose: {},
@@ -131,7 +131,6 @@ void _setupMockitoDummies() {
   provideDummy<StartSignResult>(
     StartSignReadyToSign(
       document: WalletMockData.document,
-      policy: WalletMockData.policy,
       relyingParty: WalletMockData.organization,
       trustProvider: WalletMockData.organization,
       requestedCards: [],
@@ -183,17 +182,17 @@ void _setupMockitoDummies() {
         requestPurpose: 'requestPurpose'.untranslated,
         sessionType: DisclosureSessionType.crossDevice,
         type: DisclosureType.login,
-        policy: WalletMockData.policy,
         sharedDataWithOrganizationBefore: false,
         cardRequests: [],
       ),
     ),
   );
+  provideDummy<ContinueIssuanceResult>(const ContinueIssuanceResult.previews([]));
+  provideDummy<Result<ContinueIssuanceResult>>(const Result.success(ContinueIssuanceResult.previews([])));
   provideDummy<Result<domain.StartIssuanceResult>>(
     Result.success(
       domain.StartIssuanceReadyToDisclose(
         relyingParty: WalletMockData.organization,
-        policy: WalletMockData.policy,
         sessionType: DisclosureSessionType.sameDevice,
         cardRequests: [],
         requestPurpose: {},
@@ -204,7 +203,6 @@ void _setupMockitoDummies() {
     Result.success(
       StartSignReadyToSign(
         document: WalletMockData.document,
-        policy: WalletMockData.policy,
         relyingParty: WalletMockData.organization,
         trustProvider: WalletMockData.organization,
         requestedCards: [],

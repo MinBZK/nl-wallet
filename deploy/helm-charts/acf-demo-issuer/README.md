@@ -110,9 +110,10 @@
 
 ### Credential parameters
 
-| Name        | Description                                                        | Value |
-| ----------- | ------------------------------------------------------------------ | ----- |
-| `batchSize` | The maximum amount of credentials a holder will be able to request | `10`  |
+| Name                        | Description                                                        | Value  |
+| --------------------------- | ------------------------------------------------------------------ | ------ |
+| `batchSize`                 | The maximum amount of credentials a holder will be able to request | `10`   |
+| `credentialPreviewEndpoint` | Whether to offer the (non-standard) Credential Preview Endpoint    | `true` |
 
 ### Wallet redirect uris
 

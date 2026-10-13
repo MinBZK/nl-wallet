@@ -65,4 +65,5 @@
 | **6.1** | **System displays 'Forgot PIN'**<ul><li>Forgot PIN?</li><li>Actions: Create a new PIN, Back</li></ul>                                                              |                                                                         |
 | 6.1a    | User selects Create a new PIN                                                                                                                                      | Go to: [UC2.3.2 Recover PIN](UC2.3.2_RecoverPIN.md)                     |
 | 6.1b    | User selects Back                                                                                                                                                  | Back                                                                    |
+
 <div class="table-notes">1. Resume the state when the app backgrounded/suspended.</div>

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../../domain/model/disclosure/disclose_card_request.dart';
 import '../../domain/model/organization.dart';
-import '../../domain/model/policy/policy.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/formatter/country_code_formatter.dart';
@@ -13,8 +12,8 @@ import '../common/builder/request_detail_common_builders.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/card/shared_attributes_card.dart';
+import '../common/widget/divider_side.dart';
 import '../common/widget/menu_item.dart';
-import '../common/widget/organization/organization_logo.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
@@ -27,7 +26,6 @@ import 'argument/login_detail_screen_argument.dart';
 
 class LoginDetailScreen extends StatelessWidget {
   final Organization organization;
-  final Policy policy;
   final List<DiscloseCardRequest> cardRequests;
   final bool sharedDataWithOrganizationBefore;
   final VoidCallback? onReportIssuePressed;
@@ -44,7 +42,6 @@ class LoginDetailScreen extends StatelessWidget {
 
   const LoginDetailScreen({
     required this.organization,
-    required this.policy,
     required this.cardRequests,
     required this.sharedDataWithOrganizationBefore,
     this.onReportIssuePressed,
@@ -86,12 +83,11 @@ class LoginDetailScreen extends StatelessWidget {
           _buildOrganizationSection(context),
           const SliverDivider(),
           _buildAttributesSection(context),
-          const SliverDivider(),
           SliverToBoxAdapter(
             child: RequestDetailCommonBuilders.buildPolicy(
               context,
               organization: organization,
-              policy: policy,
+              side: DividerSide.top,
             ),
           ),
           const SliverDivider(),
@@ -107,9 +103,6 @@ class LoginDetailScreen extends StatelessWidget {
       child: Semantics(
         button: true,
         child: MenuItem(
-          leftIcon: organization.logo == null
-              ? null
-              : OrganizationLogo(image: organization.logo!, size: kMenuItemNormalIconSize),
           dividerSide: .none,
           label: Text(
             context.l10n.requestDetailScreenAboutOrganizationCta(organization.displayName),
@@ -172,7 +165,6 @@ class LoginDetailScreen extends StatelessWidget {
   static Future<void> show(
     BuildContext context,
     Organization organization,
-    Policy policy,
     List<DiscloseCardRequest> cardRequests, {
     required bool sharedDataWithOrganizationBefore,
     VoidCallback? onReportIssuePressed,
@@ -183,7 +175,6 @@ class LoginDetailScreen extends StatelessWidget {
         builder: (context) {
           return LoginDetailScreen(
             organization: organization,
-            policy: policy,
             cardRequests: cardRequests,
             sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore,
             onReportIssuePressed: onReportIssuePressed,

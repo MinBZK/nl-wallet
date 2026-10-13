@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Organization {
 
- String get id; String get legalName; String get displayName;@LocalizedTextConverter() LocalizedText? get type;@LocalizedTextConverter() LocalizedText? get description;@AppImageDataConverter() AppImageData? get logo; String? get webUri; String? get supportUri; String? get privacyPolicyUri; String get countryCode; String get organizationId;
+ String get id; String get legalName; String get displayName; bool? get publicBody; PersonType? get personType;@LocalizedTextConverter() LocalizedText? get description; String? get webUri; String? get supportUri; String? get privacyPolicyUri; String get countryCode; String get organizationId;
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +30,20 @@ $OrganizationCopyWith<Organization> get copyWith => _$OrganizationCopyWithImpl<O
 @override
 bool operator ==(Object other) {
   final _this = this as Organization;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Organization&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.legalName, _this.legalName) || other.legalName == _this.legalName)&&(identical(other.displayName, _this.displayName) || other.displayName == _this.displayName)&&const DeepCollectionEquality().equals(other.type, _this.type)&&const DeepCollectionEquality().equals(other.description, _this.description)&&(identical(other.logo, _this.logo) || other.logo == _this.logo)&&(identical(other.webUri, _this.webUri) || other.webUri == _this.webUri)&&(identical(other.supportUri, _this.supportUri) || other.supportUri == _this.supportUri)&&(identical(other.privacyPolicyUri, _this.privacyPolicyUri) || other.privacyPolicyUri == _this.privacyPolicyUri)&&(identical(other.countryCode, _this.countryCode) || other.countryCode == _this.countryCode)&&(identical(other.organizationId, _this.organizationId) || other.organizationId == _this.organizationId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Organization&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.legalName, _this.legalName) || other.legalName == _this.legalName)&&(identical(other.displayName, _this.displayName) || other.displayName == _this.displayName)&&(identical(other.publicBody, _this.publicBody) || other.publicBody == _this.publicBody)&&(identical(other.personType, _this.personType) || other.personType == _this.personType)&&const DeepCollectionEquality().equals(other.description, _this.description)&&(identical(other.webUri, _this.webUri) || other.webUri == _this.webUri)&&(identical(other.supportUri, _this.supportUri) || other.supportUri == _this.supportUri)&&(identical(other.privacyPolicyUri, _this.privacyPolicyUri) || other.privacyPolicyUri == _this.privacyPolicyUri)&&(identical(other.countryCode, _this.countryCode) || other.countryCode == _this.countryCode)&&(identical(other.organizationId, _this.organizationId) || other.organizationId == _this.organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Organization;
-  return Object.hash(runtimeType,_this.id,_this.legalName,_this.displayName,const DeepCollectionEquality().hash(_this.type),const DeepCollectionEquality().hash(_this.description),_this.logo,_this.webUri,_this.supportUri,_this.privacyPolicyUri,_this.countryCode,_this.organizationId);
+  return Object.hash(runtimeType,_this.id,_this.legalName,_this.displayName,_this.publicBody,_this.personType,const DeepCollectionEquality().hash(_this.description),_this.webUri,_this.supportUri,_this.privacyPolicyUri,_this.countryCode,_this.organizationId);
 }
 
 @override
 String toString() {
   final _this = this as Organization;
-  return 'Organization(id: ${_this.id}, legalName: ${_this.legalName}, displayName: ${_this.displayName}, type: ${_this.type}, description: ${_this.description}, logo: ${_this.logo}, webUri: ${_this.webUri}, supportUri: ${_this.supportUri}, privacyPolicyUri: ${_this.privacyPolicyUri}, countryCode: ${_this.countryCode}, organizationId: ${_this.organizationId})';
+  return 'Organization(id: ${_this.id}, legalName: ${_this.legalName}, displayName: ${_this.displayName}, publicBody: ${_this.publicBody}, personType: ${_this.personType}, description: ${_this.description}, webUri: ${_this.webUri}, supportUri: ${_this.supportUri}, privacyPolicyUri: ${_this.privacyPolicyUri}, countryCode: ${_this.countryCode}, organizationId: ${_this.organizationId})';
 }
 
 
@@ -54,7 +54,7 @@ abstract mixin class $OrganizationCopyWith<$Res>  {
   factory $OrganizationCopyWith(Organization value, $Res Function(Organization) _then) = _$OrganizationCopyWithImpl;
 @useResult
 $Res call({
- String id, String legalName, String displayName,@LocalizedTextConverter() LocalizedText? type,@LocalizedTextConverter() LocalizedText? description,@AppImageDataConverter() AppImageData? logo, String? webUri, String? supportUri, String? privacyPolicyUri, String countryCode, String organizationId
+ String id, String legalName, String displayName, bool? publicBody, PersonType? personType,@LocalizedTextConverter() LocalizedText? description, String? webUri, String? supportUri, String? privacyPolicyUri, String countryCode, String organizationId
 });
 
 
@@ -71,15 +71,15 @@ class _$OrganizationCopyWithImpl<$Res>
 
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? legalName = null,Object? displayName = null,Object? type = freezed,Object? description = freezed,Object? logo = freezed,Object? webUri = freezed,Object? supportUri = freezed,Object? privacyPolicyUri = freezed,Object? countryCode = null,Object? organizationId = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? legalName = null,Object? displayName = null,Object? publicBody = freezed,Object? personType = freezed,Object? description = freezed,Object? webUri = freezed,Object? supportUri = freezed,Object? privacyPolicyUri = freezed,Object? countryCode = null,Object? organizationId = null,}) {
   return _then(Organization(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,legalName: null == legalName ? _self.legalName : legalName // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as LocalizedText?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as LocalizedText?,logo: freezed == logo ? _self.logo : logo // ignore: cast_nullable_to_non_nullable
-as AppImageData?,webUri: freezed == webUri ? _self.webUri : webUri // ignore: cast_nullable_to_non_nullable
+as String,publicBody: freezed == publicBody ? _self.publicBody : publicBody // ignore: cast_nullable_to_non_nullable
+as bool?,personType: freezed == personType ? _self.personType : personType // ignore: cast_nullable_to_non_nullable
+as PersonType?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as LocalizedText?,webUri: freezed == webUri ? _self.webUri : webUri // ignore: cast_nullable_to_non_nullable
 as String?,supportUri: freezed == supportUri ? _self.supportUri : supportUri // ignore: cast_nullable_to_non_nullable
 as String?,privacyPolicyUri: freezed == privacyPolicyUri ? _self.privacyPolicyUri : privacyPolicyUri // ignore: cast_nullable_to_non_nullable
 as String?,countryCode: null == countryCode ? _self.countryCode : countryCode // ignore: cast_nullable_to_non_nullable
@@ -169,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName, @LocalizedTextConverter()  LocalizedText? type, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter()  AppImageData? logo,  String? webUri,  String? supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName,  bool? publicBody,  PersonType? personType, @LocalizedTextConverter()  LocalizedText? description,  String? webUri,  String? supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Organization() when $default != null:
-return $default(_that.id,_that.legalName,_that.displayName,_that.type,_that.description,_that.logo,_that.webUri,_that.supportUri,_that.privacyPolicyUri,_that.countryCode,_that.organizationId);case _:
+return $default(_that.id,_that.legalName,_that.displayName,_that.publicBody,_that.personType,_that.description,_that.webUri,_that.supportUri,_that.privacyPolicyUri,_that.countryCode,_that.organizationId);case _:
   return orElse();
 
 }
@@ -190,10 +190,10 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.type,_that.desc
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName, @LocalizedTextConverter()  LocalizedText? type, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter()  AppImageData? logo,  String? webUri,  String? supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName,  bool? publicBody,  PersonType? personType, @LocalizedTextConverter()  LocalizedText? description,  String? webUri,  String? supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)  $default,) {final _that = this;
 switch (_that) {
 case _Organization():
-return $default(_that.id,_that.legalName,_that.displayName,_that.type,_that.description,_that.logo,_that.webUri,_that.supportUri,_that.privacyPolicyUri,_that.countryCode,_that.organizationId);case _:
+return $default(_that.id,_that.legalName,_that.displayName,_that.publicBody,_that.personType,_that.description,_that.webUri,_that.supportUri,_that.privacyPolicyUri,_that.countryCode,_that.organizationId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +210,10 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.type,_that.desc
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String legalName,  String displayName, @LocalizedTextConverter()  LocalizedText? type, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter()  AppImageData? logo,  String? webUri,  String? supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String legalName,  String displayName,  bool? publicBody,  PersonType? personType, @LocalizedTextConverter()  LocalizedText? description,  String? webUri,  String? supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)?  $default,) {final _that = this;
 switch (_that) {
 case _Organization() when $default != null:
-return $default(_that.id,_that.legalName,_that.displayName,_that.type,_that.description,_that.logo,_that.webUri,_that.supportUri,_that.privacyPolicyUri,_that.countryCode,_that.organizationId);case _:
+return $default(_that.id,_that.legalName,_that.displayName,_that.publicBody,_that.personType,_that.description,_that.webUri,_that.supportUri,_that.privacyPolicyUri,_that.countryCode,_that.organizationId);case _:
   return null;
 
 }
@@ -225,21 +225,14 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.type,_that.desc
 @JsonSerializable()
 
 class _Organization implements Organization {
-  const _Organization({required this.id, required this.legalName, required this.displayName, @LocalizedTextConverter()  LocalizedText? type, @LocalizedTextConverter()  LocalizedText? description, @AppImageDataConverter() this.logo, this.webUri, this.supportUri, this.privacyPolicyUri, required this.countryCode, required this.organizationId}): _type = type,_description = description;
+  const _Organization({required this.id, required this.legalName, required this.displayName, this.publicBody, this.personType, @LocalizedTextConverter()  LocalizedText? description, this.webUri, this.supportUri, this.privacyPolicyUri, required this.countryCode, required this.organizationId}): _description = description;
   factory _Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);
 
 @override final  String id;
 @override final  String legalName;
 @override final  String displayName;
- final  LocalizedText? _type;
-@override@LocalizedTextConverter() LocalizedText? get type {
-  final value = _type;
-  if (value == null) return null;
-  if (_type is EqualUnmodifiableMapView) return _type;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
-}
-
+@override final  bool? publicBody;
+@override final  PersonType? personType;
  final  LocalizedText? _description;
 @override@LocalizedTextConverter() LocalizedText? get description {
   final value = _description;
@@ -249,7 +242,6 @@ class _Organization implements Organization {
   return EqualUnmodifiableMapView(value);
 }
 
-@override@AppImageDataConverter() final  AppImageData? logo;
 @override final  String? webUri;
 @override final  String? supportUri;
 @override final  String? privacyPolicyUri;
@@ -269,18 +261,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Organization&&(identical(other.id, id) || other.id == id)&&(identical(other.legalName, legalName) || other.legalName == legalName)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&const DeepCollectionEquality().equals(other.type, _type)&&const DeepCollectionEquality().equals(other.description, _description)&&(identical(other.logo, logo) || other.logo == logo)&&(identical(other.webUri, webUri) || other.webUri == webUri)&&(identical(other.supportUri, supportUri) || other.supportUri == supportUri)&&(identical(other.privacyPolicyUri, privacyPolicyUri) || other.privacyPolicyUri == privacyPolicyUri)&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Organization&&(identical(other.id, id) || other.id == id)&&(identical(other.legalName, legalName) || other.legalName == legalName)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.publicBody, publicBody) || other.publicBody == publicBody)&&(identical(other.personType, personType) || other.personType == personType)&&const DeepCollectionEquality().equals(other.description, _description)&&(identical(other.webUri, webUri) || other.webUri == webUri)&&(identical(other.supportUri, supportUri) || other.supportUri == supportUri)&&(identical(other.privacyPolicyUri, privacyPolicyUri) || other.privacyPolicyUri == privacyPolicyUri)&&(identical(other.countryCode, countryCode) || other.countryCode == countryCode)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,legalName,displayName,const DeepCollectionEquality().hash(_type),const DeepCollectionEquality().hash(_description),logo,webUri,supportUri,privacyPolicyUri,countryCode,organizationId);
+    return Object.hash(runtimeType,id,legalName,displayName,publicBody,personType,const DeepCollectionEquality().hash(_description),webUri,supportUri,privacyPolicyUri,countryCode,organizationId);
 }
 
 @override
 String toString() {
-    return 'Organization(id: $id, legalName: $legalName, displayName: $displayName, type: $type, description: $description, logo: $logo, webUri: $webUri, supportUri: $supportUri, privacyPolicyUri: $privacyPolicyUri, countryCode: $countryCode, organizationId: $organizationId)';
+    return 'Organization(id: $id, legalName: $legalName, displayName: $displayName, publicBody: $publicBody, personType: $personType, description: $description, webUri: $webUri, supportUri: $supportUri, privacyPolicyUri: $privacyPolicyUri, countryCode: $countryCode, organizationId: $organizationId)';
 }
 
 
@@ -291,7 +283,7 @@ abstract mixin class _$OrganizationCopyWith<$Res> implements $OrganizationCopyWi
   factory _$OrganizationCopyWith(_Organization value, $Res Function(_Organization) _then) = __$OrganizationCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String legalName, String displayName,@LocalizedTextConverter() LocalizedText? type,@LocalizedTextConverter() LocalizedText? description,@AppImageDataConverter() AppImageData? logo, String? webUri, String? supportUri, String? privacyPolicyUri, String countryCode, String organizationId
+ String id, String legalName, String displayName, bool? publicBody, PersonType? personType,@LocalizedTextConverter() LocalizedText? description, String? webUri, String? supportUri, String? privacyPolicyUri, String countryCode, String organizationId
 });
 
 
@@ -308,15 +300,15 @@ class __$OrganizationCopyWithImpl<$Res>
 
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? legalName = null,Object? displayName = null,Object? type = freezed,Object? description = freezed,Object? logo = freezed,Object? webUri = freezed,Object? supportUri = freezed,Object? privacyPolicyUri = freezed,Object? countryCode = null,Object? organizationId = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? legalName = null,Object? displayName = null,Object? publicBody = freezed,Object? personType = freezed,Object? description = freezed,Object? webUri = freezed,Object? supportUri = freezed,Object? privacyPolicyUri = freezed,Object? countryCode = null,Object? organizationId = null,}) {
   return _then(_Organization(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,legalName: null == legalName ? _self.legalName : legalName // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
-as String,type: freezed == type ? _self._type : type // ignore: cast_nullable_to_non_nullable
-as LocalizedText?,description: freezed == description ? _self._description : description // ignore: cast_nullable_to_non_nullable
-as LocalizedText?,logo: freezed == logo ? _self.logo : logo // ignore: cast_nullable_to_non_nullable
-as AppImageData?,webUri: freezed == webUri ? _self.webUri : webUri // ignore: cast_nullable_to_non_nullable
+as String,publicBody: freezed == publicBody ? _self.publicBody : publicBody // ignore: cast_nullable_to_non_nullable
+as bool?,personType: freezed == personType ? _self.personType : personType // ignore: cast_nullable_to_non_nullable
+as PersonType?,description: freezed == description ? _self._description : description // ignore: cast_nullable_to_non_nullable
+as LocalizedText?,webUri: freezed == webUri ? _self.webUri : webUri // ignore: cast_nullable_to_non_nullable
 as String?,supportUri: freezed == supportUri ? _self.supportUri : supportUri // ignore: cast_nullable_to_non_nullable
 as String?,privacyPolicyUri: freezed == privacyPolicyUri ? _self.privacyPolicyUri : privacyPolicyUri // ignore: cast_nullable_to_non_nullable
 as String?,countryCode: null == countryCode ? _self.countryCode : countryCode // ignore: cast_nullable_to_non_nullable

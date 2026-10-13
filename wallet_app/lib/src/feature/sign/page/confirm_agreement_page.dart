@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/policy.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/extension/list_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
+import '../../common/builder/request_detail_common_builders.dart';
 import '../../common/screen/placeholder_screen.dart';
-import '../../common/widget/app_image.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
-import '../../common/widget/policy/policy_section.dart';
+import '../../common/widget/policy/policy_row.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
@@ -22,7 +20,6 @@ import '../../common/widget/wallet_scrollbar.dart';
 class ConfirmAgreementPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
   final VoidCallback onAcceptPressed;
-  final Policy policy;
   final Organization relyingParty;
   final Organization trustProvider;
   final List<DataAttribute> requestedAttributes;
@@ -30,7 +27,6 @@ class ConfirmAgreementPage extends StatelessWidget {
   const ConfirmAgreementPage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
-    required this.policy,
     required this.relyingParty,
     required this.trustProvider,
     required this.requestedAttributes,
@@ -49,9 +45,19 @@ class ConfirmAgreementPage extends StatelessWidget {
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
           const SliverSizedBox(height: 16),
           SliverToBoxAdapter(
-            child: PolicySection(relyingParty: relyingParty, policy: policy, addSignatureRow: true),
+            child: PolicyRow(
+              icon: Icons.security_outlined,
+              title: context.l10n.generalPolicyDataIsSignature,
+            ),
           ),
-          const SliverToBoxAdapter(child: Divider(height: 32)),
+          SliverToBoxAdapter(
+            child: RequestDetailCommonBuilders.buildPolicy(
+              context,
+              organization: relyingParty,
+              side: DividerSide.bottom,
+            ),
+          ),
+          const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: _buildTrustProvider(context)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverFillRemaining(
@@ -120,15 +126,13 @@ class ConfirmAgreementPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          trustProvider.logo == null ? null : AppImage(asset: trustProvider.logo!),
-          SizedBox(width: trustProvider.logo == null ? 0 : 16),
           Expanded(
             child: Text(
               context.l10n.confirmAgreementPageSignProvider(trustProvider.displayName),
               style: context.textTheme.bodyLarge,
             ),
           ),
-        ].nonNullsList,
+        ],
       ),
     );
   }

@@ -11,6 +11,7 @@ pub mod mock;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroU8;
+use std::num::NonZeroUsize;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
@@ -20,6 +21,8 @@ use attestation_data::metadata::AttestationClaims;
 use attestation_data::metadata::ClaimConstraint;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
@@ -43,8 +46,11 @@ use sd_jwt_vc_metadata::TypeMetadataChainError;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
+use utils::generator::Generator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::issuance::IssuanceWscd;
+use wscd::payload::key_attestation::KeyAttestationVerificationError;
 use wscd::wia::WiaClient;
 
 use self::authorization::OAuthError;
@@ -71,8 +77,11 @@ pub enum WalletIssuanceError {
     #[error("failed to convert JWK to public key: {0}")]
     JwkConversion(#[from] JwkConversionError),
 
-    #[error("JWT parse error: {0}")]
+    #[error("could not parse Issuer Metadata JWT: {0}")]
     JwtParse(#[source] JwtParseError),
+
+    #[error("key attestation received from WSCD is invalid: {0}")]
+    InvalidKeyAttestation(#[source] KeyAttestationVerificationError),
 
     #[error("mismatch between issued and previewed credential, issued: {actual:?} , previewed: {expected:?}")]
     #[category(pd)]
@@ -146,6 +155,16 @@ pub enum WalletIssuanceError {
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error(
+        "received private key identifiers for unexpected credential count from WSCD, expected: {expected}, received: \
+         {received}"
+    )]
+    #[category(pd)]
+    PrivateKeyCredentialCount {
+        expected: NonZeroUsize,
+        received: NonZeroUsize,
+    },
 
     #[error("WIA issuance failed: {0}")]
     #[category(pd)]
@@ -280,6 +299,10 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     MissingCredentialConfigId(Vec<CredentialConfigurationId>),
 
+    #[error("offered Credential Configuration ID `{0}` has an unsupported format and cannot be authorized")]
+    #[category(pd)]
+    UnsupportedOfferedCredentialConfiguration(CredentialConfigurationId),
+
     #[error("error during OAuth: {0}")]
     #[category(expected)]
     OAuth(#[from] OAuthError),
@@ -287,6 +310,13 @@ pub enum WalletIssuanceError {
     #[error("issuer has no nonce endpoint, yet one of the credential configurations require cryptographic binding")]
     #[category(critical)]
     NoNonceEndpoint,
+
+    #[error(
+        "at least one of the offered credential configurations does not support the \"attestation\" proof type: {}",
+        .0.iter().join(", ")
+    )]
+    #[category(pd)]
+    AttestationProofTypeUnsupported(VecNonEmpty<CredentialConfigurationId>),
 
     #[error(
         "issuer offered Credential Configurations for none of the requested credential kinds, \
@@ -383,7 +413,7 @@ pub enum WalletIssuanceError {
 }
 
 /// The set of parameters that are common to all methods that start issuance discovery.
-#[derive(Debug, Constructor)]
+#[derive(Debug, Clone, Copy, Constructor)]
 pub struct IssuanceDiscoveryParameters<'a, W> {
     pub offer_uri: &'a Url,
     pub selection: &'a CredentialSelection,
@@ -510,6 +540,12 @@ pub trait AuthorizationSession {
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
+#[derive(Debug, Clone, Copy, Constructor)]
+pub struct AcceptIssuanceTrustAnchors<'a> {
+    pub issuer_trust_anchors: &'a TrustAnchors,
+    pub wptl_trust_anchors: &'a TrustAnchors,
+}
+
 /// Represents an active credential issuance session.
 pub trait IssuanceSession {
     /// Accept all of the credentials the issuer offered. Cap the amount of copies of each credential the issuer offers
@@ -517,17 +553,19 @@ pub trait IssuanceSession {
     ///
     /// If the issuer provides previews, the credentials are returned in the same order as the previews returned by
     /// [`Self::credential_previews`]. If not, the order of the credentials is not relevant.
-    async fn accept_issuance<W>(
+    async fn accept_issuance<'a, W, G>(
         &mut self,
         max_copy_count: NonZeroU8,
-        trust_anchors: &TrustAnchors,
+        trust_anchors: AcceptIssuanceTrustAnchors<'a>,
         wscd: &W,
+        time: &G,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
-        W: IssuanceWscd;
+        W: IssuanceWscd,
+        G: Generator<DateTime<Utc>>;
 
     /// Returns the credential previews with their metadata, or `None` if the issuer does not provide previews.
-    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>>;
+    fn credential_previews(&self) -> Option<impl NonEmptyIterator<Item = OfferedCredentialPreview<'_>>>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

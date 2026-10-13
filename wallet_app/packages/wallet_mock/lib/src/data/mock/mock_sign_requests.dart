@@ -27,7 +27,4 @@ final kRentalRequest = SignRequest(
     RequestedAttribute(key: 'mock_lastName', label: 'Achternaam'),
     RequestedAttribute(key: 'mock_birthDate', label: 'Geboortedatum'),
   ],
-  policy: const RequestPolicy(
-    policyUrl: 'https://example.org',
-  ),
 );

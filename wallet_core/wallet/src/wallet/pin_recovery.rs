@@ -24,6 +24,7 @@ use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use url::Url;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -261,8 +262,7 @@ where
         let pid_preview = Self::pid_preview(
             issuance_session
                 .credential_previews()
-                .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPreviews))?
-                .collect_vec()
+                .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPidPreviews))?
                 .into_iter(),
             pid_config,
         )?;
@@ -384,7 +384,12 @@ where
 
         // Since all we need is to extract the recovery code, request just a single copy of the SD-JWT PID credential.
         let issuance_result = issuance_session
-            .accept_issuance(NonZeroU8::MIN, config.issuer_trust_anchors(), &pin_recovery_wscd)
+            .accept_issuance(
+                NonZeroU8::MIN,
+                config.accept_issuance_anchors(),
+                &pin_recovery_wscd,
+                &TimeGenerator,
+            )
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session));
 
@@ -427,6 +432,7 @@ where
             .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
 
         let recovery_code_disclosure = pid
+            .into_sd_jwt()
             .into_presentation_builder()
             .disclose(&recovery_code_path)
             .expect("the presence of the recovery code within the PID is guaranteed by continue_pin_recovery()")
@@ -518,7 +524,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
@@ -627,7 +632,7 @@ mod tests {
             client
                 .expect_credential_previews()
                 .once()
-                .return_const(vec![(preview, normalized_metadata)].into());
+                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -884,7 +889,7 @@ mod tests {
             client
                 .expect_credential_previews()
                 .once()
-                .return_const(vec![(preview, normalized_metadata)].into());
+                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -935,7 +940,7 @@ mod tests {
                 client
                     .expect_credential_previews()
                     .once()
-                    .return_const(vec![(preview, normalized_metadata)].into());
+                    .return_const(vec_nonempty![(preview, normalized_metadata)].into());
 
                 Ok(client)
             });
@@ -1038,7 +1043,7 @@ mod tests {
                         key_identifier: "key_id".to_string(),
                         data: StoredAttestation::SdJwt(sd_jwt.clone()),
                     },
-                    IssuedCredentialMetadata::TypeMetadata(VerifiedTypeMetadataDocuments::nl_pid_example()),
+                    IssuedCredentialMetadata::nl_pid_example(),
                 ),
             ],
             expect_accept_issuance.then_some(NonZeroU8::MIN),
@@ -1058,9 +1063,8 @@ mod tests {
 
         async fn perform_issuance(
             &self,
-            _aud: String,
             _key_counts_and_nonces: VecNonEmpty<(NonZeroU8, Option<Nonce>)>,
-        ) -> Result<VecNonEmpty<VecNonEmpty<IssuanceKeyResult>>, Self::Error> {
+        ) -> Result<VecNonEmpty<IssuanceKeyResult>, Self::Error> {
             unimplemented!()
         }
     }

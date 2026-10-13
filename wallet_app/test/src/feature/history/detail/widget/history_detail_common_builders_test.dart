@@ -1,13 +1,10 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/common/builder/request_detail_common_builders.dart';
-import 'package:wallet/src/feature/common/widget/app_image.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
 import 'package:wallet/src/feature/common/widget/divider_side.dart';
 import 'package:wallet/src/feature/history/detail/widget/wallet_event_status_header.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
-import 'package:wallet/src/util/extension/wallet_event_extension.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
@@ -88,7 +85,6 @@ void main() {
         widgetBuilder: (context) => RequestDetailCommonBuilders.buildPolicy(
           context,
           organization: WalletMockData.disclosureEvent.relyingParty,
-          policy: WalletMockData.disclosureEvent.policy,
           side: DividerSide.bottom,
         ),
       ),
@@ -99,20 +95,34 @@ void main() {
     expect(find.text(l10n.privacySectionCta), findsOneWidget);
   });
 
-  testWidgets('buildAboutOrganization', (WidgetTester tester) async {
+  testWidgets('buildPolicy hides the section without a privacy policy url', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _WidgetTestWrapper(
-        widgetBuilder: (context) => RequestDetailCommonBuilders.buildAboutOrganization(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildPolicy(
           context,
-          organization: WalletMockData.disclosureEvent.relyingPartyOrIssuer,
+          organization: WalletMockData.disclosureEvent.relyingParty.copyWith(privacyPolicyUri: null),
           side: DividerSide.bottom,
         ),
       ),
     );
 
-    // Make sure this CTA also renders an image (i.e. the organization logo)
-    expect(find.byType(AppImage), findsOneWidget);
-    final orgDisplayName = WalletMockData.disclosureEvent.relyingPartyOrIssuer.displayName;
+    final l10n = await TestUtils.englishLocalizations;
+    expect(find.text(l10n.privacySectionTitle), findsNothing);
+    expect(find.byType(Divider), findsNothing);
+  });
+
+  testWidgets('buildAboutOrganization', (WidgetTester tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildAboutOrganization(
+          context,
+          organization: WalletMockData.disclosureEvent.relyingParty,
+          side: DividerSide.bottom,
+        ),
+      ),
+    );
+
+    final orgDisplayName = WalletMockData.disclosureEvent.relyingParty.displayName;
     expect(find.textContaining(orgDisplayName), findsOneWidget);
   });
 

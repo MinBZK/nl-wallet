@@ -13,6 +13,7 @@ use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::Duration;
 use chrono::Utc;
+use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
@@ -75,6 +76,8 @@ enum CertType {
     Tsl,
     /// Wallet Issuer Authentication certificate
     Wia,
+    /// Key Attestation certificate
+    KeyAttestation,
     /// Wallet Relying Party Access Certificate (WRPAC)
     Wrpac,
     /// Wallet Relying Party Registration Certificate (WRPRC) signing certificate
@@ -109,6 +112,17 @@ impl From<StatusListEntry> for StatusType {
     }
 }
 
+/// Subject attributes identifying a legal person.
+#[derive(Args)]
+struct LegalPersonArgs {
+    /// Subject Organization name to use in the new certificate
+    #[arg(long, required = false, requires = "organization_id")]
+    organization_name: String,
+    /// Subject Organization identifier to use in the new certificate
+    #[arg(long, required = false, requires = "organization_name")]
+    organization_id: String,
+}
+
 #[derive(Subcommand)]
 enum Command {
     /// Generate a private key and certificate to use as Certificate Authority (CA)
@@ -119,6 +133,9 @@ enum Command {
         /// Subject Country name to use in the new certificate when not NL
         #[arg(long)]
         country_name: Option<String>,
+        /// Subject attributes identifying the CA as a legal person
+        #[command(flatten)]
+        legal_person: Option<LegalPersonArgs>,
         /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
@@ -396,6 +413,7 @@ impl Command {
             CertType::Issuer => Some(CertificateUsage::Mdl),
             CertType::Tsl => Some(CertificateUsage::StatusListSigning),
             CertType::Wia => Some(CertificateUsage::Wia),
+            CertType::KeyAttestation => Some(CertificateUsage::KeyAttestation),
             CertType::Wrpac | CertType::Wrprc => None,
         };
         let subject_alt_names = san_uris.into_iter().map(Into::into).collect();
@@ -414,12 +432,24 @@ impl Command {
             Ca {
                 common_name,
                 country_name,
+                legal_person,
                 file_prefix,
                 days,
                 force,
             } => {
-                let distinguished_name =
-                    DistinguishedName::new(common_name, country_name.unwrap_or_else(Self::default_country_name));
+                let country_name = country_name.unwrap_or_else(Self::default_country_name);
+                let distinguished_name = match legal_person {
+                    Some(LegalPersonArgs {
+                        organization_name,
+                        organization_id,
+                    }) => DistinguishedName::new_legal_person(
+                        common_name,
+                        country_name,
+                        organization_name,
+                        organization_id,
+                    ),
+                    None => DistinguishedName::new(common_name, country_name),
+                };
                 let configuration = Self::get_ca_configuration(days);
                 let ca = generate::Ca::generate(distinguished_name, configuration)?;
                 let signing_key = ca.to_signing_key()?;

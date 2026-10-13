@@ -5,9 +5,9 @@ import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../../domain/model/disclosure/disclosure_session_type.dart';
+import '../../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../../domain/model/organization.dart';
-import '../../../../domain/model/policy/policy.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../issuance_repository.dart';
@@ -18,7 +18,6 @@ class CoreIssuanceRepository implements IssuanceRepository {
   final Mapper<core.AttestationPresentation, WalletCard> _attestationMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
-  final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
   final Mapper<List<core.LocalizedString>, LocalizedText> _localizedStringMapper;
   final Mapper<core.DisclosureSessionType, DisclosureSessionType> _disclosureSessionTypeMapper;
 
@@ -27,7 +26,6 @@ class CoreIssuanceRepository implements IssuanceRepository {
     this._attestationMapper,
     this._relyingPartyMapper,
     this._missingAttributeMapper,
-    this._requestPolicyMapper,
     this._localizedStringMapper,
     this._disclosureSessionTypeMapper,
   );
@@ -43,13 +41,11 @@ class CoreIssuanceRepository implements IssuanceRepository {
             .map((it) => DiscloseCardRequest(candidates: _attestationMapper.mapList(it.field0)))
             .toList();
         final relyingParty = _relyingPartyMapper.map(result.relyingParty);
-        final policy = _requestPolicyMapper.map(result.policy);
         return StartIssuanceReadyToDisclose(
           relyingParty: relyingParty,
           requestPurpose: _localizedStringMapper.map(result.requestPurpose),
           sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
           cardRequests: requests,
-          policy: policy,
         );
       case core.StartDisclosureResult_RequestAttributesMissing():
         final relyingParty = _relyingPartyMapper.map(result.relyingParty);
@@ -70,6 +66,8 @@ class CoreIssuanceRepository implements IssuanceRepository {
         return StartIssuanceAuthorizationRequired(authUrl);
       case core.IssuanceStartResult_Previews(field0: final cards):
         return StartIssuancePreAuthorizedOffer(_attestationMapper.mapList(cards));
+      case core.IssuanceStartResult_NoPreviews(:final organization):
+        return StartIssuanceNoPreviews(organization: _relyingPartyMapper.map(organization));
     }
   }
 
@@ -85,9 +83,14 @@ class CoreIssuanceRepository implements IssuanceRepository {
   }
 
   @override
-  Future<List<WalletCard>> continueIssuance(String uri) async {
+  Future<ContinueIssuanceResult> continueIssuance(String uri) async {
     final result = await _walletCore.continueIssuance(uri);
-    return _attestationMapper.mapList(result);
+    switch (result) {
+      case core.IssuanceContinueResult_Previews(field0: final cards):
+        return ContinueIssuancePreviews(_attestationMapper.mapList(cards));
+      case core.IssuanceContinueResult_NoPreviews(:final organization):
+        return ContinueIssuanceNoPreviews(organization: _relyingPartyMapper.map(organization));
+    }
   }
 
   @override

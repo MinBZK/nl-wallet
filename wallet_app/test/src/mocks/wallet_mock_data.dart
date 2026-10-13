@@ -22,8 +22,8 @@ import 'package:wallet/src/domain/model/help/help_topic.dart';
 import 'package:wallet/src/domain/model/help/topic_block.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
+import 'package:wallet/src/domain/model/person_type.dart';
 import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
 import 'package:wallet/src/theme/dark_wallet_theme.dart';
 import 'package:wallet/src/theme/light_wallet_theme.dart';
@@ -175,13 +175,22 @@ abstract class WalletMockData {
     id: 'id',
     legalName: 'Organization Legal Name',
     displayName: 'Organization Display Name',
-    type: 'Type'.untranslated,
+    publicBody: false,
+    personType: PersonType.legalPerson,
     description: 'Organization description'.untranslated,
-    logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
     privacyPolicyUri: 'https://example.org/privacy',
     supportUri: 'https://example.org/support',
     organizationId: '12345678',
     countryCode: 'NL',
+  );
+
+  static final Organization naturalPersonOrganization = organization.copyWith(
+    legalName: 'Jantje Smith',
+    displayName: 'Smith Plumber Services',
+    personType: PersonType.naturalPerson,
+    description:
+        'Smith Plumber Services helps with leaks, blocked drains, pipes, taps, toilets and heating.'.untranslated,
+    organizationId: 'NL12345678901',
   );
 
   static final DataAttribute textDataAttribute = DataAttribute.untranslated(
@@ -189,11 +198,6 @@ abstract class WalletMockData {
     svgId: 'text_svgId',
     label: 'Label',
     value: const StringValue('Value'),
-  );
-
-  static const Policy policy = Policy(
-    dataPurpose: 'Data Purpose',
-    privacyPolicyUrl: 'https://www.example.org',
   );
 
   static const Document document = Document(
@@ -248,7 +252,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.regular,
   ) as DisclosureEvent;
 
@@ -258,7 +261,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.login,
   ) as DisclosureEvent;
 
@@ -268,7 +270,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.login,
   ) as DisclosureEvent;
 
@@ -278,7 +279,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: const [],
-    policy: policy,
     type: DisclosureType.login,
   ) as DisclosureEvent;
 
@@ -288,7 +288,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.regular,
   ) as DisclosureEvent;
 
@@ -298,7 +297,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure - nothing shared error'.untranslated,
     cards: const [],
-    policy: policy,
     type: DisclosureType.regular,
   ) as DisclosureEvent;
 
@@ -308,7 +306,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.regular,
   ) as DisclosureEvent;
 
@@ -318,7 +315,6 @@ abstract class WalletMockData {
     dateTime: DateTime(2024, 1, 1),
     status: EventStatus.success,
     relyingParty: organization,
-    policy: policy,
     document: document,
   ) as SignEvent;
 

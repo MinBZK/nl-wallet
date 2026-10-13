@@ -131,7 +131,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let (sd_jwt, sd_jwt_metadata) = create_example_pid_sd_jwt();
-        let attestation_type = sd_jwt.claims().vct.clone();
+        let attestation_type = sd_jwt.sd_jwt().claims().vct.clone();
         let (mdoc, mdoc_metadata) = create_example_pid_mdoc(&SigningKey::generate());
 
         let storage = wallet.mut_storage();

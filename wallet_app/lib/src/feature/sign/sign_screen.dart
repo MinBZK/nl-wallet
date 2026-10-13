@@ -136,7 +136,6 @@ class SignScreen extends StatelessWidget {
     }
     return ConfirmAgreementPage(
       requestedAttributes: state.requestedAttributes.whereType<DataAttribute>().toList(),
-      policy: state.policy,
       relyingParty: state.relyingParty,
       trustProvider: state.trustProvider,
       onDeclinePressed: () => _stopSigning(context),

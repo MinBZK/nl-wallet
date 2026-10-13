@@ -84,6 +84,7 @@ class HelpOverviewScreen extends StatelessWidget {
             const Divider(),
           ],
           _buildContactItem(context),
+          const Divider(),
         ],
       ),
     );
@@ -91,12 +92,14 @@ class HelpOverviewScreen extends StatelessWidget {
 
   MenuItem _buildTourItem(BuildContext context) => MenuItem(
     label: Text.rich(context.l10n.menuScreenTourCta.toTextSpan(context)),
+    subtitle: Text(context.l10n.helpOverviewScreenTourSubtitle),
     leftIcon: const Icon(Icons.play_arrow),
     onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.tourOverviewRoute),
   );
 
   MenuItem _buildContactItem(BuildContext context) => MenuItem(
     label: Text(context.l10n.contactScreenTitle),
+    subtitle: Text(context.l10n.helpOverviewScreenContactSubtitle),
     leftIcon: const Icon(Icons.headset_mic_outlined),
     onPressed: () => Navigator.pushNamed(context, WalletRoutes.contactRoute),
   );

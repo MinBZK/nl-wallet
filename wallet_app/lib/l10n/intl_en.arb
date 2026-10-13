@@ -580,7 +580,6 @@
     "generalOkCta": "OK",
     "generalOsVersionText": "OS version:",
     "generalPageChangeWCAGAnnouncement": "Showing page {current} of {total}.",
-    "generalPolicyAllTermsCta": "All terms",
     "generalPolicyDataIsSignature": "By signing the agreement will be definitive",
     "generalRetry": "Try again",
     "generalSeconds": "{seconds, plural, one {{seconds} second} other {{seconds} seconds}}",
@@ -615,6 +614,8 @@
     "genericRelyingPartyErrorDescription": "This action was unsuccessful. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
     "genericRelyingPartyErrorDescriptionWithOrganizationName": "This action was unsuccessful. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
     "genericRelyingPartyErrorTitle": "Sorry, something went wrong",
+    "helpOverviewScreenContactSubtitle": "Call us if your question is not listed.",
+    "helpOverviewScreenTourSubtitle": "See what you can do with NL Wallet.",
     "helpSheetDescription": "Contact support. The following data could be required.",
     "helpSheetErrorCode": "Error code: {code}",
     "@helpSheetErrorCode": {
@@ -779,6 +780,18 @@
     "invariantErrorScreenWhatCanYouDoTitle": "What can you do?",
     "issuanceAuthenticateExternallyDescription": "Follow the steps on the issuer’s website.\nThen return to NL Wallet.",
     "issuanceAuthenticateExternallyTitle": "Continue in your browser",
+    "issuanceConfirmIssuerPageAcceptCta": "Yes, continue",
+    "issuanceConfirmIssuerPageDeclineCta": "Stop",
+    "issuanceConfirmIssuerPageDescription": "Your card(s) will be added to your NL Wallet after you confirm with your PIN.",
+    "issuanceConfirmIssuerPageTitle": "Do you want to get your card(s) from {organization}?",
+    "@issuanceConfirmIssuerPageTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
     "issuanceConfirmPinPageTitle": "Agree with your PIN",
     "issuanceLoadingCardsDescription": "Cards are being retrieved",
     "issuanceLoadingCardsTitle": "Please wait",
@@ -964,7 +977,7 @@
     "menuScreenScanQrCta": "Scan QR code",
     "menuScreenSettingsCta": "Settings and security",
     "menuScreenTitle": "Menu",
-    "menuScreenTourCta": "App tour",
+    "menuScreenTourCta": "See how NL Wallet works",
     "menuScreenWCAGPageAnnouncement": "Menu in list {count} items",
     "missingAttributesPageBackToWebsiteCta": "Back to website",
     "missingAttributesPageCloseCta": "Close",
@@ -1028,7 +1041,11 @@
     "organizationDetailScreenCategoryInfo": "Organization type",
     "organizationDetailScreenLegalNameInfo": "Legal name",
     "organizationDetailScreenLocationInfo": "Location",
-    "organizationDetailScreenOrganizationIdInfo": "Organization ID",
+    "organizationDetailScreenNaturalPersonIdInfo": "Identification Number",
+    "organizationDetailScreenNaturalPersonNameInfo": "First and last name",
+    "organizationDetailScreenOrganizationIdInfo": "Business Identification Number",
+    "organizationDetailScreenOrganizationTypeGovernment": "Government",
+    "organizationDetailScreenOrganizationTypeNonGovernment": "Non-government",
     "organizationDetailScreenPrivacyInfo": "Privacy statement",
     "organizationDetailScreenReportIssueCta": "Would you like to report a problem?",
     "organizationDetailScreenSomeInteractions": "You have shared before with {name}",
@@ -1096,26 +1113,6 @@
     "placeholderScreenContractDescription": "The contract will be displayed here.",
     "placeholderScreenGenericDescription": "Please try again later.",
     "placeholderScreenHeadline": "Sorry, this page is still under construction.",
-    "policyScreenDataIsSignature": "By continuing the agreements will be definitive",
-    "policyScreenDataPurposeDescription": "Your data is not used for anything besides the stated purpose.",
-    "policyScreenPolicySectionPolicyCta": "privacy policy",
-    "policyScreenPolicySectionText": "Read more in the {policy} of the {organization}. Here you can read more about how the {organization} will use your data.",
-    "@policyScreenPolicySectionText": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            },
-            "policy": {
-                "example": "privacy policy",
-                "type": "String"
-            }
-        }
-    },
-    "policyScreenPolicySectionTitle": "Learn more?",
-    "policyScreenReportIssueCta": "Would you like to report a problem?",
-    "policyScreenSubtitle": "The following agreements apply only to this sharing invitation.",
-    "policyScreenTitle": "Agreements",
     "privacySectionCta": "Read how the organisation uses your data",
     "privacySectionTitle": "Privacy Policy",
     "qrActionButtonSubtitle": "Scan QR or show your QR code",

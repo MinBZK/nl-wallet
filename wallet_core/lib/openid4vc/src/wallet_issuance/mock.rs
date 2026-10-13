@@ -3,15 +3,18 @@ use std::num::NonZeroU8;
 
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::credential_format::Format;
-use crypto::trust_anchor::TrustAnchors;
 use jwt::nonce::Nonce;
+use nonempty_collections::IntoNonEmptyIterator;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::wia::WiaClient;
 use wscd::wia::mock::MockWiaClient;
 
+use super::AcceptIssuanceTrustAnchors;
 use super::AuthorizationSession;
 use super::CredentialSelection;
 use super::IssuanceDiscovery;
@@ -149,7 +152,7 @@ impl AuthorizationSession for MockAuthorizationSession {
 /// Helper type that allows `mockall` to return references from a mocked method. `None` represents a session without
 /// previews.
 pub struct MockIssuanceSessionCredentialPreviews(
-    Option<Vec<(Format, PreviewableCredentialPayload, OfferedCredentialMetadata)>>,
+    Option<VecNonEmpty<(Format, PreviewableCredentialPayload, OfferedCredentialMetadata)>>,
 );
 
 impl MockIssuanceSessionCredentialPreviews {
@@ -158,11 +161,11 @@ impl MockIssuanceSessionCredentialPreviews {
     }
 }
 
-impl From<Vec<(CredentialPreview, OfferedCredentialMetadata)>> for MockIssuanceSessionCredentialPreviews {
-    fn from(value: Vec<(CredentialPreview, OfferedCredentialMetadata)>) -> Self {
+impl From<VecNonEmpty<(CredentialPreview, OfferedCredentialMetadata)>> for MockIssuanceSessionCredentialPreviews {
+    fn from(value: VecNonEmpty<(CredentialPreview, OfferedCredentialMetadata)>) -> Self {
         Self(Some(
             value
-                .into_iter()
+                .into_nonempty_iter()
                 .map(|(preview, metadata)| (preview.format, preview.credential_payload, metadata))
                 .collect(),
         ))
@@ -184,21 +187,22 @@ mockall::mock! {
 }
 
 impl IssuanceSession for MockIssuanceSession {
-    async fn accept_issuance<W>(
+    async fn accept_issuance<'a, W, G>(
         &mut self,
         max_copy_count: NonZeroU8,
-        _: &TrustAnchors,
-        _: &W,
+        _trust_anchors: AcceptIssuanceTrustAnchors<'a>,
+        _wscd: &W,
+        _time: &G,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
         self.accept(max_copy_count)
     }
 
-    fn credential_previews(&self) -> Option<impl Iterator<Item = OfferedCredentialPreview<'_>>> {
+    fn credential_previews(&self) -> Option<impl NonEmptyIterator<Item = OfferedCredentialPreview<'_>>> {
         let MockIssuanceSessionCredentialPreviews(inner) = self.credential_previews();
 
         inner.as_ref().map(|inner| {
             inner
-                .iter()
+                .nonempty_iter()
                 .map(|(format, credential_payload, metadata)| OfferedCredentialPreview {
                     format: *format,
                     credential_payload,

@@ -11,9 +11,9 @@ import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/flow_progress.dart';
+import '../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/issuance/continue_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/start_issuance_usecase.dart';
@@ -32,7 +32,10 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
 
   StartIssuanceResult? _startIssuanceResult;
 
-  Organization? get relyingParty => _startIssuanceResult?.relyingParty;
+  /// The issuer of a session without previews, set when the user is asked to confirm it.
+  Organization? _issuerWithoutPreviews;
+
+  Organization? get relyingParty => _startIssuanceResult?.relyingParty ?? _issuerWithoutPreviews;
 
   bool get isCrossDeviceFlow {
     assert(_startIssuanceResult != null, '_startIssuanceResult should be set to correctly fetch isCrossDeviceFlow');
@@ -50,6 +53,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceSessionStarted>(_onSessionStarted);
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
     on<IssuanceOrganizationApproved>(_onIssuanceOrganizationApproved);
+    on<IssuanceIssuerApproved>(_onIssuanceIssuerApproved);
     on<IssuanceShareRequestedAttributesDeclined>(_onIssuanceShareRequestedAttributesDeclined);
     on<IssuancePinForDisclosureConfirmed>(_onPinConfirmedForDisclosure);
     on<IssuancePinForIssuanceConfirmed>(_onPinConfirmedForIssuance);
@@ -81,7 +85,6 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
             emit(
               IssuanceCheckOrganization(
                 organization: result.relyingParty,
-                policy: result.policy,
                 cardRequests: result.cardRequests,
                 purpose: result.requestPurpose,
               ),
@@ -97,6 +100,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
             emit(IssuanceAuthenticateWithIssuer(authUrl: authUrl));
           case StartIssuancePreAuthorizedOffer():
             emit(IssuanceReviewCards.init(cards: result.previews));
+          case StartIssuanceNoPreviews(:final organization):
+            _emitConfirmIssuer(organization, emit);
         }
       },
     );
@@ -124,19 +129,21 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
       return;
     }
 
+    // Without previews there are no cards to review, so navigate back to confirming the issuer.
+    final issuerWithoutPreviews = _issuerWithoutPreviews;
+    if (state is IssuanceProvidePinForIssuance && issuerWithoutPreviews != null) {
+      emit(IssuanceConfirmIssuer(organization: issuerWithoutPreviews, afterBackPressed: true));
+      return;
+    }
+
     // Unknown state, nothing to navigate back to.
     if (startIssuanceResult == null) return;
 
     switch (state) {
-      case IssuanceProvidePinForDisclosure():
-        assert(
-          startIssuanceResult is StartIssuanceReadyToDisclose,
-          'User should never reach $state when wallet was not ready to disclose',
-        );
+      case IssuanceProvidePinForDisclosure() when startIssuanceResult is StartIssuanceReadyToDisclose:
         emit(
           IssuanceCheckOrganization(
-            organization: startIssuanceResult.relyingParty!,
-            policy: (startIssuanceResult as StartIssuanceReadyToDisclose).policy,
+            organization: startIssuanceResult.relyingParty,
             cardRequests: _cardRequestsSelectionCache ?? startIssuanceResult.cardRequests,
             purpose: startIssuanceResult.requestPurpose,
             afterBackPressed: true,
@@ -168,9 +175,23 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         );
       case StartIssuanceAuthorizationRequired():
       case StartIssuancePreAuthorizedOffer():
+      case StartIssuanceNoPreviews():
         final error = UnsupportedError('Can not navigate with ${result.runtimeType} result from $state state');
         await _handleApplicationError(GenericError('Unexpected flow', sourceError: error), emit);
     }
+  }
+
+  void _onIssuanceIssuerApproved(IssuanceIssuerApproved event, Emitter<IssuanceState> emit) {
+    final state = this.state;
+    if (state is! IssuanceConfirmIssuer) throw UnsupportedError('Incorrect state to $state');
+    // Without previews there are no cards to show, they are only known once issued.
+    // TODO(PVW-5559): let the user review the issued cards after entering the PIN, instead of accepting them blindly.
+    emit(const IssuanceProvidePinForIssuance(cards: []));
+  }
+
+  void _emitConfirmIssuer(Organization organization, Emitter<IssuanceState> emit) {
+    _issuerWithoutPreviews = organization;
+    emit(IssuanceConfirmIssuer(organization: organization));
   }
 
   Future<void> _onIssuanceShareRequestedAttributesDeclined(
@@ -203,6 +224,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     emit(IssuanceLoadInProgress(state.stepperProgress));
     await Future.delayed(Duration(seconds: Environment.mockRepositories ? 2 : 0));
 
+    // TODO(PVW-5559): without previews, show the issued cards for review here and only store them once accepted.
     emit(IssuanceCompleted(addedCards: state.cards));
   }
 
@@ -271,7 +293,14 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   Future<void> _onSessionContinued(IssuanceSessionContinued event, Emitter<IssuanceState> emit) async {
     final result = await _continueIssuanceUseCase.invoke(event.authorizationUri);
     await result.process(
-      onSuccess: (cards) => emit(IssuanceReviewCards.init(cards: cards)),
+      onSuccess: (result) {
+        switch (result) {
+          case ContinueIssuancePreviews(:final previews):
+            emit(IssuanceReviewCards.init(cards: previews));
+          case ContinueIssuanceNoPreviews(:final organization):
+            _emitConfirmIssuer(organization, emit);
+        }
+      },
       onError: (error) => _handleApplicationError(error, emit),
     );
   }
@@ -279,6 +308,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   @override
   Future<void> close() async {
     _startIssuanceResult = null;
+    _issuerWithoutPreviews = null;
     _cardRequestsSelectionCache = null;
     // If state == IssuanceAuthenticateWithIssuer this is the old (about to be replaced) IssuanceBloc.
     if (state is! IssuanceAuthenticateWithIssuer) await _cancelSessionUseCase.invoke();

@@ -20,7 +20,6 @@ import '../domain/model/notification/app_notification.dart';
 import '../domain/model/organization.dart';
 import '../domain/model/pid/pid_attestation.dart';
 import '../domain/model/pin/pin_validation_error.dart';
-import '../domain/model/policy/policy.dart';
 import '../domain/model/update/version_state.dart';
 import '../domain/model/wallet_state.dart';
 import '../util/mapper/card/attribute/card_attribute_mapper.dart';
@@ -47,7 +46,6 @@ import '../util/mapper/notification/notification_display_target_mapper.dart';
 import '../util/mapper/notification/notification_type_mapper.dart';
 import '../util/mapper/organization/organization_mapper.dart';
 import '../util/mapper/pin/pin_validation_error_mapper.dart';
-import '../util/mapper/policy/request_policy_mapper.dart';
 import '../util/mapper/version/flutter_version_state_mapper.dart';
 import '../util/mapper/wallet/wallet_state_mapper.dart';
 import '../wallet_core/error/core_error.dart';
@@ -124,11 +122,6 @@ class WalletMapperProvider extends StatelessWidget {
           create: (context) => WalletStateMapper(),
         ),
 
-        /// Policy
-        RepositoryProvider<Mapper<core.RequestPolicy, Policy>>(
-          create: (context) => RequestPolicyMapper(),
-        ),
-
         /// Document
         RepositoryProvider<Mapper<core.Document, Document>>(
           create: (context) => DocumentMapper(),
@@ -150,7 +143,6 @@ class WalletMapperProvider extends StatelessWidget {
         /// Event mapper
         RepositoryProvider<Mapper<core.WalletEvent, WalletEvent>>(
           create: (context) => WalletEventMapper(
-            context.read(),
             context.read(),
             context.read(),
             context.read(),

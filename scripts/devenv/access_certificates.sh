@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
 declare -A access_certificates=(
-    [(wia,name)]='NL Wallet'
-    [(wia,legal_name)]='Stichting ICTU'
-    [(wia,oid)]='NTRNL-27381312'
+    [(wptl,name)]='NL Wallet'
+    [(wptl,legal_name)]='Ministerie van Economische Zaken'
+    [(wptl,oid)]='NTRNL-52813150'
+
+    [(issuer,name)]='NL Wallet Issuer'
+    [(issuer,legal_name)]='Ministerie van Economische Zaken'
+    [(issuer,oid)]='NTRNL-52813150'
 
     [(pid,name)]='RvIG'
     [(pid,legal_name)]='Rijksdienst voor Identiteitsgegevens'
@@ -57,4 +61,16 @@ declare -A access_certificates=(
     [(mvc,name)]='RDW Demo'
     [(mvc,legal_name)]='Dienst Wegverkeer'
     [(mvc,oid)]='NTRNL-99876548'
+
+    [(issuance_server,name)]='Demo Issuer (disclosure based)'
+    [(issuance_server,legal_name)]='Demo Issuer (disclosure based)'
+    [(issuance_server,oid)]='NTRNL-99876552'
+
+    [(acf_demo_issuer,name)]='Demo Issuer (authorization code)'
+    [(acf_demo_issuer,legal_name)]='Demo Issuer (authorization code)'
+    [(acf_demo_issuer,oid)]='NTRNL-99876550'
+
+    [(pacf_issuance_server,name)]='Demo Issuer (pre-authorized code)'
+    [(pacf_issuance_server,legal_name)]='Demo Issuer (pre-authorized code)'
+    [(pacf_issuance_server,oid)]='NTRNL-99876551'
 )

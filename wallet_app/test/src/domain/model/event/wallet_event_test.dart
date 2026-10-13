@@ -33,7 +33,6 @@ void main() {
       relyingParty: WalletMockData.organization,
       purpose: 'purpose'.untranslated,
       cards: [WalletMockData.card],
-      policy: WalletMockData.policy,
       type: DisclosureType.regular,
     );
     final identicalEvent = WalletEvent.disclosure(
@@ -42,7 +41,6 @@ void main() {
       relyingParty: WalletMockData.organization,
       purpose: 'purpose'.untranslated,
       cards: [WalletMockData.card],
-      policy: WalletMockData.policy,
       type: DisclosureType.regular,
     );
     final differentEvent = WalletEvent.disclosure(
@@ -51,7 +49,6 @@ void main() {
       relyingParty: WalletMockData.organization,
       purpose: 'purpose'.untranslated,
       cards: [WalletMockData.card],
-      policy: WalletMockData.policy,
       type: DisclosureType.login,
     );
     expect(event, identicalEvent);
@@ -86,21 +83,18 @@ void main() {
       dateTime: DateTime(2024),
       status: EventStatus.success,
       relyingParty: WalletMockData.organization,
-      policy: WalletMockData.policy,
       document: WalletMockData.document,
     );
     final identicalEvent = WalletEvent.sign(
       dateTime: DateTime(2024),
       status: EventStatus.success,
       relyingParty: WalletMockData.organization,
-      policy: WalletMockData.policy,
       document: WalletMockData.document,
     );
     final differentEvent = WalletEvent.sign(
       dateTime: DateTime(2023),
       status: EventStatus.success,
       relyingParty: WalletMockData.organization,
-      policy: WalletMockData.policy,
       document: WalletMockData.document,
     );
     expect(event, identicalEvent);

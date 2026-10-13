@@ -22,6 +22,7 @@ use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::DisclosureError;
+use super::IssuanceContinueResult;
 use super::IssuanceError;
 use super::Wallet;
 use super::disclosure::RedirectUriPurpose;
@@ -54,6 +55,10 @@ pub enum DisclosureBasedIssuanceError {
     #[error("unexpected scheme: expected '{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}', found '{0}'")]
     #[category(critical)]
     UnexpectedScheme(String, Box<Organization>),
+
+    #[error("issuance session contains no previews")]
+    #[category(critical)]
+    MissingPreviews(Box<Organization>),
 }
 
 // This method requires the caller to be aware which flow it is in: ordinary disclosure
@@ -120,7 +125,7 @@ where
                 if err.error_response.error
                     == RemoteErrorCode::Known(PostAuthResponseErrorCode::NoIssuableAttestations) =>
             {
-                return Ok(vec![]);
+                return Ok(vec![]); // TODO (PVW-6381): use an explicit type to handle this case
             }
 
             Err(err) => Err(err)?,
@@ -138,15 +143,21 @@ where
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
 
-        let previews = self
-            .issuance_process_previews(
+        let result = self
+            .prepare_issuance_acceptance(
                 issuance_session,
                 None, // we're not doing PID issuance
             )
             .await
             .map_err(DisclosureBasedIssuanceError::Issuance)?;
 
-        Ok(previews)
+        let IssuanceContinueResult::Previews(previews) = result else {
+            // Disclosure based issuance requires previews, so discard the issuance session that was just stored.
+            self.session.take();
+            return Err(DisclosureBasedIssuanceError::MissingPreviews(organization));
+        };
+
+        Ok(previews.into())
     }
 }
 
@@ -194,6 +205,7 @@ mod tests {
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+    use openid4vc::wallet_issuance::mock::MockIssuanceSessionCredentialPreviews;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use rstest::rstest;
@@ -250,7 +262,7 @@ mod tests {
             }
             Format::SdJwt => {
                 let (sd_jwt, _) = create_example_pid_sd_jwt();
-                let unsigned_presentation = sd_jwt.into_presentation_builder().finish();
+                let unsigned_presentation = sd_jwt.into_sd_jwt().into_presentation_builder().finish();
 
                 DisclosableAttestation::new(
                     Uuid::new_v4(),
@@ -305,7 +317,7 @@ mod tests {
 
                 issuance_session
                     .expect_credential_previews()
-                    .return_const(vec![(credential_preview, metadata)].into());
+                    .return_const(vec_nonempty![(credential_preview, metadata)].into());
 
                 issuance_session
                     .expect_issuer()
@@ -434,6 +446,74 @@ mod tests {
 
         // By offering zero attestations to issue, the issuer says that it has no attestations to offer.
         assert!(previews.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_disclosure_based_issuance_error_missing_previews() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Setup wallet disclosure state
+        let credential_offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            "https://issuer.example.com".parse().unwrap(),
+            vec_nonempty!["config_id".to_string().into()].into(),
+            "123".to_string().into(),
+        ))
+        .to_credential_offer_url();
+
+        let mut disclosure_session = setup_wallet_disclosure_session(Format::SdJwt);
+        disclosure_session
+            .protocol_state
+            .expect_disclose()
+            .return_once(|_| Ok(Some(credential_offer_url)));
+        wallet.session = Some(Session::Disclosure(disclosure_session));
+
+        // Setup wallet issuance state with an issuer that does not provide previews
+        wallet
+            .issuance_discovery
+            .expect_start_pre_authorized_code_flow_sync()
+            .return_once(|_selection| {
+                let mut issuance_session = MockIssuanceSession::new();
+
+                issuance_session
+                    .expect_credential_previews()
+                    .return_const(MockIssuanceSessionCredentialPreviews::none());
+                issuance_session
+                    .expect_issuer()
+                    .return_const(IssuerRegistration::new_mock());
+
+                Ok(issuance_session)
+            });
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .return_once(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(move || Ok(vec![]));
+
+        let error = wallet
+            .continue_disclosure_based_issuance(&[0], PIN.clone())
+            .await
+            .expect_err("continuing disclosure based issuance without previews should result in an error");
+
+        assert_matches!(error, DisclosureBasedIssuanceError::MissingPreviews(_));
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]

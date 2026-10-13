@@ -1,0 +1,4 @@
+enum PersonType {
+  legalPerson,
+  naturalPerson,
+}

@@ -5,7 +5,7 @@ registration_certificate = "${ISSUANCE_SERVER_REGISTRATION_CERTIFICATE}"
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
-wia_trust_anchors = ["${WIA_CA_CRT}"]
+wptl_trust_anchors = ["${WPTL_CA_CRT}"]
 
 type_metadata = [
     "${ISSUER_METADATA_DEGREE_PATH}",
@@ -14,8 +14,8 @@ type_metadata = [
 
 [credential_metadata_keypair]
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_WRPAC}"
-certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_WRPAC}"
+private_key = "${ISSUANCE_SERVER_WRPAC_KEY}"
+certificate = "${ISSUANCE_SERVER_WRPAC_CRT}"
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/issuance_server'
