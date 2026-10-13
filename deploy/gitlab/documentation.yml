@@ -1,5 +1,7 @@
 build-documentation:
+  stage: build
   rules: !reference [.default-or-merge-request, rules]
+  needs: []
   script:
     - cd wallet_docs
     - python3 -m venv .venv
@@ -45,6 +47,7 @@ build-documentation:
       - wallet_docs/_build/html
 
 publish-documentation:
+  stage: publish
   rules: !reference [.default-branch, rules]
   needs:
     - job: build-documentation

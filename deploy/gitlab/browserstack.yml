@@ -1,5 +1,6 @@
 .upload-browserstack-base:
   extends: [ .env-k8s, .ruby-cache ]
+  stage: qa
   rules: !reference [ .default-branch, rules ]
   variables:
     LC_ALL: "C.UTF-8"
@@ -35,9 +36,11 @@ upload-browserstack-ios-app:
 
 build-ios-platform-support-browserstack:
   extends: [.env-macos-runner, .ruby-cache-macos]
+  stage: build
   rules:
-  - !reference [.on-schedule-automation, rules]
-  - !reference [.merge-request-manual, rules]
+    - !reference [.on-schedule-automation, rules]
+    - !reference [.merge-request-manual, rules]
+  needs: []
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -52,11 +55,13 @@ build-ios-platform-support-browserstack:
 build-android-platform-support-browserstack:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android-emulator:${BUILD_TAG}"
   extends: [.ruby-cache]
+  stage: build
   tags:
     - linux
   rules:
-  - !reference [.on-schedule-automation, rules]
-  - !reference [.merge-request-manual, rules]
+    - !reference [.on-schedule-automation, rules]
+    - !reference [.merge-request-manual, rules]
+  needs: []
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"

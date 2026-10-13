@@ -2,6 +2,7 @@
   image: "$HARBOR_REGISTRY/quay-proxy/buildah/stable:v1.42.2"
   tags:
     - linux
+  stage: build
   rules: !reference [.default-or-merge-request-manual, rules]
   before_script:
     - mkdir -p ~/.docker
