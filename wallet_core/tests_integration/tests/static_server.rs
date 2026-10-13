@@ -184,3 +184,62 @@ async fn test_wallet_config_signature_verification_failed() {
     assert_matches!(result, ConfigurationError::JwtVerify(JwtVerifyError::Validation(e))
         if *e.kind() == jsonwebtoken::errors::ErrorKind::InvalidSignature);
 }
+
+/// A wallet configuration that the wallet rejects should not cause its `ETag` to be stored. Otherwise, the wallet keeps
+/// receiving `304 Not Modified` for that configuration and never gets to verify it again.
+#[tokio::test]
+async fn test_wallet_config_rejected_etag_not_stored() {
+    let mut served_wallet_config = default_wallet_config();
+    served_wallet_config.version = default_wallet_config().version + 1;
+
+    // Sign the served configuration with a key the current app does not know, so that it gets rejected.
+    let signing_key = SigningKey::generate();
+    let (mut static_settings, static_root_ca) = static_server_settings();
+    static_settings.wallet_config_jwt = SignedJwt::sign(&served_wallet_config, &signing_key)
+        .await
+        .unwrap()
+        .into();
+    let port = start_static_server(static_settings, static_root_ca.clone()).await;
+
+    let config_server_config = ConfigServerConfiguration {
+        http_config: TlsPinningConfig::try_new(local_config_base_url(port), vec_nonempty![static_root_ca]).unwrap(),
+        ..default_config_server_config()
+    };
+
+    let storage_dir = tempfile::tempdir().unwrap();
+    let rejecting_http_config = HttpConfigurationRepository::new(
+        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
+        storage_dir.path().to_path_buf(),
+        default_wallet_config(),
+    )
+    .await
+    .unwrap();
+
+    rejecting_http_config
+        .fetch(&config_server_config.http_config)
+        .await
+        .expect_err("fetching a wallet configuration signed by an unknown key should fail");
+
+    // Fetching again should result in the same configuration being received and rejected again, instead of the
+    // wallet being told that nothing changed.
+    let result = rejecting_http_config.fetch(&config_server_config.http_config).await;
+    assert_matches!(result, Err(ConfigurationError::JwtVerify(_)));
+    assert_eq!(rejecting_http_config.get().version, default_wallet_config().version);
+
+    // An app update that accepts the served configuration starts out with the same storage, and should therefore
+    // receive and apply that configuration.
+    let accepting_http_config = HttpConfigurationRepository::new(
+        PublicKey::from(*signing_key.verifying_key()).into(),
+        storage_dir.path().to_path_buf(),
+        default_wallet_config(),
+    )
+    .await
+    .unwrap();
+
+    let result = accepting_http_config
+        .fetch(&config_server_config.http_config)
+        .await
+        .unwrap();
+    assert_matches!(result, RepositoryUpdateState::Updated { .. });
+    assert_eq!(accepting_http_config.get().version, served_wallet_config.version);
+}

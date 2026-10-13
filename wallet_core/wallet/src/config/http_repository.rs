@@ -13,7 +13,6 @@ use super::WalletConfigJwt;
 use super::file_repository::RawJwtProvider;
 use crate::config::ConfigurationError;
 use crate::repository::EtagHttpClient;
-use crate::repository::HttpClient;
 use crate::repository::HttpResponse;
 use crate::repository::Repository;
 use crate::repository::RepositoryUpdateState;
@@ -75,12 +74,16 @@ where
     type Error = ConfigurationError;
 
     async fn fetch(&self, client_builder: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
-        let response = self.client.fetch(client_builder).await?;
-        match response {
-            HttpResponse::Parsed(parsed_response) => {
-                let (_, new_config) =
-                    parsed_response.parse_and_verify(&self.signing_public_key, &*WALLET_CONFIG_VALIDATION)?;
+        let response = self
+            .client
+            .fetch_and_accept(client_builder, |jwt: WalletConfigJwt| {
+                let (_, config) = jwt.parse_and_verify(&self.signing_public_key, &*WALLET_CONFIG_VALIDATION)?;
+                Ok((jwt, config))
+            })
+            .await?;
 
+        match response {
+            HttpResponse::Parsed((parsed_response, new_config)) => {
                 {
                     let current_config = self.config.read();
                     if new_config.version <= current_config.0.version {
