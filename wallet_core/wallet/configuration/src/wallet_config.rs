@@ -19,7 +19,6 @@ use http_utils::urls::BaseUrl;
 use jwt::JwtTyp;
 use openid4vc::wallet_issuance::AcceptIssuanceTrustAnchors;
 use serde::Deserialize;
-use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
@@ -30,7 +29,8 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::EnvironmentSpecific;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct WalletConfiguration {
     pub environment: String,
     pub lock_timeouts: LockTimeoutConfiguration,
@@ -85,7 +85,8 @@ impl EnvironmentSpecific for WalletConfiguration {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct LockTimeoutConfiguration {
     /// App inactivity warning timeout in seconds
     pub warning_timeout: u16,
@@ -106,7 +107,8 @@ impl Default for LockTimeoutConfiguration {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct AccountServerConfiguration {
     pub http_config: TlsPinningConfig,
     #[debug(skip)]
@@ -122,7 +124,8 @@ pub struct AccountServerConfiguration {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct CertificatePublicKey {
     #[serde_as(as = "Base64")]
     pub key: DerVerifyingKey,
@@ -140,12 +143,14 @@ impl From<CertificatePublicKey> for PublicKey {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct UpdatePolicyServerConfiguration {
     pub http_config: TlsPinningConfig,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct PidAttributesConfiguration {
     pub mso_mdoc: HashMap<String, PidAttributePaths>,
     pub sd_jwt: HashMap<String, PidAttributePaths>,
@@ -214,7 +219,8 @@ impl DisclosureTypeConfig for PidAttributesConfiguration {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct PidAttributePaths {
     pub login: VecNonEmpty<String>,
     pub recovery_code: VecNonEmpty<String>,
