@@ -82,29 +82,12 @@ class MissingAttribute {
       identical(this, other) || other is MissingAttribute && runtimeType == other.runtimeType && labels == other.labels;
 }
 
-class RequestPolicy {
-  final String? policyUrl;
-
-  const RequestPolicy({
-    this.policyUrl,
-  });
-
-  @override
-  int get hashCode => policyUrl.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is RequestPolicy && runtimeType == other.runtimeType && policyUrl == other.policyUrl;
-}
-
 @freezed
 sealed class StartDisclosureResult with _$StartDisclosureResult {
   const StartDisclosureResult._();
 
   const factory StartDisclosureResult.request({
     required Organization relyingParty,
-    required RequestPolicy policy,
     required List<DisclosureOptions> disclosureOptions,
     required bool sharedDataWithRelyingPartyBefore,
     required DisclosureSessionType sessionType,

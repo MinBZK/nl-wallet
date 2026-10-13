@@ -79,12 +79,10 @@ class WalletRepositoryProvider extends StatelessWidget {
             context.read(),
             context.read(),
             context.read(),
-            context.read(),
           ),
         ),
         RepositoryProvider<IssuanceRepository>(
           create: (context) => CoreIssuanceRepository(
-            context.read(),
             context.read(),
             context.read(),
             context.read(),
@@ -129,7 +127,6 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<SignRepository>(
           create: (context) => CoreSignRepository(
             signingApi,
-            context.read(),
             context.read(),
             context.read(),
             context.read(),

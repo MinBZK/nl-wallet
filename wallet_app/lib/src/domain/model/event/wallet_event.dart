@@ -5,7 +5,6 @@ import '../card/wallet_card.dart';
 import '../disclosure/disclosure_type.dart';
 import '../document.dart';
 import '../organization.dart';
-import '../policy/policy.dart';
 
 export '../disclosure/disclosure_type.dart';
 
@@ -37,7 +36,6 @@ sealed class WalletEvent extends Equatable {
     required Organization relyingParty,
     required LocalizedText purpose,
     required List<WalletCard> cards,
-    required Policy policy,
     required DisclosureType type,
   }) = DisclosureEvent;
 
@@ -52,7 +50,6 @@ sealed class WalletEvent extends Equatable {
     required DateTime dateTime,
     required EventStatus status,
     required Organization relyingParty,
-    required Policy policy,
     required Document document,
   }) = SignEvent;
 }

@@ -10,13 +10,11 @@ void main() {
     () {
       final argument = LoginDetailScreenArgument(
         cardRequests: [],
-        policy: WalletMockData.policy,
         organization: WalletMockData.organization,
         sharedDataWithOrganizationBefore: false,
       );
       final identicalArgument = LoginDetailScreenArgument(
         cardRequests: [],
-        policy: WalletMockData.policy,
         organization: WalletMockData.organization,
         sharedDataWithOrganizationBefore: false,
       );
@@ -29,13 +27,11 @@ void main() {
     () {
       final argument = LoginDetailScreenArgument(
         cardRequests: [],
-        policy: WalletMockData.policy,
         organization: WalletMockData.organization,
         sharedDataWithOrganizationBefore: false,
       );
       final differentArgument = LoginDetailScreenArgument(
         cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-        policy: WalletMockData.policy,
         organization: WalletMockData.organization,
         sharedDataWithOrganizationBefore: false,
       );

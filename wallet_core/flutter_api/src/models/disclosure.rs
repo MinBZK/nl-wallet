@@ -13,18 +13,6 @@ use super::localize::LocalizedString;
 use super::organization::Organization;
 use crate::errors::FlutterApiError;
 
-pub struct RequestPolicy {
-    pub policy_url: Option<String>,
-}
-
-impl RequestPolicy {
-    pub(super) fn new(policy_url: Option<&Url>) -> Self {
-        Self {
-            policy_url: policy_url.map(ToString::to_string),
-        }
-    }
-}
-
 pub struct MissingAttribute {
     pub labels: Vec<LocalizedString>,
 }
@@ -73,7 +61,6 @@ impl From<SessionType> for DisclosureSessionType {
 pub enum StartDisclosureResult {
     Request {
         relying_party: Organization,
-        policy: RequestPolicy,
         disclosure_options: Vec<DisclosureOptions>,
         shared_data_with_relying_party_before: bool,
         session_type: DisclosureSessionType,
@@ -150,7 +137,6 @@ impl From<DisclosureProposalPresentation> for StartDisclosureResult {
     fn from(proposal: DisclosureProposalPresentation) -> Self {
         StartDisclosureResult::Request {
             request_purpose: request_purpose(&proposal.organization),
-            policy: RequestPolicy::new(proposal.organization.privacy_policy_url.as_ref()),
             relying_party: proposal.organization.into(),
             disclosure_options: proposal
                 .attestation_options

@@ -266,10 +266,6 @@ typedef struct wire_cst_record_string_string {
   struct wire_cst_list_prim_u_8_strict *field1;
 } wire_cst_record_string_string;
 
-typedef struct wire_cst_request_policy {
-  struct wire_cst_list_prim_u_8_strict *policy_url;
-} wire_cst_request_policy;
-
 typedef struct wire_cst_WalletInstructionError_IncorrectPin {
   uint8_t attempts_left_in_round;
   bool is_final_round;
@@ -420,7 +416,6 @@ typedef struct wire_cst_WalletEvent_Disclosure {
   struct wire_cst_organization *relying_party;
   struct wire_cst_list_localized_string *purpose;
   struct wire_cst_list_attestation_presentation *shared_attestations;
-  struct wire_cst_request_policy *request_policy;
   int32_t status;
   int32_t typ;
 } wire_cst_WalletEvent_Disclosure;
@@ -606,7 +601,6 @@ typedef struct wire_cst_revocation_code_result {
 
 typedef struct wire_cst_StartDisclosureResult_Request {
   struct wire_cst_organization *relying_party;
-  struct wire_cst_request_policy *policy;
   struct wire_cst_list_disclosure_options *disclosure_options;
   bool shared_data_with_relying_party_before;
   int32_t session_type;
@@ -844,8 +838,6 @@ struct wire_cst_record_string_string *frbgen_wallet_core_cst_new_box_autoadd_rec
 
 struct wire_cst_rendering_metadata *frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata(void);
 
-struct wire_cst_request_policy *frbgen_wallet_core_cst_new_box_autoadd_request_policy(void);
-
 int32_t *frbgen_wallet_core_cst_new_box_autoadd_revocation_status(int32_t value);
 
 struct wire_cst_wallet_instruction_error *frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error(void);
@@ -900,7 +892,6 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_person_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_record_string_string);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_revocation_status);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_wallet_state);

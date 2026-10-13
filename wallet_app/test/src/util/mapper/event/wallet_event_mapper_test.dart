@@ -4,7 +4,6 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/organization.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/util/mapper/event/wallet_event_mapper.dart';
 import 'package:wallet_core/core.dart' as core;
 
@@ -15,7 +14,6 @@ import '../../../mocks/wallet_mocks.dart';
 void main() {
   late MockMapper<core.AttestationPresentation, WalletCard> cardMapper;
   late MockMapper<core.Organization, Organization> organizationMapper;
-  late MockMapper<core.RequestPolicy, Policy> policyMapper;
   late MockMapper<List<core.LocalizedString>, LocalizedText> localizedStringMapper;
   late MockMapper<core.DisclosureType, DisclosureType> disclosureTypeMapper;
   late WalletEventMapper mapper;
@@ -29,13 +27,11 @@ void main() {
   setUp(() {
     cardMapper = MockMapper<core.AttestationPresentation, WalletCard>();
     organizationMapper = MockMapper<core.Organization, Organization>();
-    policyMapper = MockMapper<core.RequestPolicy, Policy>();
     localizedStringMapper = MockMapper<List<core.LocalizedString>, LocalizedText>();
     disclosureTypeMapper = MockMapper<core.DisclosureType, DisclosureType>();
 
     when(cardMapper.map(any)).thenReturn(WalletMockData.card);
     when(organizationMapper.map(any)).thenReturn(WalletMockData.organization);
-    when(policyMapper.map(any)).thenReturn(WalletMockData.policy);
     when(localizedStringMapper.map(any)).thenReturn(const {});
     when(disclosureTypeMapper.map(any)).thenReturn(DisclosureType.regular);
     when(cardMapper.mapList(any)).thenReturn([WalletMockData.card]);
@@ -43,7 +39,6 @@ void main() {
     mapper = WalletEventMapper(
       cardMapper,
       organizationMapper,
-      policyMapper,
       localizedStringMapper,
       disclosureTypeMapper,
     );
@@ -76,7 +71,6 @@ void main() {
         relyingParty: CoreMockData.organization,
         purpose: [],
         sharedAttestations: [CoreMockData.attestation],
-        requestPolicy: CoreMockData.policy,
         status: core.DisclosureStatus.Success,
         typ: core.DisclosureType.Regular,
       );

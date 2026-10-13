@@ -2316,12 +2316,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  RequestPolicy dco_decode_box_autoadd_request_policy(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_request_policy(raw);
-  }
-
-  @protected
   RevocationStatus dco_decode_box_autoadd_revocation_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_revocation_status(raw);
@@ -2914,16 +2908,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  RequestPolicy dco_decode_request_policy(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
-    return RequestPolicy(
-      policyUrl: dco_decode_opt_String(arr[0]),
-    );
-  }
-
-  @protected
   RevocationCodeResult dco_decode_revocation_code_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
@@ -2963,12 +2947,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         return StartDisclosureResult_Request(
           relyingParty: dco_decode_box_autoadd_organization(raw[1]),
-          policy: dco_decode_box_autoadd_request_policy(raw[2]),
-          disclosureOptions: dco_decode_list_disclosure_options(raw[3]),
-          sharedDataWithRelyingPartyBefore: dco_decode_bool(raw[4]),
-          sessionType: dco_decode_disclosure_session_type(raw[5]),
-          requestPurpose: dco_decode_list_localized_string(raw[6]),
-          requestType: dco_decode_disclosure_type(raw[7]),
+          disclosureOptions: dco_decode_list_disclosure_options(raw[2]),
+          sharedDataWithRelyingPartyBefore: dco_decode_bool(raw[3]),
+          sessionType: dco_decode_disclosure_session_type(raw[4]),
+          requestPurpose: dco_decode_list_localized_string(raw[5]),
+          requestType: dco_decode_disclosure_type(raw[6]),
         );
       case 1:
         return StartDisclosureResult_RequestAttributesMissing(
@@ -3067,9 +3050,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           relyingParty: dco_decode_box_autoadd_organization(raw[3]),
           purpose: dco_decode_list_localized_string(raw[4]),
           sharedAttestations: dco_decode_opt_list_attestation_presentation(raw[5]),
-          requestPolicy: dco_decode_box_autoadd_request_policy(raw[6]),
-          status: dco_decode_disclosure_status(raw[7]),
-          typ: dco_decode_disclosure_type(raw[8]),
+          status: dco_decode_disclosure_status(raw[6]),
+          typ: dco_decode_disclosure_type(raw[7]),
         );
       case 1:
         return WalletEvent_Issuance(
@@ -3422,12 +3404,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RenderingMetadata sse_decode_box_autoadd_rendering_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_rendering_metadata(deserializer));
-  }
-
-  @protected
-  RequestPolicy sse_decode_box_autoadd_request_policy(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_request_policy(deserializer));
   }
 
   @protected
@@ -4162,13 +4138,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  RequestPolicy sse_decode_request_policy(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_policyUrl = sse_decode_opt_String(deserializer);
-    return RequestPolicy(policyUrl: var_policyUrl);
-  }
-
-  @protected
   RevocationCodeResult sse_decode_revocation_code_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4207,7 +4176,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (tag_) {
       case 0:
         var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
-        var var_policy = sse_decode_box_autoadd_request_policy(deserializer);
         var var_disclosureOptions = sse_decode_list_disclosure_options(deserializer);
         var var_sharedDataWithRelyingPartyBefore = sse_decode_bool(deserializer);
         var var_sessionType = sse_decode_disclosure_session_type(deserializer);
@@ -4215,7 +4183,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_requestType = sse_decode_disclosure_type(deserializer);
         return StartDisclosureResult_Request(
           relyingParty: var_relyingParty,
-          policy: var_policy,
           disclosureOptions: var_disclosureOptions,
           sharedDataWithRelyingPartyBefore: var_sharedDataWithRelyingPartyBefore,
           sessionType: var_sessionType,
@@ -4324,7 +4291,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
         var var_purpose = sse_decode_list_localized_string(deserializer);
         var var_sharedAttestations = sse_decode_opt_list_attestation_presentation(deserializer);
-        var var_requestPolicy = sse_decode_box_autoadd_request_policy(deserializer);
         var var_status = sse_decode_disclosure_status(deserializer);
         var var_typ = sse_decode_disclosure_type(deserializer);
         return WalletEvent_Disclosure(
@@ -4333,7 +4299,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           relyingParty: var_relyingParty,
           purpose: var_purpose,
           sharedAttestations: var_sharedAttestations,
-          requestPolicy: var_requestPolicy,
           status: var_status,
           typ: var_typ,
         );
@@ -4922,12 +4887,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_box_autoadd_rendering_metadata(RenderingMetadata self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_rendering_metadata(self, serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_request_policy(RequestPolicy self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_request_policy(self, serializer);
   }
 
   @protected
@@ -5528,12 +5487,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_request_policy(RequestPolicy self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_String(self.policyUrl, serializer);
-  }
-
-  @protected
   void sse_encode_revocation_code_result(RevocationCodeResult self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
@@ -5564,7 +5517,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (self) {
       case StartDisclosureResult_Request(
         relyingParty: final relyingParty,
-        policy: final policy,
         disclosureOptions: final disclosureOptions,
         sharedDataWithRelyingPartyBefore: final sharedDataWithRelyingPartyBefore,
         sessionType: final sessionType,
@@ -5573,7 +5525,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       ):
         sse_encode_i_32(0, serializer);
         sse_encode_box_autoadd_organization(relyingParty, serializer);
-        sse_encode_box_autoadd_request_policy(policy, serializer);
         sse_encode_list_disclosure_options(disclosureOptions, serializer);
         sse_encode_bool(sharedDataWithRelyingPartyBefore, serializer);
         sse_encode_disclosure_session_type(sessionType, serializer);
@@ -5671,7 +5622,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         relyingParty: final relyingParty,
         purpose: final purpose,
         sharedAttestations: final sharedAttestations,
-        requestPolicy: final requestPolicy,
         status: final status,
         typ: final typ,
       ):
@@ -5681,7 +5631,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_box_autoadd_organization(relyingParty, serializer);
         sse_encode_list_localized_string(purpose, serializer);
         sse_encode_opt_list_attestation_presentation(sharedAttestations, serializer);
-        sse_encode_box_autoadd_request_policy(requestPolicy, serializer);
         sse_encode_disclosure_status(status, serializer);
         sse_encode_disclosure_type(typ, serializer);
       case WalletEvent_Issuance(
