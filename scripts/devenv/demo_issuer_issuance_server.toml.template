@@ -14,8 +14,8 @@ type_metadata = [
 
 [credential_metadata_keypair]
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_WRPAC}"
-certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_WRPAC}"
+private_key = "${ISSUANCE_SERVER_WRPAC_KEY}"
+certificate = "${ISSUANCE_SERVER_WRPAC_CRT}"
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/issuance_server'
