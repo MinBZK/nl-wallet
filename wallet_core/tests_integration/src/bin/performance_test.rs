@@ -73,9 +73,7 @@ async fn main() {
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         temp_path.to_path_buf(),
         wallet_config,
-    )
-    .await
-    .unwrap();
+    );
 
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new().unwrap();
