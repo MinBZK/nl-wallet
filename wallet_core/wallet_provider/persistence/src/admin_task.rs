@@ -40,25 +40,19 @@ impl From<AdminTaskCreate> for admin_task::ActiveModel {
     }
 }
 
-impl From<admin_task::Model> for AdminTask {
-    fn from(model: admin_task::Model) -> Self {
-        Self {
+impl TryFrom<admin_task::Model> for AdminTask {
+    type Error = PersistenceError;
+
+    fn try_from(model: admin_task::Model) -> Result<Self, Self::Error> {
+        Ok(Self {
             id: model.id,
             created_at: model.created_at.into(),
             created_by_user_id: model.created_by_user_id,
             created_by_display_name: model.created_by_display_name,
-            task_type: model
-                .task_type
-                .parse()
-                .map_err(|error| format!("invalid admin task type: {error}"))
-                .unwrap(),
+            task_type: model.task_type.parse().map_err(PersistenceError::EnumConversion)?,
             task_parameters: model.task_parameters,
             task_reason: model.task_reason,
-            status: model
-                .status
-                .parse()
-                .map_err(|error| format!("invalid admin task status: {error}"))
-                .unwrap(),
+            status: model.status.parse().map_err(PersistenceError::EnumConversion)?,
             reviewed_at: model.reviewed_at.map(Into::into),
             reviewed_by_user_id: model.reviewed_by_user_id,
             reviewed_by_display_name: model.reviewed_by_display_name,
@@ -66,7 +60,7 @@ impl From<admin_task::Model> for AdminTask {
             executed_at: model.executed_at.map(Into::into),
             execution_result: model.execution_result,
             execution_result_details: model.execution_result_details,
-        }
+        })
     }
 }
 
@@ -80,7 +74,7 @@ where
         .exec_with_returning(db.connection())
         .await
         .map_err(PersistenceError::Execution)?
-        .into();
+        .try_into()?;
     Ok(task)
 }
 
@@ -93,7 +87,8 @@ where
         .one(db.connection())
         .await
         .map_err(PersistenceError::Execution)?
-        .map(Into::into);
+        .map(TryInto::try_into)
+        .transpose()?;
     Ok(task)
 }
 
@@ -122,7 +117,8 @@ where
         .map_err(PersistenceError::Execution)?
         .into_iter()
         .next()
-        .map(Into::into);
+        .map(TryInto::try_into)
+        .transpose()?;
     Ok(task)
 }
 
@@ -148,7 +144,8 @@ where
         .map_err(PersistenceError::Execution)?
         .into_iter()
         .next()
-        .map(Into::into);
+        .map(TryInto::try_into)
+        .transpose()?;
     Ok(task)
 }
 
@@ -191,8 +188,8 @@ where
         .await
         .map_err(PersistenceError::Execution)?
         .into_iter()
-        .map(Into::into)
-        .collect();
+        .map(TryInto::try_into)
+        .collect::<Result<_, _>>()?;
     Ok(tasks)
 }
 
@@ -310,8 +307,27 @@ mod tests {
                     execution_result: row.execution_result.clone(),
                     execution_result_details: row.execution_result_details.clone(),
                 };
-                assert_eq!(AdminTask::from(row), expected);
+                assert_eq!(AdminTask::try_from(row).unwrap(), expected);
             }
+        }
+    }
+
+    #[test]
+    fn model_with_invalid_task_type_or_status_fails_conversion() {
+        for row in [
+            admin_task::Model {
+                task_type: "unknown".into(),
+                ..model()
+            },
+            admin_task::Model {
+                status: "unknown".into(),
+                ..model()
+            },
+        ] {
+            assert!(matches!(
+                AdminTask::try_from(row),
+                Err(PersistenceError::EnumConversion(_))
+            ));
         }
     }
 
@@ -327,7 +343,7 @@ mod tests {
             execution_result_details: None,
             ..model()
         };
-        let task = AdminTask::from(row);
+        let task = AdminTask::try_from(row).unwrap();
         assert_eq!(task.reviewed_at, None);
         assert_eq!(task.reviewed_by_user_id, None);
         assert_eq!(task.reviewed_by_display_name, None);
@@ -335,23 +351,5 @@ mod tests {
         assert_eq!(task.executed_at, None);
         assert_eq!(task.execution_result, None);
         assert_eq!(task.execution_result_details, None);
-    }
-
-    #[test]
-    #[should_panic(expected = "invalid admin task type")]
-    fn model_panics_on_invalid_task_type() {
-        let _ = AdminTask::from(admin_task::Model {
-            task_type: "unknown_task".into(),
-            ..model()
-        });
-    }
-
-    #[test]
-    #[should_panic(expected = "invalid admin task status")]
-    fn model_panics_on_invalid_status() {
-        let _ = AdminTask::from(admin_task::Model {
-            status: "unknown_status".into(),
-            ..model()
-        });
     }
 }
