@@ -168,6 +168,7 @@ mod test {
 
     #[tokio::test]
     async fn test_etag_http_client() {
+        let tempdir = tempfile::tempdir().unwrap();
         let server = MockServer::start_async().await;
         let base_url = server.base_url().parse().unwrap();
 
@@ -192,7 +193,7 @@ mod test {
             .await;
 
         let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep());
+            EtagHttpClient::new("config".parse().unwrap(), tempdir.path().to_path_buf());
 
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
 
@@ -287,6 +288,7 @@ mod test {
 
     #[tokio::test]
     async fn test_etag_http_client_mismatch() {
+        let tempdir = tempfile::tempdir().unwrap();
         let server = MockServer::start_async().await;
         let base_url = server.base_url().parse().unwrap();
 
@@ -312,7 +314,7 @@ mod test {
 
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
         let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep());
+            EtagHttpClient::new("config".parse().unwrap(), tempdir.as_ref().to_path_buf());
 
         let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
