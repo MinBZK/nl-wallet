@@ -1579,7 +1579,7 @@ mod tests {
         .unwrap();
 
         let device_request = DeviceRequest::from_doc_requests(doc_requests);
-        let trust_anchors = TrustAnchors::from(&*WRPAC_CA);
+        let trust_anchors = WRPAC_CA.to_trust_anchors();
 
         (device_request, session_transcript, trust_anchors)
     }
@@ -1795,7 +1795,7 @@ mod tests {
         let doc_request2 = create_doc_request(items_request2, &session_transcript, &key_pair2).await;
 
         let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_request1, doc_request2]);
-        let trust_anchors = TrustAnchors::from(&*WRPAC_CA);
+        let trust_anchors = WRPAC_CA.to_trust_anchors();
 
         let result = verify_device_request_with_crl(
             &device_request,

@@ -138,7 +138,6 @@ mod tests {
     use std::assert_matches;
 
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use utils::generator::TimeGenerator;
@@ -152,7 +151,7 @@ mod tests {
         // Create a CA, certificate and private key and trust anchors.
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
@@ -168,7 +167,7 @@ mod tests {
 
         let other_ca = Ca::generate_wrpac_mock_ca().unwrap();
         let error = doc_request
-            .verify(&session_transcript, &TimeGenerator, &TrustAnchors::from(&other_ca))
+            .verify(&session_transcript, &TimeGenerator, &other_ca.to_trust_anchors())
             .expect_err("Verifying DeviceRequest should have resulted in an error");
 
         assert_matches!(error, Error::Cose(_));
@@ -190,7 +189,7 @@ mod tests {
     async fn test_doc_request_verify_with_crl() {
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
         let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
         let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
         let session_transcript = SessionTranscript::new_mock();
         let items_request = ItemsRequest::new_example();
@@ -227,7 +226,7 @@ mod tests {
             .verify_with_crl(
                 &session_transcript,
                 &TimeGenerator,
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &crl_verifier,
             )
             .await

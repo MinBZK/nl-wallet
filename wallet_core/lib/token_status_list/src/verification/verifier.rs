@@ -239,7 +239,7 @@ mod test {
         // Index 1 is valid
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -254,7 +254,7 @@ mod test {
         // Index 3 is invalid
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -269,7 +269,7 @@ mod test {
         // An out-of-bounds index corrupts the reference instead of panicking
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -284,7 +284,7 @@ mod test {
         // Corrupted when the sub claim doesn't match
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://different_uri".parse().unwrap(),
@@ -314,7 +314,7 @@ mod test {
         // Corrupted when the JWT is expired
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -329,7 +329,7 @@ mod test {
         // Corrupted when the attestation is signed with a different certificate
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 "CN=Different CA".to_string().into(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -355,7 +355,7 @@ mod test {
         );
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -385,7 +385,7 @@ mod test {
         // Index 1 is valid
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),

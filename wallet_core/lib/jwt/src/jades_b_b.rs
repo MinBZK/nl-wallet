@@ -114,7 +114,6 @@ mod tests {
     use chrono::Timelike;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use jsonwebtoken::Algorithm;
     use serde_json::Value;
     use serde_json::json;
@@ -268,7 +267,7 @@ mod tests {
         let unverified = signed_jwt.into_unverified();
         let (header, payload) = unverified
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &MockTimeGenerator::default(),
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -308,7 +307,7 @@ mod tests {
         let unverified: UnverifiedJwt<ToyJadesbbPayload, JadesbbHeader> = unverified.serialization().parse().unwrap();
         let (header, payload): (JadesbbHeader, ToyJadesbbPayload) = unverified
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &MockTimeGenerator::default(),
                 None,
                 DEFAULT_VALIDATION.to_owned(),

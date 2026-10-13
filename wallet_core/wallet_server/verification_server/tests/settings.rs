@@ -172,8 +172,8 @@ fn test_settings_success() {
     );
 
     settings.usecases = usecases.into();
-    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
-    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca);
+    settings.server_settings.wrpac_trust_anchors = wrpac_ca.to_trust_anchors();
+    settings.server_settings.wrprc_trust_anchors = wrprc_ca.to_trust_anchors();
 
     settings.validate().expect("should succeed");
 }
@@ -198,7 +198,7 @@ fn test_settings_no_wrpac_trust_anchors() {
 
     settings.usecases = usecases.into();
     settings.server_settings.wrpac_trust_anchors = TrustAnchors::empty();
-    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca);
+    settings.server_settings.wrprc_trust_anchors = wrprc_ca.to_trust_anchors();
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(
@@ -227,8 +227,8 @@ fn test_settings_wrong_wrpac_ca() {
     );
 
     settings.usecases = usecases.into();
-    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca_trusted);
-    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca);
+    settings.server_settings.wrpac_trust_anchors = wrpac_ca_trusted.to_trust_anchors();
+    settings.server_settings.wrprc_trust_anchors = wrprc_ca.to_trust_anchors();
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(
@@ -251,8 +251,8 @@ fn test_settings_wrong_wrprc_ca(#[case] format: RegistrationCertificateFormat) {
     let registration_certificate = registration_certificate(&wrpac, &wrprc_ca_wrong, format, None);
 
     settings.usecases = HashMap::from([("wrong_ca".to_string(), to_use_case(wrpac, &registration_certificate))]).into();
-    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
-    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca_trusted);
+    settings.server_settings.wrpac_trust_anchors = wrpac_ca.to_trust_anchors();
+    settings.server_settings.wrprc_trust_anchors = wrprc_ca_trusted.to_trust_anchors();
 
     assert_matches!(
         settings.validate(),
@@ -264,7 +264,7 @@ fn test_settings_wrong_wrprc_ca(#[case] format: RegistrationCertificateFormat) {
                 ))
     );
 
-    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca_wrong);
+    settings.server_settings.wrprc_trust_anchors = wrprc_ca_wrong.to_trust_anchors();
     settings
         .validate()
         .expect("should succeed when the WRPRC signing CA is trusted");
@@ -280,8 +280,8 @@ fn test_settings_accepts_cwt_registration_certificate() {
         registration_certificate(&wrpac, &wrprc_ca, RegistrationCertificateFormat::Cwt, None);
 
     settings.usecases = HashMap::from([("valid".to_string(), to_use_case(wrpac, &registration_certificate))]).into();
-    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
-    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca);
+    settings.server_settings.wrpac_trust_anchors = wrpac_ca.to_trust_anchors();
+    settings.server_settings.wrprc_trust_anchors = wrprc_ca.to_trust_anchors();
 
     settings.validate().expect("should succeed");
 }
@@ -300,8 +300,8 @@ fn test_settings_rejects_registration_certificate_for_other_access_certificate()
     );
 
     settings.usecases = HashMap::from([("mismatch".to_string(), to_use_case(wrpac, &registration_certificate))]).into();
-    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
-    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca);
+    settings.server_settings.wrpac_trust_anchors = wrpac_ca.to_trust_anchors();
+    settings.server_settings.wrprc_trust_anchors = wrprc_ca.to_trust_anchors();
 
     assert_matches!(
         settings.validate(),
@@ -322,8 +322,8 @@ fn test_settings_rejects_dcql_query_not_authorized_by_registration_certificate()
     use_case.dcql_query = Some(unauthorized_query());
 
     settings.usecases = HashMap::from([("unauthorized".to_string(), use_case)]).into();
-    settings.server_settings.wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
-    settings.server_settings.wrprc_trust_anchors = TrustAnchors::from(&wrprc_ca);
+    settings.server_settings.wrpac_trust_anchors = wrpac_ca.to_trust_anchors();
+    settings.server_settings.wrprc_trust_anchors = wrprc_ca.to_trust_anchors();
 
     assert_matches!(
         settings.validate(),
