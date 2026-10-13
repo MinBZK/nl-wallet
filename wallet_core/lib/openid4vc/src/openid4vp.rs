@@ -2298,6 +2298,51 @@ mod tests {
     }
 
     #[test]
+    fn registration_certificate_verifier_info_should_accept_compact_jwt_without_base64_encoding() {
+        let (_, access_key_pair, _, auth_request) = setup_mdoc();
+        let authority = MockRegistrationCertificateAuthority::new();
+        let certificate = authority.issue_jwt(
+            access_key_pair.certificate(),
+            Query::from(auth_request.credential_requests),
+        );
+        let compact_jwt = String::from_utf8(certificate.clone()).unwrap();
+
+        let verifier_info = serde_json::from_value::<VerifierInfo>(json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": compact_jwt,
+        }))
+        .unwrap();
+        assert_matches!(
+            &verifier_info,
+            VerifierInfo::RegistrationCertificate {
+                data: RegistrationCertificateEnvelope::Jwt(_)
+            }
+        );
+
+        // Serializing should still result in the base64url encoding required by ETSI TS 119 472-2.
+        assert_eq!(
+            serde_json::to_value(verifier_info).unwrap(),
+            json!({
+                "format": REGISTRATION_CERTIFICATE_FORMAT,
+                "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate),
+            })
+        );
+    }
+
+    #[test]
+    fn registration_certificate_verifier_info_should_reject_malformed_compact_jwt() {
+        let error = serde_json::from_value::<VerifierInfo>(json!({
+            "format": REGISTRATION_CERTIFICATE_FORMAT,
+            "data": "header.payload",
+        }))
+        .unwrap_err();
+
+        let error = error.to_string();
+        assert!(error.contains("could not parse registration certificate as JWT"));
+        assert!(error.contains("expected 3, found 2"));
+    }
+
+    #[test]
     fn registration_certificate_verifier_info_should_reject_malformed_base64() {
         let error = serde_json::from_value::<VerifierInfo>(json!({
             "format": REGISTRATION_CERTIFICATE_FORMAT,
