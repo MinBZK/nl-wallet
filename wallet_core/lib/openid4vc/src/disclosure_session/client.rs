@@ -797,7 +797,7 @@ mod tests {
             )) if matches!(
                 registration_error.as_ref(),
                 RegistrationCertificateError::Authorization(
-                    RegistrationCertificateAuthorizationError::UnauthorizedCredential(_)
+                    RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(_)
                 )
             )
         );

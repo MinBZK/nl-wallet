@@ -489,7 +489,6 @@ function generate_demo_issuer_key_pairs {
 function generate_demo_issuer_issuance_key_pairs {
     generate_demo_issuer_issuance_key_pair "$1" issuer
     generate_demo_issuer_issuance_key_pair "$1" tsl issuer
-    generate_demo_issuer_issuance_key_pair "$1" wrpac
 }
 
 # Generate EC issuance key pair for the demo_issuer
@@ -679,7 +678,7 @@ function generate_demo_issuer_disclosure_registration_certificate {
 }
 
 # Generate an issuance WRPRC bound to the certificate that signs issuer metadata.
-# Use a separate output prefix (e.g. university.issuance); the generated ID also gets
+# Use a separate output prefix (e.g. issuance_server.issuance); the generated ID also gets
 # an -issuer suffix so issuance and disclosure registrations for a service can coexist.
 #
 # $1 - Issuer name in access_certificates and issuer_registration_certificate_attestations.json
