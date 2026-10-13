@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::string::ToString;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::time::Duration;
 
 use axum::Router;
@@ -21,7 +22,6 @@ use etag::EntityTag;
 use http::Method;
 use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
-use itertools::Itertools;
 use mediatype::Name;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
@@ -36,12 +36,15 @@ const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::new(
     Name::new_unchecked("statuslist"),
     Some(Name::new_unchecked("jwt")),
 );
+static STATUSLIST_JWT_CONTENT_TYPE: LazyLock<HeaderValue> = LazyLock::new(|| {
+    // Convert to HeaderValue, unwrap is safe since string is ASCII.
+    HeaderValue::from_str(&STATUSLIST_JWT_MEDIA_TYPE.to_string()).unwrap()
+});
 
 #[derive(Debug, Clone)]
 struct RouterState {
     publish_dir: Arc<PublishDir>,
     cache_control: HeaderValue,
-    content_type: HeaderValue,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -110,20 +113,14 @@ fn check_serve_directories<'a>(
 pub fn create_serve_router<'a>(
     route_sources: impl IntoIterator<Item = StatusListRouteSource<'a>>,
 ) -> Result<Router, RouterError> {
-    // Convert to HeaderValue, unwrap is safe since string is ASCII.
-    let content_type = HeaderValue::from_str(&STATUSLIST_JWT_MEDIA_TYPE.to_string()).unwrap();
-
     let route_sources = check_serve_directories(route_sources)?;
-    let route_count = route_sources.len();
 
     let router = route_sources
         .into_iter()
-        .zip_eq(std::iter::repeat_n(content_type, route_count))
-        .fold(Router::new(), |router, ((path, route_source), content_type)| {
+        .fold(Router::new(), |router, (path, route_source)| {
             let state = RouterState {
                 publish_dir: Arc::new(route_source.publish_dir),
                 cache_control: cache_control_header_for_ttl(route_source.ttl),
-                content_type,
             };
 
             router.nest(
@@ -182,7 +179,7 @@ async fn serve_status_list(
 
     Ok((
         [
-            (header::CONTENT_TYPE, state.content_type),
+            (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
             (header::CACHE_CONTROL, state.cache_control),
             // Unwrap is safe since etag is ASCII
             (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
