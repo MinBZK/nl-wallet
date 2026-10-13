@@ -222,6 +222,9 @@ still requires previews for PID and disclosure based issuance.</p></li>
 HAIP and TS3. Both the Issuer and the WSCD have switched to this proof type
 instead of <code class="docutils literal notranslate"><span class="pre">jwt</span></code>. NB: The <code class="docutils literal notranslate"><span class="pre">jwt</span></code> proof type has not yet been updated to conform
 to OpenID4VCI 1.0 and its implementation is now effectively dead code.</p></li>
+<li><p>The wallet now also accepts a registration certificate in JWT format that is
+included in <code class="docutils literal notranslate"><span class="pre">verifier_info</span></code> or <code class="docutils literal notranslate"><span class="pre">issuer_info</span></code> as a compact JWT, without the
+additional base64url encoding required by ETSI TS 119 472-2.</p></li>
 </ul>
 </section>
 <section id="bug-fixes">
