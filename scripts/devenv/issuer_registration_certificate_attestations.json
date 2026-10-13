@@ -21,8 +21,8 @@
       "meta": { "doctype_value": "com.example.insurance" }
     },
     {
-      "format": "mso_mdoc",
-      "meta": { "doctype_value": "com.example.jum.bonuskaart" }
+      "format": "dc+sd-jwt",
+      "meta": { "vct_values": ["com.example.jum.bonuskaart"] }
     }
   ],
   "pacf_issuance_server": [
