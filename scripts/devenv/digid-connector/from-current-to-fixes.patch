@@ -49,7 +49,7 @@ index b6ec1d1..d0cd496 100644
      steps:
        - name: Set env
 diff --git a/Makefile b/Makefile
-index b3f3625..049c85e 100644
+index b3f3625..b05bd4f 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1,16 +1,15 @@
@@ -94,7 +94,7 @@ index b3f3625..049c85e 100644
 -	@if [ -z "$$(docker images -q ${TARGET_IMAGE})" ]; then \
 -		docker compose build --build-arg="NEW_UID=${UID}" --build-arg="NEW_GID=${GID}" --build-arg="PYTHON_VERSION=${PYTHON_VERSION}" --build-arg="GITHUB_TOKEN=${GITHUB_TOKEN}"; \
 +	@if [ -z "$$(docker images -q max:latest)" ]; then \
-+		docker compose build --build-arg="DEV=true" --build-arg="FROM=${FROM}" --build-arg="PYTHON_HOME=${PYTHON_HOME}" --build-arg="APP_UID=${UID}" --build-arg="APP_GID=${GID}" --build-arg="GITHUB_TOKEN=${GITHUB_TOKEN}"; \
++		docker buildx bake --file docker-compose.yml --load --allow="fs.read=${HOME}/.npmrc" --set="max.args.DEV=true" --set="max.args.FROM=${FROM}" --set="max.args.PYTHON_HOME=${PYTHON_HOME}" --set="max.args.APP_UID=${UID}" --set="max.args.APP_GID=${GID}" --set="max.args.GITHUB_TOKEN=${GITHUB_TOKEN}"; \
  	else \
 -		echo "${TARGET_IMAGE} exists, skipping build.."; \
 +		echo "max:latest image exists, skipping build.."; \
