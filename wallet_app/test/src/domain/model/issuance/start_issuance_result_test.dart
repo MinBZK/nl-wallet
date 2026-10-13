@@ -24,7 +24,6 @@ void main() {
       requestPurpose: 'purpose'.untranslated,
       sessionType: DisclosureSessionType.crossDevice,
       cardRequests: [],
-      policy: WalletMockData.policy,
     );
     expect(readyToDisclose.relyingParty, WalletMockData.organization);
 
@@ -51,7 +50,6 @@ void main() {
       requestPurpose: 'purpose'.untranslated,
       sessionType: DisclosureSessionType.crossDevice,
       cardRequests: [],
-      policy: WalletMockData.policy,
     );
     expect(readyToDisclose.sessionType, DisclosureSessionType.crossDevice);
 

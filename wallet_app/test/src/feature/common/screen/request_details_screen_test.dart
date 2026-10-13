@@ -105,7 +105,6 @@ void main() {
                 attributes: [],
               ),
             ],
-            policy: WalletMockData.policy,
             type: DisclosureType.regular,
           ) as DisclosureEvent,
         ),

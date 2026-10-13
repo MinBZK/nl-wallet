@@ -386,7 +386,6 @@ void main() {
               requestPurpose: 'testPurpose'.untranslated,
               sessionType: DisclosureSessionType.crossDevice,
               type: DisclosureType.regular,
-              policy: WalletMockData.policy,
               sharedDataWithOrganizationBefore: false,
               cardRequests: [
                 WalletMockData.discloseCardRequestSingleCard,
@@ -461,7 +460,6 @@ void main() {
               requestPurpose: 'testPurpose'.untranslated,
               sessionType: DisclosureSessionType.crossDevice,
               type: DisclosureType.regular,
-              policy: WalletMockData.policy,
               sharedDataWithOrganizationBefore: false,
               cardRequests: [
                 WalletMockData.discloseCardRequestSingleCard,
@@ -873,7 +871,6 @@ void main() {
               sessionType: DisclosureSessionType.closeProximity,
               type: DisclosureType.regular,
               cardRequests: [],
-              policy: WalletMockData.policy,
               sharedDataWithOrganizationBefore: false,
             ),
           );
@@ -896,7 +893,6 @@ void main() {
               sessionType: DisclosureSessionType.closeProximity,
               type: DisclosureType.regular,
               cardRequests: [],
-              policy: WalletMockData.policy,
               sharedDataWithOrganizationBefore: false,
             ),
           );
@@ -927,7 +923,6 @@ void main() {
               sessionType: DisclosureSessionType.closeProximity,
               type: DisclosureType.regular,
               cardRequests: [],
-              policy: WalletMockData.policy,
               sharedDataWithOrganizationBefore: false,
             ),
           );
@@ -1033,7 +1028,6 @@ StartDisclosureReadyToDisclose emptyRequest({
   requestPurpose: 'requestPurpose'.untranslated,
   sessionType: sessionType,
   type: type,
-  policy: WalletMockData.policy,
   sharedDataWithOrganizationBefore: false,
   cardRequests: [],
 );

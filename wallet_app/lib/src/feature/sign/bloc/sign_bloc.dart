@@ -7,7 +7,6 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/document.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/start_sign_result/start_sign_result.dart';
 import '../../../domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import '../../../domain/usecase/sign/start_sign_usecase.dart';
@@ -85,7 +84,6 @@ class SignBloc extends Bloc<SignEvent, SignState> {
         SignConfirmAgreement(
           document: _startSignResult!.document,
           relyingParty: _startSignResult!.relyingParty,
-          policy: _startSignResult!.policy,
           requestedAttributes: requestedCards.map((it) => it.attributes).flattenedToList,
           trustProvider: _startSignResult!.trustProvider,
         ),
@@ -151,7 +149,6 @@ class SignBloc extends Bloc<SignEvent, SignState> {
         final requestedCards = (_startSignResult! as StartSignReadyToSign).requestedCards;
         emit(
           SignConfirmAgreement(
-            policy: _startSignResult!.policy,
             relyingParty: _startSignResult!.relyingParty,
             trustProvider: _startSignResult!.trustProvider,
             document: _startSignResult!.document,

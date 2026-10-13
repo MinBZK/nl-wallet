@@ -3036,16 +3036,6 @@ impl SseDecode for crate::models::attestation::RenderingMetadata {
     }
 }
 
-impl SseDecode for crate::models::disclosure::RequestPolicy {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_policyUrl = <Option<String>>::sse_decode(deserializer);
-        return crate::models::disclosure::RequestPolicy {
-            policy_url: var_policyUrl,
-        };
-    }
-}
-
 impl SseDecode for crate::models::instruction::RevocationCodeResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3099,7 +3089,6 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
         match tag_ {
             0 => {
                 let mut var_relyingParty = <crate::models::organization::Organization>::sse_decode(deserializer);
-                let mut var_policy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
                 let mut var_disclosureOptions =
                     <Vec<crate::models::disclosure::DisclosureOptions>>::sse_decode(deserializer);
                 let mut var_sharedDataWithRelyingPartyBefore = <bool>::sse_decode(deserializer);
@@ -3108,7 +3097,6 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                 let mut var_requestType = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
                 return crate::models::disclosure::StartDisclosureResult::Request {
                     relying_party: var_relyingParty,
-                    policy: var_policy,
                     disclosure_options: var_disclosureOptions,
                     shared_data_with_relying_party_before: var_sharedDataWithRelyingPartyBefore,
                     session_type: var_sessionType,
@@ -3255,7 +3243,6 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                 let mut var_purpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
                 let mut var_sharedAttestations =
                     <Option<Vec<crate::models::attestation::AttestationPresentation>>>::sse_decode(deserializer);
-                let mut var_requestPolicy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
                 let mut var_status = <crate::models::wallet_event::DisclosureStatus>::sse_decode(deserializer);
                 let mut var_typ = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
                 return crate::models::wallet_event::WalletEvent::Disclosure {
@@ -3264,7 +3251,6 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                     relying_party: var_relyingParty,
                     purpose: var_purpose,
                     shared_attestations: var_sharedAttestations,
-                    request_policy: var_requestPolicy,
                     status: var_status,
                     typ: var_typ,
                 };
@@ -4190,20 +4176,6 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::RenderingMeta
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::disclosure::RequestPolicy {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [self.policy_url.into_into_dart().into_dart()].into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::disclosure::RequestPolicy {}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::RequestPolicy>
-    for crate::models::disclosure::RequestPolicy
-{
-    fn into_into_dart(self) -> crate::models::disclosure::RequestPolicy {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::instruction::RevocationCodeResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -4267,7 +4239,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
         match self {
             crate::models::disclosure::StartDisclosureResult::Request {
                 relying_party,
-                policy,
                 disclosure_options,
                 shared_data_with_relying_party_before,
                 session_type,
@@ -4276,7 +4247,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
             } => [
                 0.into_dart(),
                 relying_party.into_into_dart().into_dart(),
-                policy.into_into_dart().into_dart(),
                 disclosure_options.into_into_dart().into_dart(),
                 shared_data_with_relying_party_before.into_into_dart().into_dart(),
                 session_type.into_into_dart().into_dart(),
@@ -4394,7 +4364,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 relying_party,
                 purpose,
                 shared_attestations,
-                request_policy,
                 status,
                 typ,
             } => [
@@ -4404,7 +4373,6 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 relying_party.into_into_dart().into_dart(),
                 purpose.into_into_dart().into_dart(),
                 shared_attestations.into_into_dart().into_dart(),
-                request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
                 typ.into_into_dart().into_dart(),
             ]
@@ -5538,13 +5506,6 @@ impl SseEncode for crate::models::attestation::RenderingMetadata {
     }
 }
 
-impl SseEncode for crate::models::disclosure::RequestPolicy {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Option<String>>::sse_encode(self.policy_url, serializer);
-    }
-}
-
 impl SseEncode for crate::models::instruction::RevocationCodeResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5595,7 +5556,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
         match self {
             crate::models::disclosure::StartDisclosureResult::Request {
                 relying_party,
-                policy,
                 disclosure_options,
                 shared_data_with_relying_party_before,
                 session_type,
@@ -5604,7 +5564,6 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
             } => {
                 <i32>::sse_encode(0, serializer);
                 <crate::models::organization::Organization>::sse_encode(relying_party, serializer);
-                <crate::models::disclosure::RequestPolicy>::sse_encode(policy, serializer);
                 <Vec<crate::models::disclosure::DisclosureOptions>>::sse_encode(disclosure_options, serializer);
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
                 <crate::models::disclosure::DisclosureSessionType>::sse_encode(session_type, serializer);
@@ -5746,7 +5705,6 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 relying_party,
                 purpose,
                 shared_attestations,
-                request_policy,
                 status,
                 typ,
             } => {
@@ -5759,7 +5717,6 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                     shared_attestations,
                     serializer,
                 );
-                <crate::models::disclosure::RequestPolicy>::sse_encode(request_policy, serializer);
                 <crate::models::wallet_event::DisclosureStatus>::sse_encode(status, serializer);
                 <crate::models::disclosure::DisclosureType>::sse_encode(typ, serializer);
             }
@@ -6208,13 +6165,6 @@ mod io {
         fn cst_decode(self) -> crate::models::attestation::RenderingMetadata {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
             CstDecode::<crate::models::attestation::RenderingMetadata>::cst_decode(*wrap).into()
-        }
-    }
-    impl CstDecode<crate::models::disclosure::RequestPolicy> for *mut wire_cst_request_policy {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::disclosure::RequestPolicy {
-            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
-            CstDecode::<crate::models::disclosure::RequestPolicy>::cst_decode(*wrap).into()
         }
     }
     impl CstDecode<crate::models::revocation::RevocationStatus> for *mut i32 {
@@ -6754,14 +6704,6 @@ mod io {
             }
         }
     }
-    impl CstDecode<crate::models::disclosure::RequestPolicy> for wire_cst_request_policy {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::disclosure::RequestPolicy {
-            crate::models::disclosure::RequestPolicy {
-                policy_url: self.policy_url.cst_decode(),
-            }
-        }
-    }
     impl CstDecode<crate::models::instruction::RevocationCodeResult> for wire_cst_revocation_code_result {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::instruction::RevocationCodeResult {
@@ -6798,7 +6740,6 @@ mod io {
                     let ans = unsafe { self.kind.Request };
                     crate::models::disclosure::StartDisclosureResult::Request {
                         relying_party: ans.relying_party.cst_decode(),
-                        policy: ans.policy.cst_decode(),
                         disclosure_options: ans.disclosure_options.cst_decode(),
                         shared_data_with_relying_party_before: ans.shared_data_with_relying_party_before.cst_decode(),
                         session_type: ans.session_type.cst_decode(),
@@ -6864,7 +6805,6 @@ mod io {
                         relying_party: ans.relying_party.cst_decode(),
                         purpose: ans.purpose.cst_decode(),
                         shared_attestations: ans.shared_attestations.cst_decode(),
-                        request_policy: ans.request_policy.cst_decode(),
                         status: ans.status.cst_decode(),
                         typ: ans.typ.cst_decode(),
                     }
@@ -7347,18 +7287,6 @@ mod io {
         }
     }
     impl Default for wire_cst_rendering_metadata {
-        fn default() -> Self {
-            Self::new_with_null_ptr()
-        }
-    }
-    impl NewWithNullPtr for wire_cst_request_policy {
-        fn new_with_null_ptr() -> Self {
-            Self {
-                policy_url: core::ptr::null_mut(),
-            }
-        }
-    }
-    impl Default for wire_cst_request_policy {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -7983,11 +7911,6 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata() -> *mut wire_cst_rendering_metadata {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_rendering_metadata::new_with_null_ptr())
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_request_policy() -> *mut wire_cst_request_policy {
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_request_policy::new_with_null_ptr())
     }
 
     #[unsafe(no_mangle)]
@@ -8810,11 +8733,6 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_request_policy {
-        policy_url: *mut wire_cst_list_prim_u_8_strict,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
     pub struct wire_cst_revocation_code_result {
         tag: i32,
         kind: RevocationCodeResultKind,
@@ -8858,7 +8776,6 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_StartDisclosureResult_Request {
         relying_party: *mut wire_cst_organization,
-        policy: *mut wire_cst_request_policy,
         disclosure_options: *mut wire_cst_list_disclosure_options,
         shared_data_with_relying_party_before: bool,
         session_type: i32,
@@ -8931,7 +8848,6 @@ mod io {
         relying_party: *mut wire_cst_organization,
         purpose: *mut wire_cst_list_localized_string,
         shared_attestations: *mut wire_cst_list_attestation_presentation,
-        request_policy: *mut wire_cst_request_policy,
         status: i32,
         typ: i32,
     }

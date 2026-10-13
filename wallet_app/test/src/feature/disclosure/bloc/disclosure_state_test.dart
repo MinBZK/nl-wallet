@@ -15,7 +15,6 @@ void main() {
     final mockOrganization = WalletMockData.organization;
     final mockLocalizedText = 'Localized Text'.untranslated;
     final mockCardRequests = <DiscloseCardRequest>[];
-    final mockPolicy = WalletMockData.policy;
     final mockMissingAttributes = <MissingAttribute>[];
 
     test('DisclosureInitial has correct default FlowProgress', () {
@@ -42,7 +41,6 @@ void main() {
         final state = DisclosureCheckOrganizationForLogin(
           relyingParty: mockOrganization,
           sessionType: DisclosureSessionType.sameDevice,
-          policy: mockPolicy,
           cardRequests: mockCardRequests,
           sharedDataWithOrganizationBefore: false,
         );
@@ -53,7 +51,6 @@ void main() {
         final state = DisclosureCheckOrganizationForLogin(
           relyingParty: mockOrganization,
           sessionType: DisclosureSessionType.crossDevice,
-          policy: mockPolicy,
           cardRequests: mockCardRequests,
           sharedDataWithOrganizationBefore: false,
         );
@@ -93,7 +90,6 @@ void main() {
           relyingParty: mockOrganization,
           requestPurpose: mockLocalizedText,
           cardRequests: mockCardRequests,
-          policy: mockPolicy,
           sessionType: DisclosureSessionType.sameDevice,
         );
         expect(state.stepperProgress, const FlowProgress(currentStep: 1, totalSteps: kDisclosureSteps));
@@ -104,7 +100,6 @@ void main() {
           relyingParty: mockOrganization,
           requestPurpose: mockLocalizedText,
           cardRequests: mockCardRequests,
-          policy: mockPolicy,
           sessionType: DisclosureSessionType.crossDevice,
         );
         expect(

@@ -2,7 +2,6 @@ part of './wallet_event.dart';
 
 class SignEvent extends WalletEvent {
   final Organization relyingParty;
-  final Policy policy;
   final Document document;
 
   @override
@@ -12,10 +11,9 @@ class SignEvent extends WalletEvent {
     required super.dateTime,
     required super.status,
     required this.relyingParty,
-    required this.policy,
     required this.document,
   });
 
   @override
-  List<Object?> get props => [dateTime, status, relyingParty, policy, document, sharedAttributes];
+  List<Object?> get props => [dateTime, status, relyingParty, document, sharedAttributes];
 }

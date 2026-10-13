@@ -800,10 +800,10 @@ return requestAttributesMissing(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Organization relyingParty,  RequestPolicy policy,  List<DisclosureOptions> disclosureOptions,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose,  DisclosureType requestType)?  request,TResult Function( Organization relyingParty,  List<MissingAttribute> missingAttributes,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose)?  requestAttributesMissing,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Organization relyingParty,  List<DisclosureOptions> disclosureOptions,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose,  DisclosureType requestType)?  request,TResult Function( Organization relyingParty,  List<MissingAttribute> missingAttributes,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose)?  requestAttributesMissing,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case StartDisclosureResult_Request() when request != null:
-return request(_that.relyingParty,_that.policy,_that.disclosureOptions,_that.sharedDataWithRelyingPartyBefore,_that.sessionType,_that.requestPurpose,_that.requestType);case StartDisclosureResult_RequestAttributesMissing() when requestAttributesMissing != null:
+return request(_that.relyingParty,_that.disclosureOptions,_that.sharedDataWithRelyingPartyBefore,_that.sessionType,_that.requestPurpose,_that.requestType);case StartDisclosureResult_RequestAttributesMissing() when requestAttributesMissing != null:
 return requestAttributesMissing(_that.relyingParty,_that.missingAttributes,_that.sharedDataWithRelyingPartyBefore,_that.sessionType,_that.requestPurpose);case _:
   return orElse();
 
@@ -822,10 +822,10 @@ return requestAttributesMissing(_that.relyingParty,_that.missingAttributes,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Organization relyingParty,  RequestPolicy policy,  List<DisclosureOptions> disclosureOptions,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose,  DisclosureType requestType)  request,required TResult Function( Organization relyingParty,  List<MissingAttribute> missingAttributes,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose)  requestAttributesMissing,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Organization relyingParty,  List<DisclosureOptions> disclosureOptions,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose,  DisclosureType requestType)  request,required TResult Function( Organization relyingParty,  List<MissingAttribute> missingAttributes,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose)  requestAttributesMissing,}) {final _that = this;
 switch (_that) {
 case StartDisclosureResult_Request():
-return request(_that.relyingParty,_that.policy,_that.disclosureOptions,_that.sharedDataWithRelyingPartyBefore,_that.sessionType,_that.requestPurpose,_that.requestType);case StartDisclosureResult_RequestAttributesMissing():
+return request(_that.relyingParty,_that.disclosureOptions,_that.sharedDataWithRelyingPartyBefore,_that.sessionType,_that.requestPurpose,_that.requestType);case StartDisclosureResult_RequestAttributesMissing():
 return requestAttributesMissing(_that.relyingParty,_that.missingAttributes,_that.sharedDataWithRelyingPartyBefore,_that.sessionType,_that.requestPurpose);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -840,10 +840,10 @@ return requestAttributesMissing(_that.relyingParty,_that.missingAttributes,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Organization relyingParty,  RequestPolicy policy,  List<DisclosureOptions> disclosureOptions,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose,  DisclosureType requestType)?  request,TResult? Function( Organization relyingParty,  List<MissingAttribute> missingAttributes,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose)?  requestAttributesMissing,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Organization relyingParty,  List<DisclosureOptions> disclosureOptions,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose,  DisclosureType requestType)?  request,TResult? Function( Organization relyingParty,  List<MissingAttribute> missingAttributes,  bool sharedDataWithRelyingPartyBefore,  DisclosureSessionType sessionType,  List<LocalizedString> requestPurpose)?  requestAttributesMissing,}) {final _that = this;
 switch (_that) {
 case StartDisclosureResult_Request() when request != null:
-return request(_that.relyingParty,_that.policy,_that.disclosureOptions,_that.sharedDataWithRelyingPartyBefore,_that.sessionType,_that.requestPurpose,_that.requestType);case StartDisclosureResult_RequestAttributesMissing() when requestAttributesMissing != null:
+return request(_that.relyingParty,_that.disclosureOptions,_that.sharedDataWithRelyingPartyBefore,_that.sessionType,_that.requestPurpose,_that.requestType);case StartDisclosureResult_RequestAttributesMissing() when requestAttributesMissing != null:
 return requestAttributesMissing(_that.relyingParty,_that.missingAttributes,_that.sharedDataWithRelyingPartyBefore,_that.sessionType,_that.requestPurpose);case _:
   return null;
 
@@ -856,11 +856,10 @@ return requestAttributesMissing(_that.relyingParty,_that.missingAttributes,_that
 
 
 class StartDisclosureResult_Request extends StartDisclosureResult {
-  const StartDisclosureResult_Request({required this.relyingParty, required this.policy, required  List<DisclosureOptions> disclosureOptions, required this.sharedDataWithRelyingPartyBefore, required this.sessionType, required  List<LocalizedString> requestPurpose, required this.requestType}): _disclosureOptions = disclosureOptions,_requestPurpose = requestPurpose,super._();
+  const StartDisclosureResult_Request({required this.relyingParty, required  List<DisclosureOptions> disclosureOptions, required this.sharedDataWithRelyingPartyBefore, required this.sessionType, required  List<LocalizedString> requestPurpose, required this.requestType}): _disclosureOptions = disclosureOptions,_requestPurpose = requestPurpose,super._();
   
 
 @override final  Organization relyingParty;
- final  RequestPolicy policy;
  final  List<DisclosureOptions> _disclosureOptions;
  List<DisclosureOptions> get disclosureOptions {
   if (_disclosureOptions is EqualUnmodifiableListView) return _disclosureOptions;
@@ -889,18 +888,18 @@ $StartDisclosureResult_RequestCopyWith<StartDisclosureResult_Request> get copyWi
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult_Request&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&(identical(other.policy, policy) || other.policy == policy)&&const DeepCollectionEquality().equals(other.disclosureOptions, _disclosureOptions)&&(identical(other.sharedDataWithRelyingPartyBefore, sharedDataWithRelyingPartyBefore) || other.sharedDataWithRelyingPartyBefore == sharedDataWithRelyingPartyBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.requestPurpose, _requestPurpose)&&(identical(other.requestType, requestType) || other.requestType == requestType));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureResult_Request&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other.disclosureOptions, _disclosureOptions)&&(identical(other.sharedDataWithRelyingPartyBefore, sharedDataWithRelyingPartyBefore) || other.sharedDataWithRelyingPartyBefore == sharedDataWithRelyingPartyBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.requestPurpose, _requestPurpose)&&(identical(other.requestType, requestType) || other.requestType == requestType));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,relyingParty,policy,const DeepCollectionEquality().hash(_disclosureOptions),sharedDataWithRelyingPartyBefore,sessionType,const DeepCollectionEquality().hash(_requestPurpose),requestType);
+    return Object.hash(runtimeType,relyingParty,const DeepCollectionEquality().hash(_disclosureOptions),sharedDataWithRelyingPartyBefore,sessionType,const DeepCollectionEquality().hash(_requestPurpose),requestType);
 }
 
 @override
 String toString() {
-    return 'StartDisclosureResult.request(relyingParty: $relyingParty, policy: $policy, disclosureOptions: $disclosureOptions, sharedDataWithRelyingPartyBefore: $sharedDataWithRelyingPartyBefore, sessionType: $sessionType, requestPurpose: $requestPurpose, requestType: $requestType)';
+    return 'StartDisclosureResult.request(relyingParty: $relyingParty, disclosureOptions: $disclosureOptions, sharedDataWithRelyingPartyBefore: $sharedDataWithRelyingPartyBefore, sessionType: $sessionType, requestPurpose: $requestPurpose, requestType: $requestType)';
 }
 
 
@@ -911,7 +910,7 @@ abstract mixin class $StartDisclosureResult_RequestCopyWith<$Res> implements $St
   factory $StartDisclosureResult_RequestCopyWith(StartDisclosureResult_Request value, $Res Function(StartDisclosureResult_Request) _then) = _$StartDisclosureResult_RequestCopyWithImpl;
 @override @useResult
 $Res call({
- Organization relyingParty, RequestPolicy policy, List<DisclosureOptions> disclosureOptions, bool sharedDataWithRelyingPartyBefore, DisclosureSessionType sessionType, List<LocalizedString> requestPurpose, DisclosureType requestType
+ Organization relyingParty, List<DisclosureOptions> disclosureOptions, bool sharedDataWithRelyingPartyBefore, DisclosureSessionType sessionType, List<LocalizedString> requestPurpose, DisclosureType requestType
 });
 
 
@@ -928,11 +927,10 @@ class _$StartDisclosureResult_RequestCopyWithImpl<$Res>
 
 /// Create a copy of StartDisclosureResult
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? relyingParty = null,Object? policy = null,Object? disclosureOptions = null,Object? sharedDataWithRelyingPartyBefore = null,Object? sessionType = null,Object? requestPurpose = null,Object? requestType = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? relyingParty = null,Object? disclosureOptions = null,Object? sharedDataWithRelyingPartyBefore = null,Object? sessionType = null,Object? requestPurpose = null,Object? requestType = null,}) {
   return _then(StartDisclosureResult_Request(
 relyingParty: null == relyingParty ? _self.relyingParty : relyingParty // ignore: cast_nullable_to_non_nullable
-as Organization,policy: null == policy ? _self.policy : policy // ignore: cast_nullable_to_non_nullable
-as RequestPolicy,disclosureOptions: null == disclosureOptions ? _self._disclosureOptions : disclosureOptions // ignore: cast_nullable_to_non_nullable
+as Organization,disclosureOptions: null == disclosureOptions ? _self._disclosureOptions : disclosureOptions // ignore: cast_nullable_to_non_nullable
 as List<DisclosureOptions>,sharedDataWithRelyingPartyBefore: null == sharedDataWithRelyingPartyBefore ? _self.sharedDataWithRelyingPartyBefore : sharedDataWithRelyingPartyBefore // ignore: cast_nullable_to_non_nullable
 as bool,sessionType: null == sessionType ? _self.sessionType : sessionType // ignore: cast_nullable_to_non_nullable
 as DisclosureSessionType,requestPurpose: null == requestPurpose ? _self._requestPurpose : requestPurpose // ignore: cast_nullable_to_non_nullable
