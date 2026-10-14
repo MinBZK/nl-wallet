@@ -1,3 +1,4 @@
+use std::io::ErrorKind;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -10,12 +11,11 @@ use super::WalletConfigJwt;
 pub async fn get_config_file(storage_path: &Path) -> Result<Option<WalletConfigJwt>, ConfigurationError> {
     let path = path_for_config_file(storage_path);
 
-    if !fs::try_exists(&path).await.map_err(FileStorageError::from)? {
-        return Ok(None);
+    match fs::read_to_string(path).await {
+        Ok(jwt_string) => Ok(Some(jwt_string.parse().map_err(ConfigurationError::JwtParse)?)),
+        Err(err) if err.kind() == ErrorKind::NotFound => Ok(None),
+        Err(err) => Err(FileStorageError::from(err))?,
     }
-
-    let jwt_string = fs::read_to_string(path).await.map_err(FileStorageError::from)?;
-    Ok(Some(jwt_string.parse().map_err(ConfigurationError::JwtParse)?))
 }
 
 pub async fn update_config_file(storage_path: &Path, jwt: &WalletConfigJwt) -> Result<(), FileStorageError> {
