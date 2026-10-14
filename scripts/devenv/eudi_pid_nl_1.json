@@ -12,8 +12,8 @@
       "summary": "{{given_name}}",
       "rendering": {
         "simple": {
-          "background_color": "#C7E8EE",
-          "text_color": "#152A62"
+          "background_color": "#c7e8ee",
+          "text_color": "#152a62"
         }
       }
     },
@@ -24,8 +24,8 @@
       "summary": "{{given_name}}",
       "rendering": {
         "simple": {
-          "background_color": "#C7E8EE",
-          "text_color": "#152A62"
+          "background_color": "#c7e8ee",
+          "text_color": "#152a62"
         }
       }
     }
