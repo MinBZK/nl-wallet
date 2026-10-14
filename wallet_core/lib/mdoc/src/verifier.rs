@@ -552,7 +552,7 @@ mod tests {
                 Some(&eph_reader_key),
                 &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_issuer_status_list_mock().unwrap(),
                 ))),
@@ -599,7 +599,7 @@ mod tests {
                 None,
                 &session_transcript,
                 &MockTimeGenerator::default(),
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_issuer_status_list_mock().unwrap(),
                 ))),

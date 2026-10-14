@@ -51,7 +51,7 @@ impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
         };
 
         Ok(Self::new(
-            HttpConfigurationRepository::new(signing_public_key, storage_path.clone(), default_config).await?,
+            HttpConfigurationRepository::new(signing_public_key, storage_path.clone(), default_config),
             storage_path,
         ))
     }

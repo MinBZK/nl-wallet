@@ -76,9 +76,7 @@ async fn test_wallet_config() {
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
-    )
-    .await
-    .unwrap();
+    );
 
     let before = http_config.get();
     let result = http_config.fetch(&config_server_config.http_config).await.unwrap();
@@ -123,9 +121,7 @@ async fn test_wallet_config_stale() {
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
-    )
-    .await
-    .unwrap();
+    );
 
     let before = http_config.get();
     let result = http_config.fetch(&config_server_config.http_config).await.unwrap();
@@ -172,9 +168,7 @@ async fn test_wallet_config_signature_verification_failed() {
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
-    )
-    .await
-    .unwrap();
+    );
 
     let result = http_config
         .fetch(&config_server_config.http_config)
@@ -211,9 +205,7 @@ async fn test_wallet_config_rejected_etag_not_stored() {
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
-    )
-    .await
-    .unwrap();
+    );
 
     rejecting_http_config
         .fetch(&config_server_config.http_config)
@@ -232,9 +224,7 @@ async fn test_wallet_config_rejected_etag_not_stored() {
         PublicKey::from(*signing_key.verifying_key()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
-    )
-    .await
-    .unwrap();
+    );
 
     let result = accepting_http_config
         .fetch(&config_server_config.http_config)

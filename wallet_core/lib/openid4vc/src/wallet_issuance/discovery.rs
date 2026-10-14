@@ -1058,7 +1058,7 @@ mod test {
 
         (
             issuer_identifier,
-            TrustAnchors::from(&ca),
+            ca.to_trust_anchors(),
             crl_verifier,
             registration_certificate,
         )
@@ -1213,7 +1213,7 @@ mod test {
         (
             server,
             issuer_identifier,
-            TrustAnchors::from(&issuer_ca),
+            issuer_ca.to_trust_anchors(),
             wrpac_trust_anchors,
             crl_verifier,
             registration_certificate,

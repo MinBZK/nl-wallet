@@ -54,7 +54,7 @@ async fn make_sd_jwt(
         .await
         .unwrap();
 
-    (sd_jwt, TrustAnchors::from(&ca), issuer_keypair)
+    (sd_jwt, ca.to_trust_anchors(), issuer_keypair)
 }
 
 #[test]
@@ -291,10 +291,7 @@ async fn test_presentation() {
 
     println!(
         "issuer_privkey pubkey: {0}",
-        serde_json::to_string_pretty(
-            &jwk_from_public_key(&PublicKey::from(*issuer_keypair.certificate().public_key())).unwrap()
-        )
-        .unwrap()
+        serde_json::to_string_pretty(&jwk_from_public_key(issuer_keypair.certificate().public_key()).unwrap()).unwrap()
     );
     println!(
         "holder_key pubkey: {0}",
@@ -368,7 +365,7 @@ async fn test_presentation() {
         .parse::<UnverifiedSdJwtPresentation>()
         .unwrap()
         .into_verified_against_trust_anchors(
-            &TrustAnchors::from(&ca),
+            &ca.to_trust_anchors(),
             &kb_verification_options,
             &MockTimeGenerator::default(),
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_keypair))),
@@ -454,7 +451,7 @@ fn test_wscd_presentation() {
 
     let verified_sd_jwt_presentation = unverified_sd_jwt_presentation
         .into_verified_against_trust_anchors(
-            &TrustAnchors::from(&ca),
+            &ca.to_trust_anchors(),
             &kb_verification_options,
             &MockTimeGenerator::default(),
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_key_pair))),

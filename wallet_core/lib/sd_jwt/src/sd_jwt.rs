@@ -1043,7 +1043,7 @@ mod test {
         let err = sd_jwt
             .parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>()
             .unwrap()
-            .into_verified(&PublicKey::from(*issuer_keypair.certificate().public_key()).into())
+            .into_verified(&issuer_keypair.certificate().public_key().into())
             .expect_err("should fail");
 
         assert_matches!(

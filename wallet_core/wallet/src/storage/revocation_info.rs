@@ -62,7 +62,6 @@ mod test {
 
     use attestation_types::status_claim::StatusClaim;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationStatus;
@@ -77,7 +76,7 @@ mod test {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_cert = ca.generate_issuer_status_list_mock().unwrap();
         let issuer_cert_dn = issuer_cert.certificate().to_canonical_distinguished_name().unwrap();
-        let issuer_trust_anchors = TrustAnchors::from(&ca);
+        let issuer_trust_anchors = ca.to_trust_anchors();
 
         let revocation_verifier =
             RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_cert)));

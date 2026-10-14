@@ -256,7 +256,6 @@ mod tests {
     use crypto::PublicKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use jwt::SignedJwt;
     use jwt::UnverifiedJwt;
@@ -353,7 +352,7 @@ mod tests {
     fn verify_valid(ca: Ca, holder_key: SigningKey, #[values(Some(Nonce::new_random()), None)] nonce: Option<Nonce>) {
         let disclosure = make_wia_disclosure(&ca, &holder_key, nonce.clone());
         let (_, verified_nonce) = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], None)
             .unwrap();
 
         assert_eq!(nonce, verified_nonce);
@@ -372,7 +371,7 @@ mod tests {
             make_pop(&wrong_key, None, AUD),
         );
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], None)
             .unwrap_err();
         assert_matches!(error, WiaVerificationError::JwtVerify(_));
     }
@@ -389,7 +388,7 @@ mod tests {
             make_pop(&holder_key, None, "https://wrong.example.com/"),
         );
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], None)
             .unwrap_err();
         assert_matches!(error, WiaVerificationError::JwtVerify(_));
     }
@@ -398,7 +397,7 @@ mod tests {
     fn verify_unaccepted_wallet_client_id(ca: Ca, holder_key: SigningKey) {
         let disclosure = make_wia_disclosure(&ca, &holder_key, None);
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, ["other-client"], None)
+            .verify(&ca.to_trust_anchors(), AUD, ["other-client"], None)
             .unwrap_err();
         assert_matches!(error, WiaVerificationError::JwtVerify(_));
     }
@@ -415,7 +414,7 @@ mod tests {
             make_pop(&holder_key, None, AUD),
         );
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], None)
             .unwrap_err();
         assert_matches!(
             error,
@@ -428,12 +427,7 @@ mod tests {
     fn verify_correct_client_id(ca: Ca, holder_key: SigningKey) {
         let disclosure = make_wia_disclosure(&ca, &holder_key, None);
         disclosure
-            .verify(
-                &TrustAnchors::from(&ca),
-                AUD,
-                [WALLET_CLIENT_ID],
-                Some(WALLET_CLIENT_ID),
-            )
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], Some(WALLET_CLIENT_ID))
             .unwrap();
     }
 
@@ -441,12 +435,7 @@ mod tests {
     fn verify_incorrect_client_id(ca: Ca, holder_key: SigningKey) {
         let disclosure = make_wia_disclosure(&ca, &holder_key, None);
         let error = disclosure
-            .verify(
-                &TrustAnchors::from(&ca),
-                AUD,
-                [WALLET_CLIENT_ID],
-                Some("wrong-client-id"),
-            )
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], Some("wrong-client-id"))
             .unwrap_err();
         assert_matches!(error, WiaVerificationError::IncorrectSub(found, expected)
             if found == WALLET_CLIENT_ID && expected == "wrong-client-id");

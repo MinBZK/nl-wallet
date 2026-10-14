@@ -734,7 +734,6 @@ mod test {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use indexmap::IndexMap;
     use itertools::Itertools;
@@ -840,7 +839,7 @@ mod test {
 
         // The IssuerSigned should be valid
         issuer_signed
-            .verify(ValidityRequirement::Valid, &TimeGenerator, &TrustAnchors::from(&ca))
+            .verify(ValidityRequirement::Valid, &TimeGenerator, &ca.to_trust_anchors())
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
@@ -939,7 +938,7 @@ mod test {
 
         // The IssuerSigned should be valid
         let verified_sd_jwt = unverified_sd_jwt
-            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator)
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator)
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
@@ -985,7 +984,7 @@ mod test {
             .await
             .unwrap()
             .into_unverified()
-            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator)
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator)
             .expect("the signed SD-JWT should be valid");
 
         let concealed_claims = verified_sd_jwt
@@ -1338,7 +1337,7 @@ mod test {
         let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap().into_unverified();
         presented_sd_jwt
             .into_verified_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &kb_verification_options,
                 &time_generator,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_key_pair))),

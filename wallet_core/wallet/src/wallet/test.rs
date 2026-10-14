@@ -377,8 +377,8 @@ pub fn create_wallet_configuration() -> WalletConfiguration {
         DerVerifyingKey::from(*keys.instruction_result_signing_key.verifying_key()),
     )]);
 
-    config.issuer_trust_anchors = TrustAnchors::try_from(vec![ISSUER_KEY.trust_anchor.clone()]).unwrap();
-    config.wrpac_trust_anchors = TrustAnchors::from(&*WRPAC_CA);
+    config.issuer_trust_anchors = TrustAnchors::try_from_trust_anchors([ISSUER_KEY.trust_anchor.clone()]).unwrap();
+    config.wrpac_trust_anchors = WRPAC_CA.to_trust_anchors();
 
     config
 }

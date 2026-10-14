@@ -3,6 +3,7 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 
+use crate::PublicKey;
 use crate::keys::EcdsaKey;
 use crate::x509::BorrowingCertificate;
 
@@ -10,6 +11,9 @@ use crate::x509::BorrowingCertificate;
 pub enum KeyPairError {
     #[error("private key does not belong to public key from certificate")]
     KeyMismatch,
+
+    #[error("unsupported key algorithm")]
+    UnsupportedKeyAlgorithm,
 
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -27,27 +31,34 @@ impl KeyPair {
         private_key: SigningKey,
         certificate: BorrowingCertificate,
     ) -> Result<KeyPair, KeyPairError> {
-        if certificate.public_key() != private_key.verifying_key() {
-            return Err(KeyPairError::KeyMismatch);
-        }
+        Self::check_verifying_key(private_key.verifying_key(), &certificate)?;
 
         Ok(KeyPair {
             private_key,
             certificate,
         })
     }
+
+    fn check_verifying_key(public_key: &VerifyingKey, certificate: &BorrowingCertificate) -> Result<(), KeyPairError> {
+        let PublicKey::ESP256(cert_public_key) = certificate.public_key() else {
+            return Err(KeyPairError::UnsupportedKeyAlgorithm);
+        };
+
+        if public_key != cert_public_key {
+            return Err(KeyPairError::KeyMismatch);
+        }
+
+        Ok(())
+    }
 }
 
 impl<S: EcdsaKey> KeyPair<S> {
     pub async fn new(private_key: S, certificate: BorrowingCertificate) -> Result<KeyPair<S>, KeyPairError> {
-        if certificate.public_key()
-            != &private_key
-                .verifying_key()
-                .await
-                .map_err(|e| KeyPairError::PublicKeyFromPrivate(Box::new(e)))?
-        {
-            return Err(KeyPairError::KeyMismatch);
-        }
+        let public_key_from_private = private_key
+            .verifying_key()
+            .await
+            .map_err(|e| KeyPairError::PublicKeyFromPrivate(Box::new(e)))?;
+        KeyPair::check_verifying_key(&public_key_from_private, &certificate)?;
 
         Ok(KeyPair {
             private_key,
@@ -84,6 +95,60 @@ impl<S: EcdsaKey> EcdsaKey for KeyPair<S> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use std::assert_matches;
+
+    use p256::elliptic_curve::Generate;
+    use p256::pkcs8::DecodePrivateKey;
+    use rcgen::CertificateParams;
+    use rcgen::PKCS_ECDSA_P384_SHA384;
+
+    use super::KeyPair;
+    use crate::server_keys::KeyPairError;
+    use crate::x509::BorrowingCertificate;
+
+    #[test]
+    fn test_keypair_new() {
+        let key_pair = rcgen::KeyPair::generate().unwrap();
+
+        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+
+        let private_key = p256::ecdsa::SigningKey::from_pkcs8_der(key_pair.serialized_der()).unwrap();
+
+        let result = KeyPair::new_from_signing_key(private_key.clone(), certificate.clone()).unwrap();
+        assert_eq!(result.certificate, certificate);
+        assert_eq!(result.private_key, private_key);
+    }
+
+    #[test]
+    fn test_keypair_new_mismatch() {
+        let key_pair = rcgen::KeyPair::generate().unwrap();
+
+        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+
+        let private_key = p256::ecdsa::SigningKey::generate();
+
+        let err = KeyPair::new_from_signing_key(private_key.clone(), certificate.clone()).unwrap_err();
+        assert_matches!(err, KeyPairError::KeyMismatch);
+    }
+
+    #[test]
+    fn test_keypair_new_unsupported() {
+        let key_pair = rcgen::KeyPair::generate_for(&PKCS_ECDSA_P384_SHA384).unwrap();
+
+        let certificate = CertificateParams::default().self_signed(&key_pair).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+
+        let private_key = p256::ecdsa::SigningKey::generate();
+
+        let err = KeyPair::new_from_signing_key(private_key.clone(), certificate.clone()).unwrap_err();
+        assert_matches!(err, KeyPairError::UnsupportedKeyAlgorithm);
+    }
+}
+
 #[cfg(any(test, feature = "generate"))]
 pub mod generate {
     use p256::ecdsa::SigningKey;
@@ -114,6 +179,7 @@ pub mod generate {
 
     use crate::server_keys::KeyPair;
     use crate::trust_anchor::BorrowingTrustAnchor;
+    use crate::trust_anchor::TrustAnchors;
     use crate::x509::BorrowingCertificate;
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateParseError;
@@ -180,8 +246,8 @@ pub mod generate {
             Ok(ca)
         }
 
-        /// Generate a new self-signed CA key pair, constrained to the specified number of intermediates CAs.
-        pub fn generate_with_intermediate_count(
+        pub fn create_from_keypair(
+            keypair: rcgen::KeyPair,
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
             intermediate_count: u8,
@@ -193,13 +259,21 @@ pub mod generate {
                 .try_into()
                 .map_err(CertificateGenerationError::GeneratingFailed)?;
 
-            let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
             let certificate = params
-                .self_signed(&key_pair)
+                .self_signed(&keypair)
                 .map_err(CertificateGenerationError::GeneratingFailed)?;
-            let issuer = Issuer::new(params, key_pair);
-
+            let issuer: Issuer<'static, _> = Issuer::new(params, keypair);
             Self::new(issuer, certificate.into(), intermediate_count)
+        }
+
+        /// Generate a new self-signed CA key pair, constrained to the specified number of intermediates CAs.
+        pub fn generate_with_intermediate_count(
+            distinguished_name: DistinguishedName,
+            configuration: CertificateConfiguration,
+            intermediate_count: u8,
+        ) -> Result<Self, CertificateGenerationError> {
+            let key_pair = rcgen::KeyPair::generate().map_err(CertificateGenerationError::GeneratingFailed)?;
+            Self::create_from_keypair(key_pair, distinguished_name, configuration, intermediate_count)
         }
 
         /// Generate a new self-signed CA key pair, constrained to having no intermediate CAs.
@@ -257,6 +331,11 @@ pub mod generate {
 
         pub fn to_trust_anchor(&self) -> TrustAnchor<'_> {
             self.borrowing_trust_anchor.as_trust_anchor().clone()
+        }
+
+        pub fn to_trust_anchors(&self) -> TrustAnchors {
+            TrustAnchors::try_from_trust_anchors([self.to_borrowing_trust_anchor()])
+                .expect("cannot create trust anchors")
         }
 
         /// Generate a signed CRL from this CA, revoking the given certificates.
