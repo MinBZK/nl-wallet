@@ -203,6 +203,23 @@ Key Attestation private key and certificate. This certificate should validate
 under one of the <code class="docutils literal notranslate"><span class="pre">wptl_trust_anchors</span></code>, just like the WIA certificate does.
 Note that the trust anchor under which these certificates are issued need not
 be the same for the same Wallet Provider.</p></li>
+<li><p>The PID, as issued by the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, was updated to match the EUDI PID
+Rulebook. Some mdoc attribute identifiers now differ from their previous
+names: <code class="docutils literal notranslate"><span class="pre">birthdate</span></code> is now <code class="docutils literal notranslate"><span class="pre">birth_date</span></code>, <code class="docutils literal notranslate"><span class="pre">nationalities</span></code> is now <code class="docutils literal notranslate"><span class="pre">nationality</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">street_address</span></code>, <code class="docutils literal notranslate"><span class="pre">postal_code</span></code>, <code class="docutils literal notranslate"><span class="pre">locality</span></code>, and <code class="docutils literal notranslate"><span class="pre">country</span></code> are now
+<code class="docutils literal notranslate"><span class="pre">resident_street</span></code>, <code class="docutils literal notranslate"><span class="pre">resident_postal_code</span></code>, <code class="docutils literal notranslate"><span class="pre">resident_city</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">resident_country</span></code> respectively. <code class="docutils literal notranslate"><span class="pre">house_number</span></code> is included as part of
+<code class="docutils literal notranslate"><span class="pre">resident_street</span></code>. <code class="docutils literal notranslate"><span class="pre">place_of_birth</span></code> is now an object with <code class="docutils literal notranslate"><span class="pre">country</span></code> and
+<code class="docutils literal notranslate"><span class="pre">locality</span></code> properties. The mdoc <code class="docutils literal notranslate"><span class="pre">doctype</span></code> identifier was changed to match the
+EUDI PID Rulebook. The attribute <code class="docutils literal notranslate"><span class="pre">age_over_18</span></code> has been removed.
+<code class="docutils literal notranslate"><span class="pre">issuing_country</span></code>, <code class="docutils literal notranslate"><span class="pre">issuing_authority</span></code> and <code class="docutils literal notranslate"><span class="pre">sex</span></code> are added as new
+attributes. <code class="docutils literal notranslate"><span class="pre">birthdate</span></code> is now encoded as a <code class="docutils literal notranslate"><span class="pre">full-date</span></code> (CBOR tag 1004). The
+<code class="docutils literal notranslate"><span class="pre">issuing_country</span></code> and <code class="docutils literal notranslate"><span class="pre">issuing_authority</span></code> must be configured in the PID issuer
+settings. The NL-specific mdoc attributes <code class="docutils literal notranslate"><span class="pre">bsn</span></code> and <code class="docutils literal notranslate"><span class="pre">recovery_code</span></code> have moved
+to the domestic <code class="docutils literal notranslate"><span class="pre">eu.europa.ec.eudi.pid.nl.1</span></code> namespace, as required for
+attributes not defined in the Rulebook. The <code class="docutils literal notranslate"><span class="pre">pid_attributes</span></code> paths in the
+wallet configuration and any Relying Party requests or registration
+certificates for these attributes must be updated accordingly.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -226,6 +243,10 @@ to OpenID4VCI 1.0 and its implementation is now effectively dead code.</p></li>
 <li><p>The wallet now also accepts a registration certificate in JWT format that is
 included in <code class="docutils literal notranslate"><span class="pre">verifier_info</span></code> or <code class="docutils literal notranslate"><span class="pre">issuer_info</span></code> as a compact JWT, without the
 additional base64url encoding required by ETSI TS 119 472-2.</p></li>
+<li><p>The PID, as issued by the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, was updated to match the EUDI PID
+Rulebook. Note that <code class="docutils literal notranslate"><span class="pre">portrait</span></code>, even though being mandatory, is not included
+at all because the BRP does not provide it. <code class="docutils literal notranslate"><span class="pre">place_of_birth</span></code> is also not
+marked as mandatory because our implementation cannot handle that yet.</p></li>
 </ul>
 </section>
 <section id="bug-fixes">

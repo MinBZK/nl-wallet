@@ -212,10 +212,10 @@ singular name <code class="docutils literal notranslate"><span class="pre">claim
 <span class="w">  </span><span class="nt">&quot;credentials&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">    </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">&quot;format&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mso_mdoc&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;meta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;doctype_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;meta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;doctype_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;eu.europa.ec.eudi.pid.1&quot;</span><span class="w"> </span><span class="p">},</span>
 <span class="w">      </span><span class="nt">&quot;claim&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;given_name&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">},</span>
-<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;family_name&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;eu.europa.ec.eudi.pid.1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;given_name&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;eu.europa.ec.eudi.pid.1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;family_name&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
 <span class="w">      </span><span class="p">]</span>
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="p">{</span>
@@ -252,7 +252,7 @@ entries in the registration certificate. Their claim paths use different
 conventions and are matched exactly; the wallet does not translate between
 them during authorization.</p>
 <p>An mdoc claim path starts with its namespace followed by the element
-identifier, for example <code class="docutils literal notranslate"><span class="pre">[&quot;urn:eudi:pid:nl:1&quot;,</span> <span class="pre">&quot;given_name&quot;]</span></code>. The namespace
+identifier, for example <code class="docutils literal notranslate"><span class="pre">[&quot;eu.europa.ec.eudi.pid.1&quot;,</span> <span class="pre">&quot;given_name&quot;]</span></code>. The namespace
 does not necessarily equal the doctype, for example the mDL (doctype
 <code class="docutils literal notranslate"><span class="pre">org.iso.18013.5.1.mDL</span></code>) uses <code class="docutils literal notranslate"><span class="pre">[&quot;org.iso.18013.5.1&quot;,</span> <span class="pre">&quot;family_name&quot;]</span></code>.</p>
 <p>An SD-JWT claim path follows the nesting of the JSON claims. A top-level path

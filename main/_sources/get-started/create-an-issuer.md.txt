@@ -1053,7 +1053,7 @@ cat <<EOF > "$TARGET_DIR/parts/14-dcql-query-credentials.toml"
 id = "insurance_credential"
 format = "dc+sd-jwt"
 meta = { vct_values = ["urn:eudi:pid:nl:1"] }
-claims = [ { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = false } ]
+claims = [ { path = ["bsn"], intent_to_retain = false } ]
 EOF
 ```
 
