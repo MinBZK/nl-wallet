@@ -309,6 +309,7 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use base64::prelude::*;
     use cose::wrprc_cwt::SignedWrprcCwt;
     use crypto::PublicKey;
@@ -646,14 +647,18 @@ mod tests {
             .ok()
             .and_then(|attestations| attestations.attestations.iter().exactly_one().ok())
             .and_then(|attestation| {
-                (attestation.attestation_type.as_str() == PID_ATTESTATION_TYPE).then_some(attestation)
+                let expected_attestation_type = match &attestation.attributes {
+                    DisclosedAttributes::MsoMdoc(_) => PID_MDOC_DOCTYPE,
+                    DisclosedAttributes::SdJwt(_) => PID_ATTESTATION_TYPE,
+                };
+                (attestation.attestation_type.as_str() == expected_attestation_type).then_some(attestation)
             })
             .and_then(|attestation| match &attestation.attributes {
                 DisclosedAttributes::MsoMdoc(attributes) => attributes
                     .iter()
                     .exactly_one()
                     .ok()
-                    .and_then(|(namespaces, attributes)| (namespaces == PID_ATTESTATION_TYPE).then_some(attributes))
+                    .and_then(|(namespaces, attributes)| (namespaces == PID_MDOC_DOCTYPE).then_some(attributes))
                     .map(|attributes| {
                         attributes
                             .iter()

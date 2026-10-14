@@ -12,6 +12,7 @@ use pid_issuer::pid::digid::DigidMetadataClient;
 use pid_issuer::pid::digid_mock::MOCK_LOGIN_PATH;
 use pid_issuer::pid::digid_mock::MockLoginState;
 use pid_issuer::pid::digid_mock::build_mock_login_csp;
+use pid_issuer::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
 use reqwest::redirect::Policy;
@@ -52,6 +53,10 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let recovery_code_secret_key = SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?;
     let digid_client_id = settings.digid.client_id;
     let bsn_privkey = settings.digid.bsn_privkey;
+    let issuer_metadata = PidIssuerMetadata {
+        issuing_country: settings.issuing_country,
+        issuing_authority: settings.issuing_authority,
+    };
 
     let callback_base_url = settings
         .authorizing_issuer_settings
@@ -94,6 +99,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
                 digid_client_id,
                 digid_metadata_client,
                 recovery_code_secret_key,
+                issuer_metadata,
                 store_connection,
                 &callback_base_url,
             )

@@ -33,17 +33,19 @@ class CloseProximityDisclosureTests : TestBase() {
         private val MONKEY_BIKE_CA_KEY_FILE = System.getenv("MONKEY_BIKE_CA_KEY_FILE")
             ?: File("../scripts/devenv/target/demo_relying_party/monkey_bike.key.pem").canonicalPath
 
-        private const val PID_DOC_TYPE = "urn:eudi:pid:nl:1"
-        private val AMSTERDAM_ATTRIBUTES = listOf("urn:eudi:pid:nl:1/bsn")
+        private const val PID_DOC_TYPE = "eu.europa.ec.eudi.pid.1"
+        private const val PID_NAMESPACE = "eu.europa.ec.eudi.pid.1"
+        private const val PID_NL_NAMESPACE = "eu.europa.ec.eudi.pid.nl.1"
+        private val AMSTERDAM_ATTRIBUTES = listOf("$PID_NL_NAMESPACE/bsn")
+        // `gender` is not part of the PID, which makes this request fail with missing attributes
         private val MONKEY_BIKE_ATTRIBUTES = listOf(
-            "urn:eudi:pid:nl:1/given_name",
-            "urn:eudi:pid:nl:1/family_name",
-            "urn:eudi:pid:nl:1/birthdate",
-            "urn:eudi:pid:nl:1/gender",
-            "urn:eudi:pid:nl:1/street_address",
-            "urn:eudi:pid:nl:1/house_number",
-            "urn:eudi:pid:nl:1/postal_code",
-            "urn:eudi:pid:nl:1/locality",
+            "$PID_NAMESPACE/given_name",
+            "$PID_NAMESPACE/family_name",
+            "$PID_NAMESPACE/birth_date",
+            "$PID_NAMESPACE/gender",
+            "$PID_NAMESPACE/resident_street",
+            "$PID_NAMESPACE/resident_postal_code",
+            "$PID_NAMESPACE/resident_city",
         )
         private const val READER_STARTUP_TIMEOUT_SECONDS = 40L
     }
@@ -103,7 +105,7 @@ class CloseProximityDisclosureTests : TestBase() {
         val hex = DeviceResponseHelper.extractHex(outputBuffer.toString())
         val deviceResponse = DeviceResponseHelper.parse(hex!!)
         val doc = deviceResponse.documents.first()
-        val bsn = doc.attributes.firstOrNull { it.identifier == "bsn" }?.value
+        val bsn = doc.attributes.firstOrNull { it.namespace == PID_NL_NAMESPACE && it.identifier == "bsn" }?.value
 
         assertAll(
             { assertTrue(dashboardScreen.visible(), "Dashboard is not visible") },
@@ -111,7 +113,7 @@ class CloseProximityDisclosureTests : TestBase() {
             { assertTrue(deviceResponse.version == "1.0", "Device response version mismatch") },
             { assertTrue(deviceResponse.status == 0, "Device response status is not success") },
             { assertTrue(deviceResponse.documents.size == 1, "Expected exactly one document") },
-            { assertTrue(doc.docType == "urn:eudi:pid:nl:1", "Document type mismatch") },
+            { assertTrue(doc.docType == PID_DOC_TYPE, "Document type mismatch") },
             { assertTrue(bsn == DEFAULT_BSN, "BSN attribute mismatch") },
         )
     }

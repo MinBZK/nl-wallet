@@ -374,6 +374,7 @@ impl From<SdJwtAttributeRequest> for ClaimsQuery {
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
     use crypto::x509::KeyIdentifier;
     use itertools::Itertools;
@@ -416,7 +417,24 @@ pub mod mock {
     }
 
     impl CredentialQuery {
-        pub fn new_mock_mdoc(id: &str, doc_type: &str, name_space: &str, attributes: &[&str]) -> Self {
+        pub fn new_mock_mdoc<'a>(
+            id: &str,
+            doc_type: &str,
+            name_space: &'a str,
+            attributes: impl IntoIterator<Item = &'a str>,
+        ) -> Self {
+            Self::new_mock_mdoc_with_name_spaces(
+                id,
+                doc_type,
+                attributes.into_iter().map(|attribute| (name_space, attribute)),
+            )
+        }
+
+        pub fn new_mock_mdoc_with_name_spaces<'a>(
+            id: &str,
+            doc_type: &str,
+            attributes: impl IntoIterator<Item = (&'a str, &'a str)>,
+        ) -> Self {
             CredentialQuery {
                 id: id.try_into().expect("identifier should be valid"),
                 format: CredentialQueryFormat::MsoMdoc {
@@ -427,8 +445,8 @@ pub mod mock {
                 require_cryptographic_holder_binding: true,
                 claims_selection: ClaimsSelection::All {
                     claims: attributes
-                        .iter()
-                        .map(|attribute| ClaimsQuery {
+                        .into_iter()
+                        .map(|(name_space, attribute)| ClaimsQuery {
                             id: None,
                             path: vec_nonempty![
                                 ClaimPath::SelectByKey(name_space.to_string()),
@@ -488,16 +506,16 @@ pub mod mock {
                 "mdoc_iso_example",
                 EXAMPLE_DOC_TYPE,
                 EXAMPLE_NAMESPACE,
-                EXAMPLE_ATTRIBUTES.as_slice(),
+                EXAMPLE_ATTRIBUTES.iter().copied(),
             )
         }
 
         pub fn new_mock_mdoc_pid_example() -> Self {
             Self::new_mock_mdoc(
                 "mdoc_pid_example",
-                PID_ATTESTATION_TYPE,
-                PID_ATTESTATION_TYPE,
-                &["bsn", "given_name", "family_name"],
+                PID_MDOC_DOCTYPE,
+                PID_MDOC_DOCTYPE,
+                ["bsn", "given_name", "family_name"],
             )
         }
 
@@ -723,11 +741,11 @@ pub mod mock {
             Self::new_mock_from_slices(
                 "mdoc_pid_example",
                 MockCredentialFormat::MsoMdoc { intent_to_retain: None },
-                &[PID_ATTESTATION_TYPE],
+                &[PID_MDOC_DOCTYPE],
                 &[
-                    &[PID_ATTESTATION_TYPE, "bsn"],
-                    &[PID_ATTESTATION_TYPE, "given_name"],
-                    &[PID_ATTESTATION_TYPE, "family_name"],
+                    &[PID_MDOC_DOCTYPE, "bsn"],
+                    &[PID_MDOC_DOCTYPE, "given_name"],
+                    &[PID_MDOC_DOCTYPE, "family_name"],
                 ],
             )
         }

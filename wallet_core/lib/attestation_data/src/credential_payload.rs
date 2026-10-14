@@ -637,6 +637,7 @@ mod examples {
 mod mock {
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use chrono::DateTime;
     use chrono::Utc;
     use p256::ecdsa::SigningKey;
@@ -697,7 +698,7 @@ mod mock {
         /// The same claims as [`PreviewableCredentialPayload::nl_pid_example()`], but with mdoc-namespaced
         /// attributes.
         pub fn nl_pid_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
-            Self::example_with_attributes(PID_ATTESTATION_TYPE, Attributes::nl_pid_mdoc_example(), time_generator)
+            Self::example_with_attributes(PID_MDOC_DOCTYPE, Attributes::nl_pid_mdoc_example(), time_generator)
         }
 
         pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
@@ -728,6 +729,7 @@ mod test {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::PublicKey;
@@ -1021,16 +1023,13 @@ mod test {
                 .map(|(path, value)| (path.into_inner(), value.clone()))
                 .collect_vec(),
             vec![
+                (vec![PID_MDOC_DOCTYPE, "bsn"], Attribute::Text("999999999".to_string())),
                 (
-                    vec![PID_ATTESTATION_TYPE, "bsn"],
-                    Attribute::Text("999999999".to_string())
-                ),
-                (
-                    vec![PID_ATTESTATION_TYPE, "given_name"],
+                    vec![PID_MDOC_DOCTYPE, "given_name"],
                     Attribute::Text("Willeke Liselotte".to_string())
                 ),
                 (
-                    vec![PID_ATTESTATION_TYPE, "family_name"],
+                    vec![PID_MDOC_DOCTYPE, "family_name"],
                     Attribute::Text("De Bruijn".to_string())
                 ),
             ]

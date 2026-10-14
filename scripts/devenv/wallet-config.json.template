@@ -28,9 +28,9 @@
   },
   "pid_attributes": {
     "mso_mdoc": {
-      "urn:eudi:pid:nl:1": {
-        "login": ["urn:eudi:pid:nl:1", "bsn"],
-        "recovery_code": ["urn:eudi:pid:nl:1", "recovery_code"]
+      "eu.europa.ec.eudi.pid.1": {
+        "login": ["eu.europa.ec.eudi.pid.nl.1", "bsn"],
+        "recovery_code": ["eu.europa.ec.eudi.pid.nl.1", "recovery_code"]
       }
     },
     "sd_jwt": {

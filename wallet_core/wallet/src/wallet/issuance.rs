@@ -933,6 +933,7 @@ mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::pid_attestation_type;
     use chrono::Duration;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -2080,7 +2081,7 @@ mod tests {
             assert_eq!(attestations[1].len(), credential_count);
             for attestation in &attestations[1] {
                 assert_matches!(attestation.identity, AttestationIdentity::Fixed { id: _ });
-                assert_eq!(attestation.attestation_type, PID_ATTESTATION_TYPE);
+                assert_eq!(attestation.attestation_type, pid_attestation_type(attestation.format));
             }
 
             // Test that one successful issuance event is logged

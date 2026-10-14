@@ -20,9 +20,14 @@ use openid4vc_server::verifier::DisclosedAttributesParams;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
-use pid_issuer::pid::constants::EUDI_PID_ATTESTATION_TYPE;
-use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
-use pid_issuer::pid::constants::PID_GIVEN_NAME;
+use pid_issuer::pid::rulebook::constants::PID_BASE_MDOC_NAMESPACE;
+use pid_issuer::pid::rulebook::constants::PID_BASE_SD_JWT_VCT;
+use pid_issuer::pid::rulebook::constants::PID_BSN;
+use pid_issuer::pid::rulebook::constants::PID_FAMILY_NAME;
+use pid_issuer::pid::rulebook::constants::PID_GIVEN_NAME;
+use pid_issuer::pid::rulebook::constants::PID_MDOC_DOCTYPE;
+use pid_issuer::pid::rulebook::constants::PID_NL_MDOC_NAMESPACE;
+use pid_issuer::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
 use reqwest::StatusCode;
 use rstest::rstest;
 use serial_test::serial;
@@ -252,11 +257,9 @@ async fn ltc15_test_disclosure_extended_vct_ok() {
 
     let query_id = "eudi_pid_given_name";
     let test_credentials = nl_pid_credentials_given_name_for_query_id(query_id);
-    let mut dcql_query: Query = NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(
-        &[EUDI_PID_ATTESTATION_TYPE],
-        &[&[PID_GIVEN_NAME]],
-    )])
-    .into();
+    let mut dcql_query: Query =
+        NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(&[PID_BASE_SD_JWT_VCT], &[&[PID_GIVEN_NAME]])])
+            .into();
     dcql_query.credentials = dcql_query
         .credentials
         .into_iter()
@@ -356,9 +359,9 @@ async fn ltc20_test_disclosure_without_pid() {
             requested_attributes,
             ..
         }) if requested_attributes == HashSet::from([
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/bsn".to_string(),
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name".to_string(),
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name".to_string(),
+            format!("{PID_MDOC_DOCTYPE}/{PID_NL_MDOC_NAMESPACE}/{PID_BSN}"),
+            format!("{PID_MDOC_DOCTYPE}/{PID_BASE_MDOC_NAMESPACE}/{PID_GIVEN_NAME}"),
+            format!("{PID_MDOC_DOCTYPE}/{PID_BASE_MDOC_NAMESPACE}/{PID_FAMILY_NAME}"),
         ])
     );
 
@@ -403,7 +406,7 @@ async fn test_disclosure_aki_ok() {
         .into_iter()
         .find(|(_, config_settings)| {
             config_settings.format.format() == Format::SdJwt
-                && config_settings.format.attestation_type() == PID_ATTESTATION_TYPE
+                && config_settings.format.attestation_type() == PID_NL_SD_JWT_VCT
         })
         .unwrap()
         .1
@@ -464,9 +467,9 @@ async fn test_disclosure_wrong_aki_wallet_aborts() {
             requested_attributes,
             ..
         }) if requested_attributes == HashSet::from([
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/bsn".to_string(),
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name".to_string(),
-            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name".to_string(),
+            format!("{PID_MDOC_DOCTYPE}/{PID_NL_MDOC_NAMESPACE}/{PID_BSN}"),
+            format!("{PID_MDOC_DOCTYPE}/{PID_BASE_MDOC_NAMESPACE}/{PID_GIVEN_NAME}"),
+            format!("{PID_MDOC_DOCTYPE}/{PID_BASE_MDOC_NAMESPACE}/{PID_FAMILY_NAME}"),
         ])
     );
 }

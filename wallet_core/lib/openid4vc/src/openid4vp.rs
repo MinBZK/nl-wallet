@@ -1206,6 +1206,7 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use base64::prelude::*;
     use cose::KnownCoseAlgorithmIdentifier;
     use crypto::PublicKey;
@@ -2660,11 +2661,8 @@ mod tests {
         let (_, _, _, auth_request) =
             setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_from_slices(
                 &[(
-                    PID_ATTESTATION_TYPE,
-                    &[
-                        &[PID_ATTESTATION_TYPE, "given_name"],
-                        &[PID_ATTESTATION_TYPE, "family_name"],
-                    ],
+                    PID_MDOC_DOCTYPE,
+                    &[&[PID_MDOC_DOCTYPE, "given_name"], &[PID_MDOC_DOCTYPE, "family_name"]],
                 )],
                 None,
             ));
@@ -2709,13 +2707,13 @@ mod tests {
 
         let attestation = disclosed_attestations.into_first();
 
-        assert_eq!(attestation.attestation_type.as_str(), PID_ATTESTATION_TYPE);
+        assert_eq!(attestation.attestation_type.as_str(), PID_MDOC_DOCTYPE);
         let DisclosedAttributes::MsoMdoc(attributes) = &attestation.attributes else {
             panic!("should be mdoc attributes")
         };
 
         let (namespace, mdoc_attributes) = &attributes.first().unwrap();
-        assert_eq!(namespace.as_str(), PID_ATTESTATION_TYPE);
+        assert_eq!(namespace.as_str(), PID_MDOC_DOCTYPE);
 
         assert_eq!(
             vec!["given_name", "family_name"],

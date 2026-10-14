@@ -647,8 +647,8 @@ export DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_index.toml"
 
 # Copy the Technical Attestation Schemas
-cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eudi_pid_nl_1_mdoc.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eudi_pid_nl_1_mdoc.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.housing.json" "${DEVENV}/dezi_verklaring.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eu.europa.ec.eudi.pid.1.json" "${PID_ISSUER_DIR}"
+cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eu.europa.ec.eudi.pid.1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.housing.json" "${DEVENV}/dezi_verklaring.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${DEVENV}/dezi_verklaring.json" "${ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.museum_maandkaart.mdoc.json" "${DEVENV}/org.iso.18013.5.1.mDL.mdoc.json" "${DEVENV}/org.iso.7367.2.1.mVC.mdoc.json" "${PACF_ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.jum.bonuskaart.sd_jwt.json" "${DEVENV}/com.example.museum_maandkaart.mdoc.json" "${DEVENV}/org.iso.18013.5.1.mDL.mdoc.json" "${DEVENV}/org.iso.7367.2.1.mVC.mdoc.json" "${BASE_DIR}/wallet_core/tests_integration"

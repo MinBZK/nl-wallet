@@ -619,11 +619,11 @@ mod mock {
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ADDRESS_GROUP;
     use attestation_types::pid_constants::PID_AGE_OVER_18;
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BIRTH_DATE;
     use attestation_types::pid_constants::PID_BSN;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::pid_constants::PID_RESIDENT_CITY;
     use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
@@ -650,24 +650,21 @@ mod mock {
         pub fn nl_pid_mdoc_example() -> Self {
             Self::example([
                 (
-                    [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+                    [PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
                     Attribute::Text("Willeke Liselotte".to_string()),
                 ),
                 (
-                    [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
+                    [PID_MDOC_DOCTYPE, PID_FAMILY_NAME],
                     Attribute::Text("De Bruijn".to_string()),
                 ),
                 (
-                    [PID_ATTESTATION_TYPE, PID_BIRTH_DATE],
+                    [PID_MDOC_DOCTYPE, PID_BIRTH_DATE],
                     Attribute::Text("1997-05-10".to_string()),
                 ),
-                ([PID_ATTESTATION_TYPE, PID_AGE_OVER_18], Attribute::Bool(true)),
+                ([PID_MDOC_DOCTYPE, PID_AGE_OVER_18], Attribute::Bool(true)),
+                ([PID_MDOC_DOCTYPE, PID_BSN], Attribute::Text("999991772".to_string())),
                 (
-                    [PID_ATTESTATION_TYPE, PID_BSN],
-                    Attribute::Text("999991772".to_string()),
-                ),
-                (
-                    [PID_ATTESTATION_TYPE, PID_RECOVERY_CODE],
+                    [PID_MDOC_DOCTYPE, PID_RECOVERY_CODE],
                     Attribute::Text("123".to_string()),
                 ),
             ])

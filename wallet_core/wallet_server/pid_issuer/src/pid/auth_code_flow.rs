@@ -52,11 +52,12 @@ use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
 use crate::pid::brp::client::HttpBrpClient;
 use crate::pid::brp::data::BrpPerson;
-use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::digid;
 use crate::pid::digid::DigidClient;
 use crate::pid::digid::DigidMetadataClient;
 use crate::pid::digid::HttpDigidClient;
+use crate::pid::rulebook::constants::pid_attestation_type;
+use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
 const ISSUER_STATE_LENGTH: usize = 32;
 
@@ -152,6 +153,7 @@ pub struct UpstreamOidcAuthorizationCodeFlow<B = HttpBrpClient, O = HttpDigidCli
     brp_client: B,
     digid_client: O,
     recovery_code_secret_key: SecretKeyVariant,
+    issuer_metadata: PidIssuerMetadata,
     state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
     callback_url: Url,
     client_id: String,
@@ -166,6 +168,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
         client_id: impl Into<String>,
         digid_metadata_client: DigidMetadataClient,
         recovery_code_secret_key: SecretKeyVariant,
+        issuer_metadata: PidIssuerMetadata,
         store_connection: StoreConnection,
         callback_base_url: &BaseUrl,
     ) -> Result<Self, Error> {
@@ -177,6 +180,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
             brp_client,
             digid_client,
             recovery_code_secret_key,
+            issuer_metadata,
             store_connection,
             callback_base_url,
             client_id,
@@ -187,10 +191,12 @@ impl UpstreamOidcAuthorizationCodeFlow {
 impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     /// Construct the flow, building its [`IssuerStateBridgeStore`] from `store_connection`. The
     /// store's entry type is an internal detail of this flow, so callers only supply the connection.
+    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
         brp_client: B,
         digid_client: O,
         recovery_code_secret_key: SecretKeyVariant,
+        issuer_metadata: PidIssuerMetadata,
         store_connection: StoreConnection,
         callback_base_url: &BaseUrl,
         client_id: String,
@@ -199,16 +205,19 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             brp_client,
             digid_client,
             recovery_code_secret_key,
+            issuer_metadata,
             Arc::new(IssuerStateBridgeStore::new(store_connection)),
             callback_base_url,
             client_id,
         )
     }
 
+    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     fn new_with_store(
         brp_client: B,
         digid_client: O,
         recovery_code_secret_key: SecretKeyVariant,
+        issuer_metadata: PidIssuerMetadata,
         state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
         callback_base_url: &BaseUrl,
         client_id: String,
@@ -217,6 +226,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             brp_client,
             digid_client,
             recovery_code_secret_key,
+            issuer_metadata,
             state_bridge_store,
             callback_url: callback_base_url.join(DIGID_CALLBACK_PATH),
             client_id,
@@ -274,20 +284,25 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         }
         let person = persons.persons.remove(0);
         let recovery_code = recovery_code(&person, &self.recovery_code_secret_key).await?;
+        let issuer_metadata = self.issuer_metadata.clone();
 
         // Create an `IssuableDocument` for each requested format.
         let format_count = formats.len();
         let issuable_documents = formats
             .into_nonempty_iter()
-            .zip(utils::vec_at_least::repeat_n((person, recovery_code), format_count))
-            .map(|(format, (person, recovery_code))| {
+            .zip(utils::vec_at_least::repeat_n(
+                (person, recovery_code, issuer_metadata),
+                format_count,
+            ))
+            .map(|(format, (person, recovery_code, issuer_metadata))| {
+                let attestation_type = pid_attestation_type(format);
                 let attributes = match format {
-                    Format::MsoMdoc => person.into_mdoc_attributes(recovery_code),
-                    Format::SdJwt => person.into_sd_jwt_attributes(recovery_code),
+                    Format::MsoMdoc => person.into_mdoc_attributes(recovery_code, issuer_metadata),
+                    Format::SdJwt => person.into_sd_jwt_attributes(recovery_code, issuer_metadata),
                 };
 
                 IssuableDocument::try_new_with_random_id(
-                    CredentialKind::new(format, PID_ATTESTATION_TYPE.to_string()),
+                    CredentialKind::new(format, attestation_type.to_owned()),
                     attributes,
                 )
             })
@@ -313,7 +328,7 @@ where
             .clone()
             .into_iter()
             .partition_map(|credential_kind| {
-                if credential_kind.attestation_type == PID_ATTESTATION_TYPE {
+                if credential_kind.attestation_type == pid_attestation_type(credential_kind.format) {
                     Either::Left(credential_kind.format)
                 } else {
                     Either::Right(credential_kind)
@@ -529,9 +544,12 @@ mod tests {
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
+    use openid4vc::credential_configurations::CredentialConfigurationFormat;
+    use openid4vc::credential_configurations::CredentialConfigurationTypeMetadata;
     use openid4vc::issuer::AuthRequestValues;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
+    use openid4vc::metadata::issuer_metadata::CredentialMetadata;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::server_state::MemorySessionStore;
@@ -540,7 +558,7 @@ mod tests {
     use openid4vc::store::MemoryStore;
     use openid4vc::store::Store;
     use openid4vc::test::MockObtainingStatusListService;
-    use openid4vc::test::setup_mock_issuer_attestation_types_and_metadata;
+    use openid4vc::test::setup_mock_issuer_with_metadata;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::hmac::HMAC_SHA256;
@@ -558,10 +576,14 @@ mod tests {
     use super::complete_digid_callback;
     use super::recovery_code;
     use crate::pid::brp::client::BrpClient;
-    use crate::pid::constants::PID_ATTESTATION_TYPE;
     use crate::pid::mock::MOCK_BSN;
     use crate::pid::mock::MockBrpClient;
     use crate::pid::mock::MockDigidClient;
+    use crate::pid::rulebook::constants::PID_MDOC_DOCTYPE;
+    use crate::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
+    use crate::pid::rulebook::constants::pid_attestation_type;
+    use crate::pid::rulebook::country_code::IsoCountryCode;
+    use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
     /// The in-memory [`AuthorizingIssuer`] flavour used by the callback tests: the mock inner issuer
     /// from `openid4vc::test` wrapped around a mock-backed flow.
@@ -591,6 +613,14 @@ mod tests {
         ])
     });
 
+    static PID_MDOC_METADATA: LazyLock<CredentialMetadata> = LazyLock::new(|| {
+        let json = fs::read_to_string(prefix_local_path(Path::new(
+            "resources/test/metadata/eu.europa.ec.eudi.pid.1.json",
+        )))
+        .unwrap();
+        serde_json::from_str(&json).unwrap()
+    });
+
     fn recovery_code_secret_key() -> SecretKeyVariant {
         SecretKeyVariant::from_settings(
             SecretKey::Software {
@@ -610,10 +640,15 @@ mod tests {
         digid_client: MockDigidClient,
         state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
     ) -> UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient> {
+        let issuer_metadata = PidIssuerMetadata {
+            issuing_country: IsoCountryCode::Netherlands,
+            issuing_authority: "Test Issuing Authority".to_owned(),
+        };
         UpstreamOidcAuthorizationCodeFlow::new_with_store(
             brp_client,
             digid_client,
             recovery_code_secret_key(),
+            issuer_metadata,
             state_bridge_store,
             &CALLBACK_BASE_URL.parse().unwrap(),
             String::from(CLIENT_ID),
@@ -631,16 +666,15 @@ mod tests {
     ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
         let sessions = Arc::new(MemorySessionStore::default());
 
-        let (issuer, _, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
             IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap(),
             vec![
-                (Format::SdJwt, PID_ATTESTATION_TYPE.to_string(), NL_PID_METADATA.clone()),
-                (
-                    Format::MsoMdoc,
-                    PID_ATTESTATION_TYPE.to_string(),
-                    NL_PID_METADATA.clone(),
+                CredentialConfigurationFormat::new_sd_jwt_type_metadata(
+                    CredentialConfigurationTypeMetadata::try_new(PID_NL_SD_JWT_VCT, NL_PID_METADATA.clone()).unwrap(),
                 ),
+                CredentialConfigurationFormat::new_mdoc(PID_MDOC_DOCTYPE.to_owned(), PID_MDOC_METADATA.clone()),
             ],
+            true,
             Arc::clone(&sessions),
         );
         let authorizing_issuer = AuthorizingIssuer::new(
@@ -675,16 +709,16 @@ mod tests {
                 state: Some(WALLET_STATE.to_string()),
                 issuer_state: None,
                 credential_kinds: HashSet::from([
-                    CredentialKind::new(Format::MsoMdoc, String::from(PID_ATTESTATION_TYPE)),
-                    CredentialKind::new(Format::SdJwt, String::from(PID_ATTESTATION_TYPE)),
+                    CredentialKind::new(Format::MsoMdoc, PID_MDOC_DOCTYPE.to_owned()),
+                    CredentialKind::new(Format::SdJwt, PID_NL_SD_JWT_VCT.to_owned()),
                 ]),
                 request_values: AuthRequestValues::new(
                     MOCK_WALLET_CLIENT_ID.to_string(),
                     WALLET_REDIRECT_URI.parse().unwrap(),
                     WALLET_CODE_CHALLENGE.to_string(),
                     HashSet::from([
-                        Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::MsoMdoc)).unwrap(),
-                        Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::SdJwt)).unwrap(),
+                        Scope::try_new(format!("{PID_MDOC_DOCTYPE}_{}", Format::MsoMdoc)).unwrap(),
+                        Scope::try_new(format!("{PID_NL_SD_JWT_VCT}_{}", Format::SdJwt)).unwrap(),
                     ]),
                 ),
             },
@@ -733,10 +767,10 @@ mod tests {
         );
 
         let context = wallet_context(HashSet::from([
-            CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
-            CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string()),
+            CredentialKind::new(Format::SdJwt, PID_NL_SD_JWT_VCT.to_owned()),
+            CredentialKind::new(Format::MsoMdoc, PID_MDOC_DOCTYPE.to_owned()),
             // Test deduplication.
-            CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string()),
+            CredentialKind::new(Format::SdJwt, PID_NL_SD_JWT_VCT.to_owned()),
         ]));
         let wallet_code_challenge = context.request_values.code_challenge.clone();
 
@@ -857,7 +891,9 @@ mod tests {
                 .credential_ids_and_documents
                 .as_ref()
                 .iter()
-                .all(|(_config_id, document)| document.credential_kind.attestation_type == PID_ATTESTATION_TYPE)
+                .all(|(_config_id, document)| {
+                    document.credential_kind.attestation_type == pid_attestation_type(document.credential_kind.format)
+                })
         );
     }
 
