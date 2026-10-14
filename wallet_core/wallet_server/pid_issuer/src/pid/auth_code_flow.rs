@@ -582,6 +582,7 @@ mod tests {
     use crate::pid::rulebook::constants::PID_MDOC_DOCTYPE;
     use crate::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
     use crate::pid::rulebook::constants::pid_attestation_type;
+    use crate::pid::rulebook::country_code::IsoCountryCode;
     use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
     /// The in-memory [`AuthorizingIssuer`] flavour used by the callback tests: the mock inner issuer
@@ -640,7 +641,7 @@ mod tests {
         state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
     ) -> UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient> {
         let issuer_metadata = PidIssuerMetadata {
-            issuing_country: "NL".to_owned(),
+            issuing_country: IsoCountryCode::Netherlands,
             issuing_authority: "Test Issuing Authority".to_owned(),
         };
         UpstreamOidcAuthorizationCodeFlow::new_with_store(

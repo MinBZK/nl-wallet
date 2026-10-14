@@ -142,6 +142,7 @@ test_common = [
     "dep:health_checkers",
     "dep:indexmap",
     "dep:issuance_server",
+    "dep:pid_issuer",
     "dep:pacf_issuance_server",
     "dep:acf_demo_issuer",
     "dep:issuer_common",
@@ -185,7 +186,6 @@ test_common = [
 
 # Include the fake_digid submodule
 fake_digid = [
-    "dep:pid_issuer",
     "dep:tracing",
     "dep:reqwest",
     "http_utils/client",

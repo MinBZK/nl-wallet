@@ -24,6 +24,7 @@ use pid_issuer::pid::rulebook::constants::PID_GIVEN_NAME;
 use pid_issuer::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
 use pid_issuer::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
 use pid_issuer::pid::rulebook::constants::PID_SD_JWT_COUNTRY;
+use pid_issuer::pid::rulebook::country_code::IsoCountryCode;
 use pid_issuer::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
@@ -111,7 +112,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         // `scripts/devenv/digid-connector/clients.json` and `deploy/helm-charts/rdo-max/values.yaml`.
         let callback_base_url = local_http_base_url(3003);
         let issuer_metadata = PidIssuerMetadata {
-            issuing_country: "NL".to_owned(),
+            issuing_country: IsoCountryCode::Netherlands,
             issuing_authority: "Test Issuing Authority".to_owned(),
         };
         UpstreamOidcAuthorizationCodeFlow::try_new(

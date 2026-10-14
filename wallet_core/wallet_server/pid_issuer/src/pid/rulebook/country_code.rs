@@ -1,7 +1,8 @@
 use attestation_data::attributes::Attribute;
+use serde_with::DeserializeFromStr;
 
 /// ISO 3166-1 alpha-2 country codes, covering every code currently assigned by the standard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString, DeserializeFromStr)]
 pub enum IsoCountryCode {
     #[strum(serialize = "AD")]
     Andorra,

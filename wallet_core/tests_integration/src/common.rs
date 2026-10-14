@@ -65,6 +65,7 @@ use pid_issuer::pid::brp::client::BrpClient;
 use pid_issuer::pid::digid::DigidClient;
 use pid_issuer::pid::mock::MockBrpClient;
 use pid_issuer::pid::mock::MockDigidClient;
+use pid_issuer::pid::rulebook::country_code::IsoCountryCode;
 use pid_issuer::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
@@ -381,7 +382,7 @@ pub async fn setup_env(
             .expect("could not initialize recovery code secret key");
 
     let issuer_metadata = PidIssuerMetadata {
-        issuing_country: "NL".to_owned(),
+        issuing_country: IsoCountryCode::Netherlands,
         issuing_authority: "Test Issuing Authority".to_owned(),
     };
 

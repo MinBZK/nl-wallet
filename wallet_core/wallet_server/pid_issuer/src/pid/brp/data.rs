@@ -2555,6 +2555,7 @@ mod tests {
     use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;
+    use crate::pid::rulebook::country_code::IsoCountryCode;
     use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
     fn read_json(name: &str) -> String {
@@ -2611,7 +2612,7 @@ mod tests {
     fn should_convert_brp_person_to_sd_jwt_issuable_vec() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
         let issuer_metadata = PidIssuerMetadata {
-            issuing_country: "NL".to_owned(),
+            issuing_country: IsoCountryCode::Netherlands,
             issuing_authority: "Test Issuing Authority".to_owned(),
         };
         let pid_card = brp_persons
@@ -2704,7 +2705,7 @@ mod tests {
     fn should_convert_brp_person_to_mdoc_issuable_vec() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
         let issuer_metadata = PidIssuerMetadata {
-            issuing_country: "NL".to_owned(),
+            issuing_country: IsoCountryCode::Netherlands,
             issuing_authority: "Test Issuing Authority".to_owned(),
         };
         let pid_card = brp_persons

@@ -250,6 +250,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
 
     use super::*;
+    use crate::pid::rulebook::country_code::IsoCountryCode;
     use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
     /// Ensures that data returned by [`MockBrpClient`] and [`mock_pid_example`] are identical, because some tests rely
@@ -258,7 +259,7 @@ mod tests {
     async fn mock_brp_person_attributes_match_mock_pid_example() {
         let mut persons = MockBrpClient::default().get_person_by_bsn(MOCK_BSN).await.unwrap();
         let issuer_metadata = PidIssuerMetadata {
-            issuing_country: "NL".to_owned(),
+            issuing_country: IsoCountryCode::Netherlands,
             issuing_authority: "Issuing Authority".to_owned(),
         };
         let attributes = persons
