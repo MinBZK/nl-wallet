@@ -9,6 +9,7 @@ pub use envelope::RegistrationCertificateEnvelope;
 pub use envelope::RegistrationCertificateEnvelopeError;
 pub use envelope::RegistrationCertificateEnvelopeParseError;
 pub use envelope::RegistrationCertificateJwtParseError;
+pub use envelope::RegistrationCertificateRequestParseError;
 pub use envelope::VerifiedRegistrationCertificateEnvelope;
 pub use envelope::verify_registration_certificate_envelope;
 pub use payload::Credential;

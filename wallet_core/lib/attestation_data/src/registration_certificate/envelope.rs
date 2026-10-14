@@ -4,6 +4,7 @@ use base64::DecodeError;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use ciborium::value::Value;
 use cose::wrprc_cwt::UnverifiedWrprcCwt;
 use cose::wrprc_cwt::WrprcCwtError;
 use crypto::trust_anchor::TrustAnchors;
@@ -12,6 +13,7 @@ use jwt::UnverifiedJwt;
 use jwt::error::JwtParseError;
 use jwt::error::JwtX5cVerifyError;
 use jwt::jades_b_b::JadesbbHeader;
+use mdoc::ItemsRequest;
 use utils::generator::Generator;
 
 use super::ParsedRegistrationCertificate;
@@ -35,6 +37,16 @@ pub enum RegistrationCertificateEnvelopeParseError {
         jwt: RegistrationCertificateJwtParseError,
         cwt: Box<WrprcCwtError>,
     },
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RegistrationCertificateRequestParseError {
+    #[error("missing requestInfo.euWrprc")]
+    Missing,
+    #[error("requestInfo.euWrprc must be a CBOR byte string")]
+    NotByteString,
+    #[error("could not parse requestInfo.euWrprc as a WRPRC CWT: {0}")]
+    Cwt(#[source] WrprcCwtError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -67,6 +79,26 @@ impl TryFrom<&[u8]> for RegistrationCertificateEnvelope {
                     cwt: Box::new(cwt),
                 })
         })
+    }
+}
+
+impl TryFrom<&ItemsRequest> for RegistrationCertificateEnvelope {
+    type Error = RegistrationCertificateRequestParseError;
+
+    fn try_from(items_request: &ItemsRequest) -> Result<Self, Self::Error> {
+        let value = items_request
+            .request_info
+            .as_ref()
+            .and_then(|request_info| request_info.get("euWrprc"))
+            .ok_or(RegistrationCertificateRequestParseError::Missing)?;
+        let Value::Bytes(bytes) = value else {
+            return Err(RegistrationCertificateRequestParseError::NotByteString);
+        };
+
+        UnverifiedWrprcCwt::from_slice(bytes)
+            .map(Box::new)
+            .map(Self::Cwt)
+            .map_err(RegistrationCertificateRequestParseError::Cwt)
     }
 }
 
@@ -149,4 +181,125 @@ pub fn verify_registration_certificate_envelope(
     };
 
     Ok(VerifiedRegistrationCertificateEnvelope { payload })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::assert_matches;
+
+    use ciborium::value::Value;
+    use indexmap::IndexMap;
+    use mdoc::ItemsRequest;
+    use mdoc::utils::serialization::cbor_deserialize;
+    use mdoc::utils::serialization::cbor_serialize;
+    use rstest::rstest;
+    use utils::generator::TimeGenerator;
+
+    use super::RegistrationCertificateEnvelope;
+    use super::RegistrationCertificateRequestParseError;
+    use super::verify_registration_certificate_envelope;
+    use crate::registration_certificate::mock::MockRegistrationCertificateAuthority;
+    use crate::registration_certificate::mock::RegistrationCertificateFixture;
+    use crate::registration_certificate::test::valid_payload_json;
+
+    fn items_request(request_info: Option<IndexMap<String, Value>>) -> ItemsRequest {
+        ItemsRequest {
+            doc_type: "org.example.document".to_string(),
+            name_spaces: IndexMap::from_iter([(
+                "org.example.namespace".to_string(),
+                IndexMap::from_iter([("name".to_string(), true)]).try_into().unwrap(),
+            )])
+            .try_into()
+            .unwrap(),
+            request_info,
+        }
+    }
+
+    #[rstest]
+    #[case::untagged(&[])]
+    #[case::cose_sign1(&[0xd2])]
+    #[case::cwt(&[0xd8, 0x3d, 0xd2])]
+    fn parse_items_request_registration_certificate(#[case] tags: &[u8]) {
+        let authority = MockRegistrationCertificateAuthority::new();
+        let certificate = authority.sign_cwt(&RegistrationCertificateFixture(valid_payload_json()));
+        let encoded_certificate = [tags, certificate.as_slice()].concat();
+        let request = items_request(Some(IndexMap::from_iter([
+            ("unknownBefore".to_string(), Value::Bool(true)),
+            ("euWrprc".to_string(), Value::Bytes(encoded_certificate)),
+            ("unknownAfter".to_string(), Value::Text("preserve me".to_string())),
+        ])));
+        let encoded_request = cbor_serialize(&request).unwrap();
+        let request: ItemsRequest = cbor_deserialize(encoded_request.as_slice()).unwrap();
+
+        let envelope = RegistrationCertificateEnvelope::try_from(&request).unwrap();
+
+        assert_matches!(&envelope, RegistrationCertificateEnvelope::Cwt(_));
+        assert_eq!(envelope.to_vec().unwrap(), certificate);
+        // Preserve the original CWT tags, unknown fields, and map order used by reader authentication.
+        assert_eq!(cbor_serialize(&request).unwrap(), encoded_request);
+
+        let payload = verify_registration_certificate_envelope(&envelope, &authority.trust_anchors, &TimeGenerator)
+            .unwrap()
+            .into_payload();
+        assert_eq!(payload.payload().id.as_deref(), Some("wrprc-example-1"));
+    }
+
+    #[rstest]
+    #[case::no_request_info(None)]
+    #[case::empty_request_info(Some(IndexMap::new()))]
+    #[case::no_eu_wrprc(Some(IndexMap::from_iter([("other".to_string(), Value::Null)])))]
+    fn reject_missing_items_request_registration_certificate(#[case] request_info: Option<IndexMap<String, Value>>) {
+        assert_matches!(
+            RegistrationCertificateEnvelope::try_from(&items_request(request_info)),
+            Err(RegistrationCertificateRequestParseError::Missing)
+        );
+    }
+
+    #[rstest]
+    #[case::text(Value::Text("base64url-is-not-a-byte-string".to_string()))]
+    #[case::array(Value::Array(vec![Value::Integer(0.into())]))]
+    #[case::null(Value::Null)]
+    fn reject_items_request_registration_certificate_wrong_type(#[case] value: Value) {
+        let request = items_request(Some(IndexMap::from_iter([("euWrprc".to_string(), value)])));
+
+        assert_matches!(
+            RegistrationCertificateEnvelope::try_from(&request),
+            Err(RegistrationCertificateRequestParseError::NotByteString)
+        );
+    }
+
+    #[rstest]
+    #[case::empty(vec![])]
+    #[case::malformed_cbor(vec![0xff])]
+    #[case::not_a_cwt(vec![0xa0])]
+    fn reject_malformed_items_request_registration_certificate(#[case] bytes: Vec<u8>) {
+        let request = items_request(Some(IndexMap::from_iter([(
+            "euWrprc".to_string(),
+            Value::Bytes(bytes),
+        )])));
+
+        assert_matches!(
+            RegistrationCertificateEnvelope::try_from(&request),
+            Err(RegistrationCertificateRequestParseError::Cwt(_))
+        );
+    }
+
+    #[test]
+    fn reject_jwt_items_request_registration_certificate() {
+        let authority = MockRegistrationCertificateAuthority::new();
+        let certificate = authority.sign_jwt(&RegistrationCertificateFixture(valid_payload_json()));
+        assert_matches!(
+            RegistrationCertificateEnvelope::try_from(certificate.as_slice()),
+            Ok(RegistrationCertificateEnvelope::Jwt(_))
+        );
+        let request = items_request(Some(IndexMap::from_iter([(
+            "euWrprc".to_string(),
+            Value::Bytes(certificate),
+        )])));
+
+        assert_matches!(
+            RegistrationCertificateEnvelope::try_from(&request),
+            Err(RegistrationCertificateRequestParseError::Cwt(_))
+        );
+    }
 }
