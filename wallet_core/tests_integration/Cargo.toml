@@ -180,17 +180,19 @@ test_common = [
     "tokio/rt",
     "tokio/time",
     "wallet/test",
+    "wallet_configuration/test",
     "wallet_provider_service/mock",
     "wscd/mock",
 ]
 
 # Include the fake_digid submodule
 fake_digid = [
-    "dep:tracing",
+    "dep:pid_issuer",
     "dep:reqwest",
-    "http_utils/client",
+    "dep:tracing",
     "dep:url",
     "dep:wallet_configuration",
+    "http_utils/client",
 ]
 
 # Include and run test that depend on an external PostgreSQL database
@@ -243,7 +245,6 @@ digid_test = [
     "dep:wallet_account",
     "fake_digid",
     "test_common",
-    "wallet_configuration/test",
 ]
 
 # Should be enabled when building the performance_test binary
