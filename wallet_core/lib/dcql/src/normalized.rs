@@ -741,11 +741,11 @@ pub mod mock {
             Self::new_mock_from_slices(
                 "mdoc_pid_example",
                 MockCredentialFormat::MsoMdoc { intent_to_retain: None },
-                &[PID_ATTESTATION_TYPE],
+                &[PID_MDOC_DOCTYPE],
                 &[
-                    &[PID_ATTESTATION_TYPE, "bsn"],
-                    &[PID_ATTESTATION_TYPE, "given_name"],
-                    &[PID_ATTESTATION_TYPE, "family_name"],
+                    &[PID_MDOC_DOCTYPE, "bsn"],
+                    &[PID_MDOC_DOCTYPE, "given_name"],
+                    &[PID_MDOC_DOCTYPE, "family_name"],
                 ],
             )
         }

@@ -165,7 +165,7 @@ mod test {
 
 #[cfg(any(test, feature = "mock_example_constructors"))]
 pub mod mock {
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::status_claim::StatusListClaim;
     use chrono::DateTime;
     use chrono::Utc;
@@ -238,9 +238,9 @@ pub mod mock {
             time_generator: &impl Generator<DateTime<Utc>>,
         ) -> Self {
             Self::new_unverified_from_data(
-                PID_ATTESTATION_TYPE.to_string(),
+                PID_MDOC_DOCTYPE.to_string(),
                 IndexMap::from_iter(vec![(
-                    PID_ATTESTATION_TYPE.to_string(),
+                    PID_MDOC_DOCTYPE.to_string(),
                     vec![
                         Entry {
                             name: "bsn".to_string(),

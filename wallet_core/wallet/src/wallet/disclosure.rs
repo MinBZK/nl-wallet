@@ -1011,9 +1011,11 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
     use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
+    use attestation_types::pid_constants::pid_attestation_type;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::KeyIdentifier;
@@ -1103,7 +1105,7 @@ mod tests {
     static RETURN_URL: LazyLock<Url> = LazyLock::new(|| Url::from_str("https://example.com/return/here").unwrap());
     static DEFAULT_MDOC_PID_CREDENTIAL_REQUESTS: LazyLock<NormalizedCredentialRequests> = LazyLock::new(|| {
         NormalizedCredentialRequests::new_mock_mdoc_from_slices(
-            &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]])],
+            &[(PID_MDOC_DOCTYPE, &[&[PID_MDOC_DOCTYPE, PID_FAMILY_NAME]])],
             None,
         )
     });
@@ -1247,7 +1249,7 @@ mod tests {
         let credential_requests = match requested_format {
             Format::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_from_slices(
                 &[
-                    (PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]]),
+                    (PID_MDOC_DOCTYPE, &[&[PID_MDOC_DOCTYPE, PID_GIVEN_NAME]]),
                     (
                         ADDRESS_ATTESTATION_TYPE,
                         // mdoc has no nesting of its own, so the address attributes live directly in the single
@@ -1275,7 +1277,7 @@ mod tests {
         let verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
         let (given_name_path, address_group_path): (&[&str], &[&str]) = match requested_format {
-            Format::MsoMdoc => (&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME], &[ADDRESS_ATTESTATION_TYPE]),
+            Format::MsoMdoc => (&[PID_MDOC_DOCTYPE, PID_GIVEN_NAME], &[ADDRESS_ATTESTATION_TYPE]),
             Format::SdJwt => (&[PID_GIVEN_NAME], &[PID_ADDRESS_GROUP]),
         };
 
@@ -1328,7 +1330,7 @@ mod tests {
 
         // The wallet will query the database for both attestation types, mock returning them.
         for (attestation_type, attestations) in [
-            (PID_ATTESTATION_TYPE, vec![pid1, pid2.clone(), pid3]),
+            (pid_attestation_type(requested_format), vec![pid1, pid2.clone(), pid3]),
             (ADDRESS_ATTESTATION_TYPE, vec![address1.clone(), address2]),
         ] {
             wallet
@@ -1391,13 +1393,13 @@ mod tests {
                 .zip_eq(["Andere Naam", "Willeke Liselotte", "Iemand Anders"])
         {
             assert_matches!(presentation.identity, AttestationIdentity::Fixed { .. });
-            assert_eq!(presentation.attestation_type, PID_ATTESTATION_TYPE);
+            assert_eq!(presentation.attestation_type, pid_attestation_type(requested_format));
             assert_eq!(presentation.attributes.len(), 1);
 
             let attribute = &presentation.attributes[0];
 
             let expected_key: Vec<&str> = match requested_format {
-                Format::MsoMdoc => vec![PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
+                Format::MsoMdoc => vec![PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
                 Format::SdJwt => vec![PID_GIVEN_NAME],
             };
             assert!(attribute.key.iter().eq(expected_key));
@@ -1488,7 +1490,7 @@ mod tests {
                             (
                                 "mdoc_0",
                                 vec![IndexMap::from([(
-                                    PID_ATTESTATION_TYPE.to_string(),
+                                    PID_MDOC_DOCTYPE.to_string(),
                                     vec![Entry {
                                         name: PID_GIVEN_NAME.to_string(),
                                         value: ciborium::Value::Text("Willeke Liselotte".to_string()),
@@ -1574,7 +1576,7 @@ mod tests {
         // The wallet will log a single disclosure event, containing
         // `AttestationPresentation` values for those attributes disclosed.
         let (expected_given_name_key, expected_address_namespace): (Vec<&str>, &str) = match requested_format {
-            Format::MsoMdoc => (vec![PID_ATTESTATION_TYPE, PID_GIVEN_NAME], ADDRESS_ATTESTATION_TYPE),
+            Format::MsoMdoc => (vec![PID_MDOC_DOCTYPE, PID_GIVEN_NAME], ADDRESS_ATTESTATION_TYPE),
             Format::SdJwt => (vec![PID_GIVEN_NAME], PID_ADDRESS_GROUP),
         };
 
@@ -1838,8 +1840,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .withf(move |credential_kinds, _| {
-                *credential_kinds
-                    == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_owned())])
+                *credential_kinds == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_MDOC_DOCTYPE.to_owned())])
             })
             .times(1)
             .return_once(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
@@ -1896,7 +1897,7 @@ mod tests {
             .flat_map(|request| {
                 request
                     .claim_paths()
-                    .map(|path| format!("{}/{}", PID_ATTESTATION_TYPE, path.iter().join("/")))
+                    .map(|path| format!("{}/{}", pid_attestation_type(requested_format), path.iter().join("/")))
             })
             .collect::<HashSet<_>>();
 
@@ -1916,7 +1917,7 @@ mod tests {
     }
 
     #[rstest]
-    #[case(Format::MsoMdoc, &[PID_ATTESTATION_TYPE, "favourite_colour"])]
+    #[case(Format::MsoMdoc, &[PID_MDOC_DOCTYPE, "favourite_colour"])]
     #[case(Format::MsoMdoc, &["family_name"])]
     #[case(Format::MsoMdoc, &["long", "path", "family_name"])]
     #[case(Format::SdJwt, &["favourite_colour"])]
@@ -1929,7 +1930,7 @@ mod tests {
     ) {
         let credential_requests = match requested_format {
             Format::MsoMdoc => {
-                NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[path])], None)
+                NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(PID_MDOC_DOCTYPE, &[path])], None)
             }
             Format::SdJwt => {
                 NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[path])])
@@ -1963,7 +1964,8 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        let expected_attributes = HashSet::from([format!("{}/{}", PID_ATTESTATION_TYPE, path.join("/"))]);
+        let expected_attributes =
+            HashSet::from([format!("{}/{}", pid_attestation_type(requested_format), path.join("/"))]);
         let certificate_organization = Organization::try_from(&verifier_certificate).unwrap();
         assert_matches!(
             error,
@@ -2133,7 +2135,7 @@ mod tests {
     }
 
     #[rstest]
-    #[case(Format::MsoMdoc, &[PID_ATTESTATION_TYPE, PID_RECOVERY_CODE])]
+    #[case(Format::MsoMdoc, &[PID_MDOC_DOCTYPE, PID_RECOVERY_CODE])]
     #[case(Format::SdJwt, &[PID_RECOVERY_CODE])]
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_recovery_code_requested(
@@ -2142,7 +2144,7 @@ mod tests {
     ) {
         let credential_requests = match requested_format {
             Format::MsoMdoc => {
-                NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[path])], None)
+                NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(PID_MDOC_DOCTYPE, &[path])], None)
             }
             Format::SdJwt => {
                 NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[path])])
@@ -3308,10 +3310,10 @@ mod tests {
     fn setup_pid_attributes_config() -> PidAttributesConfiguration {
         PidAttributesConfiguration {
             mso_mdoc: HashMap::from([(
-                PID_ATTESTATION_TYPE.to_owned(),
+                PID_MDOC_DOCTYPE.to_owned(),
                 PidAttributePaths {
                     login: vec_nonempty!["login".to_owned()],
-                    recovery_code: vec_nonempty![PID_ATTESTATION_TYPE.to_owned(), PID_RECOVERY_CODE.to_owned()],
+                    recovery_code: vec_nonempty![PID_MDOC_DOCTYPE.to_owned(), PID_RECOVERY_CODE.to_owned()],
                 },
             )]),
             sd_jwt: HashMap::from([(
@@ -3327,14 +3329,14 @@ mod tests {
     #[rstest]
     #[case::mdoc_reco(
         Format::MsoMdoc,
-        PID_ATTESTATION_TYPE,
-        vec_nonempty![ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_owned()), ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
+        PID_MDOC_DOCTYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_MDOC_DOCTYPE.to_owned()), ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
         true,
     )]
     #[case::mdoc_not_reco(
         Format::MsoMdoc,
-        PID_ATTESTATION_TYPE,
-        vec_nonempty![ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_owned()), ClaimPath::SelectByKey(PID_FAMILY_NAME.to_owned())],
+        PID_MDOC_DOCTYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_MDOC_DOCTYPE.to_owned()), ClaimPath::SelectByKey(PID_FAMILY_NAME.to_owned())],
         false,
     )]
     #[case::mdoc_unknown(

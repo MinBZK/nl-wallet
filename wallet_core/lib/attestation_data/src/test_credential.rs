@@ -6,7 +6,6 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_ADDRESS_GROUP;
-use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_BIRTH_DATE;
 use attestation_types::pid_constants::PID_BSN;
 use attestation_types::pid_constants::PID_FAMILY_NAME;
@@ -481,10 +480,10 @@ impl TestCredential {
             "nl_pid_all",
             [[PID_GIVEN_NAME], [PID_FAMILY_NAME], [PID_BIRTH_DATE], [PID_BSN]],
             [
-                [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
-                [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
-                [PID_ATTESTATION_TYPE, PID_BIRTH_DATE],
-                [PID_ATTESTATION_TYPE, PID_BSN],
+                [PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
+                [PID_MDOC_DOCTYPE, PID_FAMILY_NAME],
+                [PID_MDOC_DOCTYPE, PID_BIRTH_DATE],
+                [PID_MDOC_DOCTYPE, PID_BSN],
             ],
         )
     }
@@ -493,10 +492,7 @@ impl TestCredential {
         Self::new_nl_pid(
             "nl_pid_full_name",
             [[PID_GIVEN_NAME], [PID_FAMILY_NAME]],
-            [
-                [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
-                [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
-            ],
+            [[PID_MDOC_DOCTYPE, PID_GIVEN_NAME], [PID_MDOC_DOCTYPE, PID_FAMILY_NAME]],
         )
     }
 
@@ -504,19 +500,19 @@ impl TestCredential {
         Self::new_nl_pid(
             "nl_pid_given_name",
             [[PID_GIVEN_NAME]],
-            [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]],
+            [[PID_MDOC_DOCTYPE, PID_GIVEN_NAME]],
         )
     }
 
     pub fn new_nl_pid_given_name_for_query_id(query_id: &str) -> Self {
-        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]], [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])
+        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]], [[PID_MDOC_DOCTYPE, PID_GIVEN_NAME]])
     }
 
     pub fn new_nl_pid_family_name() -> Self {
         Self::new_nl_pid(
             "nl_pid_family_name",
             [[PID_FAMILY_NAME]],
-            [[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]],
+            [[PID_MDOC_DOCTYPE, PID_FAMILY_NAME]],
         )
     }
 

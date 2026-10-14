@@ -871,6 +871,7 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use ciborium::value::Value;
     use crypto::PublicKey;
     use crypto::WithVerifyingKey;
@@ -962,11 +963,7 @@ mod tests {
     const PHOTO_ID_NAMESPACE: &str = "org.iso.23220.photoid.1";
 
     fn pid_given_name_items_request() -> ItemsRequest {
-        interop_items_request(
-            PID_ATTESTATION_TYPE,
-            &[(PID_ATTESTATION_TYPE, &[PID_GIVEN_NAME][..])],
-            None,
-        )
+        interop_items_request(PID_MDOC_DOCTYPE, &[(PID_MDOC_DOCTYPE, &[PID_GIVEN_NAME][..])], None)
     }
 
     fn interop_items_request(
@@ -1281,10 +1278,7 @@ mod tests {
         // Create three PID attestations, which differ only in their given name.
         let (mut pid_credential_payload, pid_metadata, _) = example_pid_payload_and_metadata(Format::MsoMdoc);
         let attributes = &mut pid_credential_payload.previewable_payload.attributes;
-        attributes.overwrite(
-            [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
-            Attribute::Text("Jane".to_string()),
-        );
+        attributes.overwrite([PID_MDOC_DOCTYPE, PID_GIVEN_NAME], Attribute::Text("Jane".to_string()));
         let pid1 = example_stored_attestation_copy(
             Format::MsoMdoc,
             pid_credential_payload.clone(),
@@ -1295,10 +1289,7 @@ mod tests {
         let (pid2, _) = example_pid_stored_attestation_copy(Format::MsoMdoc);
 
         let attributes = &mut pid_credential_payload.previewable_payload.attributes;
-        attributes.overwrite(
-            [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
-            Attribute::Text("John".to_string()),
-        );
+        attributes.overwrite([PID_MDOC_DOCTYPE, PID_GIVEN_NAME], Attribute::Text("John".to_string()));
         let pid3 = example_stored_attestation_copy(
             Format::MsoMdoc,
             pid_credential_payload,
@@ -1310,8 +1301,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .withf(move |credential_kinds, _| {
-                *credential_kinds
-                    == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_owned())])
+                *credential_kinds == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_MDOC_DOCTYPE.to_owned())])
             })
             .once()
             .return_once(move |_, _| Ok(vec![pid1, pid2.clone(), pid3]));
@@ -1773,9 +1763,9 @@ mod tests {
     async fn test_verify_device_request_inconsistent_reader_auths() {
         let items_request1 = pid_given_name_items_request();
         let items_request2 = ItemsRequest {
-            doc_type: PID_ATTESTATION_TYPE.to_owned(),
+            doc_type: PID_MDOC_DOCTYPE.to_owned(),
             name_spaces: IndexMap::from_iter(vec![(
-                PID_ATTESTATION_TYPE.to_owned(),
+                PID_MDOC_DOCTYPE.to_owned(),
                 IndexMap::from_iter(vec![(PID_FAMILY_NAME.to_owned(), true)])
                     .try_into()
                     .unwrap(),
@@ -1832,7 +1822,7 @@ mod tests {
         );
 
         let credential_requests = NormalizedCredentialRequests::new_mock_mdoc_from_slices(
-            &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])],
+            &[(PID_MDOC_DOCTYPE, &[&[PID_MDOC_DOCTYPE, PID_GIVEN_NAME]])],
             None,
         );
         let disclosable_attestation = DisclosableAttestation::try_new(
@@ -1899,7 +1889,7 @@ mod tests {
 
     fn pid_given_name_disclosable_attestation() -> (VpDisclosableAttestation, SigningKey) {
         let credential_requests = NormalizedCredentialRequests::new_mock_mdoc_from_slices(
-            &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])],
+            &[(PID_MDOC_DOCTYPE, &[&[PID_MDOC_DOCTYPE, PID_GIVEN_NAME]])],
             None,
         );
 
@@ -1980,7 +1970,7 @@ mod tests {
             CloseProximityDisclosableAttestation::try_from(disclosable_attestation_from_credential_requests(
                 pid2,
                 &NormalizedCredentialRequests::new_mock_mdoc_from_slices(
-                    &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]])],
+                    &[(PID_MDOC_DOCTYPE, &[&[PID_MDOC_DOCTYPE, PID_FAMILY_NAME]])],
                     None,
                 ),
             ))
