@@ -47,9 +47,11 @@ client_id = "${DIGID_CLIENT_ID}"
 # own mock page. Maps each bsn to a display name; each bsn must resolve in the dev BRP dataset. Comment out for the
 # real-DigiD flow.
 [digid.mock_subjects]
-"900265462" = "Lennert uijt de Fruitplukker"
-"999991772" = "Frouke Jansen"
 "999991905" = "Linda Strijps"
+"999991772" = "Frouke Jansen"
+"950273089" = "Jeroen test-90021561"
+"950269049" = "Jolien test-90021182"
+"900265462" = "Lennert uijt de Fruitplukker"
 
 [digid.client_settings]
 oidc_identifier = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"

@@ -276,8 +276,8 @@ where
         leaf_certificate: &BorrowingCertificate,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let pubkey = PublicKey::from(*leaf_certificate.public_key());
-        let validation = validation.into_validation(&pubkey);
+        let pubkey = leaf_certificate.public_key();
+        let validation = validation.into_validation(pubkey);
         self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
             .map_err(JwtX5cVerifyError::JwtVerify)
     }
@@ -853,9 +853,7 @@ impl From<&PublicKey> for JwtDecodingKey {
         match value {
             PublicKey::ESP256(key) => JwtDecodingKey::from_ec_public_key(key),
             PublicKey::ESP384(key) => JwtDecodingKey::from_ec_public_key(key),
-            PublicKey::RSA2048(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
-            PublicKey::RSA3072(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
-            PublicKey::RSA4096(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
+            PublicKey::RSA(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
         }
     }
 }
@@ -1011,7 +1009,7 @@ impl SupportedAlgorithms for PublicKey {
     fn supported_algorithms(&self) -> &[Algorithm] {
         match self {
             PublicKey::ESP256(_) | PublicKey::ESP384(_) => AlgorithmFamily::Ec.algorithms(),
-            PublicKey::RSA2048(_) | PublicKey::RSA3072(_) | PublicKey::RSA4096(_) => AlgorithmFamily::Rsa.algorithms(),
+            PublicKey::RSA(_) => AlgorithmFamily::Rsa.algorithms(),
         }
     }
 }
@@ -1340,7 +1338,6 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateVerifyError;
     use crypto::x509::DistinguishedName;
@@ -1796,7 +1793,7 @@ mod tests {
 
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -1837,7 +1834,7 @@ mod tests {
 
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors_with_crl(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &crl_verifier,
                 &TimeGenerator,
                 None,
@@ -1864,7 +1861,7 @@ mod tests {
 
         let error = jwt
             .parse_and_verify_against_trust_anchors_with_crl(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &crl_verifier,
                 &TimeGenerator,
                 None,
@@ -2061,7 +2058,7 @@ mod tests {
         // Verifying this JWT against the CA's trust anchor should succeed.
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -2087,7 +2084,7 @@ mod tests {
 
         let err = jwt
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&other_ca),
+                &other_ca.to_trust_anchors(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -2108,7 +2105,7 @@ mod tests {
 
         // Put the ca_cert in both the certificate list and the trust anchors.
         let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
@@ -2196,9 +2193,7 @@ mod tests {
     enum PrivateKey {
         P256(p256::ecdsa::SigningKey),
         P384(p384::ecdsa::SigningKey),
-        Rsa2048(RsaPrivateKey),
-        Rsa3072(RsaPrivateKey),
-        Rsa4096(RsaPrivateKey),
+        Rsa(RsaPrivateKey),
     }
 
     impl PrivateKey {
@@ -2206,9 +2201,7 @@ mod tests {
             match self {
                 PrivateKey::P256(key) => EncodingKey::from_ec_der(key.to_pkcs8_der().unwrap().as_bytes()),
                 PrivateKey::P384(key) => EncodingKey::from_ec_der(key.to_pkcs8_der().unwrap().as_bytes()),
-                PrivateKey::Rsa2048(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
-                PrivateKey::Rsa3072(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
-                PrivateKey::Rsa4096(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
+                PrivateKey::Rsa(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
             }
         }
 
@@ -2216,9 +2209,7 @@ mod tests {
             match self {
                 PrivateKey::P256(key) => PublicKey::ESP256(*key.verifying_key()),
                 PrivateKey::P384(key) => PublicKey::ESP384(*key.verifying_key()),
-                PrivateKey::Rsa2048(key) => PublicKey::RSA2048(key.to_public_key().try_into().unwrap()),
-                PrivateKey::Rsa3072(key) => PublicKey::RSA3072(key.to_public_key().try_into().unwrap()),
-                PrivateKey::Rsa4096(key) => PublicKey::RSA4096(key.to_public_key().try_into().unwrap()),
+                PrivateKey::Rsa(key) => PublicKey::RSA(key.to_public_key().try_into().unwrap()),
             }
         }
     }
@@ -2226,9 +2217,9 @@ mod tests {
     #[rstest]
     #[case::ecdsa_p256(PrivateKey::P256(p256::ecdsa::SigningKey::generate()), Algorithm::ES256)]
     #[case::ecdsa_p384(PrivateKey::P384(p384::ecdsa::SigningKey::generate()), Algorithm::ES384)]
-    #[case::rsa2048(PrivateKey::Rsa2048(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa3072(PrivateKey::Rsa3072(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa4096(PrivateKey::Rsa4096(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa2048(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa3072(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa4096(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS256)]
     fn test_sign_and_verify_with_algorithms(#[case] private_key: PrivateKey, #[case] algorithm: Algorithm) {
         let payload = ToyMessage::default();
 

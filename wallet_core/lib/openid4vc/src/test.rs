@@ -350,12 +350,12 @@ where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
+    let issuer_trust_anchors = issuer_ca.to_trust_anchors();
     let metadata_keypair = issuer_ca.generate_wrpac_issuer_mock_with_crl().unwrap();
     let issuance_keypair = issuer_ca.generate_issuer_mock().unwrap();
 
     let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
-    let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+    let wptl_trust_anchors = wptl_ca.to_trust_anchors();
 
     let registration_certificate = MockRegistrationCertificate::new_issuer(
         metadata_keypair.certificate(),

@@ -628,7 +628,7 @@ mod tests {
             &verifier_session.normalized_auth_request(wallet_nonce),
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
-            &TrustAnchors::from(&ca),
+            &ca.to_trust_anchors(),
             &ExtendingVctRetrieverStub,
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 ca.generate_issuer_status_list_mock().unwrap(),
@@ -797,7 +797,7 @@ mod tests {
             )) if matches!(
                 registration_error.as_ref(),
                 RegistrationCertificateError::Authorization(
-                    RegistrationCertificateAuthorizationError::UnauthorizedCredential(_)
+                    RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(_)
                 )
             )
         );
@@ -846,7 +846,7 @@ mod tests {
         };
         let registration_certificate = verifier_session.registration_certificate.as_mut().unwrap();
         registration_certificate.certificate = certificate;
-        registration_certificate.trust_anchors = TrustAnchors::from(&ca);
+        registration_certificate.trust_anchors = ca.to_trust_anchors();
         let verifier_session = Arc::new(verifier_session);
         let registration_certificate = verifier_session.registration_certificate.as_ref().unwrap();
         let client = VpDisclosureClient::new(

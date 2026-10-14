@@ -116,9 +116,7 @@ async fn test_expired_configuration_is_rejected() {
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         embedded_config,
-    )
-    .await
-    .unwrap();
+    );
 
     let error = repository
         .fetch(&config_server_config.http_config)

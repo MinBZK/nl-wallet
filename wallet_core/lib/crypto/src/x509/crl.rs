@@ -502,7 +502,6 @@ mod tests {
     use super::mock::MockCrlFetcher;
     use super::*;
     use crate::server_keys::generate::Ca;
-    use crate::trust_anchor::TrustAnchors;
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateVerifyError;
     use crate::x509::DistinguishedName;
@@ -757,7 +756,7 @@ mod tests {
             .await;
 
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
 
         provider
             .verify_chain(std::slice::from_ref(&leaf), &trust_anchors, None, &TimeGenerator)
@@ -795,7 +794,7 @@ mod tests {
             .await;
 
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
 
         provider
             .verify_chain(&[cached_leaf], &trust_anchors, None, &TimeGenerator)
@@ -890,7 +889,7 @@ mod tests {
 
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         provider
-            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .verify_chain(&[leaf], &ca.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect("certificate should verify using the working distribution point");
 
@@ -944,7 +943,7 @@ mod tests {
                     leaf.certificate().clone(),
                     intermediate.as_borrowing_certificate().unwrap(),
                 ],
-                &TrustAnchors::from(&root),
+                &root.to_trust_anchors(),
                 None,
                 &TimeGenerator,
             )
@@ -968,7 +967,7 @@ mod tests {
 
         let verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         verifier
-            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .verify_chain(&[leaf], &ca.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect("certificate should verify with a deduplicated CRL");
 
@@ -1187,7 +1186,7 @@ mod tests {
         let verifier = CertificateCrlVerifier::new_with_fetcher(MockCrlFetcher::new([(url, crl)]), 10);
 
         verifier
-            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .verify_chain(&[leaf], &ca.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect("certificate should verify using the issuer-signed mock CRL");
     }
@@ -1207,7 +1206,7 @@ mod tests {
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         provider
-            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .verify_chain(&[leaf], &ca.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect("certificate should verify");
     }
@@ -1227,7 +1226,7 @@ mod tests {
 
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         provider
-            .verify_chain(&[leaf], &TrustAnchors::from(&trusted_ca), None, &TimeGenerator)
+            .verify_chain(&[leaf], &trusted_ca.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect_err("untrusted certificate should fail before CRL retrieval");
 
@@ -1255,7 +1254,7 @@ mod tests {
             .await;
 
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
 
         let error = provider
             .verify_chain(std::slice::from_ref(&leaf), &trust_anchors, None, &TimeGenerator)
@@ -1345,7 +1344,7 @@ mod tests {
         let error = provider
             .verify_chain(
                 &[leaf.certificate().clone(), intermediate_cert],
-                &TrustAnchors::from(&root),
+                &root.to_trust_anchors(),
                 None,
                 &TimeGenerator,
             )
@@ -1364,7 +1363,7 @@ mod tests {
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         let error = provider
-            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .verify_chain(&[leaf], &ca.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect_err("certificate without a CDP extension should fail verification");
         assert!(matches!(error, CertificateCrlVerificationError::NoCrlDistributionPoint));
@@ -1410,7 +1409,7 @@ mod tests {
                     leaf.certificate().clone(),
                     intermediate.as_borrowing_certificate().unwrap(),
                 ],
-                &TrustAnchors::from(&root),
+                &root.to_trust_anchors(),
                 None,
                 &TimeGenerator,
             )
@@ -1442,7 +1441,7 @@ mod tests {
         let provider = CertificateCrlVerifier::new_without_caching(httpmock_reqwest_client_builder().build().unwrap());
 
         let error = provider
-            .verify_chain(&[leaf], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .verify_chain(&[leaf], &ca.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect_err("expired CRL should fail verification");
         assert!(matches!(
@@ -1458,7 +1457,7 @@ mod tests {
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         let error = provider
-            .verify_chain(&[], &TrustAnchors::from(&ca), None, &TimeGenerator)
+            .verify_chain(&[], &ca.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect_err("empty chain should fail verification");
         assert!(matches!(error, CertificateCrlVerificationError::EmptyChain));

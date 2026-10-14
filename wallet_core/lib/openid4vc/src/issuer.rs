@@ -2185,7 +2185,7 @@ mod tests {
         .unwrap();
 
         let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
-        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+        let wptl_trust_anchors = wptl_ca.to_trust_anchors();
 
         session
             .accept_issuance(

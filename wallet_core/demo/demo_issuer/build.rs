@@ -76,6 +76,7 @@ fn main() {
         "museum_maandkaart",
         "mdl",
         "mvc",
+        "dezi",
     ] {
         combine_usecase_css(entry, profile, Path::new(&manifest_dir));
     }

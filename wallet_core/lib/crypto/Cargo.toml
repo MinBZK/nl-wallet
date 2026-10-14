@@ -34,7 +34,7 @@ indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 moka = { workspace = true, features = ["future"] }
 nutype.workspace = true
-p256 = { workspace = true, features = ["pem", "serde"] }
+p256 = { workspace = true, features = ["pkcs8", "serde"] }
 p384 = { workspace = true, features = ["pkcs8", "serde"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
@@ -75,7 +75,7 @@ der = { workspace = true, features = ["derive", "heapless", "oid"] }
 ecdsa.workspace = true
 hex-literal.workspace = true
 httpmock.workspace = true
-rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
+rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs", "pem"] }
 rsa = { workspace = true, features = ["pem"] }
 rstest.workspace = true
 time.workspace = true

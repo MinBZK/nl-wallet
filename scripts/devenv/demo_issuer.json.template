@@ -227,6 +227,53 @@
         "path": ["urn:eudi:pid:nl:1", "bsn"]
       }
     },
+    "dezi": {
+      "client_id": "${DEMO_ISSUER_CLIENT_ID_DEZI}",
+      "data": {
+        "950273089": [
+          {
+            "format": "dc+sd-jwt",
+            "attestation_type": "https://www.dezi.nl/vct/v1/deziVerklaringDcSdJwt",
+            "attributes": {
+              "loa_dezi": { "type": "text", "value": "http://eidas.europa.eu/LoA/high" },
+              "verklaring_id": { "type": "text", "value": "77b2c445-594c-457b-8c9a-1b86cd08bc85" },
+              "dezi_nummer": { "type": "text", "value": "900027308" },
+              "voorletters": { "type": "text", "value": "J." },
+              "voorvoegsel": { "type": "null" },
+              "achternaam": { "type": "text", "value": "test-90021561" },
+              "abonnee_nummer": { "type": "text", "value": "90000382" },
+              "abonnee_naam": { "type": "text", "value": "test-org-1" },
+              "rol_code": { "type": "text", "value": "17.060" },
+              "rol_naam": { "type": "text", "value": "Ziekenhuisapotheker" },
+              "rol_code_bron": { "type": "text", "value": "http://www.dezi.nl/rol_code_bron/big" }
+            }
+          }
+        ],
+        "950269049": [
+          {
+            "format": "dc+sd-jwt",
+            "attestation_type": "https://www.dezi.nl/vct/v1/deziVerklaringDcSdJwt",
+            "attributes": {
+              "loa_dezi": { "type": "text", "value": "http://eidas.europa.eu/LoA/high" },
+              "verklaring_id": { "type": "text", "value": "12a971fd-1403-454f-9a3f-29b185575a97" },
+              "dezi_nummer": { "type": "text", "value": "900026904" },
+              "voorletters": { "type": "text", "value": "J." },
+              "voorvoegsel": { "type": "null" },
+              "achternaam": { "type": "text", "value": "test-90021182" },
+              "abonnee_nummer": { "type": "text", "value": "90000380" },
+              "abonnee_naam": { "type": "text", "value": "test-org-2" },
+              "rol_code": { "type": "text", "value": "4.0000" },
+              "rol_naam": { "type": "text", "value": "Fysiotherapeut" },
+              "rol_code_bron": { "type": "text", "value": "http://www.dezi.nl/rol_code_bron/big" }
+            }
+          }
+        ]
+      },
+      "disclosed": {
+        "credential_type": "urn:eudi:pid:nl:1",
+        "path": ["bsn"]
+      }
+    },
     "mdl": {
       "data": [
         {

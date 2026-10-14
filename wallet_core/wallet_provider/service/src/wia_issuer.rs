@@ -132,7 +132,6 @@ mod tests {
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateUsage;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
@@ -171,7 +170,7 @@ mod tests {
         let (_, wia_claims) = wia_disclosure
             .wia()
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &TimeGenerator,
                 Some(CertificateUsage::Wia),
                 WIA_JWT_VALIDATION.to_owned(),

@@ -316,7 +316,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 ca.generate_pid_issuer_mock()
                     .unwrap()
                     .certificate()
@@ -330,7 +330,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 "http://example.com/sub".parse().unwrap(),
                 &MockTimeGenerator::default(),
@@ -340,7 +340,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 expected_claims.sub.clone(),
                 &MockTimeGenerator::new(DateTime::from_timestamp(SLT_EXP, 0).unwrap().add(Days::new(1))),
@@ -350,7 +350,7 @@ mod test {
 
         signed
             .parse_and_verify(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 expected_claims.sub,
                 &MockTimeGenerator::default(),

@@ -146,7 +146,7 @@ mod tests {
 
     static TSL_ANCHORS_AND_KEY_PAIR: LazyLock<(TrustAnchors, KeyPair)> = LazyLock::new(|| {
         let ca = Ca::generate_wptl_mock_ca().unwrap();
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
         let key_pair = ca.generate_key_storage_status_list_mock().unwrap();
 
         (trust_anchors, key_pair)

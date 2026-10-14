@@ -2322,7 +2322,7 @@ mod tests {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         recovery_code_sd_jwt(&issuer_ca)
             .1
-            .into_verified_against_trust_anchors(&TrustAnchors::from(&issuer_ca), &MockTimeGenerator::default())
+            .into_verified_against_trust_anchors(&issuer_ca.to_trust_anchors(), &MockTimeGenerator::default())
             .unwrap()
     }
 

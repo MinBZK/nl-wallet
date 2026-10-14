@@ -9,7 +9,6 @@ use chrono::TimeZone;
 use chrono::Utc;
 use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::generate::Ca;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::DistinguishedName;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
@@ -100,7 +99,7 @@ async fn reject_untrusted_registration_certificate_after_parsing(#[case] format:
     let envelope = RegistrationCertificateEnvelope::try_from(encoded.as_slice()).unwrap();
     let untrusted_ca = Ca::generate_wrpac_mock_ca().unwrap();
 
-    let error = verify_registration_certificate_envelope(&envelope, &TrustAnchors::from(&untrusted_ca), &time)
+    let error = verify_registration_certificate_envelope(&envelope, &untrusted_ca.to_trust_anchors(), &time)
         .err()
         .expect("an envelope signed by an untrusted CA should be rejected");
 
@@ -125,7 +124,7 @@ async fn verify_and_validate_registration_certificate(#[case] format: EnvelopeFo
     let time = MockTimeGenerator::new(validation_time());
     let encoded = signed_registration_certificate(format, &ca, &time).await;
     let envelope = RegistrationCertificateEnvelope::try_from(encoded.as_slice()).unwrap();
-    let payload = verify_registration_certificate_envelope(&envelope, &TrustAnchors::from(&ca), &time)
+    let payload = verify_registration_certificate_envelope(&envelope, &ca.to_trust_anchors(), &time)
         .unwrap()
         .into_payload();
     let certificate = payload

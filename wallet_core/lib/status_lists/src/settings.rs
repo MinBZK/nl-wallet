@@ -22,7 +22,8 @@ pub struct StatusListsSettings {
     pub list_size: NonZeroU31,
     /// Threshold relatively to `list_size` to start creating a new list in the background
     pub create_threshold_ratio: Ratio,
-    /// Expiry duration in hours after creation of the token (`exp` field)
+    /// Expiry duration after creation of the token (`exp` field). Note that this gets deserialized as
+    /// `expiry_in_hours`, which is guaranteed to result in a non-zero duration.
     #[serde(rename = "expiry_in_hours")]
     #[serde_as(as = "DurationHours")]
     pub expiry: Duration,
