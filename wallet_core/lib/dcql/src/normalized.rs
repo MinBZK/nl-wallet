@@ -34,7 +34,7 @@ impl AsRef<[NormalizedCredentialRequest]> for NormalizedCredentialRequests {
 }
 
 impl NormalizedCredentialRequests {
-    pub fn nonempty_iter<'a>(&'a self) -> Iter<'a, NormalizedCredentialRequest> {
+    pub fn nonempty_iter(&self) -> Iter<'_, NormalizedCredentialRequest> {
         self.0.nonempty_iter()
     }
 }
@@ -346,7 +346,16 @@ impl From<MdocAttributeRequest> for ClaimsQuery {
 impl TryFrom<ClaimsQuery> for SdJwtAttributeRequest {
     type Error = UnsupportedDcqlFeatures;
 
-    fn try_from(source: ClaimsQuery) -> Result<Self, Self::Error> {
+    fn try_from(mut source: ClaimsQuery) -> Result<Self, Self::Error> {
+        // TODO(PVW-6271): interim workaround. A trailing null selects all array elements; we request the whole array
+        // instead. Array elements that an issuer conceals separately are therefore not disclosed.
+        if let ClaimPath::SelectAll = source.path.last() {
+            let (path, _) = source.path.into_inner_last();
+            source.path = path
+                .try_into()
+                .map_err(|_| UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)?;
+        }
+
         check_claims_query(&source)?;
 
         if source.intent_to_retain.is_some() {
@@ -746,6 +755,7 @@ pub mod mock {
 #[cfg(test)]
 mod test {
     use rstest::rstest;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use super::MdocAttributeRequest;
@@ -825,6 +835,45 @@ mod test {
         if let Ok(normalized) = result {
             assert_eq!(Query::from(normalized), strip_claim_values(query));
         }
+    }
+
+    fn key(key: &str) -> ClaimPath {
+        ClaimPath::SelectByKey(key.to_string())
+    }
+
+    #[rstest]
+    #[case(vec_nonempty![key("nationalities"), ClaimPath::SelectAll], Ok(vec_nonempty![key("nationalities")]))]
+    #[case(
+        vec_nonempty![key("nationalities"), ClaimPath::SelectAll, ClaimPath::SelectAll],
+        Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
+    )]
+    #[case(vec_nonempty![ClaimPath::SelectAll], Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant))]
+    #[case(
+        vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectAll],
+        Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
+    )]
+    #[case(
+        vec_nonempty![key("degrees"), ClaimPath::SelectAll, key("type")],
+        Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
+    )]
+    #[case(
+        vec_nonempty![key("nationalities"), ClaimPath::SelectByIndex(0)],
+        Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
+    )]
+    fn test_sd_jwt_trailing_select_all(
+        #[case] path: VecNonEmpty<ClaimPath>,
+        #[case] expected: Result<VecNonEmpty<ClaimPath>, UnsupportedDcqlFeatures>,
+    ) {
+        let claims_query = ClaimsQuery {
+            id: None,
+            path,
+            values: vec![],
+            intent_to_retain: None,
+        };
+
+        let result = SdJwtAttributeRequest::try_from(claims_query).map(|request| request.path);
+
+        assert_eq!(result, expected);
     }
 
     fn mdoc_example_query_mutate_first_credential_query<F>(mutate: F) -> Query
