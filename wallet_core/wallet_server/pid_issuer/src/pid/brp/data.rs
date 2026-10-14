@@ -5,6 +5,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde_with::skip_serializing_none;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::pid::rulebook::constants::PID_BIRTH_PLACE_GROUP;
 use crate::pid::rulebook::constants::PID_BSN;
@@ -31,6 +32,7 @@ use crate::pid::rulebook::constants::PID_SD_JWT_STREET_ADDRESS;
 use crate::pid::rulebook::constants::PID_SEX;
 use crate::pid::rulebook::country_code::IsoCountryCode;
 use crate::pid::rulebook::country_code::RulebookCountryCode;
+use crate::pid::rulebook::country_code::RulebookNationalities;
 use crate::pid::rulebook::country_code::RulebookNationality;
 use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use crate::pid::rulebook::sex::IsoSex;
@@ -159,13 +161,12 @@ impl BrpPerson {
             .map(|gender| Attribute::from(RulebookSex::from(gender.code)));
         let birth_date = self.birth.date.date;
         let place_of_birth = self.birth.into_place_of_birth_attribute();
-        let nationality = Attribute::Array(
+        let nationality = Attribute::from(RulebookNationalities::from_rvig_codes(
             self.nationalities
                 .into_iter()
                 .filter_map(|nationality| nationality.nationality)
-                .map(|detail| Attribute::from(RulebookNationality::from(detail.code)))
-                .collect_vec(),
-        );
+                .map(|detail| detail.code),
+        ));
 
         let attributes = IndexMap::from_iter(
             vec![
@@ -1100,13 +1101,30 @@ impl RvigNationalityCode {
     }
 }
 
-impl From<RvigNationalityCode> for RulebookNationality {
-    fn from(value: RvigNationalityCode) -> Self {
-        match value.alpha2() {
-            Some(country) => Self::Iso(country),
-            None if matches!(value, RvigNationalityCode::Kosovaarse) => Self::Other("XK".to_owned()),
-            None if matches!(value, RvigNationalityCode::Staatloos) => Self::Stateless,
-            None => Self::Unknown,
+impl RvigNationalityCode {
+    fn to_rulebook_nationality(&self) -> Option<RulebookNationality> {
+        match self.alpha2() {
+            Some(country) => Some(RulebookNationality::Iso(country)),
+            None if matches!(self, Self::Kosovaarse) => Some(RulebookNationality::Other("XK".to_owned())),
+            None => None,
+        }
+    }
+}
+
+impl RulebookNationalities {
+    /// Any actual nationality takes precedence over "stateless", which in turn takes precedence over "unknown" (no
+    /// known nationalities). Nationalities are deduplicated, preserving the BRP's most-recent-first order.
+    fn from_rvig_codes(codes: impl IntoIterator<Item = RvigNationalityCode>) -> Self {
+        let codes = codes.into_iter().collect_vec();
+        let known = codes
+            .iter()
+            .filter_map(RvigNationalityCode::to_rulebook_nationality)
+            .collect_vec();
+
+        match VecNonEmpty::try_from(known) {
+            Ok(known) => Self::Known(known.into()),
+            Err(_) if codes.iter().any(|code| matches!(code, RvigNationalityCode::Staatloos)) => Self::Stateless,
+            Err(_) => Self::Unknown,
         }
     }
 }
@@ -2577,7 +2595,9 @@ mod tests {
     use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;
+    use crate::pid::brp::data::RvigNationalityCode;
     use crate::pid::rulebook::country_code::IsoCountryCode;
+    use crate::pid::rulebook::country_code::RulebookNationalities;
     use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
     fn read_json(name: &str) -> String {
@@ -2613,6 +2633,37 @@ mod tests {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
         let brp_person = brp_persons.persons.first().unwrap();
         assert_eq!(expected_house_number, brp_person.residence.address.locator_designator());
+    }
+
+    #[rstest]
+    #[case::empty(vec![], &["QU"])]
+    #[case::unknown(vec![RvigNationalityCode::Onbekend], &["QU"])]
+    #[case::not_dutch(vec![RvigNationalityCode::VastgesteldNietNederlander], &["QU"])]
+    #[case::stateless(vec![RvigNationalityCode::Staatloos], &["QS"])]
+    #[case::stateless_over_unknown(vec![RvigNationalityCode::Onbekend, RvigNationalityCode::Staatloos], &["QS"])]
+    #[case::country_over_stateless_and_unknown(
+        vec![RvigNationalityCode::Staatloos, RvigNationalityCode::Nederlandse, RvigNationalityCode::Onbekend],
+        &["NL"]
+    )]
+    #[case::deduplicated_in_order(
+        vec![
+            RvigNationalityCode::BritsBurger,
+            RvigNationalityCode::Nederlandse,
+            RvigNationalityCode::BritsOnderdaan,
+            RvigNationalityCode::Nederlandse,
+        ],
+        &["GB", "NL"]
+    )]
+    #[case::kosovo(vec![RvigNationalityCode::Kosovaarse], &["XK"])]
+    fn should_convert_nationalities(#[case] codes: Vec<RvigNationalityCode>, #[case] expected: &[&str]) {
+        let expected = Attribute::Array(
+            expected
+                .iter()
+                .map(|value| Attribute::Text((*value).to_owned()))
+                .collect(),
+        );
+
+        assert_eq!(Attribute::from(RulebookNationalities::from_rvig_codes(codes)), expected);
     }
 
     #[rstest]

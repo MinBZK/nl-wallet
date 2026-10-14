@@ -1,8 +1,9 @@
 use attestation_data::attributes::Attribute;
 use serde_with::DeserializeFromStr;
+use utils::vec_at_least::VecNonEmptyUnique;
 
 /// ISO 3166-1 alpha-2 country codes, covering every code currently assigned by the standard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString, DeserializeFromStr)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, strum::EnumString, DeserializeFromStr)]
 pub enum IsoCountryCode {
     #[strum(serialize = "AD")]
     Andorra,
@@ -504,19 +505,13 @@ pub enum IsoCountryCode {
     Zimbabwe,
 }
 
-/// The Rulebook's `nationality` value
-///
-/// > One or more alpha-2 country codes as specified in [ISO 3166-1], representing the nationality of the user to whom
-/// > the person identification data relates. If unknown, value `QU`. If the user does not hold a nationality, value
-/// > `QS`.
+/// A single nationality within [`RulebookNationalities::Known`].
 ///
 /// `Other` is added for territories with no official ISO 3166-1 code (currently only "XK" for Kosovo), not something
-/// the Rulebook defines, unlike `Unknown`/`Stateless`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// the Rulebook defines.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RulebookNationality {
     Iso(IsoCountryCode),
-    Unknown,
-    Stateless,
     Other(String),
 }
 
@@ -524,12 +519,37 @@ impl From<RulebookNationality> for Attribute {
     fn from(value: RulebookNationality) -> Attribute {
         let text = match value {
             RulebookNationality::Iso(country) => country.to_string(),
-            RulebookNationality::Unknown => "QU".to_owned(),
-            RulebookNationality::Stateless => "QS".to_owned(),
             RulebookNationality::Other(value) => value,
         };
 
         Attribute::Text(text)
+    }
+}
+
+/// The Rulebook's `nationality` value
+///
+/// > One or more alpha-2 country codes as specified in [ISO 3166-1], representing the nationality of the user to whom
+/// > the person identification data relates. If unknown, value `QU`. If the user does not hold a nationality, value
+/// > `QS`.
+///
+/// The encoded array is never empty, never mixes `QU` and `QS` with known countries, and never contains the same
+/// country twice.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RulebookNationalities {
+    Unknown,
+    Stateless,
+    Known(VecNonEmptyUnique<RulebookNationality>),
+}
+
+impl From<RulebookNationalities> for Attribute {
+    fn from(value: RulebookNationalities) -> Attribute {
+        let values = match value {
+            RulebookNationalities::Unknown => vec![Attribute::Text("QU".to_owned())],
+            RulebookNationalities::Stateless => vec![Attribute::Text("QS".to_owned())],
+            RulebookNationalities::Known(nationalities) => nationalities.into_iter().map(Attribute::from).collect(),
+        };
+
+        Attribute::Array(values)
     }
 }
 
