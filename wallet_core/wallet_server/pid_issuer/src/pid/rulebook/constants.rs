@@ -9,7 +9,7 @@ pub const PID_NL_SD_JWT_VCT: &str = "urn:eudi:pid:nl:1";
 pub const PID_MDOC_DOCTYPE: &str = "eu.europa.ec.eudi.pid.1";
 pub const PID_MDOC_NAMESPACE: &str = PID_MDOC_DOCTYPE;
 
-pub fn pid_attestation_type(format: Format) -> &'static str {
+pub const fn pid_attestation_type(format: Format) -> &'static str {
     match format {
         Format::MsoMdoc => PID_MDOC_DOCTYPE,
         Format::SdJwt => PID_NL_SD_JWT_VCT,
