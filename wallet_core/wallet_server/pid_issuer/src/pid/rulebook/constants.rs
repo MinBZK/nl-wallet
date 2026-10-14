@@ -4,10 +4,12 @@ use attestation_types::credential_format::Format;
 pub const PID_BASE_SD_JWT_VCT: &str = "urn:eudi:pid:1";
 pub const PID_NL_SD_JWT_VCT: &str = "urn:eudi:pid:nl:1";
 
-// 3.1.1. mdoc `doctype` and `namespace`. Note that ISO/IEC 18013-5 has no `vct`-style extension mechanism for
-// NL-specific claims (yet); those are added to the same namespace.
+// 3.1.1. mdoc `doctype` and base `namespace`
 pub const PID_MDOC_DOCTYPE: &str = "eu.europa.ec.eudi.pid.1";
-pub const PID_MDOC_NAMESPACE: &str = PID_MDOC_DOCTYPE;
+pub const PID_BASE_MDOC_NAMESPACE: &str = PID_MDOC_DOCTYPE;
+
+// ARF A.2.3.2 B PID_06 mdoc domestic `namespace` for NL-specific attributes
+pub const PID_NL_MDOC_NAMESPACE: &str = "eu.europa.ec.eudi.pid.nl.1";
 
 pub const fn pid_attestation_type(format: Format) -> &'static str {
     match format {

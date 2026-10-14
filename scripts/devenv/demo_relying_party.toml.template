@@ -15,7 +15,7 @@ id = "bsn_mdoc"
 format = "mso_mdoc"
 meta = { doctype_value = "eu.europa.ec.eudi.pid.1" }
 claims = [
-    { path = ["eu.europa.ec.eudi.pid.1", "bsn"], intent_to_retain = false }
+    { path = ["eu.europa.ec.eudi.pid.nl.1", "bsn"], intent_to_retain = false }
 ]
 
 [[usecases.mijn_amsterdam_sd_jwt.dcql_query.credentials]]
@@ -44,7 +44,7 @@ id = "mdoc_pid"
 format = "mso_mdoc"
 meta = { doctype_value = "eu.europa.ec.eudi.pid.1" }
 claims = [
-    { path = ["eu.europa.ec.eudi.pid.1", "bsn"], intent_to_retain = true },
+    { path = ["eu.europa.ec.eudi.pid.nl.1", "bsn"], intent_to_retain = true },
     { path = ["eu.europa.ec.eudi.pid.1", "given_name"], intent_to_retain = true },
     { path = ["eu.europa.ec.eudi.pid.1", "family_name"], intent_to_retain = true },
     { path = ["eu.europa.ec.eudi.pid.1", "birth_date"], intent_to_retain = true },

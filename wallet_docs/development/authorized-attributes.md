@@ -22,10 +22,10 @@ For example, the following entries authorize the `given_name` and
   "credentials": [
     {
       "format": "mso_mdoc",
-      "meta": { "doctype_value": "urn:eudi:pid:nl:1" },
+      "meta": { "doctype_value": "eu.europa.ec.eudi.pid.1" },
       "claim": [
-        { "path": ["urn:eudi:pid:nl:1", "given_name"] },
-        { "path": ["urn:eudi:pid:nl:1", "family_name"] }
+        { "path": ["eu.europa.ec.eudi.pid.1", "given_name"] },
+        { "path": ["eu.europa.ec.eudi.pid.1", "family_name"] }
       ]
     },
     {

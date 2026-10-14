@@ -49,7 +49,7 @@ id = "bsn_mdoc"
 format = "mso_mdoc"
 meta = { doctype_value = "eu.europa.ec.eudi.pid.1" }
 claims = [
-    { path = ["eu.europa.ec.eudi.pid.1", "bsn"], intent_to_retain = true }
+    { path = ["eu.europa.ec.eudi.pid.nl.1", "bsn"], intent_to_retain = true }
 ]
 
 [disclosure_settings.university_mdoc.attestation_url_config]
@@ -101,7 +101,7 @@ id = "my_credential"
 format = "mso_mdoc"
 meta = { doctype_value = "eu.europa.ec.eudi.pid.1" }
 claims = [
-    { path = ["eu.europa.ec.eudi.pid.1", "bsn"], intent_to_retain = true }
+    { path = ["eu.europa.ec.eudi.pid.nl.1", "bsn"], intent_to_retain = true }
 ]
 
 [disclosure_settings.housing.attestation_url_config]

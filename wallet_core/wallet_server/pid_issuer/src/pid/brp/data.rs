@@ -7,18 +7,19 @@ use serde::Deserialize;
 use serde_with::skip_serializing_none;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::pid::rulebook::constants::PID_BASE_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_BIRTH_PLACE_GROUP;
 use crate::pid::rulebook::constants::PID_BSN;
 use crate::pid::rulebook::constants::PID_FAMILY_NAME;
 use crate::pid::rulebook::constants::PID_GIVEN_NAME;
 use crate::pid::rulebook::constants::PID_MDOC_BIRTH_DATE;
 use crate::pid::rulebook::constants::PID_MDOC_FAMILY_NAME_BIRTH;
-use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_MDOC_NATIONALITY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_CITY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_COUNTRY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_POSTAL_CODE;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_STREET;
+use crate::pid::rulebook::constants::PID_NL_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
 use crate::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
 use crate::pid::rulebook::constants::PID_SD_JWT_BIRTH_DATE;
@@ -109,8 +110,10 @@ impl BrpPerson {
             birth_date,
             nationality,
             family_name_birth,
+            bsn,
         } = self.common_attributes();
 
+        attributes.insert(String::from(PID_BSN), bsn);
         attributes.insert(
             String::from(PID_SD_JWT_BIRTH_DATE),
             Attribute::Text(birth_date.format("%Y-%m-%d").to_string()), // ISO-8601 string
@@ -134,6 +137,7 @@ impl BrpPerson {
             birth_date,
             nationality,
             family_name_birth,
+            bsn,
         } = self.common_attributes();
 
         // In mdoc, `birth_date` should be encoded as `full-date` (CBOR tag 1004)
@@ -141,17 +145,18 @@ impl BrpPerson {
         attributes.insert(PID_MDOC_NATIONALITY.to_owned(), nationality);
         attributes.insert(PID_MDOC_FAMILY_NAME_BIRTH.to_owned(), family_name_birth);
         attributes.extend(issuer_metadata.into_attributes());
-        attributes.insert(String::from(PID_RECOVERY_CODE), recovery_code);
         attributes.extend(address_attributes);
 
-        Attributes::from(IndexMap::from([(
-            PID_MDOC_NAMESPACE.to_owned(),
-            Attribute::Object(attributes),
-        )]))
+        let nl_attributes = IndexMap::from([(PID_BSN.to_owned(), bsn), (PID_RECOVERY_CODE.to_owned(), recovery_code)]);
+
+        Attributes::from(IndexMap::from([
+            (PID_BASE_MDOC_NAMESPACE.to_owned(), Attribute::Object(attributes)),
+            (PID_NL_MDOC_NAMESPACE.to_owned(), Attribute::Object(nl_attributes)),
+        ]))
     }
 
-    /// Everything but `birth_date`, `nationality` and `family_name_birth`, since those have different key/value
-    /// formats or keys for mdoc and SD-JWT.
+    /// Everything but `birth_date`, `nationality`, `family_name_birth` and `bsn`, since those have different
+    /// key/value formats, keys or (mdoc) namespaces for mdoc and SD-JWT.
     fn common_attributes(self) -> CommonAttributes {
         let given_names = self.name.given_names.clone();
         let family_name = self.family_name();
@@ -172,7 +177,6 @@ impl BrpPerson {
             vec![
                 Some((String::from(PID_FAMILY_NAME), Attribute::Text(family_name))),
                 given_names.map(|names| (String::from(PID_GIVEN_NAME), Attribute::Text(names))),
-                Some((String::from(PID_BSN), Attribute::Text(self.bsn))),
                 sex.map(|sex| (PID_SEX.to_owned(), sex)),
                 place_of_birth.map(|attribute| (PID_BIRTH_PLACE_GROUP.to_owned(), attribute)),
             ]
@@ -186,6 +190,7 @@ impl BrpPerson {
             birth_date,
             nationality,
             family_name_birth,
+            bsn: Attribute::Text(self.bsn),
         }
     }
 }
@@ -195,6 +200,7 @@ struct CommonAttributes {
     birth_date: NaiveDate,
     nationality: Attribute,
     family_name_birth: Attribute,
+    bsn: Attribute,
 }
 
 impl BrpResidence {
@@ -2803,10 +2809,6 @@ mod tests {
                             "type": "date",
                             "value": "2000-03-24"
                         },
-                        "bsn": {
-                            "type": "text",
-                            "value": "999991772"
-                        },
                         "nationality": {
                             "type": "array",
                             "value": [
@@ -2836,10 +2838,6 @@ mod tests {
                             "type": "text",
                             "value": "Test Issuing Authority"
                         },
-                        "recovery_code": {
-                            "type": "text",
-                            "value": "recovery_code_123"
-                        },
                         "resident_street": {
                             "type": "text",
                             "value": "Van Wijngaerdenstraat 1"
@@ -2855,6 +2853,19 @@ mod tests {
                         "resident_country": {
                             "type": "text",
                             "value": "NL"
+                        }
+                    }
+                },
+                "eu.europa.ec.eudi.pid.nl.1": {
+                    "type": "object",
+                    "value": {
+                        "bsn": {
+                            "type": "text",
+                            "value": "999991772"
+                        },
+                        "recovery_code": {
+                            "type": "text",
+                            "value": "recovery_code_123"
                         }
                     }
                 }

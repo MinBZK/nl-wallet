@@ -203,7 +203,7 @@
     },
     {
       "path": [
-        "eu.europa.ec.eudi.pid.1",
+        "eu.europa.ec.eudi.pid.nl.1",
         "bsn"
       ],
       "mandatory": true,
@@ -220,7 +220,7 @@
     },
     {
       "path": [
-        "eu.europa.ec.eudi.pid.1",
+        "eu.europa.ec.eudi.pid.nl.1",
         "recovery_code"
       ],
       "mandatory": true,

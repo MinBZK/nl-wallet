@@ -16,6 +16,7 @@ use crate::pid::brp::client::BrpError;
 use crate::pid::brp::data::BrpPersons;
 use crate::pid::digid::DigidClient;
 use crate::pid::digid::Error as DigidError;
+use crate::pid::rulebook::constants::PID_BASE_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_BSN;
 use crate::pid::rulebook::constants::PID_FAMILY_NAME;
 use crate::pid::rulebook::constants::PID_GIVEN_NAME;
@@ -23,12 +24,12 @@ use crate::pid::rulebook::constants::PID_ISSUING_AUTHORITY;
 use crate::pid::rulebook::constants::PID_ISSUING_COUNTRY;
 use crate::pid::rulebook::constants::PID_MDOC_BIRTH_DATE;
 use crate::pid::rulebook::constants::PID_MDOC_FAMILY_NAME_BIRTH;
-use crate::pid::rulebook::constants::PID_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_MDOC_NATIONALITY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_CITY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_COUNTRY;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_POSTAL_CODE;
 use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_STREET;
+use crate::pid::rulebook::constants::PID_NL_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
 use crate::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
 use crate::pid::rulebook::constants::PID_SD_JWT_BIRTH_DATE;
@@ -187,59 +188,59 @@ pub fn mock_pid_example() -> Attributes {
 pub fn mock_pid_mdoc_example() -> Attributes {
     Attributes::example([
         (
-            vec![PID_MDOC_NAMESPACE, PID_FAMILY_NAME],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_FAMILY_NAME],
             Attribute::Text("Jansen".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_GIVEN_NAME],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_GIVEN_NAME],
             Attribute::Text("Frouke".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_MDOC_BIRTH_DATE],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_BIRTH_DATE],
             Attribute::Date(NaiveDate::from_ymd_opt(2000, 3, 24).unwrap()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_BSN],
+            vec![PID_NL_MDOC_NAMESPACE, PID_BSN],
             Attribute::Text("999991772".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_MDOC_NATIONALITY],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_NATIONALITY],
             Attribute::Array(vec![
                 Attribute::Text("NL".to_string()),
                 Attribute::Text("BE".to_string()),
             ]),
         ),
-        (vec![PID_MDOC_NAMESPACE, PID_SEX], Attribute::Number(2)),
+        (vec![PID_BASE_MDOC_NAMESPACE, PID_SEX], Attribute::Number(2)),
         (
-            vec![PID_MDOC_NAMESPACE, PID_MDOC_FAMILY_NAME_BIRTH],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_FAMILY_NAME_BIRTH],
             Attribute::Text("Jansen".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_ISSUING_COUNTRY],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_ISSUING_COUNTRY],
             Attribute::Text("NL".to_owned()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_ISSUING_AUTHORITY],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_ISSUING_AUTHORITY],
             Attribute::Text("Issuing Authority".to_owned()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_RECOVERY_CODE],
+            vec![PID_NL_MDOC_NAMESPACE, PID_RECOVERY_CODE],
             Attribute::Text("1234567".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_STREET],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_RESIDENT_STREET],
             Attribute::Text("Van Wijngaerdenstraat 1".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_POSTAL_CODE],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_RESIDENT_POSTAL_CODE],
             Attribute::Text("2596TW".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_CITY],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_RESIDENT_CITY],
             Attribute::Text("Toetsoog".to_string()),
         ),
         (
-            vec![PID_MDOC_NAMESPACE, PID_MDOC_RESIDENT_COUNTRY],
+            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_RESIDENT_COUNTRY],
             Attribute::Text("NL".to_owned()),
         ),
     ])
