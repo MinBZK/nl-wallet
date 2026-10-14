@@ -8511,6 +8511,7 @@ dependencies = [
  "rustix",
  "sea-orm",
  "serde",
+ "serde_with",
  "strum 0.28.0",
  "tempfile",
  "thiserror 2.0.17",
