@@ -15,9 +15,6 @@
     - |
       for HARBOR_REGISTRY in $HARBOR_REGISTRIES; do
         buildah push "${DOCKER_IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}" "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${DOCKER_IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}"
-        if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]]; then
-          buildah push "${DOCKER_IMAGE_NAME}:${CI_COMMIT_SHORT_SHA}" "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${DOCKER_IMAGE_NAME}:latest"
-        fi
       done
   variables:
     STORAGE_DRIVER: vfs

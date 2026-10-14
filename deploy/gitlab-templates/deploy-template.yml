@@ -5,6 +5,60 @@ default:
 variables:
   HELM_CHARTS_PATH: deploy/helm-charts
 
+tag-images-${DEPLOY_ENV}:
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-base:${BUILD_TAG}"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+  script:
+    - set -euo pipefail
+    - |
+      BUILD_IMAGES=(
+      "nl-wallet-provider"
+      "nl-wallet-provider-migrations"
+      "nl-audit-log-migrations"
+      "nl-wallet-demo-relying-party"
+      "nl-wallet-demo-issuer"
+      "nl-wallet-demo-index"
+      "nl-wallet-verification-server"
+      "nl-wallet-verification-server-migrations"
+      "nl-wallet-issuance-server"
+      "nl-wallet-issuance-server-migrations"
+      "nl-wallet-pacf-issuance-server"
+      "nl-wallet-pacf-issuance-server-migrations"
+      "nl-wallet-acf-demo-issuer"
+      "nl-wallet-acf-demo-issuer-migrations"
+      "nl-wallet-pid-issuer"
+      "nl-wallet-pid-issuer-migrations"
+      "nl-wallet-revocation-portal"
+      "nl-wallet-admin-portal"
+      "nl-wallet-gba-hc-converter"
+      "nl-wallet-gba-fetch"
+      "nl-wallet-gba-fetch-frontend"
+      "nl-wallet-update-policy-server"
+      )
+
+      tag_images() {
+        local registry="$1"
+        local basic_auth="$2:$(base64 -d <<< "$3")"
+
+        for image in ${BUILD_IMAGES[@]}; do
+          url="https://${registry}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts/${DEPLOY_ENV}/tags"
+          if curl -sS --user "${basic_auth}" -XGET "$url" | jq -e 'try .errors catch [] | length == 0' > /dev/null; then
+            url="https://${registry}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts/${DEPLOY_ENV}/tags/${DEPLOY_ENV}"
+            if ! curl -fsS --user "${basic_auth}" -XDELETE "$url"; then
+              >&2 echo "ERROR: Could not delete tag $image:$DEPLOY_ENV"
+            fi
+          fi
+          url="https://${registry}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts/${DEPLOY_IMAGE_VERSION}/tags"
+          if ! curl -fsS -H "Content-Type: application/json" -d '{"name": "${DEPLOY_ENV}"}' --user "${basic_auth}" -XPOST "$url"; then
+            >&2 echo "ERROR: Could not create tag $image:$DEPLOY_ENV on $registry"
+          fi
+        done
+      }
+
+      tag_images "$HARBOR_GN2_REGISTRY" "$HARBOR_GN2_ROBOT_NAME" "$HARBOR_GN2_ROBOT_SECRET"
+      tag_images "$HARBOR_GN3_REGISTRY" "$HARBOR_GN3_ROBOT_NAME" "$HARBOR_GN3_ROBOT_SECRET"
+
 .deploy-base:
   rules:
     - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
