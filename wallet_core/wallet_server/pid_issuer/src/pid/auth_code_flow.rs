@@ -544,6 +544,8 @@ mod tests {
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
+    use openid4vc::credential_configurations::CredentialConfigurationFormat;
+    use openid4vc::credential_configurations::CredentialConfigurationTypeMetadata;
     use openid4vc::issuer::AuthRequestValues;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
@@ -555,10 +557,8 @@ mod tests {
     use openid4vc::server_state::SessionToken;
     use openid4vc::store::MemoryStore;
     use openid4vc::store::Store;
-    use openid4vc::test::MetadataSource;
-    use openid4vc::test::MockAttestationType;
     use openid4vc::test::MockObtainingStatusListService;
-    use openid4vc::test::setup_mock_issuer_attestation_types_and_metadata;
+    use openid4vc::test::setup_mock_issuer_with_metadata;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::hmac::HMAC_SHA256;
@@ -665,18 +665,15 @@ mod tests {
     ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
         let sessions = Arc::new(MemorySessionStore::default());
 
-        let (issuer, _, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
             IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap(),
             vec![
-                MockAttestationType::SdJwt {
-                    vct: PID_NL_SD_JWT_VCT.to_owned(),
-                    metadata: MetadataSource::TypeMetadata(NL_PID_METADATA.clone()),
-                },
-                MockAttestationType::MsoMdoc {
-                    doc_type: PID_MDOC_DOCTYPE.to_owned(),
-                    credential_metadata: PID_MDOC_METADATA.clone(),
-                },
+                CredentialConfigurationFormat::new_sd_jwt_type_metadata(
+                    CredentialConfigurationTypeMetadata::try_new(PID_NL_SD_JWT_VCT, NL_PID_METADATA.clone()).unwrap(),
+                ),
+                CredentialConfigurationFormat::new_mdoc(PID_MDOC_DOCTYPE.to_owned(), PID_MDOC_METADATA.clone()),
             ],
+            true,
             Arc::clone(&sessions),
         );
         let authorizing_issuer = AuthorizingIssuer::new(
