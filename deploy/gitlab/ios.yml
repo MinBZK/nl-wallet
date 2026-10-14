@@ -1,6 +1,8 @@
 test-ios:
   extends: [.env-macos-runner, .ruby-cache-macos]
   rules: !reference [.default-or-merge-request, rules]
+  stage: test
+  needs: []
   artifacts:
     name: test-ios
     when: always
@@ -24,6 +26,7 @@ test-ios:
 ### iOS Building
 .build-ios-app:
   extends: [.sentry-env, .env-k8s, .env-macos-runner, .ruby-cache-macos]
+  stage: build
   needs:
     - job: test-flutter
       artifacts: false
@@ -177,6 +180,7 @@ build-ios-app-pub:
 ## iOS Deploying
 .deploy-ios-app:
   extends: [.env-k8s, .env-macos-runner, .ruby-cache-macos]
+  stage: deploy
   script:
     - APP_STORE_CONNECT_SECRETS_BASE64_JSON="$(kubectl get secret nl-wallet-app-store-api-key -o jsonpath='{.data}')"
     - export APP_STORE_CONNECT_SECRETS_BASE64_JSON
