@@ -247,15 +247,15 @@ To exercise a signed reader `DeviceRequest` with a registration certificate, sup
 ```bash
 swift scripts/close_proximity/disclosure_mac_reader.swift \
   --qr-code "<logged-qr-code>" \
-  --wrpac-ca-crt-file <path-to-reader.wrpac.crt.pem> \
-  --wrpac-ca-key-file <path-to-reader.wrpac.key.pem> \
+  --wrpac-crt-file <path-to-reader.wrpac.crt.pem> \
+  --wrpac-key-file <path-to-reader.wrpac.key.pem> \
   --wrprc-file <path-to-reader.wrprc> \
   --request-doc-type urn:eudi:pid:nl:1 \
   --request-attribute urn:eudi:pid:nl:1/bsn \
   --print-device-response-hex
 ```
 
-Despite their historical `-ca-` names, the WRPAC arguments take the **reader's leaf certificate and private key**. The WRPRC file contains the base64url-encoded output of `wallet_ca registration-certificate --format cwt`; see [registration certificate generation](../../wallet_ca/README.md#registration-certificates). Its subject must match the WRPAC subject identifier, and its `credentials` must cover the requested document type and attributes. Its status-list endpoint must also be available to the wallet.
+The WRPRC file contains the base64url-encoded output of `wallet_ca registration-certificate --format cwt`; see [registration certificate generation](../../wallet_ca/README.md#registration-certificates). Its subject must match the WRPAC subject identifier, and its `credentials` must cover the requested document type and attributes. Its status-list endpoint must also be available to the wallet.
 
 The helper decodes the file and places the original CWT bytes in the CBOR byte string `requestInfo.euWrprc` before generating `readerAuth`, so the reader signature covers the registration certificate. Certificate trust, binding, and authorization remain the wallet's responsibility. The flag can be omitted to construct requests without a WRPRC for testing, and cannot be combined with `--device-request-hex`.
 
@@ -264,8 +264,8 @@ The auto-launch wrappers also accept these payload fields in the `CLOSE_PROXIMIT
 ```json
 {
   "qr": "<base64url-device-engagement>",
-  "wrpac_ca_crt_file": "<path-to-reader.wrpac.crt.pem>",
-  "wrpac_ca_key_file": "<path-to-reader.wrpac.key.pem>",
+  "wrpac_crt_file": "<path-to-reader.wrpac.crt.pem>",
+  "wrpac_key_file": "<path-to-reader.wrpac.key.pem>",
   "wrprc_file": "<path-to-reader.wrprc>",
   "request_doc_type": "urn:eudi:pid:nl:1",
   "request_attributes": ["urn:eudi:pid:nl:1/bsn"],

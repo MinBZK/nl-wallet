@@ -291,8 +291,8 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
     var qrCode: String?
     var deviceRequestHex: String?
     var expectedDeviceResponseHex: String?
-    var wrpacCaCrtFile: String?
-    var wrpacCaKeyFile: String?
+    var wrpacCrtFile: String?
+    var wrpacKeyFile: String?
     var wrprcFile: String?
     var requestDocType: String?
     var requestAttributes: [(namespace: String, element: String)] = []
@@ -330,18 +330,18 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                 throw ArgumentError.missingValue("--expect-device-response-hex")
             }
             expectedDeviceResponseHex = arguments[index]
-        case "--wrpac-ca-crt-file":
+        case "--wrpac-crt-file":
             index += 1
             guard index < arguments.count else {
-                throw ArgumentError.missingValue("--wrpac-ca-crt-file")
+                throw ArgumentError.missingValue("--wrpac-crt-file")
             }
-            wrpacCaCrtFile = arguments[index]
-        case "--wrpac-ca-key-file":
+            wrpacCrtFile = arguments[index]
+        case "--wrpac-key-file":
             index += 1
             guard index < arguments.count else {
-                throw ArgumentError.missingValue("--wrpac-ca-key-file")
+                throw ArgumentError.missingValue("--wrpac-key-file")
             }
-            wrpacCaKeyFile = arguments[index]
+            wrpacKeyFile = arguments[index]
         case "--wrprc-file":
             index += 1
             guard index < arguments.count else { throw ArgumentError.missingValue("--wrprc-file") }
@@ -381,8 +381,8 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                   --device-request-hex <hex>
                                          Override the plaintext DeviceRequest that will be
                                          encrypted into the first reader message.
-                  --wrpac-ca-crt-file  <path>
-                  --wrpac-ca-key-file  <path>
+                  --wrpac-crt-file  <path>
+                  --wrpac-key-file  <path>
                                          WRPAC leaf certificate and private key (PEM) used to
                                          sign reader authentication. Requires --request-doc-type
                                          and one or more --request-attribute.
@@ -422,27 +422,27 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
     }
 
     let usesReaderMaterial =
-        wrpacCaCrtFile != nil || wrpacCaKeyFile != nil || wrprcFile != nil
+        wrpacCrtFile != nil || wrpacKeyFile != nil || wrprcFile != nil
     if usesReaderMaterial && qrCode == nil {
         throw ArgumentError.invalidConfiguration(
-            "--wrpac-ca-crt-file, --wrpac-ca-key-file, and --wrprc-file require --qr-code"
+            "--wrpac-crt-file, --wrpac-key-file, and --wrprc-file require --qr-code"
         )
     }
     if usesReaderMaterial
-        && (wrpacCaCrtFile == nil || wrpacCaKeyFile == nil)
+        && (wrpacCrtFile == nil || wrpacKeyFile == nil)
     {
         throw ArgumentError.invalidConfiguration(
-            "Reader certificates require both --wrpac-ca-crt-file and --wrpac-ca-key-file"
+            "Reader certificates require both --wrpac-crt-file and --wrpac-key-file"
         )
     }
     if usesReaderMaterial && deviceRequestHex != nil {
         throw ArgumentError.invalidConfiguration(
-            "--device-request-hex cannot be combined with --wrpac-ca-crt-file/--wrpac-ca-key-file/--wrprc-file"
+            "--device-request-hex cannot be combined with --wrpac-crt-file/--wrpac-key-file/--wrprc-file"
         )
     }
     if usesReaderMaterial && (requestDocType == nil || requestAttributes.isEmpty) {
         throw ArgumentError.invalidConfiguration(
-            "--wrpac-ca-crt-file/--wrpac-ca-key-file require --request-doc-type and at least one --request-attribute"
+            "--wrpac-crt-file/--wrpac-key-file require --request-doc-type and at least one --request-attribute"
         )
     }
 
@@ -452,11 +452,11 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
         let deviceRequest: Data
         if let deviceRequestHex {
             deviceRequest = try hexDecodedData(deviceRequestHex)
-        } else if let wrpacCaCrtFile, let wrpacCaKeyFile, let requestDocType {
+        } else if let wrpacCrtFile, let wrpacKeyFile, let requestDocType {
             deviceRequest = try generateReaderDeviceRequest(
                 encodedSessionTranscript: encodedSessionTranscript,
-                wrpacCaCrtFile: wrpacCaCrtFile,
-                wrpacCaKeyFile: wrpacCaKeyFile,
+                wrpacCrtFile: wrpacCrtFile,
+                wrpacKeyFile: wrpacKeyFile,
                 wrprcFile: wrprcFile,
                 docType: requestDocType,
                 attributes: requestAttributes,
@@ -748,15 +748,15 @@ private func registrationCertificateData(fromFile path: String) throws -> Data {
 
 private func generateReaderDeviceRequest(
     encodedSessionTranscript: Data,
-    wrpacCaCrtFile: String,
-    wrpacCaKeyFile: String,
+    wrpacCrtFile: String,
+    wrpacKeyFile: String,
     wrprcFile: String?,
     docType: String,
     attributes: [(namespace: String, element: String)]
 ) throws -> Data {
     let signingKey = try P256.Signing.PrivateKey(
-        pemRepresentation: try String(contentsOfFile: wrpacCaKeyFile, encoding: .utf8))
-    let certificateDer = try derData(fromPemFile: wrpacCaCrtFile, label: "CERTIFICATE")
+        pemRepresentation: try String(contentsOfFile: wrpacKeyFile, encoding: .utf8))
+    let certificateDer = try derData(fromPemFile: wrpacCrtFile, label: "CERTIFICATE")
     var namespaceOrder: [String] = []
     var elementsByNamespace: [String: [String]] = [:]
     for attribute in attributes {
@@ -1305,8 +1305,8 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
             let transcript = cborEncode(.array([.null, .null, .null]))
             let request = try generateReaderDeviceRequest(
                 encodedSessionTranscript: transcript,
-                wrpacCaCrtFile: certificateFile.path,
-                wrpacCaKeyFile: keyFile.path,
+                wrpacCrtFile: certificateFile.path,
+                wrpacKeyFile: keyFile.path,
                 wrprcFile: wrprcFile.path,
                 docType: "org.example.document",
                 attributes: [(namespace: "org.example.document", element: "name")]
@@ -1365,7 +1365,7 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
 
         @objc func testRegistrationCertificateRequiresSignedRequest() {
             let certificateArguments = ["--wrprc-file", "reader.wrprc"]
-            let signingArguments = ["--wrpac-ca-crt-file", "reader.crt.pem", "--wrpac-ca-key-file", "reader.key.pem"]
+            let signingArguments = ["--wrpac-crt-file", "reader.crt.pem", "--wrpac-key-file", "reader.key.pem"]
             for arguments in [
                 certificateArguments,
                 certificateArguments + ["--qr-code", "unused"],

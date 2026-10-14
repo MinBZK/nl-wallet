@@ -24,13 +24,13 @@ import java.io.File
 class CloseProximityDisclosureTests : TestBase() {
 
     companion object {
-        private val AMSTERDAM_CA_CRT_FILE = System.getenv("AMSTERDAM_CA_CRT_FILE")
+        private val AMSTERDAM_WRPAC_CRT_FILE = System.getenv("AMSTERDAM_WRPAC_CRT_FILE")
             ?: File("../scripts/devenv/target/demo_relying_party/mijn_amsterdam.crt.pem").canonicalPath
-        private val AMSTERDAM_CA_KEY_FILE = System.getenv("AMSTERDAM_CA_KEY_FILE")
+        private val AMSTERDAM_WRPAC_KEY_FILE = System.getenv("AMSTERDAM_WRPAC_KEY_FILE")
             ?: File("../scripts/devenv/target/demo_relying_party/mijn_amsterdam.key.pem").canonicalPath
-        private val MONKEY_BIKE_CA_CRT_FILE = System.getenv("MONKEY_BIKE_CA_CRT_FILE")
+        private val MONKEY_BIKE_WRPAC_CRT_FILE = System.getenv("MONKEY_BIKE_WRPAC_CRT_FILE")
             ?: File("../scripts/devenv/target/demo_relying_party/monkey_bike.crt.pem").canonicalPath
-        private val MONKEY_BIKE_CA_KEY_FILE = System.getenv("MONKEY_BIKE_CA_KEY_FILE")
+        private val MONKEY_BIKE_WRPAC_KEY_FILE = System.getenv("MONKEY_BIKE_WRPAC_KEY_FILE")
             ?: File("../scripts/devenv/target/demo_relying_party/monkey_bike.key.pem").canonicalPath
 
         private const val PID_DOC_TYPE = "eu.europa.ec.eudi.pid.1"
@@ -82,8 +82,8 @@ class CloseProximityDisclosureTests : TestBase() {
         val qrString = closeProximityQrScreen.getQr()
         val mockBleReaderApp = closeProximityQrScreen.startMockBleReaderApp(
             qrString,
-            wrpacCaCrtFile = AMSTERDAM_CA_CRT_FILE,
-            wrpacCaKeyFile = AMSTERDAM_CA_KEY_FILE,
+            wrpacCrtFile = AMSTERDAM_WRPAC_CRT_FILE,
+            wrpacKeyFile = AMSTERDAM_WRPAC_KEY_FILE,
             requestDocType = PID_DOC_TYPE,
             requestAttributes = AMSTERDAM_ATTRIBUTES,
             waitForDeviceResponse = true,
@@ -129,8 +129,8 @@ class CloseProximityDisclosureTests : TestBase() {
         val qrString = closeProximityQrScreen.getQr()
         val mockBleReaderApp = closeProximityQrScreen.startMockBleReaderApp(
             qrString,
-            wrpacCaCrtFile = MONKEY_BIKE_CA_CRT_FILE,
-            wrpacCaKeyFile = MONKEY_BIKE_CA_KEY_FILE,
+            wrpacCrtFile = MONKEY_BIKE_WRPAC_CRT_FILE,
+            wrpacKeyFile = MONKEY_BIKE_WRPAC_KEY_FILE,
             requestDocType = PID_DOC_TYPE,
             requestAttributes = MONKEY_BIKE_ATTRIBUTES,
         )
@@ -153,8 +153,8 @@ class CloseProximityDisclosureTests : TestBase() {
         val qrString = closeProximityQrScreen.getQr()
         val mockBleReaderApp = closeProximityQrScreen.startMockBleReaderApp(
             qrString,
-            wrpacCaCrtFile = AMSTERDAM_CA_CRT_FILE,
-            wrpacCaKeyFile = AMSTERDAM_CA_KEY_FILE,
+            wrpacCrtFile = AMSTERDAM_WRPAC_CRT_FILE,
+            wrpacKeyFile = AMSTERDAM_WRPAC_KEY_FILE,
             requestDocType = PID_DOC_TYPE,
             requestAttributes = AMSTERDAM_ATTRIBUTES,
             waitForDeviceResponse = true,

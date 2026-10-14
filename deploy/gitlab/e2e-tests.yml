@@ -46,14 +46,14 @@ scheduled-automation-tests-trigger:
     - AMSTERDAM_CA_CRT_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.certificate}' | base64 --decode)
     - echo "$AMSTERDAM_CA_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/amsterdam.wrpac.key.pem
     - echo "$AMSTERDAM_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/amsterdam.wrpac.crt.pem
-    - export AMSTERDAM_CA_KEY_FILE=/tmp/amsterdam.wrpac.key.pem
-    - export AMSTERDAM_CA_CRT_FILE=/tmp/amsterdam.wrpac.crt.pem
+    - export AMSTERDAM_WRPAC_KEY_FILE=/tmp/amsterdam.wrpac.key.pem
+    - export AMSTERDAM_WRPAC_CRT_FILE=/tmp/amsterdam.wrpac.crt.pem
     - MONKEY_BIKE_CA_KEY_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.private_key}' | base64 --decode)
     - MONKEY_BIKE_CA_CRT_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.certificate}' | base64 --decode)
     - echo "$MONKEY_BIKE_CA_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/monkey_bike.wrpac.key.pem
     - echo "$MONKEY_BIKE_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/monkey_bike.wrpac.crt.pem
-    - export MONKEY_BIKE_CA_KEY_FILE=/tmp/monkey_bike.wrpac.key.pem
-    - export MONKEY_BIKE_CA_CRT_FILE=/tmp/monkey_bike.wrpac.crt.pem
+    - export MONKEY_BIKE_WRPAC_KEY_FILE=/tmp/monkey_bike.wrpac.key.pem
+    - export MONKEY_BIKE_WRPAC_CRT_FILE=/tmp/monkey_bike.wrpac.crt.pem
 
 # Install the Apple development certificate and provisioning profiles that Appium needs to build
 # WebDriverAgent for real iOS devices, from the fastlane match repository (read-only). The job

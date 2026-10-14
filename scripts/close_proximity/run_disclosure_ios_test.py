@@ -146,13 +146,13 @@ class Runner:
         if isinstance(device_request_hex, str) and device_request_hex:
             helper_command.extend(["--device-request-hex", device_request_hex])
 
-        wrpac_ca_crt_file = payload.get("wrpac_ca_crt_file")
-        if isinstance(wrpac_ca_crt_file, str) and wrpac_ca_crt_file:
-            helper_command.extend(["--wrpac-ca-crt-file", wrpac_ca_crt_file])
+        wrpac_crt_file = payload.get("wrpac_crt_file")
+        if isinstance(wrpac_crt_file, str) and wrpac_crt_file:
+            helper_command.extend(["--wrpac-crt-file", wrpac_crt_file])
 
-        wrpac_ca_key_file = payload.get("wrpac_ca_key_file")
-        if isinstance(wrpac_ca_key_file, str) and wrpac_ca_key_file:
-            helper_command.extend(["--wrpac-ca-key-file", wrpac_ca_key_file])
+        wrpac_key_file = payload.get("wrpac_key_file")
+        if isinstance(wrpac_key_file, str) and wrpac_key_file:
+            helper_command.extend(["--wrpac-key-file", wrpac_key_file])
 
         wrprc_file = payload.get("wrprc_file")
         if isinstance(wrprc_file, str) and wrprc_file:
