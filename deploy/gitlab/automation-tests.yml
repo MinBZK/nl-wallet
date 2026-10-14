@@ -15,6 +15,8 @@ browsertests-format-lint:
   needs:
     - job: build-env-ont
       artifacts: true
+    - job: deploy-apps-ont
+      artifacts: false
   before_script:
     - cd browsertests
     - pnpm install --frozen-lockfile
