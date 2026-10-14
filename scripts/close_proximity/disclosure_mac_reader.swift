@@ -4,6 +4,10 @@ import CoreBluetooth
 import CryptoKit
 import Foundation
 
+#if READER_TESTS
+    import XCTest
+#endif
+
 private struct Configuration {
     let serviceUuid: CBUUID
     let timeout: TimeInterval
@@ -289,6 +293,7 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
     var expectedDeviceResponseHex: String?
     var wrpacCaCrtFile: String?
     var wrpacCaKeyFile: String?
+    var wrprcFile: String?
     var requestDocType: String?
     var requestAttributes: [(namespace: String, element: String)] = []
     var printDeviceResponseHex = false
@@ -337,6 +342,10 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                 throw ArgumentError.missingValue("--wrpac-ca-key-file")
             }
             wrpacCaKeyFile = arguments[index]
+        case "--wrprc-file":
+            index += 1
+            guard index < arguments.count else { throw ArgumentError.missingValue("--wrprc-file") }
+            wrprcFile = arguments[index]
         case "--request-doc-type":
             index += 1
             guard index < arguments.count else {
@@ -377,6 +386,9 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                                          WRPAC leaf certificate and private key (PEM) used to
                                          sign reader authentication. Requires --request-doc-type
                                          and one or more --request-attribute.
+                  --wrprc-file <path>    File containing a base64url-encoded CWT registration
+                                         certificate, as emitted by wallet_ca. Requires the
+                                         WRPAC certificate and key. Included in requestInfo.euWrprc.
                   --request-doc-type <docType>
                                          mdoc docType to request, e.g. urn:eudi:pid:nl:1.
                   --request-attribute <namespace>/<element>
@@ -410,22 +422,22 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
     }
 
     let usesReaderMaterial =
-        wrpacCaCrtFile != nil || wrpacCaKeyFile != nil
+        wrpacCaCrtFile != nil || wrpacCaKeyFile != nil || wrprcFile != nil
     if usesReaderMaterial && qrCode == nil {
         throw ArgumentError.invalidConfiguration(
-            "--wrpac-ca-crt-file and --wrpac-ca-key-file require --qr-code"
+            "--wrpac-ca-crt-file, --wrpac-ca-key-file, and --wrprc-file require --qr-code"
         )
     }
     if usesReaderMaterial
         && (wrpacCaCrtFile == nil || wrpacCaKeyFile == nil)
     {
         throw ArgumentError.invalidConfiguration(
-            "--wrpac-ca-crt-file and --wrpac-ca-key-file must be provided together"
+            "Reader certificates require both --wrpac-ca-crt-file and --wrpac-ca-key-file"
         )
     }
     if usesReaderMaterial && deviceRequestHex != nil {
         throw ArgumentError.invalidConfiguration(
-            "--device-request-hex cannot be combined with --wrpac-ca-crt-file/--wrpac-ca-key-file"
+            "--device-request-hex cannot be combined with --wrpac-ca-crt-file/--wrpac-ca-key-file/--wrprc-file"
         )
     }
     if usesReaderMaterial && (requestDocType == nil || requestAttributes.isEmpty) {
@@ -445,6 +457,7 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                 encodedSessionTranscript: encodedSessionTranscript,
                 wrpacCaCrtFile: wrpacCaCrtFile,
                 wrpacCaKeyFile: wrpacCaKeyFile,
+                wrprcFile: wrprcFile,
                 docType: requestDocType,
                 attributes: requestAttributes,
             )
@@ -723,10 +736,21 @@ private func hexEncodedData(_ data: Data) -> String {
     data.map { String(format: "%02x", $0) }.joined()
 }
 
+private func registrationCertificateData(fromFile path: String) throws -> Data {
+    let encoded = try String(contentsOfFile: path, encoding: .utf8)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !encoded.isEmpty, let data = try? base64UrlDecodedData(encoded) else {
+        throw ArgumentError.invalidConfiguration(
+            "--wrprc-file must contain a base64url-encoded CWT registration certificate")
+    }
+    return data
+}
+
 private func generateReaderDeviceRequest(
     encodedSessionTranscript: Data,
     wrpacCaCrtFile: String,
     wrpacCaKeyFile: String,
+    wrprcFile: String?,
     docType: String,
     attributes: [(namespace: String, element: String)]
 ) throws -> Data {
@@ -749,10 +773,16 @@ private func generateReaderDeviceRequest(
                 Cbor.map(elementsByNamespace[namespace]!.map { (Cbor.text($0), Cbor.bool(true)) })
             )
         })
-    let itemsRequest = Cbor.map([
+    var itemsRequestEntries: [(Cbor, Cbor)] = [
         (.text("docType"), .text(docType)),
         (.text("nameSpaces"), nameSpaces),
-    ])
+    ]
+    if let wrprcFile {
+        let wrprc = try registrationCertificateData(fromFile: wrprcFile)
+        itemsRequestEntries.append(
+            (.text("requestInfo"), .map([(.text("euWrprc"), .bytes(wrprc))])))
+    }
+    let itemsRequest = Cbor.map(itemsRequestEntries)
     let itemsRequestBytes = Cbor.tagged(24, .bytes(cborEncode(itemsRequest)))
 
     let readerAuthentication = Cbor.array([
@@ -1244,11 +1274,129 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
     }
 }
 
-do {
-    let configuration = try parseConfiguration(arguments: Array(CommandLine.arguments.dropFirst()))
-    let reader = CloseProximityReader(configuration: configuration)
-    reader.run()
-} catch {
-    fputs("error: \(error.localizedDescription)\n", stderr)
-    exit(2)
-}
+#if READER_TESTS
+    private final class ReaderRequestTests: XCTestCase {
+        private var directory: URL!
+
+        override func setUpWithError() throws {
+            directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
+
+        override func tearDownWithError() throws {
+            try FileManager.default.removeItem(at: directory)
+        }
+
+        @objc func testRegistrationCertificateIsCoveredByReaderSignature() throws {
+            let key = P256.Signing.PrivateKey()
+            let keyFile = directory.appendingPathComponent("reader.key.pem")
+            let certificateFile = directory.appendingPathComponent("reader.crt.pem")
+            let wrprcFile = directory.appendingPathComponent("reader.wrprc")
+            try key.pemRepresentation.write(to: keyFile, atomically: true, encoding: .utf8)
+            // The reader transports certificates verbatim; trust validation belongs to the wallet.
+            try "-----BEGIN CERTIFICATE-----\nMAA=\n-----END CERTIFICATE-----\n"
+                .write(to: certificateFile, atomically: true, encoding: .utf8)
+            let wrprc = Data([0xd8, 0x3d, 0xd2, 0x84, 0x40, 0xa0, 0x41, 0xa0, 0x40])
+            let encodedWrprc = wrprc.base64EncodedString()
+                .replacingOccurrences(of: "+", with: "-")
+                .replacingOccurrences(of: "/", with: "_")
+                .replacingOccurrences(of: "=", with: "")
+            try (encodedWrprc + "\n").write(to: wrprcFile, atomically: true, encoding: .utf8)
+            let transcript = cborEncode(.array([.null, .null, .null]))
+            let request = try generateReaderDeviceRequest(
+                encodedSessionTranscript: transcript,
+                wrpacCaCrtFile: certificateFile.path,
+                wrpacCaKeyFile: keyFile.path,
+                wrprcFile: wrprcFile.path,
+                docType: "org.example.document",
+                attributes: [(namespace: "org.example.document", element: "name")]
+            )
+
+            var parser = CborParser(data: request)
+            let root = try XCTUnwrap(parser.decode().map)
+            let docRequest = try XCTUnwrap(lookup(root, textKey: "docRequests")?.array?.first?.map)
+            guard case .tagged(24, .bytes(let itemsBytes)) = lookup(docRequest, textKey: "itemsRequest") else {
+                XCTFail("Expected tagged ItemsRequestBytes")
+                return
+            }
+            var itemsParser = CborParser(data: itemsBytes)
+            let items = try XCTUnwrap(itemsParser.decode().map)
+            let requestInfo = try XCTUnwrap(lookup(items, textKey: "requestInfo")?.map)
+            XCTAssertEqual(lookup(requestInfo, textKey: "euWrprc")?.bytes, wrprc)
+
+            let readerAuth = try XCTUnwrap(lookup(docRequest, textKey: "readerAuth")?.array)
+            let protectedHeader = try XCTUnwrap(readerAuth[0].bytes)
+            let signature = try P256.Signing.ECDSASignature(rawRepresentation: XCTUnwrap(readerAuth[3].bytes))
+            func signatureInput(_ encodedItems: Data) -> Data {
+                let readerAuthentication = cborEncode(
+                    .array([
+                        .text("ReaderAuthentication"), .raw(transcript), .tagged(24, .bytes(encodedItems)),
+                    ]))
+                return cborEncode(
+                    .array([
+                        .text("Signature1"), .bytes(protectedHeader), .bytes(Data()),
+                        .bytes(cborEncode(.tagged(24, .bytes(readerAuthentication)))),
+                    ]))
+            }
+            XCTAssertTrue(key.publicKey.isValidSignature(signature, for: signatureInput(itemsBytes)))
+
+            let tamperedItems = items.map { name, value in
+                if name.text == "requestInfo" {
+                    return (name, Cbor.map([(.text("euWrprc"), .bytes(wrprc + Data([0])))]))
+                }
+                return (name, value)
+            }
+            XCTAssertFalse(
+                key.publicKey.isValidSignature(signature, for: signatureInput(cborEncode(.map(tamperedItems)))))
+        }
+
+        @objc func testRejectsEmptyOrInvalidBase64RegistrationCertificate() throws {
+            let file = directory.appendingPathComponent("invalid.wrprc")
+            for contents in [" \n", "not base64!"] {
+                try contents.write(to: file, atomically: true, encoding: .utf8)
+                XCTAssertThrowsError(try registrationCertificateData(fromFile: file.path)) { error in
+                    guard case ArgumentError.invalidConfiguration = error else {
+                        XCTFail("Expected an invalid registration certificate input error, got \(error)")
+                        return
+                    }
+                }
+            }
+        }
+
+        @objc func testRegistrationCertificateRequiresSignedRequest() {
+            let certificateArguments = ["--wrprc-file", "reader.wrprc"]
+            let signingArguments = ["--wrpac-ca-crt-file", "reader.crt.pem", "--wrpac-ca-key-file", "reader.key.pem"]
+            for arguments in [
+                certificateArguments,
+                certificateArguments + ["--qr-code", "unused"],
+                certificateArguments + signingArguments + ["--qr-code", "unused", "--device-request-hex", "00"],
+            ] {
+                XCTAssertThrowsError(try parseConfiguration(arguments: arguments)) { error in
+                    guard case ArgumentError.invalidConfiguration = error else {
+                        XCTFail("Expected incompatible arguments to be rejected before reading input, got \(error)")
+                        return
+                    }
+                }
+            }
+            XCTAssertThrowsError(try parseConfiguration(arguments: ["--wrprc-file"])) { error in
+                guard case ArgumentError.missingValue("--wrprc-file") = error else {
+                    XCTFail("Expected a missing file argument error, got \(error)")
+                    return
+                }
+            }
+        }
+    }
+
+    let suite = ReaderRequestTests.defaultTestSuite
+    suite.run()
+    exit(suite.testRun?.hasSucceeded == true && suite.testCaseCount > 0 ? 0 : 1)
+#else
+    do {
+        let configuration = try parseConfiguration(arguments: Array(CommandLine.arguments.dropFirst()))
+        let reader = CloseProximityReader(configuration: configuration)
+        reader.run()
+    } catch {
+        fputs("error: \(error.localizedDescription)\n", stderr)
+        exit(2)
+    }
+#endif

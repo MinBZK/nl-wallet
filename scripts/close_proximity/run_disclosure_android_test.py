@@ -230,6 +230,20 @@ class Runner:
             if isinstance(wrpac_ca_key_file, str) and wrpac_ca_key_file:
                 helper_command.extend(["--wrpac-ca-key-file", wrpac_ca_key_file])
 
+            wrprc_file = payload.get("wrprc_file")
+            if isinstance(wrprc_file, str) and wrprc_file:
+                helper_command.extend(["--wrprc-file", wrprc_file])
+
+            request_doc_type = payload.get("request_doc_type")
+            if isinstance(request_doc_type, str) and request_doc_type:
+                helper_command.extend(["--request-doc-type", request_doc_type])
+
+            request_attributes = payload.get("request_attributes")
+            if isinstance(request_attributes, list):
+                for attribute in request_attributes:
+                    if isinstance(attribute, str) and attribute:
+                        helper_command.extend(["--request-attribute", attribute])
+
             expected_device_response_hex = payload.get("expected_device_response_hex")
             if isinstance(expected_device_response_hex, str) and expected_device_response_hex:
                 helper_command.extend(
