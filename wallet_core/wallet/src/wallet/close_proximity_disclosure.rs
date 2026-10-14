@@ -4,6 +4,8 @@ use std::sync::Arc;
 
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::organization::Organization;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+use attestation_data::registration_certificate::RegistrationCertificateRequestParseError;
 use chrono::DateTime;
 use chrono::Utc;
 use ciborium::value::Value;
@@ -245,6 +247,10 @@ pub enum CloseProximityDisclosureError {
     #[error("reader access certificate CRL verification failed")]
     ReaderCertificateCrlVerification(#[source] CertificateCrlVerificationError),
 
+    #[error("registration certificate parsing failed")]
+    #[category(pd)]
+    RegistrationCertificateParsing(#[source] RegistrationCertificateRequestParseError),
+
     #[error("unsupported requested document format: {doc_format}")]
     #[category(critical)]
     UnsupportedDocFormat { doc_format: String },
@@ -286,6 +292,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         CloseProximityDisclosureError::MalformedDeviceRequest(_) => Some(DeviceResponseStatus::CborDecodingError),
         CloseProximityDisclosureError::InvalidDeviceRequest(_) => Some(DeviceResponseStatus::InvalidRequest),
         CloseProximityDisclosureError::UnsupportedDocFormat { .. } => Some(DeviceResponseStatus::InvalidRequest),
+        CloseProximityDisclosureError::RegistrationCertificateParsing(_) => Some(DeviceResponseStatus::InvalidRequest),
         CloseProximityDisclosureError::InconsistentReaderAuths
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::InvalidReaderCertificate(_)
@@ -823,7 +830,12 @@ async fn verify_device_request_with_crl(
 
     verify_requested_doc_formats(device_request)?;
 
-    // TODO PVW-6052 Verify that the requested attributes are included in the registration certificate.
+    for items_request in device_request.items_requests() {
+        let _registration_certificate = RegistrationCertificateEnvelope::try_from(items_request)
+            .map_err(CloseProximityDisclosureError::RegistrationCertificateParsing)?;
+
+        // TODO PVW-6052 Verify the registration certificate and its authorization for this ItemsRequest.
+    }
 
     Ok(certificate)
 }
@@ -866,6 +878,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::organization::Organization;
+    use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -882,6 +895,7 @@ mod tests {
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+    use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
@@ -910,6 +924,7 @@ mod tests {
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
     use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
+    use rstest::rstest;
     use serial_test::serial;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -962,8 +977,22 @@ mod tests {
     const PHOTO_ID_BASE_NAMESPACE: &str = "org.iso.23220.1";
     const PHOTO_ID_NAMESPACE: &str = "org.iso.23220.photoid.1";
 
+    fn registration_certificate_request_info() -> IndexMap<String, Value> {
+        static CERTIFICATE: LazyLock<Vec<u8>> = LazyLock::new(|| {
+            let reader = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
+            MockRegistrationCertificateAuthority::new()
+                .issue_cwt(reader.certificate(), Query::new_mock_mdoc_pid_example())
+        });
+
+        IndexMap::from_iter([("euWrprc".to_string(), Value::Bytes(CERTIFICATE.clone()))])
+    }
+
     fn pid_given_name_items_request() -> ItemsRequest {
-        interop_items_request(PID_MDOC_DOCTYPE, &[(PID_MDOC_DOCTYPE, &[PID_GIVEN_NAME][..])], None)
+        interop_items_request(
+            PID_MDOC_DOCTYPE,
+            &[(PID_MDOC_DOCTYPE, &[PID_GIVEN_NAME][..])],
+            Some(registration_certificate_request_info()),
+        )
     }
 
     fn interop_items_request(
@@ -1510,6 +1539,59 @@ mod tests {
         assert!(wallet.session.is_none());
     }
 
+    #[rstest]
+    #[case::missing(None)]
+    #[case::wrong_type(Some(Value::Text("not a byte string".to_string())))]
+    #[case::malformed_cwt(Some(Value::Bytes(vec![0xff])))]
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_parse_error(
+        #[case] registration_certificate: Option<Value>,
+    ) {
+        let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
+        send_context
+            .expect()
+            .once()
+            .withf(|response| {
+                let device_response: DeviceResponse = cbor_deserialize(response.as_slice()).unwrap();
+                device_response.documents.is_none()
+                    && device_response.document_errors.is_none()
+                    && device_response.status == DeviceResponseStatus::InvalidRequest
+            })
+            .returning(|_| Ok(()));
+
+        let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        stop_context.expect().never();
+
+        let valid_request = pid_given_name_items_request();
+        let mut invalid_request = pid_given_name_items_request();
+        invalid_request.request_info =
+            registration_certificate.map(|value| IndexMap::from_iter([("euWrprc".to_string(), value)]));
+        let (device_request, session_transcript, _) =
+            setup_device_request(vec![valid_request, invalid_request], None, true).await;
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        wallet
+            .mut_storage()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
+            .never();
+        install_session_established_close_proximity_session(
+            &mut wallet,
+            cbor_serialize(&session_transcript).unwrap(),
+            cbor_serialize(&device_request).unwrap(),
+        );
+
+        let result = wallet.continue_close_proximity_disclosure().await;
+
+        assert_matches!(
+            result,
+            Err(DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::RegistrationCertificateParsing(_)
+            ))
+        );
+        assert!(wallet.session.is_none());
+    }
+
     #[tokio::test]
     #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_continue_close_proximity_disclosure_send_error_response_failure_still_stops_ble_server() {
@@ -1626,7 +1708,7 @@ mod tests {
                 EUDI_PID_DOCTYPE,
                 &["family_name", "given_name", "birth_date", "age_over_18"][..],
             )],
-            None,
+            Some(registration_certificate_request_info()),
         );
         let mdl_items_request = interop_items_request(
             ISO_MDL_DOCTYPE,
@@ -1634,7 +1716,7 @@ mod tests {
                 ISO_MDL_NAMESPACE,
                 &["family_name", "given_name", "birth_date", "document_number"][..],
             )],
-            None,
+            Some(registration_certificate_request_info()),
         );
 
         let (device_request, session_transcript, trust_anchors) =
@@ -1663,7 +1745,7 @@ mod tests {
                 ),
                 (PHOTO_ID_NAMESPACE, &["portrait", "document_number"][..]),
             ],
-            None,
+            Some(registration_certificate_request_info()),
         );
 
         let (device_request, session_transcript, trust_anchors) =
