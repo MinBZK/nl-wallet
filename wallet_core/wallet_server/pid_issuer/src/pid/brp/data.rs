@@ -102,7 +102,12 @@ impl BrpPerson {
 impl BrpPerson {
     pub fn into_sd_jwt_attributes(self, recovery_code: Attribute, issuer_metadata: PidIssuerMetadata) -> Attributes {
         let address_attributes = self.residence.clone().into_sd_jwt_address_attributes();
-        let (mut attributes, birth_date, nationality, family_name_birth) = self.common_attributes();
+        let CommonAttributes {
+            mut attributes,
+            birth_date,
+            nationality,
+            family_name_birth,
+        } = self.common_attributes();
 
         attributes.insert(
             String::from(PID_SD_JWT_BIRTH_DATE),
@@ -122,7 +127,12 @@ impl BrpPerson {
 
     pub fn into_mdoc_attributes(self, recovery_code: Attribute, issuer_metadata: PidIssuerMetadata) -> Attributes {
         let address_attributes = self.residence.clone().into_mdoc_address_attributes();
-        let (mut attributes, birth_date, nationality, family_name_birth) = self.common_attributes();
+        let CommonAttributes {
+            mut attributes,
+            birth_date,
+            nationality,
+            family_name_birth,
+        } = self.common_attributes();
 
         // In mdoc, `birth_date` should be encoded as `full-date` (CBOR tag 1004)
         attributes.insert(PID_MDOC_BIRTH_DATE.to_owned(), Attribute::Date(birth_date));
@@ -140,7 +150,7 @@ impl BrpPerson {
 
     /// Everything but `birth_date`, `nationality` and `family_name_birth`, since those have different key/value
     /// formats or keys for mdoc and SD-JWT.
-    fn common_attributes(self) -> (IndexMap<String, Attribute>, NaiveDate, Attribute, Attribute) {
+    fn common_attributes(self) -> CommonAttributes {
         let given_names = self.name.given_names.clone();
         let family_name = self.family_name();
         let family_name_birth = Attribute::Text(self.name.name_with_prefix());
@@ -170,8 +180,20 @@ impl BrpPerson {
             .collect::<Vec<(String, Attribute)>>(),
         );
 
-        (attributes, birth_date, nationality, family_name_birth)
+        CommonAttributes {
+            attributes,
+            birth_date,
+            nationality,
+            family_name_birth,
+        }
     }
+}
+
+struct CommonAttributes {
+    attributes: IndexMap<String, Attribute>,
+    birth_date: NaiveDate,
+    nationality: Attribute,
+    family_name_birth: Attribute,
 }
 
 impl BrpResidence {
