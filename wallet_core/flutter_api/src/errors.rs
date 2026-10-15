@@ -664,6 +664,11 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
         match value {
             CloseProximityDisclosureError::InconsistentReaderAuths
             | CloseProximityDisclosureError::InvalidDocRequest(_)
+            | CloseProximityDisclosureError::ReaderCertificateSubject(_)
+            | CloseProximityDisclosureError::ReaderCertificateRelyingParty(_)
+            | CloseProximityDisclosureError::RegistrationCertificateParsing(_)
+            | CloseProximityDisclosureError::RegistrationCertificateVerification(_)
+            | CloseProximityDisclosureError::RegistrationCertificateBindingAndTime(_)
             | CloseProximityDisclosureError::UnsupportedDocFormat { .. }
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidDeviceRequest(_) => FlutterApiErrorType::Verifier,

@@ -7,7 +7,10 @@ use attestation_data::organization::Organization;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
 use attestation_data::registration_certificate::RegistrationCertificateRequestParseError;
+use attestation_data::registration_certificate::RegistrationCertificateValidationError;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
+use attestation_data::x509::RelyingParty;
+use attestation_data::x509::RelyingPartyError;
 use chrono::DateTime;
 use chrono::Utc;
 use ciborium::value::Value;
@@ -15,6 +18,7 @@ use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateVerifyError;
+use crypto::x509::DistinguishedNameError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -249,6 +253,14 @@ pub enum CloseProximityDisclosureError {
     #[error("reader access certificate CRL verification failed")]
     ReaderCertificateCrlVerification(#[source] CertificateCrlVerificationError),
 
+    #[error("could not parse reader access certificate subject")]
+    #[category(pd)]
+    ReaderCertificateSubject(#[source] DistinguishedNameError),
+
+    #[error("reader access certificate does not contain a relying-party subject")]
+    #[category(pd)]
+    ReaderCertificateRelyingParty(#[source] RelyingPartyError),
+
     #[error("registration certificate parsing failed")]
     #[category(pd)]
     RegistrationCertificateParsing(#[source] RegistrationCertificateRequestParseError),
@@ -256,6 +268,10 @@ pub enum CloseProximityDisclosureError {
     #[error("registration certificate verification failed")]
     #[category(pd)]
     RegistrationCertificateVerification(#[source] RegistrationCertificateEnvelopeError),
+
+    #[error("registration certificate has invalid WRPAC binding or validity")]
+    #[category(pd)]
+    RegistrationCertificateBindingAndTime(#[source] RegistrationCertificateValidationError),
 
     #[error("unsupported requested document format: {doc_format}")]
     #[category(critical)]
@@ -303,7 +319,10 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::InvalidReaderCertificate(_)
         | CloseProximityDisclosureError::ReaderCertificateCrlVerification(_)
-        | CloseProximityDisclosureError::RegistrationCertificateVerification(_) => {
+        | CloseProximityDisclosureError::ReaderCertificateSubject(_)
+        | CloseProximityDisclosureError::ReaderCertificateRelyingParty(_)
+        | CloseProximityDisclosureError::RegistrationCertificateVerification(_)
+        | CloseProximityDisclosureError::RegistrationCertificateBindingAndTime(_) => {
             Some(DeviceResponseStatus::GeneralError)
         }
         // These are either internal wallet errors or failures already handled by platform support,
@@ -808,7 +827,8 @@ where
     }
 }
 
-/// Verify reader authentication and WRPRC envelopes, requiring a valid CRL for the complete WRPAC chain.
+/// Verify reader authentication, WRPRC envelopes, binding and expiry, requiring a valid CRL for the complete WRPAC
+/// chain.
 async fn verify_device_request_with_crl(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
@@ -843,14 +863,24 @@ async fn verify_device_request_with_crl(
 
     verify_requested_doc_formats(device_request)?;
 
+    let access_certificate_subject = certificate
+        .to_distinguished_name()
+        .map_err(CloseProximityDisclosureError::ReaderCertificateSubject)?;
+    let access_subject = RelyingParty::try_from(access_certificate_subject)
+        .map_err(CloseProximityDisclosureError::ReaderCertificateRelyingParty)?;
+
     for items_request in device_request.items_requests() {
         let registration_certificate = RegistrationCertificateEnvelope::try_from(items_request)
             .map_err(CloseProximityDisclosureError::RegistrationCertificateParsing)?;
-        let _verified_registration_certificate =
+        let verified_registration_certificate =
             verify_registration_certificate_envelope(&registration_certificate, trust_anchors.wrprc, time)
                 .map_err(CloseProximityDisclosureError::RegistrationCertificateVerification)?;
+        let _bound_registration_certificate = verified_registration_certificate
+            .into_payload()
+            .validate_binding_and_time(&access_subject, time.generate())
+            .map_err(CloseProximityDisclosureError::RegistrationCertificateBindingAndTime)?;
 
-        // TODO PVW-6052 Validate WRPAC binding, expiry, status, and authorization for this ItemsRequest.
+        // TODO PVW-6052 Validate status and authorization for this ItemsRequest.
     }
 
     Ok(certificate)
@@ -895,13 +925,18 @@ mod tests {
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::organization::Organization;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
+    use attestation_data::registration_certificate::RegistrationCertificateValidationError;
+    use attestation_data::registration_certificate::SubjectType;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
+    use attestation_data::registration_certificate::mock::RegistrationCertificateFixture;
+    use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
+    use chrono::Utc;
     use ciborium::value::Value;
     use crypto::PublicKey;
     use crypto::WithVerifyingKey;
@@ -943,6 +978,7 @@ mod tests {
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
     use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
     use rstest::rstest;
+    use serde_json::json;
     use serial_test::serial;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -1007,11 +1043,14 @@ mod tests {
         }
     }
 
+    fn registration_certificate_payload() -> RegistrationCertificateFixture {
+        let reader = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
+        verifier_registration_certificate_payload(reader.certificate(), Query::new_mock_mdoc_pid_example())
+    }
+
     fn registration_certificate_request_info() -> IndexMap<String, Value> {
-        static CERTIFICATE: LazyLock<Vec<u8>> = LazyLock::new(|| {
-            let reader = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
-            REGISTRATION_CERTIFICATE_AUTHORITY.issue_cwt(reader.certificate(), Query::new_mock_mdoc_pid_example())
-        });
+        static CERTIFICATE: LazyLock<Vec<u8>> =
+            LazyLock::new(|| REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&registration_certificate_payload()));
 
         IndexMap::from_iter([("euWrprc".to_string(), Value::Bytes(CERTIFICATE.clone()))])
     }
@@ -1677,6 +1716,61 @@ mod tests {
         );
     }
 
+    #[rstest]
+    #[case::mismatching_identifier(
+        |payload: &mut RegistrationCertificateFixture| payload.0["sub"] = json!("other-relying-party"),
+        |error: &RegistrationCertificateValidationError| {
+            matches!(error, RegistrationCertificateValidationError::SubjectIdentifierMismatch {
+                field: "organizationIdentifier"
+            })
+        }
+    )]
+    #[case::mismatching_subject_type(
+        |payload: &mut RegistrationCertificateFixture| {
+            payload.0["sub_ln"] = json!(null);
+            payload.0["sub_gn"] = json!("Test");
+            payload.0["sub_fn"] = json!("Person");
+        },
+        |error: &RegistrationCertificateValidationError| {
+            matches!(error, RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
+                registration: SubjectType::NaturalPerson,
+                access: SubjectType::LegalPerson,
+            })
+        }
+    )]
+    #[case::expired(
+        |payload: &mut RegistrationCertificateFixture| {
+            let now = Utc::now().timestamp();
+            payload.0["iat"] = json!(now - 120);
+            payload.0["exp"] = json!(now - 60);
+        },
+        |error: &RegistrationCertificateValidationError| {
+            matches!(error, RegistrationCertificateValidationError::Expired { .. })
+        }
+    )]
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_binding_and_time_error(
+        #[case] modify_payload: fn(&mut RegistrationCertificateFixture),
+        #[case] matches_error: fn(&RegistrationCertificateValidationError) -> bool,
+    ) {
+        let mut payload = registration_certificate_payload();
+        modify_payload(&mut payload);
+        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
+        let error = assert_registration_certificate_rejected(
+            Some(Value::Bytes(certificate)),
+            DeviceResponseStatus::GeneralError,
+        )
+        .await;
+
+        assert_matches!(
+            error,
+            DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::RegistrationCertificateBindingAndTime(error)
+            ) if matches_error(&error)
+        );
+    }
+
     #[tokio::test]
     #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_continue_close_proximity_disclosure_send_error_response_failure_still_stops_ble_server() {
@@ -1741,9 +1835,21 @@ mod tests {
         (device_request, session_transcript, trust_anchors)
     }
 
+    #[rstest]
+    #[case::without_expiry(None)]
+    #[case::unexpired(Some(60))]
     #[tokio::test]
-    async fn test_verify_device_request_success() {
-        let items_request = pid_given_name_items_request();
+    async fn test_verify_device_request_success(#[case] expires_in_seconds: Option<i64>) {
+        let mut payload = registration_certificate_payload();
+        if let Some(expires_in_seconds) = expires_in_seconds {
+            payload.0["exp"] = json!(Utc::now().timestamp() + expires_in_seconds);
+        }
+        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
+        let mut items_request = pid_given_name_items_request();
+        items_request.request_info = Some(IndexMap::from_iter([(
+            "euWrprc".to_string(),
+            Value::Bytes(certificate),
+        )]));
 
         let (device_request, session_transcript, trust_anchors) =
             setup_device_request(vec![items_request], None, true).await;
