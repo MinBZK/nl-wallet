@@ -93,7 +93,7 @@ where
     .await?;
 
     certificate
-        .validate_query_authorization(query)
+        .validate_dcql_authorization(query)
         .map_err(RegistrationCertificateError::Authorization)?;
 
     Ok(certificate)

@@ -281,7 +281,7 @@ pub fn validate_verifier_use_cases(
 
         if let Some(dcql_query) = use_case.dcql_query {
             registration_certificate
-                .validate_query_authorization(dcql_query)
+                .validate_dcql_authorization(dcql_query)
                 .map_err(|source| VerifierUseCasesValidationError::UnauthorizedDcqlQuery {
                     use_case_id: use_case.id.to_string(),
                     source,
