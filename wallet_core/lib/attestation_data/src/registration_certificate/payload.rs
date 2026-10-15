@@ -1,3 +1,4 @@
+use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use dcql::ClaimsQuery;
@@ -5,12 +6,13 @@ use dcql::CredentialQueryFormat;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::FromInto;
+use serde_with::TryFromInto;
 use serde_with::serde_as;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use super::status::RegistrationCertificateStatus;
+use super::status::StatusWireFormat;
 use super::validation::RegistrationCertificateValidationError;
 
 /// Persisted in wallet events as part of [`Organization`](crate::organization::Organization).
@@ -68,8 +70,6 @@ pub struct Intermediary {
 #[serde_as]
 #[derive(Deserialize)]
 pub struct UncheckedRegistrationCertificate {
-    /// Optional in this wire representation because Annex C omits it; constructing a parsed payload requires it.
-    pub id: Option<String>,
     pub name: Option<String>,
     pub sub: String,
     pub sub_ln: Option<String>,
@@ -93,7 +93,8 @@ pub struct UncheckedRegistrationCertificate {
     pub iat: DateTime<Utc>,
     #[serde(default, with = "chrono::serde::ts_seconds_option")]
     pub exp: Option<DateTime<Utc>>,
-    pub status: RegistrationCertificateStatus,
+    #[serde_as(deserialize_as = "TryFromInto<StatusWireFormat>")]
+    pub status: StatusListClaim,
     pub policy_id: Vec<String>,
     pub certificate_policy: Url,
     pub intermediary: Option<Intermediary>,
@@ -165,11 +166,10 @@ mod tests {
     fn deserialize_valid_payload() {
         let certificate: ParsedRegistrationCertificate = serde_json::from_value(valid_payload_json()).unwrap();
 
-        assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+        assert_eq!(certificate.payload().sub, "LEIXG-529900T8BM49AURSDO55");
     }
 
     #[rstest]
-    #[case::missing_id("id", json!(null), RegistrationCertificateValidationError::MissingId)]
     #[case::invalid_country("country", json!("N"), RegistrationCertificateValidationError::InvalidCountry)]
     #[case::ambiguous_subject("sub_gn", json!("Jane"), RegistrationCertificateValidationError::AmbiguousSubjectType)]
     #[case::missing_credentials("credentials", json!(null), RegistrationCertificateValidationError::MissingServiceProviderCredentials)]
@@ -189,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_annex_c_example_and_reject_its_missing_normative_id() {
+    fn parse_annex_c_example() {
         let json: Value = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
         assert_eq!(
             json["credentials"][0]["claim"][0]["path"],
@@ -206,17 +206,7 @@ mod tests {
             payload.intermediary.as_ref().unwrap().sname.as_deref(),
             Some("Intermediary Services Ltd.")
         );
-        assert_matches!(
-            ParsedRegistrationCertificate::try_from(payload),
-            Err(RegistrationCertificateValidationError::MissingId)
-        );
-
-        let mut payload_with_id: UncheckedRegistrationCertificate = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
-        payload_with_id.id = Some("wrprc-example-1".to_string());
-        assert_matches!(
-            ParsedRegistrationCertificate::try_from(payload_with_id),
-            Err(RegistrationCertificateValidationError::InvalidStatusWireFormat)
-        );
+        assert_matches!(ParsedRegistrationCertificate::try_from(payload), Ok(_));
     }
 
     #[test]

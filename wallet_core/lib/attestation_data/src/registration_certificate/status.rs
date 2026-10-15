@@ -5,8 +5,6 @@ use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CanonicalDistinguishedName;
 use serde::Deserialize;
-use serde::Deserializer;
-use serde::de;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -17,95 +15,54 @@ use super::payload::Subject;
 use super::payload::UncheckedRegistrationCertificate;
 use super::validation::BoundRegistrationCertificate;
 
-/// Reference to the status list entry for this registration certificate.
-///
-/// Deserialization accepts both the direct shape required by ETSI TS 119 475 clause 6.2.6.1 and the nested OAuth
-/// Status List shape used by the informative Annex C example. Constructing a [`super::ParsedRegistrationCertificate`]
-/// only accepts the normative direct shape with a numeric-string index.
-pub struct RegistrationCertificateStatus {
-    status_list_claim: StatusListClaim,
-    input_format: RegistrationCertificateStatusInputFormat,
-}
-
-enum RegistrationCertificateStatusInputFormat {
-    DirectNumericString,
-    DirectInteger,
-    NestedStatusList,
-}
-
-impl RegistrationCertificateStatus {
-    pub(super) fn has_normative_input_format(&self) -> bool {
-        matches!(
-            self.input_format,
-            RegistrationCertificateStatusInputFormat::DirectNumericString
-        )
-    }
-
-    fn status_list_claim(&self) -> &StatusListClaim {
-        &self.status_list_claim
-    }
-}
-
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum RegistrationCertificateStatusWireFormat {
+pub(super) enum StatusWireFormat {
     NestedStatusList(StatusClaim),
     Direct { idx: StatusListIndex, uri: Url },
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum StatusListIndex {
+pub(super) enum StatusListIndex {
     String(String),
     Integer(u32),
 }
 
-fn parse_status_list_index<E>(value: &str) -> Result<u32, E>
-where
-    E: de::Error,
-{
-    if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
-        return Err(E::custom(format!(
-            "status list index `{value}` is not a numeric string"
-        )));
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum StatusListIndexError {
+    #[error("status list index `{0}` is not a numeric string")]
+    NotNumeric(String),
 
-    value.parse().map_err(|_| {
-        E::custom(format!(
-            "status list index `{value}` does not fit in a 32-bit unsigned integer"
-        ))
-    })
+    #[error("status list index `{0}` does not fit in a 32-bit unsigned integer")]
+    TooLarge(String),
 }
 
-impl<'de> Deserialize<'de> for RegistrationCertificateStatus {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let status = RegistrationCertificateStatusWireFormat::deserialize(deserializer)?;
-        let (status_list_claim, input_format) = match status {
-            RegistrationCertificateStatusWireFormat::NestedStatusList(status_claim) => {
-                let StatusClaim::StatusList(status_list_claim) = status_claim;
-                (
-                    status_list_claim,
-                    RegistrationCertificateStatusInputFormat::NestedStatusList,
-                )
+/// ETSI TS 119 475 is inconsistent about the shape of `status`. GEN-6.2.6.1-04 requires an object with `idx` as
+/// a numeric string, while REV-6.2.6.2-03 refers to the IETF Token Status List, which nests the reference in
+/// `status_list` with an integer `idx`. The Annex C example and the EUDI reference implementation use the latter.
+/// All of these shapes are accepted.
+impl TryFrom<StatusWireFormat> for StatusListClaim {
+    type Error = StatusListIndexError;
+
+    fn try_from(status: StatusWireFormat) -> Result<Self, Self::Error> {
+        match status {
+            StatusWireFormat::NestedStatusList(StatusClaim::StatusList(claim)) => Ok(claim),
+            StatusWireFormat::Direct {
+                idx: StatusListIndex::Integer(idx),
+                uri,
+            } => Ok(Self { idx, uri }),
+            StatusWireFormat::Direct {
+                idx: StatusListIndex::String(idx),
+                uri,
+            } => {
+                if idx.is_empty() || !idx.bytes().all(|byte| byte.is_ascii_digit()) {
+                    return Err(StatusListIndexError::NotNumeric(idx));
+                }
+                let idx = idx.parse().map_err(|_| StatusListIndexError::TooLarge(idx))?;
+                Ok(Self { idx, uri })
             }
-            RegistrationCertificateStatusWireFormat::Direct { idx, uri } => {
-                let (idx, input_format) = match idx {
-                    StatusListIndex::String(value) => (
-                        parse_status_list_index(&value)?,
-                        RegistrationCertificateStatusInputFormat::DirectNumericString,
-                    ),
-                    StatusListIndex::Integer(value) => (value, RegistrationCertificateStatusInputFormat::DirectInteger),
-                };
-                (StatusListClaim { idx, uri }, input_format)
-            }
-        };
-        Ok(Self {
-            status_list_claim,
-            input_format,
-        })
+        }
     }
 }
 
@@ -128,7 +85,7 @@ impl BoundRegistrationCertificate {
             .verify(
                 registration_certificate_trust_anchors,
                 registration_certificate_signing_certificate_dn,
-                StatusClaim::StatusList(self.payload().status.status_list_claim().clone()),
+                StatusClaim::StatusList(self.payload().status.clone()),
                 time,
             )
             .await;
@@ -176,10 +133,13 @@ mod tests {
     use std::sync::Arc;
     use std::time::Duration;
 
+    use attestation_types::status_claim::StatusListClaim;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CanonicalDistinguishedName;
     use jwt::error::JwtParseError;
+    use rstest::rstest;
+    use serde_json::Value;
     use serde_json::json;
     use token_status_list::status_list::StatusList;
     use token_status_list::status_list::StatusType;
@@ -191,16 +151,15 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
 
     use super::super::ParsedRegistrationCertificate;
-    use super::super::RegistrationCertificateValidationError;
-    use super::super::UncheckedRegistrationCertificate;
     use super::super::mock::STATUS_LIST_URI;
     use super::super::mock::StaticStatusListClient;
     use super::super::test::legal_person_access_certificate_subject;
     use super::super::test::valid_parsed_payload;
     use super::super::test::valid_payload_json;
     use super::super::test::validation_time;
-    use super::RegistrationCertificateStatus;
     use super::RegistrationCertificateStatusValidationError;
+    use super::StatusListIndexError;
+    use super::StatusWireFormat;
 
     #[derive(Debug)]
     struct FailingStatusListClient;
@@ -250,41 +209,46 @@ mod tests {
     }
 
     #[test]
-    fn reject_non_numeric_status_list_index() {
+    fn reject_invalid_status_list_index() {
+        let status_with_index = |index: &str| -> StatusWireFormat {
+            serde_json::from_value(json!({ "idx": index, "uri": STATUS_LIST_URI })).unwrap()
+        };
+
         for index in ["", "+42", "-42", "42.0", "forty-two"] {
-            let result = serde_json::from_value::<RegistrationCertificateStatus>(json!({
-                "idx": index,
-                "uri": STATUS_LIST_URI,
-            }));
-            assert!(result.is_err(), "`{index}` should not be a numeric string");
+            assert_matches!(
+                StatusListClaim::try_from(status_with_index(index)),
+                Err(StatusListIndexError::NotNumeric(_)),
+                "`{index}` should not be a numeric string"
+            );
         }
+        assert_matches!(
+            StatusListClaim::try_from(status_with_index("4294967296")),
+            Err(StatusListIndexError::TooLarge(_))
+        );
     }
 
-    #[test]
-    fn reject_non_normative_status_shapes_during_payload_parsing() {
-        let mut nested = valid_payload_json();
-        nested["status"] = json!({
-            "status_list": {
-                "idx": 0,
-                "uri": STATUS_LIST_URI,
-            }
-        });
-        let nested: UncheckedRegistrationCertificate = serde_json::from_value(nested).unwrap();
-        assert_matches!(
-            ParsedRegistrationCertificate::try_from(nested),
-            Err(RegistrationCertificateValidationError::InvalidStatusWireFormat)
-        );
+    #[rstest]
+    #[case::direct_numeric_string(json!({ "idx": "0", "uri": STATUS_LIST_URI }))]
+    #[case::direct_integer(json!({ "idx": 0, "uri": STATUS_LIST_URI }))]
+    #[case::nested_token_status_list(json!({ "status_list": { "idx": 0, "uri": STATUS_LIST_URI } }))]
+    #[tokio::test]
+    async fn check_referenced_status_for_each_status_shape(#[case] status: Value) {
+        let context = status_validation_context(StatusType::Invalid, 8).await;
+        let mut payload = valid_payload_json();
+        payload["status"] = status;
+        let payload: ParsedRegistrationCertificate = serde_json::from_value(payload).unwrap();
+        let result = payload
+            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .unwrap()
+            .validate_status(
+                &context.verifier,
+                &context.trust_anchors,
+                context.signing_certificate_dn,
+                &context.time,
+            )
+            .await;
 
-        let mut integer = valid_payload_json();
-        integer["status"] = json!({
-            "idx": 0,
-            "uri": STATUS_LIST_URI,
-        });
-        let integer: UncheckedRegistrationCertificate = serde_json::from_value(integer).unwrap();
-        assert_matches!(
-            ParsedRegistrationCertificate::try_from(integer),
-            Err(RegistrationCertificateValidationError::InvalidStatusWireFormat)
-        );
+        assert_matches!(result, Err(RegistrationCertificateStatusValidationError::NotValid));
     }
 
     #[tokio::test]
@@ -302,7 +266,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+        assert_eq!(certificate.payload().sub, "LEIXG-529900T8BM49AURSDO55");
     }
 
     #[tokio::test]

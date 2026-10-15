@@ -967,7 +967,7 @@ mod test {
                 payload.0["iat"] = json!(12345678);
                 payload.0["exp"] = json!(12345679);
             }
-            RegistrationCertificateScenario::InvalidPayload => payload.0["id"] = json!(null),
+            RegistrationCertificateScenario::InvalidPayload => payload.0["country"] = json!("N"),
             RegistrationCertificateScenario::MissingProvidesAttestations => {
                 payload.0.as_object_mut().unwrap().remove("provides_attestations");
             }
