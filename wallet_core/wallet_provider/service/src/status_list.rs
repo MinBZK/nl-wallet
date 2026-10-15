@@ -20,6 +20,16 @@ use crate::flags::WalletFlags;
 /// and [`KeyStorageStatusList`] will sign and cache a new one.
 const EXPIRY_MARGIN: Duration = Duration::from_mins(5);
 
+#[derive(Debug, thiserror::Error)]
+pub enum KeyStorageStatusListError {
+    #[error(
+        "provided token expiry of {} seconds is too short, should be longer than {} seconds",
+        expiry.as_secs(),
+        min_duration.as_secs(),
+    )]
+    TokenExpiryTooShort { expiry: Duration, min_duration: Duration },
+}
+
 /// This type holds a cached [`SingleEntryStatusListToken`], which in turn contains a [`StatusListToken`] in which only
 /// index 0 is used and indicates the revocation status of Wallet Provider's HSM. This is to be used as the Key Storage
 /// type revocation status of an OpenID4VCI Key Attestation. Within the context of TS3, this refers to Option 1 of
@@ -38,19 +48,33 @@ pub struct KeyStorageStatusList<K, F> {
 }
 
 impl<K, F> KeyStorageStatusList<K, F> {
-    pub fn new(public_uri: Url, token_expiry: Duration, key_pair: KeyPair<K>, wallet_flags: F) -> Self {
+    pub fn try_new(
+        public_uri: Url,
+        token_expiry: Duration,
+        key_pair: KeyPair<K>,
+        wallet_flags: F,
+    ) -> Result<Self, KeyStorageStatusListError> {
+        if token_expiry <= EXPIRY_MARGIN {
+            return Err(KeyStorageStatusListError::TokenExpiryTooShort {
+                expiry: token_expiry,
+                min_duration: EXPIRY_MARGIN,
+            });
+        }
+
         let status_claim = StatusClaim::StatusList(StatusListClaim {
             idx: 0,
             uri: public_uri,
         });
 
-        Self {
+        let status_list = Self {
             status_claim,
             token_expiry,
             key_pair,
             wallet_flags,
             cached_token: Mutex::new(None),
-        }
+        };
+
+        Ok(status_list)
     }
 
     /// Either return the signed [`StatusListToken`] from cache or sign a new one, using the type's [`KeyPair`]. A new
@@ -125,6 +149,7 @@ impl SingleEntryStatusListToken {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::sync::LazyLock;
     use std::time::Duration;
 
@@ -133,13 +158,16 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
     use futures::FutureExt;
+    use rstest::rstest;
     use token_status_list::status_list::StatusType;
     use token_status_list::status_list_token::StatusListToken;
     use url::Url;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 
+    use super::EXPIRY_MARGIN;
     use super::KeyStorageStatusList;
+    use super::KeyStorageStatusListError;
     use super::SingleEntryStatusListToken;
     use crate::flags::WalletFlags;
     use crate::flags::mock::StubWalletFlags;
@@ -183,6 +211,26 @@ mod tests {
         assert_eq!(status_list.get(1), StatusType::Valid);
     }
 
+    #[rstest]
+    #[case::equal_to_margin(EXPIRY_MARGIN)]
+    #[case::less_than_margin(EXPIRY_MARGIN - Duration::from_secs(1))]
+    fn test_key_storage_status_list_try_new_error_token_expiry_too_short(#[case] token_expiry: Duration) {
+        let (_trust_anchors, key_pair) = LazyLock::force(&TSL_ANCHORS_AND_KEY_PAIR);
+
+        let error = KeyStorageStatusList::try_new(
+            "https://example.com/tsl".parse::<Url>().unwrap(),
+            token_expiry,
+            key_pair.clone(),
+            StubWalletFlags::default(),
+        )
+        .expect_err("creating new key storage status list should fail");
+
+        assert_matches!(error,
+            KeyStorageStatusListError::TokenExpiryTooShort { expiry, min_duration }
+                if expiry == token_expiry && min_duration == EXPIRY_MARGIN
+        );
+    }
+
     /// Helper function to extract the one [`StatusType`] from a [`StatusListToken`] contained
     /// [`SingleEntryStatusListToken`].
     fn key_storage_status(
@@ -215,7 +263,8 @@ mod tests {
         let token_expiry = Duration::from_hours(1);
 
         let solution_status_list =
-            KeyStorageStatusList::new(public_uri.clone(), token_expiry, key_pair.clone(), wallet_flags.clone());
+            KeyStorageStatusList::try_new(public_uri.clone(), token_expiry, key_pair.clone(), wallet_flags.clone())
+                .unwrap();
 
         // Fetching the `StatusListToken` initially should result in a valid status, as the Wallet Solution has not
         // been revoked.

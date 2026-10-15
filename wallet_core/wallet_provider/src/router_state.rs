@@ -278,12 +278,12 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         );
 
         let key_storage_tsl_public_uri = settings.public_url.join(KEY_STORAGE_TSL_PATH);
-        let key_storage_status_list = KeyStorageStatusList::new(
+        let key_storage_status_list = KeyStorageStatusList::try_new(
             key_storage_tsl_public_uri,
             settings.key_attestation_settings.key_storage_status_list.expiry,
             key_storage_tsl_key_pair,
             flags.clone(),
-        );
+        )?;
 
         let state = RouterState {
             account_server,
