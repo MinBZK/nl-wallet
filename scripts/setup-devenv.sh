@@ -484,6 +484,16 @@ generate_demo_relying_party_disclosure_registration_certificate job_finder 4
 DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.wrprc")
 export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER
 
+# Generate relying party key and cert.
+generate_demo_relying_party_key_pair car_insurance
+DEMO_RELYING_PARTY_KEY_CAR_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/car_insurance.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_CAR_INSURANCE
+DEMO_RELYING_PARTY_CRT_CAR_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/car_insurance.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_CAR_INSURANCE
+generate_demo_relying_party_disclosure_registration_certificate car_insurance 12
+DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_CAR_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/car_insurance.wrprc")
+export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_CAR_INSURANCE
+
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
 ISSUER_CA_AKI=$(openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)
 export ISSUER_CA_AKI
@@ -687,12 +697,12 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wrprc"
 
-# All twelve demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
+# All thirteen demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca status-list \
     --tsl-key-file "${TARGET_DIR}/wrprc_tsl.key.pem" \
     --tsl-crt-file "${TARGET_DIR}/wrprc_tsl.crt.pem" \
     --uri "${WRPRC_STATUS_LIST_URI}" \
-    --status valid valid valid valid valid valid valid valid valid valid valid valid \
+    --status valid valid valid valid valid valid valid valid valid valid valid valid valid \
     --ttl-seconds 3600 \
     > "${WALLET_CORE_DIR}/target/status-lists/wrprc/1.jwt"
 

@@ -75,6 +75,12 @@ private_key = "${DEMO_RELYING_PARTY_KEY_JOB_FINDER}"
 private_key_type = "software"
 registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER}"
 
+[usecases.car_insurance]
+certificate = "${DEMO_RELYING_PARTY_CRT_CAR_INSURANCE}"
+private_key = "${DEMO_RELYING_PARTY_KEY_CAR_INSURANCE}"
+private_key_type = "software"
+registration_certificate = "${DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_CAR_INSURANCE}"
+
 # Integration test cases
 [usecases.xyz_bank_no_return_url]
 session_type_return_url = "same_device"
