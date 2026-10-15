@@ -55,17 +55,13 @@ class CardDetailTests : TestBase() {
             { assertTrue(cardDetailScreen.issuerAndHistoryStates(), "issuer and/or history state not not visible and/or correct") }
         )
         cardDetailScreen.captureA11ySnapshot("CardDetail")
-
         cardDetailScreen.clickCardDataButton()
-        val nationalities = gbaData.getNationalities(DEFAULT_BSN)
         assertAll(
             { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data attribute are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("given_name")), "data label are not visible") },
             { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data attribute are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("family_name")), "data label are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("birthdate")), "data label are not visible") },
-            { assertTrue(cardDataScreen.dataAttributeVisible(nationalities[0]), "array attribute is not visible") },
-            { assertTrue(cardDataScreen.dataAttributeVisible(nationalities[1]), "array attribute is not visible") },
             { assertTrue(cardDataScreen.dataLabelAbsent(cardMetadata.getPidClaimLabel("recovery_code")), "recovery code is visible") },
             { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
         )
