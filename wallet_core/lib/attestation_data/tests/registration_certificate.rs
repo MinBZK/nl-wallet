@@ -15,6 +15,7 @@ use crypto::x509::DistinguishedName;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
 use rstest::rstest;
+use serde_json::json;
 use utils::generator::mock::MockTimeGenerator;
 
 #[derive(Clone, Copy)]

@@ -248,7 +248,7 @@ mod tests {
         let payload = verify_registration_certificate_envelope(&envelope, &authority.trust_anchors, &TimeGenerator)
             .unwrap()
             .into_payload();
-        assert_eq!(payload.payload().id.as_deref(), Some("wrprc-example-1"));
+        assert_eq!(payload.payload().sub, "LEIXG-529900T8BM49AURSDO55");
     }
 
     #[rstest]
