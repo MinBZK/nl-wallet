@@ -2,7 +2,7 @@
   "pid": [
     {
       "format": "mso_mdoc",
-      "meta": { "doctype_value": "urn:eudi:pid:nl:1" }
+      "meta": { "doctype_value": "eu.europa.ec.eudi.pid.1" }
     },
     {
       "format": "dc+sd-jwt",

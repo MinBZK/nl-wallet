@@ -102,3 +102,8 @@ probes:
     startup: {}
   disableLiveness: false
   useLivenessAsReadiness: false
+
+## @section Application parameters
+## @param environment Environment name shown in the admin portal (e.g. "Acceptatie"), hidden when empty
+##
+environment: ""

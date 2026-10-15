@@ -1,4 +1,6 @@
 automation-compile-check:
+  stage: test
+  needs: []
   rules: !reference [.merge-request, rules]
   script:
     - java -version
@@ -6,6 +8,7 @@ automation-compile-check:
     - ./gradlew --no-daemon compileTestKotlin
 
 scheduled-automation-tests-trigger:
+  stage: qa
   rules:
     - !reference [.default-branch-manual, rules]
   needs:
@@ -20,6 +23,7 @@ scheduled-automation-tests-trigger:
 
 .run-automation-tests-base:
   extends: .env-k8s
+  stage: qa
   before_script:
     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_USER
@@ -82,6 +86,7 @@ scheduled-automation-tests-trigger:
 
 automation-tests-load-device-config:
   extends: .env-k8s
+  stage: init
   rules:
     - !reference [.on-schedule-automation, rules]
   script:
@@ -148,6 +153,7 @@ automation-tests-load-device-config:
       - uiautomation/appium.log
     reports:
       junit: uiautomation/build/test-results/**/*.xml
+  stage: qa
   rules:
     - !reference [.on-schedule-automation, rules]
 
@@ -240,6 +246,7 @@ automation-tests-load-device-config:
     IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
 
 run-automation-tests-publish-results-android:
+  stage: publish
   rules: !reference [.run-automation-tests-default, rules]
   needs:
     - { job: run-automation-card-and-history-tests-android }
@@ -262,6 +269,7 @@ run-automation-tests-publish-results-android:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/a11y-captures/e2e-android.zip uiautomation/build/a11y-captures/*
 
 run-automation-tests-publish-results-ios:
+  stage: publish
   rules: !reference [.run-automation-tests-default, rules]
   needs:
     - { job: run-automation-card-and-history-tests-ios }

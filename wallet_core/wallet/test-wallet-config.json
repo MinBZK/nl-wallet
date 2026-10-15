@@ -30,9 +30,9 @@
   },
   "pid_attributes": {
     "mso_mdoc": {
-      "urn:example:pid:nl:1": {
-        "login": ["urn:example:pid:nl:1", "bsn"],
-        "recovery_code": ["urn:example:pid:nl:1", "recovery_code"]
+      "com.example.nl.pid.1": {
+        "login": ["com.example.nl.pid.1", "bsn"],
+        "recovery_code": ["com.example.nl.pid.1", "recovery_code"]
       }
     },
     "sd_jwt": {

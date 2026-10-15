@@ -1,6 +1,7 @@
 ai-security-scan-fetch-token:
   extends: .env-k8s
-  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-base:${BUILD_TAG}"
+  stage: init
   rules:
     - if: ($SCHEDULED == "ai-security-scan-diff" || $SCHEDULED == "ai-security-scan-full") && $CI_PIPELINE_SOURCE == "web"
   script:
@@ -14,6 +15,7 @@ ai-security-scan-fetch-token:
 
 .ai-security-scan-base:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  stage: qa
   needs:
     - job: ai-security-scan-fetch-token
       artifacts: true

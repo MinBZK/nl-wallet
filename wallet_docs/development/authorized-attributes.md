@@ -22,10 +22,10 @@ For example, the following entries authorize the `given_name` and
   "credentials": [
     {
       "format": "mso_mdoc",
-      "meta": { "doctype_value": "urn:eudi:pid:nl:1" },
+      "meta": { "doctype_value": "eu.europa.ec.eudi.pid.1" },
       "claim": [
-        { "path": ["urn:eudi:pid:nl:1", "given_name"] },
-        { "path": ["urn:eudi:pid:nl:1", "family_name"] }
+        { "path": ["eu.europa.ec.eudi.pid.1", "given_name"] },
+        { "path": ["eu.europa.ec.eudi.pid.1", "family_name"] }
       ]
     },
     {
@@ -64,7 +64,7 @@ conventions and are matched exactly; the wallet does not translate between
 them during authorization.
 
 An mdoc claim path starts with its namespace followed by the element
-identifier, for example `["urn:eudi:pid:nl:1", "given_name"]`. The namespace
+identifier, for example `["eu.europa.ec.eudi.pid.1", "given_name"]`. The namespace
 does not necessarily equal the doctype, for example the mDL (doctype
 `org.iso.18013.5.1.mDL`) uses `["org.iso.18013.5.1", "family_name"]`.
 

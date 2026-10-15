@@ -142,6 +142,7 @@ test_common = [
     "dep:health_checkers",
     "dep:indexmap",
     "dep:issuance_server",
+    "dep:pid_issuer",
     "dep:pacf_issuance_server",
     "dep:acf_demo_issuer",
     "dep:issuer_common",
@@ -179,6 +180,7 @@ test_common = [
     "tokio/rt",
     "tokio/time",
     "wallet/test",
+    "wallet_configuration/test",
     "wallet_provider_service/mock",
     "wscd/mock",
 ]
@@ -186,11 +188,11 @@ test_common = [
 # Include the fake_digid submodule
 fake_digid = [
     "dep:pid_issuer",
-    "dep:tracing",
     "dep:reqwest",
-    "http_utils/client",
+    "dep:tracing",
     "dep:url",
     "dep:wallet_configuration",
+    "http_utils/client",
 ]
 
 # Include and run test that depend on an external PostgreSQL database
@@ -235,14 +237,14 @@ integration_test = [
 # Optional feature for running integration tests that depend on the DigiD connector
 digid_test = [
     "allow_insecure_url",
-    "fake_digid",
-    "test_common",
     "dep:gba_hc_converter",
     "dep:rand_core",
     "dep:ring",
     "dep:rustls-pki-types",
     "dep:serial_test",
     "dep:wallet_account",
+    "fake_digid",
+    "test_common",
 ]
 
 # Should be enabled when building the performance_test binary

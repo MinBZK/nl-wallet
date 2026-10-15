@@ -38,7 +38,7 @@ COPY java.sh /tmp/
 RUN /tmp/java.sh
 
 # Change home dir of root to make image workable as root
-RUN sed -i'' '/^root:/ { s#:/root:#:/wallet:# }' /etc/passwd
+RUN sed -i '/^root:/ { s#:/root:#:/wallet:# }' /etc/passwd
 
 # Cleanup
 RUN rm -rf /tmp/*

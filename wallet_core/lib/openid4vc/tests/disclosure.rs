@@ -22,6 +22,7 @@ use attestation_data::test_credential::nl_pid_credentials_given_name_for_query_i
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
 use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
@@ -131,14 +132,14 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
         .exactly_one()
         .expect("there should be only one disclosed attestation");
 
-    assert_eq!(disclosed_attestation.attestation_type, PID_ATTESTATION_TYPE);
+    assert_eq!(disclosed_attestation.attestation_type, PID_MDOC_DOCTYPE);
 
     let DisclosedAttributes::MsoMdoc(attributes) = &disclosed_attestation.attributes else {
         panic!("disclosed attributes should be in mdoc format");
     };
 
     let name_space = attributes
-        .get(PID_ATTESTATION_TYPE)
+        .get(PID_MDOC_DOCTYPE)
         .expect("disclosed attributes should include PID");
 
     assert_eq!(name_space.len(), 3);

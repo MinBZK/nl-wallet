@@ -1,0 +1,515 @@
+{
+  "display": [
+    {
+      "name": "Personal data",
+      "locale": "en-US",
+      "description": "The Dutch personal data credential",
+      "background_color": "#c7e8ee",
+      "text_color": "#152a62"
+    },
+    {
+      "name": "Persoonsgegevens",
+      "locale": "nl-NL",
+      "description": "De Nederlandse persoonsgegevensattestatie",
+      "background_color": "#c7e8ee",
+      "text_color": "#152a62"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "family_name"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Name",
+          "locale": "en-US"
+        },
+        {
+          "name": "Achternaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "family_name_birth"
+      ],
+      "display": [
+        {
+          "name": "Birth name",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboortenaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "given_name"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "First name",
+          "locale": "en-US"
+        },
+        {
+          "name": "Voornaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "birth_date"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Birth date",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboortedatum",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "nationality"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Nationalities",
+          "locale": "en-US"
+        },
+        {
+          "name": "Nationaliteiten",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "sex"
+      ],
+      "display": [
+        {
+          "name": "Sex",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geslacht",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "place_of_birth",
+        "country"
+      ],
+      "display": [
+        {
+          "name": "Country of birth",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboorteland",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "place_of_birth",
+        "locality"
+      ],
+      "display": [
+        {
+          "name": "Place of birth",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboorteplaats",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "place_of_birth",
+        "region"
+      ],
+      "display": [
+        {
+          "name": "Region of birth",
+          "locale": "en-US"
+        },
+        {
+          "name": "Geboorteregio",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "issuing_country"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Issuing country",
+          "locale": "en-US"
+        },
+        {
+          "name": "Land van afgifte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "issuing_authority"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Issuing authority",
+          "locale": "en-US"
+        },
+        {
+          "name": "Autoriteit van afgifte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.nl.1",
+        "bsn"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "BSN",
+          "locale": "en-US"
+        },
+        {
+          "name": "BSN",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.nl.1",
+        "recovery_code"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Recovery code",
+          "locale": "en-US"
+        },
+        {
+          "name": "Herstelcode",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "resident_street"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Street",
+          "locale": "en-US"
+        },
+        {
+          "name": "Straatnaam",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "resident_postal_code"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Postal code",
+          "locale": "en-US"
+        },
+        {
+          "name": "Postcode",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "resident_city"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "City",
+          "locale": "en-US"
+        },
+        {
+          "name": "Stad",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "resident_country"
+      ],
+      "mandatory": true,
+      "display": [
+        {
+          "name": "Country",
+          "locale": "en-US"
+        },
+        {
+          "name": "Land",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "given_name_birth"
+      ],
+      "display": [
+        {
+          "name": "Birth given name",
+          "locale": "en-US"
+        },
+        {
+          "name": "Voornaam bij geboorte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "personal_administrative_number"
+      ],
+      "display": [
+        {
+          "name": "Personal administrative number",
+          "locale": "en-US"
+        },
+        {
+          "name": "Administratief nummer",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "email_address"
+      ],
+      "display": [
+        {
+          "name": "Email address",
+          "locale": "en-US"
+        },
+        {
+          "name": "E-mailadres",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "mobile_phone_number"
+      ],
+      "display": [
+        {
+          "name": "Phone number",
+          "locale": "en-US"
+        },
+        {
+          "name": "Telefoonnummer",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "portrait"
+      ],
+      "display": [
+        {
+          "name": "Portrait",
+          "locale": "en-US"
+        },
+        {
+          "name": "Pasfoto",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "issuing_jurisdiction"
+      ],
+      "display": [
+        {
+          "name": "Issuing jurisdiction",
+          "locale": "en-US"
+        },
+        {
+          "name": "Jurisdictie van afgifte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "document_number"
+      ],
+      "display": [
+        {
+          "name": "Document number",
+          "locale": "en-US"
+        },
+        {
+          "name": "Documentnummer",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "issuance_date"
+      ],
+      "display": [
+        {
+          "name": "Issuance date",
+          "locale": "en-US"
+        },
+        {
+          "name": "Datum van afgifte",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "expiry_date"
+      ],
+      "display": [
+        {
+          "name": "Expiry date",
+          "locale": "en-US"
+        },
+        {
+          "name": "Vervaldatum",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "trust_anchor"
+      ],
+      "display": [
+        {
+          "name": "Trust anchor",
+          "locale": "en-US"
+        },
+        {
+          "name": "Trust anchor",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "attestation_legal_category"
+      ],
+      "display": [
+        {
+          "name": "Attestation legal category",
+          "locale": "en-US"
+        },
+        {
+          "name": "Juridische categorie attestatie",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "resident_state"
+      ],
+      "display": [
+        {
+          "name": "Region",
+          "locale": "en-US"
+        },
+        {
+          "name": "Regio",
+          "locale": "nl-NL"
+        }
+      ]
+    },
+    {
+      "path": [
+        "eu.europa.ec.eudi.pid.1",
+        "resident_address"
+      ],
+      "display": [
+        {
+          "name": "Full address",
+          "locale": "en-US"
+        },
+        {
+          "name": "Volledig adres",
+          "locale": "nl-NL"
+        }
+      ]
+    }
+  ]
+}

@@ -16,10 +16,7 @@ class HelpAndInfoScreen : MobileActions() {
     fun visible() =
         elementContainingTextVisible(title)
 
-    fun clickContactButton() {
-        scrollToElementWithText(contactButton)
-        clickElementWithText(contactButton)
-    }
+    fun clickContactButton() = scrollToElementContainingText(contactButton).click()
 
     fun clickActivitiesHelpButton() = clickElementContainingText(activitiesHelpButton)
 

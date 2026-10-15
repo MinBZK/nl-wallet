@@ -206,8 +206,8 @@ pub mod test {
     use attestation_data::organization::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use indexmap::IndexMap;
     use mdoc::iso::mdocs::DataElementValue;
@@ -504,7 +504,7 @@ pub mod test {
     fn test_filter_recovery_code() {
         let config = test_wallet_config();
         let mdoc_attributes = IndexMap::from([(
-            String::from(PID_ATTESTATION_TYPE),
+            String::from(PID_MDOC_DOCTYPE),
             vec![
                 Entry {
                     name: String::from(PID_BSN),
@@ -519,12 +519,11 @@ pub mod test {
             ],
         )]);
 
-        let credential_metadata =
-            CredentialMetadata::new_mdoc_example(PID_ATTESTATION_TYPE, &[PID_BSN, PID_RECOVERY_CODE]);
+        let credential_metadata = CredentialMetadata::new_mdoc_example(PID_MDOC_DOCTYPE, &[PID_BSN, PID_RECOVERY_CODE]);
 
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
-            PID_ATTESTATION_TYPE.to_string(),
+            PID_MDOC_DOCTYPE.to_string(),
             credential_metadata,
             Organization::new_mock().into(),
             AttestationValidity {
@@ -544,7 +543,7 @@ pub mod test {
 
         assert_eq!(
             [(
-                vec_nonempty![String::from(PID_ATTESTATION_TYPE), String::from(PID_BSN)],
+                vec_nonempty![String::from(PID_MDOC_DOCTYPE), String::from(PID_BSN)],
                 Attribute::Text(String::from("999991772"))
             ),],
             attrs.as_slice()

@@ -55,8 +55,8 @@
         ]
       },
       "disclosed": {
-        "credential_type": "urn:eudi:pid:nl:1",
-        "path": ["urn:eudi:pid:nl:1", "bsn"]
+        "credential_type": "eu.europa.ec.eudi.pid.1",
+        "path": ["eu.europa.ec.eudi.pid.nl.1", "bsn"]
       }
     }
   }

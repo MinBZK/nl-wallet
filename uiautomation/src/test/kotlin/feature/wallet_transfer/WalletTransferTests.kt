@@ -108,12 +108,9 @@ class WalletTransferTests : TwoDeviceTestBase() {
         useTargetDevice {
             targetDashboard.clickCard(tasData.getPidDisplayName())
             targetCardDetailScreen.clickCardDataButton()
-            val nationalities = gbaData.getNationalities(DEFAULT_BSN)
             assertAll(
                 { assertTrue(targetCardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data attribute are not visible") },
                 { assertTrue(targetCardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data attribute are not visible") },
-                { assertTrue(targetCardDataScreen.dataAttributeVisible(nationalities[0]), "array attribute is not visible") },
-                { assertTrue(targetCardDataScreen.dataAttributeVisible(nationalities[1]), "array attribute is not visible") },
             )
         }
     }

@@ -4,6 +4,7 @@
 
 .build-env:
   extends: .clone-variables
+  stage: init
   script:
     - NAME=${CI_JOB_NAME#build-env-}
     - deploy-variables/create-env.sh $NAME | tee build-${NAME}.env

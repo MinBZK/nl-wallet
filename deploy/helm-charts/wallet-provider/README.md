@@ -210,7 +210,7 @@
 | --------------------------- | -------------------------------------------------------- | ----- |
 | `keyAttestationCertificate` | Key Attestation signing certificate (base64-encoded DER) | `nil` |
 
-### Key Storage status list parameters
+### KKey Storage status list parameters
 
 | Name                               | Description                                              | Value |
 | ---------------------------------- | -------------------------------------------------------- | ----- |

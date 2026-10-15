@@ -1536,7 +1536,7 @@ pub(crate) mod tests {
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::pid_attestation_type;
     use chrono::Days;
     use chrono::Duration;
     use chrono::TimeZone;
@@ -1885,7 +1885,7 @@ pub(crate) mod tests {
         storage
             .has_any_attestations_with_credential_kinds(&HashSet::from([CredentialKind::new(
                 format,
-                PID_ATTESTATION_TYPE.to_string(),
+                pid_attestation_type(format).to_string(),
             )]))
             .await
             .unwrap()
@@ -2304,7 +2304,8 @@ pub(crate) mod tests {
         );
     }
 
-    async fn insert_pid_in_both_formats(storage: &mut MockHardwareDatabaseStorage) -> String {
+    /// Returns the mdoc doctype and the SD-JWT `vct` of the inserted PIDs.
+    async fn insert_pid_in_both_formats(storage: &mut MockHardwareDatabaseStorage) -> (String, String) {
         let mdoc = Mdoc::new_mock().await;
 
         let holder_key = SigningKey::generate();
@@ -2313,8 +2314,8 @@ pub(crate) mod tests {
         )
         .unwrap();
 
-        let attestation_type = mdoc.doc_type().to_string();
-        assert_eq!(sd_jwt.sd_jwt().claims().vct, attestation_type);
+        let mdoc_doc_type = mdoc.doc_type().to_string();
+        let sd_jwt_vct = sd_jwt.sd_jwt().claims().vct.clone();
 
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
@@ -2328,7 +2329,7 @@ pub(crate) mod tests {
                                 key_identifier: "mdoc_key_id".to_string(),
                                 mdoc
                             }]),
-                            attestation_type.clone(),
+                            mdoc_doc_type.clone(),
                             None,
                             None,
                             Vec::<String>::new(),
@@ -2343,7 +2344,7 @@ pub(crate) mod tests {
                                 key_identifier: "sd_jwt_key_id".to_string(),
                                 sd_jwt,
                             }]),
-                            attestation_type.clone(),
+                            sd_jwt_vct.clone(),
                             None,
                             None,
                             normalized_metadata.extended_vcts(),
@@ -2357,7 +2358,7 @@ pub(crate) mod tests {
             .await
             .expect("Could not insert credentials");
 
-        attestation_type
+        (mdoc_doc_type, sd_jwt_vct)
     }
 
     #[tokio::test]
@@ -2402,10 +2403,10 @@ pub(crate) mod tests {
     async fn test_query_by_multiple_credential_kinds() {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
-        let attestation_type = insert_pid_in_both_formats(&mut storage).await;
+        let (mdoc_doc_type, sd_jwt_vct) = insert_pid_in_both_formats(&mut storage).await;
 
-        let mdoc_kind = CredentialKind::new(Format::MsoMdoc, attestation_type.clone());
-        let sd_jwt_kind = CredentialKind::new(Format::SdJwt, attestation_type.clone());
+        let mdoc_kind = CredentialKind::new(Format::MsoMdoc, mdoc_doc_type);
+        let sd_jwt_kind = CredentialKind::new(Format::SdJwt, sd_jwt_vct);
         let unknown_mdoc_kind = CredentialKind::new(Format::MsoMdoc, "urn:example:unknown:1".to_string());
 
         // Requesting both kinds should return both attestations, one for each format.
