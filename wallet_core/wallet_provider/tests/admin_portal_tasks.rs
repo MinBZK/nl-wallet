@@ -36,6 +36,8 @@ use wallet_provider::settings::AdminPortalSettings;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
 use wallet_provider_domain::model::admin_task::AdminTaskCreate;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
+use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
+use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminPortalSessionRepository;
@@ -122,15 +124,20 @@ async fn seed_session(repositories: &Repositories, user: &TestUser, privileges: 
     format!("sid={session_id}")
 }
 
-async fn seed_task(repositories: &Repositories, creator: &TestUser, task_type: TaskType) -> Uuid {
+fn revoke_wallet_payload() -> TaskPayload {
+    TaskPayload::RevokeWallet(RevokeWalletParameters {
+        wallet_ids: vec_nonempty!["wallet-1".to_string().into()].into(),
+    })
+}
+
+async fn seed_task(repositories: &Repositories, creator: &TestUser) -> Uuid {
     let task = repositories
         .insert_task(AdminTaskCreate {
             id: Uuid::new_v4(),
             created_at: Utc::now(),
             created_by_user_id: creator.id.clone(),
             created_by_display_name: creator.display_name.clone(),
-            task_type,
-            task_parameters: json!({}),
+            payload: revoke_wallet_payload(),
             task_reason: "because reasons".to_string(),
         })
         .await
@@ -158,7 +165,7 @@ async fn test_create_task_succeeds() {
         .body(Body::from(
             serde_json::to_string(&CreateTaskRequest {
                 task_type: TaskType::RevokeWallet.to_string(),
-                task_parameters: serde_json::Map::new(),
+                task_parameters: serde_json::Map::from_iter([("walletIds".to_string(), json!(["wallet-1"]))]),
                 task_reason: "integration test".to_string(),
             })
             .unwrap(),
@@ -170,7 +177,7 @@ async fn test_create_task_succeeds() {
 
     let task: TaskResponse = json_body(response).await;
     assert_eq!(task.status, TaskStatus::Created);
-    assert_eq!(task.task_type, TaskType::RevokeWallet);
+    assert_eq!(task.payload, revoke_wallet_payload());
     assert_eq!(task.created_by, alice.display_name);
 }
 
@@ -179,7 +186,7 @@ async fn test_withdraw_task_succeeds() {
     let (app, repositories, _db_setup) = test_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
-    let task_id = seed_task(&repositories, &alice, TaskType::RevokeWallet).await;
+    let task_id = seed_task(&repositories, &alice).await;
 
     let request = Request::builder()
         .method("POST")
@@ -202,7 +209,7 @@ async fn test_review_task_approve_succeeds() {
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
-    let task_id = seed_task(&repositories, &alice, TaskType::RevokeWallet).await;
+    let task_id = seed_task(&repositories, &alice).await;
 
     let request = Request::builder()
         .method("POST")
@@ -234,7 +241,7 @@ async fn test_review_task_reject_succeeds() {
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
-    let task_id = seed_task(&repositories, &alice, TaskType::RevokeWallet).await;
+    let task_id = seed_task(&repositories, &alice).await;
 
     let request = Request::builder()
         .method("POST")
@@ -264,7 +271,7 @@ async fn test_list_tasks_open_succeeds() {
     let (app, repositories, _db_setup) = test_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
-    let task_id = seed_task(&repositories, &alice, TaskType::RevokeWallet).await;
+    let task_id = seed_task(&repositories, &alice).await;
 
     let request = Request::builder()
         .method("GET")
@@ -285,7 +292,7 @@ async fn test_list_tasks_history_succeeds() {
     let (app, repositories, _db_setup) = test_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
-    let task_id = seed_task(&repositories, &alice, TaskType::RevokeWallet).await;
+    let task_id = seed_task(&repositories, &alice).await;
     repositories
         .withdraw_task(task_id, &alice.id, Utc::now())
         .await
@@ -312,7 +319,7 @@ async fn test_list_tasks_reviewable_succeeds() {
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
-    let task_id = seed_task(&repositories, &alice, TaskType::RevokeWallet).await;
+    let task_id = seed_task(&repositories, &alice).await;
 
     let request = Request::builder()
         .method("GET")

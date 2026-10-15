@@ -12,21 +12,27 @@ use wallet_provider_domain::model::admin_task::AdminTask;
 use wallet_provider_domain::model::admin_task::AdminTaskCreate;
 use wallet_provider_domain::model::admin_task::AdminTaskReview;
 use wallet_provider_domain::model::admin_task::TaskListView;
+use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 use crate::entity::admin_task;
 
-impl From<AdminTaskCreate> for admin_task::ActiveModel {
-    fn from(task: AdminTaskCreate) -> Self {
-        Self {
+impl TryFrom<AdminTaskCreate> for admin_task::ActiveModel {
+    type Error = PersistenceError;
+
+    fn try_from(task: AdminTaskCreate) -> Result<Self, Self::Error> {
+        Ok(Self {
             id: Set(task.id),
             created_at: Set(task.created_at.into()),
             created_by_user_id: Set(task.created_by_user_id),
             created_by_display_name: Set(task.created_by_display_name),
-            task_type: Set(task.task_type.to_string()),
-            task_parameters: Set(task.task_parameters),
+            task_type: Set(task.payload.task_type().to_string()),
+            task_parameters: Set(task
+                .payload
+                .parameters_json()
+                .map_err(PersistenceError::TaskParametersConversion)?),
             task_reason: Set(task.task_reason),
             status: Set(TaskStatus::Created.to_string()),
             withdrawn_at: Set(None),
@@ -37,7 +43,7 @@ impl From<AdminTaskCreate> for admin_task::ActiveModel {
             executed_at: Set(None),
             execution_result: Set(None),
             execution_result_details: Set(None),
-        }
+        })
     }
 }
 
@@ -50,8 +56,11 @@ impl TryFrom<admin_task::Model> for AdminTask {
             created_at: model.created_at.into(),
             created_by_user_id: model.created_by_user_id,
             created_by_display_name: model.created_by_display_name,
-            task_type: model.task_type.parse().map_err(PersistenceError::EnumConversion)?,
-            task_parameters: model.task_parameters,
+            payload: TaskPayload::from_parts(
+                model.task_type.parse().map_err(PersistenceError::EnumConversion)?,
+                model.task_parameters,
+            )
+            .map_err(PersistenceError::TaskParametersConversion)?,
             task_reason: model.task_reason,
             status: model.status.parse().map_err(PersistenceError::EnumConversion)?,
             withdrawn_at: model.withdrawn_at.map(Into::into),
@@ -71,7 +80,7 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let model: admin_task::ActiveModel = task.into();
+    let model: admin_task::ActiveModel = task.try_into()?;
     let task = admin_task::Entity::insert(model)
         .exec_with_returning(db.connection())
         .await
@@ -198,9 +207,16 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::FixedOffset;
-    use wallet_provider_domain::model::admin_task::TaskType;
+    use serde_json::json;
+    use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
 
     use super::*;
+
+    fn payload() -> TaskPayload {
+        TaskPayload::RevokeWallet(RevokeWalletParameters {
+            wallet_ids: vec!["wallet-1".to_string().into()].try_into().unwrap(),
+        })
+    }
 
     fn model() -> admin_task::Model {
         let offset = FixedOffset::east_opt(3600).unwrap();
@@ -211,8 +227,8 @@ mod tests {
                 .with_timezone(&offset),
             created_by_user_id: "creator-id".into(),
             created_by_display_name: "Creator name".into(),
-            task_type: "block_user".into(),
-            task_parameters: sea_orm::JsonValue::from("parameters"),
+            task_type: "revoke_wallet".into(),
+            task_parameters: json!({"walletIds": ["wallet-1"]}),
             task_reason: "task reason".into(),
             status: "approved".into(),
             withdrawn_at: None,
@@ -236,84 +252,67 @@ mod tests {
 
     #[test]
     fn create_maps_fields_and_initializes_lifecycle_fields() {
-        for (task_type, stored_type) in [
-            (TaskType::RevokeWallet, "revoke_wallet"),
-            (TaskType::BlockUser, "block_user"),
-            (TaskType::UnblockUser, "unblock_user"),
-            (TaskType::RevokeSolution, "revoke_solution"),
+        let row = model();
+        let create = AdminTaskCreate {
+            id: row.id,
+            created_at: row.created_at.into(),
+            created_by_user_id: row.created_by_user_id.clone(),
+            created_by_display_name: row.created_by_display_name.clone(),
+            payload: payload(),
+            task_reason: row.task_reason.clone(),
+        };
+        let active = admin_task::ActiveModel::try_from(create).unwrap();
+        assert_eq!(active.id, Set(row.id));
+        assert_eq!(
+            active.created_at,
+            Set(row.created_at.with_timezone(&Utc).fixed_offset())
+        );
+        assert_eq!(active.created_by_user_id, Set(row.created_by_user_id));
+        assert_eq!(active.created_by_display_name, Set(row.created_by_display_name));
+        assert_eq!(active.task_type, Set(row.task_type));
+        assert_eq!(active.task_parameters, Set(row.task_parameters));
+        assert_eq!(active.task_reason, Set(row.task_reason));
+        assert_eq!(active.status, Set("created".to_owned()));
+        assert_eq!(active.withdrawn_at, Set(None));
+        assert_eq!(active.reviewed_at, Set(None));
+        assert_eq!(active.reviewed_by_user_id, Set(None));
+        assert_eq!(active.reviewed_by_display_name, Set(None));
+        assert_eq!(active.review_comment, Set(None));
+        assert_eq!(active.executed_at, Set(None));
+        assert_eq!(active.execution_result, Set(None));
+        assert_eq!(active.execution_result_details, Set(None));
+    }
+
+    #[test]
+    fn model_maps_all_fields_and_parses_all_statuses() {
+        for (stored_status, status) in [
+            ("created", TaskStatus::Created),
+            ("withdrawn", TaskStatus::Withdrawn),
+            ("approved", TaskStatus::Approved),
+            ("rejected", TaskStatus::Rejected),
         ] {
-            let row = model();
-            let create = AdminTaskCreate {
+            let row = admin_task::Model {
+                status: stored_status.into(),
+                ..model()
+            };
+            let expected = AdminTask {
                 id: row.id,
                 created_at: row.created_at.into(),
                 created_by_user_id: row.created_by_user_id.clone(),
                 created_by_display_name: row.created_by_display_name.clone(),
-                task_type,
-                task_parameters: row.task_parameters.clone(),
+                payload: payload(),
                 task_reason: row.task_reason.clone(),
+                status,
+                withdrawn_at: row.withdrawn_at.map(Into::into),
+                reviewed_at: row.reviewed_at.map(Into::into),
+                reviewed_by_user_id: row.reviewed_by_user_id.clone(),
+                reviewed_by_display_name: row.reviewed_by_display_name.clone(),
+                review_comment: row.review_comment.clone(),
+                executed_at: row.executed_at.map(Into::into),
+                execution_result: row.execution_result.clone(),
+                execution_result_details: row.execution_result_details.clone(),
             };
-            let active = admin_task::ActiveModel::from(create);
-            assert_eq!(active.id, Set(row.id));
-            assert_eq!(
-                active.created_at,
-                Set(row.created_at.with_timezone(&Utc).fixed_offset())
-            );
-            assert_eq!(active.created_by_user_id, Set(row.created_by_user_id));
-            assert_eq!(active.created_by_display_name, Set(row.created_by_display_name));
-            assert_eq!(active.task_type, Set(stored_type.to_owned()));
-            assert_eq!(active.task_parameters, Set(row.task_parameters));
-            assert_eq!(active.task_reason, Set(row.task_reason));
-            assert_eq!(active.status, Set("created".to_owned()));
-            assert_eq!(active.withdrawn_at, Set(None));
-            assert_eq!(active.reviewed_at, Set(None));
-            assert_eq!(active.reviewed_by_user_id, Set(None));
-            assert_eq!(active.reviewed_by_display_name, Set(None));
-            assert_eq!(active.review_comment, Set(None));
-            assert_eq!(active.executed_at, Set(None));
-            assert_eq!(active.execution_result, Set(None));
-            assert_eq!(active.execution_result_details, Set(None));
-        }
-    }
-
-    #[test]
-    fn model_maps_all_fields_and_parses_all_task_types_and_statuses() {
-        for (stored_type, task_type) in [
-            ("revoke_wallet", TaskType::RevokeWallet),
-            ("block_user", TaskType::BlockUser),
-            ("unblock_user", TaskType::UnblockUser),
-            ("revoke_solution", TaskType::RevokeSolution),
-        ] {
-            for (stored_status, status) in [
-                ("created", TaskStatus::Created),
-                ("withdrawn", TaskStatus::Withdrawn),
-                ("approved", TaskStatus::Approved),
-                ("rejected", TaskStatus::Rejected),
-            ] {
-                let row = admin_task::Model {
-                    task_type: stored_type.into(),
-                    status: stored_status.into(),
-                    ..model()
-                };
-                let expected = AdminTask {
-                    id: row.id,
-                    created_at: row.created_at.into(),
-                    created_by_user_id: row.created_by_user_id.clone(),
-                    created_by_display_name: row.created_by_display_name.clone(),
-                    task_type,
-                    task_parameters: row.task_parameters.clone(),
-                    task_reason: row.task_reason.clone(),
-                    status,
-                    withdrawn_at: row.withdrawn_at.map(Into::into),
-                    reviewed_at: row.reviewed_at.map(Into::into),
-                    reviewed_by_user_id: row.reviewed_by_user_id.clone(),
-                    reviewed_by_display_name: row.reviewed_by_display_name.clone(),
-                    review_comment: row.review_comment.clone(),
-                    executed_at: row.executed_at.map(Into::into),
-                    execution_result: row.execution_result.clone(),
-                    execution_result_details: row.execution_result_details.clone(),
-                };
-                assert_eq!(AdminTask::try_from(row).unwrap(), expected);
-            }
+            assert_eq!(AdminTask::try_from(row).unwrap(), expected);
         }
     }
 
@@ -334,6 +333,18 @@ mod tests {
                 Err(PersistenceError::EnumConversion(_))
             ));
         }
+    }
+
+    #[test]
+    fn model_with_invalid_task_parameters_fails_conversion() {
+        let row = admin_task::Model {
+            task_parameters: json!({}),
+            ..model()
+        };
+        assert!(matches!(
+            AdminTask::try_from(row),
+            Err(PersistenceError::TaskParametersConversion(_))
+        ));
     }
 
     #[test]

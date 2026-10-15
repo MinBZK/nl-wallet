@@ -2,13 +2,14 @@ use chrono::DateTime;
 use chrono::TimeDelta;
 use chrono::Utc;
 use db_test::DbSetup;
-use serde_json::json;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
 use wallet_provider_domain::model::admin_task::AdminTaskCreate;
 use wallet_provider_domain::model::admin_task::AdminTaskReview;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
+use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
 use wallet_provider_domain::model::admin_task::TaskListView;
+use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::PersistenceError;
@@ -40,14 +41,24 @@ impl User {
     }
 }
 
+fn task_payload(task_type: TaskType) -> TaskPayload {
+    match task_type {
+        TaskType::RevokeWallet => TaskPayload::RevokeWallet(RevokeWalletParameters {
+            wallet_ids: vec!["some-wallet".to_string().into()].try_into().unwrap(),
+        }),
+        TaskType::BlockUser => TaskPayload::BlockUser {},
+        TaskType::UnblockUser => TaskPayload::UnblockUser {},
+        TaskType::RevokeSolution => TaskPayload::RevokeSolution {},
+    }
+}
+
 fn task_create(creator: &User, created_at: DateTime<Utc>, task_type: TaskType) -> AdminTaskCreate {
     AdminTaskCreate {
         id: Uuid::new_v4(),
         created_at,
         created_by_user_id: creator.id.clone(),
         created_by_display_name: creator.display_name.clone(),
-        task_type,
-        task_parameters: json!({ "wallet_id": "some-wallet" }),
+        payload: task_payload(task_type),
         task_reason: "because reasons".to_string(),
     }
 }
@@ -158,8 +169,7 @@ async fn test_insert_and_find_task_by_id() {
         created_at: create.created_at,
         created_by_user_id: create.created_by_user_id,
         created_by_display_name: create.created_by_display_name,
-        task_type: create.task_type,
-        task_parameters: create.task_parameters,
+        payload: create.payload,
         task_reason: create.task_reason,
         status: TaskStatus::Created,
         withdrawn_at: None,

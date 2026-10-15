@@ -13,6 +13,7 @@ use wallet_provider_domain::model::admin_task::AdminTaskCreate;
 use wallet_provider_domain::model::admin_task::AdminTaskReview;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::TaskListView;
+use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminTaskRepository;
@@ -26,6 +27,8 @@ pub enum CreateTaskError {
     UnknownTaskType(String),
     #[error("missing privilege for task type {0}")]
     MissingPrivilege(TaskType),
+    #[error("invalid task parameters: {0}")]
+    InvalidTaskParameters(#[source] serde_json::Error),
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
     #[error("error while auditing: {0}")]
@@ -137,6 +140,9 @@ where
             return Err(CreateTaskError::MissingPrivilege(parsed_task_type));
         }
 
+        let payload = TaskPayload::from_parts(parsed_task_type, task_parameters.clone())
+            .map_err(CreateTaskError::InvalidTaskParameters)?;
+
         let task = self
             .repository
             .insert_task(AdminTaskCreate {
@@ -144,8 +150,7 @@ where
                 created_at: self.time.generate(),
                 created_by_user_id: user.user_id.clone(),
                 created_by_display_name: user.display_name.clone(),
-                task_type: parsed_task_type,
-                task_parameters: task_parameters.clone(),
+                payload,
                 task_reason: task_reason.to_string(),
             })
             .await
@@ -207,8 +212,9 @@ where
             return Err(ReviewTaskError::InvalidState);
         }
 
-        if !reviewer.authorized_task_types().contains(&existing.task_type) {
-            return Err(ReviewTaskError::MissingPrivilege(existing.task_type));
+        let task_type = existing.payload.task_type();
+        if !reviewer.authorized_task_types().contains(&task_type) {
+            return Err(ReviewTaskError::MissingPrivilege(task_type));
         }
 
         let review = AdminTaskReview {
@@ -265,7 +271,9 @@ mod tests {
     use chrono::DateTime;
     use chrono::Utc;
     use serde_json::json;
+    use utils::vec_nonempty;
     use uuid::Uuid;
+    use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
     use wallet_provider_domain::model::admin_task::TaskStatus;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_persistence::repositories::mock::MockAdminTaskRepository;
@@ -309,14 +317,28 @@ mod tests {
         TaskService::new(repository, FixedTime(now), FixedUuid(id))
     }
 
+    fn revoke_wallet_payload() -> TaskPayload {
+        TaskPayload::RevokeWallet(RevokeWalletParameters {
+            wallet_ids: vec_nonempty!["wallet-1".to_string().into()].into(),
+        })
+    }
+
+    fn stub_payload(task_type: TaskType) -> TaskPayload {
+        match task_type {
+            TaskType::RevokeWallet => revoke_wallet_payload(),
+            TaskType::BlockUser => TaskPayload::BlockUser {},
+            TaskType::UnblockUser => TaskPayload::UnblockUser {},
+            TaskType::RevokeSolution => TaskPayload::RevokeSolution {},
+        }
+    }
+
     fn stub_task(id: Uuid, task_type: TaskType, created_by_user_id: &str) -> AdminTask {
         AdminTask {
             id,
             created_at: Utc::now(),
             created_by_user_id: created_by_user_id.to_string(),
             created_by_display_name: "Display Name".to_string(),
-            task_type,
-            task_parameters: json!({}),
+            payload: stub_payload(task_type),
             task_reason: "reason".to_string(),
             status: TaskStatus::Created,
             withdrawn_at: None,
@@ -365,6 +387,23 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn create_task_rejects_invalid_task_parameters() {
+        let repository = MockAdminTaskRepository::new();
+
+        let result = service_with_id(repository, Utc::now(), Uuid::new_v4())
+            .create_task(
+                "revoke_wallet",
+                &json!({"walletIds": []}),
+                "reason",
+                &user("user-1", &[TaskType::RevokeWallet]),
+                &MockAuditLog,
+            )
+            .await;
+
+        assert_matches!(result, Err(CreateTaskError::InvalidTaskParameters(_)));
+    }
+
+    #[tokio::test]
     async fn create_task_inserts_task_with_created_status_when_privileged() {
         let id = Uuid::new_v4();
         let now = Utc::now();
@@ -376,15 +415,21 @@ mod tests {
                     && task.created_at == now
                     && task.created_by_user_id == "user-1"
                     && task.created_by_display_name == "User 1"
-                    && task.task_type == TaskType::RevokeWallet
+                    && task.payload == revoke_wallet_payload()
                     && task.task_reason == "because"
             })
-            .returning(move |create| Ok(stub_task(create.id, create.task_type, &create.created_by_user_id)));
+            .returning(move |create| {
+                Ok(stub_task(
+                    create.id,
+                    create.payload.task_type(),
+                    &create.created_by_user_id,
+                ))
+            });
 
         let result = service_with_id(repository, now, id)
             .create_task(
                 "revoke_wallet",
-                &json!({}),
+                &json!({"walletIds": ["wallet-1"]}),
                 "because",
                 &user("user-1", &[TaskType::RevokeWallet]),
                 &MockAuditLog,
