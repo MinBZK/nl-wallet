@@ -24,7 +24,7 @@ use metrics_exporter_prometheus::PrometheusHandle;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use status_lists::serve::add_status_list_middleware;
-use status_lists::serve::http_response_for_status_list_body;
+use status_lists::serve::http_response_for_status_list_body_no_cache;
 use tokio::sync::Semaphore;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -301,7 +301,7 @@ async fn key_storage_tsl<GRC, PIC>(
         .into_inner()
         .into_serialization();
 
-    http_response_for_status_list_body(&headers, None, token.into_bytes())
+    http_response_for_status_list_body_no_cache(&headers, token.into_bytes())
 }
 
 async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {

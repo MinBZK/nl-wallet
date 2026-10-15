@@ -41,10 +41,12 @@ static STATUSLIST_JWT_CONTENT_TYPE: LazyLock<HeaderValue> = LazyLock::new(|| {
     HeaderValue::from_str(&STATUSLIST_JWT_MEDIA_TYPE.to_string()).unwrap()
 });
 
+const CACHE_CONTROL_HEADER_VALUE_NO_CACHE: HeaderValue = HeaderValue::from_static("no-cache");
+
 #[derive(Debug, Clone)]
 struct RouterState {
     publish_dir: Arc<PublishDir>,
-    ttl: Option<Duration>,
+    cache_control: HeaderValue,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -120,7 +122,7 @@ pub fn create_serve_router<'a>(
         .fold(Router::new(), |router, (path, route_source)| {
             let state = RouterState {
                 publish_dir: Arc::new(route_source.publish_dir),
-                ttl: route_source.ttl,
+                cache_control: cache_control_header_for_ttl(route_source.ttl),
             };
 
             router.nest(
@@ -134,13 +136,13 @@ pub fn create_serve_router<'a>(
 }
 
 fn cache_control_header_for_ttl(ttl: Option<Duration>) -> HeaderValue {
-    let cache_control = match ttl {
-        None => "no-cache",
-        Some(ttl) => &format!("max-age={}; must-revalidate", ttl.as_secs()),
-    };
-
-    // Convert to HeaderValue, unwrap is safe since string is ASCII.
-    HeaderValue::from_str(cache_control).unwrap()
+    match ttl {
+        None => CACHE_CONTROL_HEADER_VALUE_NO_CACHE.clone(),
+        Some(ttl) => {
+            // Convert to HeaderValue, unwrap is safe since string is ASCII.
+            HeaderValue::from_str(&format!("max-age={}; must-revalidate", ttl.as_secs())).unwrap()
+        }
+    }
 }
 
 pub fn add_status_list_middleware(router: Router) -> Router {
@@ -173,12 +175,23 @@ async fn serve_status_list(
     let path = state.publish_dir.jwt_path(&id);
     let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
 
-    http_response_for_status_list_body(&headers, state.ttl, bytes)
+    http_response_for_status_list_body(&headers, state.cache_control, bytes)
 }
 
-pub fn http_response_for_status_list_body(
+pub fn http_response_for_status_list_body_no_cache(
     request_headers: &HeaderMap,
-    ttl: Option<Duration>,
+    status_list_body: Vec<u8>,
+) -> Result<Response, StatusCode> {
+    http_response_for_status_list_body(
+        request_headers,
+        CACHE_CONTROL_HEADER_VALUE_NO_CACHE.clone(),
+        status_list_body,
+    )
+}
+
+fn http_response_for_status_list_body(
+    request_headers: &HeaderMap,
+    cache_control: HeaderValue,
     status_list_body: Vec<u8>,
 ) -> Result<Response, StatusCode> {
     check_accept(request_headers.get(header::ACCEPT))?;
@@ -192,7 +205,7 @@ pub fn http_response_for_status_list_body(
 
     let response_headers = [
         (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
-        (header::CACHE_CONTROL, cache_control_header_for_ttl(ttl)),
+        (header::CACHE_CONTROL, cache_control),
         // Unwrap is safe since etag is ASCII
         (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
     ];
