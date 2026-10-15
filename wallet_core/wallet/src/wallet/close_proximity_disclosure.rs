@@ -914,7 +914,7 @@ async fn verify_device_request_with_crl(
         registration_certificate.await?;
     }
 
-    // TODO (PVW-6052): Pending specification clarification for multiple WRPRCs, use the first DocRequest's
+    // TODO (PVW-6407): Pending specification clarification for multiple WRPRCs, use the first DocRequest's
     // organization and purpose for the whole disclosure. Every WRPRC must still pass all checks above.
     Ok(Organization::from(&first))
 }
