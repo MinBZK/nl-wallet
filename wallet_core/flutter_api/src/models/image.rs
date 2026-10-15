@@ -22,14 +22,11 @@ impl TryFrom<wallet::attestation_types::Image> for Image {
     }
 }
 
-impl Image {
-    pub fn try_jpeg_from_bytes(value: Vec<u8>) -> Result<Self, Vec<u8>> {
-        // classify whether it's JPEG
-        // TODO add support for JPEG 2000 (PVW-6230)
-        if matches!(value.as_slice(), &[0xFF, 0xD8, .., 0xFF, 0xD9]) {
-            Ok(Image::Jpeg { data: value })
-        } else {
-            Err(value)
+impl From<wallet::ImageAttribute> for Image {
+    fn from(value: wallet::ImageAttribute) -> Self {
+        match value {
+            wallet::ImageAttribute::Jpeg(data) => Self::Jpeg { data },
+            wallet::ImageAttribute::Jpeg2000(_) => todo!("convert JPEG 2000 to BMP"),
         }
     }
 }

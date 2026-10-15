@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -360334618;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1988532183;
 
 // Section: executor
 
@@ -955,27 +955,6 @@ fn wire__crate__api__full__identify_uri_impl(
                     })()
                     .await,
                 )
-            }
-        },
-    )
-}
-fn wire__crate__models__image__image_try_jpeg_from_bytes_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    value: impl CstDecode<Vec<u8>>,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "image_try_jpeg_from_bytes",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let api_value = value.cst_decode();
-            move |context| {
-                transform_result_dco::<_, _, Vec<u8>>((move || {
-                    let output_ok = crate::models::image::Image::try_jpeg_from_bytes(api_value)?;
-                    Ok(output_ok)
-                })())
             }
         },
     )
@@ -6514,15 +6493,6 @@ mod io {
             }
         }
     }
-    impl CstDecode<Vec<u8>> for *mut wire_cst_list_prim_u_8_loose {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> Vec<u8> {
-            unsafe {
-                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
-                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
-            }
-        }
-    }
     impl CstDecode<Vec<u8>> for *mut wire_cst_list_prim_u_8_strict {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<u8> {
@@ -7647,14 +7617,6 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__models__image__image_try_jpeg_from_bytes(
-        port_: i64,
-        value: *mut wire_cst_list_prim_u_8_loose,
-    ) {
-        wire__crate__models__image__image_try_jpeg_from_bytes_impl(port_, value)
-    }
-
-    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__init(port_: i64) {
         wire__crate__api__full__init_impl(port_)
     }
@@ -8091,15 +8053,6 @@ mod io {
         len: i32,
     ) -> *mut wire_cst_list_prim_u_16_strict {
         let ans = wire_cst_list_prim_u_16_strict {
-            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
-            len,
-        };
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(ans)
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_8_loose(len: i32) -> *mut wire_cst_list_prim_u_8_loose {
-        let ans = wire_cst_list_prim_u_8_loose {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
             len,
         };
@@ -8571,12 +8524,6 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_list_prim_u_16_strict {
         ptr: *mut u16,
-        len: i32,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    pub struct wire_cst_list_prim_u_8_loose {
-        ptr: *mut u8,
         len: i32,
     }
     #[repr(C)]

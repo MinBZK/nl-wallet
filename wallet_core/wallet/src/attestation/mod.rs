@@ -112,6 +112,15 @@ pub enum AttributeValue {
     // mdoc only
     Date(NaiveDate),
     Bytes(#[serde_as(as = "Base64<UrlSafe, Unpadded>")] Vec<u8>),
+    Image(ImageAttribute),
+}
+
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "data", rename_all = "lowercase")]
+pub enum ImageAttribute {
+    Jpeg(#[serde_as(as = "Base64<UrlSafe, Unpadded>")] Vec<u8>),
+    Jpeg2000(#[serde_as(as = "Base64<UrlSafe, Unpadded>")] Vec<u8>),
 }
 
 impl From<Attribute> for AttributeValue {
@@ -128,7 +137,24 @@ impl From<Attribute> for AttributeValue {
                     .collect(),
             ),
             Attribute::Date(date) => Self::Date(date),
-            Attribute::Bytes(bytes) => Self::Bytes(bytes),
+            Attribute::Bytes(bytes) => match ImageAttribute::try_from(bytes) {
+                Ok(image) => Self::Image(image),
+                Err(bytes) => Self::Bytes(bytes),
+            },
+        }
+    }
+}
+
+impl TryFrom<Vec<u8>> for ImageAttribute {
+    type Error = Vec<u8>;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        match value.as_slice() {
+            // JPEG header and footer.
+            [0xFF, 0xD8, .., 0xFF, 0xD9] => Ok(Self::Jpeg(value)),
+            // JPEG 2000 header.
+            [0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A] => Ok(Self::Jpeg2000(value)),
+            _ => Err(value),
         }
     }
 }

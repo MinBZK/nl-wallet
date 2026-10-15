@@ -216,26 +216,24 @@ pub enum AttributeValue {
 impl From<wallet::AttributeValue> for AttributeValue {
     fn from(value: wallet::AttributeValue) -> Self {
         match value {
-            wallet::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
-            wallet::AttributeValue::Number(value) => AttributeValue::Number { value },
-            wallet::AttributeValue::Text(value) => AttributeValue::String { value },
-            wallet::AttributeValue::Null => AttributeValue::Null,
-            wallet::AttributeValue::Array(entries) => AttributeValue::Array {
-                value: entries.into_iter().map(AttributeValue::from).collect(),
+            wallet::AttributeValue::Null => Self::Null,
+            wallet::AttributeValue::Number(value) => Self::Number { value },
+            wallet::AttributeValue::Bool(value) => Self::Boolean { value },
+            wallet::AttributeValue::Text(value) => Self::String { value },
+            wallet::AttributeValue::Array(entries) => Self::Array {
+                value: entries.into_iter().map(Self::from).collect(),
             },
-            wallet::AttributeValue::Date(date) => AttributeValue::Date {
-                value: date.format("%Y-%m-%d").to_string(),
-            },
-            wallet::AttributeValue::Bytes(bytes) => match Image::try_jpeg_from_bytes(bytes) {
-                Ok(value) => AttributeValue::Image { value },
-                Err(value) => AttributeValue::Bytes { value },
-            },
-            wallet::AttributeValue::Object(entries) => AttributeValue::Map {
+            wallet::AttributeValue::Object(entries) => Self::Map {
                 value: entries
                     .into_iter()
                     .map(|(key, value)| (key, Box::new(value.into())))
                     .collect(),
             },
+            wallet::AttributeValue::Date(date) => Self::Date {
+                value: date.format("%Y-%m-%d").to_string(),
+            },
+            wallet::AttributeValue::Bytes(value) => Self::Bytes { value },
+            wallet::AttributeValue::Image(image) => Self::Image { value: image.into() },
         }
     }
 }

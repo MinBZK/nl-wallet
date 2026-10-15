@@ -82,7 +82,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -360334618;
+  int get rustContentHash => -1988532183;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -178,8 +178,6 @@ abstract class WalletCoreApi extends BaseApi {
   Future<bool> crateApiFullHasRegistration();
 
   Future<IdentifyUriResult> crateApiFullIdentifyUri({required String uri});
-
-  Future<Image> crateModelsImageImageTryJpegFromBytes({required List<int> value});
 
   Future<void> crateApiFullInit();
 
@@ -1204,30 +1202,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullIdentifyUriConstMeta => const TaskConstMeta(
     debugName: "identify_uri",
     argNames: ["uri"],
-  );
-
-  @override
-  Future<Image> crateModelsImageImageTryJpegFromBytes({required List<int> value}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          var arg0 = cst_encode_list_prim_u_8_loose(value);
-          return wire.wire__crate__models__image__image_try_jpeg_from_bytes(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_image,
-          decodeErrorData: dco_decode_list_prim_u_8_strict,
-        ),
-        constMeta: kCrateModelsImageImageTryJpegFromBytesConstMeta,
-        argValues: [value],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateModelsImageImageTryJpegFromBytesConstMeta => const TaskConstMeta(
-    debugName: "image_try_jpeg_from_bytes",
-    argNames: ["value"],
   );
 
   @override
@@ -2659,12 +2633,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<int> dco_decode_list_prim_u_8_loose(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as List<int>;
-  }
-
-  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
@@ -3824,13 +3792,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint16List(len_);
-  }
-
-  @protected
-  List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var len_ = sse_decode_i_32(deserializer);
-    return deserializer.buffer.getUint8List(len_);
   }
 
   @protected
@@ -5223,13 +5184,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint16List(self);
-  }
-
-  @protected
-  void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    serializer.buffer.putUint8List(self is Uint8List ? self : Uint8List.fromList(self));
   }
 
   @protected
