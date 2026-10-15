@@ -487,7 +487,6 @@ where
                 .map(|wrapped_key| PublicKey::from(*wrapped_key.public_key()))
                 .collect::<VecNonEmpty<_>>();
 
-            // TODO: Implement provision of token status list claim.
             let key_storage_status = TimeBoundedStatusClaim::new(
                 user_state.key_storage_status_list.status_claim.clone(),
                 key_storage_maintenance_period,
