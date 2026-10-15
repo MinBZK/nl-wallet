@@ -10,10 +10,16 @@ use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Duration;
+use chrono::NaiveDate;
 use chrono::Utc;
 use error_category::ErrorCategory;
+use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
+use serde_with::formats::Unpadded;
+use serde_with::serde_as;
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
@@ -88,8 +94,43 @@ pub enum AttestationIdentity {
 pub struct AttestationAttribute {
     pub key: VecNonEmpty<String>,
     pub metadata: Vec<ClaimDisplay>,
-    pub value: Attribute,
+    pub value: AttributeValue,
     pub svg_id: Option<String>,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "lowercase")]
+pub enum AttributeValue {
+    Null,
+    Number(i64),
+    Bool(bool),
+    Text(String),
+    Array(Vec<AttributeValue>),
+    Object(IndexMap<String, AttributeValue>),
+
+    // mdoc only
+    Date(NaiveDate),
+    Bytes(#[serde_as(as = "Base64<UrlSafe, Unpadded>")] Vec<u8>),
+}
+
+impl From<Attribute> for AttributeValue {
+    fn from(value: Attribute) -> Self {
+        match value {
+            Attribute::Null => Self::Null,
+            Attribute::Number(number) => Self::Number(number),
+            Attribute::Bool(bool) => Self::Bool(bool),
+            Attribute::Text(string) => Self::Text(string),
+            Attribute::Array(array) => Self::Array(array.into_iter().map(Self::from).collect()),
+            Attribute::Object(map) => Self::Object(
+                map.into_iter()
+                    .map(|(key, attribute)| (key, attribute.into()))
+                    .collect(),
+            ),
+            Attribute::Date(date) => Self::Date(date),
+            Attribute::Bytes(bytes) => Self::Bytes(bytes),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

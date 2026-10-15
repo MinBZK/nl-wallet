@@ -156,7 +156,7 @@ impl AttestationPresentation {
                 attributes.push(AttestationAttribute {
                     key: claim_path,
                     metadata: claim.display,
-                    value: value.to_owned(),
+                    value: value.clone().into(),
                     svg_id: claim.svg_id.map(Into::into),
                 })
             }
@@ -221,6 +221,7 @@ pub mod test {
     use super::super::AttestationError;
     use super::super::AttestationIdentity;
     use super::super::AttestationPresentation;
+    use super::super::AttributeValue;
     use super::super::mock::EmptyPresentationConfig;
     use crate::attestation::AttestationValidity;
     use crate::attestation::metadata::ClaimDisplay;
@@ -272,11 +273,11 @@ pub mod test {
             [
                 (
                     vec_nonempty![String::from("example_attestation_type"), String::from("entry1")],
-                    Attribute::Text(String::from("value1"))
+                    AttributeValue::Text(String::from("value1"))
                 ),
                 (
                     vec_nonempty![String::from("example_attestation_type"), String::from("entry2")],
-                    Attribute::Bool(true)
+                    AttributeValue::Bool(true)
                 ),
             ],
             attrs.as_slice()
@@ -425,7 +426,7 @@ pub mod test {
                         label: "name".to_string(),
                         description: None
                     }],
-                    value: Attribute::Text("Wallet".to_string()),
+                    value: AttributeValue::Text("Wallet".to_string()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -435,7 +436,7 @@ pub mod test {
                         label: "birth date".to_string(),
                         description: None
                     }],
-                    value: Attribute::Text("1996-06-16".to_owned()),
+                    value: AttributeValue::Text("1996-06-16".to_owned()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -445,7 +446,7 @@ pub mod test {
                         label: "address street".to_string(),
                         description: None
                     }],
-                    value: Attribute::Text("Gracht".to_string()),
+                    value: AttributeValue::Text("Gracht".to_string()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -455,7 +456,7 @@ pub mod test {
                         label: "address number".to_string(),
                         description: None
                     }],
-                    value: Attribute::Number(123.into()),
+                    value: AttributeValue::Number(123.into()),
                     svg_id: None
                 },
             ]
@@ -544,7 +545,7 @@ pub mod test {
         assert_eq!(
             [(
                 vec_nonempty![String::from(PID_MDOC_DOCTYPE), String::from(PID_BSN)],
-                Attribute::Text(String::from("999991772"))
+                AttributeValue::Text(String::from("999991772"))
             ),],
             attrs.as_slice()
         );

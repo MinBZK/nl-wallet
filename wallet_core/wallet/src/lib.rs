@@ -23,6 +23,7 @@ pub use wallet_account::messages::transfer::TransferSessionState;
 pub use crate::attestation::AttestationAttribute;
 pub use crate::attestation::AttestationIdentity;
 pub use crate::attestation::AttestationPresentation;
+pub use crate::attestation::AttributeValue;
 pub use crate::attestation::ValidityStatus;
 pub use crate::notification::DisplayTarget;
 pub use crate::notification::Notification;
@@ -55,7 +56,6 @@ pub use crate::wallet::WalletRepositories;
 pub use crate::wallet::WalletState;
 
 pub mod attestation_data {
-    pub use attestation_data::attributes::Attribute;
     pub use attestation_data::disclosure_type::DisclosureType;
     pub use attestation_data::organization::Organization;
     pub use attestation_data::organization::ServiceDescription;
