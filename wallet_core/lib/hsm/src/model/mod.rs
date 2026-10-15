@@ -52,7 +52,6 @@ pub mod mock {
     use crate::model::wrapped_key::WrappedKey;
     use crate::service::AES_BLOCK_SIZE;
     use crate::service::AesKeyUsage;
-    use crate::service::AttestationPrivateKeyHandle;
     use crate::service::HsmError;
     use crate::service::KeyHandle;
     use crate::service::Pkcs11Client;
@@ -260,14 +259,6 @@ pub mod mock {
             _key: &PrivateKeyHandle,
             _public_key: VerifyingKey,
         ) -> Result<WrappedKey, HsmError> {
-            todo!()
-        }
-
-        async fn unwrap_signing_key(
-            &self,
-            _unwrapping_key: &SecretKeyHandle,
-            _wrapped_key: WrappedKey,
-        ) -> Result<AttestationPrivateKeyHandle, HsmError> {
             todo!()
         }
 
