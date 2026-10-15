@@ -1,7 +1,6 @@
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::mock::ANNEX_C_EXAMPLE;
 use attestation_data::registration_certificate::mock::RegistrationCertificateFixture;
-use attestation_data::registration_certificate::mock::STATUS_LIST_URI;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use chrono::DateTime;
@@ -13,8 +12,6 @@ use crypto::x509::DistinguishedName;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
 use rstest::rstest;
-use serde_json::Value;
-use serde_json::json;
 use utils::generator::mock::MockTimeGenerator;
 
 #[derive(Clone, Copy)]
@@ -24,13 +21,7 @@ enum EnvelopeFormat {
 }
 
 fn registration_certificate_payload() -> RegistrationCertificateFixture {
-    let mut payload: Value = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
-    payload["status"] = json!({
-        "idx": "0",
-        "uri": STATUS_LIST_URI,
-    });
-
-    RegistrationCertificateFixture(payload)
+    RegistrationCertificateFixture(serde_json::from_str(ANNEX_C_EXAMPLE).unwrap())
 }
 
 fn access_certificate_subject() -> RelyingParty {

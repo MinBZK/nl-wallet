@@ -1,3 +1,4 @@
+use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use dcql::ClaimsQuery;
@@ -5,12 +6,13 @@ use dcql::CredentialQueryFormat;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::FromInto;
+use serde_with::TryFromInto;
 use serde_with::serde_as;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use super::status::RegistrationCertificateStatus;
+use super::status::StatusWireFormat;
 use super::validation::RegistrationCertificateValidationError;
 
 /// Persisted in wallet events as part of [`Organization`](crate::organization::Organization).
@@ -91,7 +93,8 @@ pub struct UncheckedRegistrationCertificate {
     pub iat: DateTime<Utc>,
     #[serde(default, with = "chrono::serde::ts_seconds_option")]
     pub exp: Option<DateTime<Utc>>,
-    pub status: RegistrationCertificateStatus,
+    #[serde_as(deserialize_as = "TryFromInto<StatusWireFormat>")]
+    pub status: StatusListClaim,
     pub policy_id: Vec<String>,
     pub certificate_policy: Url,
     pub intermediary: Option<Intermediary>,
@@ -186,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_annex_c_example_and_reject_its_nested_status() {
+    fn parse_annex_c_example() {
         let json: Value = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
         assert_eq!(
             json["credentials"][0]["claim"][0]["path"],
@@ -203,10 +206,7 @@ mod tests {
             payload.intermediary.as_ref().unwrap().sname.as_deref(),
             Some("Intermediary Services Ltd.")
         );
-        assert_matches!(
-            ParsedRegistrationCertificate::try_from(payload),
-            Err(RegistrationCertificateValidationError::InvalidStatusWireFormat)
-        );
+        assert_matches!(ParsedRegistrationCertificate::try_from(payload), Ok(_));
     }
 
     #[test]
