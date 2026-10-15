@@ -91,6 +91,8 @@ fn main() {
         "xyz_bank-return",
         "job_finder-index",
         "job_finder-return",
+        "car_insurance-index",
+        "car_insurance-return",
     ] {
         combine_usecase_css(entry, profile, Path::new(&manifest_dir));
     }

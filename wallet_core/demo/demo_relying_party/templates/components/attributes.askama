@@ -1,3 +1,13 @@
+{% macro value(value) %}
+{% match value %}
+{% when Attribute::Bool(bool) %}
+  {% let bool_str = format!("{bool:?}") %}
+  {{ base.trans.get(bool_str.as_str()).unwrap_or(bool_str.as_str()) }}
+{% else %}
+  {{ value }}
+{% endmatch %}
+{% endmacro %}
+
 {% macro attributes(attributes) %}
 <dl class="attributes">
 {% for attestation in attributes %}
@@ -6,11 +16,26 @@
     <dt>{{ base.trans.get(key_str).unwrap_or(key_str) }}</dt>
     <dd>
     {% match value %}
-    {% when Attribute::Bool(bool) %}
-      {% let bool_str = format!("{bool:?}") %}
-      {{ base.trans.get(bool_str.as_str()).unwrap_or(bool_str.as_str()) }}
+    {% when Attribute::Array(items) %}
+      <ul>
+      {% for item in items %}
+        <li>
+        {% match item %}
+        {% when Attribute::Object(fields) %}
+          <dl class="attributes">
+          {% for (field_key, field_value) in fields %}
+            <dt>{{ base.trans.get(field_key).unwrap_or(field_key) }}</dt>
+            <dd>{% call value(field_value) %}</dd>
+          {% endfor %}
+          </dl>
+        {% else %}
+          {% call value(item) %}
+        {% endmatch %}
+        </li>
+      {% endfor %}
+      </ul>
     {% else %}
-      {{ value }}
+      {% call value(value) %}
     {% endmatch %}
     </dd>
   {% endfor %}

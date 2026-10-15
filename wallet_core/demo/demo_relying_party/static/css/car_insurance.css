@@ -1,0 +1,24 @@
+@import url("../../../../lib/web_utils/static/css/reset.css");
+@import url("../../../../lib/web_utils/static/css/button-reset.css");
+@import url("../../../../lib/web_utils/static/css/fonts.css");
+@import url("../../../../lib/web_utils/static/css/language_selector.css");
+@import url("../../../demo_utils/static/css/demo_bar.css");
+@import url("../../../demo_utils/static/css/common.css");
+@import url("../../../demo_utils/static/css/title_bar.css");
+@import url("../../../demo_utils/static/css/notification.css");
+@import url("../../../demo_utils/static/css/container.css");
+
+:root {
+  --primary-color: #0b5c7a;
+  --hover-color: #083f54;
+  --title-color: #0b2e3d;
+  --text-color: #2e2e2e;
+  --notification-color: #0b5c7a;
+  --error-color: #b3261e;
+  --accent-color: #d9640f;
+  --logo-url: url("../images/insurance.svg");
+}
+
+main h4 {
+  color: var(--accent-color);
+}

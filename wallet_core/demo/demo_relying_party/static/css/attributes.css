@@ -21,3 +21,9 @@ dl.attributes {
   grid-column-start: 2;
   color: #000;
 }
+
+.attributes ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
