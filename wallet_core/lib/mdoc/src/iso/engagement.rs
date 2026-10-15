@@ -8,7 +8,7 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
 
-use crypto::utils::sha256;
+use crypto::utils::sha256_into_vec;
 use http_utils::urls::BaseUrl;
 use mdoc_derive::CborIndexedFields;
 use serde::Deserialize;
@@ -216,7 +216,8 @@ pub struct OID4VPHandover {
 impl OID4VPHandover {
     fn new(info: &OID4VPHandoverInfo) -> Self {
         let info_hash =
-            sha256(&cbor_serialize(&CborSeq(&info)).expect("OID4VPHandoverInfo should serialize to CBOR")).into();
+            sha256_into_vec(&cbor_serialize(&CborSeq(&info)).expect("OID4VPHandoverInfo should serialize to CBOR"))
+                .into();
 
         Self {
             identifier: Default::default(),
