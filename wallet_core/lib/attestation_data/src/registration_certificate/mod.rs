@@ -74,7 +74,6 @@ mod test {
 
     pub(super) fn valid_payload_json() -> Value {
         let mut payload: Value = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
-        payload["id"] = json!("wrprc-example-1");
         payload["status"] = json!({
             "idx": "0",
             "uri": STATUS_LIST_URI,

@@ -143,7 +143,6 @@ fn registration_certificate_subject_payload(
         } => (serial_number, json!({ "sub_gn": given_name, "sub_fn": surname })),
     };
     let mut payload = json!({
-        "id": "mock-registration-certificate",
         "sub": subject,
         "country": "NL",
         "registry_uri": "https://example.com/register",

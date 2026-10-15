@@ -302,7 +302,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+        assert_eq!(certificate.payload().sub, "LEIXG-529900T8BM49AURSDO55");
     }
 
     #[tokio::test]

@@ -334,6 +334,7 @@ mod tests {
     use sd_jwt::builder::SignedSdJwt;
     use serde::Serialize;
     use serde::de::Error;
+    use serde_json::json;
     use token_status_list::verification::client::StatusListClient;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
@@ -830,7 +831,7 @@ mod tests {
             verifier_session.key_pair.certificate(),
             verifier_session.credential_requests.clone().into(),
         );
-        payload.0.as_object_mut().unwrap().remove("id");
+        payload.0["country"] = json!("N");
         let ca = Ca::generate_mock();
         let signer = ca.generate_issuer_mock().unwrap();
         let certificate = match format {
@@ -877,7 +878,7 @@ mod tests {
             VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
                 AuthRequestValidationError::RegistrationCertificate(ref registration_error)
             )) if matches!(registration_error.as_ref(), RegistrationCertificateError::Envelope(_))
-                && registration_error.to_string().contains(&RegistrationCertificateValidationError::MissingId.to_string())
+                && registration_error.to_string().contains(&RegistrationCertificateValidationError::InvalidCountry.to_string())
         );
         assert_matches!(
             verifier_session.wallet_messages.lock().last(),
