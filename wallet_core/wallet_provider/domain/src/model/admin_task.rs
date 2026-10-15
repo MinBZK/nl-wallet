@@ -2,22 +2,62 @@ use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Map;
 use serde_json::Value as JsonValue;
+use serde_json::json;
+use serde_with::serde_as;
+use utils::vec_at_least::VecNonEmptyUnique;
 use uuid::Uuid;
 
-/// Administrator action that can be proposed and reviewed in the admin_portal.
-/// For each of these task types there exists a corresponding privilege. These are named the same as the task types but
-/// underscored with privilege_.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, strum::Display, strum::EnumString, strum::EnumIter,
+use super::wallet_user::WalletId;
+
+/// Administrator action that can be proposed and reviewed in the admin_portal, together with its parameters.
+///
+/// [`TaskType`] is derived from this enum, so every task type has exactly one parameter type.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, strum::EnumDiscriminants)]
+#[serde(tag = "taskType", content = "taskParameters", rename_all = "snake_case")]
+#[strum_discriminants(
+    name(TaskType),
+    derive(Hash, Serialize, Deserialize, strum::Display, strum::EnumString, strum::EnumIter),
+    strum(serialize_all = "snake_case"),
+    serde(rename_all = "snake_case")
 )]
-#[strum(serialize_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-pub enum TaskType {
-    RevokeWallet,
-    BlockUser,
-    UnblockUser,
-    RevokeSolution,
+pub enum TaskPayload {
+    RevokeWallet(RevokeWalletParameters),
+    BlockUser {},      // TODO PVW-6176
+    UnblockUser {},    // TODO PVW-6177
+    RevokeSolution {}, // TODO PVW-6178
+}
+
+impl TaskPayload {
+    pub fn task_type(&self) -> TaskType {
+        self.into()
+    }
+
+    pub fn parameters_json(&self) -> Result<JsonValue, serde_json::Error> {
+        match self {
+            Self::RevokeWallet(parameters) => serde_json::to_value(parameters),
+            Self::BlockUser {} | Self::UnblockUser {} | Self::RevokeSolution {} => Ok(JsonValue::Object(Map::new())),
+        }
+    }
+
+    /// Reconstructs a [`TaskPayload`] from a task type and its parameters as JSON, e.g. as stored separately.
+    pub fn from_parts(task_type: TaskType, parameters: JsonValue) -> Result<Self, serde_json::Error> {
+        let tagged = Map::from_iter([
+            ("taskType".to_string(), json!(task_type)),
+            ("taskParameters".to_string(), parameters),
+        ]);
+        serde_json::from_value(JsonValue::Object(tagged))
+    }
+}
+
+/// Parameters of a [`TaskType::RevokeWallet`] task: the wallets to revoke, at least one, without duplicates.
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RevokeWalletParameters {
+    #[serde_as(as = "Vec<_>")]
+    pub wallet_ids: VecNonEmptyUnique<WalletId>,
 }
 
 /// The lifecycle status of an [`AdminTask`].
@@ -133,7 +173,58 @@ pub enum TaskListView {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
+
+    fn revoke_wallet_payload(wallet_ids: &[&str]) -> TaskPayload {
+        TaskPayload::RevokeWallet(RevokeWalletParameters {
+            wallet_ids: wallet_ids
+                .iter()
+                .map(|wallet_id| WalletId::from(wallet_id.to_string()))
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap(),
+        })
+    }
+
+    #[rstest]
+    #[case::revoke_wallet(
+        json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1", "wallet-2"]}}),
+        revoke_wallet_payload(&["wallet-1", "wallet-2"]),
+    )]
+    fn task_payload_round_trips(#[case] value: JsonValue, #[case] payload: TaskPayload) {
+        // JSON <-> payload
+        assert_eq!(serde_json::from_value::<TaskPayload>(value.clone()).unwrap(), payload);
+        assert_eq!(serde_json::to_value(&payload).unwrap(), value);
+
+        // payload <-> (task type, parameters), as stored in the database
+        let task_type = payload.task_type();
+        let parameters = payload.parameters_json().unwrap();
+        assert_eq!(parameters, value["taskParameters"]);
+        assert_eq!(TaskPayload::from_parts(task_type, parameters).unwrap(), payload);
+
+        // task type <-> string, as used in privilege names, the database and the API
+        let task_type_string = value["taskType"].as_str().unwrap();
+        assert_eq!(task_type.to_string(), task_type_string);
+        assert_eq!(task_type_string.parse::<TaskType>().unwrap(), task_type);
+    }
+
+    #[rstest]
+    #[case::empty_wallet_ids(json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": []}}))]
+    #[case::duplicate_wallet_ids(
+        json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1", "wallet-1"]}})
+    )]
+    #[case::missing_wallet_ids(json!({"taskType": "revoke_wallet", "taskParameters": {}}))]
+    #[case::unknown_parameter(
+        json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1"], "unknown": true}})
+    )]
+    #[case::missing_task_parameters(json!({"taskType": "revoke_wallet"}))]
+    #[case::unknown_task_type(json!({"taskType": "not_a_real_task_type", "taskParameters": {}}))]
+    #[case::missing_task_type(json!({"taskParameters": {}}))]
+    fn task_payload_rejects_invalid_json(#[case] value: JsonValue) {
+        serde_json::from_value::<TaskPayload>(value).expect_err("should not deserialize");
+    }
 
     #[test]
     fn review_verdict_maps_to_the_correct_resulting_status() {
