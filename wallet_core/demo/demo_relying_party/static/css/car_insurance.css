@@ -16,9 +16,14 @@
   --notification-color: #0b5c7a;
   --error-color: #b3261e;
   --accent-color: #d9640f;
-  --logo-url: url("../images/insurance.svg");
+  --logo-url: url("../images/car_insurance.svg");
 }
 
 main h4 {
   color: var(--accent-color);
+}
+
+header h1::before {
+  background-origin: border-box;
+  border: 1px solid #3a839a;
 }

@@ -6,8 +6,16 @@ port = ${DEMO_INDEX_PORT}
 
 [[demo_services]]
 service_url = 'http://${SERVICES_HOST}:${DEMO_RP_PORT}/'
-usecases = ['mijn_amsterdam_mdoc', 'mijn_amsterdam_sd_jwt', 'online_marketplace', 'xyz_bank_mdoc', 'xyz_bank_sd_jwt', 'xyz_bank_sd_jwt_eu', 'monkey_bike', 'job_finder', 'car_insurance']
+usecases = ['mijn_amsterdam_mdoc', 'mijn_amsterdam_sd_jwt', 'online_marketplace', 'xyz_bank_mdoc', 'xyz_bank_sd_jwt', 'xyz_bank_sd_jwt_eu', 'monkey_bike', 'job_finder']
 
 [[demo_services]]
 service_url = 'http://${SERVICES_HOST}:${DEMO_ISSUER_PORT}/'
-usecases = ['university_mdoc', 'university_sd_jwt', 'insurance', 'housing', 'loyalty', 'museum_maandkaart', 'mdl', 'mvc', 'dezi']
+usecases = ['university_mdoc', 'university_sd_jwt', 'insurance', 'housing', 'loyalty', 'museum_maandkaart', 'mdl', 'mvc']
+
+[[demo_services]]
+service_url = 'http://${SERVICES_HOST}:${DEMO_RP_PORT}/'
+usecases = ['car_insurance']
+
+[[demo_services]]
+service_url = 'http://${SERVICES_HOST}:${DEMO_ISSUER_PORT}/'
+usecases = ['dezi']

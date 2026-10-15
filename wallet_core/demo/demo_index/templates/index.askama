@@ -62,6 +62,8 @@
                     {{ base.trans.insurance_index }}
                   {% when "job_finder" %}
                     {{ base.trans.job_index }}
+                  {% when "car_insurance" %}
+                    {{ base.trans.car_insurance_index }}
                   {% when "housing" %}
                     {{ base.trans.housing_index }}
                   {% when "loyalty" %}

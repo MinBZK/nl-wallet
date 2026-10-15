@@ -225,6 +225,23 @@ spec:
                   key: private_key
             - name: VERIFICATION_SERVER__USECASES__job_finder__PRIVATE_KEY_TYPE
               value: "software"
+            - name: VERIFICATION_SERVER__USECASES__car_insurance__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-car-insurance
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__car_insurance__REGISTRATION_CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-car-insurance
+                  key: registration_certificate
+            - name: VERIFICATION_SERVER__USECASES__car_insurance__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-car-insurance
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__car_insurance__PRIVATE_KEY_TYPE
+              value: "software"
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
