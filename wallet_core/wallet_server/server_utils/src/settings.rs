@@ -3,13 +3,12 @@ use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::time::Duration;
 
-use attestation_data::organization::Organization;
-use attestation_data::organization::OrganizationError;
 use attestation_data::registration_certificate::BoundRegistrationCertificate;
 use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
+use attestation_data::x509::RelyingPartyError;
 use chrono::DateTime;
 use chrono::Utc;
 use config::ConfigError;
@@ -20,6 +19,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateParseError;
 use crypto::x509::CertificateUsage;
 use crypto::x509::CertificateVerifyError;
+use crypto::x509::DistinguishedNameError;
 use dcql::Query;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
@@ -189,8 +189,10 @@ pub enum CertificateVerificationError {
     InvalidCertificate(#[source] CertificateVerifyError, String),
     #[error("invalid key pair `{1}`: {0}")]
     InvalidKeyPair(#[source] CertificateParseError, String),
-    #[error("invalid organization in certificate `{1}`: {0}")]
-    InvalidOrganization(#[source] OrganizationError, String),
+    #[error("invalid distinguished name in certificate `{1}`: {0}")]
+    InvalidDistinguishedName(#[source] DistinguishedNameError, String),
+    #[error("invalid relying party in certificate `{1}`: {0}")]
+    InvalidRelyingParty(#[source] RelyingPartyError, String),
 }
 
 pub struct VerifierUseCase<'a> {
@@ -244,8 +246,12 @@ pub fn verify_key_pairs(
             .verify(usage, &[], time, trust_anchors)
             .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
-        Organization::try_from(&key_pair.certificate)
-            .map_err(|e| CertificateVerificationError::InvalidOrganization(e, key_pair_id.to_string()))?;
+        let subject = key_pair
+            .certificate
+            .to_distinguished_name()
+            .map_err(|e| CertificateVerificationError::InvalidDistinguishedName(e, key_pair_id.to_string()))?;
+        RelyingParty::try_from(subject)
+            .map_err(|e| CertificateVerificationError::InvalidRelyingParty(e, key_pair_id.to_string()))?;
     }
 
     Ok(())

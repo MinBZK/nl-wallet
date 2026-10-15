@@ -1008,7 +1008,7 @@ mod tests {
         assert_matches!(
             settings.validate().unwrap_err(),
             IssuerSettingsValidationError::CertificateVerification(
-                CertificateVerificationError::InvalidOrganization(_, key)
+                CertificateVerificationError::InvalidRelyingParty(_, key)
             ) if key == "credential_metadata"
         );
     }
@@ -1035,7 +1035,7 @@ mod tests {
 
         assert_matches!(
             settings.validate().unwrap_err(),
-            IssuerSettingsValidationError::CertificateVerification(CertificateVerificationError::InvalidOrganization(
+            IssuerSettingsValidationError::CertificateVerification(CertificateVerificationError::InvalidRelyingParty(
                 _,
                 _
             ))

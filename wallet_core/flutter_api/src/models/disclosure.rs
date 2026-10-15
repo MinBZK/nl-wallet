@@ -111,26 +111,15 @@ impl From<wallet::attestation_data::DisclosureType> for DisclosureType {
 }
 
 pub(super) fn request_purpose(organization: &wallet::attestation_data::Organization) -> Vec<LocalizedString> {
-    match &organization.purpose {
-        Some(purpose) => purpose
-            .iter()
-            .map(|translation| LocalizedString {
-                language: translation.lang.clone(),
-                value: translation.value.clone(),
-            })
-            .collect(),
-        // TODO (PVW-6052): Remove these hardcoded translations once close proximity disclosure uses WRPRC.
-        None => vec![
-            LocalizedString {
-                language: "en".into(),
-                value: "Disclosure".into(),
-            },
-            LocalizedString {
-                language: "nl".into(),
-                value: "Onthullen".into(),
-            },
-        ],
-    }
+    organization
+        .purpose
+        .iter()
+        .flatten()
+        .map(|translation| LocalizedString {
+            language: translation.lang.clone(),
+            value: translation.value.clone(),
+        })
+        .collect()
 }
 
 impl From<DisclosureProposalPresentation> for StartDisclosureResult {

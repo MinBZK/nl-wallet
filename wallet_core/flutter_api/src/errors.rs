@@ -449,7 +449,6 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _)
             | DisclosureError::DisclosureUriQuery(_)
-            | DisclosureError::Organization(_)
             | DisclosureError::RecoveryCodeRequested { .. }
             | DisclosureError::UnexpectedRedirectUriPurpose { .. } => FlutterApiErrorType::Verifier,
             DisclosureError::DisclosureUri(_)

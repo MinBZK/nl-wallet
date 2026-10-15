@@ -1,5 +1,3 @@
-use crypto::x509::BorrowingCertificate;
-use crypto::x509::DistinguishedNameError;
 use derive_more::Debug;
 use serde::Deserialize;
 use serde::Serialize;
@@ -13,8 +11,6 @@ use crate::registration_certificate::StatusValidatedRegistrationCertificate;
 use crate::registration_certificate::Subject;
 use crate::registration_certificate::SubjectType;
 use crate::registration_certificate::UncheckedRegistrationCertificate;
-use crate::x509::RelyingParty;
-use crate::x509::RelyingPartyError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServiceDescription {
@@ -37,28 +33,6 @@ pub struct Organization {
     pub support_uri: Option<String>,
     pub public_body: Option<bool>,
     pub person_type: Option<SubjectType>,
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum OrganizationError {
-    #[error("distinguished name error: {0}")]
-    DistinguishedName(#[source] DistinguishedNameError),
-
-    #[error("relying party error: {0}")]
-    RelyingParty(#[source] RelyingPartyError),
-}
-
-impl TryFrom<&BorrowingCertificate> for Organization {
-    type Error = OrganizationError;
-
-    fn try_from(certificate: &BorrowingCertificate) -> Result<Self, Self::Error> {
-        let dn = certificate
-            .to_distinguished_name()
-            .map_err(OrganizationError::DistinguishedName)?;
-        RelyingParty::try_from(dn)
-            .map_err(OrganizationError::RelyingParty)
-            .map(Self::from)
-    }
 }
 
 impl From<&StatusValidatedRegistrationCertificate> for Organization {
