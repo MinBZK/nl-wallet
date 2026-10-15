@@ -154,13 +154,13 @@ pub mod verification {
     impl StatusListToken {
         pub fn parse_and_verify(
             &self,
-            issuer_trust_anchors: &TrustAnchors,
+            trust_anchors: &TrustAnchors,
             attestation_signing_certificate_dn: CanonicalDistinguishedName,
             url: Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<StatusListClaims, StatusListTokenVerificationError> {
             let (header, claims) = self.0.parse_and_verify_against_trust_anchors(
-                issuer_trust_anchors,
+                trust_anchors,
                 time,
                 Some(CertificateUsage::StatusListSigning),
                 DEFAULT_VALIDATION.to_owned(),
