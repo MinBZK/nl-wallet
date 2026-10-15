@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::organization::Organization;
+use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
 use attestation_data::registration_certificate::RegistrationCertificateRequestParseError;
@@ -280,6 +281,10 @@ pub enum CloseProximityDisclosureError {
     #[category(pd)]
     RegistrationCertificateStatus(#[source] RegistrationCertificateStatusValidationError),
 
+    #[error("registration certificate request authorization failed")]
+    #[category(pd)]
+    RegistrationCertificateAuthorization(#[source] RegistrationCertificateAuthorizationError),
+
     #[error("unsupported requested document format: {doc_format}")]
     #[category(critical)]
     UnsupportedDocFormat { doc_format: String },
@@ -330,7 +335,10 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::ReaderCertificateRelyingParty(_)
         | CloseProximityDisclosureError::RegistrationCertificateVerification(_)
         | CloseProximityDisclosureError::RegistrationCertificateBinding(_)
-        | CloseProximityDisclosureError::RegistrationCertificateStatus(_) => Some(DeviceResponseStatus::GeneralError),
+        | CloseProximityDisclosureError::RegistrationCertificateStatus(_)
+        | CloseProximityDisclosureError::RegistrationCertificateAuthorization(_) => {
+            Some(DeviceResponseStatus::GeneralError)
+        }
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::DeviceResponseEncoding(_)
@@ -838,8 +846,8 @@ where
     }
 }
 
-/// Verify reader authentication, WRPRC envelopes, binding, expiry and status, requiring a valid CRL for the complete
-/// WRPAC chain.
+/// Verify reader authentication, WRPRC envelopes, binding, expiry, status and request authorization, requiring a valid
+/// CRL for the complete WRPAC chain.
 async fn verify_device_request_with_crl(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
@@ -893,12 +901,14 @@ async fn verify_device_request_with_crl(
             .map_err(CloseProximityDisclosureError::RegistrationCertificateBinding)?;
 
         let revocation_verifier = RevocationVerifier::new_with_defaults(Arc::clone(status_list_client), time.clone());
-        let _registration_certificate = bound_registration_certificate
+        let registration_certificate = bound_registration_certificate
             .validate_status(&revocation_verifier, trust_anchors.wrprc, signing_certificate_dn, time)
             .await
             .map_err(CloseProximityDisclosureError::RegistrationCertificateStatus)?;
 
-        // TODO PVW-6052 Validate authorization for this ItemsRequest.
+        registration_certificate
+            .validate_mdoc_items_request_authorization(items_request)
+            .map_err(CloseProximityDisclosureError::RegistrationCertificateAuthorization)?;
     }
 
     Ok(certificate)
@@ -942,6 +952,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::organization::Organization;
+    use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
     use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
     use attestation_data::registration_certificate::RegistrationCertificateValidationError;
@@ -1090,6 +1101,20 @@ mod tests {
             LazyLock::new(|| REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&registration_certificate_payload()));
 
         IndexMap::from_iter([("euWrprc".to_string(), Value::Bytes(CERTIFICATE.clone()))])
+    }
+
+    fn add_matching_registration_certificate(items_request: &mut ItemsRequest) {
+        let mut payload = registration_certificate_payload();
+        payload.0["credentials"] = json!([{
+            "format": "mso_mdoc",
+            "meta": { "doctype_value": items_request.doc_type },
+            "claim": items_request.claims().map(|path| json!({ "path": path })).collect::<Vec<_>>()
+        }]);
+        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
+        items_request
+            .request_info
+            .get_or_insert_default()
+            .insert("euWrprc".to_string(), Value::Bytes(certificate));
     }
 
     fn pid_given_name_items_request() -> ItemsRequest {
@@ -1836,6 +1861,29 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_authorization_error() {
+        let mut payload = registration_certificate_payload();
+        payload.0["credentials"][0]["claim"] = json!([{ "path": [PID_MDOC_DOCTYPE, PID_FAMILY_NAME] }]);
+        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
+        let error = assert_registration_certificate_rejected(
+            Some(Value::Bytes(certificate)),
+            DeviceResponseStatus::GeneralError,
+            Some(Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone())),
+        )
+        .await;
+
+        assert_matches!(
+            error,
+            DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::RegistrationCertificateAuthorization(
+                    RegistrationCertificateAuthorizationError::UnauthorizedItemsRequest(doc_type)
+                )
+            ) if doc_type == PID_MDOC_DOCTYPE
+        );
+    }
+
     #[derive(Debug, Clone, Copy)]
     enum RegistrationCertificateStatusFailure {
         Revoked,
@@ -2041,22 +2089,24 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_device_request_accepts_same_reader_multi_document_request() {
-        let pid_items_request = interop_items_request(
+        let mut pid_items_request = interop_items_request(
             EUDI_PID_DOCTYPE,
             &[(
                 EUDI_PID_DOCTYPE,
                 &["family_name", "given_name", "birth_date", "age_over_18"][..],
             )],
-            Some(registration_certificate_request_info()),
+            None,
         );
-        let mdl_items_request = interop_items_request(
+        add_matching_registration_certificate(&mut pid_items_request);
+        let mut mdl_items_request = interop_items_request(
             ISO_MDL_DOCTYPE,
             &[(
                 ISO_MDL_NAMESPACE,
                 &["family_name", "given_name", "birth_date", "document_number"][..],
             )],
-            Some(registration_certificate_request_info()),
+            None,
         );
+        add_matching_registration_certificate(&mut mdl_items_request);
 
         let (device_request, session_transcript, trust_anchors) =
             setup_device_request(vec![pid_items_request, mdl_items_request], None, true).await;
@@ -2079,7 +2129,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_device_request_accepts_multi_namespace_items_request() {
-        let photo_id_items_request = interop_items_request(
+        let mut photo_id_items_request = interop_items_request(
             PHOTO_ID_DOCTYPE_LOWERCASE,
             &[
                 (
@@ -2088,8 +2138,9 @@ mod tests {
                 ),
                 (PHOTO_ID_NAMESPACE, &["portrait", "document_number"][..]),
             ],
-            Some(registration_certificate_request_info()),
+            None,
         );
+        add_matching_registration_certificate(&mut photo_id_items_request);
 
         let (device_request, session_transcript, trust_anchors) =
             setup_device_request(vec![photo_id_items_request], None, true).await;
