@@ -25,7 +25,6 @@ enum EnvelopeFormat {
 
 fn registration_certificate_payload() -> RegistrationCertificateFixture {
     let mut payload: Value = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
-    payload["id"] = json!("wrprc-example-1");
     payload["status"] = json!({
         "idx": "0",
         "uri": STATUS_LIST_URI,
@@ -131,5 +130,5 @@ async fn verify_and_validate_registration_certificate(#[case] format: EnvelopeFo
         .validate_binding_and_time(&access_certificate_subject(), validation_time())
         .unwrap();
 
-    assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+    assert_eq!(certificate.payload().sub, "LEIXG-529900T8BM49AURSDO55");
 }

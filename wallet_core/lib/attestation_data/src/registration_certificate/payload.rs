@@ -46,9 +46,6 @@ pub struct Intermediary {
 /// Wire representation; deserialize into [`ParsedRegistrationCertificate`] before using the payload.
 #[derive(Deserialize)]
 pub struct UncheckedRegistrationCertificate {
-    /// Optional, because ETSI TS 119 475 only mentions it in GEN-6.2.6.1-03, not in the payload attributes of Table 7
-    /// and Table 10, and Annex C omits it.
-    pub id: Option<String>,
     pub name: Option<String>,
     pub sub: String,
     pub sub_ln: Option<String>,
@@ -143,17 +140,7 @@ mod tests {
     fn deserialize_valid_payload() {
         let certificate: ParsedRegistrationCertificate = serde_json::from_value(valid_payload_json()).unwrap();
 
-        assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
-    }
-
-    #[test]
-    fn deserialize_valid_payload_without_id() {
-        let mut json = valid_payload_json();
-        json.as_object_mut().unwrap().remove("id");
-
-        let certificate: ParsedRegistrationCertificate = serde_json::from_value(json).unwrap();
-
-        assert_eq!(certificate.payload().id, None);
+        assert_eq!(certificate.payload().sub, "LEIXG-529900T8BM49AURSDO55");
     }
 
     #[rstest]
@@ -193,7 +180,6 @@ mod tests {
             payload.intermediary.as_ref().unwrap().sname.as_deref(),
             Some("Intermediary Services Ltd.")
         );
-        assert_eq!(payload.id, None);
         assert_matches!(
             ParsedRegistrationCertificate::try_from(payload),
             Err(RegistrationCertificateValidationError::InvalidStatusWireFormat)

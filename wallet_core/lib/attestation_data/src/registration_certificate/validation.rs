@@ -443,7 +443,7 @@ mod tests {
             .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap();
 
-        assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+        assert_eq!(certificate.payload().sub, "LEIXG-529900T8BM49AURSDO55");
         assert_matches!(certificate.subject(), Subject::LegalPerson { legal_name } if legal_name == "Example Company GmbH");
     }
 

@@ -226,10 +226,7 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(
-            validated_certificate.payload().id.as_deref(),
-            Some("mock-registration-certificate")
-        );
+        assert_eq!(validated_certificate.payload().support_uri, "support@example.com");
 
         validate(
             &envelope,
@@ -300,7 +297,7 @@ mod tests {
         )
         .await;
 
-        let result = result.map(|validated| validated.payload().id.clone());
+        let result = result.map(|validated| validated.payload().support_uri.clone());
         if provides_attestations.as_ref().is_none_or(Value::is_null) {
             assert_matches!(
                 result,
@@ -316,7 +313,7 @@ mod tests {
                 )) if kind == CredentialKind::new(format, "urn:example:pid".to_string())
             );
         } else {
-            assert_eq!(result.unwrap().as_deref(), Some("mock-registration-certificate"));
+            assert_eq!(result.unwrap(), "support@example.com");
         }
     }
 
