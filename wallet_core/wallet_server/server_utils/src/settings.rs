@@ -303,7 +303,5 @@ fn validate_registration_certificate(
     let payload =
         verify_registration_certificate_envelope(registration_certificate, trust_anchors, time)?.into_payload();
 
-    payload
-        .validate_binding_and_time(&access_subject, time.generate())
-        .map_err(anyhow::Error::from)
+    payload.validate_binding(&access_subject).map_err(anyhow::Error::from)
 }

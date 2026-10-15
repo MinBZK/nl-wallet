@@ -17,6 +17,7 @@ use mdoc::ItemsRequest;
 use utils::generator::Generator;
 
 use super::ParsedRegistrationCertificate;
+use super::RegistrationCertificateValidationError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateJwtParseError {
@@ -55,6 +56,8 @@ pub enum RegistrationCertificateEnvelopeError {
     Jwt(#[source] JwtX5cVerifyError),
     #[error("could not verify registration certificate CWT: {0}")]
     Cwt(#[source] WrprcCwtError),
+    #[error("registration certificate validity check failed: {0}")]
+    Validity(#[source] RegistrationCertificateValidationError),
 }
 
 /// A registration certificate in JWT or CWT form, with an encoded, unparsed payload.
@@ -150,7 +153,7 @@ impl RegistrationCertificateEnvelope {
 }
 
 /// A registration-certificate envelope whose signature and certificate chain have been verified and whose payload
-/// satisfies its intrinsic rules. WRPAC binding, current validity, status, and query authorization are separate checks.
+/// satisfies its intrinsic rules and has not expired.
 pub struct VerifiedRegistrationCertificateEnvelope {
     payload: ParsedRegistrationCertificate,
 }
@@ -179,6 +182,10 @@ pub fn verify_registration_certificate_envelope(
             .map_err(RegistrationCertificateEnvelopeError::Cwt)?
             .into_payload(),
     };
+
+    payload
+        .validate_expiry(time.generate())
+        .map_err(RegistrationCertificateEnvelopeError::Validity)?;
 
     Ok(VerifiedRegistrationCertificateEnvelope { payload })
 }

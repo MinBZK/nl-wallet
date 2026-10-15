@@ -2001,7 +2001,7 @@ mod test {
             RegistrationCertificateScenario::WrongSubject => {
                 assert_matches!(
                     error,
-                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::BindingAndTime(
+                    WalletIssuanceError::IssuerRegistrationCertificate(RegistrationCertificateError::Binding(
                         RegistrationCertificateValidationError::SubjectIdentifierMismatch {
                             field: "organizationIdentifier"
                         }

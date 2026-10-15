@@ -38,10 +38,11 @@ pub(super) const ANNEX_A_3_1_SUB_ENTITLEMENTS: [&str; 5] = [
     "https://uri.etsi.org/19475/SubEntitlement/psp/unspecified",
 ];
 
-/// A parsed registration-certificate payload bound to a WRPAC subject and checked against the current time.
+/// A parsed registration-certificate payload bound to a WRPAC subject.
 ///
-/// Header and signature validation are performed by [`super::verify_registration_certificate_envelope`]. Verification
-/// of the referenced status list is a separate asynchronous step; use [`Self::validate_status`] to perform it.
+/// Header, signature and expiry validation are performed by [`super::verify_registration_certificate_envelope`].
+/// Verification of the referenced status list is a separate asynchronous step; use [`Self::validate_status`] to perform
+/// it.
 pub struct BoundRegistrationCertificate(ParsedRegistrationCertificate);
 
 impl BoundRegistrationCertificate {
@@ -324,10 +325,9 @@ impl UncheckedRegistrationCertificate {
 }
 
 impl ParsedRegistrationCertificate {
-    pub fn validate_binding_and_time(
+    pub fn validate_binding(
         self,
         access_certificate_subject: &RelyingParty,
-        now: DateTime<Utc>,
     ) -> Result<BoundRegistrationCertificate, RegistrationCertificateValidationError> {
         let subject_type = match self.subject() {
             Subject::LegalPerson { .. } => SubjectType::LegalPerson,
@@ -368,13 +368,18 @@ impl ParsedRegistrationCertificate {
         if self.payload().sub != access_identifier {
             return Err(RegistrationCertificateValidationError::SubjectIdentifierMismatch { field: subject_field });
         }
+
+        Ok(BoundRegistrationCertificate(self))
+    }
+
+    pub fn validate_expiry(&self, now: DateTime<Utc>) -> Result<(), RegistrationCertificateValidationError> {
         if let Some(expiration) = self.payload().exp
             && now >= expiration
         {
             return Err(RegistrationCertificateValidationError::Expired { expiration });
         }
 
-        Ok(BoundRegistrationCertificate(self))
+        Ok(())
     }
 }
 
@@ -420,7 +425,6 @@ mod tests {
     use super::super::test::legal_person_access_certificate_subject;
     use super::super::test::valid_payload;
     use super::super::test::valid_payload_json;
-    use super::super::test::validation_time;
     use super::ANNEX_A_3_1_SUB_ENTITLEMENTS;
     use super::CredentialSetValidationError;
     use super::MultiLanguageStringSetValidationError;
@@ -435,7 +439,7 @@ mod tests {
     fn validate_payload_based_on_annex_c_example() {
         let certificate = ParsedRegistrationCertificate::try_from(valid_payload())
             .unwrap()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap();
 
         assert_eq!(certificate.payload().sub, "LEIXG-529900T8BM49AURSDO55");
@@ -462,7 +466,7 @@ mod tests {
 
         let certificate = ParsedRegistrationCertificate::try_from(payload)
             .unwrap()
-            .validate_binding_and_time(&access_subject, validation_time())
+            .validate_binding(&access_subject)
             .unwrap();
         assert_matches!(
             certificate.subject(),
@@ -509,7 +513,7 @@ mod tests {
         assert_matches!(
             ParsedRegistrationCertificate::try_from(payload)
                 .unwrap()
-                .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time()),
+                .validate_binding(&legal_person_access_certificate_subject()),
             Err(RegistrationCertificateValidationError::SubjectIdentifierMismatch {
                 field: "organizationIdentifier"
             })
@@ -531,7 +535,7 @@ mod tests {
         assert_matches!(
             ParsedRegistrationCertificate::try_from(payload)
                 .unwrap()
-                .validate_binding_and_time(&access_subject, validation_time()),
+                .validate_binding(&access_subject),
             Err(
                 RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
                     registration: SubjectType::LegalPerson,
@@ -661,7 +665,7 @@ mod tests {
         valid.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 0).unwrap());
         ParsedRegistrationCertificate::try_from(valid)
             .unwrap()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), now)
+            .validate_expiry(now)
             .unwrap();
 
         let mut too_late = valid_payload();
@@ -678,7 +682,7 @@ mod tests {
         assert_matches!(
             ParsedRegistrationCertificate::try_from(expired)
                 .unwrap()
-                .validate_binding_and_time(&legal_person_access_certificate_subject(), now),
+                .validate_expiry(now),
             Err(RegistrationCertificateValidationError::Expired { .. })
         );
     }

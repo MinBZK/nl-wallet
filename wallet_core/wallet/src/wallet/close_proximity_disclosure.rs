@@ -269,9 +269,9 @@ pub enum CloseProximityDisclosureError {
     #[category(pd)]
     RegistrationCertificateVerification(#[source] RegistrationCertificateEnvelopeError),
 
-    #[error("registration certificate has invalid WRPAC binding or validity")]
+    #[error("registration certificate has invalid WRPAC binding")]
     #[category(pd)]
-    RegistrationCertificateBindingAndTime(#[source] RegistrationCertificateValidationError),
+    RegistrationCertificateBinding(#[source] RegistrationCertificateValidationError),
 
     #[error("unsupported requested document format: {doc_format}")]
     #[category(critical)]
@@ -322,9 +322,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::ReaderCertificateSubject(_)
         | CloseProximityDisclosureError::ReaderCertificateRelyingParty(_)
         | CloseProximityDisclosureError::RegistrationCertificateVerification(_)
-        | CloseProximityDisclosureError::RegistrationCertificateBindingAndTime(_) => {
-            Some(DeviceResponseStatus::GeneralError)
-        }
+        | CloseProximityDisclosureError::RegistrationCertificateBinding(_) => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::DeviceResponseEncoding(_)
@@ -877,8 +875,8 @@ async fn verify_device_request_with_crl(
                 .map_err(CloseProximityDisclosureError::RegistrationCertificateVerification)?;
         let _bound_registration_certificate = verified_registration_certificate
             .into_payload()
-            .validate_binding_and_time(&access_subject, time.generate())
-            .map_err(CloseProximityDisclosureError::RegistrationCertificateBindingAndTime)?;
+            .validate_binding(&access_subject)
+            .map_err(CloseProximityDisclosureError::RegistrationCertificateBinding)?;
 
         // TODO PVW-6052 Validate status and authorization for this ItemsRequest.
     }
@@ -1719,10 +1717,12 @@ mod tests {
     #[rstest]
     #[case::mismatching_identifier(
         |payload: &mut RegistrationCertificateFixture| payload.0["sub"] = json!("other-relying-party"),
-        |error: &RegistrationCertificateValidationError| {
-            matches!(error, RegistrationCertificateValidationError::SubjectIdentifierMismatch {
-                field: "organizationIdentifier"
-            })
+        |error: &CloseProximityDisclosureError| {
+            matches!(error, CloseProximityDisclosureError::RegistrationCertificateBinding(
+                RegistrationCertificateValidationError::SubjectIdentifierMismatch {
+                    field: "organizationIdentifier"
+                }
+            ))
         }
     )]
     #[case::mismatching_subject_type(
@@ -1731,11 +1731,13 @@ mod tests {
             payload.0["sub_gn"] = json!("Test");
             payload.0["sub_fn"] = json!("Person");
         },
-        |error: &RegistrationCertificateValidationError| {
-            matches!(error, RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
-                registration: SubjectType::NaturalPerson,
-                access: SubjectType::LegalPerson,
-            })
+        |error: &CloseProximityDisclosureError| {
+            matches!(error, CloseProximityDisclosureError::RegistrationCertificateBinding(
+                RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
+                    registration: SubjectType::NaturalPerson,
+                    access: SubjectType::LegalPerson,
+                }
+            ))
         }
     )]
     #[case::expired(
@@ -1744,15 +1746,17 @@ mod tests {
             payload.0["iat"] = json!(now - 120);
             payload.0["exp"] = json!(now - 60);
         },
-        |error: &RegistrationCertificateValidationError| {
-            matches!(error, RegistrationCertificateValidationError::Expired { .. })
+        |error: &CloseProximityDisclosureError| {
+            matches!(error, CloseProximityDisclosureError::RegistrationCertificateVerification(
+                RegistrationCertificateEnvelopeError::Validity(RegistrationCertificateValidationError::Expired { .. })
+            ))
         }
     )]
     #[tokio::test]
     #[serial(MockCloseProximityDisclosureClient)]
-    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_binding_and_time_error(
+    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_validation_error(
         #[case] modify_payload: fn(&mut RegistrationCertificateFixture),
-        #[case] matches_error: fn(&RegistrationCertificateValidationError) -> bool,
+        #[case] matches_error: fn(&CloseProximityDisclosureError) -> bool,
     ) {
         let mut payload = registration_certificate_payload();
         modify_payload(&mut payload);
@@ -1765,9 +1769,7 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::CloseProximityDisclosureSessionError(
-                CloseProximityDisclosureError::RegistrationCertificateBindingAndTime(error)
-            ) if matches_error(&error)
+            DisclosureError::CloseProximityDisclosureSessionError(error) if matches_error(&error)
         );
     }
 

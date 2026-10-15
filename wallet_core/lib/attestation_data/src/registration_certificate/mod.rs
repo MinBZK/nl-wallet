@@ -35,9 +35,6 @@ pub mod mock;
 mod test {
     use std::fmt;
 
-    use chrono::DateTime;
-    use chrono::TimeZone;
-    use chrono::Utc;
     use crypto::x509::DistinguishedName;
     use serde_json::Value;
     use serde_json::json;
@@ -93,9 +90,5 @@ mod test {
 
     pub(super) fn valid_payload() -> UncheckedRegistrationCertificate {
         serde_json::from_value(valid_payload_json()).unwrap()
-    }
-
-    pub(super) fn validation_time() -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(2023, 5, 3, 0, 0, 0).unwrap()
     }
 }

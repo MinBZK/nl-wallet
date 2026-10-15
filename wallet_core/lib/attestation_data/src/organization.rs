@@ -161,7 +161,6 @@ pub mod test {
     use rstest::rstest;
     use serde_json::json;
     use token_status_list::verification::verifier::RevocationVerifier;
-    use utils::generator::Generator;
     use utils::generator::TimeGenerator;
 
     use super::Organization;
@@ -250,7 +249,7 @@ pub mod test {
             .into_payload();
         let relying_party = RelyingParty::try_from(access_key.certificate().to_distinguished_name().unwrap()).unwrap();
         let certificate = payload
-            .validate_binding_and_time(&relying_party, TimeGenerator.generate())
+            .validate_binding(&relying_party)
             .unwrap()
             .validate_status(
                 &RevocationVerifier::new_with_defaults(Arc::new(authority.status_list_client), TimeGenerator),
