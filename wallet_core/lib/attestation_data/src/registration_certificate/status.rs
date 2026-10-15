@@ -3,7 +3,6 @@ use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CanonicalDistinguishedName;
 use serde::Deserialize;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -68,14 +67,10 @@ impl TryFrom<StatusWireFormat> for StatusListClaim {
 
 impl BoundRegistrationCertificate {
     /// Verifies the referenced status-list token using the registration-certificate trust anchors.
-    ///
-    /// The signing-certificate distinguished name must come from the already verified registration-certificate
-    /// envelope. The status-list signer is required to have the same distinguished name.
     pub async fn validate_status<C>(
         self,
         revocation_verifier: &RevocationVerifier<C>,
         registration_certificate_trust_anchors: &TrustAnchors,
-        registration_certificate_signing_certificate_dn: CanonicalDistinguishedName,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusValidatedRegistrationCertificate, RegistrationCertificateStatusValidationError>
     where
@@ -84,7 +79,6 @@ impl BoundRegistrationCertificate {
         let status = revocation_verifier
             .verify(
                 registration_certificate_trust_anchors,
-                registration_certificate_signing_certificate_dn,
                 StatusClaim::StatusList(self.payload().status.clone()),
                 time,
             )
@@ -136,7 +130,6 @@ mod tests {
     use attestation_types::status_claim::StatusListClaim;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::CanonicalDistinguishedName;
     use jwt::error::JwtParseError;
     use rstest::rstest;
     use serde_json::Value;
@@ -173,14 +166,12 @@ mod tests {
     struct StatusValidationContext {
         verifier: RevocationVerifier<StaticStatusListClient>,
         trust_anchors: TrustAnchors,
-        signing_certificate_dn: CanonicalDistinguishedName,
         time: MockTimeGenerator,
     }
 
     async fn status_validation_context(status: StatusType, status_list_length: usize) -> StatusValidationContext {
         let ca = Ca::generate_mock();
         let status_list_signer = ca.generate_issuer_status_list_mock().unwrap();
-        let registration_certificate_signer = ca.generate_issuer_mock().unwrap();
         let mut status_list = StatusList::new(status_list_length);
         if status != StatusType::Valid {
             assert_eq!(status_list.insert(0, status), None);
@@ -200,10 +191,6 @@ mod tests {
                 time.clone(),
             ),
             trust_anchors: ca.to_trust_anchors(),
-            signing_certificate_dn: registration_certificate_signer
-                .certificate()
-                .to_canonical_distinguished_name()
-                .unwrap(),
             time,
         }
     }
@@ -240,12 +227,7 @@ mod tests {
         let result = payload
             .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
-            .validate_status(
-                &context.verifier,
-                &context.trust_anchors,
-                context.signing_certificate_dn,
-                &context.time,
-            )
+            .validate_status(&context.verifier, &context.trust_anchors, &context.time)
             .await;
 
         assert_matches!(result, Err(RegistrationCertificateStatusValidationError::NotValid));
@@ -257,12 +239,7 @@ mod tests {
         let certificate = valid_parsed_payload()
             .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
-            .validate_status(
-                &context.verifier,
-                &context.trust_anchors,
-                context.signing_certificate_dn,
-                &context.time,
-            )
+            .validate_status(&context.verifier, &context.trust_anchors, &context.time)
             .await
             .unwrap();
 
@@ -289,15 +266,7 @@ mod tests {
         let result = valid_parsed_payload()
             .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
-            .validate_status(
-                &verifier,
-                &ca.to_trust_anchors(),
-                registration_certificate_signer
-                    .certificate()
-                    .to_canonical_distinguished_name()
-                    .unwrap(),
-                &time,
-            )
+            .validate_status(&verifier, &ca.to_trust_anchors(), &time)
             .await;
 
         assert_matches!(result, Ok(_));
@@ -309,12 +278,7 @@ mod tests {
         let result = valid_parsed_payload()
             .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
-            .validate_status(
-                &context.verifier,
-                &context.trust_anchors,
-                context.signing_certificate_dn,
-                &context.time,
-            )
+            .validate_status(&context.verifier, &context.trust_anchors, &context.time)
             .await;
 
         assert_matches!(result, Err(RegistrationCertificateStatusValidationError::NotValid));
@@ -329,12 +293,7 @@ mod tests {
         let result = payload
             .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
-            .validate_status(
-                &context.verifier,
-                &context.trust_anchors,
-                context.signing_certificate_dn,
-                &context.time,
-            )
+            .validate_status(&context.verifier, &context.trust_anchors, &context.time)
             .await;
 
         assert_matches!(
@@ -350,12 +309,7 @@ mod tests {
         let result = valid_parsed_payload()
             .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
-            .validate_status(
-                &context.verifier,
-                &untrusted_ca.to_trust_anchors(),
-                context.signing_certificate_dn,
-                &context.time,
-            )
+            .validate_status(&context.verifier, &untrusted_ca.to_trust_anchors(), &context.time)
             .await;
 
         assert_matches!(
@@ -377,12 +331,7 @@ mod tests {
         let result = valid_parsed_payload()
             .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
             .unwrap()
-            .validate_status(
-                &verifier,
-                &context.trust_anchors,
-                context.signing_certificate_dn,
-                &context.time,
-            )
+            .validate_status(&verifier, &context.trust_anchors, &context.time)
             .await;
 
         assert_matches!(result, Err(RegistrationCertificateStatusValidationError::Undetermined));

@@ -326,18 +326,13 @@ mod tests {
         let revocation_id_2 = Uuid::new_v4();
 
         let test_revocation_info = vec![
-            RevocationInfo::new(
-                revocation_id_1,
-                StatusClaim::new_mock(),
-                keypair.certificate().to_canonical_distinguished_name().unwrap(),
-            ),
+            RevocationInfo::new(revocation_id_1, StatusClaim::new_mock()),
             RevocationInfo::new(
                 revocation_id_2,
                 StatusClaim::StatusList(StatusListClaim {
                     idx: 3,
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                 }),
-                keypair.certificate().to_canonical_distinguished_name().unwrap(),
             ),
         ];
 

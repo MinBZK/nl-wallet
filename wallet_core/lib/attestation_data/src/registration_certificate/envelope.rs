@@ -7,8 +7,6 @@ use chrono::Utc;
 use cose::wrprc_cwt::UnverifiedWrprcCwt;
 use cose::wrprc_cwt::WrprcCwtError;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CanocalizationError;
-use crypto::x509::CanonicalDistinguishedName;
 use jwt::DEFAULT_VALIDATION;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtParseError;
@@ -45,8 +43,6 @@ pub enum RegistrationCertificateEnvelopeError {
     Jwt(#[source] JwtX5cVerifyError),
     #[error("could not verify registration certificate CWT: {0}")]
     Cwt(#[source] WrprcCwtError),
-    #[error("could not parse registration-certificate signing-certificate subject: {0}")]
-    SigningCertificateSubject(#[source] CanocalizationError),
 }
 
 /// A registration certificate in JWT or CWT form, with an encoded, unparsed payload.
@@ -125,16 +121,11 @@ impl RegistrationCertificateEnvelope {
 /// satisfies its intrinsic rules. WRPAC binding, current validity, status, and query authorization are separate checks.
 pub struct VerifiedRegistrationCertificateEnvelope {
     payload: ParsedRegistrationCertificate,
-    signing_certificate_dn: CanonicalDistinguishedName,
 }
 
 impl VerifiedRegistrationCertificateEnvelope {
     pub fn into_payload(self) -> ParsedRegistrationCertificate {
         self.payload
-    }
-
-    pub fn into_parts(self) -> (ParsedRegistrationCertificate, CanonicalDistinguishedName) {
-        (self.payload, self.signing_certificate_dn)
     }
 }
 
@@ -144,35 +135,18 @@ pub fn verify_registration_certificate_envelope(
     trust_anchors: &TrustAnchors,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<VerifiedRegistrationCertificateEnvelope, RegistrationCertificateEnvelopeError> {
-    let (payload, signing_certificate_dn) = match registration_certificate.clone() {
+    let payload = match registration_certificate.clone() {
         RegistrationCertificateEnvelope::Jwt(unverified) => {
-            let (header, payload) = unverified
+            let (_, payload) = unverified
                 .parse_and_verify_against_trust_anchors(trust_anchors, time, None, DEFAULT_VALIDATION.to_owned())
                 .map_err(RegistrationCertificateEnvelopeError::Jwt)?;
-            let signing_certificate_dn = header
-                .x5c
-                .first()
-                .to_canonical_distinguished_name()
-                .map_err(RegistrationCertificateEnvelopeError::SigningCertificateSubject)?;
-            (payload, signing_certificate_dn)
+            payload
         }
-        RegistrationCertificateEnvelope::Cwt(unverified) => {
-            let verified = (*unverified)
-                .into_verified_against_trust_anchors(trust_anchors, time, None)
-                .map_err(RegistrationCertificateEnvelopeError::Cwt)?;
-            let signing_certificate_dn = verified
-                .header()
-                .x5chain
-                .first()
-                .to_canonical_distinguished_name()
-                .map_err(RegistrationCertificateEnvelopeError::SigningCertificateSubject)?;
-
-            (verified.into_payload(), signing_certificate_dn)
-        }
+        RegistrationCertificateEnvelope::Cwt(unverified) => (*unverified)
+            .into_verified_against_trust_anchors(trust_anchors, time, None)
+            .map_err(RegistrationCertificateEnvelopeError::Cwt)?
+            .into_payload(),
     };
 
-    Ok(VerifiedRegistrationCertificateEnvelope {
-        payload,
-        signing_certificate_dn,
-    })
+    Ok(VerifiedRegistrationCertificateEnvelope { payload })
 }

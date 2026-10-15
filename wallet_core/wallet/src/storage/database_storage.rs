@@ -3379,10 +3379,6 @@ pub(crate) mod tests {
 
         let revocation_info = revocation_info.first().unwrap();
         assert_eq!(StatusClaim::new_mock(), revocation_info.status_claim);
-        assert_eq!(
-            ISSUER_KEY.certificate().to_canonical_distinguished_name().unwrap(),
-            revocation_info.issuer_cert_distinguished_name
-        );
 
         assert_eq!(
             None,

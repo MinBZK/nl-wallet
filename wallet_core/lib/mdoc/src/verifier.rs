@@ -391,14 +391,7 @@ impl Document {
         let revocation_status = match &mso.status {
             Some(MdocStatus::StatusList(status_list_claim)) => {
                 let revocation_status = revocation_verifier
-                    .verify(
-                        trust_anchors,
-                        issuer_certificate
-                            .to_canonical_distinguished_name()
-                            .map_err(Error::CanocalizationError)?,
-                        StatusClaim::StatusList(status_list_claim.clone()),
-                        time,
-                    )
+                    .verify(trust_anchors, StatusClaim::StatusList(status_list_claim.clone()), time)
                     .await;
                 Some(revocation_status)
             }
