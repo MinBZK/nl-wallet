@@ -66,7 +66,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     fun viewSharedData(count: String, cardTitle: String) {
         val title = l10n.getString("sharedAttributesCardTitle").replace("{count}", count).replace("{cardTitle}", cardTitle)
-        clickElementContainingText(title)
+        scrollToElementContainingText(title).click()
     }
 
     fun bsnVisible(bsn: String) = elementContainingTextVisible(bsn)

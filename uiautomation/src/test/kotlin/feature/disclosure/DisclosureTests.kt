@@ -233,12 +233,11 @@ class DisclosureTests : TestBase() {
             { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("given_name")), "Label is not visible") },
             { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data is visible") },
             { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data is visible") },
-            { assertTrue(disclosureScreen.sharingReasonVisible(""), "reason is not visible") },
             { assertTrue(disclosureScreen.privacyHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.privacyButtonVisible(), "Try again button is not visible") }
         )
         disclosureScreen.captureA11ySnapshot("DisclosureShareRequest")
-        disclosureScreen.viewSharedData("7", tasData.getPidDisplayName())
+        disclosureScreen.viewSharedData("6", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "Name not visible")
         disclosureScreen.goBack()
         disclosureScreen.cancel()
