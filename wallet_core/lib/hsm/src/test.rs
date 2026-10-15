@@ -17,7 +17,7 @@ use crypto::aes_siv::test::test_aes_ctr;
 use crypto::aes_siv::test::test_aes_siv_decrypt;
 use crypto::aes_siv::test::test_aes_siv_encrypt;
 use crypto::utils::random_bytes;
-use crypto::utils::sha256_array;
+use crypto::utils::sha256;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
@@ -326,7 +326,7 @@ impl<H> TestCase<H> {
         // Sign the SHA-256 digest of a message, so that the signature verifies as a normal ECDSA signature
         // over the message itself.
         let message = random_bytes(32);
-        let signature = Pkcs11Client::sign_wrapped(hsm, &identifier, wrapped, sha256_array(&message))
+        let signature = Pkcs11Client::sign_wrapped(hsm, &identifier, wrapped, sha256(&message))
             .await
             .unwrap();
 

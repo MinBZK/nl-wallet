@@ -8,7 +8,7 @@ use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::p256_der::DerSignature;
-use crypto::utils::sha256_array;
+use crypto::utils::sha256;
 use futures::future;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
@@ -1417,11 +1417,7 @@ where
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         // `sign_wrapped()` signs its input as is, so hash the message first to compute a normal ECDSA signature.
         self.hsm
-            .sign_wrapped(
-                &self.wrapping_key_identifier,
-                self.wrapped_key.clone(),
-                sha256_array(msg),
-            )
+            .sign_wrapped(&self.wrapping_key_identifier, self.wrapped_key.clone(), sha256(msg))
             .await
     }
 }
@@ -1442,7 +1438,7 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
-    use crypto::utils::sha256_array;
+    use crypto::utils::sha256;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::model::wrapped_key::WrappedKey;
     use hsm::service::HsmError;
@@ -1603,11 +1599,8 @@ mod tests {
         let random_msg_2 = random_bytes(32);
         let instruction = Sign {
             messages_with_identifiers: vec![
-                (
-                    sha256_array(&random_msg_1),
-                    vec!["key1".to_string(), "key2".to_string()],
-                ),
-                (sha256_array(&random_msg_2), vec!["key2".to_string()]),
+                (sha256(&random_msg_1), vec!["key1".to_string(), "key2".to_string()]),
+                (sha256(&random_msg_2), vec!["key2".to_string()]),
             ],
             poa_nonce: poa_nonce.clone(),
             poa_aud: poa_aud.clone(),

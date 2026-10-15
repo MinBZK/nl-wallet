@@ -5,7 +5,7 @@ use std::num::NonZeroU8;
 use crypto::WithVerifyingKey;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::p256_der::DerSignature;
-use crypto::utils::sha256_array;
+use crypto::utils::sha256;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
@@ -104,7 +104,7 @@ where
                     .into_iter()
                     .map(|(message, keys)| {
                         let identifiers = keys.into_iter().map(|key| key.identifier.clone()).collect();
-                        (sha256_array(&message), identifiers)
+                        (sha256(&message), identifiers)
                     })
                     .collect(),
                 poa_aud: poa_input.aud,

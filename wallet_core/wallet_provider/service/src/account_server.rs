@@ -837,7 +837,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                         AndroidAppAttestationError::DecodeIntegrityToken
                     })?;
 
-                let request_hash = BASE64_STANDARD.encode(&challenge_hash);
+                let request_hash = BASE64_STANDARD.encode(challenge_hash);
 
                 #[cfg(feature = "spoof_integrity_verdict_hash")]
                 let integrity_verdict = {
@@ -2402,7 +2402,7 @@ mod tests {
             .await
             .expect("Could not get registration challenge");
 
-        let challenge_hash = crypto::utils::sha256(&challenge);
+        let challenge_hash = crypto::utils::sha256_into_vec(&challenge);
         let (registration_message, hw_privkey) = match attestation_ca {
             AttestationCa::Apple(apple_mock_ca) => {
                 let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(

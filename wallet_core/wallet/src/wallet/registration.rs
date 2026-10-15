@@ -218,7 +218,7 @@ where
             .key_holder
             .attest(
                 key_identifier.clone(),
-                crypto::utils::sha256(&challenge),
+                crypto::utils::sha256_into_vec(&challenge),
                 config.google_cloud_project_number,
             )
             .await;
