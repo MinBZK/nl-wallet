@@ -12,7 +12,13 @@
   "issuance_server": [
     {
       "format": "dc+sd-jwt",
-      "meta": { "vct_values": ["com.example.degree", "com.example.housing"] }
+      "meta": {
+        "vct_values": [
+          "com.example.degree",
+          "com.example.housing",
+          "https://www.dezi.nl/vct/v1/deziVerklaringDcSdJwt"
+        ]
+      }
     }
   ],
   "acf_demo_issuer": [
