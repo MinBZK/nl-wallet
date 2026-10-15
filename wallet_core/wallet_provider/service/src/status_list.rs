@@ -262,17 +262,17 @@ mod tests {
         let public_uri = "https://example.com/tsl".parse::<Url>().unwrap();
         let token_expiry = Duration::from_hours(1);
 
-        let solution_status_list =
+        let key_storage_status_list =
             KeyStorageStatusList::try_new(public_uri.clone(), token_expiry, key_pair.clone(), wallet_flags.clone())
                 .unwrap();
 
         // Fetching the `StatusListToken` initially should result in a valid status, as the Wallet Solution has not
         // been revoked.
-        let first_token = solution_status_list
+        let first_token = key_storage_status_list
             .status_list_token(&time)
             .now_or_never()
             .unwrap()
-            .expect("retrieving token status list from solution revoked status list should succeed");
+            .expect("retrieving token status list from key storage status list should succeed");
 
         assert_eq!(
             key_storage_status(
@@ -289,11 +289,11 @@ mod tests {
         // this fits well within the expiration period of 1 hour.
         *time.time.write() += Duration::from_mins(10);
 
-        let second_token = solution_status_list
+        let second_token = key_storage_status_list
             .status_list_token(&time)
             .now_or_never()
             .unwrap()
-            .expect("retrieving token status list from solution revoked status list should succeed");
+            .expect("retrieving token status list from key storage status list should succeed");
 
         assert_eq!(
             first_token.as_ref().serialization(),
@@ -305,11 +305,11 @@ mod tests {
         // valid.
         *time.time.write() += Duration::from_mins(45);
 
-        let third_token = solution_status_list
+        let third_token = key_storage_status_list
             .status_list_token(&time)
             .now_or_never()
             .unwrap()
-            .expect("retrieving token status list from solution revoked status list should succeed");
+            .expect("retrieving token status list from key storage status list should succeed");
 
         assert_ne!(
             first_token.as_ref().serialization(),
@@ -330,11 +330,11 @@ mod tests {
         // After revoking the solution, a `StatusListToken` with an invalid status should be returned instead.
         wallet_flags.set_solution_revoked().now_or_never().unwrap().unwrap();
 
-        let fourth_token = solution_status_list
+        let fourth_token = key_storage_status_list
             .status_list_token(&time)
             .now_or_never()
             .unwrap()
-            .expect("retrieving token status list from solution revoked status list should succeed");
+            .expect("retrieving token status list from key storage status list should succeed");
 
         assert_eq!(
             key_storage_status(
