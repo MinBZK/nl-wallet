@@ -79,8 +79,6 @@ pub enum CredentialSetValidationError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateValidationError {
-    #[error("registration certificate has no `id`")]
-    MissingId,
     #[error("status must use the direct object shape with `idx` encoded as a numeric string")]
     InvalidStatusWireFormat,
     #[error("field `{field}` must not be empty")]
@@ -184,11 +182,6 @@ fn validate_credential_set(value: &[Credential]) -> Result<(), CredentialSetVali
 
 impl UncheckedRegistrationCertificate {
     pub(super) fn parse_structure(&self) -> Result<Subject, RegistrationCertificateValidationError> {
-        let id = self
-            .id
-            .as_deref()
-            .ok_or(RegistrationCertificateValidationError::MissingId)?;
-        validate_non_empty("id", id)?;
         if !self.status.has_normative_input_format() {
             return Err(RegistrationCertificateValidationError::InvalidStatusWireFormat);
         }
@@ -838,13 +831,6 @@ mod tests {
 
     #[test]
     fn reject_invalid_core_values() {
-        let mut invalid_id = valid_payload();
-        invalid_id.id = Some("  ".to_string());
-        assert_matches!(
-            ParsedRegistrationCertificate::try_from(invalid_id),
-            Err(RegistrationCertificateValidationError::EmptyField { field: "id" })
-        );
-
         let mut invalid_name = valid_payload();
         invalid_name.name = Some("  ".to_string());
         assert_matches!(
