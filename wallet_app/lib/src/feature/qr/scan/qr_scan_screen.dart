@@ -22,36 +22,30 @@ class QrScanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The no-permission page is a regular page with its own back button, so it
+    // should not sit behind the translucent camera overlay app bar.
+    final showsCamera = context.select<QrScanBloc, bool>((bloc) => bloc.state is! QrScanNoPermission);
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: _buildTransparentAppBar(context),
+      extendBodyBehindAppBar: showsCamera,
+      appBar: _buildAppBar(translucent: showsCamera),
       body: Column(
         children: [
           Expanded(child: _buildBody(context)),
-          const SafeArea(top: false, child: BottomBackButton()),
+          if (showsCamera) const SafeArea(top: false, child: BottomBackButton()),
         ],
       ),
     );
   }
 
-  PreferredSize _buildTransparentAppBar(BuildContext context) {
-    final appBar = WalletAppBar(
-      actions: [
-        if (context.select<QrScanBloc, bool>((bloc) => _showHelpIcon(bloc.state))) const HelpIconButton(),
-      ],
+  PreferredSize _buildAppBar({required bool translucent}) {
+    const appBar = WalletAppBar(
+      actions: [HelpIconButton()],
       fadeInTitleOnScroll: false,
     );
     return PreferredSize(
       preferredSize: appBar.preferredSize,
-      child: Opacity(opacity: 0.9, child: appBar),
+      child: Opacity(opacity: translucent ? 0.9 : 1, child: appBar),
     );
-  }
-
-  bool _showHelpIcon(QrScanState state) {
-    return switch (state) {
-      QrScanNoPermission() => false,
-      _ => true,
-    };
   }
 
   Widget _buildBody(BuildContext context) {
