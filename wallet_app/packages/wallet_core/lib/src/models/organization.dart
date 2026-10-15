@@ -15,9 +15,9 @@ class Organization {
   final String? privacyPolicyUrl;
   final String identifier;
   final String countryCode;
-  final String? supportUri;
+  final String supportUri;
   final bool? publicBody;
-  final PersonType? personType;
+  final PersonType personType;
 
   const Organization({
     required this.legalName,
@@ -27,9 +27,9 @@ class Organization {
     this.privacyPolicyUrl,
     required this.identifier,
     required this.countryCode,
-    this.supportUri,
+    required this.supportUri,
     this.publicBody,
-    this.personType,
+    required this.personType,
   });
 
   @override
