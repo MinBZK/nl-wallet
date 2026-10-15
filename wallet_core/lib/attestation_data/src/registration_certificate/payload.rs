@@ -4,8 +4,11 @@ use dcql::ClaimsQuery;
 use dcql::CredentialQueryFormat;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::FromInto;
+use serde_with::serde_as;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use super::status::RegistrationCertificateStatus;
 use super::validation::RegistrationCertificateValidationError;
@@ -19,6 +22,24 @@ pub struct MultiLanguageString {
 }
 
 pub type MultiLanguageStringSet = VecNonEmpty<MultiLanguageString>;
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum ServiceDescriptionsWireFormat {
+    Nested(VecNonEmpty<MultiLanguageStringSet>),
+    Flat(MultiLanguageStringSet),
+}
+
+/// ETSI TS 119 475 Annex B models this as an array of arrays, while the EUDI reference implementation sends a single
+/// array of objects. Both forms are accepted and normalized to the nested ETSI representation.
+impl From<ServiceDescriptionsWireFormat> for VecNonEmpty<MultiLanguageStringSet> {
+    fn from(descriptions: ServiceDescriptionsWireFormat) -> Self {
+        match descriptions {
+            ServiceDescriptionsWireFormat::Nested(descriptions) => descriptions,
+            ServiceDescriptionsWireFormat::Flat(description) => vec_nonempty![description],
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Credential {
@@ -44,6 +65,7 @@ pub struct Intermediary {
 }
 
 /// Wire representation; deserialize into [`ParsedRegistrationCertificate`] before using the payload.
+#[serde_as]
 #[derive(Deserialize)]
 pub struct UncheckedRegistrationCertificate {
     /// Optional in this wire representation because Annex C omits it; constructing a parsed payload requires it.
@@ -58,6 +80,7 @@ pub struct UncheckedRegistrationCertificate {
     pub support_uri: String,
     pub info_uri: Option<Url>,
     pub privacy_policy: Option<Url>,
+    #[serde_as(deserialize_as = "FromInto<ServiceDescriptionsWireFormat>")]
     pub srv_description: VecNonEmpty<MultiLanguageStringSet>,
     pub supervisory_authority: SupervisoryAuthority,
     pub entitlements: VecNonEmpty<Url>,
@@ -197,11 +220,13 @@ mod tests {
     }
 
     #[test]
-    fn reject_flat_service_description() {
+    fn accept_flat_service_description() {
         let mut json = valid_payload_json();
-        json["srv_description"] = json!([{"lang": "en-US", "value": "Service"}]);
+        json["srv_description"] = json!([{"lang": "en", "value": "Service"}, {"lang": "nl", "value": "Dienst"}]);
 
-        assert!(serde_json::from_value::<UncheckedRegistrationCertificate>(json).is_err());
+        let payload: UncheckedRegistrationCertificate = serde_json::from_value(json).unwrap();
+        assert_eq!(payload.srv_description.as_slice().len(), 1);
+        assert_eq!(payload.srv_description[0].as_slice().len(), 2);
     }
 
     #[test]
