@@ -58,7 +58,7 @@ impl<K, F> KeyStorageStatusList<K, F> {
     ///
     /// 1. It is the first time this method is called and the cache is empty.
     /// 2. The Wallet Solution's revocation status has changed since the cached value was signed.
-    /// 2. The cached token is about to expire.
+    /// 3. The cached token is about to expire.
     pub async fn status_list_token(&self, time: &impl Generator<DateTime<Utc>>) -> Result<StatusListToken, JwtSignError>
     where
         K: EcdsaKey,
