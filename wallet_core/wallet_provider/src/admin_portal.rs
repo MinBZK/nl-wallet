@@ -17,6 +17,7 @@ use axum::extract::FromRequestParts;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
+use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
 use axum::http::request::Parts;
 use axum::response::IntoResponse;
@@ -64,6 +65,7 @@ const SESSION_ID_COOKIE: &str = "sid";
 /// Failure of a `/tasks` endpoint, mapped to the matching HTTP status code.
 #[derive(Debug)]
 enum TaskApiError {
+    InvalidRequest(JsonRejection),
     Create(CreateTaskError),
     Withdraw(WithdrawTaskError),
     Review(ReviewTaskError),
@@ -74,9 +76,8 @@ impl IntoResponse for TaskApiError {
     fn into_response(self) -> Response {
         warn!("task endpoint failed: {self:?}");
         let status = match self {
-            Self::Create(CreateTaskError::UnknownTaskType(_) | CreateTaskError::InvalidTaskParameters(_)) => {
-                StatusCode::BAD_REQUEST
-            }
+            // Report why the request could not be parsed, e.g. an unknown task type or invalid task parameters.
+            Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
             Self::Create(CreateTaskError::MissingPrivilege(_)) | Self::Review(ReviewTaskError::MissingPrivilege(_)) => {
                 StatusCode::FORBIDDEN
             }
@@ -333,9 +334,8 @@ where
 #[cfg_attr(feature = "web_test", derive(Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateTaskRequest {
-    pub task_type: String,
-    #[serde(default = "serde_json::Map::new")]
-    pub task_parameters: serde_json::Map<String, serde_json::Value>,
+    #[serde(flatten)]
+    pub payload: TaskPayload,
     pub task_reason: String,
 }
 
@@ -390,21 +390,16 @@ impl From<AdminTask> for TaskResponse {
 async fn create_task<R, AR>(
     State(state): State<Arc<AdminPortalState<R, AR>>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
-    Json(payload): Json<CreateTaskRequest>,
+    request: Result<Json<CreateTaskRequest>, JsonRejection>,
 ) -> Result<impl IntoResponse, TaskApiError>
 where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
     AR: AuditLogRepository + Send + Sync + 'static,
 {
+    let Json(request) = request.map_err(TaskApiError::InvalidRequest)?;
     let task = state
         .tasks
-        .create_task(
-            &payload.task_type,
-            &JsonValue::Object(payload.task_parameters),
-            &payload.task_reason,
-            &user,
-            &state.audit_log,
-        )
+        .create_task(&request.payload, &request.task_reason, &user, &state.audit_log)
         .await
         .map_err(TaskApiError::Create)?;
 
@@ -496,6 +491,7 @@ mod tests {
     use crypto::utils::random_string;
     use http_utils::reqwest::test::get_test_trust_anchor;
     use serde_json::Value;
+    use serde_json::json;
     use tower::ServiceExt;
     use utils::generator::TimeGenerator;
     use utils::vec_nonempty;
@@ -1158,6 +1154,48 @@ mod tests {
                 .unwrap();
             assert_eq!(app.oneshot(request).await.unwrap().status(), StatusCode::CONFLICT);
         }
+    }
+
+    async fn create_task_from_body(body: Value) -> Response {
+        create_task(
+            State(setup_state()),
+            AuthenticatedAdminUser(with_privilege(&ALICE, TaskType::RevokeWallet)),
+            Json::from_bytes(&serde_json::to_vec(&body).unwrap()),
+        )
+        .await
+        .into_response()
+    }
+
+    #[tokio::test]
+    async fn create_task_returns_created_task() {
+        let body = json!({
+            "taskType": "revoke_wallet",
+            "taskParameters": {"walletIds": ["wallet-1"]},
+            "taskReason": "reason",
+        });
+
+        let response = create_task_from_body(body).await;
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let task: Value = json_body(response).await;
+        assert_eq!(task["taskType"], "revoke_wallet");
+        assert_eq!(task["taskParameters"], json!({"walletIds": ["wallet-1"]}));
+        assert_eq!(task["taskReason"], "reason");
+        assert_eq!(task["status"], "created");
+    }
+
+    #[rstest::rstest]
+    #[case::unknown_task_type(json!({"taskType": "unknown", "taskParameters": {}, "taskReason": "reason"}))]
+    #[case::invalid_task_parameters(
+        json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": []}, "taskReason": "reason"})
+    )]
+    #[case::missing_task_reason(json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1"]}}))]
+    #[case::not_an_object(json!("revoke_wallet"))]
+    #[tokio::test]
+    async fn create_task_rejects_invalid_request_with_bad_request(#[case] body: Value) {
+        let response = create_task_from_body(body).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]

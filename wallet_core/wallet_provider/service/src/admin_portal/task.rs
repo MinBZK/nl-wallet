@@ -5,7 +5,6 @@ use audit_log::model::AuditLog;
 use audit_log::model::FromAuditLogError;
 use chrono::DateTime;
 use chrono::Utc;
-use serde_json::Value as JsonValue;
 use utils::generator::Generator;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
@@ -23,12 +22,8 @@ use super::LoggedInUser;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateTaskError {
-    #[error("unknown task type: {0}")]
-    UnknownTaskType(String),
     #[error("missing privilege for task type {0}")]
     MissingPrivilege(TaskType),
-    #[error("invalid task parameters: {0}")]
-    InvalidTaskParameters(#[source] serde_json::Error),
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
     #[error("error while auditing: {0}")]
@@ -126,22 +121,15 @@ where
     #[audited]
     pub async fn create_task(
         &self,
-        #[audit] task_type: &str,
-        #[audit] task_parameters: &JsonValue,
+        #[audit] payload: &TaskPayload,
         #[audit] task_reason: &str,
         #[audit_user] user: &LoggedInUser,
         #[auditor] audit_log: &impl AuditLog,
     ) -> Result<AdminTask, CreateTaskError> {
-        let parsed_task_type: TaskType = task_type
-            .parse()
-            .map_err(|_| CreateTaskError::UnknownTaskType(task_type.to_string()))?;
-
-        if !user.authorized_task_types().contains(&parsed_task_type) {
-            return Err(CreateTaskError::MissingPrivilege(parsed_task_type));
+        let task_type = payload.task_type();
+        if !user.authorized_task_types().contains(&task_type) {
+            return Err(CreateTaskError::MissingPrivilege(task_type));
         }
-
-        let payload = TaskPayload::from_parts(parsed_task_type, task_parameters.clone())
-            .map_err(CreateTaskError::InvalidTaskParameters)?;
 
         let task = self
             .repository
@@ -150,7 +138,7 @@ where
                 created_at: self.time.generate(),
                 created_by_user_id: user.user_id.clone(),
                 created_by_display_name: user.display_name.clone(),
-                payload,
+                payload: payload.clone(),
                 task_reason: task_reason.to_string(),
             })
             .await
@@ -270,7 +258,6 @@ mod tests {
     use audit_log::model::mock::MockAuditLog;
     use chrono::DateTime;
     use chrono::Utc;
-    use serde_json::json;
     use utils::vec_nonempty;
     use uuid::Uuid;
     use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
@@ -353,30 +340,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn create_task_rejects_unknown_task_type() {
-        let repository = MockAdminTaskRepository::new();
-
-        let result = service_with_id(repository, Utc::now(), Uuid::new_v4())
-            .create_task(
-                "not_a_real_task_type",
-                &json!({}),
-                "reason",
-                &user("user-1", &[TaskType::RevokeWallet]),
-                &MockAuditLog,
-            )
-            .await;
-
-        assert_matches!(result, Err(CreateTaskError::UnknownTaskType(t)) if t == "not_a_real_task_type");
-    }
-
-    #[tokio::test]
     async fn create_task_rejects_missing_privilege() {
         let repository = MockAdminTaskRepository::new();
 
         let result = service_with_id(repository, Utc::now(), Uuid::new_v4())
             .create_task(
-                "revoke_wallet",
-                &json!({}),
+                &revoke_wallet_payload(),
                 "reason",
                 &user("user-1", &[TaskType::BlockUser]),
                 &MockAuditLog,
@@ -384,23 +353,6 @@ mod tests {
             .await;
 
         assert_matches!(result, Err(CreateTaskError::MissingPrivilege(TaskType::RevokeWallet)));
-    }
-
-    #[tokio::test]
-    async fn create_task_rejects_invalid_task_parameters() {
-        let repository = MockAdminTaskRepository::new();
-
-        let result = service_with_id(repository, Utc::now(), Uuid::new_v4())
-            .create_task(
-                "revoke_wallet",
-                &json!({"walletIds": []}),
-                "reason",
-                &user("user-1", &[TaskType::RevokeWallet]),
-                &MockAuditLog,
-            )
-            .await;
-
-        assert_matches!(result, Err(CreateTaskError::InvalidTaskParameters(_)));
     }
 
     #[tokio::test]
@@ -428,8 +380,7 @@ mod tests {
 
         let result = service_with_id(repository, now, id)
             .create_task(
-                "revoke_wallet",
-                &json!({"walletIds": ["wallet-1"]}),
+                &revoke_wallet_payload(),
                 "because",
                 &user("user-1", &[TaskType::RevokeWallet]),
                 &MockAuditLog,

@@ -21,7 +21,6 @@ use chrono::Utc;
 use db_test::DbSetup;
 use http_utils::reqwest::test::get_test_trust_anchor;
 use serde::de::DeserializeOwned;
-use serde_json::json;
 use tower::ServiceExt;
 use utils::generator::TimeGenerator;
 use utils::vec_nonempty;
@@ -164,8 +163,7 @@ async fn test_create_task_succeeds() {
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(
             serde_json::to_string(&CreateTaskRequest {
-                task_type: TaskType::RevokeWallet.to_string(),
-                task_parameters: serde_json::Map::from_iter([("walletIds".to_string(), json!(["wallet-1"]))]),
+                payload: revoke_wallet_payload(),
                 task_reason: "integration test".to_string(),
             })
             .unwrap(),
