@@ -7,6 +7,7 @@ use attestation_data::organization::Organization;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
 use attestation_data::registration_certificate::RegistrationCertificateRequestParseError;
+use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
 use attestation_data::registration_certificate::RegistrationCertificateValidationError;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
@@ -52,6 +53,8 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformError;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::verifier::RevocationVerifier;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tracing::error;
@@ -273,6 +276,10 @@ pub enum CloseProximityDisclosureError {
     #[category(pd)]
     RegistrationCertificateBinding(#[source] RegistrationCertificateValidationError),
 
+    #[error("registration certificate status validation failed")]
+    #[category(pd)]
+    RegistrationCertificateStatus(#[source] RegistrationCertificateStatusValidationError),
+
     #[error("unsupported requested document format: {doc_format}")]
     #[category(critical)]
     UnsupportedDocFormat { doc_format: String },
@@ -322,7 +329,8 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::ReaderCertificateSubject(_)
         | CloseProximityDisclosureError::ReaderCertificateRelyingParty(_)
         | CloseProximityDisclosureError::RegistrationCertificateVerification(_)
-        | CloseProximityDisclosureError::RegistrationCertificateBinding(_) => Some(DeviceResponseStatus::GeneralError),
+        | CloseProximityDisclosureError::RegistrationCertificateBinding(_)
+        | CloseProximityDisclosureError::RegistrationCertificateStatus(_) => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::DeviceResponseEncoding(_)
@@ -421,7 +429,10 @@ where
     #[sentry_capture_error]
     pub async fn continue_close_proximity_disclosure(
         &mut self,
-    ) -> Result<DisclosureProposalPresentation, DisclosureError> {
+    ) -> Result<DisclosureProposalPresentation, DisclosureError>
+    where
+        SLC: StatusListClient,
+    {
         info!("Continuing close proximity disclosure");
 
         self.check_session_preconditions()?;
@@ -463,6 +474,7 @@ where
                         wrprc: wallet_config.wrprc_trust_anchors(),
                     },
                     verifier,
+                    &self.status_list_client,
                 )
                 .await
             }
@@ -477,6 +489,7 @@ where
                         wrprc: wallet_config.wrprc_trust_anchors(),
                     },
                     verifier,
+                    &self.status_list_client,
                 )
                 .await
             }
@@ -825,14 +838,15 @@ where
     }
 }
 
-/// Verify reader authentication, WRPRC envelopes, binding and expiry, requiring a valid CRL for the complete WRPAC
-/// chain.
+/// Verify reader authentication, WRPRC envelopes, binding, expiry and status, requiring a valid CRL for the complete
+/// WRPAC chain.
 async fn verify_device_request_with_crl(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
-    time: &impl Generator<DateTime<Utc>>,
+    time: &(impl Generator<DateTime<Utc>> + Clone + Send + Sync + 'static),
     trust_anchors: DisclosureTrustAnchors<'_>,
     crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
+    status_list_client: &Arc<impl StatusListClient>,
 ) -> Result<BorrowingCertificate, CloseProximityDisclosureError> {
     // Verify all `DocRequest` entries in parallel and make sure the resulting certificates are all exactly equal.
     let certificate = try_join_all(device_request.doc_requests.iter().map(
@@ -873,12 +887,18 @@ async fn verify_device_request_with_crl(
         let verified_registration_certificate =
             verify_registration_certificate_envelope(&registration_certificate, trust_anchors.wrprc, time)
                 .map_err(CloseProximityDisclosureError::RegistrationCertificateVerification)?;
-        let _bound_registration_certificate = verified_registration_certificate
-            .into_payload()
+        let (payload, signing_certificate_dn) = verified_registration_certificate.into_parts();
+        let bound_registration_certificate = payload
             .validate_binding(&access_subject)
             .map_err(CloseProximityDisclosureError::RegistrationCertificateBinding)?;
 
-        // TODO PVW-6052 Validate status and authorization for this ItemsRequest.
+        let revocation_verifier = RevocationVerifier::new_with_defaults(Arc::clone(status_list_client), time.clone());
+        let _registration_certificate = bound_registration_certificate
+            .validate_status(&revocation_verifier, trust_anchors.wrprc, signing_certificate_dn, time)
+            .await
+            .map_err(CloseProximityDisclosureError::RegistrationCertificateStatus)?;
+
+        // TODO PVW-6052 Validate authorization for this ItemsRequest.
     }
 
     Ok(certificate)
@@ -923,10 +943,12 @@ mod tests {
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::organization::Organization;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
+    use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
     use attestation_data::registration_certificate::RegistrationCertificateValidationError;
     use attestation_data::registration_certificate::SubjectType;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_data::registration_certificate::mock::RegistrationCertificateFixture;
+    use attestation_data::registration_certificate::mock::STATUS_LIST_URI;
     use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
@@ -950,6 +972,7 @@ mod tests {
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
     use indexmap::IndexMap;
+    use jwt::error::JwtParseError;
     use jwt::nonce::Nonce;
     use mdoc::DeviceEngagement;
     use mdoc::DeviceRequest;
@@ -963,6 +986,7 @@ mod tests {
     use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::cbor_deserialize;
     use mdoc::utils::serialization::cbor_serialize;
+    use mockall::Sequence;
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use openid4vc::disclosure_session::DisclosureTrustAnchors;
@@ -978,6 +1002,12 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
+    use token_status_list::status_list::StatusList;
+    use token_status_list::status_list::StatusType;
+    use token_status_list::status_list_token::StatusListToken;
+    use token_status_list::verification::client::StatusListClientError;
+    use token_status_list::verification::client::mock::MockStatusListClient;
+    use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wallet_account::messages::errors::AccountError;
@@ -1044,6 +1074,15 @@ mod tests {
     fn registration_certificate_payload() -> RegistrationCertificateFixture {
         let reader = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
         verifier_registration_certificate_payload(reader.certificate(), Query::new_mock_mdoc_pid_example())
+    }
+
+    fn registration_certificate_status_list_client() -> Arc<MockStatusListClient> {
+        let mut client = MockStatusListClient::new();
+        client
+            .expect_fetch()
+            .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()))
+            .returning(|_| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone()));
+        Arc::new(client)
     }
 
     fn registration_certificate_request_info() -> IndexMap<String, Value> {
@@ -1369,6 +1408,7 @@ mod tests {
             close_proximity_wallet_configuration(),
         )
         .await;
+        wallet.status_list_client = registration_certificate_status_list_client();
 
         let items_request = pid_given_name_items_request();
 
@@ -1612,6 +1652,7 @@ mod tests {
     async fn assert_registration_certificate_rejected(
         registration_certificate: Option<Value>,
         expected_status: DeviceResponseStatus,
+        status_list_result: Option<Result<StatusListToken, StatusListClientError>>,
     ) -> DisclosureError {
         let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
         send_context
@@ -1641,6 +1682,23 @@ mod tests {
             close_proximity_wallet_configuration(),
         )
         .await;
+        let mut status_list_client = MockStatusListClient::new();
+        let mut sequence = Sequence::new();
+        status_list_client
+            .expect_fetch()
+            .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()))
+            .once()
+            .in_sequence(&mut sequence)
+            .returning(|_| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone()));
+        if let Some(result) = status_list_result {
+            status_list_client
+                .expect_fetch()
+                .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()))
+                .once()
+                .in_sequence(&mut sequence)
+                .return_once(move |_| result);
+        }
+        wallet.status_list_client = Arc::new(status_list_client);
         wallet
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_credential_kinds()
@@ -1666,9 +1724,12 @@ mod tests {
     async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_parse_error(
         #[case] registration_certificate: Option<Value>,
     ) {
-        let error =
-            assert_registration_certificate_rejected(registration_certificate, DeviceResponseStatus::InvalidRequest)
-                .await;
+        let error = assert_registration_certificate_rejected(
+            registration_certificate,
+            DeviceResponseStatus::InvalidRequest,
+            None,
+        )
+        .await;
 
         assert_matches!(
             error,
@@ -1701,6 +1762,7 @@ mod tests {
         let error = assert_registration_certificate_rejected(
             Some(Value::Bytes(certificate)),
             DeviceResponseStatus::GeneralError,
+            None,
         )
         .await;
 
@@ -1764,12 +1826,88 @@ mod tests {
         let error = assert_registration_certificate_rejected(
             Some(Value::Bytes(certificate)),
             DeviceResponseStatus::GeneralError,
+            None,
         )
         .await;
 
         assert_matches!(
             error,
             DisclosureError::CloseProximityDisclosureSessionError(error) if matches_error(&error)
+        );
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    enum RegistrationCertificateStatusFailure {
+        Revoked,
+        Suspended,
+        Unavailable,
+        UntrustedList,
+        OutOfBounds,
+    }
+
+    #[rstest]
+    #[case::revoked(RegistrationCertificateStatusFailure::Revoked)]
+    #[case::suspended(RegistrationCertificateStatusFailure::Suspended)]
+    #[case::unavailable(RegistrationCertificateStatusFailure::Unavailable)]
+    #[case::untrusted_list(RegistrationCertificateStatusFailure::UntrustedList)]
+    #[case::out_of_bounds(RegistrationCertificateStatusFailure::OutOfBounds)]
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_status_error(
+        #[case] failure: RegistrationCertificateStatusFailure,
+    ) {
+        let mut payload = registration_certificate_payload();
+        payload.0["status"]["idx"] = json!(match failure {
+            // The ten-entry fixture is padded to sixteen entries when packed.
+            RegistrationCertificateStatusFailure::OutOfBounds => "16",
+            _ => "1",
+        });
+        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
+        let status_list_result = match failure {
+            RegistrationCertificateStatusFailure::Revoked | RegistrationCertificateStatusFailure::Suspended => {
+                let mut status_list = StatusList::new(10);
+                let status = match failure {
+                    RegistrationCertificateStatusFailure::Revoked => StatusType::Invalid,
+                    _ => StatusType::Suspended,
+                };
+                status_list.insert(1, status);
+                Ok(REGISTRATION_CERTIFICATE_AUTHORITY.sign_status_list(status_list))
+            }
+            RegistrationCertificateStatusFailure::Unavailable => Err(StatusListClientError::JwtParsing(
+                JwtParseError::UnexpectedNumberOfParts(0),
+            )),
+            RegistrationCertificateStatusFailure::UntrustedList => {
+                Ok(MockRegistrationCertificateAuthority::new().status_list_client.0)
+            }
+            RegistrationCertificateStatusFailure::OutOfBounds => {
+                Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone())
+            }
+        };
+        let error = assert_registration_certificate_rejected(
+            Some(Value::Bytes(certificate)),
+            DeviceResponseStatus::GeneralError,
+            Some(status_list_result),
+        )
+        .await;
+
+        let DisclosureError::CloseProximityDisclosureSessionError(
+            CloseProximityDisclosureError::RegistrationCertificateStatus(error),
+        ) = error
+        else {
+            panic!("expected a registration certificate status error");
+        };
+        assert_matches!(
+            (failure, error),
+            (
+                RegistrationCertificateStatusFailure::Revoked | RegistrationCertificateStatusFailure::Suspended,
+                RegistrationCertificateStatusValidationError::NotValid,
+            ) | (
+                RegistrationCertificateStatusFailure::Unavailable,
+                RegistrationCertificateStatusValidationError::Undetermined,
+            ) | (
+                RegistrationCertificateStatusFailure::UntrustedList | RegistrationCertificateStatusFailure::OutOfBounds,
+                RegistrationCertificateStatusValidationError::InvalidStatusListReference,
+            )
         );
     }
 
@@ -1865,6 +2003,7 @@ mod tests {
                 wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
             },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &registration_certificate_status_list_client(),
         )
         .await;
 
@@ -1888,6 +2027,7 @@ mod tests {
                 wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
             },
             &verifier,
+            &registration_certificate_status_list_client(),
         )
         .await;
 
@@ -1930,6 +2070,7 @@ mod tests {
                 wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
             },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &registration_certificate_status_list_client(),
         )
         .await;
 
@@ -1962,6 +2103,7 @@ mod tests {
                 wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
             },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &registration_certificate_status_list_client(),
         )
         .await;
 
@@ -1991,6 +2133,7 @@ mod tests {
                 wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
             },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &registration_certificate_status_list_client(),
         )
         .await;
 
@@ -2017,6 +2160,7 @@ mod tests {
                 wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
             },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &registration_certificate_status_list_client(),
         )
         .await;
 
@@ -2044,6 +2188,7 @@ mod tests {
                 wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
             },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &registration_certificate_status_list_client(),
         )
         .await;
 
@@ -2092,6 +2237,7 @@ mod tests {
                 wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
             },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
+            &registration_certificate_status_list_client(),
         )
         .await;
 

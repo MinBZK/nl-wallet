@@ -266,4 +266,13 @@ impl MockRegistrationCertificateAuthority {
             .to_vec()
             .unwrap()
     }
+
+    pub fn sign_status_list(&self, status_list: StatusList) -> StatusListToken {
+        let signing_key_pair = self.ca.generate_issuer_status_list_mock().unwrap();
+        StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack())
+            .sign(&signing_key_pair)
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+    }
 }
