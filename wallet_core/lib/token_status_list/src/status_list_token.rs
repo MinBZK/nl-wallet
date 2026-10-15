@@ -113,7 +113,6 @@ pub mod verification {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CanocalizationError;
     use crypto::x509::CanonicalDistinguishedName;
-    use crypto::x509::CertificateUsage;
     use jwt::DEFAULT_VALIDATION;
     use jwt::error::JwtX5cVerifyError;
     use url::Url;
@@ -153,10 +152,12 @@ pub mod verification {
             url: Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<StatusListClaims, StatusListTokenVerificationError> {
+            // No extended key usage is required of the signer: neither the Token Status List draft nor ETSI TS 119 475
+            // requires one, and the OID in the draft is not yet assigned.
             let (header, claims) = self.0.parse_and_verify_against_trust_anchors(
                 issuer_trust_anchors,
                 time,
-                Some(CertificateUsage::StatusListSigning),
+                None,
                 DEFAULT_VALIDATION.to_owned(),
             )?;
 
@@ -346,6 +347,23 @@ mod test {
             .parse_and_verify(
                 &ca.to_trust_anchors(),
                 iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                expected_claims.sub,
+                &MockTimeGenerator::default(),
+            )
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_status_list_token_verification_without_status_list_usage() {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_mock().unwrap();
+
+        let (_, expected_claims, signed) = create_status_list_token(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
+
+        signed
+            .parse_and_verify(
+                &ca.to_trust_anchors(),
+                keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 expected_claims.sub,
                 &MockTimeGenerator::default(),
             )

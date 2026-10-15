@@ -270,6 +270,40 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn accept_status_list_signed_without_status_list_usage() {
+        let ca = Ca::generate_mock();
+        let registration_certificate_signer = ca.generate_issuer_mock().unwrap();
+        let status_list_token = StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), StatusList::new(8).pack())
+            .sign(&registration_certificate_signer)
+            .await
+            .unwrap();
+        let time = MockTimeGenerator::default();
+        let verifier = RevocationVerifier::new(
+            Arc::new(StaticStatusListClient(status_list_token)),
+            0,
+            Duration::ZERO,
+            Duration::ZERO,
+            time.clone(),
+        );
+
+        let result = valid_parsed_payload()
+            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .unwrap()
+            .validate_status(
+                &verifier,
+                &ca.to_trust_anchors(),
+                registration_certificate_signer
+                    .certificate()
+                    .to_canonical_distinguished_name()
+                    .unwrap(),
+                &time,
+            )
+            .await;
+
+        assert_matches!(result, Ok(_));
+    }
+
+    #[tokio::test]
     async fn reject_registration_certificate_with_revoked_status() {
         let context = status_validation_context(StatusType::Invalid, 8).await;
         let result = valid_parsed_payload()
