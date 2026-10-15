@@ -19,7 +19,6 @@ pub use payload::ParsedRegistrationCertificate;
 pub use payload::Subject;
 pub use payload::SupervisoryAuthority;
 pub use payload::UncheckedRegistrationCertificate;
-pub use status::RegistrationCertificateStatus;
 pub use status::RegistrationCertificateStatusValidationError;
 pub use status::StatusValidatedRegistrationCertificate;
 pub use validation::BoundRegistrationCertificate;

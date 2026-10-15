@@ -79,8 +79,6 @@ pub enum CredentialSetValidationError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateValidationError {
-    #[error("status must use the direct object shape with `idx` encoded as a numeric string")]
-    InvalidStatusWireFormat,
     #[error("field `{field}` must not be empty")]
     EmptyField { field: &'static str },
     #[error("registration certificate contains both legal-person and natural-person subject fields")]
@@ -182,9 +180,6 @@ fn validate_credential_set(value: &[Credential]) -> Result<(), CredentialSetVali
 
 impl UncheckedRegistrationCertificate {
     pub(super) fn parse_structure(&self) -> Result<Subject, RegistrationCertificateValidationError> {
-        if !self.status.has_normative_input_format() {
-            return Err(RegistrationCertificateValidationError::InvalidStatusWireFormat);
-        }
         validate_non_empty("sub", &self.sub)?;
         if let Some(name) = &self.name {
             validate_non_empty("name", name)?;
