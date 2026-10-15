@@ -6,8 +6,6 @@ use std::iter::once;
 use std::sync::Arc;
 use std::time::Duration;
 
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
@@ -39,8 +37,6 @@ use webpki::ring::RSA_PSS_2048_8192_SHA256_LEGACY_KEY;
 use webpki::ring::RSA_PSS_2048_8192_SHA384_LEGACY_KEY;
 use webpki::ring::RSA_PSS_2048_8192_SHA512_LEGACY_KEY;
 use x509_parser::asn1_rs::Oid;
-use x509_parser::asn1_rs::SerializeError;
-use x509_parser::asn1_rs::ToDer;
 use x509_parser::nom::AsBytes;
 use x509_parser::oid_registry::OID_EC_P256;
 use x509_parser::oid_registry::OID_NIST_EC_P384;
@@ -67,7 +63,6 @@ mod usage;
 
 #[cfg(any(test, feature = "generate"))]
 pub use config::CertificateConfiguration;
-pub use dn::CanonicalDistinguishedName;
 pub use dn::DistinguishedName;
 pub use dn::DistinguishedNameError;
 pub use key_identifier::KeyIdentifier;
@@ -132,13 +127,6 @@ pub enum CertificateParseError {
 pub enum CertificateNameError {
     #[error("X509 coding error: {0}")]
     X509Error(#[source] X509Error),
-}
-
-#[derive(thiserror::Error, Debug, ErrorCategory)]
-#[category(pd)]
-pub enum CanocalizationError {
-    #[error("could not serialize to DER: {0}")]
-    DerSerialization(#[source] SerializeError),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
@@ -360,29 +348,6 @@ impl BorrowingCertificate {
         subject.try_into()
     }
 
-    // Returns a human-readable string representation of the distinguished name attributes with the raw OID values and
-    // base64-encoded DER values. Can be used for persistence and comparison, since this representation is independent
-    // of an OID registry.
-    pub fn to_canonical_distinguished_name(&self) -> Result<CanonicalDistinguishedName, CanocalizationError> {
-        let encoded_attrs: Vec<_> = self
-            .x509_certificate()
-            .subject()
-            .iter_attributes()
-            .map(|attr| {
-                let r#type = attr.attr_type().to_id_string();
-                let value = BASE64_STANDARD_NO_PAD.encode(
-                    &attr
-                        .attr_value()
-                        .to_der_vec()
-                        .map_err(CanocalizationError::DerSerialization)?,
-                );
-                Ok::<_, CanocalizationError>(format!("{}={}", r#type, value))
-            })
-            .try_collect()?;
-
-        Ok(CanonicalDistinguishedName::new(encoded_attrs.join(",")))
-    }
-
     /// From the AuthorityKeyIdentifier in the certificate, if present, return the key identifier field:
     /// the hash over the public key that signed this certificate.
     pub fn authority_key_id(&self) -> Option<KeyIdentifier> {
@@ -487,6 +452,7 @@ mod tests {
     use std::assert_matches;
     use std::slice::from_ref;
 
+    use base64::Engine;
     use base64::prelude::BASE64_STANDARD;
     use chrono::DateTime;
     use chrono::Duration;
@@ -608,10 +574,6 @@ mod tests {
             .expect("self signed CA should contain a valid X.509 certificate");
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
-        assert_eq!(
-            "2.5.4.3=DARteWNh,2.5.4.6=EwJOTA",
-            certificate.to_canonical_distinguished_name().unwrap().as_ref()
-        );
 
         let x509_cert = certificate.x509_certificate();
         assert_certificate_validity(x509_cert, now, later);

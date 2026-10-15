@@ -1733,7 +1733,6 @@ dependencies = [
  "rstest",
  "rustls-pki-types",
  "rustls-webpki",
- "sea-orm",
  "serde",
  "serde_with",
  "sha2 0.10.9",
