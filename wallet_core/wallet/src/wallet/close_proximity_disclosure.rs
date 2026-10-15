@@ -5,12 +5,13 @@ use std::sync::Arc;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::organization::Organization;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
 use attestation_data::registration_certificate::RegistrationCertificateRequestParseError;
+use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use chrono::DateTime;
 use chrono::Utc;
 use ciborium::value::Value;
 use crypto::CredentialEcdsaKey;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateVerifyError;
@@ -39,6 +40,7 @@ use mdoc::utils::serialization::cbor_serialize;
 use nutype::nutype;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::disclosure_session::DisclosureTrustAnchors;
 use openid4vc::verifier::SessionType;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use parking_lot::Mutex;
@@ -251,6 +253,10 @@ pub enum CloseProximityDisclosureError {
     #[category(pd)]
     RegistrationCertificateParsing(#[source] RegistrationCertificateRequestParseError),
 
+    #[error("registration certificate verification failed")]
+    #[category(pd)]
+    RegistrationCertificateVerification(#[source] RegistrationCertificateEnvelopeError),
+
     #[error("unsupported requested document format: {doc_format}")]
     #[category(critical)]
     UnsupportedDocFormat { doc_format: String },
@@ -296,7 +302,8 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         CloseProximityDisclosureError::InconsistentReaderAuths
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::InvalidReaderCertificate(_)
-        | CloseProximityDisclosureError::ReaderCertificateCrlVerification(_) => {
+        | CloseProximityDisclosureError::ReaderCertificateCrlVerification(_)
+        | CloseProximityDisclosureError::RegistrationCertificateVerification(_) => {
             Some(DeviceResponseStatus::GeneralError)
         }
         // These are either internal wallet errors or failures already handled by platform support,
@@ -434,7 +441,10 @@ where
                     &device_request,
                     &session_transcript,
                     &TimeGenerator,
-                    wallet_config.wrpac_trust_anchors(),
+                    DisclosureTrustAnchors {
+                        wrpac: wallet_config.wrpac_trust_anchors(),
+                        wrprc: wallet_config.wrprc_trust_anchors(),
+                    },
                     verifier,
                 )
                 .await
@@ -445,7 +455,10 @@ where
                     &device_request,
                     &session_transcript,
                     &TimeGenerator,
-                    wallet_config.wrpac_trust_anchors(),
+                    DisclosureTrustAnchors {
+                        wrpac: wallet_config.wrpac_trust_anchors(),
+                        wrprc: wallet_config.wrprc_trust_anchors(),
+                    },
                     verifier,
                 )
                 .await
@@ -795,19 +808,19 @@ where
     }
 }
 
-/// Verify a device request and its reader authentication, requiring a valid CRL for the complete WRPAC chain.
+/// Verify reader authentication and WRPRC envelopes, requiring a valid CRL for the complete WRPAC chain.
 async fn verify_device_request_with_crl(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
     time: &impl Generator<DateTime<Utc>>,
-    trust_anchors: &TrustAnchors,
+    trust_anchors: DisclosureTrustAnchors<'_>,
     crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
 ) -> Result<BorrowingCertificate, CloseProximityDisclosureError> {
     // Verify all `DocRequest` entries in parallel and make sure the resulting certificates are all exactly equal.
     let certificate = try_join_all(device_request.doc_requests.iter().map(
         async |doc_request| -> Result<_, CloseProximityDisclosureError> {
             doc_request
-                .verify_with_crl(session_transcript, time, trust_anchors, crl_verifier)
+                .verify_with_crl(session_transcript, time, trust_anchors.wrpac, crl_verifier)
                 .await
                 .map_err(|error| match error {
                     mdoc::Error::Cose(CoseError::CertificateVerify(error)) => {
@@ -831,10 +844,13 @@ async fn verify_device_request_with_crl(
     verify_requested_doc_formats(device_request)?;
 
     for items_request in device_request.items_requests() {
-        let _registration_certificate = RegistrationCertificateEnvelope::try_from(items_request)
+        let registration_certificate = RegistrationCertificateEnvelope::try_from(items_request)
             .map_err(CloseProximityDisclosureError::RegistrationCertificateParsing)?;
+        let _verified_registration_certificate =
+            verify_registration_certificate_envelope(&registration_certificate, trust_anchors.wrprc, time)
+                .map_err(CloseProximityDisclosureError::RegistrationCertificateVerification)?;
 
-        // TODO PVW-6052 Verify the registration certificate and its authorization for this ItemsRequest.
+        // TODO PVW-6052 Validate WRPAC binding, expiry, status, and authorization for this ItemsRequest.
     }
 
     Ok(certificate)
@@ -878,6 +894,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::organization::Organization;
+    use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
@@ -915,6 +932,7 @@ mod tests {
     use mdoc::utils::serialization::cbor_serialize;
     use mockall::predicate::always;
     use mockall::predicate::eq;
+    use openid4vc::disclosure_session::DisclosureTrustAnchors;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::signature::Signer;
@@ -934,6 +952,7 @@ mod tests {
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::SignResult;
+    use wallet_configuration::wallet_config::WalletConfiguration;
     use wscd::mock::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
 
@@ -965,6 +984,7 @@ mod tests {
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WRPAC_CA;
     use crate::wallet::test::WalletDeviceVendor;
+    use crate::wallet::test::create_wallet_configuration;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::example_pid_payload_and_metadata;
     use crate::wallet::test::example_pid_stored_attestation_copy;
@@ -977,11 +997,20 @@ mod tests {
     const PHOTO_ID_BASE_NAMESPACE: &str = "org.iso.23220.1";
     const PHOTO_ID_NAMESPACE: &str = "org.iso.23220.photoid.1";
 
+    static REGISTRATION_CERTIFICATE_AUTHORITY: LazyLock<MockRegistrationCertificateAuthority> =
+        LazyLock::new(MockRegistrationCertificateAuthority::new);
+
+    fn close_proximity_wallet_configuration() -> WalletConfiguration {
+        WalletConfiguration {
+            wrprc_trust_anchors: REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors.clone(),
+            ..create_wallet_configuration()
+        }
+    }
+
     fn registration_certificate_request_info() -> IndexMap<String, Value> {
         static CERTIFICATE: LazyLock<Vec<u8>> = LazyLock::new(|| {
             let reader = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
-            MockRegistrationCertificateAuthority::new()
-                .issue_cwt(reader.certificate(), Query::new_mock_mdoc_pid_example())
+            REGISTRATION_CERTIFICATE_AUTHORITY.issue_cwt(reader.certificate(), Query::new_mock_mdoc_pid_example())
         });
 
         IndexMap::from_iter([("euWrprc".to_string(), Value::Bytes(CERTIFICATE.clone()))])
@@ -1298,7 +1327,11 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_continue_close_proximity_disclosure() {
         // Populate a registered wallet with an example PID.
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked_with_config(
+            WalletDeviceVendor::Apple,
+            close_proximity_wallet_configuration(),
+        )
+        .await;
 
         let items_request = pid_given_name_items_request();
 
@@ -1539,24 +1572,19 @@ mod tests {
         assert!(wallet.session.is_none());
     }
 
-    #[rstest]
-    #[case::missing(None)]
-    #[case::wrong_type(Some(Value::Text("not a byte string".to_string())))]
-    #[case::malformed_cwt(Some(Value::Bytes(vec![0xff])))]
-    #[tokio::test]
-    #[serial(MockCloseProximityDisclosureClient)]
-    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_parse_error(
-        #[case] registration_certificate: Option<Value>,
-    ) {
+    async fn assert_registration_certificate_rejected(
+        registration_certificate: Option<Value>,
+        expected_status: DeviceResponseStatus,
+    ) -> DisclosureError {
         let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
         send_context
             .expect()
             .once()
-            .withf(|response| {
+            .withf(move |response| {
                 let device_response: DeviceResponse = cbor_deserialize(response.as_slice()).unwrap();
                 device_response.documents.is_none()
                     && device_response.document_errors.is_none()
-                    && device_response.status == DeviceResponseStatus::InvalidRequest
+                    && device_response.status == expected_status
             })
             .returning(|_| Ok(()));
 
@@ -1567,10 +1595,15 @@ mod tests {
         let mut invalid_request = pid_given_name_items_request();
         invalid_request.request_info =
             registration_certificate.map(|value| IndexMap::from_iter([("euWrprc".to_string(), value)]));
+        // Sign the request after altering the WRPRC so that reader authentication remains valid.
         let (device_request, session_transcript, _) =
             setup_device_request(vec![valid_request, invalid_request], None, true).await;
 
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked_with_config(
+            WalletDeviceVendor::Apple,
+            close_proximity_wallet_configuration(),
+        )
+        .await;
         wallet
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_credential_kinds()
@@ -1581,15 +1614,67 @@ mod tests {
             cbor_serialize(&device_request).unwrap(),
         );
 
-        let result = wallet.continue_close_proximity_disclosure().await;
+        let error = wallet.continue_close_proximity_disclosure().await.unwrap_err();
+        assert!(wallet.session.is_none());
+
+        error
+    }
+
+    #[rstest]
+    #[case::missing(None)]
+    #[case::wrong_type(Some(Value::Text("not a byte string".to_string())))]
+    #[case::malformed_cwt(Some(Value::Bytes(vec![0xff])))]
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_parse_error(
+        #[case] registration_certificate: Option<Value>,
+    ) {
+        let error =
+            assert_registration_certificate_rejected(registration_certificate, DeviceResponseStatus::InvalidRequest)
+                .await;
 
         assert_matches!(
-            result,
-            Err(DisclosureError::CloseProximityDisclosureSessionError(
+            error,
+            DisclosureError::CloseProximityDisclosureSessionError(
                 CloseProximityDisclosureError::RegistrationCertificateParsing(_)
-            ))
+            )
         );
-        assert!(wallet.session.is_none());
+    }
+
+    #[rstest]
+    #[case::untrusted_chain(false)]
+    #[case::tampered_signature(true)]
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_verification_error(
+        #[case] tamper_signature: bool,
+    ) {
+        let untrusted_authority = MockRegistrationCertificateAuthority::new();
+        let authority = if tamper_signature {
+            &*REGISTRATION_CERTIFICATE_AUTHORITY
+        } else {
+            &untrusted_authority
+        };
+        let reader = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
+        let mut certificate = authority.issue_cwt(reader.certificate(), Query::new_mock_mdoc_pid_example());
+        if tamper_signature {
+            // COSE_Sign1 ends with the signature byte string; preserve the envelope structure.
+            *certificate.last_mut().unwrap() ^= 1;
+        }
+        let error = assert_registration_certificate_rejected(
+            Some(Value::Bytes(certificate)),
+            DeviceResponseStatus::GeneralError,
+        )
+        .await;
+
+        assert_matches!(
+            error,
+            DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::RegistrationCertificateVerification(
+                    RegistrationCertificateEnvelopeError::Cwt(_)
+                )
+            )
+        );
     }
 
     #[tokio::test]
@@ -1667,7 +1752,10 @@ mod tests {
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
-            &trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &trust_anchors,
+                wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
+            },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
@@ -1687,7 +1775,10 @@ mod tests {
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
-            &trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &trust_anchors,
+                wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
+            },
             &verifier,
         )
         .await;
@@ -1726,7 +1817,10 @@ mod tests {
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
-            &trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &trust_anchors,
+                wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
+            },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
@@ -1755,7 +1849,10 @@ mod tests {
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
-            &trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &trust_anchors,
+                wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
+            },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
@@ -1781,7 +1878,10 @@ mod tests {
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
-            &trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &trust_anchors,
+                wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
+            },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
@@ -1804,7 +1904,10 @@ mod tests {
             &device_request,
             &other_session_transcript,
             &MockTimeGenerator::default(),
-            &trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &trust_anchors,
+                wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
+            },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
@@ -1828,7 +1931,10 @@ mod tests {
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
-            &trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &trust_anchors,
+                wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
+            },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
@@ -1873,7 +1979,10 @@ mod tests {
             &device_request,
             &session_transcript,
             &MockTimeGenerator::default(),
-            &trust_anchors,
+            DisclosureTrustAnchors {
+                wrpac: &trust_anchors,
+                wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
+            },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
         )
         .await;
