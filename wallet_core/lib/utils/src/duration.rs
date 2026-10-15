@@ -10,6 +10,7 @@ use serde::ser;
 use serde_with::DeserializeAs;
 use serde_with::SerializeAs;
 
+pub type DurationMinutes = DurationMultipleSeconds<60>;
 pub type DurationHours = DurationMultipleSeconds<{ 60 * 60 }>;
 pub type DurationDays = DurationMultipleSeconds<{ 24 * 60 * 60 }>;
 
