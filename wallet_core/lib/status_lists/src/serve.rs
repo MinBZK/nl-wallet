@@ -172,32 +172,13 @@ async fn serve_status_list(
     Path(id): Path<ExternalId>,
     State(state): State<RouterState>,
 ) -> Result<Response, StatusCode> {
+    check_accept(headers.get(header::ACCEPT))?;
+
     let path = state.publish_dir.jwt_path(&id);
     let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
 
-    http_response_for_status_list_body(&headers, state.cache_control, bytes)
-}
-
-pub fn http_response_for_status_list_body_no_cache(
-    request_headers: &HeaderMap,
-    status_list_body: Vec<u8>,
-) -> Result<Response, StatusCode> {
-    http_response_for_status_list_body(
-        request_headers,
-        CACHE_CONTROL_HEADER_VALUE_NO_CACHE.clone(),
-        status_list_body,
-    )
-}
-
-fn http_response_for_status_list_body(
-    request_headers: &HeaderMap,
-    cache_control: HeaderValue,
-    status_list_body: Vec<u8>,
-) -> Result<Response, StatusCode> {
-    check_accept(request_headers.get(header::ACCEPT))?;
-
-    let etag = EntityTag::from_data(&status_list_body);
-    if let Some(request_etag) = request_headers.get(header::IF_NONE_MATCH)
+    let etag = EntityTag::from_data(&bytes);
+    if let Some(request_etag) = headers.get(header::IF_NONE_MATCH)
         && check_if_none_match(request_etag, &etag)?
     {
         return Err(StatusCode::NOT_MODIFIED);
@@ -205,9 +186,24 @@ fn http_response_for_status_list_body(
 
     let response_headers = [
         (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
-        (header::CACHE_CONTROL, cache_control),
+        (header::CACHE_CONTROL, state.cache_control),
         // Unwrap is safe since etag is ASCII
         (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
+    ];
+    let response = (response_headers, bytes).into_response();
+
+    Ok(response)
+}
+
+pub fn http_response_for_status_list_body(
+    request_headers: &HeaderMap,
+    status_list_body: Vec<u8>,
+) -> Result<Response, StatusCode> {
+    check_accept(request_headers.get(header::ACCEPT))?;
+
+    let response_headers = [
+        (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
+        (header::CACHE_CONTROL, CACHE_CONTROL_HEADER_VALUE_NO_CACHE.clone()),
     ];
     let response = (response_headers, status_list_body).into_response();
 
