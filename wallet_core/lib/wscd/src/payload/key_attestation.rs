@@ -315,6 +315,7 @@ mod tests {
     use std::time::Duration;
 
     use attestation_types::status_claim::StatusClaim;
+    use chrono::DateTime;
     use chrono::Utc;
     use crypto::PublicKey;
     use crypto::WithVerifyingKey;
@@ -400,8 +401,11 @@ mod tests {
         let claims = serde_json::from_value::<KeyAttestationClaims>(json)
             .expect("example JSON should deserialize to KeyAttestationClaims");
 
-        let exp = claims.exp.expect("exp claim should be present");
-        assert!(exp > claims.iat);
+        assert_eq!(claims.iat, DateTime::from_timestamp(1516247022, 0).unwrap().into());
+        assert_eq!(
+            claims.exp,
+            Some(DateTime::from_timestamp(1541493724, 0).unwrap().into())
+        );
 
         assert_eq!(
             claims.certification,
@@ -418,7 +422,10 @@ mod tests {
             status_list_claim.uri.as_str(),
             "https://revocation_url/wua-type-statuslists/3"
         );
-        assert!(claims.key_storage_status.exp > exp);
+        assert_eq!(
+            claims.key_storage_status.exp,
+            DateTime::from_timestamp(1544172124, 0).unwrap().into()
+        );
 
         let jwk = claims
             .attested_keys
