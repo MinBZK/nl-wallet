@@ -121,7 +121,7 @@ where
     #[audited]
     pub async fn create_task(
         &self,
-        #[audit] payload: &TaskPayload,
+        #[audit(flatten)] payload: &TaskPayload,
         #[audit] task_reason: &str,
         #[audit_user] user: &LoggedInUser,
         #[auditor] audit_log: &impl AuditLog,
