@@ -48,12 +48,17 @@ scheduled-automation-tests-trigger:
     - echo "$AMSTERDAM_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/amsterdam.wrpac.crt.pem
     - export AMSTERDAM_WRPAC_KEY_FILE=/tmp/amsterdam.wrpac.key.pem
     - export AMSTERDAM_WRPAC_CRT_FILE=/tmp/amsterdam.wrpac.crt.pem
+    # The reader requires the registration certificates as base64url-encoded CWTs.
+    - kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.registration_certificate_mdoc}' | base64 --decode > /tmp/amsterdam.wrprc
+    - export AMSTERDAM_WRPRC_FILE=/tmp/amsterdam.wrprc
     - MONKEY_BIKE_CA_KEY_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.private_key}' | base64 --decode)
     - MONKEY_BIKE_CA_CRT_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.certificate}' | base64 --decode)
     - echo "$MONKEY_BIKE_CA_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/monkey_bike.wrpac.key.pem
     - echo "$MONKEY_BIKE_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/monkey_bike.wrpac.crt.pem
     - export MONKEY_BIKE_WRPAC_KEY_FILE=/tmp/monkey_bike.wrpac.key.pem
     - export MONKEY_BIKE_WRPAC_CRT_FILE=/tmp/monkey_bike.wrpac.crt.pem
+    - kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.registration_certificate}' | base64 --decode > /tmp/monkey_bike.wrprc
+    - export MONKEY_BIKE_WRPRC_FILE=/tmp/monkey_bike.wrprc
 
 # Install the Apple development certificate and provisioning profiles that Appium needs to build
 # WebDriverAgent for real iOS devices, from the fastlane match repository (read-only). The job
@@ -61,7 +66,7 @@ scheduled-automation-tests-trigger:
 # because the runner executes outside a GUI session (the runner user's login password comes from
 # the nl-wallet-macmini secret); without this, codesign fails with errSecInternalComponent and
 # xcodebuild exits with code 65.
-# Also extracts the WRPAC CA credentials (composed via YAML anchor so both command lists are
+# Also extracts the WRPAC credentials and WRPRCs (composed via YAML anchor so both command lists are
 # defined only once); the iOS device jobs use this template via extends.
 .install-ios-signing:
   extends: .env-k8s

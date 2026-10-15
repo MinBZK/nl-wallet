@@ -1012,6 +1012,7 @@ open class MobileActions {
         timeoutSeconds: Int = 60,
         wrpacCrtFile: String? = null,
         wrpacKeyFile: String? = null,
+        wrprcFile: String? = null,
         requestDocType: String? = null,
         requestAttributes: List<String> = emptyList(),
         waitForDeviceResponse: Boolean = false,
@@ -1021,6 +1022,7 @@ open class MobileActions {
         val cmd = mutableListOf("swift", scriptPath, "--qr-code", qrPayload, "--timeout", timeoutSeconds.toString())
         if (wrpacCrtFile != null && wrpacKeyFile != null) {
             cmd += listOf("--wrpac-crt-file", wrpacCrtFile, "--wrpac-key-file", wrpacKeyFile)
+            wrprcFile?.let { cmd += listOf("--wrprc-file", it) }
             requestDocType?.let { cmd += listOf("--request-doc-type", it) }
             requestAttributes.forEach { cmd += listOf("--request-attribute", it) }
         }
