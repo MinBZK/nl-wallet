@@ -2657,7 +2657,6 @@ dependencies = [
  "attestation_data",
  "attestation_types",
  "chrono",
- "crypto",
  "derive_more",
  "openid4vc",
  "sd_jwt_vc_metadata",
