@@ -105,7 +105,6 @@ mod tests {
     use rstest::rstest;
     use serde_json::Value;
     use serde_json::json;
-    use wallet::attestation_data::Organization;
 
     use super::WalletEvent;
 
@@ -117,12 +116,18 @@ mod tests {
         ])),
         vec![("en", "Verify your identity"), ("nl", "Uw identiteit controleren")]
     )]
-    #[case::legacy_without_purpose(None, vec![])]
+    #[case::without_purpose(None, vec![])]
     fn disclosure_history_purpose(#[case] registered_purpose: Option<Value>, #[case] expected: Vec<(&str, &str)>) {
-        let mut stored = serde_json::to_value(Organization::default()).unwrap();
-        if let Some(purpose) = registered_purpose {
-            stored["purpose"] = purpose;
-        }
+        let stored = json!({
+            "displayName": "Example",
+            "legalName": "Example B.V.",
+            "description": [],
+            "identifier": "example",
+            "countryCode": "NL",
+            "supportUri": "https://example.com/support",
+            "personType": "legalPerson",
+            "purpose": registered_purpose,
+        });
         let event = WalletEvent::from(wallet::WalletEvent::Disclosure {
             id: Default::default(),
             timestamp: Default::default(),

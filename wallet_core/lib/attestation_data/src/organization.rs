@@ -18,7 +18,7 @@ pub struct ServiceDescription {
 }
 
 #[skip_serializing_none]
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Organization {
     pub display_name: String,
@@ -29,10 +29,9 @@ pub struct Organization {
     pub country_code: String,
     pub privacy_policy_url: Option<Url>,
     pub purpose: Option<MultiLanguageStringSet>,
-    // TODO (PVW-6052): Require support_uri and person_type once proximity disclosure uses WRPRC organization data.
-    pub support_uri: Option<String>,
+    pub support_uri: String,
     pub public_body: Option<bool>,
-    pub person_type: Option<SubjectType>,
+    pub person_type: SubjectType,
 }
 
 impl From<&StatusValidatedRegistrationCertificate> for Organization {
@@ -72,9 +71,9 @@ impl Organization {
             web_url: payload.info_uri.clone(),
             privacy_policy_url: payload.privacy_policy.clone(),
             purpose: payload.purpose.clone(),
-            support_uri: Some(payload.support_uri.clone()),
+            support_uri: payload.support_uri.clone(),
             public_body: payload.public_body,
-            person_type: Some(person_type),
+            person_type,
         }
     }
 }
@@ -117,9 +116,9 @@ pub mod mock {
                     lang: "en".to_owned(),
                     value: "Verify your identity".to_owned(),
                 }]),
-                support_uri: None,
+                support_uri: "https://organisation.example.com/support".to_owned(),
                 public_body: None,
-                person_type: Some(SubjectType::LegalPerson),
+                person_type: SubjectType::LegalPerson,
             }
         }
     }
@@ -156,20 +155,19 @@ pub mod test {
         )
     }
 
-    #[test]
-    fn deserialize_organization_without_registration_fields() {
-        let organization: Organization = serde_json::from_value(json!({
-            "displayName": "Example",
-            "legalName": "Example B.V.",
-            "description": [],
-            "identifier": "example",
-            "countryCode": "NL",
-        }))
-        .unwrap();
+    #[rstest]
+    fn deserialize_organization_requires_registration_fields(
+        #[values("supportUri", "personType")] field: &str,
+        #[values(false, true)] is_null: bool,
+    ) {
+        let mut organization = serde_json::to_value(Organization::new_mock()).unwrap();
+        if is_null {
+            organization[field] = serde_json::Value::Null;
+        } else {
+            organization.as_object_mut().unwrap().remove(field);
+        }
 
-        assert_eq!(organization.support_uri, None);
-        assert_eq!(organization.public_body, None);
-        assert_eq!(organization.person_type, None);
+        assert!(serde_json::from_value::<Organization>(organization).is_err());
     }
 
     #[rstest]
@@ -262,9 +260,9 @@ pub mod test {
                 web_url: has_optional_fields.then(|| "https://example.com/info".parse().unwrap()),
                 privacy_policy_url: has_optional_fields.then(|| "https://example.com/privacy".parse().unwrap()),
                 purpose,
-                support_uri: Some("https://example.com/support".to_owned()),
+                support_uri: "https://example.com/support".to_owned(),
                 public_body: has_optional_fields.then_some(true),
-                person_type: Some(person_type),
+                person_type,
             }
         );
     }

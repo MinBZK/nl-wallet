@@ -84,6 +84,7 @@ final _kRdwOrganization = Organization(
   countryCode: 'NL',
   publicBody: true,
   personType: PersonType.LegalPerson,
+  supportUri: 'https://example.org/support',
 );
 
 final _kDuoOrganization = Organization(
@@ -101,6 +102,7 @@ final _kDuoOrganization = Organization(
   countryCode: 'NL',
   publicBody: true,
   personType: PersonType.LegalPerson,
+  supportUri: 'https://example.org/support',
 );
 
 final _kEmployerOrganization = Organization(
@@ -118,6 +120,7 @@ final _kEmployerOrganization = Organization(
   countryCode: 'NL',
   publicBody: true,
   personType: PersonType.LegalPerson,
+  supportUri: 'https://example.org/support',
 );
 
 final _kJustisOrganization = Organization(
@@ -135,6 +138,7 @@ final _kJustisOrganization = Organization(
   countryCode: 'NL',
   publicBody: true,
   personType: PersonType.LegalPerson,
+  supportUri: 'https://example.org/support',
 );
 
 const _kMarketPlaceOrganization = Organization(
@@ -167,6 +171,7 @@ final _kBarOrganization = Organization(
   countryCode: 'NL',
   publicBody: false,
   personType: PersonType.NaturalPerson,
+  supportUri: 'https://example.org/support',
 );
 
 final _kHealthInsurerOrganization = Organization(
@@ -184,6 +189,7 @@ final _kHealthInsurerOrganization = Organization(
   countryCode: 'NL',
   publicBody: false,
   personType: PersonType.LegalPerson,
+  supportUri: 'https://example.org/support',
 );
 
 final _kHousingCorporationOrganization = Organization(
@@ -212,6 +218,7 @@ final _kCarRentalOrganization = Organization(
   countryCode: 'NL',
   publicBody: false,
   personType: PersonType.LegalPerson,
+  supportUri: 'https://example.org/support',
 );
 
 final _kFirstAidOrganization = Organization(
@@ -229,6 +236,7 @@ final _kFirstAidOrganization = Organization(
   countryCode: 'NL',
   publicBody: false,
   personType: PersonType.LegalPerson,
+  supportUri: 'https://example.org/support',
 );
 
 const _kMunicipalityAmsterdamOrganization = Organization(
