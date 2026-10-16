@@ -41,8 +41,6 @@ static STATUSLIST_JWT_CONTENT_TYPE: LazyLock<HeaderValue> = LazyLock::new(|| {
     HeaderValue::from_str(&STATUSLIST_JWT_MEDIA_TYPE.to_string()).unwrap()
 });
 
-const CACHE_CONTROL_HEADER_VALUE_NO_CACHE: HeaderValue = HeaderValue::from_static("no-cache");
-
 #[derive(Debug, Clone)]
 struct RouterState {
     publish_dir: Arc<PublishDir>,
@@ -137,7 +135,7 @@ pub fn create_serve_router<'a>(
 
 fn cache_control_header_for_ttl(ttl: Option<Duration>) -> HeaderValue {
     match ttl {
-        None => CACHE_CONTROL_HEADER_VALUE_NO_CACHE.clone(),
+        None => HeaderValue::from_static("no-cache"),
         Some(ttl) => {
             // Convert to HeaderValue, unwrap is safe since string is ASCII.
             HeaderValue::from_str(&format!("max-age={}; must-revalidate", ttl.as_secs())).unwrap()
@@ -198,12 +196,13 @@ async fn serve_status_list(
 pub fn http_response_for_status_list_body(
     request_headers: &HeaderMap,
     status_list_body: Vec<u8>,
+    ttl: Option<Duration>,
 ) -> Result<Response, StatusCode> {
     check_accept(request_headers.get(header::ACCEPT))?;
 
     let response_headers = [
         (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
-        (header::CACHE_CONTROL, CACHE_CONTROL_HEADER_VALUE_NO_CACHE.clone()),
+        (header::CACHE_CONTROL, cache_control_header_for_ttl(ttl)),
     ];
     let response = (response_headers, status_list_body).into_response();
 
