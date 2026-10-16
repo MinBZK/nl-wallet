@@ -301,7 +301,8 @@ async fn key_storage_tsl<GRC, PIC>(
         .into_inner()
         .into_serialization();
 
-    http_response_for_status_list_body(&headers, token.into_bytes(), None)
+    let ttl = state.user_state.key_storage_status_list.token_ttl;
+    http_response_for_status_list_body(&headers, token.into_bytes(), Some(ttl))
 }
 
 async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {

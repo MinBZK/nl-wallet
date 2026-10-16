@@ -28,6 +28,9 @@ pub enum KeyStorageStatusListError {
         min_duration.as_secs(),
     )]
     TokenExpiryTooShort { expiry: Duration, min_duration: Duration },
+
+    #[error("provided expiry is less than the TTL: {} < {}", expiry.as_secs(), ttl.as_secs())]
+    ExpiryLessThanTtl { expiry: Duration, ttl: Duration },
 }
 
 /// This type holds a cached [`SingleEntryStatusListToken`], which in turn contains a [`StatusListToken`] in which only
@@ -41,7 +44,8 @@ pub enum KeyStorageStatusListError {
 #[derive(Debug)]
 pub struct KeyStorageStatusList<K, F> {
     pub status_claim: StatusClaim,
-    token_expiry: Duration,
+    pub token_expiry: Duration,
+    pub token_ttl: Duration,
     key_pair: KeyPair<K>,
     wallet_flags: F,
     cached_token: Mutex<Option<SingleEntryStatusListToken>>,
@@ -51,6 +55,7 @@ impl<K, F> KeyStorageStatusList<K, F> {
     pub fn try_new(
         public_uri: Url,
         token_expiry: Duration,
+        token_ttl: Duration,
         key_pair: KeyPair<K>,
         wallet_flags: F,
     ) -> Result<Self, KeyStorageStatusListError> {
@@ -58,6 +63,13 @@ impl<K, F> KeyStorageStatusList<K, F> {
             return Err(KeyStorageStatusListError::TokenExpiryTooShort {
                 expiry: token_expiry,
                 min_duration: EXPIRY_MARGIN,
+            });
+        }
+
+        if token_expiry < token_ttl {
+            return Err(KeyStorageStatusListError::ExpiryLessThanTtl {
+                expiry: token_expiry,
+                ttl: token_ttl,
             });
         }
 
@@ -69,6 +81,7 @@ impl<K, F> KeyStorageStatusList<K, F> {
         let status_list = Self {
             status_claim,
             token_expiry,
+            token_ttl,
             key_pair,
             wallet_flags,
             cached_token: Mutex::new(None),
@@ -104,9 +117,14 @@ impl<K, F> KeyStorageStatusList<K, F> {
             Some(single_token) => single_token.token.clone(),
             None => {
                 let StatusClaim::StatusList(StatusListClaim { uri, .. }) = &self.status_claim;
-                let single_token =
-                    SingleEntryStatusListToken::try_new(uri.clone(), status, now + self.token_expiry, &self.key_pair)
-                        .await?;
+                let single_token = SingleEntryStatusListToken::try_new(
+                    uri.clone(),
+                    status,
+                    now + self.token_expiry,
+                    Some(self.token_ttl),
+                    &self.key_pair,
+                )
+                .await?;
 
                 let token = single_token.token.clone();
                 cached_token.replace(single_token);
@@ -133,6 +151,7 @@ impl SingleEntryStatusListToken {
         uri: Url,
         status: StatusType,
         expires: DateTime<Utc>,
+        ttl: Option<Duration>,
         key_pair: &KeyPair<impl EcdsaKey>,
     ) -> Result<Self, JwtSignError> {
         let mut list = StatusList::new(1);
@@ -140,6 +159,7 @@ impl SingleEntryStatusListToken {
 
         let token = StatusListToken::builder(uri, list.pack())
             .exp(Some(expires))
+            .ttl(ttl)
             .sign(key_pair)
             .await?;
 
@@ -188,7 +208,7 @@ mod tests {
         let expires = time.generate() + Duration::from_hours(1);
         let status = StatusType::Invalid;
 
-        let single_token = SingleEntryStatusListToken::try_new(uri.clone(), status, expires, key_pair)
+        let single_token = SingleEntryStatusListToken::try_new(uri.clone(), status, expires, None, key_pair)
             .now_or_never()
             .unwrap()
             .expect("signing single entry token status list should succeed");
@@ -214,6 +234,7 @@ mod tests {
         let error = KeyStorageStatusList::try_new(
             "https://example.com/tsl".parse::<Url>().unwrap(),
             token_expiry,
+            Duration::from_mins(1),
             key_pair.clone(),
             StubWalletFlags::default(),
         )
@@ -222,6 +243,25 @@ mod tests {
         assert_matches!(error,
             KeyStorageStatusListError::TokenExpiryTooShort { expiry, min_duration }
                 if expiry == token_expiry && min_duration == EXPIRY_MARGIN
+        );
+    }
+
+    #[test]
+    fn test_key_storage_status_list_try_new_error_expiry_less_than_ttl() {
+        let (_trust_anchors, key_pair) = LazyLock::force(&TSL_ANCHORS_AND_KEY_PAIR);
+
+        let error = KeyStorageStatusList::try_new(
+            "https://example.com/tsl".parse::<Url>().unwrap(),
+            Duration::from_mins(10),
+            Duration::from_mins(30),
+            key_pair.clone(),
+            StubWalletFlags::default(),
+        )
+        .expect_err("creating new key storage status list should fail");
+
+        assert_matches!(error,
+            KeyStorageStatusListError::ExpiryLessThanTtl { expiry, ttl }
+                if expiry == Duration::from_mins(10) && ttl == Duration::from_mins(30)
         );
     }
 
@@ -250,9 +290,14 @@ mod tests {
         let public_uri = "https://example.com/tsl".parse::<Url>().unwrap();
         let token_expiry = Duration::from_hours(1);
 
-        let key_storage_status_list =
-            KeyStorageStatusList::try_new(public_uri.clone(), token_expiry, key_pair.clone(), wallet_flags.clone())
-                .unwrap();
+        let key_storage_status_list = KeyStorageStatusList::try_new(
+            public_uri.clone(),
+            token_expiry,
+            Duration::from_mins(1),
+            key_pair.clone(),
+            wallet_flags.clone(),
+        )
+        .unwrap();
 
         // Fetching the `StatusListToken` initially should result in a valid status, as the Wallet Solution has not
         // been revoked.

@@ -40,6 +40,7 @@ use status_lists::settings::StatusListsSettings;
 use url::Url;
 use utils::duration::DurationDays;
 use utils::duration::DurationHours;
+use utils::duration::DurationMinutes;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_provider_domain::keys::Kid;
@@ -137,6 +138,10 @@ pub struct KeyStorageStatusListSettings {
     #[serde(rename = "expiry_in_hours")]
     #[serde_as(as = "DurationHours")]
     pub expiry: Duration,
+
+    #[serde(rename = "ttl_in_minutes")]
+    #[serde_as(as = "DurationMinutes")]
+    pub ttl: Duration,
 
     #[serde(rename = "tracking_validity_in_days")]
     #[serde_as(as = "DurationDays")]
@@ -262,6 +267,7 @@ impl Settings {
             .set_default("key_attestation_certification", "https://wallet.edi.rijksoverheid.nl")?
             .set_default("key_storage_status_list.key_identifier", "key_storage_tsl_key")?
             .set_default("key_storage_status_list.expiry_in_hours", 24)?
+            .set_default("key_storage_status_list.ttl_in_minutes", 60)?
             .set_default("key_storage_status_list.tracking_validity_in_days", 365)?
             .set_default("audit_log.options.acquire_timeout_in_sec", "10")?
             .set_default("audit_log.options.connect_timeout_in_sec", "3")?

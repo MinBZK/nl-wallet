@@ -281,6 +281,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         let key_storage_status_list = KeyStorageStatusList::try_new(
             key_storage_tsl_public_uri,
             settings.key_attestation_settings.key_storage_status_list.expiry,
+            settings.key_attestation_settings.key_storage_status_list.ttl,
             key_storage_tsl_key_pair,
             flags.clone(),
         )?;

@@ -2059,6 +2059,7 @@ pub mod mock {
             key_storage_status_list: KeyStorageStatusList::try_new(
                 "https://wallet-provider.example.com/certification".parse().unwrap(),
                 Duration::from_hours(1),
+                Duration::from_mins(5),
                 key_storage_tsl_key_pair,
                 flags,
             )
