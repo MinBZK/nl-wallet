@@ -156,7 +156,6 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::BorrowingCertificate;
     use futures::FutureExt;
     use rstest::rstest;
     use token_status_list::status_list::StatusType;
@@ -196,12 +195,7 @@ mod tests {
 
         let claims = single_token
             .token
-            .parse_and_verify(
-                trust_anchors,
-                key_pair.certificate().to_canonical_distinguished_name().unwrap(),
-                uri,
-                &time,
-            )
+            .parse_and_verify(trust_anchors, uri, &time)
             .expect("verifying single entry token status list should succeed");
 
         // Only the first index in the status list should be set. Anything beyond the first index should result in a
@@ -236,17 +230,11 @@ mod tests {
     fn key_storage_status(
         token: &StatusListToken,
         trust_anchors: &TrustAnchors,
-        certificate: &BorrowingCertificate,
         public_uri: Url,
         time: &MockTimeGenerator,
     ) -> StatusType {
         token
-            .parse_and_verify(
-                trust_anchors,
-                certificate.to_canonical_distinguished_name().unwrap(),
-                public_uri,
-                time,
-            )
+            .parse_and_verify(trust_anchors, public_uri, time)
             .expect("verifying single entry token status list should succeed")
             .status_list
             .unpack()
@@ -275,13 +263,7 @@ mod tests {
             .expect("retrieving token status list from key storage status list should succeed");
 
         assert_eq!(
-            key_storage_status(
-                &first_token,
-                trust_anchors,
-                key_pair.certificate(),
-                public_uri.clone(),
-                &time
-            ),
+            key_storage_status(&first_token, trust_anchors, public_uri.clone(), &time),
             StatusType::Valid
         );
 
@@ -317,13 +299,7 @@ mod tests {
         );
 
         assert_eq!(
-            key_storage_status(
-                &third_token,
-                trust_anchors,
-                key_pair.certificate(),
-                public_uri.clone(),
-                &time
-            ),
+            key_storage_status(&third_token, trust_anchors, public_uri.clone(), &time),
             StatusType::Valid
         );
 
@@ -337,13 +313,7 @@ mod tests {
             .expect("retrieving token status list from key storage status list should succeed");
 
         assert_eq!(
-            key_storage_status(
-                &fourth_token,
-                trust_anchors,
-                key_pair.certificate(),
-                public_uri.clone(),
-                &time
-            ),
+            key_storage_status(&fourth_token, trust_anchors, public_uri.clone(), &time),
             StatusType::Invalid
         );
     }

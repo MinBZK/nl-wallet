@@ -1,9 +1,5 @@
 use std::convert::TryFrom;
 
-use derive_more::Constructor;
-use derive_more::Display;
-use derive_more::From;
-use derive_more::Into;
 use itertools::Itertools;
 use x509_parser::der_parser::Oid;
 use x509_parser::der_parser::oid;
@@ -220,25 +216,6 @@ impl DistinguishedName {
     }
 }
 
-/// A distinguished name encoded in a canonical, OID-registry-independent format.
-/// This type is specifically designed for database persistence and comparison.
-/// Format: "OID1=base64(DER1),OID2=base64(DER2),..."
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Display, Constructor, From, Into)]
-#[cfg_attr(feature = "persistence", derive(sea_orm::DeriveValueType))]
-pub struct CanonicalDistinguishedName(String);
-
-impl CanonicalDistinguishedName {
-    pub fn into_inner(self) -> String {
-        self.0
-    }
-}
-
-impl AsRef<str> for CanonicalDistinguishedName {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -353,10 +330,6 @@ mod tests {
             .expect("self signed CA should contain a valid X.509 certificate");
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
-        assert_eq!(
-            "2.5.4.3=DARteWNh,2.5.4.6=EwJOTA",
-            certificate.to_canonical_distinguished_name().unwrap().as_ref()
-        );
 
         let x509_cert = certificate.x509_certificate();
         for x509_name in [x509_cert.issuer(), x509_cert.subject()] {
@@ -377,10 +350,6 @@ mod tests {
         let certificate = key_pair.certificate();
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
-        assert_eq!(
-            "2.5.4.3=DAZteWNlcnQ,2.5.4.6=EwJOTA,2.5.4.10=DAtteWNlcnQgQi5WLg,2.5.4.97=DA5OVFJOTC0xMjYwNjE3OA",
-            certificate.to_canonical_distinguished_name().unwrap().as_ref()
-        );
 
         let x509_cert = certificate.x509_certificate();
 
@@ -405,10 +374,6 @@ mod tests {
         let certificate = key_pair.certificate();
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
-        assert_eq!(
-            "2.5.4.3=DAhKb2huIERvZQ,2.5.4.6=EwJOTA,2.5.4.5=Ewg5OTk4OTgwMg,2.5.4.4=DANEb2U,2.5.4.42=DARKb2hu",
-            certificate.to_canonical_distinguished_name().unwrap().as_ref()
-        );
 
         let x509_cert = certificate.x509_certificate();
 

@@ -55,7 +55,7 @@ where
         time,
     )
     .map_err(RegistrationCertificateError::Envelope)?;
-    let (payload, signing_certificate_dn) = envelope.into_parts();
+    let payload = envelope.into_payload();
     let access_certificate_subject = access_certificate
         .to_distinguished_name()
         .map_err(RegistrationCertificateError::AccessCertificateSubject)?;
@@ -66,12 +66,7 @@ where
         .validate_binding_and_time(&access_subject, time.generate())
         .map_err(RegistrationCertificateError::BindingAndTime)?;
     certificate
-        .validate_status(
-            revocation_verifier,
-            registration_certificate_trust_anchors,
-            signing_certificate_dn,
-            time,
-        )
+        .validate_status(revocation_verifier, registration_certificate_trust_anchors, time)
         .await
         .map_err(RegistrationCertificateError::Status)
 }

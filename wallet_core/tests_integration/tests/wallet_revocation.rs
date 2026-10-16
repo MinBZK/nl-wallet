@@ -3,7 +3,6 @@ use std::assert_matches;
 use audit_log::entity;
 use axum::http::StatusCode;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::BorrowingCertificate;
 use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
@@ -49,7 +48,6 @@ async fn test_revoke_wallet_by_revocation_code() {
         wallet_config,
         wp_port,
         wp_root_ca,
-        _key_attestation_cert,
         _connection,
         audit_log_connection,
     ) = setup_revocation_env(&db_setup, &hsm_setup, false).await;
@@ -113,7 +111,6 @@ async fn test_revoke_wallets_by_id() {
         wallet_config,
         wp_port,
         wp_root_ca,
-        _key_attestation_cert,
         connection,
         audit_log_connection,
     ) = setup_revocation_env(&db_setup, &hsm_setup, false).await;
@@ -167,7 +164,6 @@ async fn test_revoke_wallets_by_recovery_code() {
         wallet_config,
         wp_port,
         wp_root_ca,
-        _key_attestation_cert,
         connection,
         audit_log_connection,
     ) = setup_revocation_env(&db_setup, &hsm_setup, false).await;
@@ -262,7 +258,6 @@ async fn test_revoke_wallet_solution() {
         wallet_config,
         wp_port,
         wp_root_ca,
-        key_attestation_cert,
         _connection,
         audit_log_connection,
     ) = setup_revocation_env(&db_setup, &hsm_setup, true).await;
@@ -281,14 +276,7 @@ async fn test_revoke_wallet_solution() {
     let client = tls_reqwest_client_builder([wp_root_ca.into_certificate()])
         .build()
         .unwrap();
-    fetch_key_storage_revocation_status(
-        &client,
-        wp_port,
-        &wptl_trust_anchors,
-        &key_attestation_cert,
-        StatusType::Valid,
-    )
-    .await;
+    fetch_key_storage_revocation_status(&client, wp_port, &wptl_trust_anchors, StatusType::Valid).await;
 
     call_revoke_solution_endpoint(&client, wp_port, StatusCode::OK).await;
 
@@ -317,14 +305,7 @@ async fn test_revoke_wallet_solution() {
     assert_matches!(err, WalletRegistrationError::AccountRevoked(_));
 
     // Check that the one Key Storage status list entry is revoked.
-    fetch_key_storage_revocation_status(
-        &client,
-        wp_port,
-        &wptl_trust_anchors,
-        &key_attestation_cert,
-        StatusType::Invalid,
-    )
-    .await;
+    fetch_key_storage_revocation_status(&client, wp_port, &wptl_trust_anchors, StatusType::Invalid).await;
 }
 
 /// Test if the wallet solution cannot be revoked if the option is not enabled
@@ -343,7 +324,6 @@ async fn test_revoke_wallet_solution_not_enabled() {
         wallet_config,
         wp_port,
         wp_root_ca,
-        _key_attestation_cert,
         _connection,
         audit_log_connection,
     ) = setup_revocation_env(&db_setup, &hsm_setup, false).await;
@@ -385,7 +365,6 @@ async fn setup_revocation_env(
     WalletConfiguration,
     u16,
     ReqwestTrustAnchor,
-    BorrowingCertificate,
     sea_orm::DatabaseConnection,
     sea_orm::DatabaseConnection,
 ) {
@@ -394,7 +373,6 @@ async fn setup_revocation_env(
     wp_settings.revoke_solution_enabled = revoke_solution_enabled;
     let connection = new_connection(wp_settings.database.url.clone()).await.unwrap();
     let audit_log_url = wp_settings.audit_log.url.clone();
-    let key_attestation_cert = wp_settings.key_attestation_settings.key_attestation_certificate.clone();
 
     let (config_server_config, mock_device_config, wallet_config, _, _) = setup_env(
         hsm_setup,
@@ -423,7 +401,6 @@ async fn setup_revocation_env(
         wallet_config,
         wp_port,
         wp_root_ca,
-        key_attestation_cert,
         connection,
         audit_log_connection,
     )
@@ -463,7 +440,6 @@ async fn fetch_key_storage_revocation_status(
     client: &Client,
     wp_port: u16,
     wptl_trust_anchors: &TrustAnchors,
-    tsl_certificate: &BorrowingCertificate,
     expected_status: StatusType,
 ) {
     let url = format!("https://localhost:{wp_port}/key_storage_status")
@@ -479,12 +455,7 @@ async fn fetch_key_storage_revocation_status(
         .unwrap()
         .parse::<StatusListToken>()
         .unwrap()
-        .parse_and_verify(
-            wptl_trust_anchors,
-            tsl_certificate.to_canonical_distinguished_name().unwrap(),
-            url,
-            &TimeGenerator,
-        )
+        .parse_and_verify(wptl_trust_anchors, url, &TimeGenerator)
         .unwrap()
         .status_list
         .unpack()

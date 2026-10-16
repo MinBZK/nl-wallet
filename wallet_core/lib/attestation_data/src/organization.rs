@@ -245,10 +245,9 @@ pub mod test {
 
         let authority = MockRegistrationCertificateAuthority::new();
         let envelope = RegistrationCertificateEnvelope::try_from(authority.sign_jwt(&payload).as_slice()).unwrap();
-        let (payload, signing_subject) =
-            verify_registration_certificate_envelope(&envelope, &authority.trust_anchors, &TimeGenerator)
-                .unwrap()
-                .into_parts();
+        let payload = verify_registration_certificate_envelope(&envelope, &authority.trust_anchors, &TimeGenerator)
+            .unwrap()
+            .into_payload();
         let relying_party = RelyingParty::try_from(access_key.certificate().to_distinguished_name().unwrap()).unwrap();
         let certificate = payload
             .validate_binding_and_time(&relying_party, TimeGenerator.generate())
@@ -256,7 +255,6 @@ pub mod test {
             .validate_status(
                 &RevocationVerifier::new_with_defaults(Arc::new(authority.status_list_client), TimeGenerator),
                 &authority.trust_anchors,
-                signing_subject,
                 &TimeGenerator,
             )
             .await
