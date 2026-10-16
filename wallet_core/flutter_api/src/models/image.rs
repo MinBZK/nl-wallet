@@ -83,3 +83,18 @@ impl SanitizedSvg {
         self.0.as_ref().to_owned()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Image;
+
+    const JPEG2000_IMAGE: &[u8] = include_bytes!("../../assets/tests/willeke.jp2");
+
+    #[test]
+    fn test_image_new_bmp_from_jpeg2000() {
+        let image = Image::new_bmp_from_jpeg2000(JPEG2000_IMAGE).expect("JPEG 2000 image should decode");
+
+        // Detect BMP magic bytes.
+        assert!(matches!(&image, Image::Bmp { data } if matches!(data.as_slice(), [0x42, 0x4d, ..])));
+    }
+}
