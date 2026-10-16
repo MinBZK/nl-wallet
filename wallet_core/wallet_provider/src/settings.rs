@@ -247,6 +247,7 @@ impl Settings {
             .set_default("wia_status_list.list_size", 100_000)?
             .set_default("wia_status_list.create_threshold_ratio", 0.01)?
             .set_default("wia_status_list.expiry_in_hours", 24)?
+            .set_default("wia_status_list.ttl_in_minutes", 60)?
             .set_default("wia_status_list.refresh_threshold_ratio", 0.25)?
             .set_default("wia_status_list.key_identifier", "wia_tsl_key")?
             .set_default("wia_signing_key_identifier", "wia_signing_key")?
