@@ -21,7 +21,16 @@ backtrace.workspace = true
 chrono.workspace = true
 itertools.workspace = true
 parking_lot.workspace = true
-sentry = { workspace = true, features = ["backtrace", "contexts", "panic", "debug-images", "logs", "reqwest", "rustls", "tracing"] }
+sentry = { workspace = true, features = [
+    "backtrace",
+    "contexts",
+    "panic",
+    "debug-images",
+    "logs",
+    "reqwest",
+    "rustls",
+    "tracing",
+] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with.workspace = true
