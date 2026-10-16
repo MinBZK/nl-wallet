@@ -178,8 +178,8 @@ async fn test_insert_and_find_task_by_id() {
         reviewed_by_display_name: None,
         review_comment: None,
         executed_at: None,
-        execution_result: None,
-        execution_result_details: None,
+        execution_successful: None,
+        execution_details: None,
     };
     assert_eq!(inserted, expected);
     assert_eq!(db.find(inserted.id).await.expect("should query task"), Some(expected));

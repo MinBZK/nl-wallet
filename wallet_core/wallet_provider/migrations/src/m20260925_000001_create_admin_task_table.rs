@@ -27,8 +27,8 @@ impl MigrationTrait for Migration {
                     .col(string_null(AdminTask::ReviewedByDisplayName))
                     .col(string_null(AdminTask::ReviewComment))
                     .col(timestamp_with_time_zone_null(AdminTask::ExecutedAt))
-                    .col(string_null(AdminTask::ExecutionResult))
-                    .col(json_null(AdminTask::ExecutionResultDetails))
+                    .col(boolean_null(AdminTask::ExecutionSuccessful))
+                    .col(text_null(AdminTask::ExecutionDetails))
                     .to_owned(),
             )
             .await?;
@@ -84,6 +84,6 @@ enum AdminTask {
     ReviewedByDisplayName,
     ReviewComment,
     ExecutedAt,
-    ExecutionResult,
-    ExecutionResultDetails,
+    ExecutionSuccessful,
+    ExecutionDetails,
 }

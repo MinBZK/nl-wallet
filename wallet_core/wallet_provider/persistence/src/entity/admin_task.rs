@@ -20,8 +20,8 @@ pub struct Model {
     pub reviewed_by_display_name: Option<String>,
     pub review_comment: Option<String>,
     pub executed_at: Option<DateTimeWithTimeZone>,
-    pub execution_result: Option<String>,
-    pub execution_result_details: Option<Json>,
+    pub execution_successful: Option<bool>,
+    pub execution_details: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

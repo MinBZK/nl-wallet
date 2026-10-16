@@ -36,7 +36,6 @@ use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Value as JsonValue;
 use tracing::warn;
 use url::Url;
 use utils::generator::TimeGenerator;
@@ -363,8 +362,8 @@ pub struct TaskResponse {
     pub reviewed_by: Option<String>,
     pub review_comment: Option<String>,
     pub executed_at: Option<DateTime<Utc>>,
-    pub execution_result: Option<String>,
-    pub execution_result_details: Option<JsonValue>,
+    pub execution_successful: Option<bool>,
+    pub execution_details: Option<String>,
 }
 
 impl From<AdminTask> for TaskResponse {
@@ -381,8 +380,8 @@ impl From<AdminTask> for TaskResponse {
             reviewed_by: task.reviewed_by_display_name,
             review_comment: task.review_comment,
             executed_at: task.executed_at,
-            execution_result: task.execution_result,
-            execution_result_details: task.execution_result_details,
+            execution_successful: task.execution_successful,
+            execution_details: task.execution_details,
         }
     }
 }
@@ -1046,8 +1045,8 @@ mod tests {
             reviewed_by_display_name: None,
             review_comment: None,
             executed_at: None,
-            execution_result: None,
-            execution_result_details: None,
+            execution_successful: None,
+            execution_details: None,
         };
 
         let response = TaskResponse::from(task);

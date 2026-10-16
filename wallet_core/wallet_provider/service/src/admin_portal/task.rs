@@ -334,8 +334,8 @@ mod tests {
             reviewed_by_display_name: None,
             review_comment: None,
             executed_at: None,
-            execution_result: None,
-            execution_result_details: None,
+            execution_successful: None,
+            execution_details: None,
         }
     }
 
@@ -659,8 +659,8 @@ mod tests {
             assert_eq!(task.withdrawn_at, Some(now));
             assert_eq!(task.reviewed_at, None);
             assert_eq!(task.executed_at, None);
-            assert_eq!(task.execution_result, None);
-            assert_eq!(task.execution_result_details, None);
+            assert_eq!(task.execution_successful, None);
+            assert_eq!(task.execution_details, None);
         }
     }
 

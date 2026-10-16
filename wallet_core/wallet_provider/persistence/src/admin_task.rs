@@ -41,8 +41,8 @@ impl TryFrom<AdminTaskCreate> for admin_task::ActiveModel {
             reviewed_by_display_name: Set(None),
             review_comment: Set(None),
             executed_at: Set(None),
-            execution_result: Set(None),
-            execution_result_details: Set(None),
+            execution_successful: Set(None),
+            execution_details: Set(None),
         })
     }
 }
@@ -69,8 +69,8 @@ impl TryFrom<admin_task::Model> for AdminTask {
             reviewed_by_display_name: model.reviewed_by_display_name,
             review_comment: model.review_comment,
             executed_at: model.executed_at.map(Into::into),
-            execution_result: model.execution_result,
-            execution_result_details: model.execution_result_details,
+            execution_successful: model.execution_successful,
+            execution_details: model.execution_details,
         })
     }
 }
@@ -245,8 +245,8 @@ mod tests {
                     .unwrap()
                     .with_timezone(&offset),
             ),
-            execution_result: Some("success".into()),
-            execution_result_details: Some(sea_orm::JsonValue::from("execution details")),
+            execution_successful: Some(true),
+            execution_details: Some("execution details".into()),
         }
     }
 
@@ -279,8 +279,8 @@ mod tests {
         assert_eq!(active.reviewed_by_display_name, Set(None));
         assert_eq!(active.review_comment, Set(None));
         assert_eq!(active.executed_at, Set(None));
-        assert_eq!(active.execution_result, Set(None));
-        assert_eq!(active.execution_result_details, Set(None));
+        assert_eq!(active.execution_successful, Set(None));
+        assert_eq!(active.execution_details, Set(None));
     }
 
     #[test]
@@ -309,15 +309,15 @@ mod tests {
                 reviewed_by_display_name: row.reviewed_by_display_name.clone(),
                 review_comment: row.review_comment.clone(),
                 executed_at: row.executed_at.map(Into::into),
-                execution_result: row.execution_result.clone(),
-                execution_result_details: row.execution_result_details.clone(),
+                execution_successful: row.execution_successful,
+                execution_details: row.execution_details.clone(),
             };
             assert_eq!(AdminTask::try_from(row).unwrap(), expected);
         }
     }
 
     #[test]
-    fn model_with_invalid_task_type_or_status_fails_conversion() {
+    fn model_with_invalid_enum_value_fails_conversion() {
         for row in [
             admin_task::Model {
                 task_type: "unknown".into(),
@@ -356,8 +356,8 @@ mod tests {
             reviewed_by_display_name: None,
             review_comment: None,
             executed_at: None,
-            execution_result: None,
-            execution_result_details: None,
+            execution_successful: None,
+            execution_details: None,
             ..model()
         };
         let task = AdminTask::try_from(row).unwrap();
@@ -367,7 +367,7 @@ mod tests {
         assert_eq!(task.reviewed_by_display_name, None);
         assert_eq!(task.review_comment, None);
         assert_eq!(task.executed_at, None);
-        assert_eq!(task.execution_result, None);
-        assert_eq!(task.execution_result_details, None);
+        assert_eq!(task.execution_successful, None);
+        assert_eq!(task.execution_details, None);
     }
 }

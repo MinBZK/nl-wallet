@@ -104,8 +104,8 @@ pub struct AdminTask {
     pub reviewed_by_display_name: Option<String>,
     pub review_comment: Option<String>,
     pub executed_at: Option<DateTime<Utc>>,
-    pub execution_result: Option<String>,
-    pub execution_result_details: Option<JsonValue>,
+    pub execution_successful: Option<bool>,
+    pub execution_details: Option<String>,
 }
 
 /// Request model to create a new [`AdminTask`].
@@ -136,8 +136,8 @@ impl From<AdminTaskCreate> for AdminTask {
             reviewed_by_display_name: None,
             review_comment: None,
             executed_at: None,
-            execution_result: None,
-            execution_result_details: None,
+            execution_successful: None,
+            execution_details: None,
         }
     }
 }
