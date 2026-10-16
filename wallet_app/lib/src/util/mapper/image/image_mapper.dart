@@ -9,9 +9,10 @@ class ImageMapper extends Mapper<Image, AppImageData> {
   @override
   AppImageData map(Image input) {
     return switch (input) {
-      Image_Svg(:final svg) => SvgImage(svg.xml()),
-      Image_Png(:final data) => AppMemoryImage(data),
       Image_Jpeg(:final data) => AppMemoryImage(data),
+      Image_Png(:final data) => AppMemoryImage(data),
+      Image_Bmp(:final data) => AppMemoryImage(data),
+      Image_Svg(:final svg) => SvgImage(svg.xml()),
       Image_Asset(:final path) => AppAssetImage(path),
     };
   }

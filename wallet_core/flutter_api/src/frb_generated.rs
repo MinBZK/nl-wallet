@@ -2422,10 +2422,14 @@ impl SseDecode for crate::models::image::Image {
                 return crate::models::image::Image::Png { data: var_data };
             }
             2 => {
+                let mut var_data = <Vec<u8>>::sse_decode(deserializer);
+                return crate::models::image::Image::Bmp { data: var_data };
+            }
+            3 => {
                 let mut var_svg = <SanitizedSvg>::sse_decode(deserializer);
                 return crate::models::image::Image::Svg { svg: var_svg };
             }
-            3 => {
+            4 => {
                 let mut var_path = <String>::sse_decode(deserializer);
                 return crate::models::image::Image::Asset { path: var_path };
             }
@@ -3869,9 +3873,10 @@ impl flutter_rust_bridge::IntoDart for crate::models::image::Image {
                 [0.into_dart(), data.into_into_dart().into_dart()].into_dart()
             }
             crate::models::image::Image::Png { data } => [1.into_dart(), data.into_into_dart().into_dart()].into_dart(),
-            crate::models::image::Image::Svg { svg } => [2.into_dart(), svg.into_into_dart().into_dart()].into_dart(),
+            crate::models::image::Image::Bmp { data } => [2.into_dart(), data.into_into_dart().into_dart()].into_dart(),
+            crate::models::image::Image::Svg { svg } => [3.into_dart(), svg.into_into_dart().into_dart()].into_dart(),
             crate::models::image::Image::Asset { path } => {
-                [3.into_dart(), path.into_into_dart().into_dart()].into_dart()
+                [4.into_dart(), path.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -4987,12 +4992,16 @@ impl SseEncode for crate::models::image::Image {
                 <i32>::sse_encode(1, serializer);
                 <Vec<u8>>::sse_encode(data, serializer);
             }
-            crate::models::image::Image::Svg { svg } => {
+            crate::models::image::Image::Bmp { data } => {
                 <i32>::sse_encode(2, serializer);
+                <Vec<u8>>::sse_encode(data, serializer);
+            }
+            crate::models::image::Image::Svg { svg } => {
+                <i32>::sse_encode(3, serializer);
                 <SanitizedSvg>::sse_encode(svg, serializer);
             }
             crate::models::image::Image::Asset { path } => {
-                <i32>::sse_encode(3, serializer);
+                <i32>::sse_encode(4, serializer);
                 <String>::sse_encode(path, serializer);
             }
             _ => {
@@ -6299,12 +6308,18 @@ mod io {
                     }
                 }
                 2 => {
+                    let ans = unsafe { self.kind.Bmp };
+                    crate::models::image::Image::Bmp {
+                        data: ans.data.cst_decode(),
+                    }
+                }
+                3 => {
                     let ans = unsafe { self.kind.Svg };
                     crate::models::image::Image::Svg {
                         svg: ans.svg.cst_decode(),
                     }
                 }
-                3 => {
+                4 => {
                     let ans = unsafe { self.kind.Asset };
                     crate::models::image::Image::Asset {
                         path: ans.path.cst_decode(),
@@ -8366,6 +8381,7 @@ mod io {
     pub union ImageKind {
         Jpeg: wire_cst_Image_Jpeg,
         Png: wire_cst_Image_Png,
+        Bmp: wire_cst_Image_Bmp,
         Svg: wire_cst_Image_Svg,
         Asset: wire_cst_Image_Asset,
         nil__: (),
@@ -8378,6 +8394,11 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_Image_Png {
+        data: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_Image_Bmp {
         data: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]

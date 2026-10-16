@@ -233,7 +233,10 @@ impl From<wallet::AttributeValue> for AttributeValue {
                 value: date.format("%Y-%m-%d").to_string(),
             },
             wallet::AttributeValue::Bytes(value) => Self::Bytes { value },
-            wallet::AttributeValue::Image(image) => Self::Image { value: image.into() },
+            wallet::AttributeValue::Image(image) => match Image::try_from(image) {
+                Ok(value) => Self::Image { value },
+                Err(value) => Self::Bytes { value },
+            },
         }
     }
 }

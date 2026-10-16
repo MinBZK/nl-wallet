@@ -19,6 +19,8 @@ allow_insecure_url = ["wallet/allow_insecure_url"]
 anyhow.workspace = true
 backtrace.workspace = true
 chrono.workspace = true
+hayro-jpeg2000.workspace = true
+image = { workspace = true, features = ["bmp"] }
 itertools.workspace = true
 parking_lot.workspace = true
 sentry = { workspace = true, features = [

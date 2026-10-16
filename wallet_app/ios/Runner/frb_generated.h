@@ -61,6 +61,10 @@ typedef struct wire_cst_Image_Png {
   struct wire_cst_list_prim_u_8_strict *data;
 } wire_cst_Image_Png;
 
+typedef struct wire_cst_Image_Bmp {
+  struct wire_cst_list_prim_u_8_strict *data;
+} wire_cst_Image_Bmp;
+
 typedef struct wire_cst_Image_Svg {
   uintptr_t svg;
 } wire_cst_Image_Svg;
@@ -72,6 +76,7 @@ typedef struct wire_cst_Image_Asset {
 typedef union ImageKind {
   struct wire_cst_Image_Jpeg Jpeg;
   struct wire_cst_Image_Png Png;
+  struct wire_cst_Image_Bmp Bmp;
   struct wire_cst_Image_Svg Svg;
   struct wire_cst_Image_Asset Asset;
 } ImageKind;

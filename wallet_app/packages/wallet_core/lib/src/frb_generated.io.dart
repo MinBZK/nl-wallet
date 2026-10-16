@@ -1481,17 +1481,23 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Png.data = pre_data;
       return;
     }
+    if (apiObj is Image_Bmp) {
+      var pre_data = cst_encode_list_prim_u_8_strict(apiObj.data);
+      wireObj.tag = 2;
+      wireObj.kind.Bmp.data = pre_data;
+      return;
+    }
     if (apiObj is Image_Svg) {
       var pre_svg = cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
         apiObj.svg,
       );
-      wireObj.tag = 2;
+      wireObj.tag = 3;
       wireObj.kind.Svg.svg = pre_svg;
       return;
     }
     if (apiObj is Image_Asset) {
       var pre_path = cst_encode_String(apiObj.path);
-      wireObj.tag = 3;
+      wireObj.tag = 4;
       wireObj.kind.Asset.path = pre_path;
       return;
     }
@@ -3872,6 +3878,10 @@ final class wire_cst_Image_Png extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
 }
 
+final class wire_cst_Image_Bmp extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
+}
+
 final class wire_cst_Image_Svg extends ffi.Struct {
   @ffi.UintPtr()
   external int svg;
@@ -3885,6 +3895,8 @@ final class ImageKind extends ffi.Union {
   external wire_cst_Image_Jpeg Jpeg;
 
   external wire_cst_Image_Png Png;
+
+  external wire_cst_Image_Bmp Bmp;
 
   external wire_cst_Image_Svg Svg;
 
