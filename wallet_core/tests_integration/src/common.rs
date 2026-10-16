@@ -876,12 +876,14 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
 }
 
 pub async fn start_wallet_provider_with_abort_handle(
-    settings: WpSettings,
+    mut settings: WpSettings,
     hsm: Pkcs11Hsm,
     trust_anchor: ReqwestTrustAnchor,
 ) -> (u16, tokio::task::AbortHandle) {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
+
+    settings.public_url = local_https_base_url(port);
 
     let play_integrity_client = MockPlayIntegrityClient::new(
         settings.android.package_name.clone(),

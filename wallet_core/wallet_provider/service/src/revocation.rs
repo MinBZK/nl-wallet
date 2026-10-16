@@ -113,7 +113,7 @@ where
     tx.commit().await?;
 
     user_state
-        .status_list_service
+        .wia_status_list
         .revoke_attestation_batches(wia_ids)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
@@ -169,7 +169,7 @@ where
     tx.commit().await?;
 
     user_state
-        .status_list_service
+        .wia_status_list
         .revoke_attestation_batches(wia_ids)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
@@ -222,7 +222,7 @@ where
 
     // Revoke WIA attestations of all successfully revoked wallets
     user_state
-        .status_list_service
+        .wia_status_list
         .revoke_attestation_batches(wia_ids)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
@@ -244,7 +244,7 @@ where
         .await
         .map_err(|err| RevocationError::Flag(Box::new(err)))?;
     user_state
-        .status_list_service
+        .wia_status_list
         .republish_all(false)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
@@ -263,7 +263,7 @@ where
         .await
         .map_err(|err| RevocationError::Flag(Box::new(err)))?;
     user_state
-        .status_list_service
+        .wia_status_list
         .republish_all(true)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;

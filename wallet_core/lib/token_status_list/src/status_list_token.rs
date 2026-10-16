@@ -40,6 +40,12 @@ impl StatusListToken {
             status_list,
         }
     }
+
+    pub fn into_inner(self) -> UnverifiedJwt<StatusListClaims, HeaderWithX5c> {
+        let Self(inner) = self;
+
+        inner
+    }
 }
 
 pub struct StatusListTokenBuilder {
@@ -136,14 +142,14 @@ pub mod verification {
     impl StatusListToken {
         pub fn parse_and_verify(
             &self,
-            issuer_trust_anchors: &TrustAnchors,
+            trust_anchors: &TrustAnchors,
             url: Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<StatusListClaims, StatusListTokenVerificationError> {
             // No extended key usage is required of the signer: neither the Token Status List draft nor ETSI TS 119 475
             // requires one, and the OID in the draft is not yet assigned.
             let (_, claims) = self.0.parse_and_verify_against_trust_anchors(
-                issuer_trust_anchors,
+                trust_anchors,
                 time,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
