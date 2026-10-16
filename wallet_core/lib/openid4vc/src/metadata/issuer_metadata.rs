@@ -227,9 +227,7 @@ pub struct CredentialRequestEncryption {
     /// A JSON Web Key Set, as defined in [RFC7591], that contains one or more public keys, to be used by the Wallet as
     /// an input to a key agreement for encryption of the Credential Request. Each JWK in the set MUST have a kid (Key
     /// ID) parameter that uniquely identifies the key.
-    // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
-    //                  request encryption. Additionally this should check for the presence of `kid` parameters.
-    pub jwks: VecNonEmpty<Key>,
+    pub jwks: JwkSet,
 
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
     /// by the Credential Endpoint to decode the Credential Request from a JWT.
@@ -245,6 +243,14 @@ pub struct CredentialRequestEncryption {
     /// Credential Requests. If the value is true, the Credential Issuer requires encryption for every Credential
     /// Request. If the value is false, the Wallet MAY choose whether it encrypts the request or not.
     pub encryption_required: bool,
+}
+
+/// A JSON Web Key Set as used in [RFC7591], that contains at least one key.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JwkSet {
+    // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
+    //                  request encryption. Additionally this should check for the presence of `kid` parameters.
+    pub keys: VecNonEmpty<Key>,
 }
 
 /// Information about whether the Credential Issuer supports encryption of the Credential Response on top of TLS.
@@ -1092,13 +1098,15 @@ mod tests {
             "deferred_credential_endpoint": "https://credential-issuer.example.com/deferred_credential",
             "notification_endpoint": "https://credential-issuer.example.com/notification",
             "credential_request_encryption": {
-                "jwks": [
-                    {
-                        "kty":"EC", "kid":"ac", "use":"enc", "crv":"P-256", "alg":"ECDH-ES",
-                        "x":"YO4epjifD-KWeq1sL2tNmm36BhXnkJ0He-WqMYrp9Fk",
-                        "y":"Hekpm0zfK7C-YccH5iBjcIXgf6YdUvNUac_0At55Okk"
-                    }
-                ],
+                "jwks": {
+                    "keys": [
+                        {
+                            "kty":"EC", "kid":"ac", "use":"enc", "crv":"P-256", "alg":"ECDH-ES",
+                            "x":"YO4epjifD-KWeq1sL2tNmm36BhXnkJ0He-WqMYrp9Fk",
+                            "y":"Hekpm0zfK7C-YccH5iBjcIXgf6YdUvNUac_0At55Okk"
+                        }
+                    ]
+                },
                 "enc_values_supported": ["A128GCM"],
                 "zip_values_supported": ["DEF"],
                 "encryption_required": true
@@ -1256,8 +1264,8 @@ mod tests {
                 .credential_request_encryption
                 .as_ref()
                 .expect("IssuerMetadata should contain CredentialRequestEncryption");
-            assert_eq!(request_encryption.jwks.len().get(), 1);
-            assert_matches!(request_encryption.jwks.first().params(), KeyParams::Ec(_));
+            assert_eq!(request_encryption.jwks.keys.len().get(), 1);
+            assert_matches!(request_encryption.jwks.keys.first().params(), KeyParams::Ec(_));
             assert!(
                 request_encryption
                     .enc_values_supported
