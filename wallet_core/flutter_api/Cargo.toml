@@ -26,9 +26,9 @@ parking_lot.workspace = true
 sentry = { workspace = true, features = [
     "backtrace",
     "contexts",
-    "panic",
     "debug-images",
     "logs",
+    "panic",
     "reqwest",
     "rustls",
     "tracing",
