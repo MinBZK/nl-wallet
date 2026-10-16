@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import TaskItemList from '../components/create-task/TaskItemList.vue'
+import TaskItemList from '../../../components/create-task/TaskItemList.vue'
 
 describe('TaskItemList', () => {
   it('renders a string value as plain text', () => {

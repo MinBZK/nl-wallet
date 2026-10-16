@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 import { mount } from '@vue/test-utils'
-import SidebarUserCard from '../components/sidebar/SidebarUserCard.vue'
+import SidebarUserCard from '../../../components/sidebar/SidebarUserCard.vue'
 
 describe('SidebarUserCard', () => {
   it('falls back to initials when no avatar is given', () => {

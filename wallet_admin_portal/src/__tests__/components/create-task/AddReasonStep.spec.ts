@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import AddReasonStep from '../components/create-task/AddReasonStep.vue'
+import AddReasonStep from '../../../components/create-task/AddReasonStep.vue'
 
 function mountStep(modelValue = '') {
   return mount(AddReasonStep, {

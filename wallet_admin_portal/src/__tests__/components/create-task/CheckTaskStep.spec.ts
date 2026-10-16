@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import CheckTaskStep from '../components/create-task/CheckTaskStep.vue'
+import CheckTaskStep from '../../../components/create-task/CheckTaskStep.vue'
 import type { TaskDetailRow } from '@/types/task-detail-row.ts'
 
 function mountStep(details: TaskDetailRow[], consequences: string[]) {

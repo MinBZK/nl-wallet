@@ -1,13 +1,10 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import TaskWizardFooter from '../components/create-task/TaskWizardFooter.vue'
+import TaskWizardFooter from '../../../components/create-task/TaskWizardFooter.vue'
+import { buttonByText } from '../../testUtils'
 
 function mountFooter(props: Partial<InstanceType<typeof TaskWizardFooter>['$props']> = {}) {
   return mount(TaskWizardFooter, { props: { nextLabel: 'Next', ...props } })
-}
-
-function buttonByText(wrapper: ReturnType<typeof mountFooter>, text: string) {
-  return wrapper.findAll('button').find((button) => button.text() === text)
 }
 
 describe('TaskWizardFooter', () => {
