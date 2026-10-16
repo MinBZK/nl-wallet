@@ -49,6 +49,32 @@ spec:
       {{- with .Values.httpRoute.filters }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
+    - backendRefs:
+        - name: {{ $name }}
+          port: 80
+    {{- if .Values.httpRoute.contextPath }}
+      matches:
+        - path:
+            type: PathPrefix
+            value: "/{{ .Values.httpRoute.contextPath }}/key_storage_status"
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: "/key_storage_status"
+    {{- else }}
+      matches:
+        - path:
+            type: PathPrefix
+            value: "/key_storage_status"
+      {{- if .Values.httpRoute.filters }}
+      filters:
+      {{- end }}
+    {{- end }}
+      {{- with .Values.httpRoute.filters }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
 {{- end }}
 
 {{ if .Values.httpRouteAdminPortal.enabled }}
