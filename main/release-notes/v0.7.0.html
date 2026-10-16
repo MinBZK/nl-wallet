@@ -220,6 +220,22 @@ to the domestic <code class="docutils literal notranslate"><span class="pre">eu.
 attributes not defined in the Rulebook. The <code class="docutils literal notranslate"><span class="pre">pid_attributes</span></code> paths in the
 wallet configuration and any Relying Party requests or registration
 certificates for these attributes must be updated accordingly.</p></li>
+<li><p>As part of OpenID4VCI Key Attestations, the Wallet Provider now serves a
+Status List Token for its Key Storage. In order to facilitate this, it has had
+the following parameters added to its configuration:</p>
+<ul>
+<li><p>The main section of the configuration has a <code class="docutils literal notranslate"><span class="pre">public_url</span></code> parameter, which
+should contain the URL at which the Wallet Provider is publicly reachable.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">key_storage_status_list</span></code> section has the combination of
+<code class="docutils literal notranslate"><span class="pre">key_identifier</span></code> and <code class="docutils literal notranslate"><span class="pre">key_certificate</span></code>, where the latter should contain
+the public key corresponding to the private in the HSM to which the former
+parameter points.</p></li>
+<li><p>Also present in the <code class="docutils literal notranslate"><span class="pre">key_storage_status_list</span></code> are the optional
+<code class="docutils literal notranslate"><span class="pre">expiry_in_hours</span></code> and <code class="docutils literal notranslate"><span class="pre">tracking_validity_in_days</span></code> parameters, both of
+which dictate expiration periods as included in the Key Storage Status
+List Token.</p></li>
+</ul>
+</li>
 </ul>
 </section>
 <section id="new-features">
