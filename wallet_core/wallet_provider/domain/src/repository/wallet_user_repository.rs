@@ -15,6 +15,7 @@ use super::errors::PersistenceError;
 use super::transaction::Committable;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::RecoveryCode;
+use crate::model::wallet_user::RevokedWalletUsers;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletId;
 use crate::model::wallet_user::WalletUserCreate;
@@ -250,7 +251,7 @@ pub trait WalletUserRepository {
         wallet_user_id: Vec<Uuid>,
         revocation_reason: RevocationReason,
         revocation_date_time: DateTime<Utc>,
-    ) -> Result<Vec<Uuid>>;
+    ) -> Result<RevokedWalletUsers>;
 
     async fn deny_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: RecoveryCode) -> Result<()>;
 
@@ -278,6 +279,7 @@ pub mod mock {
     use super::*;
     use crate::model::QueryResult;
     use crate::model::wallet_user;
+    use crate::model::wallet_user::RevokedWalletUsers;
     use crate::model::wallet_user::WalletId;
     use crate::model::wallet_user::WalletUserQueryResult;
 
@@ -603,11 +605,14 @@ pub mod mock {
             _wallet_user_id: Vec<Uuid>,
             _revocation_reason: RevocationReason,
             _revocation_date_time: DateTime<Utc>,
-        ) -> Result<Vec<Uuid>> {
-            Ok(vec![
-                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
-            ])
+        ) -> Result<RevokedWalletUsers> {
+            Ok(RevokedWalletUsers {
+                revoked_count: 2,
+                wia_ids: vec![
+                    uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                    uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+                ],
+            })
         }
 
         async fn deny_recovery_code(

@@ -104,7 +104,7 @@ where
         time.generate()
     };
 
-    let wia_ids = user_state
+    let revoked = user_state
         .repositories
         .revoke_wallet_users(&tx, vec![wallet_user.id], revocation_reason, revocation_date_time)
         .await?;
@@ -114,7 +114,7 @@ where
 
     user_state
         .status_list_service
-        .revoke_attestation_batches(wia_ids)
+        .revoke_attestation_batches(revoked.wia_ids)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
@@ -160,7 +160,7 @@ where
         .await?;
 
     let found_wallet_count = wallet_user_ids.len();
-    let wia_ids = user_state
+    let revoked = user_state
         .repositories
         .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
         .await?;
@@ -170,7 +170,7 @@ where
 
     user_state
         .status_list_service
-        .revoke_attestation_batches(wia_ids)
+        .revoke_attestation_batches(revoked.wia_ids)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
@@ -207,7 +207,7 @@ where
     }
 
     // revoke all users
-    let wia_ids = user_state
+    let revoked = user_state
         .repositories
         .revoke_wallet_users(
             &tx,
@@ -223,7 +223,7 @@ where
     // Revoke WIA attestations of all successfully revoked wallets
     user_state
         .status_list_service
-        .revoke_attestation_batches(wia_ids)
+        .revoke_attestation_batches(revoked.wia_ids)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 

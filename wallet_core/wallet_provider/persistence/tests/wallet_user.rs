@@ -1,4 +1,5 @@
 use std::assert_matches;
+use std::collections::HashSet;
 
 use android_attest::attestation_extension::key_attestation::OsVersion;
 use android_attest::attestation_extension::key_attestation::PatchLevel;
@@ -11,6 +12,7 @@ use hsm::model::encrypted::Encrypted;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use uuid::Uuid;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
@@ -21,8 +23,11 @@ use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
+use wallet_provider_domain::repository::TransactionStarter;
+use wallet_provider_domain::repository::WalletUserRepository;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::entity::wallet_user;
+use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
 use wallet_provider_persistence::test::db_from_setup;
@@ -39,6 +44,7 @@ use wallet_provider_persistence::wallet_user::rollback_pin_change;
 use wallet_provider_persistence::wallet_user::store_recovery_code;
 use wallet_provider_persistence::wallet_user::transition_wallet_user_state;
 use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
+use wallet_provider_persistence::wallet_user_wia;
 
 pub mod common;
 
@@ -589,4 +595,49 @@ async fn test_has_multiple_accounts() {
             .await
             .unwrap()
     );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_revoke_wallet_users_counts_only_newly_revoked_wallets() {
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
+
+    let mut wallet_user_ids = Vec::new();
+    let mut wia_ids = HashSet::new();
+    for _ in 0..3 {
+        let wallet_user_id =
+            create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, random_string(32).into()).await;
+        let wia_id = Uuid::new_v4();
+        wallet_user_wia::create(&db, wallet_user_id, wia_id).await.unwrap();
+        wallet_user_ids.push(wallet_user_id);
+        wia_ids.insert(wia_id);
+    }
+
+    let repositories = Repositories::from(db);
+    let transaction = repositories.begin_transaction().await.unwrap();
+
+    let already_revoked = repositories
+        .revoke_wallet_users(
+            &transaction,
+            vec![wallet_user_ids[0]],
+            RevocationReason::AdminRequest,
+            Utc::now(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(already_revoked.revoked_count, 1);
+
+    let revoked = repositories
+        .revoke_wallet_users(
+            &transaction,
+            wallet_user_ids,
+            RevocationReason::AdminRequest,
+            Utc::now(),
+        )
+        .await
+        .unwrap();
+    transaction.commit().await.unwrap();
+
+    assert_eq!(revoked.revoked_count, 2);
+    assert_eq!(revoked.wia_ids.into_iter().collect::<HashSet<_>>(), wia_ids);
 }

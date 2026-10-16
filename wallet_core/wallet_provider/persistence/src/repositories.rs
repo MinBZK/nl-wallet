@@ -24,6 +24,7 @@ use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
+use wallet_provider_domain::model::wallet_user::RevokedWalletUsers;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
@@ -574,16 +575,17 @@ impl WalletUserRepository for Repositories {
         wallet_user_ids: Vec<Uuid>,
         revocation_reason: RevocationReason,
         revocation_date_time: DateTime<Utc>,
-    ) -> Result<Vec<Uuid>, PersistenceError> {
+    ) -> Result<RevokedWalletUsers, PersistenceError> {
         wallet_user_key::delete_all_keys(transaction, wallet_user_ids.clone()).await?;
-        wallet_user::revoke_wallets(
+        let revoked_count = wallet_user::revoke_wallets(
             transaction,
             wallet_user_ids.clone(),
             revocation_reason,
             revocation_date_time,
         )
         .await?;
-        wallet_user_wia::find_wia_ids_for_wallet_users(transaction, wallet_user_ids).await
+        let wia_ids = wallet_user_wia::find_wia_ids_for_wallet_users(transaction, wallet_user_ids).await?;
+        Ok(RevokedWalletUsers { revoked_count, wia_ids })
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -687,6 +689,7 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevocationRegistration;
+    use wallet_provider_domain::model::wallet_user::RevokedWalletUsers;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletId;
     use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -1033,7 +1036,7 @@ pub mod mock {
                 wallet_user_id: Vec<Uuid>,
                 revocation_reason: RevocationReason,
                 revocation_date_time: DateTime<Utc>
-            ) -> Result<Vec<Uuid>, PersistenceError>;
+            ) -> Result<RevokedWalletUsers, PersistenceError>;
 
             async fn deny_recovery_code(
                 &self,
@@ -1492,11 +1495,14 @@ pub mod mock {
             _wallet_user_id: Vec<Uuid>,
             _revocation_reason: RevocationReason,
             _revocation_date_time: DateTime<Utc>,
-        ) -> Result<Vec<Uuid>, PersistenceError> {
-            Ok(vec![
-                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
-            ])
+        ) -> Result<RevokedWalletUsers, PersistenceError> {
+            Ok(RevokedWalletUsers {
+                revoked_count: 2,
+                wia_ids: vec![
+                    uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                    uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+                ],
+            })
         }
 
         async fn deny_recovery_code(

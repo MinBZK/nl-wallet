@@ -933,12 +933,12 @@ pub async fn revoke_wallets<S, T>(
     wallet_user_ids: Vec<Uuid>,
     revocation_reason: RevocationReason,
     revocation_date_time: DateTime<Utc>,
-) -> Result<()>
+) -> Result<u64>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user::Entity::update_many()
+    let result = wallet_user::Entity::update_many()
         .col_expr(
             wallet_user::Column::State,
             Expr::value(WalletUserState::Revoked.to_string()),
@@ -962,5 +962,5 @@ where
         .await
         .map_err(PersistenceError::Execution)?;
 
-    Ok(())
+    Ok(result.rows_affected)
 }

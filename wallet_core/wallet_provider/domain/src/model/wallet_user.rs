@@ -58,6 +58,15 @@ pub struct RevocationRegistration {
     pub date_time: DateTime<Utc>,
 }
 
+/// The result of revoking a set of wallet users.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RevokedWalletUsers {
+    /// The number of wallet users that were revoked by this call, i.e. excluding those already revoked.
+    pub revoked_count: u64,
+    /// The WIA ids of all requested wallet users, including those already revoked.
+    pub wia_ids: Vec<Uuid>,
+}
+
 #[derive(Debug)]
 pub struct TransferSessionSummary {
     pub transfer_session_id: Uuid,
