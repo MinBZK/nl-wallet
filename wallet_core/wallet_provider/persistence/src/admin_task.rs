@@ -3,6 +3,7 @@ use chrono::Utc;
 use sea_orm::ColumnTrait;
 use sea_orm::Condition;
 use sea_orm::ConnectionTrait;
+use sea_orm::DbErr;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
@@ -130,6 +131,7 @@ where
     T: PersistenceConnection<S>,
 {
     let model = admin_task::ActiveModel {
+        id: Set(review.id),
         status: Set(review.review_verdict.resulting_status().to_string()),
         reviewed_at: Set(Some(review.reviewed_at.into())),
         reviewed_by_user_id: Set(Some(review.reviewed_by_user_id)),
@@ -137,18 +139,15 @@ where
         review_comment: Set(Some(review.review_comment)),
         ..Default::default()
     };
-    let task = admin_task::Entity::update_many()
-        .set(model)
-        .filter(admin_task::Column::Id.eq(review.id))
+    match admin_task::Entity::update(model)
         .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
-        .exec_with_returning(db.connection())
+        .exec(db.connection())
         .await
-        .map_err(PersistenceError::Execution)?
-        .into_iter()
-        .next()
-        .map(TryInto::try_into)
-        .transpose()?;
-    Ok(task)
+    {
+        Ok(task) => Ok(Some(task.try_into()?)),
+        Err(DbErr::RecordNotUpdated) => Ok(None),
+        Err(error) => Err(PersistenceError::Execution(error)),
+    }
 }
 
 pub async fn list_tasks<S, T>(db: &T, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError>
