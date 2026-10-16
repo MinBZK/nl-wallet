@@ -11,8 +11,6 @@ workspace = true
 doctest = false
 
 [features]
-# Implements SeaORM traits for types that can be persisted
-persistence = ["sea-orm/macros"]
 # Include examples from the ISO specification
 examples = ["dep:anyhow", "dep:hex-literal"]
 # Include code for generating certificates and keys
@@ -63,7 +61,6 @@ hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true }
-sea-orm = { workspace = true, optional = true }
 time = { workspace = true, optional = true }
 
 [dev-dependencies]
