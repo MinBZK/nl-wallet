@@ -105,7 +105,8 @@ where
             .map(|stored_copy| -> Result<_, RecoveryCodeError> {
                 let recovery_code_path = pid_config.recovery_code_path(stored_copy.attestation_type())?;
 
-                let code = retrieve_recovery_code_from_pid(&stored_copy.into_attributes(), &recovery_code_path);
+                let code = retrieve_recovery_code_from_pid(&stored_copy.into_attributes(), &recovery_code_path)
+                    .map(str::to_string);
 
                 Ok(code)
             })
@@ -116,15 +117,15 @@ where
     }
 }
 
-fn retrieve_recovery_code_from_pid(
-    attributes: &Attributes,
+fn retrieve_recovery_code_from_pid<'a>(
+    attributes: &'a Attributes,
     recovery_code_path: &VecNonEmpty<ClaimPath>,
-) -> Option<String> {
+) -> Option<&'a str> {
     attributes
         .get(recovery_code_path)
         .expect("failed to retrieve recovery code from PID")
         .and_then(|attribute| match attribute {
-            Attribute::Text(code) => Some(code.clone()),
+            Attribute::Text(code) => Some(code.as_str()),
             _ => None,
         })
 }
