@@ -50,6 +50,7 @@ use wallet_provider_domain::repository::PersistenceError;
 use self::oidc_client::OidcHttpClientError;
 use crate::admin_portal::oidc_client::OidcHttpClient;
 
+pub mod execution;
 pub mod oidc_client;
 pub mod task;
 
