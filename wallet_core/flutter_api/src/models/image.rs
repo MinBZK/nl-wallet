@@ -86,9 +86,9 @@ impl SanitizedSvg {
 
 #[cfg(test)]
 mod tests {
-    use super::Image;
+    use wallet::test_assets::JPEG2000_IMAGE;
 
-    const JPEG2000_IMAGE: &[u8] = include_bytes!("../../assets/tests/willeke.jp2");
+    use super::Image;
 
     #[test]
     fn test_image_new_bmp_from_jpeg2000() {

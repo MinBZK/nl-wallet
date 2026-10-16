@@ -153,7 +153,21 @@ impl TryFrom<Vec<u8>> for ImageAttribute {
             // JPEG header and footer.
             [0xFF, 0xD8, .., 0xFF, 0xD9] => Ok(Self::Jpeg(value)),
             // JPEG 2000 header.
-            [0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A] => Ok(Self::Jpeg2000(value)),
+            [
+                0x00,
+                0x00,
+                0x00,
+                0x0C,
+                0x6A,
+                0x50,
+                0x20,
+                0x20,
+                0x0D,
+                0x0A,
+                0x87,
+                0x0A,
+                ..,
+            ] => Ok(Self::Jpeg2000(value)),
             _ => Err(value),
         }
     }
@@ -269,6 +283,8 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use chrono::Duration;
     use chrono::DurationRound;
     use chrono::TimeDelta;
@@ -276,6 +292,8 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
+    use crate::test_assets::JPEG_IMAGE;
+    use crate::test_assets::JPEG2000_IMAGE;
 
     #[rstest]
     #[case::not_yet_valid(
@@ -382,5 +400,26 @@ mod tests {
             ),
             (a, b) => assert_eq!(a, b),
         }
+    }
+
+    #[test]
+    fn test_image_attribute_try_from_jpeg() {
+        let result = ImageAttribute::try_from(JPEG_IMAGE.to_vec());
+
+        assert_matches!(result, Ok(ImageAttribute::Jpeg(_)));
+    }
+
+    #[test]
+    fn test_image_attribute_try_from_jpeg2000() {
+        let result = ImageAttribute::try_from(JPEG2000_IMAGE.to_vec());
+
+        assert_matches!(result, Ok(ImageAttribute::Jpeg2000(_)));
+    }
+
+    #[test]
+    fn test_image_attribute_try_from_error() {
+        let bytes = ImageAttribute::try_from(Vec::new()).expect_err("recognizing image format type should fail");
+
+        assert!(bytes.is_empty());
     }
 }

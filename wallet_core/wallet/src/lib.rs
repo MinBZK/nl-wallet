@@ -14,6 +14,12 @@ mod wallet;
 
 pub mod errors;
 
+#[cfg(any(test, feature = "test"))]
+pub mod test_assets {
+    pub const JPEG_IMAGE: &[u8] = include_bytes!("../assets/tests/willeke.jpeg");
+    pub const JPEG2000_IMAGE: &[u8] = include_bytes!("../assets/tests/willeke.jp2");
+}
+
 pub use token_status_list::verification::verifier::RevocationStatus;
 pub use wallet_account::RevocationCode;
 pub use wallet_account::messages::errors::AccountRevokedData;

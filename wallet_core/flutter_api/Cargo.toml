@@ -55,6 +55,8 @@ features = ["anyhow", "dart-opaque", "portable-atomic", "rust-async", "thread-po
 [dev-dependencies]
 rstest.workspace = true
 
+wallet = { path = "../wallet", features = ["test"] }
+
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger.workspace = true
 cstr.workspace = true
