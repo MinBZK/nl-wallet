@@ -888,7 +888,7 @@ async fn verify_device_request_with_crl(
             let verified_registration_certificate =
                 verify_registration_certificate_envelope(&registration_certificate, trust_anchors.wrprc, time)
                     .map_err(CloseProximityDisclosureError::RegistrationCertificateVerification)?;
-            let (payload, signing_certificate_dn) = verified_registration_certificate.into_parts();
+            let payload = verified_registration_certificate.into_payload();
             let bound_registration_certificate = payload
                 .validate_binding(&access_subject)
                 .map_err(CloseProximityDisclosureError::RegistrationCertificateBinding)?;
@@ -896,7 +896,7 @@ async fn verify_device_request_with_crl(
             let revocation_verifier =
                 RevocationVerifier::new_with_defaults(Arc::clone(status_list_client), time.clone());
             let registration_certificate = bound_registration_certificate
-                .validate_status(&revocation_verifier, trust_anchors.wrprc, signing_certificate_dn, time)
+                .validate_status(&revocation_verifier, trust_anchors.wrprc, time)
                 .await
                 .map_err(CloseProximityDisclosureError::RegistrationCertificateStatus)?;
 
