@@ -1,5 +1,5 @@
 <template>
-  <TaskWizardCard>
+  <TaskCard>
     <div class="intro">
       <h2>Taak aangemaakt</h2>
       <p class="message">
@@ -7,12 +7,12 @@
       </p>
     </div>
     <TaskDetails :details="details" />
-  </TaskWizardCard>
+  </TaskCard>
 </template>
 
 <script setup lang="ts">
-import TaskWizardCard from './TaskWizardCard.vue'
 import TaskDetails from './TaskDetails.vue'
+import TaskCard from '@/components/tasks/TaskCard.vue'
 import type { TaskDetailRow } from '@/types/task-detail-row.ts'
 
 defineProps<{

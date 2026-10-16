@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import TaskDetails from '../components/create-task/TaskDetails.vue'
+import TaskDetails from '../../../components/create-task/TaskDetails.vue'
 
 describe('TaskDetails', () => {
   it('renders a label and value for each detail row', () => {

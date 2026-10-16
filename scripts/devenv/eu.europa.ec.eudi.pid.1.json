@@ -243,11 +243,11 @@
       "mandatory": true,
       "display": [
         {
-          "name": "Street",
+          "name": "Address",
           "locale": "en-US"
         },
         {
-          "name": "Straatnaam",
+          "name": "Adres",
           "locale": "nl-NL"
         }
       ]

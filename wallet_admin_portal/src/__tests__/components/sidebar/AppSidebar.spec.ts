@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import AppSidebar from '../components/sidebar/AppSidebar.vue'
-import router from '../router'
-import { loggedInUser, mockLoggedInUser, mockLoggedOutUser } from './mockUseAuth'
+import AppSidebar from '../../../components/sidebar/AppSidebar.vue'
+import router from '../../../router'
+import { loggedInUser, mockLoggedInUser, mockLoggedOutUser } from '../../mockUseAuth'
 import { Privilege } from '@/types/privilege.ts'
 import { Role } from '@/types/roles.ts'
 

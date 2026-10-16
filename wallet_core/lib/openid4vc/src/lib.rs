@@ -3,6 +3,7 @@ pub mod authorization;
 pub mod authorization_details;
 pub mod credential;
 pub mod credential_offer;
+pub mod jwks;
 pub mod metadata;
 pub mod par;
 pub mod token;

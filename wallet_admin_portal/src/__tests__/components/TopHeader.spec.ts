@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, beforeEach, afterEach } from 'vitest'
-import TopHeader from '../components/TopHeader.vue'
-import router from '../router'
-import { mockAuthenticatedUser } from './mockAuth'
+import TopHeader from '../../components/TopHeader.vue'
+import router from '../../router'
+import { mockAuthenticatedUser } from '../mockAuth'
 import { usePageTitle } from '@/composables/pageTitle.ts'
 
 beforeEach(() => {

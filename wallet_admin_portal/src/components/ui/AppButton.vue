@@ -7,7 +7,7 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    variant?: 'primary' | 'secondary'
+    variant?: 'primary' | 'secondary' | 'danger'
     size?: 'md' | 'lg'
   }>(),
   {
@@ -65,8 +65,30 @@ withDefaults(
   background: #f5f6ff;
 }
 
+.app-button.danger {
+  background: var(--color-background);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+}
+
+.app-button.danger:hover {
+  background: #fdf0f6;
+}
+
 .app-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.app-button.primary:disabled:hover {
+  background: var(--color-primary);
+}
+
+.app-button.secondary:disabled:hover {
+  background: #fff;
+}
+
+.app-button.danger:disabled:hover {
+  background: var(--color-background);
 }
 </style>

@@ -1,10 +1,11 @@
 <template>
   <TasksFilters />
   <LoadingState v-if="loading" />
+  <ErrorState v-else-if="error" @retry="load" />
   <TasksTable
     v-else
-    :columns="columns"
-    :tasks="tasks"
+    variant="open"
+    :tasks="tasks ?? []"
     empty-title="Geen openstaande taken gevonden"
     empty-description="Controleer je zoekcriteria. Pas je filters aan en probeer het opnieuw."
   />
@@ -15,32 +16,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
 import { fetchOpenTasks } from '@/api/tasks.ts'
-import type { Task } from '@/types/task.ts'
+import { useAsyncData } from '@/composables/asyncData.ts'
 import TasksTable from '@/components/tasks/TasksTable.vue'
 import TasksFilters from '@/components/tasks/TasksFilters.vue'
 import LoadingState from '@/components/LoadingState.vue'
+import ErrorState from '@/components/ui/ErrorState.vue'
 import PaginationBar from '@/components/ui/PaginationBar.vue'
 
-const columns = [
-  { label: 'TAAK-ID' },
-  { label: 'ACTIE' },
-  { label: 'DOEL' },
-  { label: 'AANGEMAAKT OP' },
-  { label: 'AANGEMAAKT DOOR' },
-  { label: 'VOLGENDE STAP', width: '8.125rem' },
-]
-
-const tasks = ref<Task[]>([])
-const loading = ref(true)
-
-// TODO: handle a rejected fetch once the ErrorState component lands together with [PVW-6183].
-onMounted(async () => {
-  try {
-    tasks.value = await fetchOpenTasks()
-  } finally {
-    loading.value = false
-  }
-})
+const { data: tasks, loading, error, load } = useAsyncData(fetchOpenTasks)
 </script>

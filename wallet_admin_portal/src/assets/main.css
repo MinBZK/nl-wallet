@@ -56,9 +56,11 @@
   --color-surface-tint: #f3f4fb;
   --color-text-muted: #6b7280;
   --color-error: #ab0065;
-  --sidebar-width: 15.6875em;
 
+  --width-sidebar: 15.6875em;
+  --width-task-log: 15.75rem;
   --width-task-wizard: 40.5rem;
+  --width-content-default: 40.5rem;
 
   font-family: 'RO Sans', sans-serif;
   /* Only the faces above are bundled, so let the browser pick a real face

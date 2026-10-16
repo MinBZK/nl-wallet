@@ -87,6 +87,7 @@ use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
 use crate::jwe::JweEncryptionAlgorithm;
+use crate::jwks::Jwks;
 use crate::registration_certificate::RegistrationCertificateError;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
@@ -247,7 +248,7 @@ pub enum VpAuthorizationRequestAudience {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpClientMetadata {
-    pub jwks: VpJwks,
+    pub jwks: Jwks,
     pub vp_formats_supported: VpFormatsSupported,
 
     /// Non-empty array of strings, where each string is a JWE [RFC7516] enc algorithm that can be used as the content
@@ -329,11 +330,6 @@ impl ClientId {
     pub fn x509_hash_from_certificate(certificate: &BorrowingCertificate) -> Self {
         Self::x509_hash(Self::x509_hash_value(certificate))
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VpJwks {
-    pub keys: VecNonEmpty<Key>,
 }
 
 #[skip_serializing_none]
@@ -578,7 +574,7 @@ impl NormalizedVpAuthorizationRequest {
             response_uri,
             credential_requests,
             client_metadata: VpClientMetadata {
-                jwks: VpJwks {
+                jwks: Jwks {
                     keys: vec_nonempty![jwk],
                 },
                 vp_formats_supported: VpFormatsSupported {
