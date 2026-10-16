@@ -1,4 +1,3 @@
-use std::num::NonZeroU16;
 use std::time::Duration;
 
 use derive_more::Debug;
@@ -7,6 +6,7 @@ use serde::Deserialize;
 use serde_with::serde_as;
 use url::Url;
 use utils::duration::DurationHours;
+use utils::duration::DurationMinutes;
 use utils::num::NonZeroU31;
 use utils::num::Ratio;
 
@@ -29,8 +29,11 @@ pub struct StatusListsSettings {
     pub expiry: Duration,
     /// Threshold relatively to `expiry` to refresh the token
     pub refresh_threshold_ratio: Ratio,
-    /// TTL in minutes that indicates how long verifiers can cache the status list locally
-    pub ttl_in_minutes: Option<NonZeroU16>,
+    /// TTL that indicates how long verifiers can cache the status list locally. Note that this gets deserialized as
+    /// `ttl_in_minutes`, which is guaranteed to result in a non-zero duration.
+    #[serde(rename = "ttl_in_minutes")]
+    #[serde_as(as = "Option<DurationMinutes>")]
+    pub ttl: Option<Duration>,
     /// Whether to serve the Status List Token it publishes
     #[serde(default = "default_serve")]
     pub serve: bool,
@@ -70,7 +73,7 @@ impl StatusListsSettings {
 
     fn expiry_ttl(&self) -> Result<(Duration, Option<Duration>), ExpiryLessThanTtl> {
         let ttl = self
-            .ttl()
+            .ttl
             .map(|ttl| {
                 if self.expiry < ttl {
                     return Err(ExpiryLessThanTtl {
@@ -83,11 +86,6 @@ impl StatusListsSettings {
             .transpose()?;
 
         Ok((self.expiry, ttl))
-    }
-
-    pub fn ttl(&self) -> Option<Duration> {
-        self.ttl_in_minutes
-            .map(|ttl| Duration::from_secs(u64::from(ttl.get()) * 60))
     }
 }
 

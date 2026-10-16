@@ -42,6 +42,8 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
+use super::status_claim::TimeBoundedStatusClaim;
+
 pub const OPENID4VCI_KEY_ATTESTATION_JWT_TYP: &str = "key-attestation+jwt";
 
 /// Used to set the `exp` value of `KeyAttestationClaims`.
@@ -139,7 +141,12 @@ pub struct KeyAttestationClaims {
     /// OPTIONAL. JSON Object representing the supported revocation check mechanisms, such as the one defined in
     /// <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-status-list-12>.
     pub status: Option<StatusClaim>,
-    // TODO (PVW-6239): Add `key_storage_status` field to Key Attestation.
+
+    /// A status list reference as specified in Appendix D.1 of OID4VCI and a maintenance period. The status list
+    /// reference represents either the revocation state of the WSCD or keystore type used to store the attested
+    /// keys, or -- under the per-KA index option -- the revocation state of the individual Wallet Unit's WSCD or
+    /// keystore instance.
+    pub key_storage_status: TimeBoundedStatusClaim,
 }
 
 impl JwtTyp for KeyAttestationClaims {
@@ -173,6 +180,7 @@ pub struct KeyAttestationVerificationResult {
     pub attested_keys: VecNonEmptyUnique<PublicKey>,
     pub nonce: Option<Nonce>,
     pub status: Option<StatusClaim>,
+    pub key_storage_status: TimeBoundedStatusClaim,
 }
 
 impl KeyAttestation {
@@ -180,6 +188,7 @@ impl KeyAttestation {
         public_keys: I,
         certification: Url,
         nonce: Option<Nonce>,
+        key_storage_status: TimeBoundedStatusClaim,
         key_pair: &KeyPair<K>,
         time: &G,
     ) -> Result<Self, KeyAttestationSigningError>
@@ -194,7 +203,7 @@ impl KeyAttestation {
             .collect::<Result<_, _>>()
             .map_err(KeyAttestationSigningError::PublicKey)?;
 
-        let claims = KeyAttestationClaims::new(public_keys, certification, nonce, time);
+        let claims = KeyAttestationClaims::new(public_keys, certification, nonce, key_storage_status, time);
         let signed_jwt = SignedJwt::sign_with_certificate(&claims, key_pair)
             .await
             .map_err(KeyAttestationSigningError::SignJwt)?;
@@ -205,7 +214,7 @@ impl KeyAttestation {
     /// Verify the Key Attestation JWT against a list of Trust Anchors. Returns the attested public keys and the nonce,
     /// if present.
     ///
-    /// Note that this validates neither the nonce nor revocation using the status list, opting to return both of these
+    /// Note that this validates neither the nonce nor revocation using the status lists, opting to return all of these
     /// claim values instead.
     pub fn verify<G>(
         &self,
@@ -261,12 +270,19 @@ impl KeyAttestation {
             unique_public_keys,
             claims.nonce,
             claims.status,
+            claims.key_storage_status,
         ))
     }
 }
 
 impl KeyAttestationClaims {
-    fn new<G>(attested_keys: VecNonEmpty<Jwk>, certification: Url, nonce: Option<Nonce>, time: &G) -> Self
+    fn new<G>(
+        attested_keys: VecNonEmpty<Jwk>,
+        certification: Url,
+        nonce: Option<Nonce>,
+        key_storage_status: TimeBoundedStatusClaim,
+        time: &G,
+    ) -> Self
     where
         G: Generator<DateTime<Utc>>,
     {
@@ -286,6 +302,7 @@ impl KeyAttestationClaims {
             certification: Some(certification),
             nonce,
             status: None,
+            key_storage_status,
         }
     }
 }
@@ -297,6 +314,8 @@ mod tests {
     use std::sync::LazyLock;
     use std::time::Duration;
 
+    use attestation_types::status_claim::StatusClaim;
+    use chrono::DateTime;
     use chrono::Utc;
     use crypto::PublicKey;
     use crypto::WithVerifyingKey;
@@ -325,6 +344,7 @@ mod tests {
     use super::KeyAttestationVerificationError;
     use super::KeyAttestationVerificationResult;
     use super::VALIDITY_TIME;
+    use crate::payload::status_claim::TimeBoundedStatusClaim;
 
     static KEY_PAIR_AND_TRUST_ANCHORS: LazyLock<(KeyPair, TrustAnchors)> = LazyLock::new(|| {
         let ca = Ca::generate_wptl_mock_ca().unwrap();
@@ -344,48 +364,6 @@ mod tests {
 
     static CERTIFICATION_URL: LazyLock<Url> =
         LazyLock::new(|| "https://wallet-provider.example.com/certification".parse().unwrap());
-
-    #[test]
-    fn test_key_attestation_claims_openid4vci_example_deserialization() {
-        // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-D.1-6>
-        let json = json!({
-            "iss": "<identifier of the issuer of this key attestation>",
-            "iat": 1516247022,
-            "exp": 1541493724,
-            "key_storage": [ "iso_18045_moderate" ],
-            "user_authentication": [ "iso_18045_moderate" ],
-            "attested_keys": [
-                {
-                    "kty": "EC",
-                    "crv": "P-256",
-                    "x": "TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
-                    "y": "ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
-                }
-            ]
-        });
-
-        let claims = serde_json::from_value::<KeyAttestationClaims>(json)
-            .expect("example JSON should deserialize to KeyAttestationClaims");
-
-        assert!(claims.exp.is_some_and(|exp| exp.as_ref() > claims.iat.as_ref()));
-
-        let jwk = claims
-            .attested_keys
-            .iter()
-            .exactly_one()
-            .expect("claims should contain exactly one attested key");
-        let public_key = jwk_to_public_key(jwk).expect("attested key should contain a valid public key");
-        assert_matches!(public_key, PublicKey::ESP256(_));
-
-        assert_eq!(
-            claims.key_storage,
-            HashSet::from([AttackPotentialResistance::Iso18045Moderate])
-        );
-        assert_eq!(
-            claims.user_authentication,
-            HashSet::from([AttackPotentialResistance::Iso18045Moderate])
-        );
-    }
 
     #[test]
     fn test_key_attestation_claims_ts3_example_deserialization() {
@@ -423,7 +401,11 @@ mod tests {
         let claims = serde_json::from_value::<KeyAttestationClaims>(json)
             .expect("example JSON should deserialize to KeyAttestationClaims");
 
-        assert!(claims.exp.is_some_and(|exp| exp.as_ref() > claims.iat.as_ref()));
+        assert_eq!(claims.iat, DateTime::from_timestamp(1516247022, 0).unwrap().into());
+        assert_eq!(
+            claims.exp,
+            Some(DateTime::from_timestamp(1541493724, 0).unwrap().into())
+        );
 
         assert_eq!(
             claims.certification,
@@ -434,7 +416,16 @@ mod tests {
             )
         );
 
-        // TODO (PVW-6239): Check `key_storage_status` field contents.
+        let StatusClaim::StatusList(status_list_claim) = &claims.key_storage_status.status;
+        assert_eq!(status_list_claim.idx, 7);
+        assert_eq!(
+            status_list_claim.uri.as_str(),
+            "https://revocation_url/wua-type-statuslists/3"
+        );
+        assert_eq!(
+            claims.key_storage_status.exp,
+            DateTime::from_timestamp(1544172124, 0).unwrap().into()
+        );
 
         let jwk = claims
             .attested_keys
@@ -464,6 +455,7 @@ mod tests {
             LazyLock::force(&PUBLIC_KEYS),
             CERTIFICATION_URL.clone(),
             nonce.map(|nonce| nonce.to_string().into()),
+            TimeBoundedStatusClaim::new_mock(),
             key_pair,
             &MockTimeGenerator::default(),
         )
@@ -511,6 +503,7 @@ mod tests {
             LazyLock::force(&PUBLIC_KEYS),
             CERTIFICATION_URL.clone(),
             None,
+            TimeBoundedStatusClaim::new_mock(),
             key_pair,
             &MockTimeGenerator::new(yesterday),
         )
@@ -537,6 +530,7 @@ mod tests {
             &public_keys,
             CERTIFICATION_URL.clone(),
             None,
+            TimeBoundedStatusClaim::new_mock(),
             key_pair,
             &MockTimeGenerator::default(),
         )
@@ -572,6 +566,7 @@ mod tests {
             certification: None,
             nonce: None,
             status: None,
+            key_storage_status: TimeBoundedStatusClaim::new_mock(),
         };
         let signed_jwt = SignedJwt::sign_with_certificate(&claims, key_pair)
             .now_or_never()

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::string::ToString;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::time::Duration;
 
 use axum::Router;
@@ -21,7 +22,6 @@ use etag::EntityTag;
 use http::Method;
 use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
-use itertools::Itertools;
 use mediatype::Name;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
@@ -36,12 +36,15 @@ const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::new(
     Name::new_unchecked("statuslist"),
     Some(Name::new_unchecked("jwt")),
 );
+static STATUSLIST_JWT_CONTENT_TYPE: LazyLock<HeaderValue> = LazyLock::new(|| {
+    // Convert to HeaderValue, unwrap is safe since string is ASCII.
+    HeaderValue::from_str(&STATUSLIST_JWT_MEDIA_TYPE.to_string()).unwrap()
+});
 
 #[derive(Debug, Clone)]
 struct RouterState {
     publish_dir: Arc<PublishDir>,
     cache_control: HeaderValue,
-    content_type: HeaderValue,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -110,27 +113,38 @@ fn check_serve_directories<'a>(
 pub fn create_serve_router<'a>(
     route_sources: impl IntoIterator<Item = StatusListRouteSource<'a>>,
 ) -> Result<Router, RouterError> {
-    // Convert to HeaderValue, unwrap is safe since string is ASCII.
-    let content_type = HeaderValue::from_str(&STATUSLIST_JWT_MEDIA_TYPE.to_string()).unwrap();
-
     let route_sources = check_serve_directories(route_sources)?;
-    let route_count = route_sources.len();
 
     let router = route_sources
         .into_iter()
-        .zip_eq(std::iter::repeat_n(content_type, route_count))
-        .fold(Router::new(), |router, ((path, route_source), content_type)| {
+        .fold(Router::new(), |router, (path, route_source)| {
             let state = RouterState {
                 publish_dir: Arc::new(route_source.publish_dir),
                 cache_control: cache_control_header_for_ttl(route_source.ttl),
-                content_type,
             };
 
             router.nest(
                 path,
                 Router::new().route("/{id}", get(serve_status_list)).with_state(state),
             )
-        })
+        });
+    let router = add_status_list_middleware(router);
+
+    Ok(router)
+}
+
+fn cache_control_header_for_ttl(ttl: Option<Duration>) -> HeaderValue {
+    match ttl {
+        None => HeaderValue::from_static("no-cache"),
+        Some(ttl) => {
+            // Convert to HeaderValue, unwrap is safe since string is ASCII.
+            HeaderValue::from_str(&format!("max-age={}; must-revalidate", ttl.as_secs())).unwrap()
+        }
+    }
+}
+
+pub fn add_status_list_middleware(router: Router) -> Router {
+    router
         .layer(middleware::from_fn(add_vary_header))
         // The HTTP endpoint SHOULD support the use of Cross-Origin Resource Sharing (CORS) [...] to enable
         // Browser-based clients to access it
@@ -140,19 +154,7 @@ pub fn create_serve_router<'a>(
                 .allow_origin(Any),
         )
         // The HTTP response SHOULD use gzip Content-Encoding as defined in [RFC9110].
-        .layer(CompressionLayer::new());
-
-    Ok(router)
-}
-
-fn cache_control_header_for_ttl(ttl: Option<Duration>) -> HeaderValue {
-    let cache_control = match ttl {
-        None => "no-cache",
-        Some(ttl) => &format!("max-age={}; must-revalidate", ttl.as_secs()),
-    };
-
-    // Convert to HeaderValue, unwrap is safe since string is ASCII.
-    HeaderValue::from_str(cache_control).unwrap()
+        .layer(CompressionLayer::new())
 }
 
 async fn add_vary_header(request: Request, next: Next) -> Response {
@@ -180,16 +182,31 @@ async fn serve_status_list(
         return Err(StatusCode::NOT_MODIFIED);
     };
 
-    Ok((
-        [
-            (header::CONTENT_TYPE, state.content_type),
-            (header::CACHE_CONTROL, state.cache_control),
-            // Unwrap is safe since etag is ASCII
-            (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
-        ],
-        bytes,
-    )
-        .into_response())
+    let response_headers = [
+        (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
+        (header::CACHE_CONTROL, state.cache_control),
+        // Unwrap is safe since etag is ASCII
+        (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
+    ];
+    let response = (response_headers, bytes).into_response();
+
+    Ok(response)
+}
+
+pub fn http_response_for_status_list_body(
+    request_headers: &HeaderMap,
+    status_list_body: Vec<u8>,
+    ttl: Option<Duration>,
+) -> Result<Response, StatusCode> {
+    check_accept(request_headers.get(header::ACCEPT))?;
+
+    let response_headers = [
+        (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
+        (header::CACHE_CONTROL, cache_control_header_for_ttl(ttl)),
+    ];
+    let response = (response_headers, status_list_body).into_response();
+
+    Ok(response)
 }
 
 fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, StatusCode> {

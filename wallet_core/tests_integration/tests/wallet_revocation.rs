@@ -1,12 +1,13 @@
 use std::assert_matches;
-use std::iter;
 
 use audit_log::entity;
 use axum::http::StatusCode;
+use crypto::trust_anchor::TrustAnchors;
 use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
+use reqwest::Client;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
 use sea_orm::QueryOrder;
@@ -14,6 +15,10 @@ use serde_json::json;
 use serial_test::serial;
 use tempfile::TempDir;
 use tests_integration::common::*;
+use token_status_list::status_list::StatusType;
+use token_status_list::status_list_token::StatusListToken;
+use url::Url;
+use utils::generator::TimeGenerator;
 use wallet::AccountRevokedData;
 use wallet::BlockedReason;
 use wallet::PidIssuancePurpose;
@@ -37,8 +42,15 @@ async fn test_revoke_wallet_by_revocation_code() {
     let hsm_setup = HsmSetup::new();
     let pin: Pin = "112233".into();
 
-    let (config_server_config, mock_device_config, wallet_config, wp_port, wp_root_ca, _, audit_log_connection) =
-        setup_revocation_env(&db_setup, &hsm_setup, false).await;
+    let (
+        config_server_config,
+        mock_device_config,
+        wallet_config,
+        wp_port,
+        wp_root_ca,
+        _connection,
+        audit_log_connection,
+    ) = setup_revocation_env(&db_setup, &hsm_setup, false).await;
 
     let dir = TempDir::new().unwrap();
     let wallet = setup_file_wallet(
@@ -249,6 +261,7 @@ async fn test_revoke_wallet_solution() {
         _connection,
         audit_log_connection,
     ) = setup_revocation_env(&db_setup, &hsm_setup, true).await;
+    let wptl_trust_anchors = wallet_config.account_server.wptl_trust_anchors.clone();
 
     let wallet = setup_in_memory_wallet(
         config_server_config.clone(),
@@ -259,7 +272,13 @@ async fn test_revoke_wallet_solution() {
     let wallet = do_wallet_registration(wallet, pin.clone()).await;
     let mut wallet = do_pid_issuance(wallet, pin.clone()).await;
 
-    call_revoke_solution_endpoint(wp_root_ca, wp_port, StatusCode::OK).await;
+    // Check that the one Key Storage status list entry is not revoked.
+    let client = tls_reqwest_client_builder([wp_root_ca.into_certificate()])
+        .build()
+        .unwrap();
+    fetch_key_storage_revocation_status(&client, wp_port, &wptl_trust_anchors, StatusType::Valid).await;
+
+    call_revoke_solution_endpoint(&client, wp_port, StatusCode::OK).await;
 
     assert_audit_log_entry(&audit_log_connection, "revoke_solution", json!({})).await;
 
@@ -284,6 +303,9 @@ async fn test_revoke_wallet_solution() {
     let err = wallet.register(pin).await.expect_err("Could still register");
 
     assert_matches!(err, WalletRegistrationError::AccountRevoked(_));
+
+    // Check that the one Key Storage status list entry is revoked.
+    fetch_key_storage_revocation_status(&client, wp_port, &wptl_trust_anchors, StatusType::Invalid).await;
 }
 
 /// Test if the wallet solution cannot be revoked if the option is not enabled
@@ -315,7 +337,10 @@ async fn test_revoke_wallet_solution_not_enabled() {
     let wallet = do_wallet_registration(wallet, pin.clone()).await;
     let mut wallet = do_pid_issuance(wallet, pin.clone()).await;
 
-    call_revoke_solution_endpoint(wp_root_ca, wp_port, StatusCode::NOT_FOUND).await;
+    let client = tls_reqwest_client_builder([wp_root_ca.into_certificate()])
+        .build()
+        .unwrap();
+    call_revoke_solution_endpoint(&client, wp_port, StatusCode::NOT_FOUND).await;
 
     // Check for no audit logs
     assert_eq!(
@@ -387,7 +412,7 @@ async fn call_wp_revocation_endpoint(
     path: &str,
     body: impl serde::Serialize,
 ) {
-    let client = tls_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
+    let client = tls_reqwest_client_builder([wp_root_ca.into_certificate()])
         .build()
         .unwrap();
     let response = client
@@ -402,16 +427,41 @@ async fn call_wp_revocation_endpoint(
 /// Revoke wallet solution by calling admin endpoint
 ///
 /// Separate revoke solution endpoint to ensure both tests call the same.
-async fn call_revoke_solution_endpoint(wp_root_ca: ReqwestTrustAnchor, wp_port: u16, status_code: StatusCode) {
-    let client = tls_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
-        .build()
-        .unwrap();
+async fn call_revoke_solution_endpoint(client: &Client, wp_port: u16, status_code: StatusCode) {
     let response = client
         .post(format!("https://localhost:{wp_port}/internal/revoke-solution/"))
         .send()
         .await
         .unwrap();
     assert_eq!(response.status(), status_code);
+}
+
+async fn fetch_key_storage_revocation_status(
+    client: &Client,
+    wp_port: u16,
+    wptl_trust_anchors: &TrustAnchors,
+    expected_status: StatusType,
+) {
+    let url = format!("https://localhost:{wp_port}/key_storage_status")
+        .parse::<Url>()
+        .unwrap();
+    let status = client
+        .get(url.clone())
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap()
+        .parse::<StatusListToken>()
+        .unwrap()
+        .parse_and_verify(wptl_trust_anchors, url, &TimeGenerator)
+        .unwrap()
+        .status_list
+        .unpack()
+        .get(0);
+
+    assert_eq!(status, expected_status);
 }
 
 async fn assert_audit_log_entry(

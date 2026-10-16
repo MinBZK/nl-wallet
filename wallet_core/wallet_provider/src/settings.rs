@@ -39,6 +39,8 @@ use status_lists::settings::ExpiryLessThanTtl;
 use status_lists::settings::StatusListsSettings;
 use url::Url;
 use utils::duration::DurationDays;
+use utils::duration::DurationHours;
+use utils::duration::DurationMinutes;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_provider_domain::keys::Kid;
@@ -59,6 +61,7 @@ pub struct Settings {
     pub audit_log: DatabaseSettings,
     pub webserver: Webserver,
     pub tls_config: Option<TlsServerConfig>,
+    pub public_url: BaseUrl,
     pub hsm: Hsm,
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,
@@ -119,6 +122,30 @@ pub struct KeyAttestationSettings {
     pub key_attestation_signing_key_identifier: String,
 
     pub key_attestation_certification: Url,
+
+    pub key_storage_status_list: KeyStorageStatusListSettings,
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct KeyStorageStatusListSettings {
+    // HSM key identifier used to sign the Key Storage status list.
+    pub key_identifier: String,
+    // X509 certificate containing the public key for the Key Storage status list.
+    #[serde_as(as = "Base64")]
+    pub key_certificate: BorrowingCertificate,
+
+    #[serde(rename = "expiry_in_hours")]
+    #[serde_as(as = "DurationHours")]
+    pub expiry: Duration,
+
+    #[serde(rename = "ttl_in_minutes")]
+    #[serde_as(as = "DurationMinutes")]
+    pub ttl: Duration,
+
+    #[serde(rename = "tracking_validity_in_days")]
+    #[serde_as(as = "DurationDays")]
+    pub tracking_validity: Duration,
 }
 
 #[derive(Clone, Deserialize)]
@@ -225,6 +252,7 @@ impl Settings {
             .set_default("wia_status_list.list_size", 100_000)?
             .set_default("wia_status_list.create_threshold_ratio", 0.01)?
             .set_default("wia_status_list.expiry_in_hours", 24)?
+            .set_default("wia_status_list.ttl_in_minutes", 60)?
             .set_default("wia_status_list.refresh_threshold_ratio", 0.25)?
             .set_default("wia_status_list.key_identifier", "wia_tsl_key")?
             .set_default("wia_signing_key_identifier", "wia_signing_key")?
@@ -237,15 +265,19 @@ impl Settings {
             )?
             .set_default("key_attestation_signing_key_identifier", "key_attestation_signing_key")?
             .set_default("key_attestation_certification", "https://wallet.edi.rijksoverheid.nl")?
+            .set_default("key_storage_status_list.key_identifier", "key_storage_tsl_key")?
+            .set_default("key_storage_status_list.expiry_in_hours", 24)?
+            .set_default("key_storage_status_list.ttl_in_minutes", 60)?
+            .set_default("key_storage_status_list.tracking_validity_in_days", 365)?
             .set_default("audit_log.options.acquire_timeout_in_sec", "10")?
             .set_default("audit_log.options.connect_timeout_in_sec", "3")?
             .set_default("audit_log.options.max_connections", "10")?
             .set_default("database.options.acquire_timeout_in_sec", "10")?
             .set_default("database.options.connect_timeout_in_sec", "3")?
             .set_default("database.options.max_connections", "10")?
-            .set_default("webserver.port", 8001)?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 8001)?
+            .set_default("public_url", "https://localhost:8001/")?
             .set_default("pin_policy.rounds", 4)?
             .set_default("pin_policy.attempts_per_round", 4)?
             .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?
@@ -330,20 +362,33 @@ impl WiaStatusListsSettings {
         self,
         hsm: Pkcs11Hsm,
     ) -> Result<StatusListConfig<HsmEcdsaKey>, WiaStatusListsSettingsError> {
+        // Take the last path element from the base URL as the context_path. It is an error if the base URL does not
+        // contain a path.
         let context_path = self
             .base_url
             .as_ref()
             .path_segments()
-            .unwrap()
+            .expect("a BaseUrl always has path segments")
             .next_back()
-            .ok_or(WiaStatusListsSettingsError::BaseUrlWithoutPath(self.base_url.clone()))?
+            .expect("Url::path_segments() returns at least one string when returning Some()")
             .to_string();
+
+        if context_path.is_empty() {
+            return Err(WiaStatusListsSettingsError::BaseUrlWithoutPath(self.base_url));
+        }
+
+        // Modify the base URL by removing the last path element, i.e. context_path.
+        let mut url = self.base_url.into_inner();
+        url.path_segments_mut()
+            .expect("a BaseUrl always has path segments")
+            .pop();
+        let base_url = url.try_into().expect("the source URL is a BaseUrl");
 
         let key_pair = KeyPair::new(HsmEcdsaKey::new(self.key_identifier, hsm), self.key_certificate).await?;
 
         let config = self
             .list_settings
-            .to_config(self.base_url, context_path, self.publish_dir, key_pair)?;
+            .to_config(base_url, context_path, self.publish_dir, key_pair)?;
 
         Ok(config)
     }

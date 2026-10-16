@@ -48,11 +48,13 @@ use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
 use wallet_provider_service::keys::certificate_signing_key_identifier;
 use wallet_provider_service::pin_policy::PinPolicy;
+use wallet_provider_service::status_list::KeyStorageStatusList;
 use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 use wallet_provider_service::wia_issuer::WiaIssuer;
 use wscd::payload::wia::WiaWalletInfo;
 
 use crate::errors::WalletProviderError;
+use crate::router::KEY_STORAGE_TSL_PATH;
 use crate::settings::Settings;
 
 type ProductionUserState = UserState<
@@ -210,7 +212,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         let repositories = Repositories::from(db.clone());
         let flags = WalletRepoFlags::try_new(repositories.clone(), settings.flags_refresh_delay).await?;
         flags.start_refresh_job();
-        let status_list_service = PostgresStatusListService::try_new(
+        let wia_status_list = PostgresStatusListService::try_new(
             WIA_ATTESTATION_TYPE_IDENTIFIER,
             db.to_connection(),
             settings
@@ -221,8 +223,8 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             flags.clone(),
         )
         .await?;
-        status_list_service.initialize_lists().await?;
-        let status_list_refresh_task = status_list_service.start_refresh_job();
+        wia_status_list.initialize_lists().await?;
+        let status_list_refresh_task = wia_status_list.start_refresh_job();
 
         let pin_policy = PinPolicy::new(
             settings.pin_policy.rounds,
@@ -235,7 +237,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 .collect::<Result<_, _>>()?,
         );
 
-        let (wia_key_pair, key_attestation_key_pair) = try_join!(
+        let (wia_key_pair, key_attestation_key_pair, key_storage_tsl_key_pair) = try_join!(
             KeyPair::new(
                 HsmEcdsaKey::new(
                     settings.wia_settings.wia_signing_key_identifier,
@@ -249,6 +251,16 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                     wallet_user_hsm.clone(),
                 ),
                 settings.key_attestation_settings.key_attestation_certificate,
+            ),
+            KeyPair::new(
+                HsmEcdsaKey::new(
+                    settings.key_attestation_settings.key_storage_status_list.key_identifier,
+                    wallet_user_hsm.clone(),
+                ),
+                settings
+                    .key_attestation_settings
+                    .key_storage_status_list
+                    .key_certificate
             )
         )?;
 
@@ -264,6 +276,15 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                     .wia_wallet_solution_certification_information,
             },
         );
+
+        let key_storage_tsl_public_uri = settings.public_url.join(KEY_STORAGE_TSL_PATH);
+        let key_storage_status_list = KeyStorageStatusList::try_new(
+            key_storage_tsl_public_uri,
+            settings.key_attestation_settings.key_storage_status_list.expiry,
+            settings.key_attestation_settings.key_storage_status_list.ttl,
+            key_storage_tsl_key_pair,
+            flags.clone(),
+        )?;
 
         let state = RouterState {
             account_server,
@@ -281,9 +302,14 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 key_attestation_key_pair,
                 key_attestation_certification: settings.key_attestation_settings.key_attestation_certification,
                 wia_status_tracking_validity: settings.wia_settings.wia_status_tracking_validity,
+                key_storage_status_tracking_validity: settings
+                    .key_attestation_settings
+                    .key_storage_status_list
+                    .tracking_validity,
                 attestation_wrapping_kids: settings.attestation_wrapping_kid,
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
-                status_list_service,
+                wia_status_list,
+                key_storage_status_list,
             },
             status_list_refresh_task,
         };

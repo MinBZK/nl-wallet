@@ -143,7 +143,7 @@ async fn register_wallets_with_wias(
             for _ in 0..wia_count {
                 let wia_id = Uuid::new_v4();
                 let claim = user_state
-                    .status_list_service
+                    .wia_status_list
                     .obtain_status_claims(wia_id, None, NonZeroUsize::MIN)
                     .await
                     .unwrap()
@@ -303,7 +303,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
             for _ in 0..wia_count {
                 let wia_id = Uuid::new_v4();
                 let claim = user_state
-                    .status_list_service
+                    .wia_status_list
                     .obtain_status_claims(wia_id, None, NonZeroUsize::MIN)
                     .await
                     .unwrap()
