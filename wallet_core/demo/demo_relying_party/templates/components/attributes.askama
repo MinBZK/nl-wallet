@@ -9,8 +9,15 @@
 {% endmacro %}
 
 {% macro attributes(attributes) %}
-<dl class="attributes">
+<div class="attestations">
 {% for attestation in attributes %}
+<div>
+  {% if attributes.len() > 1 %}
+  {% if let Some(title) = base.trans.attestation_type(attestation.attestation_type.as_str()) %}
+  <h3>{{ title }}</h3>
+  {% endif %}
+  {% endif %}
+  <dl class="attributes">
   {% for (key, value) in attestation.attributes.flattened() %}
     {% let key_str = key.into_last() %}
     <dt>{{ base.trans.get(key_str).unwrap_or(key_str) }}</dt>
@@ -23,9 +30,15 @@
         {% match item %}
         {% when Attribute::Object(fields) %}
           <dl class="attributes">
+          {% if let Some(category) = fields.get("vehicle_category_code") %}
+            <dt>{{ base.trans.vehicle_category_code }}</dt>
+            <dd class="highlight">{% call value(category) %}</dd>
+          {% endif %}
           {% for (field_key, field_value) in fields %}
+            {% if field_key.as_str() != "vehicle_category_code" %}
             <dt>{{ base.trans.get(field_key).unwrap_or(field_key) }}</dt>
             <dd>{% call value(field_value) %}</dd>
+            {% endif %}
           {% endfor %}
           </dl>
         {% else %}
@@ -39,6 +52,8 @@
     {% endmatch %}
     </dd>
   {% endfor %}
+  </dl>
+</div>
 {% endfor %}
-</dl>
+</div>
 {% endmacro %}

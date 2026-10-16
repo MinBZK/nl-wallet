@@ -99,6 +99,10 @@ pub const TRANSLATIONS: Translations = Translations {
         expiry_date: "Expiry date",
         make: "Make",
         commercial_name: "Model",
+        mdl: "Driver's Licence",
+        mvc: "Vehicle Certificate",
+        pid: "Personal data",
+        degree: "Degree",
         r#true: "Yes",
         r#false: "No",
     },
@@ -181,6 +185,10 @@ pub const TRANSLATIONS: Translations = Translations {
         expiry_date: "Vervaldatum",
         make: "Merk",
         commercial_name: "Handelsbenaming",
+        mdl: "Rijbewijs",
+        mvc: "Kentekenbewijs",
+        pid: "Persoonsgegevens",
+        degree: "Diploma",
         r#true: "Ja",
         r#false: "Nee",
     },
@@ -265,6 +273,10 @@ pub struct Words<'a> {
     pub expiry_date: &'a str,
     pub make: &'a str,
     pub commercial_name: &'a str,
+    pub mdl: &'a str,
+    pub mvc: &'a str,
+    pub pid: &'a str,
+    pub degree: &'a str,
     pub r#true: &'a str,
     pub r#false: &'a str,
 }
@@ -281,6 +293,16 @@ impl<'a> Index<Language> for Words<'a> {
 }
 
 impl<'a> Words<'a> {
+    pub fn attestation_type(&self, attestation_type: &str) -> Option<&'a str> {
+        match attestation_type {
+            "org.iso.18013.5.1.mDL" => Some(self.mdl),
+            "org.iso.7367.2.1.mVC" => Some(self.mvc),
+            "urn:eudi:pid:nl:1" | "urn:eudi:pid:1" | "eu.europa.ec.eudi.pid.1" => Some(self.pid),
+            "com.example.degree" => Some(self.degree),
+            _ => None,
+        }
+    }
+
     pub fn get(&self, index: &str) -> Option<&'a str> {
         match index {
             "bsn" => Some(self.bsn),

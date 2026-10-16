@@ -1,3 +1,14 @@
+.attestations {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.attestations h3 {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
 dl.attributes {
   display: grid;
   grid-template-columns: max-content auto;
@@ -22,8 +33,31 @@ dl.attributes {
   color: #000;
 }
 
+/* lists don't fit next to their label on small screens, so place them below it */
+.attributes dt:has(+ dd > ul) {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+.attributes dt:has(+ dd > ul)::after {
+  content: none;
+}
+
+.attributes dd:has(> ul) {
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
+}
+
 .attributes ul {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin: 4px 0 0;
+  padding: 0 0 0 16px;
+  list-style: none;
+}
+
+.attributes .highlight {
+  color: var(--primary-color);
+  font-weight: 700;
 }
