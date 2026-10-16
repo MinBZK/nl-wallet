@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import CreateTaskModal from '../components/tasks/CreateTaskModal.vue'
-import router from '../router'
-import { loggedInUser, mockLoggedInUser } from './mockUseAuth'
+import CreateTaskModal from '../../../../components/tasks/modal/CreateTaskModal.vue'
+import router from '../../../../router'
+import { loggedInUser, mockLoggedInUser } from '../../../mockUseAuth'
 import { Privilege } from '@/types/privilege.ts'
 
 vi.mock('@/composables/authentication.ts', async (importOriginal) => {

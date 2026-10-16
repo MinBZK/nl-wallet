@@ -6,8 +6,9 @@ import LoginView from '@/views/LoginView.vue'
 import MyOpenTasksView from '@/views/MyOpenTasksView.vue'
 import TaskHistoryView from '@/views/TaskHistoryView.vue'
 import CreateTaskView from '@/views/CreateTaskView.vue'
+import TaskDetailsView from '@/views/TaskDetailsView.vue'
 import { getAuthState, type UserProfile } from '@/composables/authentication.ts'
-import { taskActionInfo } from '@/types/task-action.ts'
+import { TASK_ACTION_INFO } from '@/types/task-action.ts'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -70,6 +71,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/tasks/:id',
+      name: 'task-details',
+      component: TaskDetailsView,
+      meta: {
+        title: 'Taakdetails',
+        description: 'Bekijk de details en kies wat je wilt doen.',
+        hideCreateTaskButton: true,
+      },
+    },
+    {
       path: '/create-task/:type',
       name: 'create-task',
       component: CreateTaskView,
@@ -84,11 +95,15 @@ const router = createRouter({
 
 const PUBLIC_ROUTE_NAMES = new Set(['login', 'error'])
 
-/** Requires the `create-task` route's `:type` param to be a real, privileged {@link TaskActionType}. */
+/**
+ * Redirects away from the `create-task` route when the user lacks the privilege for the
+ * requested {@link TaskActionType}. An unknown `:type` is left to the view itself, which
+ * renders its own in-page error state instead of bouncing to the generic error route.
+ */
 function validateCreateTaskAccess(to: RouteLocationNormalized, user: UserProfile) {
   const type = to.params.type
-  if (typeof type !== 'string' || !(type in taskActionInfo)) {
-    return { name: 'error' }
+  if (typeof type !== 'string' || !(type in TASK_ACTION_INFO)) {
+    return
   }
   if (!user.privileges.includes(type)) {
     return { name: 'error' }

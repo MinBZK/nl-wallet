@@ -1,7 +1,7 @@
 <template>
-  <AppModal @close="emit('close')">
+  <AppModal v-slot="{ labelId }" @close="emit('close')">
     <div class="title">
-      <h2>Kies welke actie je wilt aanmaken</h2>
+      <h2 :id="labelId">Kies welke actie je wilt aanmaken</h2>
     </div>
 
     <button
@@ -29,7 +29,7 @@ import { useAuth } from '@/composables/authentication.ts'
 import { TaskActionType } from '@/types/task-action.ts'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import AppModal from '../ui/AppModal.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 
 const emit = defineEmits<{
   close: []

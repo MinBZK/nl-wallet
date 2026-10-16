@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import TaskCreatedStep from '../components/create-task/TaskCreatedStep.vue'
+import TaskCreatedStep from '../../../components/create-task/TaskCreatedStep.vue'
 
 describe('TaskCreatedStep', () => {
   it('renders the confirmation heading and message', () => {

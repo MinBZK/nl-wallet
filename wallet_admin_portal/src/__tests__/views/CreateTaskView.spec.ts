@@ -1,9 +1,9 @@
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import CreateTaskView from '../views/CreateTaskView.vue'
-import router from '../router'
+import router from '../../router'
+import CreateTaskView from '../../views/CreateTaskView.vue'
 import { createTask, type CreatedTask } from '@/api/tasks.ts'
-import { loggedInUser, mockGetAuthState, mockLoggedInUser } from './mockUseAuth'
+import { loggedInUser, mockGetAuthState, mockLoggedInUser } from '../mockUseAuth'
 import { Privilege } from '@/types/privilege.ts'
 
 vi.mock('@/api/tasks.ts', () => ({
@@ -48,10 +48,26 @@ describe('CreateTaskView', () => {
     expect(wrapper.text()).toContain('Zoek een wallet en voeg die toe aan de lijst')
   })
 
-  it('redirects to the error route when the type param is unknown', async () => {
-    await mountAt('/create-task/not-a-real-type')
+  it('renders the error state in-page when the type param is unknown', async () => {
+    const wrapper = await mountAt('/create-task/not-a-real-type')
 
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('error'))
+    expect(wrapper.text()).toContain('Sorry, er gaat iets mis')
+    expect(router.currentRoute.value.name).toBe('create-task')
+  })
+
+  it('redirects to the error page when the user lacks the privilege for a known type', async () => {
+    mockLoggedInUser([])
+
+    await mountAt('/create-task/revoke_wallet')
+
+    expect(router.currentRoute.value.name).toBe('error')
+  })
+
+  it('routes home when the error state retry button is clicked', async () => {
+    const wrapper = await mountAt('/create-task/not-a-real-type')
+    await wrapper.get('button').trigger('click')
+
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('home'))
   })
 
   it('disables the next button on the reason step until a reason is entered', async () => {
@@ -80,7 +96,7 @@ describe('CreateTaskView', () => {
     expect(wrapper.text()).toContain('Taak aangemaakt')
   })
 
-  it('redirects to the error route when creating the task fails', async () => {
+  it('shows error message when creating the task fails', async () => {
     vi.mocked(createTask).mockRejectedValueOnce(new Error('BOOM 500'))
 
     const wrapper = await mountAt('/create-task/revoke_wallet')
@@ -90,7 +106,7 @@ describe('CreateTaskView', () => {
     await nextButton(wrapper).trigger('click')
     await nextButton(wrapper).trigger('click')
 
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('error'))
+    expect(wrapper.text()).toContain('Sorry, er gaat iets mis')
   })
 
   it('does not create a duplicate task when the next button is clicked twice before it resolves', async () => {
