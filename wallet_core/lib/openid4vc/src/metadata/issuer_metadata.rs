@@ -1088,6 +1088,10 @@ mod tests {
     #[test]
     fn test_sd_jwt_issuer_metadata_deserialization() {
         // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-I.1-4
+        // Note: the `credential_request_encryption` format in the (non-normative) example from the spec doesn't match
+        // the normative text from the spec
+        // (https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4-2.7.1). For that
+        // reason, the example below has been changed to adhere to [RFC7591].
         let example_json = json!({
             "credential_issuer": "https://credential-issuer.example.com",
             "authorization_servers": [
