@@ -20,7 +20,6 @@ use derive_more::Into;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwk_simple::Algorithm;
-use jwk_simple::Key;
 use jwt::JwtTyp;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::issuer_identifier::IssuerUrl;
@@ -48,6 +47,7 @@ use wscd::payload::key_attestation::AttackPotentialResistance;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
+use crate::jwks::Jwks;
 
 /// Represents a Credential Configuration Identifier as contained in the `credential_configurations_supported` section
 /// of the Issuer Metadata. This is a newtype around [`String`] that exists purely for semantic reasons.
@@ -227,7 +227,9 @@ pub struct CredentialRequestEncryption {
     /// A JSON Web Key Set, as defined in [RFC7591], that contains one or more public keys, to be used by the Wallet as
     /// an input to a key agreement for encryption of the Credential Request. Each JWK in the set MUST have a kid (Key
     /// ID) parameter that uniquely identifies the key.
-    pub jwks: JwkSet,
+    // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
+    //                  request encryption. Additionally this should check for the presence of `kid` parameters.
+    pub jwks: Jwks,
 
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
     /// by the Credential Endpoint to decode the Credential Request from a JWT.
@@ -243,14 +245,6 @@ pub struct CredentialRequestEncryption {
     /// Credential Requests. If the value is true, the Credential Issuer requires encryption for every Credential
     /// Request. If the value is false, the Wallet MAY choose whether it encrypts the request or not.
     pub encryption_required: bool,
-}
-
-/// A JSON Web Key Set as used in [RFC7591], that contains at least one key.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JwkSet {
-    // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
-    //                  request encryption. Additionally this should check for the presence of `kid` parameters.
-    pub keys: VecNonEmpty<Key>,
 }
 
 /// Information about whether the Credential Issuer supports encryption of the Credential Response on top of TLS.
