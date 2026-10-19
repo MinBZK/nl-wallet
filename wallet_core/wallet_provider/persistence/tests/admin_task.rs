@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::TimeDelta;
 use chrono::Utc;
+use db_test::DbName;
 use db_test::DbSetup;
 use serde_json::json;
 use uuid::Uuid;
@@ -18,14 +19,12 @@ use wallet_provider_persistence::test::db_from_setup;
 
 const REVIEW_COMMENT: &str = "review comment";
 
-/// Returns a fixed instant, offset by the given number of minutes. A fixed instant is used in place of `Utc::now()`,
-/// because Postgres `timestamptz` only stores microsecond precision, so a real "now" (which carries nanoseconds) would
-/// not compare equal to what gets read back from the database.
-fn at(minutes: i64) -> DateTime<Utc> {
-    DateTime::from_timestamp(1_700_000_000, 0).expect("timestamp should be in range") + TimeDelta::minutes(minutes)
+/// Returns a fixed instant, with given `offset` from the base.
+fn at(offset: TimeDelta) -> DateTime<Utc> {
+    DateTime::from_timestamp(1_700_000_000, 0).expect("timestamp should be in range") + offset
 }
 
-/// An admin portal user. Every user gets a unique id, so tests sharing a database do not see each other's tasks.
+/// An admin portal user.
 struct User {
     id: String,
     display_name: String,
@@ -34,7 +33,7 @@ struct User {
 impl User {
     fn new(name: &str) -> Self {
         Self {
-            id: format!("{name}-{}", Uuid::new_v4()),
+            id: name.to_string(),
             display_name: format!("{name} Display Name"),
         }
     }
@@ -60,7 +59,7 @@ struct TestDatabase {
 
 impl TestDatabase {
     async fn new() -> Self {
-        let db_setup = DbSetup::create().await;
+        let db_setup = DbSetup::create_clean_only([DbName::WalletProvider]).await;
         let db = db_from_setup(&db_setup).await;
         Self {
             _db_setup: db_setup,
@@ -147,7 +146,7 @@ impl TestDatabase {
 async fn test_insert_and_find_task_by_id() {
     let db = TestDatabase::new().await;
     let alice = User::new("alice");
-    let create = task_create(&alice, at(0), TaskType::RevokeWallet);
+    let create = task_create(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet);
 
     assert_eq!(db.find(create.id).await.expect("should query task"), None);
 
@@ -180,13 +179,13 @@ async fn test_insert_fails_for_duplicate_id() {
     let db = TestDatabase::new().await;
     let alice = User::new("alice");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
 
     let duplicate = AdminTaskCreate {
         id: task.id,
-        ..task_create(&alice, at(1), TaskType::RevokeWallet)
+        ..task_create(&alice, at(TimeDelta::minutes(1)), TaskType::RevokeWallet)
     };
 
     assert!(db.insert(duplicate).await.is_err());
@@ -202,18 +201,18 @@ async fn test_withdraw_succeeds_for_creator_of_created_task() {
     let db = TestDatabase::new().await;
     let alice = User::new("alice");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
 
     let withdrawn = db
-        .withdraw(task.id, &alice, at(1))
+        .withdraw(task.id, &alice, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
 
     assert_eq!(withdrawn.status, TaskStatus::Withdrawn);
-    assert_eq!(withdrawn.withdrawn_at, Some(at(1)));
+    assert_eq!(withdrawn.withdrawn_at, Some(at(TimeDelta::minutes(1))));
     assert_eq!(withdrawn.reviewed_at, None);
     assert_eq!(withdrawn.reviewed_by_user_id, None);
     assert_eq!(db.find(task.id).await.expect("should query task"), Some(withdrawn));
@@ -225,7 +224,7 @@ async fn test_withdraw_fails_for_unknown_task() {
     let alice = User::new("alice");
 
     assert_eq!(
-        db.withdraw(Uuid::new_v4(), &alice, at(0))
+        db.withdraw(Uuid::new_v4(), &alice, at(TimeDelta::zero()))
             .await
             .expect("should execute withdrawal"),
         None
@@ -238,12 +237,12 @@ async fn test_withdraw_fails_for_other_user() {
     let alice = User::new("alice");
     let bob = User::new("bob");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
 
     assert_eq!(
-        db.withdraw(task.id, &bob, at(1))
+        db.withdraw(task.id, &bob, at(TimeDelta::minutes(1)))
             .await
             .expect("should execute withdrawal"),
         None
@@ -260,17 +259,17 @@ async fn test_withdraw_fails_when_already_withdrawn() {
     let db = TestDatabase::new().await;
     let alice = User::new("alice");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let withdrawn = db
-        .withdraw(task.id, &alice, at(1))
+        .withdraw(task.id, &alice, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
 
     assert_eq!(
-        db.withdraw(task.id, &alice, at(2))
+        db.withdraw(task.id, &alice, at(TimeDelta::minutes(2)))
             .await
             .expect("should execute withdrawal"),
         None
@@ -288,17 +287,17 @@ async fn test_withdraw_fails_when_already_reviewed() {
     let alice = User::new("alice");
     let bob = User::new("bob");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let approved = db
-        .review(task.id, &bob, ReviewVerdict::Approve, at(1))
+        .review(task.id, &bob, ReviewVerdict::Approve, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute review")
         .expect("task should be reviewed");
 
     assert_eq!(
-        db.withdraw(task.id, &alice, at(2))
+        db.withdraw(task.id, &alice, at(TimeDelta::minutes(2)))
             .await
             .expect("should execute withdrawal"),
         None
@@ -316,12 +315,12 @@ async fn test_review_approve_sets_status_and_reviewer_fields() {
     let alice = User::new("alice");
     let bob = User::new("bob");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
 
     let approved = db
-        .review(task.id, &bob, ReviewVerdict::Approve, at(1))
+        .review(task.id, &bob, ReviewVerdict::Approve, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute review")
         .expect("task should be reviewed");
@@ -330,7 +329,7 @@ async fn test_review_approve_sets_status_and_reviewer_fields() {
         approved,
         AdminTask {
             status: TaskStatus::Approved,
-            reviewed_at: Some(at(1)),
+            reviewed_at: Some(at(TimeDelta::minutes(1))),
             reviewed_by_user_id: Some(bob.id),
             reviewed_by_display_name: Some(bob.display_name),
             review_comment: Some(REVIEW_COMMENT.to_string()),
@@ -346,12 +345,12 @@ async fn test_review_reject_sets_rejected_status() {
     let alice = User::new("alice");
     let bob = User::new("bob");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
 
     let rejected = db
-        .review(task.id, &bob, ReviewVerdict::Reject, at(1))
+        .review(task.id, &bob, ReviewVerdict::Reject, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute review")
         .expect("task should be reviewed");
@@ -365,7 +364,7 @@ async fn test_review_fails_for_unknown_task() {
     let bob = User::new("bob");
 
     assert_eq!(
-        db.review(Uuid::new_v4(), &bob, ReviewVerdict::Approve, at(0))
+        db.review(Uuid::new_v4(), &bob, ReviewVerdict::Approve, at(TimeDelta::zero()))
             .await
             .expect("should execute review"),
         None
@@ -379,17 +378,17 @@ async fn test_review_fails_when_already_reviewed() {
     let bob = User::new("bob");
     let carol = User::new("carol");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let approved = db
-        .review(task.id, &bob, ReviewVerdict::Approve, at(1))
+        .review(task.id, &bob, ReviewVerdict::Approve, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute review")
         .expect("task should be reviewed");
 
     assert_eq!(
-        db.review(task.id, &carol, ReviewVerdict::Reject, at(2))
+        db.review(task.id, &carol, ReviewVerdict::Reject, at(TimeDelta::minutes(2)))
             .await
             .expect("should execute review"),
         None
@@ -407,17 +406,17 @@ async fn test_review_fails_when_withdrawn() {
     let alice = User::new("alice");
     let bob = User::new("bob");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let withdrawn = db
-        .withdraw(task.id, &alice, at(1))
+        .withdraw(task.id, &alice, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
 
     assert_eq!(
-        db.review(task.id, &bob, ReviewVerdict::Approve, at(2))
+        db.review(task.id, &bob, ReviewVerdict::Approve, at(TimeDelta::minutes(2)))
             .await
             .expect("should execute review"),
         None
@@ -436,18 +435,18 @@ async fn test_concurrent_reviews_only_one_succeeds() {
     let bob = User::new("bob");
     let carol = User::new("carol");
     let task = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
 
-    let (approved, rejected) = tokio::join!(
-        db.review(task.id, &bob, ReviewVerdict::Approve, at(1)),
-        db.review(task.id, &carol, ReviewVerdict::Reject, at(1)),
+    let (approve, reject) = tokio::join!(
+        db.review(task.id, &bob, ReviewVerdict::Approve, at(TimeDelta::minutes(1))),
+        db.review(task.id, &carol, ReviewVerdict::Reject, at(TimeDelta::minutes(1))),
     );
 
     let winners = [
-        approved.expect("should execute approval"),
-        rejected.expect("should execute rejection"),
+        approve.expect("should execute approval"),
+        reject.expect("should execute rejection"),
     ]
     .into_iter()
     .flatten()
@@ -468,22 +467,22 @@ async fn test_open_tasks_returns_own_created_tasks_oldest_first() {
     let bob = User::new("bob");
 
     let newer = db
-        .create_task(&alice, at(1), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::minutes(1)), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let older = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let _of_other_user = db
-        .create_task(&bob, at(0), TaskType::RevokeWallet)
+        .create_task(&bob, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let withdrawn = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
-    db.withdraw(withdrawn.id, &alice, at(2))
+    db.withdraw(withdrawn.id, &alice, at(TimeDelta::minutes(2)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
@@ -502,47 +501,62 @@ async fn test_history_returns_finished_tasks_created_or_reviewed_by_user_oldest_
     let carol = User::new("carol");
 
     let reviewed_by_alice = db
-        .create_task(&carol, at(2), TaskType::RevokeWallet)
+        .create_task(&carol, at(TimeDelta::minutes(2)), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let reviewed_by_alice = db
-        .review(reviewed_by_alice.id, &alice, ReviewVerdict::Reject, at(3))
+        .review(
+            reviewed_by_alice.id,
+            &alice,
+            ReviewVerdict::Reject,
+            at(TimeDelta::minutes(3)),
+        )
         .await
         .expect("should execute review")
         .expect("task should be reviewed");
 
     let created_by_alice_and_approved = db
-        .create_task(&alice, at(1), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::minutes(1)), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let created_by_alice_and_approved = db
-        .review(created_by_alice_and_approved.id, &bob, ReviewVerdict::Approve, at(3))
+        .review(
+            created_by_alice_and_approved.id,
+            &bob,
+            ReviewVerdict::Approve,
+            at(TimeDelta::minutes(3)),
+        )
         .await
         .expect("should execute review")
         .expect("task should be reviewed");
 
     let withdrawn_by_alice = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let withdrawn_by_alice = db
-        .withdraw(withdrawn_by_alice.id, &alice, at(3))
+        .withdraw(withdrawn_by_alice.id, &alice, at(TimeDelta::minutes(3)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
 
     let _still_open = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let reviewed_by_other_user = db
-        .create_task(&carol, at(0), TaskType::RevokeWallet)
+        .create_task(&carol, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
-    db.review(reviewed_by_other_user.id, &bob, ReviewVerdict::Approve, at(3))
-        .await
-        .expect("should execute review")
-        .expect("task should be reviewed");
+    db.review(
+        reviewed_by_other_user.id,
+        &bob,
+        ReviewVerdict::Approve,
+        at(TimeDelta::minutes(3)),
+    )
+    .await
+    .expect("should execute review")
+    .expect("task should be reviewed");
 
     assert_eq!(
         db.history(&alice).await.expect("should list task history"),
@@ -558,34 +572,39 @@ async fn test_reviewable_returns_authorized_tasks_of_other_users_oldest_first() 
     let carol = User::new("carol");
 
     let newer = db
-        .create_task(&carol, at(1), TaskType::RevokeWallet)
+        .create_task(&carol, at(TimeDelta::minutes(1)), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let older = db
-        .create_task(&bob, at(0), TaskType::RevokeWallet)
+        .create_task(&bob, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let _own = db
-        .create_task(&alice, at(0), TaskType::RevokeWallet)
+        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
     let _revoke_solution = db
-        .create_task(&carol, at(2), TaskType::RevokeSolution)
+        .create_task(&carol, at(TimeDelta::minutes(2)), TaskType::RevokeSolution)
         .await
         .expect("should create task");
     let already_reviewed = db
-        .create_task(&bob, at(0), TaskType::RevokeWallet)
+        .create_task(&bob, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
-    db.review(already_reviewed.id, &carol, ReviewVerdict::Approve, at(2))
-        .await
-        .expect("should execute review")
-        .expect("task should be reviewed");
+    db.review(
+        already_reviewed.id,
+        &carol,
+        ReviewVerdict::Approve,
+        at(TimeDelta::minutes(2)),
+    )
+    .await
+    .expect("should execute review")
+    .expect("task should be reviewed");
     let withdrawn = db
-        .create_task(&bob, at(0), TaskType::RevokeWallet)
+        .create_task(&bob, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
-    db.withdraw(withdrawn.id, &bob, at(2))
+    db.withdraw(withdrawn.id, &bob, at(TimeDelta::minutes(2)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
@@ -595,12 +614,6 @@ async fn test_reviewable_returns_authorized_tasks_of_other_users_oldest_first() 
         .await
         .expect("should list reviewable tasks");
 
-    // Reviewable tasks are not scoped to a creator, so ignore tasks other tests left in the shared database by
-    // filtering tasks created in this test.
-    let reviewable = reviewable
-        .into_iter()
-        .filter(|task| [&alice.id, &bob.id, &carol.id].contains(&&task.created_by_user_id))
-        .collect::<Vec<_>>();
     assert_eq!(reviewable, vec![older, newer]);
 }
 
@@ -609,7 +622,7 @@ async fn test_reviewable_with_no_authorized_task_types_returns_empty() {
     let db = TestDatabase::new().await;
     let alice = User::new("alice");
     let bob = User::new("bob");
-    db.create_task(&bob, at(0), TaskType::RevokeWallet)
+    db.create_task(&bob, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
 
