@@ -11,6 +11,29 @@ use uuid::Uuid;
 
 use crate::repository::AuditLogRepository;
 
+/// Provides the user ID for auditing.
+pub trait AsAuditUser {
+    fn as_audit_user(&self) -> String;
+}
+
+impl AsAuditUser for String {
+    fn as_audit_user(&self) -> String {
+        self.clone()
+    }
+}
+
+impl AsAuditUser for str {
+    fn as_audit_user(&self) -> String {
+        self.to_owned()
+    }
+}
+
+impl<T: AsAuditUser + ?Sized> AsAuditUser for &T {
+    fn as_audit_user(&self) -> String {
+        T::as_audit_user(self)
+    }
+}
+
 pub trait FromAuditLogError {
     fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self;
 }
@@ -22,7 +45,7 @@ pub trait AuditLog {
         &self,
         operation_name: impl Into<String>,
         parameters: JsonValue,
-        user_id: Option<impl Into<String>>,
+        user_id: Option<impl AsAuditUser>,
         operation: F,
     ) -> Result<T, E>
     where
@@ -54,7 +77,7 @@ where
         &self,
         operation_name: impl Into<String>,
         parameters: JsonValue,
-        user_id: Option<impl Into<String>>,
+        user_id: Option<impl AsAuditUser>,
         operation: F,
     ) -> Result<T, E>
     where
@@ -77,7 +100,7 @@ where
                 self.time_generator.generate(),
                 operation_name,
                 parameters,
-                user_id.map(Into::into),
+                user_id.as_ref().map(AsAuditUser::as_audit_user),
                 correlation_id,
             )
             .await
@@ -100,6 +123,7 @@ pub mod mock {
 
     use sea_orm::JsonValue;
 
+    use super::AsAuditUser;
     use super::AuditLog;
 
     pub struct MockAuditLog;
@@ -111,7 +135,7 @@ pub mod mock {
             &self,
             _operation_name: impl Into<String>,
             _parameters: JsonValue,
-            _user_id: Option<impl Into<String>>,
+            _user_id: Option<impl AsAuditUser>,
             operation: F,
         ) -> Result<T, E>
         where
@@ -136,6 +160,7 @@ mod tests {
     use utils::generator::UuidV4AndTimeGenerator;
     use uuid::Uuid;
 
+    use super::AsAuditUser;
     use super::AuditLog;
     use super::DbAuditLog;
     use super::FromAuditLogError;
@@ -185,6 +210,44 @@ mod tests {
             self.events.lock().unwrap().push((correlation_id, Some(is_success)));
             if self.fail_result { Err(MockError) } else { Ok(()) }
         }
+    }
+
+    struct AuditUser(String);
+
+    impl AsAuditUser for AuditUser {
+        fn as_audit_user(&self) -> String {
+            self.0.clone()
+        }
+    }
+
+    #[rstest::rstest]
+    #[case::owned_string(String::from("user"))]
+    #[case::str("user")]
+    #[case::borrowed_string(&String::from("user"))]
+    #[case::owned_user(AuditUser(String::from("user")))]
+    #[case::borrowed_user(&AuditUser(String::from("user")))]
+    #[tokio::test]
+    async fn test_audit_user(#[case] user: impl AsAuditUser) {
+        let audit_log = DbAuditLog {
+            repository: MockAuditLogRepository::default(),
+            time_generator: TimeGenerator,
+            uuid_generator: UuidV4AndTimeGenerator,
+        };
+
+        let user_id: String = user.as_audit_user();
+        assert_eq!(user_id, "user");
+        let result = audit_log
+            .audit("test", json!({"input": 42}), Some(user), async || {
+                Ok::<_, MockError>(42)
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(result, 42);
+        let events = audit_log.repository.events.lock().unwrap();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].1, None);
+        assert_eq!(events[1], (events[0].0, Some(true)));
     }
 
     #[rstest::rstest]

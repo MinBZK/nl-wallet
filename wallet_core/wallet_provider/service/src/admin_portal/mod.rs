@@ -10,6 +10,7 @@ use std::collections::HashSet;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use audit_log::model::AsAuditUser;
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::DateTime;
@@ -83,9 +84,9 @@ impl LoggedInUser {
 }
 
 /// Identifies the user by their user ID, e.g. as the `#[audit_user]` of an audited operation.
-impl AsRef<str> for LoggedInUser {
-    fn as_ref(&self) -> &str {
-        &self.user_id
+impl AsAuditUser for LoggedInUser {
+    fn as_audit_user(&self) -> String {
+        self.user_id.clone()
     }
 }
 
