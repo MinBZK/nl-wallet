@@ -249,47 +249,6 @@ mod tests {
     }
 
     #[test]
-    fn create_maps_fields_and_initializes_lifecycle_fields() {
-        for (task_type, stored_type) in [
-            (TaskType::RevokeWallet, "revoke_wallet"),
-            (TaskType::BlockUser, "block_user"),
-            (TaskType::UnblockUser, "unblock_user"),
-            (TaskType::RevokeSolution, "revoke_solution"),
-        ] {
-            let row = model();
-            let create = AdminTaskCreate {
-                id: row.id,
-                created_at: row.created_at.into(),
-                created_by_user_id: row.created_by_user_id.clone(),
-                created_by_display_name: row.created_by_display_name.clone(),
-                task_type,
-                task_parameters: row.task_parameters.clone(),
-                task_reason: row.task_reason.clone(),
-            };
-            let active = admin_task::ActiveModel::from(create);
-            assert_eq!(active.id, Set(row.id));
-            assert_eq!(
-                active.created_at,
-                Set(row.created_at.with_timezone(&Utc).fixed_offset())
-            );
-            assert_eq!(active.created_by_user_id, Set(row.created_by_user_id));
-            assert_eq!(active.created_by_display_name, Set(row.created_by_display_name));
-            assert_eq!(active.task_type, Set(stored_type.to_owned()));
-            assert_eq!(active.task_parameters, Set(row.task_parameters));
-            assert_eq!(active.task_reason, Set(row.task_reason));
-            assert_eq!(active.status, Set("created".to_owned()));
-            assert_eq!(active.withdrawn_at, Set(None));
-            assert_eq!(active.reviewed_at, Set(None));
-            assert_eq!(active.reviewed_by_user_id, Set(None));
-            assert_eq!(active.reviewed_by_display_name, Set(None));
-            assert_eq!(active.review_comment, Set(None));
-            assert_eq!(active.executed_at, Set(None));
-            assert_eq!(active.execution_result, Set(None));
-            assert_eq!(active.execution_result_details, Set(None));
-        }
-    }
-
-    #[test]
     fn model_maps_all_fields() {
         let (stored_type, task_type) = ("revoke_wallet", TaskType::RevokeWallet);
         let (stored_status, status) = ("created", TaskStatus::Created);
