@@ -140,4 +140,30 @@ mod tests {
         assert_eq!(ReviewVerdict::Approve.resulting_status(), TaskStatus::Approved);
         assert_eq!(ReviewVerdict::Reject.resulting_status(), TaskStatus::Rejected);
     }
+
+    #[test]
+    fn test_task_type_strings() {
+        for (task_type_string, task_type) in [
+            ("revoke_wallet", TaskType::RevokeWallet),
+            ("block_user", TaskType::BlockUser),
+            ("unblock_user", TaskType::UnblockUser),
+            ("revoke_solution", TaskType::RevokeSolution),
+        ] {
+            assert_eq!(&task_type.to_string(), task_type_string);
+            assert_eq!(task_type_string.parse::<TaskType>().unwrap(), task_type);
+        }
+    }
+
+    #[test]
+    fn test_task_status_strings() {
+        for (task_status_string, task_status) in [
+            ("created", TaskStatus::Created),
+            ("withdrawn", TaskStatus::Withdrawn),
+            ("approved", TaskStatus::Approved),
+            ("rejected", TaskStatus::Rejected),
+        ] {
+            assert_eq!(&task_status.to_string(), task_status_string);
+            assert_eq!(task_status_string.parse::<TaskStatus>().unwrap(), task_status);
+        }
+    }
 }

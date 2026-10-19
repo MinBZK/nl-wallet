@@ -275,45 +275,33 @@ mod tests {
     }
 
     #[test]
-    fn model_maps_all_fields_and_parses_all_task_types_and_statuses() {
-        for (stored_type, task_type) in [
-            ("revoke_wallet", TaskType::RevokeWallet),
-            ("block_user", TaskType::BlockUser),
-            ("unblock_user", TaskType::UnblockUser),
-            ("revoke_solution", TaskType::RevokeSolution),
-        ] {
-            for (stored_status, status) in [
-                ("created", TaskStatus::Created),
-                ("withdrawn", TaskStatus::Withdrawn),
-                ("approved", TaskStatus::Approved),
-                ("rejected", TaskStatus::Rejected),
-            ] {
-                let row = admin_task::Model {
-                    task_type: stored_type.into(),
-                    status: stored_status.into(),
-                    ..model()
-                };
-                let expected = AdminTask {
-                    id: row.id,
-                    created_at: row.created_at.into(),
-                    created_by_user_id: row.created_by_user_id.clone(),
-                    created_by_display_name: row.created_by_display_name.clone(),
-                    task_type,
-                    task_parameters: row.task_parameters.clone(),
-                    task_reason: row.task_reason.clone(),
-                    status,
-                    withdrawn_at: row.withdrawn_at.map(Into::into),
-                    reviewed_at: row.reviewed_at.map(Into::into),
-                    reviewed_by_user_id: row.reviewed_by_user_id.clone(),
-                    reviewed_by_display_name: row.reviewed_by_display_name.clone(),
-                    review_comment: row.review_comment.clone(),
-                    executed_at: row.executed_at.map(Into::into),
-                    execution_result: row.execution_result.clone(),
-                    execution_result_details: row.execution_result_details.clone(),
-                };
-                assert_eq!(AdminTask::try_from(row).unwrap(), expected);
-            }
-        }
+    fn model_maps_all_fields() {
+        let (stored_type, task_type) = ("revoke_wallet", TaskType::RevokeWallet);
+        let (stored_status, status) = ("created", TaskStatus::Created);
+        let row = admin_task::Model {
+            task_type: stored_type.into(),
+            status: stored_status.into(),
+            ..model()
+        };
+        let expected = AdminTask {
+            id: row.id,
+            created_at: row.created_at.into(),
+            created_by_user_id: row.created_by_user_id.clone(),
+            created_by_display_name: row.created_by_display_name.clone(),
+            task_type,
+            task_parameters: row.task_parameters.clone(),
+            task_reason: row.task_reason.clone(),
+            status,
+            withdrawn_at: row.withdrawn_at.map(Into::into),
+            reviewed_at: row.reviewed_at.map(Into::into),
+            reviewed_by_user_id: row.reviewed_by_user_id.clone(),
+            reviewed_by_display_name: row.reviewed_by_display_name.clone(),
+            review_comment: row.review_comment.clone(),
+            executed_at: row.executed_at.map(Into::into),
+            execution_result: row.execution_result.clone(),
+            execution_result_details: row.execution_result_details.clone(),
+        };
+        assert_eq!(AdminTask::try_from(row).unwrap(), expected);
     }
 
     #[test]
