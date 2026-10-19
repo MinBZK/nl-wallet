@@ -54,7 +54,7 @@ fn task_create(creator: &User, created_at: DateTime<Utc>, task_type: TaskType) -
 
 /// Wraps the database, so tests read as a sequence of task operations.
 struct TestDatabase {
-    _db_setup: DbSetup, // retain the advisory locks
+    _db_setup: DbSetup, // keep the exclusive use of the database
     db: Db,
 }
 
