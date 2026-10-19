@@ -142,6 +142,7 @@ impl<R, AR> AdminPortalState<R, AR> {
     }
 }
 
+// TODO (PVW-6427): Add CSRF protection
 pub fn router<R, AR>(state: Arc<AdminPortalState<R, AR>>) -> Router
 where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
