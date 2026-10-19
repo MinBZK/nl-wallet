@@ -60,7 +60,6 @@ class GenericIssuanceTests : TestBase() {
         cardIssuanceScreen.switchToNativeContext()
         cardIssuanceScreen.captureA11ySnapshot("CardIssuanceLoyalty")
         cardIssuanceScreen.continueIssuance()
-        cardIssuanceScreen.clickAddCardButton()
         pinScreen.enterPin(DEFAULT_PIN)
 
         cardIssuanceScreen.clickToDashboardButton()
@@ -87,10 +86,8 @@ class GenericIssuanceTests : TestBase() {
         issuerConsentWebPage.clickGiveConsentButton()
 
         cardIssuanceScreen.switchToNativeContext()
+        cardIssuanceScreen.captureA11ySnapshot("ContinueIssuance")
         cardIssuanceScreen.continueIssuance()
-        assertTrue(cardIssuanceScreen.addCardButtonVisible(), "Card issuance screen not visible after consent")
-        cardIssuanceScreen.captureA11ySnapshot("CardIssuanceInsuranceWithConsent")
-        cardIssuanceScreen.clickAddCardButton()
         pinScreen.enterPin(DEFAULT_PIN)
 
         cardIssuanceScreen.clickToDashboardButton()
