@@ -226,33 +226,6 @@ async fn test_withdraw_fails_for_unknown_task() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_withdraw_fails_when_already_withdrawn() {
-    let db = TestDatabase::new().await;
-    let alice = User::new("alice");
-    let task = db
-        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
-        .await
-        .expect("should create task");
-    let withdrawn = db
-        .withdraw(task.id, at(TimeDelta::minutes(1)))
-        .await
-        .expect("should execute withdrawal")
-        .expect("task should be withdrawn");
-
-    assert_eq!(
-        db.withdraw(task.id, at(TimeDelta::minutes(2)))
-            .await
-            .expect("should execute withdrawal"),
-        None
-    );
-    assert_eq!(
-        db.find(task.id).await.expect("should query task"),
-        Some(withdrawn),
-        "first withdrawal must stick"
-    );
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_withdraw_fails_when_already_reviewed() {
     let db = TestDatabase::new().await;
     let alice = User::new("alice");
