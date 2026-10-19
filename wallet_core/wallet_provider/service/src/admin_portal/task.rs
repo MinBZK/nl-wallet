@@ -13,7 +13,6 @@ use wallet_provider_domain::model::admin_task::AdminTaskCreate;
 use wallet_provider_domain::model::admin_task::AdminTaskReview;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::TaskListView;
-use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminTaskRepository;
 use wallet_provider_domain::repository::PersistenceError;
@@ -162,8 +161,6 @@ where
         #[audit_user] user: &LoggedInUser,
         #[auditor] audit_log: &impl AuditLog,
     ) -> Result<AdminTask, WithdrawTaskError> {
-        // Look up the task to distinguish a missing task (NotFound) from an existing task with the wrong owner or
-        // status (InvalidState). The conditional update alone returns None for all of these cases.
         let existing = self
             .repository
             .find_task_by_id(task_id)
@@ -171,22 +168,21 @@ where
             .map_err(WithdrawTaskError::Storage)?
             .ok_or(WithdrawTaskError::NotFound(task_id))?;
 
-        if existing.created_by_user_id != user.user_id || existing.status != TaskStatus::Created {
+        // Enforce business logic rule: A user may only withdraw his/her own tasks
+        if existing.created_by_user_id != user.user_id {
             return Err(WithdrawTaskError::InvalidState);
         }
 
-        // Actually try to withdraw the task now, this repeats the ownership and status checks atomically. A concurrent
-        // withdrawal or review could have changed it in between; None then becomes InvalidState.
-        //
-        // A transaction alone does not prevent this race at PostgreSQL's default isolation level; the conditional
-        // update does.
+        // Actually withdraw the task now, while enforcing that the task is still in the `Created` state, so it will not
+        // override another review or withdrawal.
         self.repository
-            .withdraw_task(task_id, &user.user_id, self.time.generate())
+            .withdraw_task(task_id, self.time.generate())
             .await
             .map_err(WithdrawTaskError::Storage)?
             .ok_or(WithdrawTaskError::InvalidState)
     }
 
+    /// Review a task created by another user that is still in `Created` status.
     #[audited]
     pub async fn review_task(
         &self,
@@ -203,14 +199,18 @@ where
             .map_err(ReviewTaskError::Storage)?
             .ok_or(ReviewTaskError::NotFound(task_id))?;
 
-        if existing.status != TaskStatus::Created || existing.created_by_user_id == reviewer.user_id {
-            return Err(ReviewTaskError::InvalidState);
-        }
-
+        // Enforce business rule: A reviewer may only review tasks of types it has the privilege for.
         if !reviewer.authorized_task_types().contains(&existing.task_type) {
             return Err(ReviewTaskError::MissingPrivilege(existing.task_type));
         }
 
+        // Enforce business rule: A reviewer may NOT review its own tasks.
+        if existing.created_by_user_id == reviewer.user_id {
+            return Err(ReviewTaskError::InvalidState);
+        }
+
+        // Actually store the review now, while enforcing that the task is still in the `Created~ state, so it will not
+        // override another review or withdrawal.
         let review = AdminTaskReview {
             id: existing.id,
             reviewed_at: self.time.generate(),
@@ -219,14 +219,11 @@ where
             review_comment: review_comment.to_string(),
             review_verdict: verdict,
         };
-        let updated = self
-            .repository
+        self.repository
             .review_task(review)
             .await
             .map_err(ReviewTaskError::Storage)?
-            .ok_or(ReviewTaskError::InvalidState)?;
-
-        Ok(updated)
+            .ok_or(ReviewTaskError::InvalidState)
     }
 
     #[audited]
@@ -247,13 +244,7 @@ where
             },
         };
 
-        let tasks = self
-            .repository
-            .list_tasks(view)
-            .await
-            .map_err(ListTasksError::Storage)?;
-
-        Ok(tasks)
+        self.repository.list_tasks(view).await.map_err(ListTasksError::Storage)
     }
 }
 
@@ -437,32 +428,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn review_task_rejects_a_task_not_in_created_status() {
-        let id = Uuid::new_v4();
-        let task = {
-            let mut task = stub_task(id, TaskType::RevokeWallet, "user-1");
-            task.status = TaskStatus::Withdrawn;
-            task
-        };
-        let mut repository = MockAdminTaskRepository::new();
-        repository
-            .expect_find_task_by_id()
-            .returning(move |_| Ok(Some(task.clone())));
-
-        let result = service(repository, Utc::now())
-            .review_task(
-                id,
-                ReviewVerdict::Approve,
-                "comment",
-                &user("user-2", &[TaskType::RevokeWallet]),
-                &MockAuditLog,
-            )
-            .await;
-
-        assert_matches!(result, Err(ReviewTaskError::InvalidState));
-    }
-
-    #[tokio::test]
     async fn review_task_rejects_a_reviewer_without_privilege() {
         let id = Uuid::new_v4();
         let mut repository = MockAdminTaskRepository::new();
@@ -600,23 +565,19 @@ mod tests {
         assert_matches!(result, Err(WithdrawTaskError::NotFound(task_id)) if task_id == id);
     }
 
-    #[rstest::rstest]
-    #[case::other_user("user-2", TaskStatus::Created)]
-    #[case::already_withdrawn("user-1", TaskStatus::Withdrawn)]
-    #[case::already_approved("user-1", TaskStatus::Approved)]
-    #[case::already_rejected("user-1", TaskStatus::Rejected)]
     #[tokio::test]
-    async fn withdraw_task_rejects_invalid_state(#[case] user_id: &str, #[case] status: TaskStatus) {
+    async fn withdraw_task_rejects_invalid_user() {
         let id = Uuid::new_v4();
-        let mut task = stub_task(id, TaskType::RevokeWallet, "user-1");
-        task.status = status;
+        let task = stub_task(id, TaskType::RevokeWallet, "user-1");
+
         let mut repository = MockAdminTaskRepository::new();
         repository
             .expect_find_task_by_id()
             .times(1)
             .returning(move |_| Ok(Some(task.clone())));
+
         let result = service(repository, Utc::now())
-            .withdraw_task(id, &user(user_id, &[]), &MockAuditLog)
+            .withdraw_task(id, &user("another-user", &[]), &MockAuditLog)
             .await;
         assert_matches!(result, Err(WithdrawTaskError::InvalidState));
     }
@@ -636,9 +597,9 @@ mod tests {
             .returning(move |_| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
         repository
             .expect_withdraw_task()
-            .withf(move |task_id, user_id, timestamp| *task_id == id && user_id == "user-1" && *timestamp == now)
+            .withf(move |task_id, timestamp| *task_id == id && *timestamp == now)
             .times(1)
-            .returning(move |_, _, _| {
+            .returning(move |_, _| {
                 if storage_error {
                     return Err(PersistenceError::NoRowsUpdated);
                 }

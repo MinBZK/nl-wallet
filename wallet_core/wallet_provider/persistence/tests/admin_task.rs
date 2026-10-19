@@ -84,13 +84,8 @@ impl TestDatabase {
         admin_task::find_task_by_id(&self.db, id).await
     }
 
-    async fn withdraw(
-        &self,
-        id: Uuid,
-        user: &User,
-        withdrawn_at: DateTime<Utc>,
-    ) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::withdraw_task(&self.db, id, &user.id, withdrawn_at).await
+    async fn withdraw(&self, id: Uuid, withdrawn_at: DateTime<Utc>) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::withdraw_task(&self.db, id, withdrawn_at).await
     }
 
     async fn review(
@@ -206,7 +201,7 @@ async fn test_withdraw_succeeds_for_creator_of_created_task() {
         .expect("should create task");
 
     let withdrawn = db
-        .withdraw(task.id, &alice, at(TimeDelta::minutes(1)))
+        .withdraw(task.id, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
@@ -221,36 +216,12 @@ async fn test_withdraw_succeeds_for_creator_of_created_task() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_withdraw_fails_for_unknown_task() {
     let db = TestDatabase::new().await;
-    let alice = User::new("alice");
 
     assert_eq!(
-        db.withdraw(Uuid::new_v4(), &alice, at(TimeDelta::zero()))
+        db.withdraw(Uuid::new_v4(), at(TimeDelta::zero()))
             .await
             .expect("should execute withdrawal"),
         None
-    );
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_withdraw_fails_for_other_user() {
-    let db = TestDatabase::new().await;
-    let alice = User::new("alice");
-    let bob = User::new("bob");
-    let task = db
-        .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
-        .await
-        .expect("should create task");
-
-    assert_eq!(
-        db.withdraw(task.id, &bob, at(TimeDelta::minutes(1)))
-            .await
-            .expect("should execute withdrawal"),
-        None
-    );
-    assert_eq!(
-        db.find(task.id).await.expect("should query task"),
-        Some(task),
-        "task must be unchanged"
     );
 }
 
@@ -263,13 +234,13 @@ async fn test_withdraw_fails_when_already_withdrawn() {
         .await
         .expect("should create task");
     let withdrawn = db
-        .withdraw(task.id, &alice, at(TimeDelta::minutes(1)))
+        .withdraw(task.id, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
 
     assert_eq!(
-        db.withdraw(task.id, &alice, at(TimeDelta::minutes(2)))
+        db.withdraw(task.id, at(TimeDelta::minutes(2)))
             .await
             .expect("should execute withdrawal"),
         None
@@ -297,7 +268,7 @@ async fn test_withdraw_fails_when_already_reviewed() {
         .expect("task should be reviewed");
 
     assert_eq!(
-        db.withdraw(task.id, &alice, at(TimeDelta::minutes(2)))
+        db.withdraw(task.id, at(TimeDelta::minutes(2)))
             .await
             .expect("should execute withdrawal"),
         None
@@ -410,7 +381,7 @@ async fn test_review_fails_when_withdrawn() {
         .await
         .expect("should create task");
     let withdrawn = db
-        .withdraw(task.id, &alice, at(TimeDelta::minutes(1)))
+        .withdraw(task.id, at(TimeDelta::minutes(1)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
@@ -482,7 +453,7 @@ async fn test_open_tasks_returns_own_created_tasks_oldest_first() {
         .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
-    db.withdraw(withdrawn.id, &alice, at(TimeDelta::minutes(2)))
+    db.withdraw(withdrawn.id, at(TimeDelta::minutes(2)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
@@ -535,7 +506,7 @@ async fn test_history_returns_finished_tasks_created_or_reviewed_by_user_oldest_
         .await
         .expect("should create task");
     let withdrawn_by_alice = db
-        .withdraw(withdrawn_by_alice.id, &alice, at(TimeDelta::minutes(3)))
+        .withdraw(withdrawn_by_alice.id, at(TimeDelta::minutes(3)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
@@ -604,7 +575,7 @@ async fn test_reviewable_returns_authorized_tasks_of_other_users_oldest_first() 
         .create_task(&bob, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
-    db.withdraw(withdrawn.id, &bob, at(TimeDelta::minutes(2)))
+    db.withdraw(withdrawn.id, at(TimeDelta::minutes(2)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");

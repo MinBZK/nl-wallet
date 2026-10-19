@@ -634,13 +634,8 @@ impl AdminTaskRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn withdraw_task(
-        &self,
-        task_id: Uuid,
-        user_id: &str,
-        now: DateTime<Utc>,
-    ) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::withdraw_task(&self.0, task_id, user_id, now).await
+    async fn withdraw_task(&self, task_id: Uuid, now: DateTime<Utc>) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::withdraw_task(&self.0, task_id, now).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -718,7 +713,6 @@ pub mod mock {
             async fn withdraw_task(
                 &self,
                 id: Uuid,
-                user_id: &str,
                 now: DateTime<Utc>,
             ) -> Result<Option<AdminTask>, PersistenceError>;
 

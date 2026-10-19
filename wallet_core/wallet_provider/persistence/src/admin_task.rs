@@ -98,7 +98,6 @@ where
 pub async fn withdraw_task<S, T>(
     db: &T,
     task_id: Uuid,
-    user_id: &str,
     now: DateTime<Utc>,
 ) -> Result<Option<AdminTask>, PersistenceError>
 where
@@ -106,23 +105,20 @@ where
     T: PersistenceConnection<S>,
 {
     let model = admin_task::ActiveModel {
+        id: Set(task_id),
         status: Set(TaskStatus::Withdrawn.to_string()),
         withdrawn_at: Set(Some(now.into())),
         ..Default::default()
     };
-    let task = admin_task::Entity::update_many()
-        .set(model)
-        .filter(admin_task::Column::Id.eq(task_id))
-        .filter(admin_task::Column::CreatedByUserId.eq(user_id))
+    match admin_task::Entity::update(model)
         .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
-        .exec_with_returning(db.connection())
+        .exec(db.connection())
         .await
-        .map_err(PersistenceError::Execution)?
-        .into_iter()
-        .next()
-        .map(TryInto::try_into)
-        .transpose()?;
-    Ok(task)
+    {
+        Ok(task) => Ok(Some(task.try_into()?)),
+        Err(DbErr::RecordNotUpdated) => Ok(None),
+        Err(error) => Err(PersistenceError::Execution(error)),
+    }
 }
 
 pub async fn review_task<S, T>(db: &T, review: AdminTaskReview) -> Result<Option<AdminTask>, PersistenceError>

@@ -17,15 +17,12 @@ pub trait AdminTaskRepository {
 
     async fn find_task_by_id(&self, task_id: Uuid) -> Result<Option<AdminTask>>;
 
-    /// Withdraws the task, provided it was created by `user_id` and is still in `Created` status.
-    /// Returns `None` if no row matched (not found, wrong owner, or wrong status) — the caller is
-    /// expected to have already validated ownership/status via [`Self::find_task_by_id`] for a
-    /// precise error message; this is the atomic, race-safe mutation.
-    async fn withdraw_task(&self, task_id: Uuid, user_id: &str, now: DateTime<Utc>) -> Result<Option<AdminTask>>;
+    /// Withdraws the task, provided it was still in `Created` status. Returns `None` if no row matched (not found or
+    /// wrong status). The caller is expected to enforce business logic rules, like whose may withdraw whose tasks.
+    async fn withdraw_task(&self, task_id: Uuid, now: DateTime<Utc>) -> Result<Option<AdminTask>>;
 
-    /// Reviews the task, provided it is still in `Created` status. Returns `None` if no row
-    /// matched. Like [`Self::withdraw_task`], callers validate ownership/privilege/status via
-    /// [`Self::find_task_by_id`] first.
+    /// Reviews the task, provided it is still in `Created` status. Returns `None` if no row matched. The caller is
+    /// expected to enforce business rules, like a user may not review his/her own tasks.
     async fn review_task(&self, review: AdminTaskReview) -> Result<Option<AdminTask>>;
 
     /// Returns tasks matching `view`, ordered by `created_at` ascending (oldest first).
