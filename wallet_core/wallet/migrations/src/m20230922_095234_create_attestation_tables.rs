@@ -61,7 +61,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(AttestationCopy::KeyIdentifier).text().not_null())
                     .col(ColumnDef::new(AttestationCopy::StatusListUrl).text().null())
                     .col(ColumnDef::new(AttestationCopy::StatusListIndex).integer().null())
-                    .col(ColumnDef::new(AttestationCopy::IssuerCertificateDn).text().not_null())
                     .col(ColumnDef::new(AttestationCopy::RevocationStatus).string().null())
                     .col(ColumnDef::new(AttestationCopy::Attestation).binary().not_null())
                     // In sqlite/sqlcipher foreign keys can only be created as part of the create table statement.
@@ -146,6 +145,5 @@ enum AttestationCopy {
     Attestation,
     StatusListUrl,
     StatusListIndex,
-    IssuerCertificateDn,
     RevocationStatus,
 }

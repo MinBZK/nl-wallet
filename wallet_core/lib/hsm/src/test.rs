@@ -17,6 +17,7 @@ use crypto::aes_siv::test::test_aes_ctr;
 use crypto::aes_siv::test::test_aes_siv_decrypt;
 use crypto::aes_siv::test::test_aes_siv_encrypt;
 use crypto::utils::random_bytes;
+use crypto::utils::sha256;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
@@ -322,12 +323,14 @@ impl<H> TestCase<H> {
         let wrapped = hsm.generate_wrapped_key(&identifier).await.unwrap();
         let public_key = *wrapped.public_key();
 
-        let data = random_bytes(32);
-        let signature = Pkcs11Client::sign_wrapped(hsm, &identifier, wrapped, &data)
+        // Sign the SHA-256 digest of a message, so that the signature verifies as a normal ECDSA signature
+        // over the message itself.
+        let message = random_bytes(32);
+        let signature = Pkcs11Client::sign_wrapped(hsm, &identifier, wrapped, sha256(&message))
             .await
             .unwrap();
 
-        public_key.verify(data.as_ref(), &signature).unwrap();
+        public_key.verify(&message, &signature).unwrap();
     }
 
     pub async fn aes_siv(self: TestCase<H>)

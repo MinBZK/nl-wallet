@@ -576,7 +576,6 @@
     "generalOkCta": "OK",
     "generalOsVersionText": "Besturingssysteem:",
     "generalPageChangeWCAGAnnouncement": "Pagina {current} van {total} wordt nu weergegeven.",
-    "generalPolicyAllTermsCta": "Alle voorwaarden",
     "generalPolicyDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
     "generalRetry": "Probeer opnieuw",
     "generalSeconds": "{seconds, plural, one {{seconds} seconde} other {{seconds} seconden}}",
@@ -1110,26 +1109,6 @@
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
     "placeholderScreenGenericDescription": "Probeer het later opnieuw.",
     "placeholderScreenHeadline": "Helaas, aan deze pagina wordt nog gewerkt.",
-    "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
-    "policyScreenDataPurposeDescription": "De gegevens worden niet voor andere doelen gebruikt.",
-    "policyScreenPolicySectionPolicyCta": "privacyverklaring",
-    "policyScreenPolicySectionText": "Lees meer in het {policy} van {organization}. Hierin lees je meer over hoe {organization} je gegevens gaat gebruiken.",
-    "@policyScreenPolicySectionText": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            },
-            "policy": {
-                "example": "privacy policy",
-                "type": "String"
-            }
-        }
-    },
-    "policyScreenPolicySectionTitle": "Meer weten?",
-    "policyScreenReportIssueCta": "Wil je een probleem melden?",
-    "policyScreenSubtitle": "De volgende afspraken gelden alléén voor deze uitnodiging tot delen.",
-    "policyScreenTitle": "Afspraken",
     "privacySectionCta": "Lees hoe de organisatie jouw gegevens gebruikt",
     "privacySectionTitle": "Privacybeleid",
     "qrActionButtonSubtitle": "Scan QR of laat je QR-code zien",
@@ -1151,11 +1130,12 @@
     "qrPresentScreenReportIssueCta": "Wil je een probleem melden?",
     "qrPresentScreenTitle": "Toon jouw QR code",
     "qrScanTabContinueCta": "Nog een QR-code scannen",
-    "qrScanTabGrantPermissionCta": "Toegang geven tot camera",
+    "qrScanTabGrantPermissionCta": "Toegang geven tot de camera",
     "qrScreenCheckingCodeWCAGAnnouncement": "QR-code wordt gecontroleerd",
     "qrScreenDisableTorchCta": "Zet zaklamp uit",
     "qrScreenEnableTorchCta": "Zet zaklamp aan",
-    "qrScreenPermissionHint": "De NL Wallet heeft toegang nodig tot je camera om een QR-code te scannen",
+    "qrScreenPermissionHint": "De wallet heeft toegang nodig tot je camera om een QR-code te scannen.",
+    "qrScreenPermissionTitle": "Toegang tot camera nodig",
     "qrScreenScanHint": "Richt je camera op een QR-code",
     "qrScreenScanScannerActiveWCAGAnnouncement": "Geen QR-code gevonden. Richt je camera op een QR-code",
     "qrScreenScanSuccessfulWCAGAnnouncement": "Scan gelukt",

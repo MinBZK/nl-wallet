@@ -1,4 +1,4 @@
-{% let username = attributes | attribute("urn:eudi:pid:nl:1.given_name") %}
+{% let username = attributes | attribute("eu.europa.ec.eudi.pid.1.given_name") %}
 {% call header::header(base.trans.monkeybike_title, web_utils::OPTION_STR_NONE, Some(username)) %}
 
 <main>

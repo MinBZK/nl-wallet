@@ -6,7 +6,7 @@ class HelpAndInfoScreen : MobileActions() {
 
     private val title = l10n.getString("menuScreenHelpCta")
     private val appTourVideoButton = l10n.getString("menuScreenTourCta")
-    private val contactButton = l10n.getString("contactScreenTitle")
+    private val contactButtonSubtitle = l10n.getString("helpOverviewScreenContactSubtitle")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
     //used this key to prevent hardcoding the values since help related text are not in l10n anymore
     private val activitiesHelpButton = l10n.getString("menuScreenHistoryCta")
@@ -16,10 +16,7 @@ class HelpAndInfoScreen : MobileActions() {
     fun visible() =
         elementContainingTextVisible(title)
 
-    fun clickContactButton() {
-        scrollToElementWithText(contactButton)
-        clickElementWithText(contactButton)
-    }
+    fun clickContactButton() = scrollToElementContainingText(contactButtonSubtitle).click()
 
     fun clickActivitiesHelpButton() = clickElementContainingText(activitiesHelpButton)
 

@@ -17,7 +17,7 @@
 import { ref } from 'vue'
 import { usePageTitle } from '@/composables/pageTitle.ts'
 import { useRoute } from 'vue-router'
-import CreateTaskModal from './tasks/CreateTaskModal.vue'
+import CreateTaskModal from './tasks/modal/CreateTaskModal.vue'
 import AppButton from './ui/AppButton.vue'
 
 withDefaults(

@@ -1,16 +1,19 @@
-use std::num::NonZeroU16;
 use std::time::Duration;
 
 use derive_more::Debug;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
+use serde_with::serde_as;
 use url::Url;
+use utils::duration::DurationHours;
+use utils::duration::DurationMinutes;
 use utils::num::NonZeroU31;
 use utils::num::Ratio;
 
 use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
 
+#[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct StatusListsSettings {
     /// Optional storage url if different from rest of application
@@ -19,12 +22,18 @@ pub struct StatusListsSettings {
     pub list_size: NonZeroU31,
     /// Threshold relatively to `list_size` to start creating a new list in the background
     pub create_threshold_ratio: Ratio,
-    /// Expiry duration in hours after creation of the token (`exp` field)
-    pub expiry_in_hours: NonZeroU16,
+    /// Expiry duration after creation of the token (`exp` field). Note that this gets deserialized as
+    /// `expiry_in_hours`, which is guaranteed to result in a non-zero duration.
+    #[serde(rename = "expiry_in_hours")]
+    #[serde_as(as = "DurationHours")]
+    pub expiry: Duration,
     /// Threshold relatively to `expiry` to refresh the token
     pub refresh_threshold_ratio: Ratio,
-    /// TTL in minutes that indicates how long verifiers can cache the status list locally
-    pub ttl_in_minutes: Option<NonZeroU16>,
+    /// TTL that indicates how long verifiers can cache the status list locally. Note that this gets deserialized as
+    /// `ttl_in_minutes`, which is guaranteed to result in a non-zero duration.
+    #[serde(rename = "ttl_in_minutes")]
+    #[serde_as(as = "Option<DurationMinutes>")]
+    pub ttl: Option<Duration>,
     /// Whether to serve the Status List Token it publishes
     #[serde(default = "default_serve")]
     pub serve: bool,
@@ -63,22 +72,20 @@ impl StatusListsSettings {
     }
 
     fn expiry_ttl(&self) -> Result<(Duration, Option<Duration>), ExpiryLessThanTtl> {
-        let expiry = Duration::from_secs(u64::from(self.expiry_in_hours.get()) * 3600);
         let ttl = self
-            .ttl()
+            .ttl
             .map(|ttl| {
-                if expiry < ttl {
-                    return Err(ExpiryLessThanTtl { expiry, ttl });
+                if self.expiry < ttl {
+                    return Err(ExpiryLessThanTtl {
+                        expiry: self.expiry,
+                        ttl,
+                    });
                 }
                 Ok(ttl)
             })
             .transpose()?;
-        Ok((expiry, ttl))
-    }
 
-    pub fn ttl(&self) -> Option<Duration> {
-        self.ttl_in_minutes
-            .map(|ttl| Duration::from_secs(u64::from(ttl.get()) * 60))
+        Ok((self.expiry, ttl))
     }
 }
 

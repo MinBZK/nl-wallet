@@ -14,7 +14,6 @@ import '../../../domain/model/disclosure/start_disclosure_request.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
@@ -148,7 +147,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
             relyingParty: result.relyingParty,
             requestPurpose: result.requestPurpose,
             cardRequests: _cardRequestsSelectionCache ?? result.cardRequests,
-            policy: result.policy,
             afterBackPressed: afterBackPressed,
             sessionType: result.sessionType,
           ),
@@ -158,7 +156,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           DisclosureCheckOrganizationForLogin(
             relyingParty: result.relyingParty,
             sessionType: result.sessionType,
-            policy: result.policy,
             cardRequests: result.cardRequests,
             sharedDataWithOrganizationBefore: result.sharedDataWithOrganizationBefore,
             afterBackPressed: afterBackPressed,
@@ -229,7 +226,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           emit(
             DisclosureCheckOrganizationForLogin(
               relyingParty: startDisclosureResult.relyingParty,
-              policy: startDisclosureResult.policy,
               cardRequests: startDisclosureResult.cardRequests,
               sessionType: startDisclosureResult.sessionType,
               sharedDataWithOrganizationBefore: startDisclosureResult.sharedDataWithOrganizationBefore,
@@ -241,7 +237,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
               relyingParty: startDisclosureResult.relyingParty,
               requestPurpose: startDisclosureResult.requestPurpose,
               cardRequests: _cardRequestsSelectionCache ?? startDisclosureResult.cardRequests,
-              policy: startDisclosureResult.policy,
               sessionType: startDisclosureResult.sessionType,
             ),
           );

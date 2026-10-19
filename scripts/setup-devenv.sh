@@ -17,7 +17,7 @@
 # - openssl: needed to generate keys and certificates
 # - jq: needed to parse JSON
 # - standard unix tools like: grep, sed, tr, ...
-# - docker: with compose v2 extension, to run the digid-connector
+# - docker: with compose v2 and buildx 0.19 or newer, to run the digid-connector
 # - softhsm2-util: software implementation of a hardware security module (HSM). See https://github.com/opendnssec/SoftHSMv2.
 # - p11tool: utility that is part of the gnutls package. The Homebrew package is 'gnutls'. On Debian/Ubuntu, it is 'gnutls-bin'.
 # - nodejs: JavaScript runtime environment for building frontend library
@@ -156,7 +156,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   cd "${DIGID_CONNECTOR_PATH}"
 
   # Brings v4.0.3 up to dockerfile-stage-fixes branch.
-  # Commits: v4.0.3 (c2b5915), main (70d1e46), current (d72ee52), fixes (5b28537).
+  # Commits: v4.0.3 (c2b5915), main (70d1e46), current (d72ee52), fixes (8165875).
   echo -e "${INFO}Applying nl-rdo-max patches to ${DIGID_CONNECTOR_PATH} (${DIGID_CONNECTOR_VERSION})"
   apply_patches_once "${DIGID_CONNECTOR_PATH}" \
     "${DEVENV}/digid-connector/from-v403-to-main.patch" \
@@ -402,13 +402,17 @@ generate_wia_signing_key_pair
 WP_WIA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wia_signing.crt.der" ${BASE64})
 export WP_WIA_CERTIFICATE
 
+generate_wia_tsl_key_pair
+WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
+export WIA_TSL_CRT
+
 generate_key_attestation_signing_key_pair
 WP_KA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.der" ${BASE64})
 export WP_KA_CERTIFICATE
 
-generate_wia_tsl_key_pair
-WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
-export WIA_TSL_CRT
+generate_key_storage_tsl_key_pair
+KEY_STORAGE_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/key_storage_tsl.crt.der" ${BASE64})
+export KEY_STORAGE_TSL_CRT
 
 # Generate pid issuer recovery code key
 RECOVERY_CODE_SECRET_KEY=$(openssl rand 32 | xxd -p -c64)
@@ -521,10 +525,6 @@ DEMO_ISSUER_KEY_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.key.d
 export DEMO_ISSUER_KEY_INSURANCE_TSL
 DEMO_ISSUER_CRT_INSURANCE_TSL=$(< "${TARGET_DIR}/demo_issuer/insurance.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_TSL
-DEMO_ISSUER_KEY_INSURANCE_WRPAC=$(< "${TARGET_DIR}/demo_issuer/insurance.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_INSURANCE_WRPAC
-DEMO_ISSUER_CRT_INSURANCE_WRPAC=$(< "${TARGET_DIR}/demo_issuer/insurance.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_INSURANCE_WRPAC
 
 generate_demo_issuer_key_pairs housing
 DEMO_ISSUER_KEY_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.key.der" ${BASE64})
@@ -554,10 +554,6 @@ DEMO_ISSUER_KEY_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.key.der" 
 export DEMO_ISSUER_KEY_LOYALTY_TSL
 DEMO_ISSUER_CRT_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_LOYALTY_TSL
-DEMO_ISSUER_KEY_LOYALTY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/loyalty.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_LOYALTY_WRPAC
-DEMO_ISSUER_CRT_LOYALTY_WRPAC=$(< "${TARGET_DIR}/demo_issuer/loyalty.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_LOYALTY_WRPAC
 
 generate_demo_issuer_issuance_key_pairs museum_maandkaart
 DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_ISSUER=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuer.key.der" ${BASE64})
@@ -568,10 +564,6 @@ DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maan
 export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_TSL
 DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_TSL
-DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_MUSEUM_MAANDKAART_WRPAC
-DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_MUSEUM_MAANDKAART_WRPAC
 
 generate_demo_issuer_issuance_key_pairs mdl
 DEMO_ISSUER_KEY_MDL_ISSUER=$(< "${TARGET_DIR}/demo_issuer/mdl.issuer.key.der" ${BASE64})
@@ -582,10 +574,6 @@ DEMO_ISSUER_KEY_MDL_TSL=$(< "${TARGET_DIR}/demo_issuer/mdl.tsl.key.der" ${BASE64
 export DEMO_ISSUER_KEY_MDL_TSL
 DEMO_ISSUER_CRT_MDL_TSL=$(< "${TARGET_DIR}/demo_issuer/mdl.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MDL_TSL
-DEMO_ISSUER_KEY_MDL_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mdl.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_MDL_WRPAC
-DEMO_ISSUER_CRT_MDL_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mdl.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_MDL_WRPAC
 
 generate_demo_issuer_issuance_key_pairs mvc
 DEMO_ISSUER_KEY_MVC_ISSUER=$(< "${TARGET_DIR}/demo_issuer/mvc.issuer.key.der" ${BASE64})
@@ -596,10 +584,25 @@ DEMO_ISSUER_KEY_MVC_TSL=$(< "${TARGET_DIR}/demo_issuer/mvc.tsl.key.der" ${BASE64
 export DEMO_ISSUER_KEY_MVC_TSL
 DEMO_ISSUER_CRT_MVC_TSL=$(< "${TARGET_DIR}/demo_issuer/mvc.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_MVC_TSL
-DEMO_ISSUER_KEY_MVC_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mvc.wrpac.key.der" ${BASE64})
-export DEMO_ISSUER_KEY_MVC_WRPAC
-DEMO_ISSUER_CRT_MVC_WRPAC=$(< "${TARGET_DIR}/demo_issuer/mvc.wrpac.crt.der" ${BASE64})
-export DEMO_ISSUER_CRT_MVC_WRPAC
+
+generate_demo_issuer_key_pairs dezi
+DEMO_ISSUER_KEY_DEZI_ISSUER=$(< "${TARGET_DIR}/demo_issuer/dezi.issuer.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_DEZI_ISSUER
+DEMO_ISSUER_CRT_DEZI_ISSUER=$(< "${TARGET_DIR}/demo_issuer/dezi.issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_DEZI_ISSUER
+DEMO_ISSUER_KEY_DEZI_TSL=$(< "${TARGET_DIR}/demo_issuer/dezi.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_DEZI_TSL
+DEMO_ISSUER_CRT_DEZI_TSL=$(< "${TARGET_DIR}/demo_issuer/dezi.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_DEZI_TSL
+DEMO_ISSUER_KEY_DEZI_WRPAC=$(< "${TARGET_DIR}/demo_issuer/dezi.wrpac.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_DEZI_WRPAC
+DEMO_ISSUER_CRT_DEZI_WRPAC=$(< "${TARGET_DIR}/demo_issuer/dezi.wrpac.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_DEZI_WRPAC
+generate_demo_issuer_disclosure_registration_certificate dezi 11
+DEMO_ISSUER_REGISTRATION_CERTIFICATE_DEZI=$(< "${TARGET_DIR}/demo_issuer/dezi.wrprc")
+export DEMO_ISSUER_REGISTRATION_CERTIFICATE_DEZI
+DEMO_ISSUER_CLIENT_ID_DEZI="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/dezi.wrpac.crt.der" | base64_url_encode)"
+export DEMO_ISSUER_CLIENT_ID_DEZI
 
 # Each issuance service publishes a WRPRC bound to its metadata-signing WRPAC.
 generate_issuance_registration_certificate pid 7 \
@@ -607,19 +610,35 @@ generate_issuance_registration_certificate pid 7 \
 PID_ISSUER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/pid_issuer/issuance.wrprc")
 export PID_ISSUER_REGISTRATION_CERTIFICATE
 
-generate_issuance_registration_certificate university 8 \
-    "${TARGET_DIR}/demo_issuer/university.wrpac.crt.pem" "${TARGET_DIR}/demo_issuer/university.issuance"
-ISSUANCE_SERVER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/demo_issuer/university.issuance.wrprc")
+# The shared demo issuance services have their own identities, separate from the demo organizations.
+generate_demo_issuer_issuance_key_pair issuance_server wrpac
+ISSUANCE_SERVER_WRPAC_KEY=$(< "${TARGET_DIR}/demo_issuer/issuance_server.wrpac.key.der" ${BASE64})
+export ISSUANCE_SERVER_WRPAC_KEY
+ISSUANCE_SERVER_WRPAC_CRT=$(< "${TARGET_DIR}/demo_issuer/issuance_server.wrpac.crt.der" ${BASE64})
+export ISSUANCE_SERVER_WRPAC_CRT
+generate_issuance_registration_certificate issuance_server 8 \
+    "${TARGET_DIR}/demo_issuer/issuance_server.wrpac.crt.pem" "${TARGET_DIR}/demo_issuer/issuance_server.issuance"
+ISSUANCE_SERVER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/demo_issuer/issuance_server.issuance.wrprc")
 export ISSUANCE_SERVER_REGISTRATION_CERTIFICATE
 
-generate_issuance_registration_certificate insurance 9 \
-    "${TARGET_DIR}/demo_issuer/insurance.wrpac.crt.pem" "${TARGET_DIR}/demo_issuer/insurance.issuance"
-ACF_DEMO_ISSUER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/demo_issuer/insurance.issuance.wrprc")
+generate_demo_issuer_issuance_key_pair acf_demo_issuer wrpac
+ACF_DEMO_ISSUER_WRPAC_KEY=$(< "${TARGET_DIR}/demo_issuer/acf_demo_issuer.wrpac.key.der" ${BASE64})
+export ACF_DEMO_ISSUER_WRPAC_KEY
+ACF_DEMO_ISSUER_WRPAC_CRT=$(< "${TARGET_DIR}/demo_issuer/acf_demo_issuer.wrpac.crt.der" ${BASE64})
+export ACF_DEMO_ISSUER_WRPAC_CRT
+generate_issuance_registration_certificate acf_demo_issuer 9 \
+    "${TARGET_DIR}/demo_issuer/acf_demo_issuer.wrpac.crt.pem" "${TARGET_DIR}/demo_issuer/acf_demo_issuer.issuance"
+ACF_DEMO_ISSUER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/demo_issuer/acf_demo_issuer.issuance.wrprc")
 export ACF_DEMO_ISSUER_REGISTRATION_CERTIFICATE
 
-generate_issuance_registration_certificate museum_maandkaart 10 \
-    "${TARGET_DIR}/demo_issuer/museum_maandkaart.wrpac.crt.pem" "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuance"
-PACF_ISSUANCE_SERVER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/demo_issuer/museum_maandkaart.issuance.wrprc")
+generate_demo_issuer_issuance_key_pair pacf_issuance_server wrpac
+PACF_ISSUANCE_SERVER_WRPAC_KEY=$(< "${TARGET_DIR}/demo_issuer/pacf_issuance_server.wrpac.key.der" ${BASE64})
+export PACF_ISSUANCE_SERVER_WRPAC_KEY
+PACF_ISSUANCE_SERVER_WRPAC_CRT=$(< "${TARGET_DIR}/demo_issuer/pacf_issuance_server.wrpac.crt.der" ${BASE64})
+export PACF_ISSUANCE_SERVER_WRPAC_CRT
+generate_issuance_registration_certificate pacf_issuance_server 10 \
+    "${TARGET_DIR}/demo_issuer/pacf_issuance_server.wrpac.crt.pem" "${TARGET_DIR}/demo_issuer/pacf_issuance_server.issuance"
+PACF_ISSUANCE_SERVER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/demo_issuer/pacf_issuance_server.issuance.wrprc")
 export PACF_ISSUANCE_SERVER_REGISTRATION_CERTIFICATE
 
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
@@ -632,9 +651,9 @@ export DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_index.toml"
 
 # Copy the Technical Attestation Schemas
-cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eudi_pid_nl_1_mdoc.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eudi_pid_nl_1_mdoc.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eu.europa.ec.eudi.pid.1.json" "${PID_ISSUER_DIR}"
+cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/eu.europa.ec.eudi.pid.1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.housing.json" "${DEVENV}/dezi_verklaring.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.housing.json" "${DEVENV}/dezi_verklaring.json" "${ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.museum_maandkaart.mdoc.json" "${DEVENV}/org.iso.18013.5.1.mDL.mdoc.json" "${DEVENV}/org.iso.7367.2.1.mVC.mdoc.json" "${PACF_ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com.example.jum.bonuskaart.sd_jwt.json" "${DEVENV}/com.example.museum_maandkaart.mdoc.json" "${DEVENV}/org.iso.18013.5.1.mDL.mdoc.json" "${DEVENV}/org.iso.7367.2.1.mVC.mdoc.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.insurance.mdoc.json" "${DEVENV}/com.example.jum.bonuskaart.sd_jwt.json" "${ACF_DEMO_ISSUER_DIR}"
@@ -642,6 +661,7 @@ export ISSUER_METADATA_PID_PATH="eudi_pid_1.json"
 export ISSUER_METADATA_PID_NL_PATH="eudi_pid_nl_1.json"
 export ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
 export ISSUER_METADATA_HOUSING_PATH="com.example.housing.json"
+export ISSUER_METADATA_DEZI_PATH="dezi_verklaring.json"
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
@@ -671,12 +691,12 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wrprc"
 
-# All eleven demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
+# All twelve demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca status-list \
     --tsl-key-file "${TARGET_DIR}/wrprc_tsl.key.pem" \
     --tsl-crt-file "${TARGET_DIR}/wrprc_tsl.crt.pem" \
     --uri "${WRPRC_STATUS_LIST_URI}" \
-    --status valid valid valid valid valid valid valid valid valid valid valid \
+    --status valid valid valid valid valid valid valid valid valid valid valid valid \
     --ttl-seconds 3600 \
     > "${WALLET_CORE_DIR}/target/status-lists/wrprc/1.jwt"
 

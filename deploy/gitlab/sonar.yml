@@ -1,5 +1,6 @@
 .default-sonar:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
+  stage: qa
   rules: !reference [.default-or-merge-request, rules]
   variables:
     GIT_STRATEGY: clone

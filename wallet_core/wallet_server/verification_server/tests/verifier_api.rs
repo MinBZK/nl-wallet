@@ -16,7 +16,8 @@ use attestation_data::registration_certificate::mock::MockRegistrationCertificat
 use attestation_data::registration_certificate::mock::StaticStatusListClient;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
+use attestation_types::pid_constants::pid_attestation_type;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
@@ -140,11 +141,11 @@ async fn wallet_server_settings_and_listener(
 
     // Create the issuer CA and derive the trust anchors from it.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
+    let issuer_trust_anchors = issuer_ca.to_trust_anchors();
 
     // Create the WRPAC CA, derive the trust anchor from it
     let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
-    let wrpac_trust_anchors = TrustAnchors::from(&wrpac_ca);
+    let wrpac_trust_anchors = wrpac_ca.to_trust_anchors();
 
     // Set up the use case, based on RP CA and reader registration.
     let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
@@ -990,24 +991,25 @@ fn check_example_disclosed_attributes(disclosed_attributes: &UniqueIdVec<Disclos
     assert_eq!(disclosed_attributes.len().get(), 1);
     let attestations = &disclosed_attributes.as_ref().iter().exactly_one().unwrap().attestations;
 
+    let expected_attestation_type = pid_attestation_type(format);
     itertools::assert_equal(
         attestations
             .iter()
             .map(|attestation| attestation.attestation_type.as_str()),
-        [PID_ATTESTATION_TYPE],
+        [expected_attestation_type],
     );
 
     let attributes = &attestations
         .iter()
-        .find(|attestation| attestation.attestation_type == *PID_ATTESTATION_TYPE)
+        .find(|attestation| attestation.attestation_type == expected_attestation_type)
         .unwrap()
         .attributes;
 
     match (format, attributes) {
         (Format::MsoMdoc, DisclosedAttributes::MsoMdoc(attributes)) => {
-            itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
+            itertools::assert_equal(attributes.keys(), [PID_MDOC_DOCTYPE]);
 
-            let bsn_value = attributes.get(PID_ATTESTATION_TYPE).unwrap().get("bsn").unwrap();
+            let bsn_value = attributes.get(PID_MDOC_DOCTYPE).unwrap().get("bsn").unwrap();
             assert_eq!(bsn_value.to_string(), "999991772");
         }
         (Format::SdJwt, DisclosedAttributes::SdJwt(attributes)) => {

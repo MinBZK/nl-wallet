@@ -1,18 +1,15 @@
 import '../card/wallet_card.dart';
 import '../document.dart';
 import '../organization.dart';
-import '../policy/policy.dart';
 
 sealed class StartSignResult {
   final Organization relyingParty;
   final Organization trustProvider;
-  final Policy policy;
   final Document document;
 
   const StartSignResult({
     required this.relyingParty,
     required this.trustProvider,
-    required this.policy,
     required this.document,
   });
 }
@@ -23,7 +20,6 @@ class StartSignReadyToSign extends StartSignResult {
   StartSignReadyToSign({
     required super.relyingParty,
     required super.trustProvider,
-    required super.policy,
     required super.document,
     required this.requestedCards,
   });
@@ -37,7 +33,6 @@ class StartSignReadyToSign extends StartSignResult {
 //   StartSignMissingAttributes({
 //     required super.relyingParty,
 //     required super.trustProvider,
-//     required super.policy,
 //     required super.document,
 //     required this.missingAttributes,
 //   });

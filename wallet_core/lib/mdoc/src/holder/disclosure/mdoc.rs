@@ -57,7 +57,7 @@ mod examples {
     use std::sync::LazyLock;
 
     use attestation_types::claim_path::ClaimPath;
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -73,7 +73,7 @@ mod examples {
             .iter()
             .map(|attr| {
                 vec_nonempty![
-                    ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+                    ClaimPath::SelectByKey(PID_MDOC_DOCTYPE.to_string()),
                     ClaimPath::SelectByKey(attr.to_string()),
                 ]
             })

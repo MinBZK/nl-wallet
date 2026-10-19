@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../../domain/model/disclosure/disclose_card_request.dart';
 import '../../domain/model/organization.dart';
-import '../../domain/model/policy/policy.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/formatter/country_code_formatter.dart';
@@ -27,7 +26,6 @@ import 'argument/login_detail_screen_argument.dart';
 
 class LoginDetailScreen extends StatelessWidget {
   final Organization organization;
-  final Policy policy;
   final List<DiscloseCardRequest> cardRequests;
   final bool sharedDataWithOrganizationBefore;
   final VoidCallback? onReportIssuePressed;
@@ -44,7 +42,6 @@ class LoginDetailScreen extends StatelessWidget {
 
   const LoginDetailScreen({
     required this.organization,
-    required this.policy,
     required this.cardRequests,
     required this.sharedDataWithOrganizationBefore,
     this.onReportIssuePressed,
@@ -90,7 +87,6 @@ class LoginDetailScreen extends StatelessWidget {
             child: RequestDetailCommonBuilders.buildPolicy(
               context,
               organization: organization,
-              policy: policy,
               side: DividerSide.top,
             ),
           ),
@@ -169,7 +165,6 @@ class LoginDetailScreen extends StatelessWidget {
   static Future<void> show(
     BuildContext context,
     Organization organization,
-    Policy policy,
     List<DiscloseCardRequest> cardRequests, {
     required bool sharedDataWithOrganizationBefore,
     VoidCallback? onReportIssuePressed,
@@ -180,7 +175,6 @@ class LoginDetailScreen extends StatelessWidget {
         builder: (context) {
           return LoginDetailScreen(
             organization: organization,
-            policy: policy,
             cardRequests: cardRequests,
             sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore,
             onReportIssuePressed: onReportIssuePressed,

@@ -165,7 +165,7 @@ mod test {
 
 #[cfg(any(test, feature = "mock_example_constructors"))]
 pub mod mock {
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::status_claim::StatusListClaim;
     use chrono::DateTime;
     use chrono::Utc;
@@ -173,7 +173,6 @@ pub mod mock {
     use crypto::CredentialEcdsaKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
@@ -205,7 +204,7 @@ pub mod mock {
                 .unwrap()
                 .issuer_signed;
 
-            Mdoc::new(issuer_signed, &IsoCertTimeGenerator, &TrustAnchors::from(ca)).unwrap()
+            Mdoc::new(issuer_signed, &IsoCertTimeGenerator, &ca.to_trust_anchors()).unwrap()
         }
 
         pub async fn new_mock() -> Self {
@@ -239,9 +238,9 @@ pub mod mock {
             time_generator: &impl Generator<DateTime<Utc>>,
         ) -> Self {
             Self::new_unverified_from_data(
-                PID_ATTESTATION_TYPE.to_string(),
+                PID_MDOC_DOCTYPE.to_string(),
                 IndexMap::from_iter(vec![(
-                    PID_ATTESTATION_TYPE.to_string(),
+                    PID_MDOC_DOCTYPE.to_string(),
                     vec![
                         Entry {
                             name: "bsn".to_string(),

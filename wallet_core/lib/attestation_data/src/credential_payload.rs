@@ -637,6 +637,7 @@ mod examples {
 mod mock {
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use chrono::DateTime;
     use chrono::Utc;
     use p256::ecdsa::SigningKey;
@@ -697,7 +698,7 @@ mod mock {
         /// The same claims as [`PreviewableCredentialPayload::nl_pid_example()`], but with mdoc-namespaced
         /// attributes.
         pub fn nl_pid_mdoc_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
-            Self::example_with_attributes(PID_ATTESTATION_TYPE, Attributes::nl_pid_mdoc_example(), time_generator)
+            Self::example_with_attributes(PID_MDOC_DOCTYPE, Attributes::nl_pid_mdoc_example(), time_generator)
         }
 
         pub fn nl_pid_address_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
@@ -728,13 +729,13 @@ mod test {
 
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use indexmap::IndexMap;
     use itertools::Itertools;
@@ -840,7 +841,7 @@ mod test {
 
         // The IssuerSigned should be valid
         issuer_signed
-            .verify(ValidityRequirement::Valid, &TimeGenerator, &TrustAnchors::from(&ca))
+            .verify(ValidityRequirement::Valid, &TimeGenerator, &ca.to_trust_anchors())
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
@@ -939,7 +940,7 @@ mod test {
 
         // The IssuerSigned should be valid
         let verified_sd_jwt = unverified_sd_jwt
-            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator)
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator)
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
@@ -985,7 +986,7 @@ mod test {
             .await
             .unwrap()
             .into_unverified()
-            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator)
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator)
             .expect("the signed SD-JWT should be valid");
 
         let concealed_claims = verified_sd_jwt
@@ -1022,16 +1023,13 @@ mod test {
                 .map(|(path, value)| (path.into_inner(), value.clone()))
                 .collect_vec(),
             vec![
+                (vec![PID_MDOC_DOCTYPE, "bsn"], Attribute::Text("999999999".to_string())),
                 (
-                    vec![PID_ATTESTATION_TYPE, "bsn"],
-                    Attribute::Text("999999999".to_string())
-                ),
-                (
-                    vec![PID_ATTESTATION_TYPE, "given_name"],
+                    vec![PID_MDOC_DOCTYPE, "given_name"],
                     Attribute::Text("Willeke Liselotte".to_string())
                 ),
                 (
-                    vec![PID_ATTESTATION_TYPE, "family_name"],
+                    vec![PID_MDOC_DOCTYPE, "family_name"],
                     Attribute::Text("De Bruijn".to_string())
                 ),
             ]
@@ -1338,7 +1336,7 @@ mod test {
         let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap().into_unverified();
         presented_sd_jwt
             .into_verified_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &kb_verification_options,
                 &time_generator,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_key_pair))),

@@ -100,9 +100,9 @@ error_ttl_in_sec = 0
 # * format: Can be mso_mdoc or dc+sd-jwt
 # * meta: if format is dc+sd-jwt, contains vct_values, else doctype_value
 #   - Example 1: { vct_values = ["urn:eudi:pid:nl:1"] }
-#   - Example 2: { doctype_value = "urn:eudi:pid:nl:1" }
+#   - Example 2: { doctype_value = "eu.europa.ec.eudi.pid.1" }
 # * claims: Contains a path array and intent_to_retain (default false)
-#   - Example: { path = ["urn:eudi:pid:nl:1", "bsn"], intent_to_retain = true }
+#   - Example: { path = ["eu.europa.ec.eudi.pid.nl.1", "bsn"], intent_to_retain = true }
 #
 
 # Attestation URL configs are associated with a [disclosure_settings.some_name],

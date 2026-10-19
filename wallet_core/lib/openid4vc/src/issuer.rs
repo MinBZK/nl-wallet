@@ -1555,11 +1555,10 @@ impl CredentialRequest {
         // Verify that the Key Attestation JWT is valid, the public keys are distinct and the attack potential
         // resistance is sufficient.
         //
-        // NB: We intentionally choose to ignore and not validate the `status` claim here. This Issuer implementation
-        //     does not to be fully compliant and we assume that the Wallet Provider will instead use the
-        //     `key_storage_status` as specified by TS3.
-        //
-        // TODO (PVW-6239): Verify the `key_storage_status` claim.
+        // NB: We intentionally choose to ignore and not validate both the `status` and `key_storage_status` claims
+        //     here. This Issuer implementation does not need to be to be fully compliant and implementing such a check
+        //     would involve fetching the Status Lists regularly to evaluate if the key attestation or key storage
+        //     respectively has been revoked in the intervening time.
         let KeyAttestationVerificationResult {
             attested_keys, nonce, ..
         } = key_attestation
@@ -1784,7 +1783,6 @@ mod tests {
     use crate::test::mock_issuable_documents;
     use crate::test::mock_type_metadata;
     use crate::test::setup_mock_issuer;
-    use crate::test::setup_mock_issuer_attestation_types_and_metadata;
     use crate::test::setup_mock_issuer_with_metadata;
     use crate::token::VciTokenRequest;
     use crate::token::VciTokenResponse;
@@ -1884,9 +1882,12 @@ mod tests {
     #[tokio::test]
     async fn test_signed_metadata() {
         let (_, metadata) = TypeMetadataDocuments::degree_example();
-        let (issuer, trust_anchors, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, trust_anchors, _, _, _) = setup_mock_issuer_with_metadata(
             "https://example.com/".parse().unwrap(),
-            vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
+            vec![CredentialConfigurationFormat::new_sd_jwt_type_metadata(
+                CredentialConfigurationTypeMetadata::try_new("com.example.degree", metadata).unwrap(),
+            )],
+            true,
             Arc::new(MemorySessionStore::default()),
         );
 
@@ -1925,9 +1926,12 @@ mod tests {
     #[tokio::test]
     async fn test_prepared_credential_try_new() {
         let (_, metadata) = TypeMetadataDocuments::degree_example();
-        let (issuer, _, _, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, _, _, _, _) = setup_mock_issuer_with_metadata(
             "https://example.com/".parse().unwrap(),
-            vec![(Format::SdJwt, "com.example.degree".to_string(), metadata)],
+            vec![CredentialConfigurationFormat::new_sd_jwt_type_metadata(
+                CredentialConfigurationTypeMetadata::try_new("com.example.degree", metadata).unwrap(),
+            )],
+            true,
             Arc::new(MemorySessionStore::default()),
         );
 
@@ -1973,15 +1977,20 @@ mod tests {
 
         let (attestation_type, _, metadata_documents) =
             TypeMetadataDocuments::from_single_example(mock_type_metadata(MOCK_ATTESTATION_TYPES[0]));
-        let attestations = [Format::MsoMdoc, Format::SdJwt]
-            .into_iter()
-            .zip(std::iter::repeat_n((attestation_type, metadata_documents), 2))
-            .map(|(format, (attestation_type, metadata_documents))| (format, attestation_type, metadata_documents))
-            .collect();
+        let attestations = vec![
+            CredentialConfigurationFormat::new_mdoc(
+                attestation_type.clone(),
+                CredentialMetadata::new_mdoc_example(&attestation_type, &MOCK_ATTRS.map(|(name, _)| name)),
+            ),
+            CredentialConfigurationFormat::new_sd_jwt_type_metadata(
+                CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents).unwrap(),
+            ),
+        ];
 
-        let (issuer, trust_anchor, wptl_ca, _, _) = setup_mock_issuer_attestation_types_and_metadata(
+        let (issuer, trust_anchor, wptl_ca, _, _) = setup_mock_issuer_with_metadata(
             issuer_identifier.clone(),
             attestations,
+            true,
             Arc::new(MemorySessionStore::default()),
         );
 
@@ -2186,7 +2195,7 @@ mod tests {
         .unwrap();
 
         let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
-        let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+        let wptl_trust_anchors = wptl_ca.to_trust_anchors();
 
         session
             .accept_issuance(

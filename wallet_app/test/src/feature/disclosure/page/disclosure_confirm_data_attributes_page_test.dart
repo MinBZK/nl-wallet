@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/organization.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/feature/disclosure/page/disclosure_confirm_data_attributes_page.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 
@@ -23,7 +22,6 @@ void main() {
           DiscloseCardRequest.fromCard(WalletMockData.card),
           DiscloseCardRequest.fromCard(WalletMockData.altCard),
         ],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -44,7 +42,6 @@ void main() {
         onAlternativeCardSelected: (update) {},
         relyingParty: WalletMockData.organization,
         cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -64,7 +61,6 @@ void main() {
         onAlternativeCardSelected: (update) {},
         relyingParty: WalletMockData.organization,
         cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -83,7 +79,6 @@ void main() {
         onAlternativeCardSelected: (update) {},
         relyingParty: WalletMockData.organization,
         cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -107,7 +102,6 @@ void main() {
         onAlternativeCardSelected: (update) {},
         relyingParty: WalletMockData.organization,
         cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-        policy: WalletMockData.policy,
         requestPurpose: 'data purpose'.untranslated,
       ),
     );
@@ -135,7 +129,6 @@ void main() {
           onAlternativeCardSelected: (update) {},
           relyingParty: relyingParty,
           cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
-          policy: const Policy(privacyPolicyUrl: null),
           requestPurpose: 'data purpose'.untranslated,
         ),
         surfaceSize: surfaceSize,

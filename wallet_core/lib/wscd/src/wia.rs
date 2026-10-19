@@ -15,7 +15,6 @@ pub mod mock {
     use std::convert::Infallible;
     use std::time::Duration;
 
-    use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use crypto::PublicKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -31,7 +30,7 @@ pub mod mock {
 
     use super::WiaClient;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::payload::wia::ClientStatus;
+    use crate::payload::status_claim::TimeBoundedStatusClaim;
     use crate::payload::wia::WiaClaims;
     use crate::payload::wia::WiaDisclosure;
     use crate::payload::wia::WiaPopClaims;
@@ -92,10 +91,7 @@ pub mod mock {
                     client_id.clone(),
                     exp.into(),
                     WiaWalletInfo::new_mock(),
-                    ClientStatus {
-                        status: StatusClaim::new_mock(),
-                        exp: exp.into(),
-                    },
+                    TimeBoundedStatusClaim::new_mock(),
                     &time,
                 )
                 .unwrap(),

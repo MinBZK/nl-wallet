@@ -8,7 +8,6 @@ use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CanonicalDistinguishedName;
 use moka::Expiry;
 use moka::future::Cache;
 use serde::Deserialize;
@@ -112,7 +111,6 @@ where
     pub async fn verify(
         &self,
         issuer_trust_anchors: &TrustAnchors,
-        attestation_signing_certificate_dn: CanonicalDistinguishedName,
         status_claim: StatusClaim,
         time: &impl Generator<DateTime<Utc>>,
     ) -> RevocationStatus {
@@ -122,7 +120,7 @@ where
             .cache
             .get_with(
                 uri.clone(),
-                self.fetch_status_list_claims(uri, issuer_trust_anchors, attestation_signing_certificate_dn, time),
+                self.fetch_status_list_claims(uri, issuer_trust_anchors, time),
             )
             .await;
 
@@ -158,13 +156,12 @@ where
         &self,
         url: Url,
         issuer_trust_anchors: &TrustAnchors,
-        attestation_signing_certificate_dn: CanonicalDistinguishedName,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusListClaims, StatusListVerificationError> {
         let status_list_token = self.client.fetch(url.clone()).await.map_err(Arc::new)?;
 
         let claims = status_list_token
-            .parse_and_verify(issuer_trust_anchors, attestation_signing_certificate_dn, url, time)
+            .parse_and_verify(issuer_trust_anchors, url, time)
             .map_err(Arc::new)?;
 
         Ok(claims)
@@ -232,15 +229,13 @@ mod test {
     fn test_verify() {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
-        let iss_keypair = ca.generate_issuer_mock().unwrap();
 
         let verifier = RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(keypair)));
 
         // Index 1 is valid
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                &ca.to_trust_anchors(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -254,8 +249,7 @@ mod test {
         // Index 3 is invalid
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                &ca.to_trust_anchors(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 3,
@@ -269,8 +263,7 @@ mod test {
         // An out-of-bounds index corrupts the reference instead of panicking
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                &ca.to_trust_anchors(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: u32::MAX,
@@ -284,8 +277,7 @@ mod test {
         // Corrupted when the sub claim doesn't match
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                &ca.to_trust_anchors(),
                 StatusList(StatusListClaim {
                     uri: "https://different_uri".parse().unwrap(),
                     idx: 1,
@@ -300,7 +292,6 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::empty(),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -314,28 +305,12 @@ mod test {
         // Corrupted when the JWT is expired
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                &ca.to_trust_anchors(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
                 }),
                 &MockTimeGenerator::new(Utc::now().add(Days::new(2))),
-            )
-            .now_or_never()
-            .unwrap();
-        assert_eq!(RevocationStatus::Corrupted, status);
-
-        // Corrupted when the attestation is signed with a different certificate
-        let status = verifier
-            .verify(
-                &TrustAnchors::from(&ca),
-                "CN=Different CA".to_string().into(),
-                StatusList(StatusListClaim {
-                    uri: "https://example.com/statuslists/1".parse().unwrap(),
-                    idx: 1,
-                }),
-                &MockTimeGenerator::default(),
             )
             .now_or_never()
             .unwrap();
@@ -355,8 +330,7 @@ mod test {
         );
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                &ca.to_trust_anchors(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -372,7 +346,6 @@ mod test {
     fn test_verify_cached() {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
-        let iss_keypair = ca.generate_issuer_mock().unwrap();
 
         let verifier = RevocationVerifier::new(
             Arc::new(StatusListClientStub::new(keypair)),
@@ -385,8 +358,7 @@ mod test {
         // Index 1 is valid
         let status = verifier
             .verify(
-                &TrustAnchors::from(&ca),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                &ca.to_trust_anchors(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
@@ -401,7 +373,6 @@ mod test {
         let status = verifier
             .verify(
                 &TrustAnchors::empty(),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,

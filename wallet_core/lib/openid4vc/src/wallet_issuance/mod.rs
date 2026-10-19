@@ -299,6 +299,10 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     MissingCredentialConfigId(Vec<CredentialConfigurationId>),
 
+    #[error("offered Credential Configuration ID `{0}` has an unsupported format and cannot be authorized")]
+    #[category(pd)]
+    UnsupportedOfferedCredentialConfiguration(CredentialConfigurationId),
+
     #[error("error during OAuth: {0}")]
     #[category(expected)]
     OAuth(#[from] OAuthError),

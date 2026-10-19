@@ -19,6 +19,8 @@ required-features = ["verify"]
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
 # Build the `verify_wallet_config` binary, which verifies a wallet configuration JWT like the wallet does.
 verify = ["dep:anyhow", "dep:clap", "dep:serde_json"]
+# Have the WalletConfiguration type implement Serialize, for testing purposes.
+test = []
 
 [dependencies]
 anyhow = { workspace = true, optional = true }

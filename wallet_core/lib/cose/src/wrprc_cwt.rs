@@ -437,7 +437,7 @@ mod tests {
             .unwrap();
         UnverifiedWrprcCwt::<ToyMessage>::from_slice(&cwt_tagged).unwrap();
         let verified = parsed
-            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, None)
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None)
             .unwrap();
 
         assert_eq!(verified.payload(), &ToyMessage::default());
@@ -456,7 +456,7 @@ mod tests {
         let cwt = UnverifiedWrprcCwt::<ToyMessage>::try_from(cose).unwrap();
 
         let verified = cwt
-            .into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, None)
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None)
             .unwrap();
 
         assert_eq!(verified.header().claims, None);
@@ -721,7 +721,7 @@ mod tests {
         let cwt = UnverifiedWrprcCwt::<ToyMessage>::try_from(cose).unwrap();
 
         assert!(matches!(
-            cwt.into_verified_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, None,),
+            cwt.into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None,),
             Err(WrprcCwtError::Cose(CoseError::EcdsaSignatureVerificationFailed(_)))
         ));
     }

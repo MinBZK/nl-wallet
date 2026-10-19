@@ -56,7 +56,6 @@ use crate::credential_configurations::CredentialConfigurations;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
-use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
 use crate::server_state::MemorySessionStore;
@@ -291,48 +290,6 @@ where
     setup_mock_issuer_with_metadata(issuer_identifier, attestations, true, sessions)
 }
 
-/// Create a mock [`Issuer`] based on an [`IssuerIdentifier`] and a shared session store. Its credential configurations
-/// are based on a list of format / attestation type combinations and the relevant SD-JWT VC Type Metadata documents.
-/// The Type Metadata is also used to generate Credential Metadata from, ensuring the claim names (without namespace)
-/// are identical.
-pub fn setup_mock_issuer_attestation_types_and_metadata<G>(
-    issuer_identifier: IssuerIdentifier,
-    attestations: Vec<(Format, String, TypeMetadataDocuments)>,
-    sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-) -> (
-    MockIssuer<G>,
-    TrustAnchors,
-    Ca,
-    MockCertificateCrlVerifier,
-    MockRegistrationCertificate,
-)
-where
-    G: Generator<DateTime<Utc>> + Send + Sync + 'static,
-{
-    let attestations = attestations
-        .into_iter()
-        .map(|(format, attestation_type, metadata_documents)| match format {
-            Format::MsoMdoc => {
-                let (normalized, _) = metadata_documents
-                    .clone()
-                    .into_normalized(&attestation_type)
-                    .expect("example type metadata should normalize");
-
-                CredentialConfigurationFormat::new_mdoc(
-                    attestation_type.clone(),
-                    CredentialMetadata::new_mdoc_example_from_type_metadata(&attestation_type, &normalized),
-                )
-            }
-            Format::SdJwt => CredentialConfigurationFormat::new_sd_jwt_type_metadata(
-                CredentialConfigurationTypeMetadata::try_new(&attestation_type, metadata_documents)
-                    .expect("example type metadata should verify"),
-            ),
-        })
-        .collect();
-
-    setup_mock_issuer_with_metadata(issuer_identifier, attestations, true, sessions)
-}
-
 /// Create a mock [`Issuer`] whose credential configurations are described explicitly by the provided metadata.
 pub fn setup_mock_issuer_with_metadata<G>(
     issuer_identifier: IssuerIdentifier,
@@ -350,12 +307,12 @@ where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
+    let issuer_trust_anchors = issuer_ca.to_trust_anchors();
     let metadata_keypair = issuer_ca.generate_wrpac_issuer_mock_with_crl().unwrap();
     let issuance_keypair = issuer_ca.generate_issuer_mock().unwrap();
 
     let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
-    let wptl_trust_anchors = TrustAnchors::from(&wptl_ca);
+    let wptl_trust_anchors = wptl_ca.to_trust_anchors();
 
     let registration_certificate = MockRegistrationCertificate::new_issuer(
         metadata_keypair.certificate(),

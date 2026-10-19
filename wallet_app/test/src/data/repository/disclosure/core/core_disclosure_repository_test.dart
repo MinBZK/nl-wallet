@@ -20,7 +20,6 @@ void main() {
       MockMapper(),
       MockMapper(),
       MockMapper(),
-      MockMapper(),
     );
   });
 
@@ -47,9 +46,6 @@ void main() {
         sharedDataWithRelyingPartyBefore: false,
         sessionType: DisclosureSessionType.CrossDevice,
         requestPurpose: [],
-        policy: RequestPolicy(
-          policyUrl: 'https://example.org',
-        ),
         requestType: DisclosureType.Login,
         disclosureOptions: [],
       );

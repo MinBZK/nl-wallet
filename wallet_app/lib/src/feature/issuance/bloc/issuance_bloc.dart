@@ -14,7 +14,6 @@ import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/issuance/continue_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/start_issuance_usecase.dart';
@@ -86,7 +85,6 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
             emit(
               IssuanceCheckOrganization(
                 organization: result.relyingParty,
-                policy: result.policy,
                 cardRequests: result.cardRequests,
                 purpose: result.requestPurpose,
               ),
@@ -142,15 +140,10 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     if (startIssuanceResult == null) return;
 
     switch (state) {
-      case IssuanceProvidePinForDisclosure():
-        assert(
-          startIssuanceResult is StartIssuanceReadyToDisclose,
-          'User should never reach $state when wallet was not ready to disclose',
-        );
+      case IssuanceProvidePinForDisclosure() when startIssuanceResult is StartIssuanceReadyToDisclose:
         emit(
           IssuanceCheckOrganization(
-            organization: startIssuanceResult.relyingParty!,
-            policy: (startIssuanceResult as StartIssuanceReadyToDisclose).policy,
+            organization: startIssuanceResult.relyingParty,
             cardRequests: _cardRequestsSelectionCache ?? startIssuanceResult.cardRequests,
             purpose: startIssuanceResult.requestPurpose,
             afterBackPressed: true,

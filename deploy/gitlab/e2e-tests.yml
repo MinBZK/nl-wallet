@@ -1,4 +1,6 @@
 automation-compile-check:
+  stage: test
+  needs: []
   rules: !reference [.merge-request, rules]
   script:
     - java -version
@@ -6,6 +8,7 @@ automation-compile-check:
     - ./gradlew --no-daemon compileTestKotlin
 
 scheduled-automation-tests-trigger:
+  stage: qa
   rules:
     - !reference [.default-branch-manual, rules]
   needs:
@@ -20,6 +23,7 @@ scheduled-automation-tests-trigger:
 
 .run-automation-tests-base:
   extends: .env-k8s
+  stage: qa
   before_script:
     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_USER
@@ -72,8 +76,9 @@ scheduled-automation-tests-trigger:
     - export MATCH_GIT_BASIC_AUTHORIZATION
     - export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
     - bundle install
-    # Scope to only the identifiers the e2e jobs need
-    - bundle exec fastlane match development --readonly --app_identifier "nl.ictu.edi.wallet.latest,nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner"
+    # Scope to only the identifiers the device jobs need.
+    - bundle exec fastlane match development --readonly --app_identifier
+      "nl.ictu.edi.wallet.latest,nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner,nl.ictu.edi.wallet.integration-tests"
     # Quoted because the unquoted 'codesign: ' colon would make YAML parse this line as a mapping.
     - 'security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${MACOS_KEYCHAIN_PASSWORD}" ~/Library/Keychains/login.keychain-db > /dev/null'
     # Point the WebDriverAgentRunner target at the match profile (per-target manual signing);
@@ -82,14 +87,16 @@ scheduled-automation-tests-trigger:
 
 automation-tests-load-device-config:
   extends: .env-k8s
+  stage: init
   rules:
     - !reference [.on-schedule-automation, rules]
+    - !reference [.merge-request, rules]
   script:
     - |
       SECRET_JSON=$(kubectl get secret nl-wallet-macmini -o json)
       : > devices.env
       for key in \
-        android_device_1_udid \
+        android_1_udid \
         android_1_name \
         android_1_os_version \
         android_2_udid \
@@ -148,6 +155,7 @@ automation-tests-load-device-config:
       - uiautomation/appium.log
     reports:
       junit: uiautomation/build/test-results/**/*.xml
+  stage: qa
   rules:
     - !reference [.on-schedule-automation, rules]
 
@@ -240,6 +248,7 @@ automation-tests-load-device-config:
     IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
 
 run-automation-tests-publish-results-android:
+  stage: publish
   rules: !reference [.run-automation-tests-default, rules]
   needs:
     - { job: run-automation-card-and-history-tests-android }
@@ -262,6 +271,7 @@ run-automation-tests-publish-results-android:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/a11y-captures/e2e-android.zip uiautomation/build/a11y-captures/*
 
 run-automation-tests-publish-results-ios:
+  stage: publish
   rules: !reference [.run-automation-tests-default, rules]
   needs:
     - { job: run-automation-card-and-history-tests-ios }

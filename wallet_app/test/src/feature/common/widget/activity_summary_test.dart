@@ -24,7 +24,6 @@ void main() {
     relyingParty: relyingParty ?? WalletMockData.organization,
     purpose: 'disclosure'.untranslated,
     cards: [WalletMockData.card],
-    policy: WalletMockData.policy,
     type: DisclosureType.regular,
   ) as DisclosureEvent;
 
@@ -466,7 +465,6 @@ void main() {
               relyingParty: WalletMockData.organization,
               purpose: 'disclosure'.untranslated,
               cards: [WalletMockData.card],
-              policy: WalletMockData.policy,
               type: DisclosureType.login,
             ),
             WalletEvent.issuance(

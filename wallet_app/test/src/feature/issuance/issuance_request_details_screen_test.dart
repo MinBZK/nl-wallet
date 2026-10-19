@@ -20,7 +20,6 @@ void main() {
         MockIssuanceBloc(),
         IssuanceCheckOrganization(
           organization: WalletMockData.organization,
-          policy: WalletMockData.policy,
           purpose: 'sample purpose'.untranslated,
           cardRequests: [WalletMockData.discloseCardRequestSingleCard],
         ),
@@ -36,7 +35,6 @@ void main() {
         MockIssuanceBloc(),
         IssuanceCheckOrganization(
           organization: WalletMockData.organization,
-          policy: WalletMockData.policy,
           purpose: 'sample purpose'.untranslated,
           cardRequests: [WalletMockData.discloseCardRequestMultiCard],
         ),
@@ -53,7 +51,6 @@ void main() {
         MockIssuanceBloc(),
         IssuanceCheckOrganization(
           organization: WalletMockData.organization,
-          policy: WalletMockData.policy,
           purpose: 'sample purpose'.untranslated,
           cardRequests: [WalletMockData.discloseCardRequestMultiCard],
         ),

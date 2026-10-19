@@ -8,8 +8,6 @@ use std::sync::Arc;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use chrono::Days;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CanocalizationError;
-use crypto::x509::CanonicalDistinguishedName;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
 use derive_more::Debug;
@@ -532,18 +530,8 @@ impl ParsedCredentialConfigurationsSettings {
 
 #[derive(Debug, thiserror::Error)]
 pub enum IssuerSettingsValidationError {
-    #[error("certificate error: {0}")]
-    CertificateCanonicalization(#[from] CanocalizationError),
     #[error("error verifying certificate: {0}")]
     CertificateVerification(#[from] CertificateVerificationError),
-    #[error(
-        "attestation and status list certificate subject are different {config_id}: `{attestation}` vs `{status_list}`"
-    )]
-    CertificatesSubjectNameMismatch {
-        config_id: CredentialConfigurationId,
-        attestation: CanonicalDistinguishedName,
-        status_list: CanonicalDistinguishedName,
-    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -616,27 +604,6 @@ impl IssuerSettings {
             Some(CertificateUsage::StatusListSigning),
             &time,
         )?;
-
-        for (config_id, attestation) in self.credential_configurations.as_ref() {
-            let attestation_dn = attestation
-                .signing
-                .keypair
-                .certificate
-                .to_canonical_distinguished_name()?;
-            let status_list_dn = attestation
-                .signing
-                .status_list
-                .keypair
-                .certificate
-                .to_canonical_distinguished_name()?;
-            if attestation_dn != status_list_dn {
-                return Err(IssuerSettingsValidationError::CertificatesSubjectNameMismatch {
-                    config_id: config_id.clone(),
-                    attestation: attestation_dn,
-                    status_list: status_list_dn,
-                });
-            }
-        }
 
         Ok(())
     }
@@ -798,7 +765,7 @@ mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::num::NonZeroU8;
-    use std::num::NonZeroU16;
+    use std::time::Duration;
 
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
@@ -863,7 +830,7 @@ mod tests {
             .into();
 
         // Normally this is its own CA; here we just reuse the issuer_ca.
-        let wptl_trust_anchors = TrustAnchors::from(issuer_ca);
+        let wptl_trust_anchors = issuer_ca.to_trust_anchors();
 
         IssuerSettings {
             public_url: "https://example.com".parse().unwrap(),
@@ -910,8 +877,8 @@ mod tests {
                     successful_deletion_minutes: 10.try_into().unwrap(),
                     failed_deletion_minutes: 10.try_into().unwrap(),
                 },
-                issuer_trust_anchors: TrustAnchors::from(issuer_ca),
-                wrpac_trust_anchors: TrustAnchors::from(wrpac_ca),
+                issuer_trust_anchors: issuer_ca.to_trust_anchors(),
+                wrpac_trust_anchors: wrpac_ca.to_trust_anchors(),
                 wrprc_trust_anchors: TrustAnchors::empty(),
                 hsm: None,
             },
@@ -919,9 +886,9 @@ mod tests {
                 storage_url: None,
                 list_size: NonZeroU31::try_new(100_000).unwrap(),
                 create_threshold_ratio: Ratio::try_new(0.1).unwrap(),
-                expiry_in_hours: NonZeroU16::new(24).unwrap(),
+                expiry: Duration::from_hours(24),
                 refresh_threshold_ratio: Ratio::try_new(0.25).unwrap(),
-                ttl_in_minutes: None,
+                ttl: None,
                 serve: true,
             },
             wptl_trust_anchors,
@@ -1108,34 +1075,6 @@ mod tests {
             IssuerSettingsValidationError::CertificateVerification(
                 CertificateVerificationError::InvalidCertificate(CertificateVerifyError::Verification(_), key)
             ) if key == "pid_sdjwt"
-        );
-    }
-
-    #[test]
-    fn test_different_subject_field() {
-        let wrpac_ca = Ca::generate_wrpac_mock_ca().expect("generate wrpac CA failed");
-        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
-        let mut settings = mock_settings(&wrpac_ca, &issuer_ca);
-
-        let status_list_keypair = issuer_ca
-            .generate_key_pair(
-                DistinguishedName::create_legal_person_mock("different"),
-                CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
-            )
-            .expect("generate tsl cert failed");
-
-        let (typ, attestation_settings) = settings.credential_configurations.as_ref().iter().next().unwrap();
-        let mut attestation_settings = attestation_settings.clone();
-        attestation_settings.signing.status_list.keypair = status_list_keypair.into();
-        settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
-
-        let error = settings.validate().expect_err("should fail");
-        assert_matches!(
-            error,
-            IssuerSettingsValidationError::CertificatesSubjectNameMismatch { config_id, attestation, status_list }
-                if config_id.as_ref() == "pid_sdjwt" &&
-                    attestation == "2.5.4.3=DAtDZXJ0IGlzc3Vlcg,2.5.4.6=EwJOTA,2.5.4.10=DBBDZXJ0IGlzc3VlciBCLlYu,2.5.4.97=DA5OVFJOTC05OTMzMzY3Mw".to_string().into() &&
-                    status_list == "2.5.4.3=DAlkaWZmZXJlbnQ,2.5.4.6=EwJOTA,2.5.4.10=DA5kaWZmZXJlbnQgQi5WLg,2.5.4.97=DA5OVFJOTC0xOTU3MDE4Ng".to_string().into()
         );
     }
 

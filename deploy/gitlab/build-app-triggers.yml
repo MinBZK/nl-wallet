@@ -1,4 +1,5 @@
 .build-app-trigger:
+  stage: build
   rules:
     - !reference [.default-branch-manual, rules]
   needs:

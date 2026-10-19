@@ -309,6 +309,7 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use base64::prelude::*;
     use cose::wrprc_cwt::SignedWrprcCwt;
     use crypto::PublicKey;
@@ -333,6 +334,7 @@ mod tests {
     use sd_jwt::builder::SignedSdJwt;
     use serde::Serialize;
     use serde::de::Error;
+    use serde_json::json;
     use token_status_list::verification::client::StatusListClient;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
@@ -628,7 +630,7 @@ mod tests {
             &verifier_session.normalized_auth_request(wallet_nonce),
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
-            &TrustAnchors::from(&ca),
+            &ca.to_trust_anchors(),
             &ExtendingVctRetrieverStub,
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 ca.generate_issuer_status_list_mock().unwrap(),
@@ -646,14 +648,18 @@ mod tests {
             .ok()
             .and_then(|attestations| attestations.attestations.iter().exactly_one().ok())
             .and_then(|attestation| {
-                (attestation.attestation_type.as_str() == PID_ATTESTATION_TYPE).then_some(attestation)
+                let expected_attestation_type = match &attestation.attributes {
+                    DisclosedAttributes::MsoMdoc(_) => PID_MDOC_DOCTYPE,
+                    DisclosedAttributes::SdJwt(_) => PID_ATTESTATION_TYPE,
+                };
+                (attestation.attestation_type.as_str() == expected_attestation_type).then_some(attestation)
             })
             .and_then(|attestation| match &attestation.attributes {
                 DisclosedAttributes::MsoMdoc(attributes) => attributes
                     .iter()
                     .exactly_one()
                     .ok()
-                    .and_then(|(namespaces, attributes)| (namespaces == PID_ATTESTATION_TYPE).then_some(attributes))
+                    .and_then(|(namespaces, attributes)| (namespaces == PID_MDOC_DOCTYPE).then_some(attributes))
                     .map(|attributes| {
                         attributes
                             .iter()
@@ -797,7 +803,7 @@ mod tests {
             )) if matches!(
                 registration_error.as_ref(),
                 RegistrationCertificateError::Authorization(
-                    RegistrationCertificateAuthorizationError::UnauthorizedCredential(_)
+                    RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(_)
                 )
             )
         );
@@ -825,7 +831,7 @@ mod tests {
             verifier_session.key_pair.certificate(),
             verifier_session.credential_requests.clone().into(),
         );
-        payload.0.as_object_mut().unwrap().remove("id");
+        payload.0["country"] = json!("N");
         let ca = Ca::generate_mock();
         let signer = ca.generate_issuer_mock().unwrap();
         let certificate = match format {
@@ -846,7 +852,7 @@ mod tests {
         };
         let registration_certificate = verifier_session.registration_certificate.as_mut().unwrap();
         registration_certificate.certificate = certificate;
-        registration_certificate.trust_anchors = TrustAnchors::from(&ca);
+        registration_certificate.trust_anchors = ca.to_trust_anchors();
         let verifier_session = Arc::new(verifier_session);
         let registration_certificate = verifier_session.registration_certificate.as_ref().unwrap();
         let client = VpDisclosureClient::new(
@@ -872,7 +878,7 @@ mod tests {
             VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
                 AuthRequestValidationError::RegistrationCertificate(ref registration_error)
             )) if matches!(registration_error.as_ref(), RegistrationCertificateError::Envelope(_))
-                && registration_error.to_string().contains(&RegistrationCertificateValidationError::MissingId.to_string())
+                && registration_error.to_string().contains(&RegistrationCertificateValidationError::InvalidCountry.to_string())
         );
         assert_matches!(
             verifier_session.wallet_messages.lock().last(),

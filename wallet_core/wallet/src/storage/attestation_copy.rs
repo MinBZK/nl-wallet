@@ -442,6 +442,7 @@ mod tests {
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::status_claim::StatusListClaim;
     use chrono::Utc;
     use crypto::PublicKey;
@@ -501,7 +502,7 @@ mod tests {
             // so that both formats describe the same claims in the same order.
             metadata: StoredAttestationMetadata::CredentialMetadata(
                 CredentialMetadata::new_mdoc_example_from_type_metadata(
-                    PID_ATTESTATION_TYPE,
+                    PID_MDOC_DOCTYPE,
                     &NormalizedTypeMetadata::nl_pid_example(),
                 ),
             ),
@@ -511,7 +512,7 @@ mod tests {
         };
 
         let bsn_path = vec_nonempty![
-            ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
+            ClaimPath::SelectByKey(PID_MDOC_DOCTYPE.to_string()),
             ClaimPath::SelectByKey(PID_BSN.to_string()),
         ];
 
@@ -602,15 +603,17 @@ mod tests {
         .unzip();
 
         // The fields for the full and partial `AttestationPresentation`s should be the same for both formats, except
-        // for the `format` field.
+        // for the `format` and `attestation_type` (mdoc `doctype` vs. SD-JWT `vct`) fields.
         for presentations in &[full_presentations, disclosable_presentations] {
             let (mdoc_presentation, sd_jwt_presentation) = presentations.iter().collect_tuple().unwrap();
 
             assert_eq!(mdoc_presentation.format, Format::MsoMdoc);
             assert_eq!(sd_jwt_presentation.format, Format::SdJwt);
 
+            assert_eq!(mdoc_presentation.attestation_type, PID_MDOC_DOCTYPE);
+            assert_eq!(sd_jwt_presentation.attestation_type, PID_ATTESTATION_TYPE);
+
             assert_eq!(mdoc_presentation.identity, sd_jwt_presentation.identity);
-            assert_eq!(mdoc_presentation.attestation_type, sd_jwt_presentation.attestation_type);
             assert_eq!(mdoc_presentation.issuer, sd_jwt_presentation.issuer);
             assert_eq!(mdoc_presentation.validity, sd_jwt_presentation.validity);
 

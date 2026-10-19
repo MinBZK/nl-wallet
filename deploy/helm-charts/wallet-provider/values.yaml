@@ -271,6 +271,12 @@ wiaStatusList:
 ##
 keyAttestationCertificate: null
 
+## @section KKey Storage status list parameters
+## @param keyStorageStatusList.certificate Key Storage status list certificate (base64-encoded DER)
+##
+keyStorageStatusList:
+  certificate: null
+
 ## @section Migration parameters
 ## Parameters for the migration configuration
 ## @param migration.labels Additional labels for the migration job

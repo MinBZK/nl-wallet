@@ -1,7 +1,6 @@
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::mock::ANNEX_C_EXAMPLE;
 use attestation_data::registration_certificate::mock::RegistrationCertificateFixture;
-use attestation_data::registration_certificate::mock::STATUS_LIST_URI;
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use chrono::DateTime;
@@ -9,13 +8,10 @@ use chrono::TimeZone;
 use chrono::Utc;
 use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::generate::Ca;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::DistinguishedName;
 use jwt::SignedJwt;
 use jwt::jades_b_b::JadesbbHeader;
 use rstest::rstest;
-use serde_json::Value;
-use serde_json::json;
 use utils::generator::mock::MockTimeGenerator;
 
 #[derive(Clone, Copy)]
@@ -25,14 +21,7 @@ enum EnvelopeFormat {
 }
 
 fn registration_certificate_payload() -> RegistrationCertificateFixture {
-    let mut payload: Value = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
-    payload["id"] = json!("wrprc-example-1");
-    payload["status"] = json!({
-        "idx": "0",
-        "uri": STATUS_LIST_URI,
-    });
-
-    RegistrationCertificateFixture(payload)
+    RegistrationCertificateFixture(serde_json::from_str(ANNEX_C_EXAMPLE).unwrap())
 }
 
 fn access_certificate_subject() -> RelyingParty {
@@ -100,7 +89,7 @@ async fn reject_untrusted_registration_certificate_after_parsing(#[case] format:
     let envelope = RegistrationCertificateEnvelope::try_from(encoded.as_slice()).unwrap();
     let untrusted_ca = Ca::generate_wrpac_mock_ca().unwrap();
 
-    let error = verify_registration_certificate_envelope(&envelope, &TrustAnchors::from(&untrusted_ca), &time)
+    let error = verify_registration_certificate_envelope(&envelope, &untrusted_ca.to_trust_anchors(), &time)
         .err()
         .expect("an envelope signed by an untrusted CA should be rejected");
 
@@ -125,12 +114,12 @@ async fn verify_and_validate_registration_certificate(#[case] format: EnvelopeFo
     let time = MockTimeGenerator::new(validation_time());
     let encoded = signed_registration_certificate(format, &ca, &time).await;
     let envelope = RegistrationCertificateEnvelope::try_from(encoded.as_slice()).unwrap();
-    let payload = verify_registration_certificate_envelope(&envelope, &TrustAnchors::from(&ca), &time)
+    let payload = verify_registration_certificate_envelope(&envelope, &ca.to_trust_anchors(), &time)
         .unwrap()
         .into_payload();
     let certificate = payload
         .validate_binding_and_time(&access_certificate_subject(), validation_time())
         .unwrap();
 
-    assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+    assert_eq!(certificate.payload().sub, "LEIXG-529900T8BM49AURSDO55");
 }

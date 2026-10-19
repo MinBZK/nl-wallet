@@ -391,14 +391,7 @@ impl Document {
         let revocation_status = match &mso.status {
             Some(MdocStatus::StatusList(status_list_claim)) => {
                 let revocation_status = revocation_verifier
-                    .verify(
-                        trust_anchors,
-                        issuer_certificate
-                            .to_canonical_distinguished_name()
-                            .map_err(Error::CanocalizationError)?,
-                        StatusClaim::StatusList(status_list_claim.clone()),
-                        time,
-                    )
+                    .verify(trust_anchors, StatusClaim::StatusList(status_list_claim.clone()), time)
                     .await;
                 Some(revocation_status)
             }
@@ -552,7 +545,7 @@ mod tests {
                 Some(&eph_reader_key),
                 &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_issuer_status_list_mock().unwrap(),
                 ))),
@@ -599,7 +592,7 @@ mod tests {
                 None,
                 &session_transcript,
                 &MockTimeGenerator::default(),
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_issuer_status_list_mock().unwrap(),
                 ))),

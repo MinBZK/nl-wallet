@@ -23,6 +23,17 @@
       "mandatory": true
     },
     {
+      "path": ["birth_family_name"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Birth name",
+          "description": "Family name of the person at birth, including any prefixes"
+        }
+      ],
+      "sd": "always"
+    },
+    {
       "path": ["given_name"],
       "display": [
         {
@@ -47,17 +58,6 @@
       "mandatory": true
     },
     {
-      "path": ["age_over_18"],
-      "display": [
-        {
-          "locale": "en-US",
-          "label": "Over 18",
-          "description": "Whether the person is over 18"
-        }
-      ],
-      "sd": "always"
-    },
-    {
       "path": ["nationalities"],
       "display": [
         {
@@ -66,7 +66,76 @@
           "description": "List of nationalities of the person"
         }
       ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["sex"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Sex",
+          "description": "Sex of the person"
+        }
+      ],
       "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "country"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Country of birth",
+          "description": "Country where the person was born"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "locality"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Place of birth",
+          "description": "Place where the person was born"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "region"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Region of birth",
+          "description": "State, province, district or local area where the person was born"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["issuing_country"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuing country",
+          "description": "Country that issued the person identification data"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["issuing_authority"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuing authority",
+          "description": "Authority that issued the person identification data"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["address", "country"],
@@ -119,6 +188,149 @@
           "locale": "en-US",
           "label": "House number",
           "description": "House number of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["birth_given_name"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Birth given name",
+          "description": "First name(s) of the person at birth, including any middle names"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["personal_administrative_number"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Personal administrative number",
+          "description": "A value assigned to the person that is unique among all personal administrative numbers issued by the provider"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["email"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Email address",
+          "description": "Email address of the person"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["phone_number"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Phone number",
+          "description": "Mobile telephone number of the person"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["picture"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Portrait",
+          "description": "Facial image of the person"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["issuing_jurisdiction"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuing jurisdiction",
+          "description": "Country subdivision code of the jurisdiction that issued the person identification data"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["document_number"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Document number",
+          "description": "A number for the person identification data, assigned by the provider"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["date_of_issuance"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Issuance date",
+          "description": "Date when the person identification data was issued"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["date_of_expiry"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Expiry date",
+          "description": "Date when the administrative validity period of the person identification data expires"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["trust_anchor"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Trust anchor",
+          "description": "URL at which a machine-readable version of the trust anchor used for verifying the PID can be found"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["attestation_legal_category"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Attestation legal category",
+          "description": "Indicates that this attestation has been issued as a PID"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "region"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Region",
+          "description": "State, province, district or local area of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "formatted"],
+      "display": [
+        {
+          "locale": "en-US",
+          "label": "Full address",
+          "description": "Full formatted address of the person"
         }
       ],
       "sd": "always"

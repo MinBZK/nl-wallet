@@ -311,7 +311,7 @@ mod tests {
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
 
         let mut wallet_config = default_wallet_config();
-        wallet_config.issuer_trust_anchors = TrustAnchors::from(&ca);
+        wallet_config.issuer_trust_anchors = ca.to_trust_anchors();
         let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(wallet_config)));
 
         let (_, _, status_list_token) = create_status_list_token(&keypair, None, None).await;
@@ -326,18 +326,13 @@ mod tests {
         let revocation_id_2 = Uuid::new_v4();
 
         let test_revocation_info = vec![
-            RevocationInfo::new(
-                revocation_id_1,
-                StatusClaim::new_mock(),
-                keypair.certificate().to_canonical_distinguished_name().unwrap(),
-            ),
+            RevocationInfo::new(revocation_id_1, StatusClaim::new_mock()),
             RevocationInfo::new(
                 revocation_id_2,
                 StatusClaim::StatusList(StatusListClaim {
                     idx: 3,
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                 }),
-                keypair.certificate().to_canonical_distinguished_name().unwrap(),
             ),
         ];
 

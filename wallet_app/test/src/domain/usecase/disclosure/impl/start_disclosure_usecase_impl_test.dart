@@ -30,7 +30,6 @@ void main() {
       requestPurpose: 'requestPurpose'.untranslated,
       sessionType: DisclosureSessionType.crossDevice,
       type: DisclosureType.login,
-      policy: WalletMockData.policy,
       sharedDataWithOrganizationBefore: false,
       cardRequests: [],
     );
@@ -157,7 +156,6 @@ void main() {
       requestPurpose: 'requestPurpose'.untranslated,
       sessionType: DisclosureSessionType.sameDevice,
       type: DisclosureType.login,
-      policy: WalletMockData.policy,
       sharedDataWithOrganizationBefore: false,
       cardRequests: [],
     );
