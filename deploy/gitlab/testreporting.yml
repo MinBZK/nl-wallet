@@ -61,7 +61,8 @@ publish-test-report:
     - pnpm run fetch-results
     - >
       pnpm run generate allure-results/browsertest-{wallet-web,fallback-pages,revocation-portal}.zip
-      allure-results/{e2e-android,e2e-ios,admin-portal,revocation-portal,web}.zip junit-results/{android,flutter,flutter-ui,ios,rust}.xml
+      allure-results/{e2e-android,e2e-ios,admin-portal,revocation-portal,web}.zip junit-results/android-device.zip
+      junit-results/{android,flutter,flutter-ui,ios,ios-device,rust}.xml
     - mv allure-report/index.html allure-report-$CI_COMMIT_SHORT_SHA.html
     - zip -j allure-report.zip allure-report-$CI_COMMIT_SHORT_SHA.html
   after_script:
