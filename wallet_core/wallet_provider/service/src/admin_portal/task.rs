@@ -13,8 +13,10 @@ use wallet_provider_domain::model::admin_task::AdminTaskCreate;
 use wallet_provider_domain::model::admin_task::AdminTaskReview;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::TaskListView;
+use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminTaskRepository;
+use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 
 use super::LoggedInUser;
@@ -161,9 +163,14 @@ where
         #[audit_user] user: &LoggedInUser,
         #[auditor] audit_log: &impl AuditLog,
     ) -> Result<AdminTask, WithdrawTaskError> {
+        let transaction = self
+            .repository
+            .begin_transaction()
+            .await
+            .map_err(WithdrawTaskError::Storage)?;
         let existing = self
             .repository
-            .find_task_by_id(task_id)
+            .find_task_by_id_for_update(&transaction, task_id)
             .await
             .map_err(WithdrawTaskError::Storage)?
             .ok_or(WithdrawTaskError::NotFound(task_id))?;
@@ -173,13 +180,23 @@ where
             return Err(WithdrawTaskError::InvalidState);
         }
 
+        // Idempotency check, if the task is already withdrawn, return it
+        if existing.status == TaskStatus::Withdrawn {
+            transaction.commit().await.map_err(WithdrawTaskError::Storage)?;
+            return Ok(existing);
+        }
+
         // Actually withdraw the task now, while enforcing that the task is still in the `Created` state, so it will not
         // override another review or withdrawal.
-        self.repository
-            .withdraw_task(task_id, self.time.generate())
+        let task = self
+            .repository
+            .withdraw_task(&transaction, task_id, self.time.generate())
             .await
             .map_err(WithdrawTaskError::Storage)?
-            .ok_or(WithdrawTaskError::InvalidState)
+            .ok_or(WithdrawTaskError::InvalidState)?;
+
+        transaction.commit().await.map_err(WithdrawTaskError::Storage)?;
+        Ok(task)
     }
 
     /// Review a task created by another user that is still in `Created` status.
@@ -192,9 +209,14 @@ where
         #[audit_user] reviewer: &LoggedInUser,
         #[auditor] audit_log: &impl AuditLog,
     ) -> Result<AdminTask, ReviewTaskError> {
+        let transaction = self
+            .repository
+            .begin_transaction()
+            .await
+            .map_err(ReviewTaskError::Storage)?;
         let existing = self
             .repository
-            .find_task_by_id(task_id)
+            .find_task_by_id_for_update(&transaction, task_id)
             .await
             .map_err(ReviewTaskError::Storage)?
             .ok_or(ReviewTaskError::NotFound(task_id))?;
@@ -209,6 +231,14 @@ where
             return Err(ReviewTaskError::InvalidState);
         }
 
+        // Idempotency check, if the verdict has already been applied to the task, return it
+        if existing.status == verdict.resulting_status()
+            && existing.reviewed_by_user_id == Some(reviewer.user_id.clone())
+        {
+            transaction.commit().await.map_err(ReviewTaskError::Storage)?;
+            return Ok(existing);
+        }
+
         // Actually store the review now, while enforcing that the task is still in the `Created~ state, so it will not
         // override another review or withdrawal.
         let review = AdminTaskReview {
@@ -219,11 +249,15 @@ where
             review_comment: review_comment.to_string(),
             review_verdict: verdict,
         };
-        self.repository
-            .review_task(review)
+        let task = self
+            .repository
+            .review_task(&transaction, review)
             .await
             .map_err(ReviewTaskError::Storage)?
-            .ok_or(ReviewTaskError::InvalidState)
+            .ok_or(ReviewTaskError::InvalidState)?;
+
+        transaction.commit().await.map_err(ReviewTaskError::Storage)?;
+        Ok(task)
     }
 
     #[audited]
@@ -259,6 +293,7 @@ mod tests {
     use uuid::Uuid;
     use wallet_provider_domain::model::admin_task::TaskStatus;
     use wallet_provider_domain::model::admin_task::TaskType;
+    use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockAdminTaskRepository;
 
     use super::*;
@@ -293,10 +328,11 @@ mod tests {
     }
 
     fn service_with_id(
-        repository: MockAdminTaskRepository,
+        mut repository: MockAdminTaskRepository,
         now: DateTime<Utc>,
         id: Uuid,
     ) -> TaskService<MockAdminTaskRepository, FixedTime, FixedUuid> {
+        repository.expect_begin_transaction().returning(|| Ok(MockTransaction));
         TaskService::new(repository, FixedTime(now), FixedUuid(id))
     }
 
@@ -391,7 +427,9 @@ mod tests {
     async fn review_task_returns_not_found_for_unknown_task() {
         let id = Uuid::new_v4();
         let mut repository = MockAdminTaskRepository::new();
-        repository.expect_find_task_by_id().returning(|_| Ok(None));
+        repository
+            .expect_find_task_by_id_for_update()
+            .returning(|_, _| Ok(None));
 
         let result = service(repository, Utc::now())
             .review_task(
@@ -411,8 +449,8 @@ mod tests {
         let id = Uuid::new_v4();
         let mut repository = MockAdminTaskRepository::new();
         repository
-            .expect_find_task_by_id()
-            .returning(move |_| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
+            .expect_find_task_by_id_for_update()
+            .returning(move |_, _| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
 
         let result = service(repository, Utc::now())
             .review_task(
@@ -432,8 +470,8 @@ mod tests {
         let id = Uuid::new_v4();
         let mut repository = MockAdminTaskRepository::new();
         repository
-            .expect_find_task_by_id()
-            .returning(move |_| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
+            .expect_find_task_by_id_for_update()
+            .returning(move |_, _| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
 
         let result = service(repository, Utc::now())
             .review_task(
@@ -454,17 +492,17 @@ mod tests {
         let now = Utc::now();
         let mut repository = MockAdminTaskRepository::new();
         repository
-            .expect_find_task_by_id()
-            .returning(move |_| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
+            .expect_find_task_by_id_for_update()
+            .returning(move |_, _| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
         repository
             .expect_review_task()
-            .withf(|review| {
+            .withf(|_, review| {
                 review.reviewed_by_user_id == "user-2"
                     && review.reviewed_by_display_name == "User 2"
                     && review.review_verdict == ReviewVerdict::Approve
                     && review.review_comment == "looks good"
             })
-            .returning(move |_| {
+            .returning(move |_, _| {
                 let mut task = stub_task(id, TaskType::RevokeWallet, "user-1");
                 task.status = TaskStatus::Approved;
                 Ok(Some(task))
@@ -551,14 +589,110 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn withdraw_task_reports_transaction_failure() {
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_begin_transaction()
+            .times(1)
+            .returning(|| Err(PersistenceError::NoRowsUpdated));
+
+        let result = TaskService::new(repository, FixedTime(Utc::now()), FixedUuid(Uuid::new_v4()))
+            .withdraw_task(Uuid::new_v4(), &user("user-1", &[]), &MockAuditLog)
+            .await;
+
+        assert_matches!(result, Err(WithdrawTaskError::Storage(_)));
+    }
+
+    #[tokio::test]
+    async fn review_task_reports_transaction_failure() {
+        let mut repository = MockAdminTaskRepository::new();
+        repository
+            .expect_begin_transaction()
+            .times(1)
+            .returning(|| Err(PersistenceError::NoRowsUpdated));
+
+        let result = TaskService::new(repository, FixedTime(Utc::now()), FixedUuid(Uuid::new_v4()))
+            .review_task(
+                Uuid::new_v4(),
+                ReviewVerdict::Approve,
+                "comment",
+                &user("user-2", &[TaskType::RevokeWallet]),
+                &MockAuditLog,
+            )
+            .await;
+
+        assert_matches!(result, Err(ReviewTaskError::Storage(_)));
+    }
+
+    #[tokio::test]
+    async fn withdraw_task_returns_already_withdrawn_task_without_updating_it() {
+        let id = Uuid::new_v4();
+        let mut task = stub_task(id, TaskType::RevokeWallet, "user-1");
+        task.status = TaskStatus::Withdrawn;
+        task.withdrawn_at = Some(task.created_at);
+
+        let mut repository = MockAdminTaskRepository::new();
+        let existing = task.clone();
+        repository
+            .expect_find_task_by_id_for_update()
+            .withf(move |_, task_id| *task_id == id)
+            .times(1)
+            .returning(move |_, _| Ok(Some(existing.clone())));
+        repository.expect_withdraw_task().never();
+
+        let result = service(repository, Utc::now())
+            .withdraw_task(id, &user("user-1", &[]), &MockAuditLog)
+            .await
+            .expect("already withdrawn task should be returned");
+
+        assert_eq!(result, task);
+    }
+
+    #[rstest::rstest]
+    #[case::approved(ReviewVerdict::Approve)]
+    #[case::rejected(ReviewVerdict::Reject)]
+    #[tokio::test]
+    async fn review_task_returns_already_reviewed_task_without_updating_it(#[case] verdict: ReviewVerdict) {
+        let id = Uuid::new_v4();
+        let mut task = stub_task(id, TaskType::RevokeWallet, "user-1");
+        task.status = verdict.resulting_status();
+        task.reviewed_at = Some(task.created_at);
+        task.reviewed_by_user_id = Some("user-2".to_string());
+        task.reviewed_by_display_name = Some("User 2".to_string());
+        task.review_comment = Some("original comment".to_string());
+
+        let mut repository = MockAdminTaskRepository::new();
+        let existing = task.clone();
+        repository
+            .expect_find_task_by_id_for_update()
+            .withf(move |_, task_id| *task_id == id)
+            .times(1)
+            .returning(move |_, _| Ok(Some(existing.clone())));
+        repository.expect_review_task().never();
+
+        let result = service(repository, Utc::now())
+            .review_task(
+                id,
+                verdict,
+                "replacement comment",
+                &user("user-2", &[TaskType::RevokeWallet]),
+                &MockAuditLog,
+            )
+            .await
+            .expect("already reviewed task should be returned");
+
+        assert_eq!(result, task);
+    }
+
+    #[tokio::test]
     async fn withdraw_task_returns_not_found() {
         let id = Uuid::new_v4();
         let mut repository = MockAdminTaskRepository::new();
         repository
-            .expect_find_task_by_id()
-            .withf(move |task_id| *task_id == id)
+            .expect_find_task_by_id_for_update()
+            .withf(move |_, task_id| *task_id == id)
             .times(1)
-            .returning(|_| Ok(None));
+            .returning(|_, _| Ok(None));
         let result = service(repository, Utc::now())
             .withdraw_task(id, &user("user-1", &[]), &MockAuditLog)
             .await;
@@ -572,9 +706,9 @@ mod tests {
 
         let mut repository = MockAdminTaskRepository::new();
         repository
-            .expect_find_task_by_id()
+            .expect_find_task_by_id_for_update()
             .times(1)
-            .returning(move |_| Ok(Some(task.clone())));
+            .returning(move |_, _| Ok(Some(task.clone())));
 
         let result = service(repository, Utc::now())
             .withdraw_task(id, &user("another-user", &[]), &MockAuditLog)
@@ -592,14 +726,14 @@ mod tests {
         let now = Utc::now();
         let mut repository = MockAdminTaskRepository::new();
         repository
-            .expect_find_task_by_id()
+            .expect_find_task_by_id_for_update()
             .times(1)
-            .returning(move |_| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
+            .returning(move |_, _| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
         repository
             .expect_withdraw_task()
-            .withf(move |task_id, timestamp| *task_id == id && *timestamp == now)
+            .withf(move |_, task_id, timestamp| *task_id == id && *timestamp == now)
             .times(1)
-            .returning(move |_, _| {
+            .returning(move |_, _, _| {
                 if storage_error {
                     return Err(PersistenceError::NoRowsUpdated);
                 }
@@ -633,9 +767,9 @@ mod tests {
     async fn withdraw_task_reports_lookup_failure() {
         let mut repository = MockAdminTaskRepository::new();
         repository
-            .expect_find_task_by_id()
+            .expect_find_task_by_id_for_update()
             .times(1)
-            .returning(|_| Err(PersistenceError::NoRowsUpdated));
+            .returning(|_, _| Err(PersistenceError::NoRowsUpdated));
         let result = service(repository, Utc::now())
             .withdraw_task(Uuid::new_v4(), &user("user-1", &[]), &MockAuditLog)
             .await;

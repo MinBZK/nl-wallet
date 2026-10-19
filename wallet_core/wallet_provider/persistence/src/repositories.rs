@@ -634,13 +634,31 @@ impl AdminTaskRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn withdraw_task(&self, task_id: Uuid, now: DateTime<Utc>) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::withdraw_task(&self.0, task_id, now).await
+    async fn find_task_by_id_for_update(
+        &self,
+        transaction: &Self::TransactionType,
+        task_id: Uuid,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::find_task_by_id_for_update(transaction, task_id).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn review_task(&self, review: AdminTaskReview) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::review_task(&self.0, review).await
+    async fn withdraw_task(
+        &self,
+        transaction: &Self::TransactionType,
+        task_id: Uuid,
+        now: DateTime<Utc>,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::withdraw_task(transaction, task_id, now).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn review_task(
+        &self,
+        transaction: &Self::TransactionType,
+        review: AdminTaskReview,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::review_task(transaction, review).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -705,19 +723,33 @@ pub mod mock {
     mockall::mock! {
         pub AdminTaskRepository {}
 
+        impl TransactionStarter for AdminTaskRepository {
+            type TransactionType = MockTransaction;
+
+            async fn begin_transaction(&self) -> Result<MockTransaction, PersistenceError>;
+        }
+
         impl AdminTaskRepository for AdminTaskRepository {
             async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError>;
 
             async fn find_task_by_id(&self, id: Uuid) -> Result<Option<AdminTask>, PersistenceError>;
 
+            async fn find_task_by_id_for_update(
+                &self,
+                transaction: &MockTransaction,
+                id: Uuid,
+            ) -> Result<Option<AdminTask>, PersistenceError>;
+
             async fn withdraw_task(
                 &self,
+                transaction: &MockTransaction,
                 id: Uuid,
                 now: DateTime<Utc>,
             ) -> Result<Option<AdminTask>, PersistenceError>;
 
             async fn review_task(
                 &self,
+                transaction: &MockTransaction,
                 review: AdminTaskReview,
             ) -> Result<Option<AdminTask>, PersistenceError>;
 

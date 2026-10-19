@@ -7,6 +7,7 @@ use sea_orm::DbErr;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
+use sea_orm::QuerySelect;
 use sea_orm::Set;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
@@ -18,6 +19,7 @@ use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 use crate::entity::admin_task;
+use crate::transaction::Transaction;
 
 impl From<AdminTaskCreate> for admin_task::ActiveModel {
     fn from(task: AdminTaskCreate) -> Self {
@@ -86,13 +88,25 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let task = admin_task::Entity::find_by_id(task_id)
+    admin_task::Entity::find_by_id(task_id)
         .one(db.connection())
         .await
         .map_err(PersistenceError::Execution)?
         .map(TryInto::try_into)
-        .transpose()?;
-    Ok(task)
+        .transpose()
+}
+
+pub async fn find_task_by_id_for_update(
+    db: &Transaction,
+    task_id: Uuid,
+) -> Result<Option<AdminTask>, PersistenceError> {
+    admin_task::Entity::find_by_id(task_id)
+        .lock_exclusive()
+        .one(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?
+        .map(TryInto::try_into)
+        .transpose()
 }
 
 pub async fn withdraw_task<S, T>(
@@ -110,8 +124,9 @@ where
         withdrawn_at: Set(Some(now.into())),
         ..Default::default()
     };
+    // Allow changing to Withdrawn status as well for idempotency.
     match admin_task::Entity::update(model)
-        .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
+        .filter(admin_task::Column::Status.is_in(&[TaskStatus::Created.to_string(), TaskStatus::Withdrawn.to_string()]))
         .exec(db.connection())
         .await
     {
@@ -135,8 +150,12 @@ where
         review_comment: Set(Some(review.review_comment)),
         ..Default::default()
     };
+    // Allow changing to review verdict status as well for idempotency.
     match admin_task::Entity::update(model)
-        .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
+        .filter(admin_task::Column::Status.is_in(&[
+            TaskStatus::Created.to_string(),
+            review.review_verdict.resulting_status().to_string(),
+        ]))
         .exec(db.connection())
         .await
     {

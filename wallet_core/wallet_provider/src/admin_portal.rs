@@ -505,7 +505,9 @@ mod tests {
     use wallet_provider_domain::model::admin_task::AdminTaskReview;
     use wallet_provider_domain::model::admin_task::TaskListView;
     use wallet_provider_domain::repository::AdminPortalSessionRepository;
+    use wallet_provider_domain::repository::Committable;
     use wallet_provider_domain::repository::PersistenceError;
+    use wallet_provider_domain::repository::TransactionStarter;
 
     use super::*;
     use crate::router_state::UuidV7Generator;
@@ -646,6 +648,23 @@ mod tests {
         }
     }
 
+    struct InMemoryTransaction;
+
+    impl Committable for InMemoryTransaction {
+        async fn commit(self) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+    }
+
+    impl TransactionStarter for InMemoryRepository {
+        type TransactionType = InMemoryTransaction;
+
+        async fn begin_transaction(&self) -> Result<InMemoryTransaction, PersistenceError> {
+            self.handle_error()?;
+            Ok(InMemoryTransaction)
+        }
+    }
+
     impl AdminTaskRepository for InMemoryRepository {
         async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError> {
             self.handle_error()?;
@@ -659,10 +678,18 @@ mod tests {
             Ok(self.tasks.lock().unwrap().get(&task_id).cloned())
         }
 
+        async fn find_task_by_id_for_update(
+            &self,
+            _transaction: &InMemoryTransaction,
+            task_id: Uuid,
+        ) -> Result<Option<AdminTask>, PersistenceError> {
+            self.find_task_by_id(task_id).await
+        }
+
         async fn withdraw_task(
             &self,
+            _transaction: &InMemoryTransaction,
             task_id: Uuid,
-            user_id: &str,
             now: DateTime<Utc>,
         ) -> Result<Option<AdminTask>, PersistenceError> {
             self.handle_error()?;
@@ -670,7 +697,7 @@ mod tests {
             let Some(task) = tasks.get_mut(&task_id) else {
                 return Ok(None);
             };
-            if task.created_by_user_id != user_id || task.status != TaskStatus::Created {
+            if task.status != TaskStatus::Created {
                 return Ok(None);
             }
             task.status = TaskStatus::Withdrawn;
@@ -678,7 +705,11 @@ mod tests {
             Ok(Some(task.clone()))
         }
 
-        async fn review_task(&self, review: AdminTaskReview) -> Result<Option<AdminTask>, PersistenceError> {
+        async fn review_task(
+            &self,
+            _transaction: &InMemoryTransaction,
+            review: AdminTaskReview,
+        ) -> Result<Option<AdminTask>, PersistenceError> {
             self.handle_error()?;
             let AdminTaskReview {
                 id,
@@ -695,6 +726,9 @@ mod tests {
                 None => return Ok(None),
             };
 
+            if task.status != TaskStatus::Created {
+                return Ok(None);
+            }
             task.reviewed_at = Some(reviewed_at);
             task.reviewed_by_user_id = Some(reviewed_by_user_id);
             task.reviewed_by_display_name = Some(reviewed_by_display_name);
@@ -1152,7 +1186,9 @@ mod tests {
                 )
                 .body(Body::empty())
                 .unwrap();
-            assert_eq!(app.oneshot(request).await.unwrap().status(), StatusCode::CONFLICT);
+            let response = app.oneshot(request).await.unwrap();
+            assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(json_body::<Value>(response).await, task);
         }
     }
 

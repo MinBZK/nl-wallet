@@ -40,6 +40,8 @@ use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminPortalSessionRepository;
 use wallet_provider_domain::repository::AdminTaskRepository;
+use wallet_provider_domain::repository::Committable;
+use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_persistence::database::ConnectionOptions;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
@@ -142,6 +144,92 @@ async fn seed_task(repositories: &Repositories, creator: &TestUser, task_type: T
 async fn json_body<T: DeserializeOwned>(response: axum::response::Response) -> T {
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     serde_json::from_slice(&body).unwrap()
+}
+
+#[rstest::rstest]
+#[case::withdraw(None, None)]
+#[case::approve(Some(ReviewVerdict::Approve), Some(ReviewVerdict::Approve))]
+#[case::reject(Some(ReviewVerdict::Reject), Some(ReviewVerdict::Reject))]
+#[case::opposite_verdicts(Some(ReviewVerdict::Approve), Some(ReviewVerdict::Reject))]
+#[case::withdraw_vs_approve(None, Some(ReviewVerdict::Approve))]
+#[case::withdraw_vs_reject(None, Some(ReviewVerdict::Reject))]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_concurrent_task_mutations(
+    #[case] first_verdict: Option<ReviewVerdict>,
+    #[case] second_verdict: Option<ReviewVerdict>,
+) {
+    let (app, repositories, _db_setup) = test_app().await;
+    let alice = TestUser::new("alice");
+    let bob = TestUser::new("bob");
+    let creator_cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+    let reviewer_cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
+    let task_id = seed_task(&repositories, &alice, TaskType::RevokeWallet).await;
+
+    let request = |verdict: Option<ReviewVerdict>| {
+        let (action, cookie, body) = match verdict {
+            None => ("withdraw", &creator_cookie, Body::empty()),
+            Some(verdict) => (
+                "review",
+                &reviewer_cookie,
+                Body::from(
+                    serde_json::to_string(&ReviewTaskRequest {
+                        verdict,
+                        review_comment: "concurrent review".to_string(),
+                    })
+                    .unwrap(),
+                ),
+            ),
+        };
+        Request::builder()
+            .method("POST")
+            .uri(format!("/tasks/{task_id}/{action}"))
+            .header(header::COOKIE, cookie)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(body)
+            .unwrap()
+    };
+
+    // Both endpoints must wait for the same database row lock before checking its state.
+    let transaction = repositories.begin_transaction().await.unwrap();
+    repositories
+        .find_task_by_id_for_update(&transaction, task_id)
+        .await
+        .unwrap()
+        .unwrap();
+    let first = app.clone().oneshot(request(first_verdict));
+    let second = app.oneshot(request(second_verdict));
+    tokio::pin!(first, second);
+    assert!(
+        tokio::time::timeout(Duration::from_millis(100), &mut first)
+            .await
+            .is_err()
+    );
+    assert!(
+        tokio::time::timeout(Duration::from_millis(100), &mut second)
+            .await
+            .is_err()
+    );
+    transaction.commit().await.unwrap();
+
+    let (first, second) =
+        tokio::time::timeout(Duration::from_secs(10), async { tokio::join!(&mut first, &mut second) })
+            .await
+            .expect("both requests should finish after the lock is released");
+    let first = first.unwrap();
+    let second = second.unwrap();
+    if first_verdict == second_verdict {
+        assert_eq!(first.status(), StatusCode::OK);
+        assert_eq!(second.status(), StatusCode::OK);
+        assert_eq!(
+            json_body::<serde_json::Value>(first).await,
+            json_body::<serde_json::Value>(second).await
+        );
+    } else {
+        assert!(matches!(
+            (first.status(), second.status()),
+            (StatusCode::OK, StatusCode::CONFLICT) | (StatusCode::CONFLICT, StatusCode::OK)
+        ));
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -286,11 +374,13 @@ async fn test_list_tasks_history_succeeds() {
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
     let task_id = seed_task(&repositories, &alice, TaskType::RevokeWallet).await;
+    let transaction = repositories.begin_transaction().await.unwrap();
     repositories
-        .withdraw_task(task_id, &alice.id, Utc::now())
+        .withdraw_task(&transaction, task_id, Utc::now())
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
+    transaction.commit().await.unwrap();
 
     let request = Request::builder()
         .method("GET")
