@@ -54,8 +54,7 @@ Access Certificates (WRPACs), one for Wallet Relying Party Registration
 Certificates (WRPRCs), one for issuers, and one for the Wallet Provider).</p>
 <p>But there might be a reason for you to set up your own CA manually, for
 example, when you [onboard][1] in our NL Wallet Community, you will need to
-create your own CA and share the certificate of your CA with the operations
-team.</p>
+create your own CA and share the certificate of your CA with us.</p>
 </div>
 
 ## Background
@@ -103,26 +102,29 @@ that certificate as revoked, so you need to replace the published CRL before its
 `nextUpdate`. Creating, publishing and updating the CRL with `wallet_ca crl` is
 explained in the guides to [create a verifier][3] and [create an issuer][4].
 
-## Sharing your CA Certificate with the Operations Team
+## Sharing your CA Certificate
 
 <div class="admonition note"><p class="title">Optional</p>
 If you're creating your own CA because you are in the process of [onboarding][1]
-in our NL Wallet Community, you need to share your CA certificate with the
-operations team. This section covers that - if you're just creating your own CA
-for usage in your own environment, please ignore this section.
+in our NL Wallet Community, you need to share your CA certificate with us. This
+section covers that - if you're just creating your own CA for usage in your own
+environment, please ignore this section.
 </div>
 
-After you have created the CA certificate and its key, we need to share the
-certificate with the operations team. The certificate will be called something
-like this:
+After you have created the CA certificate and its key, you need to share the
+certificate with us. The certificate will be called something like this:
 
     ca.foocorp.crt.pem
 
-Where "foocorp" is the name you previously used as identifier. You can e-mail
-the certificate to the e-mail address of the operations team. They will
-configure this certificate in the issuer and reader trust anchors of the NL
-Wallet. You will have obtained the e-mail address to be used after approval,
-possibly at the kick-off.
+Where "foocorp" is the name you previously used as identifier. Who you e-mail
+the certificate to depends on the environment you want to use:
+
+  * For the `preprod` environment, e-mail it to the operations team.
+  * For the `pub` environment, e-mail it to the development team.
+
+They will configure this certificate in the WRPAC, WRPRC and issuer trust
+anchors of the NL Wallet. You will have obtained the e-mail addresses to be used
+after approval, possibly at the kick-off.
 
 Make sure you keep the key file safe, it should never be shared with any party
 external to your organization (it's called something like `ca.foocorp.key.pem`).
