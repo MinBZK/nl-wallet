@@ -138,7 +138,7 @@ pub fn verify_registration_certificate_envelope(
     let payload = match registration_certificate.clone() {
         RegistrationCertificateEnvelope::Jwt(unverified) => {
             let (_, payload) = unverified
-                .parse_and_verify_against_trust_anchors(trust_anchors, time, None, DEFAULT_VALIDATION.to_owned())
+                .parse_and_verify_ignoring_trust_anchor_in_x5c(trust_anchors, time, None, DEFAULT_VALIDATION.to_owned())
                 .map_err(RegistrationCertificateEnvelopeError::Jwt)?;
             payload
         }

@@ -128,6 +128,16 @@ impl TrustAnchors {
     pub fn contains(&self, certificate: &BorrowingCertificate) -> bool {
         self.certificates.contains(certificate)
     }
+
+    /// Filters out certificates that are trust anchors themselves.
+    pub fn remove_from_intermediates(
+        &self,
+        intermediates: impl IntoIterator<Item = BorrowingCertificate>,
+    ) -> impl Iterator<Item = BorrowingCertificate> {
+        intermediates
+            .into_iter()
+            .filter(|certificate| !self.contains(certificate))
+    }
 }
 
 impl PartialEq for TrustAnchors {
