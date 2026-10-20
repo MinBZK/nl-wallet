@@ -59,6 +59,15 @@ struct TestDatabase {
 
 impl TestDatabase {
     async fn new() -> Self {
+        let db_setup = DbSetup::create().await;
+        let db = db_from_setup(&db_setup).await;
+        Self {
+            _db_setup: db_setup,
+            db,
+        }
+    }
+
+    async fn new_clean() -> Self {
         let db_setup = DbSetup::create_clean_only([DbName::WalletProvider]).await;
         let db = db_from_setup(&db_setup).await;
         Self {
@@ -510,7 +519,7 @@ async fn test_history_returns_finished_tasks_created_or_reviewed_by_user_oldest_
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_reviewable_returns_authorized_tasks_of_other_users_oldest_first() {
-    let db = TestDatabase::new().await;
+    let db = TestDatabase::new_clean().await;
     let alice = User::new("alice");
     let bob = User::new("bob");
     let carol = User::new("carol");
