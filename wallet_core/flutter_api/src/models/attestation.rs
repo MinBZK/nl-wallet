@@ -1,7 +1,6 @@
 use chrono::Utc;
 use svg_sanitize::SanitizedSvg;
 use tracing::warn;
-use wallet::attestation_data;
 use wallet::display::Logo;
 
 use crate::models::image::Image;
@@ -214,28 +213,29 @@ pub enum AttributeValue {
     Map { value: Vec<(String, Box<AttributeValue>)> },
 }
 
-impl From<attestation_data::Attribute> for AttributeValue {
-    fn from(value: attestation_data::Attribute) -> Self {
+impl From<wallet::AttributeValue> for AttributeValue {
+    fn from(value: wallet::AttributeValue) -> Self {
         match value {
-            attestation_data::Attribute::Bool(value) => AttributeValue::Boolean { value },
-            attestation_data::Attribute::Number(value) => AttributeValue::Number { value },
-            attestation_data::Attribute::Text(value) => AttributeValue::String { value },
-            attestation_data::Attribute::Null => AttributeValue::Null,
-            attestation_data::Attribute::Array(entries) => AttributeValue::Array {
-                value: entries.into_iter().map(AttributeValue::from).collect(),
+            wallet::AttributeValue::Null => Self::Null,
+            wallet::AttributeValue::Number(value) => Self::Number { value },
+            wallet::AttributeValue::Bool(value) => Self::Boolean { value },
+            wallet::AttributeValue::Text(value) => Self::String { value },
+            wallet::AttributeValue::Array(entries) => Self::Array {
+                value: entries.into_iter().map(Self::from).collect(),
             },
-            attestation_data::Attribute::Date(date) => AttributeValue::Date {
-                value: date.format("%Y-%m-%d").to_string(),
-            },
-            attestation_data::Attribute::Bytes(bytes) => match Image::try_jpeg_from_bytes(bytes) {
-                Ok(value) => AttributeValue::Image { value },
-                Err(value) => AttributeValue::Bytes { value },
-            },
-            attestation_data::Attribute::Object(entries) => AttributeValue::Map {
+            wallet::AttributeValue::Object(entries) => Self::Map {
                 value: entries
                     .into_iter()
                     .map(|(key, value)| (key, Box::new(value.into())))
                     .collect(),
+            },
+            wallet::AttributeValue::Date(date) => Self::Date {
+                value: date.format("%Y-%m-%d").to_string(),
+            },
+            wallet::AttributeValue::Bytes(value) => Self::Bytes { value },
+            wallet::AttributeValue::Image(image) => match Image::try_from(image) {
+                Ok(value) => Self::Image { value },
+                Err(value) => Self::Bytes { value },
             },
         }
     }

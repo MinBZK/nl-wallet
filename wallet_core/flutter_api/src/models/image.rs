@@ -1,11 +1,37 @@
+use std::io::Cursor;
+
 use flutter_rust_bridge::frb;
+use image::ImageError;
+use image::ImageFormat;
+use image::ImageReader;
+use tracing::warn;
 
 #[frb(non_opaque)]
 pub enum Image {
     Jpeg { data: Vec<u8> },
     Png { data: Vec<u8> },
+    Bmp { data: Vec<u8> },
     Svg { svg: SanitizedSvg },
     Asset { path: String },
+}
+
+impl Image {
+    fn new_bmp_from_jpeg2000(input: &[u8]) -> Result<Self, ImageError> {
+        // Register the JPEG 2000 decoder with the image crate.
+        hayro_jpeg2000::integration::register_decoding_hook();
+
+        let mut output = Cursor::new(Vec::new());
+        ImageReader::new(Cursor::new(input))
+            .with_guessed_format()?
+            .decode()?
+            .write_to(&mut output, ImageFormat::Bmp)?;
+
+        let image = Self::Bmp {
+            data: output.into_inner(),
+        };
+
+        Ok(image)
+    }
 }
 
 impl TryFrom<wallet::attestation_types::Image> for Image {
@@ -22,14 +48,17 @@ impl TryFrom<wallet::attestation_types::Image> for Image {
     }
 }
 
-impl Image {
-    pub fn try_jpeg_from_bytes(value: Vec<u8>) -> Result<Self, Vec<u8>> {
-        // classify whether it's JPEG
-        // TODO add support for JPEG 2000 (PVW-6230)
-        if matches!(value.as_slice(), &[0xFF, 0xD8, .., 0xFF, 0xD9]) {
-            Ok(Image::Jpeg { data: value })
-        } else {
-            Err(value)
+impl TryFrom<wallet::ImageAttribute> for Image {
+    type Error = Vec<u8>;
+
+    fn try_from(value: wallet::ImageAttribute) -> Result<Self, Self::Error> {
+        match value {
+            wallet::ImageAttribute::Jpeg(data) => Ok(Self::Jpeg { data }),
+            wallet::ImageAttribute::Jpeg2000(data) => Self::new_bmp_from_jpeg2000(&data).map_err(|error| {
+                warn!("could not convert JPEG 2000 image to BMP: {error}");
+
+                data
+            }),
         }
     }
 }
@@ -52,5 +81,20 @@ impl SanitizedSvg {
     #[frb(sync)]
     pub fn xml(&self) -> String {
         self.0.as_ref().to_owned()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use wallet::test_assets::JPEG2000_IMAGE;
+
+    use super::Image;
+
+    #[test]
+    fn test_image_new_bmp_from_jpeg2000() {
+        let image = Image::new_bmp_from_jpeg2000(JPEG2000_IMAGE).expect("JPEG 2000 image should decode");
+
+        // Detect BMP magic bytes.
+        assert!(matches!(&image, Image::Bmp { data } if matches!(data.as_slice(), [0x42, 0x4d, ..])));
     }
 }
