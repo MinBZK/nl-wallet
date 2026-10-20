@@ -293,8 +293,12 @@ scripts/close_proximity/run_disclosure_ios_test.py -- \
   xcodebuild test \
     -project wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj \
     -scheme PlatformSupport \
+    -testPlan LocalRealDevice \
     -only-testing:'Integration Tests/CloseProximityDisclosureTests/testCloseProximityDisclosureFullFlowWithMacReader'
 ```
+
+`-testPlan LocalRealDevice` is required: the default `Simulator` test plan skips the whole
+`CloseProximityDisclosureTests` class, so without it `-only-testing` selects nothing.
 
 For Android, run from the repository root:
 
@@ -306,6 +310,25 @@ scripts/close_proximity/run_disclosure_android_test.py -- \
 
 Before running these tests:
 
-* Connect a physical device
-* Enable the corresponding opt-in close proximity test constant in the iOS or Android test file.
+* Connect a physical device and unlock it.
+* Enable Bluetooth on the device. The tests assert on Bluetooth rather than skipping, so running
+  them with Bluetooth off fails them.
 * Grant Bluetooth access to the terminal app that runs the Mac helper.
+
+## Running the suites in CI
+
+The full suites run on the Mac mini that has the devices attached, on the `automation` schedule and
+manually on a merge request. See `deploy/gitlab/platform-support-tests.yml`.
+
+| job                                    | runs                                                 |
+| -------------------------------------- | ---------------------------------------------------- |
+| `test-ios-platform-support-device`     | the whole `LocalRealDevice` test plan                |
+| `test-android-platform-support-device` | `connectedDebugAndroidTest`, every instrumented test |
+
+Both go through the wrapper scripts above without a test filter, so one run covers the whole suite
+and the Mac mini acts as the BLE verifier for the close proximity tests.
+
+The per-merge-request jobs `test-ios` (Simulator test plan) and `test-android` (emulator) stay as
+the fast gate. They skip what needs real hardware: the attested key tests, and — because
+`CloseProximityDisclosureBridgeInstrumentedTest` is annotated `@RequiresDevice` — the whole Android
+close proximity class.

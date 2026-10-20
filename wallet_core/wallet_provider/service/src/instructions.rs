@@ -21,6 +21,7 @@ use serde::Serialize;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -71,6 +72,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use wscd::payload::jwt_proof::JwtProofClaims;
 use wscd::payload::key_attestation::KeyAttestation;
 use wscd::payload::poa::Poa;
+use wscd::payload::status_claim::TimeBoundedStatusClaim;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::payload::wia::WiaPopClaims;
 
@@ -446,6 +448,9 @@ where
         ));
     }
 
+    let key_storage_maintenance_period =
+        DateTimeSeconds::new(time.generate() + user_state.key_storage_status_tracking_validity);
+
     let (set_results, wrapped_keys): (Vec<_>, Vec<_>) = future::try_join_all(instruction.key_requests.into_iter().map(
         async |request| -> Result<_, InstructionError> {
             let (identifiers, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
@@ -463,10 +468,16 @@ where
                 .map(|wrapped_key| PublicKey::from(*wrapped_key.public_key()))
                 .collect::<VecNonEmpty<_>>();
 
+            let key_storage_status = TimeBoundedStatusClaim::new(
+                user_state.key_storage_status_list.status_claim.clone(),
+                key_storage_maintenance_period,
+            );
+
             let attestation = KeyAttestation::sign(
                 &public_keys,
                 user_state.key_attestation_certification.clone(),
                 request.proof_nonce,
+                key_storage_status,
                 &user_state.key_attestation_key_pair,
                 time,
             )
@@ -559,7 +570,7 @@ where
     let now: DateTime<Utc> = generators.generate();
     let exp = now + user_state.wia_status_tracking_validity;
     let status_claim = user_state
-        .status_list_service
+        .wia_status_list
         .obtain_status_claims(
             wia_id,
             Some(exp.into()),
@@ -2110,7 +2121,7 @@ mod tests {
 
         let mut user_state = user_state_with_ca(wallet_user_repo, wrapping_kid, &issuer_ca).await;
         user_state
-            .status_list_service
+            .wia_status_list
             .expect_revoke_attestation_batches()
             .times(2)
             .returning(|_| Ok(()));

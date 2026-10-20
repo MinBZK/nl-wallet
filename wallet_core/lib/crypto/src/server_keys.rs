@@ -624,6 +624,13 @@ pub mod generate {
                 )
             }
 
+            pub fn generate_key_storage_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
+                self.generate_key_pair(
+                    KEY_ATTESTATION_CERT_DN.clone(),
+                    CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
+                )
+            }
+
             pub fn generate_wrpac_mock_ca() -> Result<Self, CertificateGenerationError> {
                 Self::generate(WRPAC_CA_DN.clone(), Default::default())
             }

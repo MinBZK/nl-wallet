@@ -888,7 +888,7 @@ mod tests {
                 create_threshold_ratio: Ratio::try_new(0.1).unwrap(),
                 expiry: Duration::from_hours(24),
                 refresh_threshold_ratio: Ratio::try_new(0.25).unwrap(),
-                ttl_in_minutes: None,
+                ttl: None,
                 serve: true,
             },
             wptl_trust_anchors,

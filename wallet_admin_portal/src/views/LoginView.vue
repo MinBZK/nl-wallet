@@ -3,7 +3,10 @@
     <div class="login-card">
       <div class="brand">
         <img src="@/assets/logo_nl_wallet.svg" alt="NL Wallet Logo" class="brand-logo" />
-        <div class="brand-title">NL Wallet</div>
+        <div>
+          <div class="brand-title">NL Wallet</div>
+          <div v-if="environment" class="brand-subtitle">{{ environment }}</div>
+        </div>
       </div>
 
       <h1>Log in met jouw account</h1>
@@ -18,10 +21,13 @@
 
 <script setup lang="ts">
 import AppButton from '@/components/ui/AppButton.vue'
+import { useEnvironment } from '@/composables/environment.ts'
 
 function login() {
   window.location.href = '/admin-portal/auth/login'
 }
+
+const { environment } = useEnvironment()
 </script>
 
 <style scoped>
@@ -32,6 +38,7 @@ function login() {
   min-height: 100vh;
   background: #f2f1fe;
 }
+
 .login-card {
   width: 100%;
   max-width: 480px;
@@ -62,6 +69,12 @@ function login() {
   font-weight: 700;
   font-size: 1.25rem;
   line-height: 1.4;
+}
+
+.brand-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  line-height: 1.375;
 }
 
 h1 {

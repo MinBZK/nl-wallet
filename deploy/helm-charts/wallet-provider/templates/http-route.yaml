@@ -22,33 +22,47 @@ spec:
   hostnames:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+
+  {{- $paths := list "/api/v1" "/key_storage_status" }}
+  {{- $filters := .Values.httpRoute.filters }}
+  {{- if .Values.httpRoute.contextPath }}
+    {{- $contextPath := .Values.httpRoute.contextPath }}
   rules:
+    {{- range $paths }}
     - backendRefs:
         - name: {{ $name }}
           port: 80
-    {{- if .Values.httpRoute.contextPath }}
       matches:
         - path:
             type: PathPrefix
-            value: "/{{ .Values.httpRoute.contextPath }}/api/v1"
+            value: "/{{ $contextPath }}{{ . }}"
       filters:
         - type: URLRewrite
           urlRewrite:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: "/api/v1"
-    {{- else }}
-      matches:
-        - path:
-            type: PathPrefix
-            value: "/api/v1"
-      {{- if .Values.httpRoute.filters }}
-      filters:
-      {{- end }}
-    {{- end }}
-      {{- with .Values.httpRoute.filters }}
+              replacePrefixMatch: {{ . | quote }}
+      {{- with $filters }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
+    {{- end }}
+  {{- else }}
+  rules:
+    - backendRefs:
+        - name: {{ $name }}
+          port: 80
+      matches:
+    {{- range list $paths }}
+        - path:
+            type: PathPrefix
+            value: {{ . | quote }}
+    {{- end }}
+    {{- with $filters }}
+      filters:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+  {{- end }}
+
 {{- end }}
 
 {{ if .Values.httpRouteAdminPortal.enabled }}

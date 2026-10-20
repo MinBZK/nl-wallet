@@ -81,8 +81,9 @@ scheduled-automation-tests-trigger:
     - export MATCH_GIT_BASIC_AUTHORIZATION
     - export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
     - bundle install
-    # Scope to only the identifiers the e2e jobs need
-    - bundle exec fastlane match development --readonly --app_identifier "nl.ictu.edi.wallet.latest,nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner"
+    # Scope to only the identifiers the device jobs need.
+    - bundle exec fastlane match development --readonly --app_identifier
+      "nl.ictu.edi.wallet.latest,nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner,nl.ictu.edi.wallet.integration-tests"
     # Quoted because the unquoted 'codesign: ' colon would make YAML parse this line as a mapping.
     - 'security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${MACOS_KEYCHAIN_PASSWORD}" ~/Library/Keychains/login.keychain-db > /dev/null'
     # Point the WebDriverAgentRunner target at the match profile (per-target manual signing);
@@ -94,12 +95,13 @@ automation-tests-load-device-config:
   stage: init
   rules:
     - !reference [.on-schedule-automation, rules]
+    - !reference [.merge-request, rules]
   script:
     - |
       SECRET_JSON=$(kubectl get secret nl-wallet-macmini -o json)
       : > devices.env
       for key in \
-        android_device_1_udid \
+        android_1_udid \
         android_1_name \
         android_1_os_version \
         android_2_udid \

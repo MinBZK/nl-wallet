@@ -1,6 +1,9 @@
 # The commented out lines show optional configuration with their default value.
 # All key material should be replaced with secret values.
 
+# The URL at which the Wallet Provider is publicly reachable
+# public_url = "https://localhost:8001/"
+
 # key identifier for the current certificate signing key and PIN HMAC key
 current_certificate_kid = "0"
 
@@ -87,6 +90,17 @@ publish_dir = "/srv/html/tsl"
 key_identifier = "wia_tsl_key_identifier"
 # Base64 DER encoded certificate containing the public key
 key_certificate = "MIJ..."
+
+# Status List configuration for Key Storage types as included in OpenID4VCI Key Attestations.
+[key_storage_status_list]
+# Identifier for key used to sign Status List Token.
+# key_identifier = "key_storage_tsl_key"
+# Base64 DER encoded Status List Token certificate containing the public key.
+key_certificate = "MIJ..."
+# Number of hours a signed Key Storage Status List Token is valid.
+# expiry_in_hours = 24
+# Number of days a Key Storage Status List remains valid for status tracking purposes.
+# tracking_validity_in_days = 365
 
 [database]
 # host = "localhost"

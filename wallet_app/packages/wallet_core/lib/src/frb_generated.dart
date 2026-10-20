@@ -82,7 +82,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -360334618;
+  int get rustContentHash => -1988532183;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -178,8 +178,6 @@ abstract class WalletCoreApi extends BaseApi {
   Future<bool> crateApiFullHasRegistration();
 
   Future<IdentifyUriResult> crateApiFullIdentifyUri({required String uri});
-
-  Future<Image> crateModelsImageImageTryJpegFromBytes({required List<int> value});
 
   Future<void> crateApiFullInit();
 
@@ -1204,30 +1202,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullIdentifyUriConstMeta => const TaskConstMeta(
     debugName: "identify_uri",
     argNames: ["uri"],
-  );
-
-  @override
-  Future<Image> crateModelsImageImageTryJpegFromBytes({required List<int> value}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          var arg0 = cst_encode_list_prim_u_8_loose(value);
-          return wire.wire__crate__models__image__image_try_jpeg_from_bytes(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_image,
-          decodeErrorData: dco_decode_list_prim_u_8_strict,
-        ),
-        constMeta: kCrateModelsImageImageTryJpegFromBytesConstMeta,
-        argValues: [value],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateModelsImageImageTryJpegFromBytesConstMeta => const TaskConstMeta(
-    debugName: "image_try_jpeg_from_bytes",
-    argNames: ["value"],
   );
 
   @override
@@ -2507,10 +2481,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           data: dco_decode_list_prim_u_8_strict(raw[1]),
         );
       case 2:
+        return Image_Bmp(
+          data: dco_decode_list_prim_u_8_strict(raw[1]),
+        );
+      case 3:
         return Image_Svg(
           svg: dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(raw[1]),
         );
-      case 3:
+      case 4:
         return Image_Asset(
           path: dco_decode_String(raw[1]),
         );
@@ -2650,12 +2628,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Uint16List dco_decode_list_prim_u_16_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint16List;
-  }
-
-  @protected
-  List<int> dco_decode_list_prim_u_8_loose(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as List<int>;
   }
 
   @protected
@@ -3599,11 +3571,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_data = sse_decode_list_prim_u_8_strict(deserializer);
         return Image_Png(data: var_data);
       case 2:
+        var var_data = sse_decode_list_prim_u_8_strict(deserializer);
+        return Image_Bmp(data: var_data);
+      case 3:
         var var_svg = sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
           deserializer,
         );
         return Image_Svg(svg: var_svg);
-      case 3:
+      case 4:
         var var_path = sse_decode_String(deserializer);
         return Image_Asset(path: var_path);
       default:
@@ -3806,13 +3781,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint16List(len_);
-  }
-
-  @protected
-  List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var len_ = sse_decode_i_32(deserializer);
-    return deserializer.buffer.getUint8List(len_);
   }
 
   @protected
@@ -5023,14 +4991,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case Image_Png(data: final data):
         sse_encode_i_32(1, serializer);
         sse_encode_list_prim_u_8_strict(data, serializer);
-      case Image_Svg(svg: final svg):
+      case Image_Bmp(data: final data):
         sse_encode_i_32(2, serializer);
+        sse_encode_list_prim_u_8_strict(data, serializer);
+      case Image_Svg(svg: final svg):
+        sse_encode_i_32(3, serializer);
         sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
           svg,
           serializer,
         );
       case Image_Asset(path: final path):
-        sse_encode_i_32(3, serializer);
+        sse_encode_i_32(4, serializer);
         sse_encode_String(path, serializer);
     }
   }
@@ -5188,13 +5159,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint16List(self);
-  }
-
-  @protected
-  void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    serializer.buffer.putUint8List(self is Uint8List ? self : Uint8List.fromList(self));
   }
 
   @protected

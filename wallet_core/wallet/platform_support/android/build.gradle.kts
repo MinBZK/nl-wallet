@@ -58,6 +58,10 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
+    installation {
+        installOptions += "-g"
+    }
+
     buildFeatures {
         buildConfig = true
     }
