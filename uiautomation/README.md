@@ -261,8 +261,8 @@ Mac mini, reachable with ssh and can be reproduced locally). Physical devices ne
 - **WebDriverAgent signing** — WDA must be signed with the fastlane match
   profile `match Development nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner`.
   Automatic signing cannot use match profiles, so CI applies a per-target patch
-  (`deploy/bin/patch-wda-signing.rb`, wired into `.install-ios-signing` in
-  `deploy/gitlab/automation-tests.yml`).
+  (`deploy/qa-util/patch-wda-signing.rb`, wired into `.install-ios-signing` in
+  `deploy/gitlab/e2e-tests.yml`).
 
 ### Android
 
