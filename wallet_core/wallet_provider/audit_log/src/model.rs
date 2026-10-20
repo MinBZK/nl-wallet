@@ -16,9 +16,15 @@ pub trait AsAuditUser {
     fn as_audit_user(&self) -> String;
 }
 
-impl AsAuditUser for str {
+impl AsAuditUser for &str {
     fn as_audit_user(&self) -> String {
-        self.to_owned()
+        self.to_string()
+    }
+}
+
+impl AsAuditUser for String {
+    fn as_audit_user(&self) -> String {
+        self.clone()
     }
 }
 
@@ -119,12 +125,6 @@ pub mod mock {
 
     use super::AsAuditUser;
     use super::AuditLog;
-
-    impl AsAuditUser for String {
-        fn as_audit_user(&self) -> String {
-            self.clone()
-        }
-    }
 
     pub struct MockAuditLog;
 
