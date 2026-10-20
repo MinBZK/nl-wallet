@@ -138,6 +138,16 @@ impl PartialEq for TrustAnchors {
 
 impl Eq for TrustAnchors {}
 
+impl Hash for TrustAnchors {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // Set equality ignores insertion order, so hash certificates in a canonical order.
+        self.certificates.len().hash(state);
+        for certificate in self.certificates.iter().map(BorrowingCertificate::as_ref).sorted() {
+            certificate.hash(state);
+        }
+    }
+}
+
 impl TryFrom<Vec<Vec<u8>>> for TrustAnchors {
     type Error = CertificateParseError;
 

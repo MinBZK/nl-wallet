@@ -58,7 +58,7 @@ struct TokenExpiry<G> {
 
 #[derive(Debug)]
 pub struct RevocationVerifier<C> {
-    cache: Cache<Url, CachedResult>,
+    cache: Cache<(Url, TrustAnchors), CachedResult>,
     client: Arc<C>,
 }
 
@@ -119,7 +119,7 @@ where
         let result = self
             .cache
             .get_with(
-                uri.clone(),
+                (uri.clone(), issuer_trust_anchors.clone()),
                 self.fetch_status_list_claims(uri, issuer_trust_anchors, time),
             )
             .await;
@@ -168,11 +168,11 @@ where
     }
 }
 
-impl<G> Expiry<Url, CachedResult> for TokenExpiry<G>
+impl<K, G> Expiry<K, CachedResult> for TokenExpiry<G>
 where
     G: Generator<DateTime<Utc>>,
 {
-    fn expire_after_create(&self, _key: &Url, value: &CachedResult, _created_at: Instant) -> Option<Duration> {
+    fn expire_after_create(&self, _key: &K, value: &CachedResult, _created_at: Instant) -> Option<Duration> {
         let duration = match value.as_ref() {
             Ok(claims) => {
                 let ttl = claims.ttl.unwrap_or(self.default_ttl);
@@ -207,13 +207,16 @@ mod test {
     use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use jwt::error::JwtParseError;
+    use mockall::predicate::eq;
     use moka::Expiry;
+    use rstest::rstest;
     use url::Url;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::status_list::PackedStatusList;
     use crate::status_list_token::StatusListClaims;
+    use crate::status_list_token::mock::create_status_list_token;
     use crate::status_list_token::verification::StatusListTokenVerificationError;
     use crate::verification::client::StatusListClientError;
     use crate::verification::client::mock::MockStatusListClient;
@@ -342,46 +345,56 @@ mod test {
         assert_eq!(RevocationStatus::Undetermined, status);
     }
 
-    #[test]
-    fn test_verify_cached() {
+    #[rstest]
+    #[case::trusted_first(false)]
+    #[case::untrusted_first(true)]
+    fn test_verify_cached_per_trust_anchors(#[case] untrusted_first: bool) {
         let ca = Ca::generate_mock();
+        let other_ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
+        let (_, _, token) = create_status_list_token(&keypair, None, None).now_or_never().unwrap();
+        let mut cases = [
+            (
+                TrustAnchors::try_from(vec![ca.certificate().to_vec(), other_ca.certificate().to_vec()]).unwrap(),
+                RevocationStatus::Valid,
+            ),
+            (
+                TrustAnchors::try_from(vec![other_ca.certificate().to_vec(), ca.certificate().to_vec()]).unwrap(),
+                RevocationStatus::Valid,
+            ),
+            (other_ca.to_trust_anchors(), RevocationStatus::Corrupted),
+            (TrustAnchors::empty(), RevocationStatus::Corrupted),
+        ];
+        if untrusted_first {
+            cases.reverse();
+        }
 
+        let uri: Url = "https://example.com/statuslists/1".parse().unwrap();
+        let mut client = MockStatusListClient::new();
+        client
+            .expect_fetch()
+            .with(eq(uri.clone()))
+            // Three distinct sets; the reordered set must share the original cache entry.
+            .times(3)
+            .returning(move |_| Ok(token.clone()));
         let verifier = RevocationVerifier::new(
-            Arc::new(StatusListClientStub::new(keypair)),
+            Arc::new(client),
             10,
             TEN_MINUTES,
             TEN_MINUTES,
             MockTimeGenerator::default(),
         );
+        let time = MockTimeGenerator::default();
+        let status_claim = StatusList(StatusListClaim { uri, idx: 1 });
 
-        // Index 1 is valid
-        let status = verifier
-            .verify(
-                &ca.to_trust_anchors(),
-                StatusList(StatusListClaim {
-                    uri: "https://example.com/statuslists/1".parse().unwrap(),
-                    idx: 1,
-                }),
-                &MockTimeGenerator::default(),
-            )
-            .now_or_never()
-            .unwrap();
-        assert_eq!(RevocationStatus::Valid, status);
-
-        // Empty trust anchors would normally fail verification, but we're using a cached result here
-        let status = verifier
-            .verify(
-                &TrustAnchors::empty(),
-                StatusList(StatusListClaim {
-                    uri: "https://example.com/statuslists/1".parse().unwrap(),
-                    idx: 1,
-                }),
-                &MockTimeGenerator::default(),
-            )
-            .now_or_never()
-            .unwrap();
-        assert_eq!(RevocationStatus::Valid, status);
+        // Repeat the calls to exercise cache hits for both successful and failed verification.
+        for (trust_anchors, expected) in cases.iter().chain(&cases) {
+            let status = verifier
+                .verify(trust_anchors, status_claim.clone(), &time)
+                .now_or_never()
+                .unwrap();
+            assert_eq!(*expected, status);
+        }
     }
 
     fn cached_result(
@@ -461,7 +474,7 @@ mod test {
             time_generator: time.clone(),
         };
         let duration = expiry.expire_after_create(
-            &"http://localhost".parse().unwrap(),
+            &"http://localhost".parse::<Url>().unwrap(),
             &Err(StatusListVerificationError::Verification(Arc::new(
                 StatusListTokenVerificationError::Expired,
             ))),
