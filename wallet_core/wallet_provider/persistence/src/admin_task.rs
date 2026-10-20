@@ -124,9 +124,9 @@ where
         withdrawn_at: Set(Some(now.into())),
         ..Default::default()
     };
-    // Allow changing to Withdrawn status as well for idempotency.
+
     match admin_task::Entity::update(model)
-        .filter(admin_task::Column::Status.is_in(&[TaskStatus::Created.to_string(), TaskStatus::Withdrawn.to_string()]))
+        .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
         .exec(db.connection())
         .await
     {
@@ -150,12 +150,9 @@ where
         review_comment: Set(Some(review.review_comment)),
         ..Default::default()
     };
-    // Allow changing to review verdict status as well for idempotency.
+
     match admin_task::Entity::update(model)
-        .filter(admin_task::Column::Status.is_in(&[
-            TaskStatus::Created.to_string(),
-            review.review_verdict.resulting_status().to_string(),
-        ]))
+        .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
         .exec(db.connection())
         .await
     {
