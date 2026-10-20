@@ -19,9 +19,13 @@ use crate::storage::Storage;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum RecoveryCodeError {
-    #[error("no recovery code found in PID")]
+    #[error("no recovery code found in newly issued PID")]
     #[category(critical)]
-    MissingRecoveryCode,
+    MissingIssuedRecoveryCode,
+
+    #[error("no recovery code found in stored PID")]
+    #[category(impossible)]
+    MissingStoredRecoveryCode,
 
     #[error("incorrect recovery code: expected {expected}, received {received}")]
     #[category(pd)]
@@ -73,8 +77,10 @@ where
             &pid_preview.attributes,
             &pid_config.recovery_code_path(&pid_preview.attestation_type)?,
         )
-        .ok_or(RecoveryCodeError::MissingRecoveryCode)?;
+        .ok_or(RecoveryCodeError::MissingIssuedRecoveryCode)?;
 
+        // Fetch the the recovery code of the previously issued PID, return early if this is the first time we are
+        // receiving the PID.
         let Some(stored_recovery_code) = self.stored_recovery_code(pid_config).await? else {
             return Ok(());
         };
@@ -105,13 +111,16 @@ where
             .map(|stored_copy| -> Result<_, RecoveryCodeError> {
                 let recovery_code_path = pid_config.recovery_code_path(stored_copy.attestation_type())?;
 
+                // The stored PID has to include a recovery code, since this was checked during issuance. However, it is
+                // still possible that the SD-JWT credential kinds or path to the recovery code was changed in the
+                // configuration. This should never happen, making this an error in the "impossible" category.
                 let code = retrieve_recovery_code_from_pid(&stored_copy.into_attributes(), &recovery_code_path)
-                    .map(str::to_string);
+                    .ok_or(RecoveryCodeError::MissingStoredRecoveryCode)?
+                    .to_string();
 
                 Ok(code)
             })
-            .transpose()?
-            .flatten();
+            .transpose()?;
 
         Ok(code)
     }

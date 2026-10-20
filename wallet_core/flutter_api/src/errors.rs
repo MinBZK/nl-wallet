@@ -742,7 +742,9 @@ impl FlutterApiErrorFields for PinRecoveryError {
                 FlutterApiErrorType::WrongDigid
             }
             PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingPid)
-            | PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingRecoveryCode) => FlutterApiErrorType::Issuer,
+            | PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingIssuedRecoveryCode) => {
+                FlutterApiErrorType::Issuer
+            }
             PinRecoveryError::DiscloseRecoveryCode(InstructionError::AccountRevoked(_)) => FlutterApiErrorType::Revoked,
             PinRecoveryError::DiscloseRecoveryCode(..) => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,
