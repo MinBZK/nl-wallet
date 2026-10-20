@@ -536,9 +536,8 @@ name and location in mind.</p>
 <section id="creating-issuer-tsl-wrpac-and-wrprc-certificates">
 <h2>Creating issuer, TSL, WRPAC and WRPRC certificates<a class="headerlink" href="#creating-issuer-tsl-wrpac-and-wrprc-certificates" title="Link to this heading"></a></h2>
 <p>In this guide, we assume you have <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarded succesfully</span></a> - i.e., you are
-running your own CA and the public key of that CA has been shared with the
-operations team who will need to add your CA public key to the trust anchors of
-the app.</p>
+running your own CA and have <a class="reference internal" href="../community/create-a-ca.html#sharing-your-ca-certificate"><span class="std std-ref">shared its certificate</span></a>, after which your CA
+was added to the trust anchors of the app.</p>
 <div class="admonition note">
 <p class="admonition-title">Onboarding optional</p>
 <p>Do note that onboarding is not strictly necessary - you <em>can</em> follow all steps
@@ -568,7 +567,7 @@ installed and working.</p>
 <code class="docutils literal notranslate"><span class="pre">setup-devenv.sh</span></code> script will have created these for you. You can also opt to
 create your own custom self-signed CA certificate and key, which is documented
 in the <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">Create a CA</span></a> document, and which is required if you need to
-participate in the NL Wallet community platform.</p>
+participate in the NL Wallet Community.</p>
 </div>
 <div class="admonition caution">
 <p class="admonition-title">Do you intend to test your issuer on the NL Wallet platform?</p>
@@ -735,14 +734,14 @@ which CAs they trust.</p>
 generated CA certificate is automatically added to the trust anchors within the
 configuration files of <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">demo_issuer</span></code>, <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>,
 <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, <code class="docutils literal notranslate"><span class="pre">demo_relying_party</span></code> and the NL Wallet app config.</p>
-<p>When you <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">create your own CA</span></a>, you need to make sure the public key of your
+<p>When you <a class="reference internal" href="../community/create-a-ca.html"><span class="doc std std-doc">create your own CA</span></a>, you need to make sure the certificate of your
 CA is in the relevant trust anchor configuration settings. When you are a member
-of the <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">NL Wallet community</span></a>, and so using NL Wallet managed backend
+of the <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">NL Wallet Community</span></a>, and so using NL Wallet managed backend
 services and mobile apps, this is done for you (i.e., you just need to sign your
 issuer certificate with your CA, which the <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> utility invocation above
-did for you, and during the NL Wallet community <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process you
-shared your CA certificate with the operations team who ensure your CA is in the
-various trust anchor lists).</p>
+did for you, and during the NL Wallet Community <a class="reference internal" href="../community/onboarding.html"><span class="doc std std-doc">onboarding</span></a> process you
+<a class="reference internal" href="../community/create-a-ca.html#sharing-your-ca-certificate"><span class="std std-ref">shared your CA certificate</span></a>, after which it was added to the various trust
+anchor lists).</p>
 <p>When you run locally, but with a manually created CA, you need to add the CA
 public certificate to your services and wallet app config yourself. When we
 generate the configuration later in this guide, we will do this automatically,

@@ -233,57 +233,84 @@ openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w
 </pre></div>
 </div>
 <p>After executing the above commands, you will have four files in the target
-directory you specified: The CA certicate and key in both PEM and DER format.</p>
+directory you specified: The CA certificate and key in both PEM and DER format.</p>
 <div class="admonition note">
 <p class="admonition-title">Why create your own CA certificates?</p>
 <p>Normally, when you set up a local development environment, the setup script
-creates a couple of CA’s for you (to be precise, one for verifiers, and one for
-issuers).</p>
+creates a couple of CAs for you (to be precise, one for Wallet Relying Party
+Access Certificates (WRPACs), one for Wallet Relying Party Registration
+Certificates (WRPRCs), one for issuers, and one for the Wallet Provider).</p>
 <p>But there might be a reason for you to set up your own CA manually, for
-example, when you <a class="reference internal" href="onboarding.html"><span class="doc std std-doc">onboard</span></a> on our NL Wallet community platform, you will
-need to create your own CA and share the public key of your CA with the
-operations team.</p>
+example, when you <a class="reference internal" href="onboarding.html"><span class="doc std std-doc">onboard</span></a> in the NL Wallet Community, you will need to
+create your own CA and share its certificate, as described below.</p>
 </div>
 <section id="background">
 <h2>Background<a class="headerlink" href="#background" title="Link to this heading"></a></h2>
-<p>The participants in the NL Wallet ecosystem can generally be expressed as the
+<p>The participants in the <a class="reference internal" href="../about.html"><span class="doc std std-doc">EDI-stelsel</span></a> can generally be expressed as the
 following three entities:</p>
 <ul class="simple">
 <li><p>Users (people that use the Wallet app)</p></li>
 <li><p>Issuers (entities that issue attested attributes)</p></li>
 <li><p>Verifiers (entities that want to verify a users’ attested attributes)</p></li>
 </ul>
-<p>To develop integrations within the NL Wallet ecosystem (i.e., a verifier, or an
-issuer that can interact with the app), you need to have certain certificates
-that ascertain the validity of a verifier and issuer, and that contain various
-specific attributes that make the certicate work with our ecosystem.</p>
+<p>To develop integrations within the EDI-stelsel (i.e., a verifier, or an issuer
+that can interact with the app), you need to have certain certificates that
+ascertain the validity of a verifier and issuer, and that contain various
+specific attributes that make the certificate work with the NL Wallet.</p>
 <p>These certificates are issued by a CA (Certificate Authority) and these CAs are
-then trusted by the app, the issuers and the verifiers.</p>
-<p>In the future, the NL Wallet platform will likely facilitate or use a dedicated
-CA entity that will be responsible for issuing certificates for both issuers and
-verifiers, for both development and production purposes. This CA entity is not
-yet available, and hence, we facilitate community participants by allowing them
-to create and run their own CA.</p>
+then trusted by the app, the issuers and the verifiers. Each type of
+certificate is verified against its own list of trust anchors:</p>
+<ul class="simple">
+<li><p>WRPACs (<code class="docutils literal notranslate"><span class="pre">wallet_ca</span> <span class="pre">cert</span> <span class="pre">--type</span> <span class="pre">wrpac</span></code>), which identify verifiers and
+issuers to the wallet, are verified against <code class="docutils literal notranslate"><span class="pre">wrpac_trust_anchors</span></code>.</p></li>
+<li><p>WRPRCs (<code class="docutils literal notranslate"><span class="pre">--type</span> <span class="pre">wrprc</span></code>), which sign the registration certificate of a
+verifier or issuer, are verified against <code class="docutils literal notranslate"><span class="pre">wrprc_trust_anchors</span></code>. A WRPRC
+describes what an organization is registered for: the attributes a verifier
+may request, or the attestations an issuer provides.</p></li>
+<li><p>Issuer certificates (<code class="docutils literal notranslate"><span class="pre">--type</span> <span class="pre">issuer</span></code>), which sign the attestations an issuer
+issues, are verified against <code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code>.</p></li>
+<li><p>Token Status List signing certificates (<code class="docutils literal notranslate"><span class="pre">--type</span> <span class="pre">tsl</span></code>) sign the status lists
+of attestations or WRPRCs, and are verified against the same trust anchors
+as the attestations or WRPRCs whose status they publish.</p></li>
+</ul>
+<p>In the future, the EDI-stelsel will likely include a dedicated CA entity that
+will be responsible for issuing certificates for both issuers and verifiers,
+for both development and production purposes. This CA entity is not yet
+available, and hence, we facilitate community participants by allowing them to
+create and run their own CA.</p>
 </section>
-<section id="sharing-your-ca-public-key-with-the-operations-team">
-<h2>Sharing your CA Public Key with the Operations Team<a class="headerlink" href="#sharing-your-ca-public-key-with-the-operations-team" title="Link to this heading"></a></h2>
+<section id="publishing-a-crl-for-wrpacs">
+<h2>Publishing a CRL for WRPACs<a class="headerlink" href="#publishing-a-crl-for-wrpacs" title="Link to this heading"></a></h2>
+<p>A CA that issues WRPACs must publish a Certificate Revocation List (CRL), and
+every WRPAC it issues must point to that CRL in its CRL distribution point. The
+wallet rejects a WRPAC when its CRL is unavailable, invalid, expired, or lists
+that certificate as revoked, so you need to replace the published CRL before its
+<code class="docutils literal notranslate"><span class="pre">nextUpdate</span></code>. Creating, publishing and updating the CRL with <code class="docutils literal notranslate"><span class="pre">wallet_ca</span> <span class="pre">crl</span></code> is
+explained in the guides to <a class="reference internal" href="../get-started/create-a-verifier.html#creating-a-wrpac-certificate"><span class="std std-ref">create a verifier</span></a> and <a class="reference internal" href="../get-started/create-an-issuer.html#creating-issuer-tsl-wrpac-and-wrprc-certificates"><span class="std std-ref">create an issuer</span></a>.</p>
+</section>
+<section id="sharing-your-ca-certificate">
+<h2>Sharing your CA Certificate<a class="headerlink" href="#sharing-your-ca-certificate" title="Link to this heading"></a></h2>
 <div class="admonition note">
 <p class="admonition-title">Optional</p>
 <p>If you’re creating your own CA because you are in the process of <a class="reference internal" href="onboarding.html"><span class="doc std std-doc">onboarding</span></a>
-on our NL Wallet community platform, you need to share your public key with
-the operations team. This section covers that - if you’re just creating your own
-CA for usage in your own environment, please ignore this section.</p>
+in the NL Wallet Community, your CA certificate needs to be shared. This section
+covers that - if you’re just creating your own CA for usage in your own
+environment, please ignore this section.</p>
 </div>
-<p>After you have created the CA certificate and its key, we need to share the
-certificate with the operations team. the certificate will be called something
-like this:</p>
+<p>After you have created the CA certificate and its key, you need to share the
+certificate with the team. The certificate will be called something like this:</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ca.foocorp.crt.pem
 </pre></div>
 </div>
-<p>Where “foocorp” is the name you previously used as identifier. You can e-mail
-the public key to the e-mail address of the operations team. They will configure
-this key in the issuer and reader trust anchors of the NL Wallet. You will have
-obtained the e-mail address to be used after approval, possibly at the kick-off.</p>
+<p>Where “foocorp” is the name you previously used as identifier. Who you e-mail
+the certificate to depends on the environment you want to use:</p>
+<ul class="simple">
+<li><p>For the <code class="docutils literal notranslate"><span class="pre">preprod</span></code> environment, e-mail it to the operations team.</p></li>
+<li><p>For the <code class="docutils literal notranslate"><span class="pre">pub</span></code> environment, e-mail it to the development team.</p></li>
+</ul>
+<p>They will configure this certificate in the WRPAC, WRPRC and issuer trust
+anchors of the NL Wallet. You will have obtained the e-mail addresses to be used
+after approval, possibly at the kick-off.</p>
 <p>Make sure you keep the key file safe, it should never be shared with any party
 external to your organization (it’s called something like <code class="docutils literal notranslate"><span class="pre">ca.foocorp.key.pem</span></code>).</p>
 </section>
