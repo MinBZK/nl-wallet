@@ -880,6 +880,7 @@ async fn verify_device_request_with_crl(
     let access_subject = RelyingParty::try_from(access_certificate_subject)
         .map_err(CloseProximityDisclosureError::ReaderCertificateRelyingParty)?;
 
+    let revocation_verifier = RevocationVerifier::new_with_defaults(Arc::clone(status_list_client), time.clone());
     let registration_certificates = device_request.doc_requests.nonempty_iter().map(
         async |doc_request| -> Result<_, CloseProximityDisclosureError> {
             let items_request = &doc_request.items_request.0;
@@ -893,8 +894,6 @@ async fn verify_device_request_with_crl(
                 .validate_binding(&access_subject)
                 .map_err(CloseProximityDisclosureError::RegistrationCertificateBinding)?;
 
-            let revocation_verifier =
-                RevocationVerifier::new_with_defaults(Arc::clone(status_list_client), time.clone());
             let registration_certificate = bound_registration_certificate
                 .validate_status(&revocation_verifier, trust_anchors.wrprc, time)
                 .await
@@ -1001,7 +1000,6 @@ mod tests {
     use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::cbor_deserialize;
     use mdoc::utils::serialization::cbor_serialize;
-    use mockall::Sequence;
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use openid4vc::disclosure_session::DisclosureTrustAnchors;
@@ -1759,21 +1757,13 @@ mod tests {
         )
         .await;
         let mut status_list_client = MockStatusListClient::new();
-        let mut sequence = Sequence::new();
+        let status_list_result =
+            status_list_result.unwrap_or_else(|| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone()));
         status_list_client
             .expect_fetch()
             .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()))
             .once()
-            .in_sequence(&mut sequence)
-            .returning(|_| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone()));
-        if let Some(result) = status_list_result {
-            status_list_client
-                .expect_fetch()
-                .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()))
-                .once()
-                .in_sequence(&mut sequence)
-                .return_once(move |_| result);
-        }
+            .return_once(move |_| status_list_result);
         wallet.status_list_client = Arc::new(status_list_client);
         wallet
             .mut_storage()
@@ -2172,6 +2162,13 @@ mod tests {
         let (device_request, session_transcript, trust_anchors) =
             setup_device_request(vec![pid_items_request, mdl_items_request], None, true).await;
 
+        let mut status_list_client = MockStatusListClient::new();
+        status_list_client
+            .expect_fetch()
+            .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()))
+            .once()
+            .returning(|_| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone()));
+
         let result = verify_device_request_with_crl(
             &device_request,
             &session_transcript,
@@ -2181,7 +2178,7 @@ mod tests {
                 wrprc: &REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors,
             },
             &MockCertificateCrlVerifier::new_for_ca(&WRPAC_CA),
-            &registration_certificate_status_list_client(),
+            &Arc::new(status_list_client),
         )
         .await;
 
