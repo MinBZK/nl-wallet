@@ -94,6 +94,15 @@ for both development and production purposes. This CA entity is not yet
 available, and hence, we facilitate community participants by allowing them to
 create and run their own CA.
 
+## Publishing a CRL for WRPACs
+
+A CA that issues WRPACs must publish a Certificate Revocation List (CRL), and
+every WRPAC it issues must point to that CRL in its CRL distribution point. The
+wallet rejects a WRPAC when its CRL is unavailable, invalid, expired, or lists
+that certificate as revoked, so you need to replace the published CRL before its
+`nextUpdate`. Creating, publishing and updating the CRL with `wallet_ca crl` is
+explained in the guides to [create a verifier][3] and [create an issuer][4].
+
 ## Sharing your CA Certificate with the Operations Team
 
 <div class="admonition note"><p class="title">Optional</p>
@@ -120,3 +129,5 @@ external to your organization (it's called something like `ca.foocorp.key.pem`).
 
 [1]: /community/onboarding
 [2]: /about
+[3]: ../get-started/create-a-verifier.md#creating-a-wrpac-certificate
+[4]: ../get-started/create-an-issuer.md#creating-issuer-tsl-wrpac-and-wrprc-certificates
