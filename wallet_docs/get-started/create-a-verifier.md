@@ -202,8 +202,8 @@ member of the [NL Wallet Community][11], and so using NL Wallet managed backend
 services and mobile apps, this is done for you (i.e., you just need to sign
 your WRPAC certificate with your CA, which the `wallet_ca` utility invocation
 above did for you, and during the NL Wallet Community [onboarding][11] process
-you [shared your CA certificate][32] with us, so we can add your CA to the
-various trust anchor lists).
+you [shared your CA certificate][32], after which it was added to the various
+trust anchor lists).
 
 When you run locally, but with a manually created CA, you need to add the CA
 public certificate to your services and wallet app config yourself. When we

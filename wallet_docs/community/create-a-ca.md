@@ -53,8 +53,8 @@ creates a couple of CAs for you (to be precise, one for Wallet Relying Party
 Access Certificates (WRPACs), one for Wallet Relying Party Registration
 Certificates (WRPRCs), one for issuers, and one for the Wallet Provider).</p>
 <p>But there might be a reason for you to set up your own CA manually, for
-example, when you [onboard][1] in our NL Wallet Community, you will need to
-create your own CA and share the certificate of your CA with us.</p>
+example, when you [onboard][1] in the NL Wallet Community, you will need to
+create your own CA and share its certificate, as described below.</p>
 </div>
 
 ## Background
@@ -106,13 +106,13 @@ explained in the guides to [create a verifier][3] and [create an issuer][4].
 
 <div class="admonition note"><p class="title">Optional</p>
 If you're creating your own CA because you are in the process of [onboarding][1]
-in our NL Wallet Community, you need to share your CA certificate with us. This
-section covers that - if you're just creating your own CA for usage in your own
+in the NL Wallet Community, your CA certificate needs to be shared. This section
+covers that - if you're just creating your own CA for usage in your own
 environment, please ignore this section.
 </div>
 
 After you have created the CA certificate and its key, you need to share the
-certificate with us. The certificate will be called something like this:
+certificate with the team. The certificate will be called something like this:
 
     ca.foocorp.crt.pem
 

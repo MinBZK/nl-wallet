@@ -263,8 +263,8 @@ name and location in mind.
 ## Creating issuer, TSL, WRPAC and WRPRC certificates
 
 In this guide, we assume you have [onboarded succesfully][10] - i.e., you are
-running your own CA and [shared its certificate][25] with us, so we can add your
-CA to the trust anchors of the app.
+running your own CA and have [shared its certificate][25], after which your CA
+was added to the trust anchors of the app.
 
 <div class="admonition note"><p class="title">Onboarding optional</p>
 Do note that onboarding is not strictly necessary - you *can* follow all steps
@@ -482,8 +482,8 @@ of the [NL Wallet Community][10], and so using NL Wallet managed backend
 services and mobile apps, this is done for you (i.e., you just need to sign your
 issuer certificate with your CA, which the `wallet_ca` utility invocation above
 did for you, and during the NL Wallet Community [onboarding][10] process you
-[shared your CA certificate][25] with us, so we can add your CA to the various
-trust anchor lists).
+[shared your CA certificate][25], after which it was added to the various trust
+anchor lists).
 
 When you run locally, but with a manually created CA, you need to add the CA
 public certificate to your services and wallet app config yourself. When we
