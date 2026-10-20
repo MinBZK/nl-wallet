@@ -44,7 +44,7 @@ openssl pkcs8 -topk8 -nocrypt \
 ```
 
 After executing the above commands, you will have four files in the target
-directory you specified: The CA certicate and key in both PEM and DER format.
+directory you specified: The CA certificate and key in both PEM and DER format.
 
 <div class="admonition note">
 <p class="title">Why create your own CA certificates?</p>
@@ -53,8 +53,9 @@ creates a couple of CA's for you (to be precise, one for verifiers, and one for
 issuers).</p>
 <p>But there might be a reason for you to set up your own CA manually, for
 example, when you [onboard][1] on our NL Wallet community platform, you will
-need to create your own CA and share the public key of your CA with the
+need to create your own CA and share the certificate of your CA with the
 operations team.</p>
+</div>
 
 ## Background
 
@@ -68,7 +69,7 @@ following three entities:
 To develop integrations within the NL Wallet ecosystem (i.e., a verifier, or an
 issuer that can interact with the app), you need to have certain certificates
 that ascertain the validity of a verifier and issuer, and that contain various
-specific attributes that make the certicate work with our ecosystem.
+specific attributes that make the certificate work with our ecosystem.
 
 These certificates are issued by a CA (Certificate Authority) and these CAs are
 then trusted by the app, the issuers and the verifiers.
@@ -79,25 +80,26 @@ verifiers, for both development and production purposes. This CA entity is not
 yet available, and hence, we facilitate community participants by allowing them
 to create and run their own CA.
 
-## Sharing your CA Public Key with the Operations Team
+## Sharing your CA Certificate with the Operations Team
 
 <div class="admonition note"><p class="title">Optional</p>
 If you're creating your own CA because you are in the process of [onboarding][1]
-on our NL Wallet community platform, you need to share your public key with
+on our NL Wallet community platform, you need to share your CA certificate with
 the operations team. This section covers that - if you're just creating your own
 CA for usage in your own environment, please ignore this section.
 </div>
 
 After you have created the CA certificate and its key, we need to share the
-certificate with the operations team. the certificate will be called something
+certificate with the operations team. The certificate will be called something
 like this:
 
     ca.foocorp.crt.pem
 
 Where "foocorp" is the name you previously used as identifier. You can e-mail
-the public key to the e-mail address of the operations team. They will configure
-this key in the issuer and reader trust anchors of the NL Wallet. You will have
-obtained the e-mail address to be used after approval, possibly at the kick-off.
+the certificate to the e-mail address of the operations team. They will
+configure this certificate in the issuer and reader trust anchors of the NL
+Wallet. You will have obtained the e-mail address to be used after approval,
+possibly at the kick-off.
 
 Make sure you keep the key file safe, it should never be shared with any party
 external to your organization (it's called something like `ca.foocorp.key.pem`).
