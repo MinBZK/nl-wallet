@@ -208,11 +208,8 @@ async fn return_audit_user(
 }
 
 #[rstest::rstest]
-#[case::owned_string(String::from("user-42"))]
 #[case::str("user-42")]
-#[case::borrowed_string(&String::from("user-42"))]
 #[case::owned_user(AuditUser(String::from("user-42")))]
-#[case::borrowed_user(&AuditUser(String::from("user-42")))]
 #[tokio::test]
 async fn test_macro_preserves_audit_user(#[case] user: impl AsAuditUser) {
     let audit_log = RecordingAuditLog::default();

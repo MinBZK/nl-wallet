@@ -16,12 +16,6 @@ pub trait AsAuditUser {
     fn as_audit_user(&self) -> String;
 }
 
-impl AsAuditUser for String {
-    fn as_audit_user(&self) -> String {
-        self.clone()
-    }
-}
-
 impl AsAuditUser for str {
     fn as_audit_user(&self) -> String {
         self.to_owned()
@@ -126,6 +120,12 @@ pub mod mock {
     use super::AsAuditUser;
     use super::AuditLog;
 
+    impl AsAuditUser for String {
+        fn as_audit_user(&self) -> String {
+            self.clone()
+        }
+    }
+
     pub struct MockAuditLog;
 
     impl AuditLog for MockAuditLog {
@@ -221,11 +221,8 @@ mod tests {
     }
 
     #[rstest::rstest]
-    #[case::owned_string(String::from("user"))]
     #[case::str("user")]
-    #[case::borrowed_string(&String::from("user"))]
     #[case::owned_user(AuditUser(String::from("user")))]
-    #[case::borrowed_user(&AuditUser(String::from("user")))]
     #[tokio::test]
     async fn test_audit_user(#[case] user: impl AsAuditUser) {
         let audit_log = DbAuditLog {
