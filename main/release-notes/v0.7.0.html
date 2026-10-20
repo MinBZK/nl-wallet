@@ -212,8 +212,8 @@ and <code class="docutils literal notranslate"><span class="pre">street_address<
 <code class="docutils literal notranslate"><span class="pre">resident_street</span></code>. <code class="docutils literal notranslate"><span class="pre">place_of_birth</span></code> is now an object with <code class="docutils literal notranslate"><span class="pre">country</span></code> and
 <code class="docutils literal notranslate"><span class="pre">locality</span></code> properties. The mdoc <code class="docutils literal notranslate"><span class="pre">doctype</span></code> identifier was changed to match the
 EUDI PID Rulebook. The attribute <code class="docutils literal notranslate"><span class="pre">age_over_18</span></code> has been removed.
-<code class="docutils literal notranslate"><span class="pre">issuing_country</span></code>, <code class="docutils literal notranslate"><span class="pre">issuing_authority</span></code> and <code class="docutils literal notranslate"><span class="pre">sex</span></code> are added as new
-attributes. <code class="docutils literal notranslate"><span class="pre">birthdate</span></code> is now encoded as a <code class="docutils literal notranslate"><span class="pre">full-date</span></code> (CBOR tag 1004). The
+<code class="docutils literal notranslate"><span class="pre">issuing_country</span></code>, <code class="docutils literal notranslate"><span class="pre">issuing_authority</span></code> and <code class="docutils literal notranslate"><span class="pre">sex</span></code> are added as new attributes.
+<code class="docutils literal notranslate"><span class="pre">birthdate</span></code> is now encoded as a <code class="docutils literal notranslate"><span class="pre">full-date</span></code> (CBOR tag 1004). The
 <code class="docutils literal notranslate"><span class="pre">issuing_country</span></code> and <code class="docutils literal notranslate"><span class="pre">issuing_authority</span></code> must be configured in the PID issuer
 settings. The NL-specific mdoc attributes <code class="docutils literal notranslate"><span class="pre">bsn</span></code> and <code class="docutils literal notranslate"><span class="pre">recovery_code</span></code> have moved
 to the domestic <code class="docutils literal notranslate"><span class="pre">eu.europa.ec.eudi.pid.nl.1</span></code> namespace, as required for
@@ -263,6 +263,8 @@ additional base64url encoding required by ETSI TS 119 472-2.</p></li>
 Rulebook. Note that <code class="docutils literal notranslate"><span class="pre">portrait</span></code>, even though being mandatory, is not included
 at all because the BRP does not provide it. <code class="docutils literal notranslate"><span class="pre">place_of_birth</span></code> is also not
 marked as mandatory because our implementation cannot handle that yet.</p></li>
+<li><p>The JPEG 2000 image format, which may be included in the mDL, is now
+supported.</p></li>
 </ul>
 </section>
 <section id="bug-fixes">
