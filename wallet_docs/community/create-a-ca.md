@@ -49,8 +49,9 @@ directory you specified: The CA certificate and key in both PEM and DER format.
 <div class="admonition note">
 <p class="title">Why create your own CA certificates?</p>
 <p>Normally, when you set up a local development environment, the setup script
-creates a couple of CA's for you (to be precise, one for verifiers, and one for
-issuers).</p>
+creates a couple of CAs for you (to be precise, one for Wallet Relying Party
+Access Certificates (WRPACs), one for Wallet Relying Party Registration
+Certificates (WRPRCs), one for issuers, and one for the Wallet Provider).</p>
 <p>But there might be a reason for you to set up your own CA manually, for
 example, when you [onboard][1] on our NL Wallet community platform, you will
 need to create your own CA and share the certificate of your CA with the
@@ -72,7 +73,20 @@ that ascertain the validity of a verifier and issuer, and that contain various
 specific attributes that make the certificate work with our ecosystem.
 
 These certificates are issued by a CA (Certificate Authority) and these CAs are
-then trusted by the app, the issuers and the verifiers.
+then trusted by the app, the issuers and the verifiers. Each type of
+certificate is verified against its own list of trust anchors:
+
+  * WRPACs (`wallet_ca cert --type wrpac`), which identify verifiers and
+    issuers to the wallet, are verified against `wrpac_trust_anchors`.
+  * WRPRCs (`--type wrprc`), which sign the registration certificate of a
+    verifier or issuer, are verified against `wrprc_trust_anchors`. A WRPRC
+    describes what an organization is registered for: the attributes a verifier
+    may request, or the attestations an issuer provides.
+  * Issuer certificates (`--type issuer`), which sign the attestations an issuer
+    issues, are verified against `issuer_trust_anchors`.
+  * Token Status List signing certificates (`--type tsl`) sign the status lists
+    of attestations or WRPRCs, and are verified against the same trust anchors
+    as the attestations or WRPRCs whose status they publish.
 
 In the future, the NL Wallet platform will likely facilitate or use a dedicated
 CA entity that will be responsible for issuing certificates for both issuers and
