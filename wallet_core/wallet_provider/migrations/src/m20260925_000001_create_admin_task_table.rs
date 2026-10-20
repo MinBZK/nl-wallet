@@ -36,10 +36,9 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .name("idx_admin_task_status_created_by_user_id")
+                    .name("idx_admin_task_created_by_user_id")
                     .table(AdminTask::Table)
                     .col(AdminTask::CreatedByUserId)
-                    .and_where(Expr::col(AdminTask::Status).eq("created"))
                     .to_owned(),
             )
             .await?;
