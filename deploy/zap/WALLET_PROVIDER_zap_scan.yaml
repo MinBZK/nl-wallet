@@ -55,6 +55,34 @@ jobs:
       evidence: ""
       evidenceRegex: false
       methods: []
+# False positive, Token Status List for the Key Storage Status recommends the use of CORS
+    - ruleId: "40040"
+      ruleName: "CORS Misconfiguration (40040)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
+# False positive, Token Status List for the Key Storage Status recommends the use of CORS
+    - ruleId: "10098"
+      ruleName: "Cross-Domain Misconfiguration (10098)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
   parameters:
     deleteGlobalAlerts: false
   name: "alertFilter"

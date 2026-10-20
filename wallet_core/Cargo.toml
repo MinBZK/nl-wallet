@@ -155,12 +155,14 @@ etag = "4.0.0"
 flate2 = "1.1.5"
 futures = { version = "0.3.31", default-features = false, features = ["std"] }
 gcloud-auth = { version = "1.2.0", default-features = false, features = ["jwt-rust-crypto", "rustls-tls"] }
+hayro-jpeg2000 = "0.4.1"
 hex = "0.4.3"
 hex-literal = "1.1.0"
 http = "1.4.0"
 http-cache-reqwest = { version = "0.16.0", default-features = false }
 httpmock = { version = "0.8.3", default-features = false, features = ["headers", "https"] }
 hmac = { version = "0.12.1", features = ["std"] }
+image = { version = "0.25.10", default-features = false, features = ["rayon"] }
 indexmap = "2.12.1"
 int-enum = "1.2.0"
 itertools = "0.14.0"

@@ -14,6 +14,12 @@ mod wallet;
 
 pub mod errors;
 
+#[cfg(any(test, feature = "test"))]
+pub mod test_assets {
+    pub const JPEG_IMAGE: &[u8] = include_bytes!("../assets/tests/willeke.jpeg");
+    pub const JPEG2000_IMAGE: &[u8] = include_bytes!("../assets/tests/willeke.jp2");
+}
+
 pub use token_status_list::verification::verifier::RevocationStatus;
 pub use wallet_account::RevocationCode;
 pub use wallet_account::messages::errors::AccountRevokedData;
@@ -23,6 +29,8 @@ pub use wallet_account::messages::transfer::TransferSessionState;
 pub use crate::attestation::AttestationAttribute;
 pub use crate::attestation::AttestationIdentity;
 pub use crate::attestation::AttestationPresentation;
+pub use crate::attestation::AttributeValue;
+pub use crate::attestation::ImageAttribute;
 pub use crate::attestation::ValidityStatus;
 pub use crate::notification::DisplayTarget;
 pub use crate::notification::Notification;
@@ -55,7 +63,6 @@ pub use crate::wallet::WalletRepositories;
 pub use crate::wallet::WalletState;
 
 pub mod attestation_data {
-    pub use attestation_data::attributes::Attribute;
     pub use attestation_data::disclosure_type::DisclosureType;
     pub use attestation_data::organization::Organization;
     pub use attestation_data::organization::ServiceDescription;

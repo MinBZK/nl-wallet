@@ -19,9 +19,20 @@ allow_insecure_url = ["wallet/allow_insecure_url"]
 anyhow.workspace = true
 backtrace.workspace = true
 chrono.workspace = true
+hayro-jpeg2000.workspace = true
+image = { workspace = true, features = ["bmp"] }
 itertools.workspace = true
 parking_lot.workspace = true
-sentry = { workspace = true, features = ["backtrace", "contexts", "panic", "debug-images", "logs", "reqwest", "rustls", "tracing"] }
+sentry = { workspace = true, features = [
+    "backtrace",
+    "contexts",
+    "debug-images",
+    "logs",
+    "panic",
+    "reqwest",
+    "rustls",
+    "tracing",
+] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with.workspace = true
@@ -43,6 +54,8 @@ features = ["anyhow", "dart-opaque", "portable-atomic", "rust-async", "thread-po
 
 [dev-dependencies]
 rstest.workspace = true
+
+wallet = { path = "../wallet", features = ["test"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger.workspace = true
