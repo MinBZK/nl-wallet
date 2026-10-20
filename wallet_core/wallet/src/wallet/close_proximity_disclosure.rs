@@ -27,6 +27,7 @@ use derive_more::IsVariant;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use futures::future::try_join;
 use futures::future::try_join_all;
 use http_utils::client::TlsPinningConfig;
 use indexmap::IndexMap;
@@ -908,10 +909,7 @@ async fn verify_device_request_with_crl(
     );
 
     let (first, remaining) = registration_certificates.next();
-    let first = first.await?;
-    for registration_certificate in remaining {
-        registration_certificate.await?;
-    }
+    let (first, _) = try_join(first, try_join_all(remaining)).await?;
 
     // TODO (PVW-6407): Pending specification clarification for multiple WRPRCs, use the first DocRequest's
     // organization and purpose for the whole disclosure. Every WRPRC must still pass all checks above.
