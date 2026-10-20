@@ -4,7 +4,6 @@ use base64::DecodeError;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
-use ciborium::value::Value;
 use cose::wrprc_cwt::UnverifiedWrprcCwt;
 use cose::wrprc_cwt::WrprcCwtError;
 use crypto::trust_anchor::TrustAnchors;
@@ -18,6 +17,8 @@ use utils::generator::Generator;
 
 use super::ParsedRegistrationCertificate;
 use super::RegistrationCertificateValidationError;
+
+pub const REQUEST_INFO_WRPRC_KEY: &str = "euWrprc";
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateJwtParseError {
@@ -69,38 +70,29 @@ pub enum RegistrationCertificateEnvelope {
     Cwt(Box<UnverifiedWrprcCwt<ParsedRegistrationCertificate>>),
 }
 
-impl TryFrom<&[u8]> for RegistrationCertificateEnvelope {
-    type Error = RegistrationCertificateEnvelopeParseError;
-
-    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
+impl RegistrationCertificateEnvelope {
+    pub fn from_slice(bytes: &[u8]) -> Result<Self, RegistrationCertificateEnvelopeParseError> {
         Self::parse_jwt(bytes).or_else(|jwt| {
             UnverifiedWrprcCwt::from_slice(bytes)
-                .map(Box::new)
-                .map(Self::Cwt)
+                .map(|cwt| Self::Cwt(Box::new(cwt)))
                 .map_err(|cwt| RegistrationCertificateEnvelopeParseError::NeitherFormat {
                     jwt,
                     cwt: Box::new(cwt),
                 })
         })
     }
-}
 
-impl TryFrom<&ItemsRequest> for RegistrationCertificateEnvelope {
-    type Error = RegistrationCertificateRequestParseError;
-
-    fn try_from(items_request: &ItemsRequest) -> Result<Self, Self::Error> {
-        let value = items_request
+    pub fn from_request_info(items_request: &ItemsRequest) -> Result<Self, RegistrationCertificateRequestParseError> {
+        let bytes = items_request
             .request_info
             .as_ref()
-            .and_then(|request_info| request_info.get("euWrprc"))
-            .ok_or(RegistrationCertificateRequestParseError::Missing)?;
-        let Value::Bytes(bytes) = value else {
-            return Err(RegistrationCertificateRequestParseError::NotByteString);
-        };
+            .and_then(|request_info| request_info.get(REQUEST_INFO_WRPRC_KEY))
+            .ok_or(RegistrationCertificateRequestParseError::Missing)?
+            .as_bytes()
+            .ok_or(RegistrationCertificateRequestParseError::NotByteString)?;
 
         UnverifiedWrprcCwt::from_slice(bytes)
-            .map(Box::new)
-            .map(Self::Cwt)
+            .map(|cwt| Self::Cwt(Box::new(cwt)))
             .map_err(RegistrationCertificateRequestParseError::Cwt)
     }
 }
@@ -109,9 +101,11 @@ impl TryFrom<String> for RegistrationCertificateEnvelope {
     type Error = RegistrationCertificateEnvelopeParseError;
 
     fn try_from(data: String) -> Result<Self, Self::Error> {
-        // ETSI TS 119 472-2 requires the base64url encoding of the serialized registration certificate. Since a compact
-        // JWT already consists of base64url-encoded parts, some implementations include it without encoding it again.
-        // We choose to accept that as well: a compact JWT always contains a '.', while base64url never does.
+        // ETSI TS 119 472-2 requires the base64url encoding of the serialized registration certificate. Since a
+        // registration certificate encoded as a compact JWT already consists of base64url-encoded parts, some
+        // implementations wrongly include it without encoding it. Even though this is not spec-compliant, we leniently
+        // accept that as well. We differentiate between the cases by checking whether the data contains a '.': a
+        // compact JWT always contains a '.', while base64url encoded data never does.
         if data.contains('.') {
             return Self::parse_jwt(data.as_bytes()).map_err(RegistrationCertificateEnvelopeParseError::Jwt);
         }
@@ -120,7 +114,7 @@ impl TryFrom<String> for RegistrationCertificateEnvelope {
             .decode(data)
             .map_err(RegistrationCertificateEnvelopeParseError::Base64)?;
 
-        Self::try_from(bytes.as_slice())
+        Self::from_slice(bytes.as_slice())
     }
 }
 
@@ -202,6 +196,7 @@ mod tests {
     use rstest::rstest;
     use utils::generator::TimeGenerator;
 
+    use super::REQUEST_INFO_WRPRC_KEY;
     use super::RegistrationCertificateEnvelope;
     use super::RegistrationCertificateRequestParseError;
     use super::verify_registration_certificate_envelope;
@@ -232,13 +227,13 @@ mod tests {
         let encoded_certificate = [tags, certificate.as_slice()].concat();
         let request = items_request(Some(IndexMap::from_iter([
             ("unknownBefore".to_string(), Value::Bool(true)),
-            ("euWrprc".to_string(), Value::Bytes(encoded_certificate)),
+            (REQUEST_INFO_WRPRC_KEY.to_string(), Value::Bytes(encoded_certificate)),
             ("unknownAfter".to_string(), Value::Text("preserve me".to_string())),
         ])));
         let encoded_request = cbor_serialize(&request).unwrap();
         let request: ItemsRequest = cbor_deserialize(encoded_request.as_slice()).unwrap();
 
-        let envelope = RegistrationCertificateEnvelope::try_from(&request).unwrap();
+        let envelope = RegistrationCertificateEnvelope::from_request_info(&request).unwrap();
 
         assert_matches!(&envelope, RegistrationCertificateEnvelope::Cwt(_));
         assert_eq!(envelope.to_vec().unwrap(), certificate);
@@ -257,7 +252,7 @@ mod tests {
     #[case::no_eu_wrprc(Some(IndexMap::from_iter([("other".to_string(), Value::Null)])))]
     fn reject_missing_items_request_registration_certificate(#[case] request_info: Option<IndexMap<String, Value>>) {
         assert_matches!(
-            RegistrationCertificateEnvelope::try_from(&items_request(request_info)),
+            RegistrationCertificateEnvelope::from_request_info(&items_request(request_info)),
             Err(RegistrationCertificateRequestParseError::Missing)
         );
     }
@@ -267,10 +262,10 @@ mod tests {
     #[case::array(Value::Array(vec![Value::Integer(0.into())]))]
     #[case::null(Value::Null)]
     fn reject_items_request_registration_certificate_wrong_type(#[case] value: Value) {
-        let request = items_request(Some(IndexMap::from_iter([("euWrprc".to_string(), value)])));
+        let request = items_request(Some(IndexMap::from_iter([(REQUEST_INFO_WRPRC_KEY.to_string(), value)])));
 
         assert_matches!(
-            RegistrationCertificateEnvelope::try_from(&request),
+            RegistrationCertificateEnvelope::from_request_info(&request),
             Err(RegistrationCertificateRequestParseError::NotByteString)
         );
     }
@@ -281,12 +276,12 @@ mod tests {
     #[case::not_a_cwt(vec![0xa0])]
     fn reject_malformed_items_request_registration_certificate(#[case] bytes: Vec<u8>) {
         let request = items_request(Some(IndexMap::from_iter([(
-            "euWrprc".to_string(),
+            REQUEST_INFO_WRPRC_KEY.to_string(),
             Value::Bytes(bytes),
         )])));
 
         assert_matches!(
-            RegistrationCertificateEnvelope::try_from(&request),
+            RegistrationCertificateEnvelope::from_request_info(&request),
             Err(RegistrationCertificateRequestParseError::Cwt(_))
         );
     }
@@ -296,16 +291,16 @@ mod tests {
         let authority = MockRegistrationCertificateAuthority::new();
         let certificate = authority.sign_jwt(&RegistrationCertificateFixture(valid_payload_json()));
         assert_matches!(
-            RegistrationCertificateEnvelope::try_from(certificate.as_slice()),
+            RegistrationCertificateEnvelope::from_slice(certificate.as_slice()),
             Ok(RegistrationCertificateEnvelope::Jwt(_))
         );
         let request = items_request(Some(IndexMap::from_iter([(
-            "euWrprc".to_string(),
+            REQUEST_INFO_WRPRC_KEY.to_string(),
             Value::Bytes(certificate),
         )])));
 
         assert_matches!(
-            RegistrationCertificateEnvelope::try_from(&request),
+            RegistrationCertificateEnvelope::from_request_info(&request),
             Err(RegistrationCertificateRequestParseError::Cwt(_))
         );
     }

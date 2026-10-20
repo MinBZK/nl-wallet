@@ -173,7 +173,7 @@ mod tests {
     }
 
     fn registration_certificate_envelope(certificate: &[u8]) -> RegistrationCertificateEnvelope {
-        RegistrationCertificateEnvelope::try_from(certificate).unwrap()
+        RegistrationCertificateEnvelope::from_slice(certificate).unwrap()
     }
 
     async fn validate(

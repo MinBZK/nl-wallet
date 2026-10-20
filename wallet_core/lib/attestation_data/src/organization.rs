@@ -215,7 +215,7 @@ pub mod test {
         ]);
 
         let authority = MockRegistrationCertificateAuthority::new();
-        let envelope = RegistrationCertificateEnvelope::try_from(authority.sign_jwt(&payload).as_slice()).unwrap();
+        let envelope = RegistrationCertificateEnvelope::from_slice(authority.sign_jwt(&payload).as_slice()).unwrap();
         let payload = verify_registration_certificate_envelope(&envelope, &authority.trust_anchors, &TimeGenerator)
             .unwrap()
             .into_payload();

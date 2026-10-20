@@ -853,7 +853,7 @@ mod tests {
             )])
             .into(),
             credential_metadata_keypair: wrpac_keypair.into(),
-            registration_certificate: RegistrationCertificateEnvelope::try_from(
+            registration_certificate: RegistrationCertificateEnvelope::from_slice(
                 registration_certificate.certificate.as_slice(),
             )
             .unwrap(),
@@ -908,7 +908,7 @@ mod tests {
             [CredentialKind::new(Format::SdJwt, "com.example.pid".to_string())],
         );
         let envelope =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
         let encoded = String::try_from(&envelope).unwrap();
         let mut settings = json!({
             "public_url": "https://example.com",

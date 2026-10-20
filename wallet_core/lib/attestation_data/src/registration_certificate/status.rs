@@ -263,7 +263,7 @@ mod tests {
         );
 
         let result = valid_parsed_payload()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap()
             .validate_status(&verifier, &ca.to_trust_anchors(), &time)
             .await;

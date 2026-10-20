@@ -1407,7 +1407,7 @@ mod tests {
         let registration_certificate =
             MockRegistrationCertificate::new_verifier(rp_keypair.certificate(), credential_requests.clone().into());
         let registration_certificate =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             credential_requests,
             ClientId::x509_hash_from_certificate(rp_keypair.certificate()),
@@ -2284,7 +2284,7 @@ mod tests {
             "format": REGISTRATION_CERTIFICATE_FORMAT,
             "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate),
         });
-        let envelope = RegistrationCertificateEnvelope::try_from(certificate.as_slice()).unwrap();
+        let envelope = RegistrationCertificateEnvelope::from_slice(certificate.as_slice()).unwrap();
 
         let json = serde_json::to_value(VerifierInfo::registration_certificate(envelope)).unwrap();
         assert_eq!(json, expected_json);

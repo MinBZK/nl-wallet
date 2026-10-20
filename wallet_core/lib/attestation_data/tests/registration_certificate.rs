@@ -73,7 +73,7 @@ async fn parse_registration_certificate_without_verifying(#[case] format: Envelo
     let time = MockTimeGenerator::new(validation_time());
     let encoded = signed_registration_certificate(format, &registration_certificate_payload(), &ca, &time).await;
 
-    let envelope = RegistrationCertificateEnvelope::try_from(encoded.as_slice()).unwrap();
+    let envelope = RegistrationCertificateEnvelope::from_slice(encoded.as_slice()).unwrap();
 
     assert!(matches!(
         (format, &envelope),
@@ -91,7 +91,7 @@ async fn reject_untrusted_registration_certificate_after_parsing(#[case] format:
     let ca = Ca::generate_wrpac_mock_ca().unwrap();
     let time = MockTimeGenerator::new(validation_time());
     let encoded = signed_registration_certificate(format, &registration_certificate_payload(), &ca, &time).await;
-    let envelope = RegistrationCertificateEnvelope::try_from(encoded.as_slice()).unwrap();
+    let envelope = RegistrationCertificateEnvelope::from_slice(encoded.as_slice()).unwrap();
     let untrusted_ca = Ca::generate_wrpac_mock_ca().unwrap();
 
     let error = verify_registration_certificate_envelope(&envelope, &untrusted_ca.to_trust_anchors(), &time)
@@ -131,7 +131,7 @@ async fn verify_and_validate_registration_certificate(
         payload.0["exp"] = json!((now + Duration::seconds(seconds)).timestamp());
     }
     let encoded = signed_registration_certificate(format, &payload, &ca, &time).await;
-    let envelope = RegistrationCertificateEnvelope::try_from(encoded.as_slice()).unwrap();
+    let envelope = RegistrationCertificateEnvelope::from_slice(encoded.as_slice()).unwrap();
     let verified = verify_registration_certificate_envelope(&envelope, &ca.to_trust_anchors(), &time);
     if let Some(seconds) = expires_in_seconds.filter(|seconds| *seconds <= 0) {
         assert!(matches!(

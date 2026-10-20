@@ -93,32 +93,29 @@ fn validate_mdoc_items_request_authorization(
     items_request: &ItemsRequest,
     authorized_credentials: &[Credential],
 ) -> Result<(), RegistrationCertificateAuthorizationError> {
-    let authorized = authorized_credentials.iter().any(|credential| {
-        if !matches!(
-            &credential.format,
-            CredentialQueryFormat::MsoMdoc { doctype_value } if doctype_value == &items_request.doc_type
-        ) {
-            return false;
-        }
-
-        let Some(authorized_claims) = credential.claim.as_deref() else {
-            return false;
-        };
-
-        items_request.claims().all(|path| {
-            authorized_claims
-                .iter()
-                .any(|claim| claim.path == path && claim.values.is_empty())
-        })
-    });
-
-    if !authorized {
+    if !authorized_credentials
+        .iter()
+        .any(|authorized| items_request_is_authorized(items_request, authorized))
+    {
         return Err(RegistrationCertificateAuthorizationError::UnauthorizedItemsRequest(
             items_request.doc_type.clone(),
         ));
     }
 
     Ok(())
+}
+
+fn items_request_is_authorized(items_request: &ItemsRequest, authorized: &Credential) -> bool {
+    matches!(
+        &authorized.format,
+        CredentialQueryFormat::MsoMdoc { doctype_value } if *doctype_value == items_request.doc_type
+    ) && authorized.claim.as_deref().is_some_and(|authorized_claims| {
+        items_request.claims().all(|path| {
+            authorized_claims
+                .iter()
+                .any(|claim| claim.path == path && claim.values.is_empty())
+        })
+    })
 }
 
 fn credential_kind_is_authorized(kind: &CredentialKind, authorized: &Credential) -> bool {
@@ -286,16 +283,20 @@ mod tests {
 
     #[rstest]
     #[case::no_credentials(vec![])]
-    #[case::wrong_format(vec![credential(json!({
-        "format": "dc+sd-jwt",
-        "meta": { "vct_values": ["urn:example:pid"] },
-        "claim": [{ "path": ["urn:example:pid", "family_name"] }]
-    }))])]
-    #[case::wrong_document_type(vec![credential(json!({
-        "format": "mso_mdoc",
-        "meta": { "doctype_value": "urn:example:address" },
-        "claim": [{ "path": ["urn:example:pid", "family_name"] }]
-    }))])]
+    #[case::wrong_format(
+        vec![credential(json!({
+            "format": "dc+sd-jwt",
+            "meta": { "vct_values": ["urn:example:pid"] },
+            "claim": [{ "path": ["urn:example:pid", "family_name"] }]
+        }))]
+    )]
+    #[case::wrong_document_type(
+        vec![credential(json!({
+            "format": "mso_mdoc",
+            "meta": { "doctype_value": "urn:example:address" },
+            "claim": [{ "path": ["urn:example:pid", "family_name"] }]
+        }))]
+    )]
     fn reject_items_request_without_matching_credential(#[case] authorized: Vec<Credential>) {
         let request = items_request(&json!({ "urn:example:pid": { "family_name": false } }));
 

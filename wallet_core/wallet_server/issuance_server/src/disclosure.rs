@@ -292,7 +292,7 @@ mod tests {
         Issuer::new(
             "https://example.com".parse().unwrap(),
             metadata_keypair,
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap(),
             NonZeroU8::MIN,
             HashSet::new(),
             CredentialConfigurations::try_new([("credential_config_id".to_string().into(), credential_config)].into())

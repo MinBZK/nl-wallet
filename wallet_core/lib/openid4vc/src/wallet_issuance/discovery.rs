@@ -1002,7 +1002,7 @@ mod test {
         };
         let mut issuer_metadata: IssuerMetadata = serde_json::from_value(issuer_metadata_json).unwrap();
         let issuer_info = IssuerInfo::RegistrationCertificate {
-            data: RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
+            data: RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap(),
         };
         issuer_metadata.issuer_info = options
             .has_other_issuer_info

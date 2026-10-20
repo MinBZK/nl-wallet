@@ -324,9 +324,11 @@ fn parse_device_request(bytes: &[u8]) -> Result<DeviceRequest, CloseProximityDis
 fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option<DeviceResponseStatus> {
     match error {
         CloseProximityDisclosureError::MalformedDeviceRequest(_) => Some(DeviceResponseStatus::CborDecodingError),
-        CloseProximityDisclosureError::InvalidDeviceRequest(_) => Some(DeviceResponseStatus::InvalidRequest),
-        CloseProximityDisclosureError::UnsupportedDocFormat { .. } => Some(DeviceResponseStatus::InvalidRequest),
-        CloseProximityDisclosureError::RegistrationCertificateParsing(_) => Some(DeviceResponseStatus::InvalidRequest),
+        CloseProximityDisclosureError::InvalidDeviceRequest(_)
+        | CloseProximityDisclosureError::UnsupportedDocFormat { .. }
+        | CloseProximityDisclosureError::RegistrationCertificateParsing(_) => {
+            Some(DeviceResponseStatus::InvalidRequest)
+        }
         CloseProximityDisclosureError::InconsistentReaderAuths
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::InvalidReaderCertificate(_)
@@ -656,7 +658,7 @@ where
         let device_response = match Self::create_close_proximity_device_response(
             attestation_values,
             session_transcript.as_ref(),
-            &organization,
+            organization.identifier.clone(),
             &remote_wscd,
         )
         .await
@@ -799,7 +801,7 @@ where
     async fn create_close_proximity_device_response<'a, K, W>(
         attestations: impl IntoNonEmptyIterator<Item = &'a CloseProximityDisclosableAttestation>,
         session_transcript: &SessionTranscript,
-        organization: &Organization,
+        organization_identifier: String,
         wscd: &W,
     ) -> Result<DeviceResponseWithPoa<Poa>, DisclosureError>
     where
@@ -816,7 +818,7 @@ where
         // if this fails, there's a bug in the code
         let nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
         // use the same aud as for SD-JWT
-        let poa_input = JwtPoaInput::new(Some(nonce), organization.identifier.clone());
+        let poa_input = JwtPoaInput::new(Some(nonce), organization_identifier);
 
         // Create the device response, casting any `InstructionError` that occurs during signing
         // to `RemoteEcdsaKeyError::Instruction`.
@@ -885,7 +887,7 @@ async fn verify_device_request_with_crl(
     let registration_certificates = device_request.doc_requests.nonempty_iter().map(
         async |doc_request| -> Result<_, CloseProximityDisclosureError> {
             let items_request = &doc_request.items_request.0;
-            let registration_certificate = RegistrationCertificateEnvelope::try_from(items_request)
+            let registration_certificate = RegistrationCertificateEnvelope::from_request_info(items_request)
                 .map_err(CloseProximityDisclosureError::RegistrationCertificateParsing)?;
             let verified_registration_certificate =
                 verify_registration_certificate_envelope(&registration_certificate, trust_anchors.wrprc, time)
@@ -955,6 +957,7 @@ mod tests {
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::organization::Organization;
     use attestation_data::registration_certificate::ParsedRegistrationCertificate;
+    use attestation_data::registration_certificate::REQUEST_INFO_WRPRC_KEY;
     use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
     use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
@@ -1042,6 +1045,7 @@ mod tests {
     use super::close_proximity_disclosure_proposal;
     use super::verify_device_request_with_crl;
     use crate::DisclosureAttestationOptions;
+    use crate::DisclosureProposalPresentation;
     use crate::Pin;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
@@ -1073,6 +1077,10 @@ mod tests {
 
     static REGISTRATION_CERTIFICATE_AUTHORITY: LazyLock<MockRegistrationCertificateAuthority> =
         LazyLock::new(MockRegistrationCertificateAuthority::new);
+    static REGISTRATION_CERTIFICATE_REQUEST_INFO: LazyLock<IndexMap<String, Value>> = LazyLock::new(|| {
+        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&registration_certificate_payload());
+        IndexMap::from_iter([(REQUEST_INFO_WRPRC_KEY.to_string(), Value::Bytes(certificate))])
+    });
 
     fn close_proximity_wallet_configuration() -> WalletConfiguration {
         WalletConfiguration {
@@ -1101,13 +1109,6 @@ mod tests {
         Arc::new(client)
     }
 
-    fn registration_certificate_request_info() -> IndexMap<String, Value> {
-        static CERTIFICATE: LazyLock<Vec<u8>> =
-            LazyLock::new(|| REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&registration_certificate_payload()));
-
-        IndexMap::from_iter([("euWrprc".to_string(), Value::Bytes(CERTIFICATE.clone()))])
-    }
-
     fn add_matching_registration_certificate(
         items_request: &mut ItemsRequest,
         mut payload: RegistrationCertificateFixture,
@@ -1121,14 +1122,14 @@ mod tests {
         items_request
             .request_info
             .get_or_insert_default()
-            .insert("euWrprc".to_string(), Value::Bytes(certificate));
+            .insert(REQUEST_INFO_WRPRC_KEY.to_string(), Value::Bytes(certificate));
     }
 
     fn pid_given_name_items_request() -> ItemsRequest {
         interop_items_request(
             PID_MDOC_DOCTYPE,
             &[(PID_MDOC_DOCTYPE, &[PID_GIVEN_NAME][..])],
-            Some(registration_certificate_request_info()),
+            Some(REGISTRATION_CERTIFICATE_REQUEST_INFO.clone()),
         )
     }
 
@@ -1453,12 +1454,9 @@ mod tests {
         }));
     }
 
-    /// This tests `Wallet::continue_close_proximity_disclosure()` from a session that has already been established.
-    #[rstest]
-    #[case::available(true)]
-    #[case::missing(false)]
-    #[tokio::test]
-    async fn test_wallet_continue_close_proximity_disclosure(#[case] attributes_available: bool) {
+    async fn continue_close_proximity_disclosure_with_attributes(
+        attributes_available: bool,
+    ) -> (Result<DisclosureProposalPresentation, DisclosureError>, Organization) {
         // Populate a registered wallet with an example PID.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked_with_config(
             WalletDeviceVendor::Apple,
@@ -1530,24 +1528,6 @@ mod tests {
 
         wallet.mut_storage().checkpoint();
 
-        if attributes_available {
-            let proposal = result.expect("starting disclosure should succeed");
-            assert_eq!(proposal.organization, expected_organization);
-            assert!(!proposal.shared_data_with_relying_party_before);
-            assert_eq!(proposal.attestation_options.len().get(), 1);
-            assert!(matches!(
-                proposal.attestation_options.first(),
-                DisclosureAttestationOptions::Multiple(options) if options.len().get() == 3
-            ));
-        } else {
-            assert_matches!(
-                result,
-                Err(DisclosureError::AttributesNotAvailable(missing))
-                    if *missing.organization == expected_organization
-                        && !missing.shared_data_with_relying_party_before
-            );
-        }
-
         let Some(Session::CloseProximityDisclosure(session)) = wallet.session.as_ref() else {
             panic!("expected a close proximity disclosure session");
         };
@@ -1555,6 +1535,35 @@ mod tests {
             &*session.session_state.lock(),
             CloseProximityDisclosureSessionState::DisclosureProposed { organization, .. }
                 if **organization == expected_organization
+        );
+
+        (result, expected_organization)
+    }
+
+    /// Continue disclosure from an established session with the requested attributes available.
+    #[tokio::test]
+    async fn test_wallet_continue_close_proximity_disclosure() {
+        let (result, expected_organization) = continue_close_proximity_disclosure_with_attributes(true).await;
+
+        let proposal = result.expect("starting disclosure should succeed");
+        assert_eq!(proposal.organization, expected_organization);
+        assert!(!proposal.shared_data_with_relying_party_before);
+        assert_eq!(proposal.attestation_options.len().get(), 1);
+        assert!(matches!(
+            proposal.attestation_options.first(),
+            DisclosureAttestationOptions::Multiple(options) if options.len().get() == 3
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_close_proximity_disclosure_missing_attributes() {
+        let (result, expected_organization) = continue_close_proximity_disclosure_with_attributes(false).await;
+
+        assert_matches!(
+            result,
+            Err(DisclosureError::AttributesNotAvailable(missing))
+                if *missing.organization == expected_organization
+                    && !missing.shared_data_with_relying_party_before
         );
     }
 
@@ -1744,7 +1753,7 @@ mod tests {
         let valid_request = pid_given_name_items_request();
         let mut invalid_request = pid_given_name_items_request();
         invalid_request.request_info =
-            registration_certificate.map(|value| IndexMap::from_iter([("euWrprc".to_string(), value)]));
+            registration_certificate.map(|value| IndexMap::from_iter([(REQUEST_INFO_WRPRC_KEY.to_string(), value)]));
         // Sign the request after altering the WRPRC so that reader authentication remains valid.
         let (device_request, session_transcript, _) =
             setup_device_request(vec![valid_request, invalid_request], None, true).await;
@@ -1804,19 +1813,14 @@ mod tests {
     }
 
     #[rstest]
-    #[case::untrusted_chain(false)]
-    #[case::tampered_signature(true)]
+    #[case::untrusted_chain(&MockRegistrationCertificateAuthority::new(), false)]
+    #[case::tampered_signature(&REGISTRATION_CERTIFICATE_AUTHORITY, true)]
     #[tokio::test]
     #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_verification_error(
+        #[case] authority: &MockRegistrationCertificateAuthority,
         #[case] tamper_signature: bool,
     ) {
-        let untrusted_authority = MockRegistrationCertificateAuthority::new();
-        let authority = if tamper_signature {
-            &*REGISTRATION_CERTIFICATE_AUTHORITY
-        } else {
-            &untrusted_authority
-        };
         let reader = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
         let mut certificate = authority.issue_cwt(reader.certificate(), Query::new_mock_mdoc_pid_example());
         if tamper_signature {
@@ -2074,7 +2078,7 @@ mod tests {
         let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
         let mut items_request = pid_given_name_items_request();
         items_request.request_info = Some(IndexMap::from_iter([(
-            "euWrprc".to_string(),
+            REQUEST_INFO_WRPRC_KEY.to_string(),
             Value::Bytes(certificate),
         )]));
 
@@ -2532,7 +2536,7 @@ mod tests {
             TestWalletMockStorage::<LocalConfigurationRepository>::create_close_proximity_device_response(
                 disclosable_attestations.nonempty_iter(),
                 &session_transcript,
-                &organization,
+                organization.identifier,
                 &wscd,
             )
             .await

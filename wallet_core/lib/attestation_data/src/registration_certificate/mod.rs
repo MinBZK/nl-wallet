@@ -5,6 +5,7 @@ mod status;
 mod validation;
 
 pub use authorization::RegistrationCertificateAuthorizationError;
+pub use envelope::REQUEST_INFO_WRPRC_KEY;
 pub use envelope::RegistrationCertificateEnvelope;
 pub use envelope::RegistrationCertificateEnvelopeError;
 pub use envelope::RegistrationCertificateEnvelopeParseError;

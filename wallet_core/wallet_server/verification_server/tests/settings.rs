@@ -91,7 +91,7 @@ fn registration_certificate(
 
 fn to_use_case(key_pair: KeyPair, registration_certificate: &[u8]) -> UseCaseSettings {
     let registration_certificate =
-        RegistrationCertificateEnvelope::try_from(registration_certificate).expect("valid registration certificate");
+        RegistrationCertificateEnvelope::from_slice(registration_certificate).expect("valid registration certificate");
 
     UseCaseSettings {
         session_type_return_url: SessionTypeReturnUrl::Both,

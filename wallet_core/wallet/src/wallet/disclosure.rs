@@ -1115,16 +1115,14 @@ mod tests {
 
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_with_organization(
-        organization: &Organization,
+        organization: Organization,
         credential_requests: NormalizedCredentialRequests,
     ) -> MockDisclosureSession {
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
             .expect_session_type()
             .return_const(SessionType::CrossDevice);
-        disclosure_session
-            .expect_organization()
-            .return_const(organization.clone());
+        disclosure_session.expect_organization().return_const(organization);
         disclosure_session
             .expect_credential_requests()
             .return_const(credential_requests);
@@ -1138,7 +1136,7 @@ mod tests {
     ) -> (MockDisclosureSession, Organization) {
         let organization = Organization::new_mock();
 
-        let disclosure_session = setup_disclosure_session_with_organization(&organization, credential_requests);
+        let disclosure_session = setup_disclosure_session_with_organization(organization.clone(), credential_requests);
 
         (disclosure_session, organization)
     }
@@ -2810,7 +2808,7 @@ mod tests {
             .return_once(move |_disclosable_attestations| {
                 Err((
                     Box::new(setup_disclosure_session_with_organization(
-                        &disclose_organization,
+                        disclose_organization,
                         default_pid_credential_requests(Format::MsoMdoc),
                     )),
                     disclosure_error,
@@ -2851,7 +2849,7 @@ mod tests {
             .return_once(move |_disclosable_attestations| {
                 Err((
                     Box::new(setup_disclosure_session_with_organization(
-                        &disclose_organization,
+                        disclose_organization,
                         default_pid_credential_requests(Format::MsoMdoc),
                     )),
                     disclosure_error,
@@ -3000,7 +2998,7 @@ mod tests {
             .times(1)
             .return_once(move |_disclosable_attestations| {
                 let mut session = setup_disclosure_session_with_organization(
-                    &organization,
+                    organization,
                     default_pid_credential_requests(Format::MsoMdoc),
                 );
 
@@ -3183,7 +3181,7 @@ mod tests {
 
         session.protocol_state.expect_disclose().times(1).return_once(move |_| {
             let session = setup_disclosure_session_with_organization(
-                &organization,
+                organization,
                 default_pid_credential_requests(Format::MsoMdoc),
             );
 
@@ -3253,7 +3251,7 @@ mod tests {
 
         session.protocol_state.expect_disclose().times(1).return_once(move |_| {
             let session = setup_disclosure_session_with_organization(
-                &organization,
+                organization,
                 default_pid_credential_requests(Format::MsoMdoc),
             );
 
