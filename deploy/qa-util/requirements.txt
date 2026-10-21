@@ -4,7 +4,7 @@
 #
 #    pip-compile --generate-hashes
 #
-certifi==2026.6.17 \
+certifi==2026.10.19 \
     --hash=sha256:024c88eeec92ca068db80f02b8b07c9cef7b9fe261d1d535abfd5abd6f6af432 \
     --hash=sha256:2227dcbaafe0d2f59279d1762ddddc37783ed4354594f194ffc31d20f41fc3db
     # via requests
