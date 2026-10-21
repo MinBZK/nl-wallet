@@ -398,7 +398,7 @@ mod tests {
 
         assert_matches!(
             error,
-            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::Verification(_))
+            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::EndEntityIsTrustAnchor)
         );
     }
 }

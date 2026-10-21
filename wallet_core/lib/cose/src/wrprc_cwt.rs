@@ -491,7 +491,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(WrprcCwtError::Cose(CoseError::CertificateVerify(
-                CertificateVerifyError::Verification(_)
+                CertificateVerifyError::EndEntityIsTrustAnchor
             )))
         ));
     }
