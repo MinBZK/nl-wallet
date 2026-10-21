@@ -32,8 +32,6 @@ pub enum RegistrationCertificateJwtParseError {
 pub enum RegistrationCertificateEnvelopeParseError {
     #[error("could not decode registration certificate as Base64: {0}")]
     Base64(#[source] DecodeError),
-    #[error("could not parse registration certificate as JWT: {0}")]
-    Jwt(#[source] RegistrationCertificateJwtParseError),
     #[error("could not parse registration certificate as JWT ({jwt}) or CWT ({cwt})")]
     NeitherFormat {
         jwt: RegistrationCertificateJwtParseError,
@@ -104,10 +102,10 @@ impl TryFrom<String> for RegistrationCertificateEnvelope {
         // ETSI TS 119 472-2 requires the base64url encoding of the serialized registration certificate. Since a
         // registration certificate encoded as a compact JWT already consists of base64url-encoded parts, some
         // implementations wrongly include it without encoding it. Even though this is not spec-compliant, we leniently
-        // accept that as well. We differentiate between the cases by checking whether the data contains a '.': a
-        // compact JWT always contains a '.', while base64url encoded data never does.
-        if data.contains('.') {
-            return Self::parse_jwt(data.as_bytes()).map_err(RegistrationCertificateEnvelopeParseError::Jwt);
+        // accept that as well. Try parsing a compact JWT first: the JWT parser requires a '.', which never occurs
+        // in base64url-encoded data.
+        if let Ok(jwt) = data.parse() {
+            return Ok(Self::Jwt(jwt));
         }
 
         let bytes = BASE64_URL_SAFE_NO_PAD
@@ -128,14 +126,7 @@ impl TryFrom<&RegistrationCertificateEnvelope> for String {
 
 impl RegistrationCertificateEnvelope {
     fn parse_jwt(bytes: &[u8]) -> Result<Self, RegistrationCertificateJwtParseError> {
-        let compact_jwt = str::from_utf8(bytes)?;
-        let parts = compact_jwt.split('.').count();
-
-        if parts != 3 {
-            return Err(JwtParseError::UnexpectedNumberOfParts(parts).into());
-        }
-
-        Ok(Self::Jwt(compact_jwt.parse()?))
+        Ok(Self::Jwt(str::from_utf8(bytes)?.parse()?))
     }
 
     pub fn to_vec(&self) -> Result<Vec<u8>, WrprcCwtError> {

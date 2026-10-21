@@ -724,8 +724,6 @@ mod tests {
 
     #[rstest]
     #[case::not_an_envelope(b"not a registration certificate")]
-    #[case::missing_jwt_part(b"header.payload")]
-    #[case::extra_jwt_part(b"header.payload.signature.extra")]
     #[case::invalid_utf8(b"\xff")]
     fn test_vp_disclosure_client_does_not_report_malformed_registration_certificate(
         #[case] malformed_certificate: &[u8],
@@ -778,6 +776,39 @@ mod tests {
             VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
                 AuthRequestValidationError::JwtVerification(_)
             ))
+        );
+    }
+
+    #[rstest]
+    #[case::missing_jwt_part(|jwt: &str| jwt.rsplit_once('.').unwrap().0.to_string())]
+    #[case::extra_jwt_part(|jwt: &str| format!("{jwt}.extra"))]
+    fn test_vp_disclosure_client_reports_malformed_registration_certificate_jwt(
+        #[case] malformed_jwt: fn(&str) -> String,
+    ) {
+        let (error, verifier_session) = start_disclosure_session_format(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            VpRequestUriMethod::GET,
+            None,
+            Format::MsoMdoc,
+            |mut verifier_session| {
+                let registration_certificate = verifier_session.registration_certificate.as_mut().unwrap();
+                let jwt = std::str::from_utf8(&registration_certificate.certificate).unwrap();
+                registration_certificate.certificate = malformed_jwt(jwt).into_bytes();
+                verifier_session
+            },
+        )
+        .expect_err("a malformed registration certificate JWT should be rejected during verification");
+
+        assert_matches!(
+            *error,
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
+                AuthRequestValidationError::RegistrationCertificate(ref registration_error)
+            )) if matches!(registration_error.as_ref(), RegistrationCertificateError::Envelope(_))
+        );
+        assert_matches!(
+            verifier_session.wallet_messages.lock().last(),
+            Some(WalletMessage::Error(response)) if response.error_response.error == VpAuthorizationErrorCode::InvalidRequest
         );
     }
 
