@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  follow-redirects@>=1.16.0 <1.16.1: 1.16.1
+  vite@>=8.3.0 <=8.3.2: 8.3.3
+
 importers:
 
   .:
@@ -19,7 +23,7 @@ importers:
         version: 26.6.3
       '@vitejs/plugin-vue':
         specifier: ^6.0.9
-        version: 6.0.9(vite@8.3.1(@types/node@26.6.3))(vue@3.5.43(typescript@6.0.3))
+        version: 6.0.9(vite@8.3.3(@types/node@26.6.3))(vue@3.5.43(typescript@6.0.3))
       '@vitest/coverage-v8':
         specifier: ^4.1.11
         version: 4.1.11(vitest@4.1.11)
@@ -75,14 +79,14 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
       vite:
-        specifier: ^8.3.1
-        version: 8.3.1(@types/node@26.6.3)
+        specifier: 8.3.3
+        version: 8.3.3(@types/node@26.6.3)
       vite-plugin-dts:
         specifier: ^5.1.1
-        version: 5.1.1(@microsoft/api-extractor@7.59.3(@types/node@26.6.3))(@vue/language-core@3.3.11)(rolldown@1.2.11)(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.1(@types/node@26.6.3))
+        version: 5.1.1(@microsoft/api-extractor@7.59.3(@types/node@26.6.3))(@vue/language-core@3.3.11)(rolldown@1.2.11)(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.3))
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.6.3)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.5)(vite@8.3.1(@types/node@26.6.3))
+        version: 4.1.11(@types/node@26.6.3)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.5)(vite@8.3.3(@types/node@26.6.3))
       vue:
         specifier: ^3.5.43
         version: 3.5.43(typescript@6.0.3)
@@ -468,7 +472,7 @@ packages:
     resolution: {integrity: sha512-rD/MORlhaZMlXWW0rEn4FB4wMinWC0z/D7Ye160S5+Rs1mC8ZDAdcDp4SjKfUhG5t8q1ktcPVw4xuTkPRlzrSA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: 8.3.3
       vue: ^3.2.25
 
   '@vitest/coverage-v8@4.1.11':
@@ -487,7 +491,7 @@ packages:
     resolution: {integrity: sha512-2XJVD55d1o5AZous5CCGKS74g/riOj9odEt2bQpCVZeblHyHdnMeFl4jl0XjU21stf4mbjUkew2eXQZt65g5CQ==}
     peerDependencies:
       msw: ^2.4.9
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: 8.3.3
     peerDependenciesMeta:
       msw:
         optional: true
@@ -979,8 +983,8 @@ packages:
   flatted@3.4.4:
     resolution: {integrity: sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==}
 
-  follow-redirects@1.16.0:
-    resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
+  follow-redirects@1.16.1:
+    resolution: {integrity: sha512-FNvFGzoMLWmE6Yj9spb/zjd7yiNCHiAW9/Tg9CXrQ8wuu32HtlJOwWO11OJafl5FfY3DxTdQ0vj42zU1kvv5jg==}
     engines: {node: '>=4.0'}
     peerDependencies:
       debug: '*'
@@ -1611,7 +1615,7 @@ packages:
       rolldown: '*'
       rollup: '>=3'
       typescript: '>=4'
-      vite: '>=3'
+      vite: 8.3.3
       webpack: ^4 || ^5
     peerDependenciesMeta:
       '@microsoft/api-extractor':
@@ -1652,7 +1656,7 @@ packages:
     peerDependencies:
       '@microsoft/api-extractor': '>=7'
       rollup: '>=3'
-      vite: '>=3'
+      vite: 8.3.3
     peerDependenciesMeta:
       '@microsoft/api-extractor':
         optional: true
@@ -1661,8 +1665,8 @@ packages:
       vite:
         optional: true
 
-  vite@8.3.1:
-    resolution: {integrity: sha512-/bvH9E9tmCXRGp2uXY3WbOldqpTwFkbha/8ANaEQ6VkxhH60KyqLwgZq6lG2y+4uT55x9+9eUHMpQ7uGnOCKjA==}
+  vite@8.3.3:
+    resolution: {integrity: sha512-cTAldKPImjg6c+gk48U19POPn3GCBzZwpdsN8ZMEEcbpes+6/wvfqUd0C2y3qYY4wsj8PwgFwrZ/1jBPVttMSg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -1720,7 +1724,7 @@ packages:
       '@vitest/ui': 4.1.11
       happy-dom: '*'
       jsdom: '*'
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: 8.3.3
     peerDependenciesMeta:
       '@edge-runtime/vm':
         optional: true
@@ -2184,10 +2188,10 @@ snapshots:
       '@typescript-eslint/types': 8.71.0
       eslint-visitor-keys: 5.0.1
 
-  '@vitejs/plugin-vue@6.0.9(vite@8.3.1(@types/node@26.6.3))(vue@3.5.43(typescript@6.0.3))':
+  '@vitejs/plugin-vue@6.0.9(vite@8.3.3(@types/node@26.6.3))(vue@3.5.43(typescript@6.0.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.3.1(@types/node@26.6.3)
+      vite: 8.3.3(@types/node@26.6.3)
       vue: 3.5.43(typescript@6.0.3)
 
   '@vitest/coverage-v8@4.1.11(vitest@4.1.11)':
@@ -2202,7 +2206,7 @@ snapshots:
       obug: 2.2.1
       std-env: 4.3.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.11(@types/node@26.6.3)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.5)(vite@8.3.1(@types/node@26.6.3))
+      vitest: 4.1.11(@types/node@26.6.3)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.5)(vite@8.3.3(@types/node@26.6.3))
 
   '@vitest/expect@4.1.11':
     dependencies:
@@ -2213,13 +2217,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.1
 
-  '@vitest/mocker@4.1.11(vite@8.3.1(@types/node@26.6.3))':
+  '@vitest/mocker@4.1.11(vite@8.3.3(@types/node@26.6.3))':
     dependencies:
       '@vitest/spy': 4.1.11
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.3.1(@types/node@26.6.3)
+      vite: 8.3.3(@types/node@26.6.3)
 
   '@vitest/pretty-format@4.1.11':
     dependencies:
@@ -2412,7 +2416,7 @@ snapshots:
     dependencies:
       '@vitest/runner': 4.1.11
       allure-js-commons: 3.13.0
-      vitest: 4.1.11(@types/node@26.6.3)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.5)(vite@8.3.1(@types/node@26.6.3))
+      vitest: 4.1.11(@types/node@26.6.3)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.5)(vite@8.3.3(@types/node@26.6.3))
     transitivePeerDependencies:
       - allure-playwright
 
@@ -2443,7 +2447,7 @@ snapshots:
 
   axios@1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1):
     dependencies:
-      follow-redirects: 1.16.0(debug@4.4.3(supports-color@8.1.1))
+      follow-redirects: 1.16.1(debug@4.4.3(supports-color@8.1.1))
       form-data: 4.0.6
       https-proxy-agent: 5.0.1(supports-color@8.1.1)
       proxy-from-env: 2.1.0
@@ -2735,7 +2739,7 @@ snapshots:
 
   flatted@3.4.4: {}
 
-  follow-redirects@1.16.0(debug@4.4.3(supports-color@8.1.1)):
+  follow-redirects@1.16.1(debug@4.4.3(supports-color@8.1.1)):
     optionalDependencies:
       debug: 4.4.3(supports-color@8.1.1)
 
@@ -3291,7 +3295,7 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  unplugin-dts@1.1.1(@microsoft/api-extractor@7.59.3(@types/node@26.6.3))(@vue/language-core@3.3.11)(rolldown@1.2.11)(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.1(@types/node@26.6.3)):
+  unplugin-dts@1.1.1(@microsoft/api-extractor@7.59.3(@types/node@26.6.3))(@vue/language-core@3.3.11)(rolldown@1.2.11)(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.3)):
     dependencies:
       '@rollup/pluginutils': 5.4.0
       '@volar/typescript': 2.4.28(typescript@6.0.3)
@@ -3307,7 +3311,7 @@ snapshots:
       '@microsoft/api-extractor': 7.59.3(@types/node@26.6.3)
       '@vue/language-core': 3.3.11
       rolldown: 1.2.11
-      vite: 8.3.1(@types/node@26.6.3)
+      vite: 8.3.3(@types/node@26.6.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -3330,12 +3334,12 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite-plugin-dts@5.1.1(@microsoft/api-extractor@7.59.3(@types/node@26.6.3))(@vue/language-core@3.3.11)(rolldown@1.2.11)(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.1(@types/node@26.6.3)):
+  vite-plugin-dts@5.1.1(@microsoft/api-extractor@7.59.3(@types/node@26.6.3))(@vue/language-core@3.3.11)(rolldown@1.2.11)(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.3)):
     dependencies:
-      unplugin-dts: 1.1.1(@microsoft/api-extractor@7.59.3(@types/node@26.6.3))(@vue/language-core@3.3.11)(rolldown@1.2.11)(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.1(@types/node@26.6.3))
+      unplugin-dts: 1.1.1(@microsoft/api-extractor@7.59.3(@types/node@26.6.3))(@vue/language-core@3.3.11)(rolldown@1.2.11)(supports-color@8.1.1)(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.3))
     optionalDependencies:
       '@microsoft/api-extractor': 7.59.3(@types/node@26.6.3)
-      vite: 8.3.1(@types/node@26.6.3)
+      vite: 8.3.3(@types/node@26.6.3)
     transitivePeerDependencies:
       - '@rspack/core'
       - '@vue/language-core'
@@ -3345,7 +3349,7 @@ snapshots:
       - typescript
       - webpack
 
-  vite@8.3.1(@types/node@26.6.3):
+  vite@8.3.3(@types/node@26.6.3):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -3356,10 +3360,10 @@ snapshots:
       '@types/node': 26.6.3
       fsevents: 2.3.3
 
-  vitest@4.1.11(@types/node@26.6.3)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.5)(vite@8.3.1(@types/node@26.6.3)):
+  vitest@4.1.11(@types/node@26.6.3)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.5)(vite@8.3.3(@types/node@26.6.3)):
     dependencies:
       '@vitest/expect': 4.1.11
-      '@vitest/mocker': 4.1.11(vite@8.3.1(@types/node@26.6.3))
+      '@vitest/mocker': 4.1.11(vite@8.3.3(@types/node@26.6.3))
       '@vitest/pretty-format': 4.1.11
       '@vitest/runner': 4.1.11
       '@vitest/snapshot': 4.1.11
@@ -3376,7 +3380,7 @@ snapshots:
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.1
-      vite: 8.3.1(@types/node@26.6.3)
+      vite: 8.3.3(@types/node@26.6.3)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.6.3
