@@ -473,10 +473,14 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
+    use p256::pkcs8::EncodePublicKey;
     use rcgen::PKCS_ECDSA_P384_SHA384;
     use rcgen::RevocationReason;
     use rcgen::RevokedCertParams;
     use rcgen::SerialNumber;
+    use ring::digest;
     use rstest::rstest;
     use time::OffsetDateTime;
     use time::macros::datetime;
@@ -624,6 +628,61 @@ mod tests {
         if let Some(key_usage) = key_usage {
             assert!(key_usage.critical);
         }
+    }
+
+    #[rstest]
+    fn generated_leaf_subject_key_identifier(
+        #[values(
+            Some(CertificateUsage::Mdl),
+            Some(CertificateUsage::StatusListSigning),
+            Some(CertificateUsage::Wia),
+            Some(CertificateUsage::KeyAttestation),
+            None
+        )]
+        usage: Option<CertificateUsage>,
+        #[values(false, true)] from_public_key: bool,
+    ) {
+        let ca = Ca::generate_mock();
+        let distinguished_name = DistinguishedName::create_mock("signer");
+        let configuration = CertificateConfiguration {
+            usage,
+            ..Default::default()
+        };
+        let certificate = if from_public_key {
+            let public_key = SigningKey::generate().verifying_key().to_public_key_der().unwrap();
+            ca.generate_certificate(public_key.as_bytes(), distinguished_name, configuration)
+                .unwrap()
+        } else {
+            ca.generate_key_pair(distinguished_name, configuration)
+                .unwrap()
+                .certificate()
+                .clone()
+        };
+        let x509_cert = certificate.x509_certificate();
+
+        // ISO/IEC 18013-5, Tables B.3 and B.6: a non-critical subject key identifier, which is the SHA-1 hash of the
+        // subjectPublicKey BIT STRING value.
+        let (critical, key_id) = x509_cert
+            .extensions()
+            .iter()
+            .find_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::SubjectKeyIdentifier(key_id) => Some((ext.critical, key_id.0.to_vec())),
+                _ => None,
+            })
+            .expect("leaf must contain a subject key identifier");
+        assert!(!critical);
+        let expected_key_id = digest::digest(
+            &digest::SHA1_FOR_LEGACY_USE_ONLY,
+            &x509_cert.public_key().subject_public_key.data,
+        );
+        assert_eq!(key_id, expected_key_id.as_ref());
+
+        // ISO/IEC 18013-5, Tables B.3 and B.6 only allow further extensions if they are non-critical.
+        assert!(x509_cert.basic_constraints().unwrap().is_none());
+
+        certificate
+            .verify(usage, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .expect("leaf must verify against the CA");
     }
 
     #[test]
