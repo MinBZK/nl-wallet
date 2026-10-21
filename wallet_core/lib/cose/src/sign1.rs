@@ -17,7 +17,6 @@ use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
-use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -148,9 +147,8 @@ impl<T> TypedCose<CoseSign1, T> {
     ) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
         let x5chain = self.x5chain()?;
 
-        if x5chain.iter().any(|cert| trust_anchors.contains(cert)) {
-            return Err(CoseError::CertificateVerify(CertificateVerifyError::TrustAnchorInChain));
-        }
+        BorrowingCertificate::ensure_trust_anchor_not_in_chain(&x5chain, trust_anchors)
+            .map_err(CoseError::CertificateVerify)?;
 
         Ok(x5chain)
     }

@@ -19,7 +19,6 @@ use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
-use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -327,11 +326,8 @@ where
             .map_err(JwtVerifyError::ParseError)
             .map_err(JwtX5cVerifyError::JwtVerify)?;
 
-        if certificates.iter().any(|cert| trust_anchors.contains(cert)) {
-            return Err(JwtX5cVerifyError::CertificateValidation(
-                CertificateVerifyError::TrustAnchorInChain,
-            ));
-        }
+        BorrowingCertificate::ensure_trust_anchor_not_in_chain(&certificates, trust_anchors)
+            .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         Ok(certificates)
     }

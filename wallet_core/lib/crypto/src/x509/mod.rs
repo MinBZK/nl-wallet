@@ -207,6 +207,18 @@ impl BorrowingCertificate {
         Ok(BorrowingCertificate(yoke))
     }
 
+    /// Verifies the HAIP 1.0 requirement that a certificate chain does not contain any of the trust anchors.
+    pub fn ensure_trust_anchor_not_in_chain<'a>(
+        chain: impl IntoIterator<Item = &'a BorrowingCertificate>,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<(), CertificateVerifyError> {
+        if chain.into_iter().any(|cert| trust_anchors.contains(cert)) {
+            return Err(CertificateVerifyError::TrustAnchorInChain);
+        }
+
+        Ok(())
+    }
+
     /// Verify the certificate against the specified trust anchors.
     ///
     /// The certificate itself must not be a trust anchor, as direct trust is not supported. Any trust anchors present
