@@ -135,6 +135,9 @@ where
     ///
     /// A `None` certificate usage still validates the certificate path, but does not require a profile-specific
     /// extended key usage.
+    ///
+    /// The trust anchor is allowed to be present in the `x5chain` header, as HAIP does not profile registration
+    /// certificates.
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &TrustAnchors,
@@ -143,12 +146,7 @@ where
     ) -> Result<VerifiedWrprcCwt<T>, WrprcCwtError> {
         let payload = self
             .cose
-            .verify_against_trust_anchors_with_chain(
-                self.unverified_header.x5chain.clone(),
-                trust_anchors,
-                time,
-                certificate_usage,
-            )
+            .verify_with_x5chain(&self.unverified_header.x5chain, trust_anchors, time, certificate_usage)
             .map_err(WrprcCwtError::Cose)?;
 
         Ok(VerifiedWrprcCwt {
@@ -370,6 +368,7 @@ fn parse_cose_sign1(bytes: &[u8]) -> Result<CoseSign1, WrprcCwtError> {
 mod tests {
     use chrono::TimeZone;
     use crypto::server_keys::generate::Ca;
+    use crypto::x509::CertificateVerifyError;
     use error_category::Category;
     use serde::Deserialize;
     use utils::generator::TimeGenerator;
@@ -446,6 +445,55 @@ mod tests {
             Some(&Timestamp::WholeSeconds(issued_at.timestamp()))
         );
         assert_eq!(verified.header().x5chain.first(), key_pair.certificate());
+    }
+
+    #[tokio::test]
+    async fn verify_wrprc_cwt_with_trust_anchor_in_x5chain() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+
+        let header = HeaderBuilder::new()
+            .algorithm(iana::Algorithm::ES256)
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
+            .value(
+                COSE_X5CHAIN_HEADER_LABEL,
+                Value::Array(vec![
+                    Value::Bytes(key_pair.certificate().to_vec()),
+                    Value::Bytes(ca.certificate().to_vec()),
+                ]),
+            )
+            .build();
+        let parsed = UnverifiedWrprcCwt::<ToyMessage>::try_from(sign_with_header(header, &key_pair).await).unwrap();
+
+        let verified = parsed
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None)
+            .unwrap();
+
+        assert_eq!(verified.payload(), &ToyMessage::default());
+        assert_eq!(verified.header().x5chain.len().get(), 2);
+    }
+
+    #[tokio::test]
+    async fn verify_wrprc_cwt_rejects_trust_anchor_as_leaf() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+
+        // Sign with the trust anchor itself, so that it is the leaf certificate.
+        let key_pair = KeyPair::new_from_signing_key(
+            ca.to_signing_key().unwrap(),
+            BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap(),
+        )
+        .unwrap();
+        let header = valid_wrprc_protected_header(&key_pair, None);
+        let parsed = UnverifiedWrprcCwt::<ToyMessage>::try_from(sign_with_header(header, &key_pair).await).unwrap();
+
+        let result = parsed.into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None);
+
+        assert!(matches!(
+            result,
+            Err(WrprcCwtError::Cose(CoseError::CertificateVerify(
+                CertificateVerifyError::EndEntityIsTrustAnchor
+            )))
+        ));
     }
 
     #[tokio::test]
