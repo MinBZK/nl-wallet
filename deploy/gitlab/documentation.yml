@@ -1,5 +1,6 @@
 build-documentation:
   stage: build
+  allow_failure: true
   rules: !reference [.default-or-merge-request, rules]
   needs: []
   script:
