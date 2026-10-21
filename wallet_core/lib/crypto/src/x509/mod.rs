@@ -2,7 +2,6 @@ use std::convert::Into;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter::Iterator;
-use std::iter::once;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -206,8 +205,8 @@ impl BorrowingCertificate {
 
     /// Verify the certificate against the specified trust anchors.
     ///
-    /// Additionally, this method verifies that the trust anchors are not contained in the intermediate
-    /// certificates as mandated by HAIP 1.0.
+    /// Any trust anchors present in `intermediate_certs` are ignored. Profiles that forbid the trust anchor in the
+    /// certificate chain, such as HAIP 1.0, should check for this before calling this method.
     pub fn verify(
         &self,
         usage: Option<CertificateUsage>,
@@ -237,15 +236,10 @@ impl BorrowingCertificate {
         trust_anchors: &TrustAnchors,
         crls: Option<&[&CertRevocationList<'_>]>,
     ) -> Result<(), CertificateVerifyError> {
-        let chain = once(self).chain(intermediate_certs).collect_vec();
-
-        // HAIP 1.0 requires that the x5c header does not contain the trust anchor.
-        if chain.iter().any(|cert| trust_anchors.contains(cert)) {
-            return Err(CertificateVerifyError::TrustAnchorInChain);
-        }
-
+        // Do not rely on webpki to handle trust anchors that are also passed as intermediates.
         let intermediate_certs = intermediate_certs
             .iter()
+            .filter(|cert| !trust_anchors.contains(cert))
             .map(BorrowingCertificate::as_der)
             .cloned()
             .collect_vec();
@@ -809,7 +803,7 @@ mod tests {
             .expect("leaf should verify against old CA via cross-cert intermediate");
 
         // Phase 2: same verification but with the self-signed new CA cert added to the
-        // intermediates as well. It must not trigger TrustAnchorInChain because the trust anchor
+        // intermediates as well. It is not filtered out as a trust anchor because the trust anchor
         // here is old CA (different subject/SPKI from the new CA cert).
         leaf.certificate()
             .verify(
@@ -866,7 +860,7 @@ mod tests {
             .expect("should verify");
 
         // Verify whole chain with intermediate both in intermediates and trust anchors
-        let error = leaf_key_pair
+        leaf_key_pair
             .certificate()
             .verify(
                 None,
@@ -874,14 +868,23 @@ mod tests {
                 &time,
                 &TrustAnchors::try_from_trust_anchors([intermediate_ta, ca_ta.clone()]).unwrap(),
             )
-            .expect_err("should detect TrustAnchorInChain");
-        assert_matches!(error, CertificateVerifyError::TrustAnchorInChain);
+            .expect("should ignore trust anchor in intermediates");
 
         // Verify whole chain with ca in both intermediates and trust anchors
-        let error = leaf_key_pair
+        leaf_key_pair
             .certificate()
-            .verify(None, &[intermediate_cert, ca_cert], &time, &ca.to_trust_anchors())
-            .expect_err("should detect TrustAnchorInChain");
-        assert_matches!(error, CertificateVerifyError::TrustAnchorInChain);
+            .verify(
+                None,
+                &[intermediate_cert, ca_cert.clone()],
+                &time,
+                &ca.to_trust_anchors(),
+            )
+            .expect("should ignore trust anchor in intermediates");
+
+        // Verify the trust anchor itself
+        let error = ca_cert
+            .verify(None, &[], &time, &ca.to_trust_anchors())
+            .expect_err("should reject CA certificate as end entity");
+        assert_matches!(error, CertificateVerifyError::Verification(error) if *error == webpki::Error::CaUsedAsEndEntity);
     }
 }

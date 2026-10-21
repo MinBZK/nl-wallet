@@ -27,7 +27,6 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_nonempty;
 
 use crate::COSE_X5CHAIN_HEADER_LABEL;
 use crate::CoseError;
@@ -138,20 +137,16 @@ where
     /// extended key usage.
     ///
     /// The trust anchor is allowed to be present in the `x5chain` header, as HAIP does not profile registration
-    /// certificates. It is removed before verifying the certificate path.
+    /// certificates.
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
     ) -> Result<VerifiedWrprcCwt<T>, WrprcCwtError> {
-        let x5chain = &self.unverified_header.x5chain;
-        let mut chain = vec_nonempty![x5chain.first().clone()];
-        chain.extend(trust_anchors.remove_from_intermediates(x5chain.iter().skip(1).cloned()));
-
         let payload = self
             .cose
-            .verify_against_trust_anchors_with_chain(chain, trust_anchors, time, certificate_usage)
+            .verify_with_x5chain(&self.unverified_header.x5chain, trust_anchors, time, certificate_usage)
             .map_err(WrprcCwtError::Cose)?;
 
         Ok(VerifiedWrprcCwt {
@@ -496,7 +491,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(WrprcCwtError::Cose(CoseError::CertificateVerify(
-                CertificateVerifyError::TrustAnchorInChain
+                CertificateVerifyError::Verification(_)
             )))
         ));
     }

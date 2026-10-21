@@ -19,6 +19,7 @@ use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -284,6 +285,8 @@ where
 
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header.
+    ///
+    /// As mandated by HAIP 1.0, the `x5c` JWT header must not contain the trust anchor.
     pub fn parse_and_verify_against_trust_anchors(
         &self,
         trust_anchors: &TrustAnchors,
@@ -291,27 +294,14 @@ where
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let certificates = self
-            .extract_x5c_certificates()
-            .map_err(JwtVerifyError::ParseError)
-            .map_err(JwtX5cVerifyError::JwtVerify)?;
+        let certificates = self.extract_x5c_certificates_without_trust_anchor(trust_anchors)?;
 
-        // Verify the certificate chain against the trust anchors.
-        let leaf_cert = certificates.first();
-
-        let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
-        leaf_cert
-            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
-            .map_err(JwtX5cVerifyError::CertificateValidation)?;
-
-        // The leaf certificate is trusted, we can now use its public key to verify the JWS.
-        self.parse_and_verify_with_leaf_certificate(leaf_cert, validation)
+        self.parse_and_verify_with_x5c_certificates(&certificates, trust_anchors, time, certificate_usage, validation)
     }
 
-    /// Like [`Self::parse_and_verify_against_trust_anchors`], but tolerates the trust anchor being present in the
-    /// `x5c` JWT header by removing it before verifying the certificate chain. HAIP forbids this, so only use this for
-    /// concerns unrelated to HAIP, such as registration certificates.
-    pub fn parse_and_verify_ignoring_trust_anchor_in_x5c(
+    /// Like [`Self::parse_and_verify_against_trust_anchors`], but allows the trust anchor being present in the `x5c`
+    /// JWT header. HAIP forbids this, so only use this for profiles unrelated to HAIP, such as JAdES B-B.
+    pub(crate) fn parse_and_verify_allow_trust_anchor_in_x5c(
         &self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
@@ -323,19 +313,50 @@ where
             .map_err(JwtVerifyError::ParseError)
             .map_err(JwtX5cVerifyError::JwtVerify)?;
 
-        let leaf_cert = certificates.first();
+        self.parse_and_verify_with_x5c_certificates(&certificates, trust_anchors, time, certificate_usage, validation)
+    }
 
-        let intermediate_certs = trust_anchors
-            .remove_from_intermediates(certificates.iter().skip(1).cloned())
-            .collect_vec();
+    /// Extract the certificates from the `x5c` JWT header, rejecting them if they contain the trust anchor, as
+    /// mandated by HAIP 1.0.
+    fn extract_x5c_certificates_without_trust_anchor(
+        &self,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<VecNonEmpty<BorrowingCertificate>, JwtX5cVerifyError> {
+        let certificates = self
+            .extract_x5c_certificates()
+            .map_err(JwtVerifyError::ParseError)
+            .map_err(JwtX5cVerifyError::JwtVerify)?;
+
+        if certificates.iter().any(|cert| trust_anchors.contains(cert)) {
+            return Err(JwtX5cVerifyError::CertificateValidation(
+                CertificateVerifyError::TrustAnchorInChain,
+            ));
+        }
+
+        Ok(certificates)
+    }
+
+    fn parse_and_verify_with_x5c_certificates(
+        &self,
+        certificates: &VecNonEmpty<BorrowingCertificate>,
+        trust_anchors: &TrustAnchors,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+        validation: JwtValidation,
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        // Verify the certificate chain against the trust anchors.
+        let (leaf_cert, intermediate_certs) = certificates.split_first();
         leaf_cert
-            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
+            .verify(certificate_usage, intermediate_certs, time, trust_anchors)
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
+        // The leaf certificate is trusted, we can now use its public key to verify the JWS.
         self.parse_and_verify_with_leaf_certificate(leaf_cert, validation)
     }
 
     /// Verify the X.509 certificate chain, including fail-closed CRL checking, and then verify the JWS.
+    ///
+    /// As mandated by HAIP 1.0, the `x5c` JWT header must not contain the trust anchor.
     pub async fn parse_and_verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
@@ -344,10 +365,7 @@ where
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let certificates = self
-            .extract_x5c_certificates()
-            .map_err(JwtVerifyError::ParseError)
-            .map_err(JwtX5cVerifyError::JwtVerify)?;
+        let certificates = self.extract_x5c_certificates_without_trust_anchor(trust_anchors)?;
 
         crl_verifier
             .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
@@ -565,7 +583,7 @@ impl<T, H> SignedJwt<T, H> {
 }
 
 impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, H> {
-    async fn sign_with_header(
+    pub(crate) async fn sign_with_header(
         header: H,
         payload: &T,
         privkey: &impl EcdsaKey,
@@ -2150,20 +2168,16 @@ mod tests {
         );
     }
 
-    #[rstest]
-    #[case::without_trust_anchor(false)]
-    #[case::with_trust_anchor(true)]
     #[tokio::test]
-    async fn test_ignoring_trust_anchor_in_x5c_accepts_jwt(#[case] include_trust_anchor: bool) {
+    async fn test_rejects_jwt_with_trust_anchor_in_x5c_with_crl() {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_wrpac_verifier_mock().unwrap();
+        let crl_verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
 
-        let mut certs = vec_nonempty![keypair.certificate().to_owned()];
-        // Optionally put the ca_cert in both the certificate list and the trust anchors.
-        if include_trust_anchor {
-            certs.push(BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap());
-        }
-        let expected_len = certs.len();
+        let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
+
+        // Put the ca_cert in both the certificate list and the trust anchors.
+        let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
         let trust_anchors = ca.to_trust_anchors();
 
         let payload = json!({"hello": "world"});
@@ -2172,44 +2186,15 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let (header, deserialized) = jwt
-            .parse_and_verify_ignoring_trust_anchor_in_x5c(
-                &trust_anchors,
-                &TimeGenerator,
-                None,
-                DEFAULT_VALIDATION.to_owned(),
-            )
-            .unwrap();
-
-        assert_eq!(deserialized, payload);
-        assert_eq!(header.x5c.len(), expected_len);
-    }
-
-    #[tokio::test]
-    async fn test_ignoring_trust_anchor_in_x5c_rejects_trust_anchor_as_leaf() {
-        let ca = Ca::generate_mock();
-
-        let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
-        let trust_anchors = ca.to_trust_anchors();
-
-        // Sign with the trust anchor itself, so that it is the leaf certificate.
-        let payload = json!({"hello": "world"});
-        let jwt = SignedJwt::sign_with_header(
-            HeaderWithX5c::from_certs(vec_nonempty![ca_cert]),
-            &payload,
-            &ca.to_signing_key().unwrap(),
-        )
-        .await
-        .unwrap()
-        .into_unverified();
-
         let err = jwt
-            .parse_and_verify_ignoring_trust_anchor_in_x5c(
+            .parse_and_verify_against_trust_anchors_with_crl(
                 &trust_anchors,
+                &crl_verifier,
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
             )
+            .await
             .unwrap_err();
 
         assert_matches!(

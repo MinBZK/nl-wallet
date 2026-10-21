@@ -17,14 +17,13 @@ use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
-use utils::vec_at_least::IntoNonEmptyIterator;
-use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -141,10 +140,27 @@ impl<T> TypedCose<CoseSign1, T> {
         x5chain_from_header(&self.as_ref().unprotected)
     }
 
+    /// Get the certificate chain from the unprotected `x5chain` header parameter, rejecting it if it contains the trust
+    /// anchor, as mandated by HAIP 1.0.
+    fn x5chain_without_trust_anchor(
+        &self,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
+        let x5chain = self.x5chain()?;
+
+        if x5chain.iter().any(|cert| trust_anchors.contains(cert)) {
+            return Err(CoseError::CertificateVerify(CertificateVerifyError::TrustAnchorInChain));
+        }
+
+        Ok(x5chain)
+    }
+
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.
     ///
     /// A `None` certificate usage still validates the certificate path, but does not require a profile-specific
     /// extended key usage.
+    ///
+    /// As mandated by HAIP 1.0, the `x5chain` header must not contain the trust anchor.
     pub fn verify_against_trust_anchors(
         &self,
         trust_anchors: &TrustAnchors,
@@ -154,11 +170,15 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
-        self.verify_against_trust_anchors_with_chain(self.x5chain()?, trust_anchors, time, certificate_usage)
+        let x5chain = self.x5chain_without_trust_anchor(trust_anchors)?;
+
+        self.verify_with_x5chain(&x5chain, trust_anchors, time, certificate_usage)
     }
 
     /// Verify the certificate path with fail-closed CRL checking and the COSE signature, then deserialize the
     /// authenticated payload.
+    ///
+    /// As mandated by HAIP 1.0, the `x5chain` header must not contain the trust anchor.
     pub async fn verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
@@ -169,8 +189,10 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
+        let x5chain = self.x5chain_without_trust_anchor(trust_anchors)?;
+
         self.verify_against_trust_anchors_with_chain_and_crl(
-            self.x5chain()?,
+            x5chain,
             trust_anchors,
             crl_verifier,
             time,
@@ -179,9 +201,13 @@ impl<T> TypedCose<CoseSign1, T> {
         .await
     }
 
-    pub(crate) fn verify_against_trust_anchors_with_chain(
+    /// Verify the certificate path of `x5chain` and the COSE signature, then deserialize the authenticated payload.
+    ///
+    /// This does not apply any profile-specific rules to the contents of `x5chain`, such as checking that it does not
+    /// contain the trust anchor.
+    pub(crate) fn verify_with_x5chain(
         &self,
-        x5chain: VecNonEmpty<BorrowingCertificate>,
+        x5chain: &VecNonEmpty<BorrowingCertificate>,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
@@ -189,14 +215,9 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
-        let (certificate, chain) = x5chain.into_nonempty_iter().next();
+        let (certificate, intermediate_certs) = x5chain.split_first();
         certificate
-            .verify(
-                certificate_usage,
-                &chain.into_iter().collect::<Vec<_>>(),
-                time,
-                trust_anchors,
-            )
+            .verify(certificate_usage, intermediate_certs, time, trust_anchors)
             .map_err(CoseError::CertificateVerify)?;
 
         let PublicKey::ESP256(verifying_key) = certificate.public_key() else {

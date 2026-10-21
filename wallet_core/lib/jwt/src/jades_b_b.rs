@@ -2,15 +2,21 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
+use crypto::trust_anchor::TrustAnchors;
+use crypto::x509::CertificateUsage;
 use jsonwebtoken::Header;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use utils::generator::Generator;
 
+use crate::DEFAULT_VALIDATION;
 use crate::JwtTyp;
 use crate::SignedJwt;
+use crate::UnverifiedJwt;
 use crate::error::JwtParseError;
 use crate::error::JwtSignError;
+use crate::error::JwtX5cVerifyError;
 use crate::headers::HeaderWithTyp;
 use crate::headers::HeaderWithX5c;
 
@@ -104,8 +110,28 @@ impl<C: Serialize + JwtTyp> SignedJwt<C, JadesbbHeader> {
     }
 }
 
+impl<T: DeserializeOwned + JwtTyp> UnverifiedJwt<T, JadesbbHeader> {
+    /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
+    /// header.
+    pub fn parse_and_verify_jades_b_b(
+        &self,
+        trust_anchors: &TrustAnchors,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+    ) -> Result<(JadesbbHeader, T), JwtX5cVerifyError> {
+        // There is nothing preventing having trust anchors in the `x5c` header.
+        self.parse_and_verify_allow_trust_anchor_in_x5c(
+            trust_anchors,
+            time,
+            certificate_usage,
+            DEFAULT_VALIDATION.to_owned(),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::num::NonZeroUsize;
     use std::panic;
 
@@ -114,16 +140,17 @@ mod tests {
     use chrono::Timelike;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
+    use crypto::x509::BorrowingCertificate;
+    use crypto::x509::CertificateVerifyError;
     use jsonwebtoken::Algorithm;
+    use rstest::rstest;
     use serde_json::Value;
     use serde_json::json;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use super::*;
-    use crate::DEFAULT_VALIDATION;
-    use crate::UnverifiedJwt;
-    use crate::headers::HeaderWithX5c;
 
     fn test_header(iat: i64) -> JadesbbHeader {
         let inner = JadesbbInnerHeader {
@@ -266,12 +293,7 @@ mod tests {
 
         let unverified = signed_jwt.into_unverified();
         let (header, payload) = unverified
-            .parse_and_verify_against_trust_anchors(
-                &ca.to_trust_anchors(),
-                &MockTimeGenerator::default(),
-                None,
-                DEFAULT_VALIDATION.to_owned(),
-            )
+            .parse_and_verify_jades_b_b(&ca.to_trust_anchors(), &MockTimeGenerator::default(), None)
             .unwrap();
 
         assert_eq!(header.inner().iat, Some(now.with_nanosecond(0).unwrap())); // will be rounded down to 0 ns
@@ -306,17 +328,77 @@ mod tests {
         // reinterpret as to be able to parse the JAdES-B-B header
         let unverified: UnverifiedJwt<ToyJadesbbPayload, JadesbbHeader> = unverified.serialization().parse().unwrap();
         let (header, payload): (JadesbbHeader, ToyJadesbbPayload) = unverified
-            .parse_and_verify_against_trust_anchors(
-                &ca.to_trust_anchors(),
-                &MockTimeGenerator::default(),
-                None,
-                DEFAULT_VALIDATION.to_owned(),
-            )
+            .parse_and_verify_jades_b_b(&ca.to_trust_anchors(), &MockTimeGenerator::default(), None)
             .unwrap(); // should parse even without an `iat` field
 
         assert!(header.inner().iat.is_none());
         assert_eq!(header.inner().inner().typ, JADES_B_B_JWT_TYP);
         assert_eq!(header.inner().inner().alg, Algorithm::ES256);
         assert_eq!(payload, toy_payload);
+    }
+
+    fn toy_jades_b_b_header(x5c: VecNonEmpty<BorrowingCertificate>) -> JadesbbHeader {
+        let inner = JadesbbInnerHeader {
+            inner: HeaderWithTyp::new::<ToyJadesbbPayload>(),
+            iat: None,
+        };
+
+        HeaderWithX5c::new(inner, x5c)
+    }
+
+    #[rstest]
+    #[case::without_trust_anchor(false)]
+    #[case::with_trust_anchor(true)]
+    #[tokio::test]
+    async fn test_verify_jades_b_b_allows_trust_anchor_in_x5c(#[case] include_trust_anchor: bool) {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
+
+        let mut certs = vec_nonempty![keypair.certificate().to_owned()];
+        // Optionally put the ca_cert in both the certificate list and the trust anchors.
+        if include_trust_anchor {
+            certs.push(ca.as_borrowing_certificate().unwrap());
+        }
+        let expected_len = certs.len();
+
+        let unverified = SignedJwt::sign_with_header(
+            toy_jades_b_b_header(certs),
+            &ToyJadesbbPayload {},
+            keypair.private_key(),
+        )
+        .await
+        .unwrap()
+        .into_unverified();
+
+        let (header, payload) = unverified
+            .parse_and_verify_jades_b_b(&ca.to_trust_anchors(), &MockTimeGenerator::default(), None)
+            .unwrap();
+
+        assert_eq!(header.x5c.len(), expected_len);
+        assert_eq!(payload, ToyJadesbbPayload {});
+    }
+
+    #[tokio::test]
+    async fn test_verify_jades_b_b_rejects_trust_anchor_as_leaf() {
+        let ca = Ca::generate_mock();
+
+        // Sign with the trust anchor itself, so that it is the leaf certificate.
+        let unverified = SignedJwt::sign_with_header(
+            toy_jades_b_b_header(vec_nonempty![ca.as_borrowing_certificate().unwrap()]),
+            &ToyJadesbbPayload {},
+            &ca.to_signing_key().unwrap(),
+        )
+        .await
+        .unwrap()
+        .into_unverified();
+
+        let error = unverified
+            .parse_and_verify_jades_b_b(&ca.to_trust_anchors(), &MockTimeGenerator::default(), None)
+            .unwrap_err();
+
+        assert_matches!(
+            error,
+            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::Verification(_))
+        );
     }
 }

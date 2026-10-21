@@ -7,7 +7,6 @@ use chrono::Utc;
 use cose::wrprc_cwt::UnverifiedWrprcCwt;
 use cose::wrprc_cwt::WrprcCwtError;
 use crypto::trust_anchor::TrustAnchors;
-use jwt::DEFAULT_VALIDATION;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtParseError;
 use jwt::error::JwtX5cVerifyError;
@@ -138,7 +137,7 @@ pub fn verify_registration_certificate_envelope(
     let payload = match registration_certificate.clone() {
         RegistrationCertificateEnvelope::Jwt(unverified) => {
             let (_, payload) = unverified
-                .parse_and_verify_ignoring_trust_anchor_in_x5c(trust_anchors, time, None, DEFAULT_VALIDATION.to_owned())
+                .parse_and_verify_jades_b_b(trust_anchors, time, None)
                 .map_err(RegistrationCertificateEnvelopeError::Jwt)?;
             payload
         }
