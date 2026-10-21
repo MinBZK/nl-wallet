@@ -1,12 +1,10 @@
 use std::assert_matches;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error;
 
-use audit_log::model::AsAuditUser;
-use audit_log::model::AuditLog;
 use audit_log::model::FromAuditLogError;
 use audit_log::model::mock::MockAuditLog;
+use audit_log::model::mock::MockAuditUser;
 use audit_log_macros::audited;
 use serde::Serialize;
 
@@ -75,7 +73,7 @@ async fn test_operation_invalid_json(#[audit] param: MyMap, #[auditor] auditor: 
 #[audited]
 async fn test_operation_with_user(
     #[audit] name: &str,
-    #[audit_user] user_id: &str,
+    #[audit_user] user_id: &MockAuditUser,
     #[auditor] auditor: &MockAuditLog,
 ) -> Result<(), MyError> {
     tracing::debug!("performed test operation for user {user_id} with input: {name}");
@@ -158,63 +156,11 @@ async fn test_macro_operation_invalid_json() {
 async fn test_macro_with_audit_user() {
     let audit_log = MockAuditLog;
 
-    test_operation_with_user("input", "user-1", &audit_log)
+    test_operation_with_user("input", &MockAuditUser::from("user-1"), &audit_log)
         .await
         .expect("success");
 
     assert!(logs_contain(
         "performed test operation for user user-1 with input: input"
     ));
-}
-
-struct AuditUser(String);
-
-impl AsAuditUser for AuditUser {
-    fn as_audit_user(&self) -> String {
-        self.0.clone()
-    }
-}
-
-#[derive(Default)]
-struct RecordingAuditLog {
-    user_id: RefCell<Option<String>>,
-}
-
-impl AuditLog for RecordingAuditLog {
-    type Error = MyError;
-
-    async fn audit<F, T, E>(
-        &self,
-        _operation_name: impl Into<String>,
-        _parameters: serde_json::Value,
-        user_id: Option<impl AsAuditUser>,
-        operation: F,
-    ) -> Result<T, E>
-    where
-        F: AsyncFnOnce() -> Result<T, E>,
-        E: FromAuditLogError,
-    {
-        *self.user_id.borrow_mut() = user_id.as_ref().map(AsAuditUser::as_audit_user);
-        operation().await
-    }
-}
-
-#[audited]
-async fn return_audit_user(
-    #[audit_user] user: impl AsAuditUser,
-    #[auditor] auditor: &impl AuditLog,
-) -> Result<impl AsAuditUser, MyError> {
-    Ok(user)
-}
-
-#[rstest::rstest]
-#[case::str("user-42")]
-#[case::owned_user(AuditUser(String::from("user-42")))]
-#[tokio::test]
-async fn test_macro_preserves_audit_user(#[case] user: impl AsAuditUser) {
-    let audit_log = RecordingAuditLog::default();
-    let user = return_audit_user(user, &audit_log).await.unwrap();
-
-    assert_eq!(user.as_audit_user(), "user-42");
-    assert_eq!(audit_log.user_id.borrow().as_deref(), Some("user-42"));
 }
