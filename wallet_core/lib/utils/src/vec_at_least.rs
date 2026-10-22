@@ -117,6 +117,11 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
         self.0.first().unwrap()
     }
 
+    pub fn split_first(&self) -> (&T, &[T]) {
+        // Guaranteed to succeed, as N is at least 1.
+        self.0.split_first().unwrap()
+    }
+
     pub fn into_first(self) -> T {
         // Guaranteed to succeed, as N is at least 1.
         self.0.into_iter().next().unwrap()
@@ -607,6 +612,12 @@ mod tests {
         assert_eq!(vec[2], 3);
         let out_of_bounds = panic::catch_unwind(|| assert_eq!(vec[3], 3));
         assert!(out_of_bounds.is_err());
+    }
+
+    #[test]
+    fn test_vec_nonempty_split_first() {
+        assert_eq!(vec_nonempty![1].split_first(), (&1, [].as_slice()));
+        assert_eq!(vec_nonempty![1, 2, 3].split_first(), (&1, [2, 3].as_slice()));
     }
 
     #[test]

@@ -4,3 +4,4 @@ minimumReleaseAgeExclude:
 overrides:
   nanoid@<3.3.18: ^3.3.18
   postcss@<=8.5.22: ^8.5.23
+  vite@>=8.3.0 <=8.3.2: 8.3.3

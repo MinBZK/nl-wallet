@@ -236,14 +236,10 @@ mod tests {
     static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
     fn setup_wallet_disclosure_session(requested_format: Format) -> WalletDisclosureSession<MockDisclosureSession> {
-        let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
-        let key_pair = wrpac_ca.generate_wrpac_verifier_mock().unwrap();
-        let certificate = key_pair.certificate().clone();
-
         let mut disclosure_session = MockDisclosureSession::new();
         disclosure_session
             .expect_organization()
-            .return_const(Organization::try_from(&certificate).unwrap());
+            .return_const(Organization::new_mock());
 
         let disclosable_attestation = match requested_format {
             Format::MsoMdoc => {

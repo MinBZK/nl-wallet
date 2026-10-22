@@ -1407,7 +1407,7 @@ mod tests {
         let registration_certificate =
             MockRegistrationCertificate::new_verifier(rp_keypair.certificate(), credential_requests.clone().into());
         let registration_certificate =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             credential_requests,
             ClientId::x509_hash_from_certificate(rp_keypair.certificate()),
@@ -2284,7 +2284,7 @@ mod tests {
             "format": REGISTRATION_CERTIFICATE_FORMAT,
             "data": BASE64_URL_SAFE_NO_PAD.encode(&certificate),
         });
-        let envelope = RegistrationCertificateEnvelope::try_from(certificate.as_slice()).unwrap();
+        let envelope = RegistrationCertificateEnvelope::from_slice(certificate.as_slice()).unwrap();
 
         let json = serde_json::to_value(VerifierInfo::registration_certificate(envelope)).unwrap();
         assert_eq!(json, expected_json);
@@ -2325,17 +2325,30 @@ mod tests {
         );
     }
 
-    #[test]
-    fn registration_certificate_verifier_info_should_reject_malformed_compact_jwt() {
-        let error = serde_json::from_value::<VerifierInfo>(json!({
+    #[rstest]
+    #[case::missing_jwt_part("header.payload")]
+    #[case::extra_jwt_part("header.payload.signature.extra")]
+    fn registration_certificate_verifier_info_should_defer_jwt_validation(
+        #[case] malformed_jwt: &str,
+        #[values(false, true)] base64_encoded: bool,
+    ) {
+        let data = if base64_encoded {
+            BASE64_URL_SAFE_NO_PAD.encode(malformed_jwt)
+        } else {
+            malformed_jwt.to_string()
+        };
+        let verifier_info = serde_json::from_value::<VerifierInfo>(json!({
             "format": REGISTRATION_CERTIFICATE_FORMAT,
-            "data": "header.payload",
+            "data": data,
         }))
-        .unwrap_err();
+        .unwrap();
 
-        let error = error.to_string();
-        assert!(error.contains("could not parse registration certificate as JWT"));
-        assert!(error.contains("expected 3, found 2"));
+        assert_matches!(
+            verifier_info,
+            VerifierInfo::RegistrationCertificate {
+                data: RegistrationCertificateEnvelope::Jwt(_)
+            }
+        );
     }
 
     #[test]
@@ -2355,8 +2368,6 @@ mod tests {
 
     #[rstest]
     #[case::not_an_envelope(b"not a registration certificate", "expected 3, found 1")]
-    #[case::missing_jwt_part(b"header.payload", "expected 3, found 2")]
-    #[case::extra_jwt_part(b"header.payload.signature.extra", "expected 3, found 4")]
     #[case::invalid_utf8(b"\xff", "not valid UTF-8")]
     fn registration_certificate_verifier_info_should_report_both_parse_errors(
         #[case] malformed_certificate: &[u8],

@@ -2817,17 +2817,6 @@ impl SseDecode for Option<crate::models::image::ImageWithMetadata> {
     }
 }
 
-impl SseDecode for Option<crate::models::organization::PersonType> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::models::organization::PersonType>::sse_decode(deserializer));
-        } else {
-            return None;
-        }
-    }
-}
-
 impl SseDecode for Option<(String, String)> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2887,9 +2876,9 @@ impl SseDecode for crate::models::organization::Organization {
         let mut var_privacyPolicyUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_identifier = <String>::sse_decode(deserializer);
         let mut var_countryCode = <String>::sse_decode(deserializer);
-        let mut var_supportUri = <Option<String>>::sse_decode(deserializer);
+        let mut var_supportUri = <String>::sse_decode(deserializer);
         let mut var_publicBody = <Option<bool>>::sse_decode(deserializer);
-        let mut var_personType = <Option<crate::models::organization::PersonType>>::sse_decode(deserializer);
+        let mut var_personType = <crate::models::organization::PersonType>::sse_decode(deserializer);
         return crate::models::organization::Organization {
             legal_name: var_legalName,
             display_name: var_displayName,
@@ -5317,16 +5306,6 @@ impl SseEncode for Option<crate::models::image::ImageWithMetadata> {
     }
 }
 
-impl SseEncode for Option<crate::models::organization::PersonType> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <crate::models::organization::PersonType>::sse_encode(value, serializer);
-        }
-    }
-}
-
 impl SseEncode for Option<(String, String)> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5377,9 +5356,9 @@ impl SseEncode for crate::models::organization::Organization {
         <Option<String>>::sse_encode(self.privacy_policy_url, serializer);
         <String>::sse_encode(self.identifier, serializer);
         <String>::sse_encode(self.country_code, serializer);
-        <Option<String>>::sse_encode(self.support_uri, serializer);
+        <String>::sse_encode(self.support_uri, serializer);
         <Option<bool>>::sse_encode(self.public_body, serializer);
-        <Option<crate::models::organization::PersonType>>::sse_encode(self.person_type, serializer);
+        <crate::models::organization::PersonType>::sse_encode(self.person_type, serializer);
     }
 }
 
@@ -6132,13 +6111,6 @@ mod io {
         fn cst_decode(self) -> crate::models::organization::Organization {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
             CstDecode::<crate::models::organization::Organization>::cst_decode(*wrap).into()
-        }
-    }
-    impl CstDecode<crate::models::organization::PersonType> for *mut i32 {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::organization::PersonType {
-            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
-            CstDecode::<crate::models::organization::PersonType>::cst_decode(*wrap).into()
         }
     }
     impl CstDecode<(String, String)> for *mut wire_cst_record_string_string {
@@ -7189,7 +7161,7 @@ mod io {
                 country_code: core::ptr::null_mut(),
                 support_uri: core::ptr::null_mut(),
                 public_body: core::ptr::null_mut(),
-                person_type: core::ptr::null_mut(),
+                person_type: Default::default(),
             }
         }
     }
@@ -7872,11 +7844,6 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_organization() -> *mut wire_cst_organization {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_organization::new_with_null_ptr())
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_person_type(value: i32) -> *mut i32 {
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
     }
 
     #[unsafe(no_mangle)]
@@ -8630,7 +8597,7 @@ mod io {
         country_code: *mut wire_cst_list_prim_u_8_strict,
         support_uri: *mut wire_cst_list_prim_u_8_strict,
         public_body: *mut bool,
-        person_type: *mut i32,
+        person_type: i32,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

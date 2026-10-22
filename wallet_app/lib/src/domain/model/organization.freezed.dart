@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Organization {
 
- String get id; String get legalName; String get displayName; bool? get publicBody; PersonType? get personType;@LocalizedTextConverter() LocalizedText? get description; String? get webUri; String? get supportUri; String? get privacyPolicyUri; String get countryCode; String get organizationId;
+ String get id; String get legalName; String get displayName; bool? get publicBody; PersonType get personType;@LocalizedTextConverter() LocalizedText? get description; String? get webUri; String get supportUri; String? get privacyPolicyUri; String get countryCode; String get organizationId;
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -54,7 +54,7 @@ abstract mixin class $OrganizationCopyWith<$Res>  {
   factory $OrganizationCopyWith(Organization value, $Res Function(Organization) _then) = _$OrganizationCopyWithImpl;
 @useResult
 $Res call({
- String id, String legalName, String displayName, bool? publicBody, PersonType? personType,@LocalizedTextConverter() LocalizedText? description, String? webUri, String? supportUri, String? privacyPolicyUri, String countryCode, String organizationId
+ String id, String legalName, String displayName, bool? publicBody, PersonType personType,@LocalizedTextConverter() LocalizedText? description, String? webUri, String supportUri, String? privacyPolicyUri, String countryCode, String organizationId
 });
 
 
@@ -71,17 +71,17 @@ class _$OrganizationCopyWithImpl<$Res>
 
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? legalName = null,Object? displayName = null,Object? publicBody = freezed,Object? personType = freezed,Object? description = freezed,Object? webUri = freezed,Object? supportUri = freezed,Object? privacyPolicyUri = freezed,Object? countryCode = null,Object? organizationId = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? legalName = null,Object? displayName = null,Object? publicBody = freezed,Object? personType = null,Object? description = freezed,Object? webUri = freezed,Object? supportUri = null,Object? privacyPolicyUri = freezed,Object? countryCode = null,Object? organizationId = null,}) {
   return _then(Organization(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,legalName: null == legalName ? _self.legalName : legalName // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,publicBody: freezed == publicBody ? _self.publicBody : publicBody // ignore: cast_nullable_to_non_nullable
-as bool?,personType: freezed == personType ? _self.personType : personType // ignore: cast_nullable_to_non_nullable
-as PersonType?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as bool?,personType: null == personType ? _self.personType : personType // ignore: cast_nullable_to_non_nullable
+as PersonType,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as LocalizedText?,webUri: freezed == webUri ? _self.webUri : webUri // ignore: cast_nullable_to_non_nullable
-as String?,supportUri: freezed == supportUri ? _self.supportUri : supportUri // ignore: cast_nullable_to_non_nullable
-as String?,privacyPolicyUri: freezed == privacyPolicyUri ? _self.privacyPolicyUri : privacyPolicyUri // ignore: cast_nullable_to_non_nullable
+as String?,supportUri: null == supportUri ? _self.supportUri : supportUri // ignore: cast_nullable_to_non_nullable
+as String,privacyPolicyUri: freezed == privacyPolicyUri ? _self.privacyPolicyUri : privacyPolicyUri // ignore: cast_nullable_to_non_nullable
 as String?,countryCode: null == countryCode ? _self.countryCode : countryCode // ignore: cast_nullable_to_non_nullable
 as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String,
@@ -169,7 +169,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName,  bool? publicBody,  PersonType? personType, @LocalizedTextConverter()  LocalizedText? description,  String? webUri,  String? supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName,  bool? publicBody,  PersonType personType, @LocalizedTextConverter()  LocalizedText? description,  String? webUri,  String supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Organization() when $default != null:
 return $default(_that.id,_that.legalName,_that.displayName,_that.publicBody,_that.personType,_that.description,_that.webUri,_that.supportUri,_that.privacyPolicyUri,_that.countryCode,_that.organizationId);case _:
@@ -190,7 +190,7 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.publicBody,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName,  bool? publicBody,  PersonType? personType, @LocalizedTextConverter()  LocalizedText? description,  String? webUri,  String? supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String legalName,  String displayName,  bool? publicBody,  PersonType personType, @LocalizedTextConverter()  LocalizedText? description,  String? webUri,  String supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)  $default,) {final _that = this;
 switch (_that) {
 case _Organization():
 return $default(_that.id,_that.legalName,_that.displayName,_that.publicBody,_that.personType,_that.description,_that.webUri,_that.supportUri,_that.privacyPolicyUri,_that.countryCode,_that.organizationId);case _:
@@ -210,7 +210,7 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.publicBody,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String legalName,  String displayName,  bool? publicBody,  PersonType? personType, @LocalizedTextConverter()  LocalizedText? description,  String? webUri,  String? supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String legalName,  String displayName,  bool? publicBody,  PersonType personType, @LocalizedTextConverter()  LocalizedText? description,  String? webUri,  String supportUri,  String? privacyPolicyUri,  String countryCode,  String organizationId)?  $default,) {final _that = this;
 switch (_that) {
 case _Organization() when $default != null:
 return $default(_that.id,_that.legalName,_that.displayName,_that.publicBody,_that.personType,_that.description,_that.webUri,_that.supportUri,_that.privacyPolicyUri,_that.countryCode,_that.organizationId);case _:
@@ -225,14 +225,14 @@ return $default(_that.id,_that.legalName,_that.displayName,_that.publicBody,_tha
 @JsonSerializable()
 
 class _Organization implements Organization {
-  const _Organization({required this.id, required this.legalName, required this.displayName, this.publicBody, this.personType, @LocalizedTextConverter()  LocalizedText? description, this.webUri, this.supportUri, this.privacyPolicyUri, required this.countryCode, required this.organizationId}): _description = description;
+  const _Organization({required this.id, required this.legalName, required this.displayName, this.publicBody, required this.personType, @LocalizedTextConverter()  LocalizedText? description, this.webUri, required this.supportUri, this.privacyPolicyUri, required this.countryCode, required this.organizationId}): _description = description;
   factory _Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);
 
 @override final  String id;
 @override final  String legalName;
 @override final  String displayName;
 @override final  bool? publicBody;
-@override final  PersonType? personType;
+@override final  PersonType personType;
  final  LocalizedText? _description;
 @override@LocalizedTextConverter() LocalizedText? get description {
   final value = _description;
@@ -243,7 +243,7 @@ class _Organization implements Organization {
 }
 
 @override final  String? webUri;
-@override final  String? supportUri;
+@override final  String supportUri;
 @override final  String? privacyPolicyUri;
 @override final  String countryCode;
 @override final  String organizationId;
@@ -283,7 +283,7 @@ abstract mixin class _$OrganizationCopyWith<$Res> implements $OrganizationCopyWi
   factory _$OrganizationCopyWith(_Organization value, $Res Function(_Organization) _then) = __$OrganizationCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String legalName, String displayName, bool? publicBody, PersonType? personType,@LocalizedTextConverter() LocalizedText? description, String? webUri, String? supportUri, String? privacyPolicyUri, String countryCode, String organizationId
+ String id, String legalName, String displayName, bool? publicBody, PersonType personType,@LocalizedTextConverter() LocalizedText? description, String? webUri, String supportUri, String? privacyPolicyUri, String countryCode, String organizationId
 });
 
 
@@ -300,17 +300,17 @@ class __$OrganizationCopyWithImpl<$Res>
 
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? legalName = null,Object? displayName = null,Object? publicBody = freezed,Object? personType = freezed,Object? description = freezed,Object? webUri = freezed,Object? supportUri = freezed,Object? privacyPolicyUri = freezed,Object? countryCode = null,Object? organizationId = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? legalName = null,Object? displayName = null,Object? publicBody = freezed,Object? personType = null,Object? description = freezed,Object? webUri = freezed,Object? supportUri = null,Object? privacyPolicyUri = freezed,Object? countryCode = null,Object? organizationId = null,}) {
   return _then(_Organization(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,legalName: null == legalName ? _self.legalName : legalName // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,publicBody: freezed == publicBody ? _self.publicBody : publicBody // ignore: cast_nullable_to_non_nullable
-as bool?,personType: freezed == personType ? _self.personType : personType // ignore: cast_nullable_to_non_nullable
-as PersonType?,description: freezed == description ? _self._description : description // ignore: cast_nullable_to_non_nullable
+as bool?,personType: null == personType ? _self.personType : personType // ignore: cast_nullable_to_non_nullable
+as PersonType,description: freezed == description ? _self._description : description // ignore: cast_nullable_to_non_nullable
 as LocalizedText?,webUri: freezed == webUri ? _self.webUri : webUri // ignore: cast_nullable_to_non_nullable
-as String?,supportUri: freezed == supportUri ? _self.supportUri : supportUri // ignore: cast_nullable_to_non_nullable
-as String?,privacyPolicyUri: freezed == privacyPolicyUri ? _self.privacyPolicyUri : privacyPolicyUri // ignore: cast_nullable_to_non_nullable
+as String?,supportUri: null == supportUri ? _self.supportUri : supportUri // ignore: cast_nullable_to_non_nullable
+as String,privacyPolicyUri: freezed == privacyPolicyUri ? _self.privacyPolicyUri : privacyPolicyUri // ignore: cast_nullable_to_non_nullable
 as String?,countryCode: null == countryCode ? _self.countryCode : countryCode // ignore: cast_nullable_to_non_nullable
 as String,organizationId: null == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String,

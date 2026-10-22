@@ -353,7 +353,7 @@ where
     let issuer = MockIssuer::new(
         issuer_identifier,
         metadata_keypair,
-        RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
+        RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap(),
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
         credential_configs,

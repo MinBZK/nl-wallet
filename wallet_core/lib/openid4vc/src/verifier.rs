@@ -1648,7 +1648,7 @@ mod tests {
         let registration_certificate =
             MockRegistrationCertificate::new_verifier(key_pair.certificate(), Query::new_mock_mdoc_pid_example());
         let registration_certificate =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
 
         UseCaseData::new(key_pair, session_type_return_url, registration_certificate)
     }
