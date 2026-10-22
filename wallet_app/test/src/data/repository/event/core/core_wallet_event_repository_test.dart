@@ -11,6 +11,7 @@ import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/localized_text.dart';
 import 'package:wallet/src/domain/model/organization.dart';
+import 'package:wallet/src/domain/model/person_type.dart';
 import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet_core/core.dart' as core;
 
@@ -45,6 +46,8 @@ void main() {
         displayName: '',
         description: {},
         countryCode: '',
+        supportUri: 'https://example.org/support',
+        personType: PersonType.legalPerson,
         organizationId: 'NLID-123456',
       ),
       metadata: [
@@ -87,6 +90,8 @@ void main() {
               serviceDescription: [],
               identifier: '',
               countryCode: '',
+              supportUri: 'https://example.org/support',
+              personType: core.PersonType.LegalPerson,
             ),
             attributes: [],
             validityStatus: core.ValidityStatus.valid(validUntil: null),
@@ -147,6 +152,8 @@ void main() {
               serviceDescription: [],
               identifier: '',
               countryCode: '',
+              supportUri: 'https://example.org/support',
+              personType: core.PersonType.LegalPerson,
             ),
             attributes: [],
             validityStatus: core.ValidityStatus.valid(validUntil: null),
@@ -234,6 +241,8 @@ void main() {
               serviceDescription: [],
               identifier: '',
               countryCode: '',
+              supportUri: 'https://example.org/support',
+              personType: core.PersonType.LegalPerson,
             ),
             attributes: [],
             validityStatus: core.ValidityStatus.valid(validUntil: null),
@@ -271,6 +280,8 @@ void main() {
           displayName: '',
           description: {},
           countryCode: '',
+          supportUri: 'https://example.org/support',
+          personType: PersonType.legalPerson,
           organizationId: 'NLID-123456',
         ),
         purpose: {},
@@ -311,6 +322,8 @@ void main() {
               serviceDescription: [],
               identifier: '',
               countryCode: '',
+              supportUri: 'https://example.org/support',
+              personType: core.PersonType.LegalPerson,
             ),
             attributes: [],
             validityStatus: core.ValidityStatus.valid(validUntil: null),
@@ -370,6 +383,8 @@ void main() {
                 serviceDescription: [],
                 identifier: '',
                 countryCode: '',
+                supportUri: 'https://example.org/support',
+                personType: core.PersonType.LegalPerson,
               ),
               attributes: [],
               validityStatus: core.ValidityStatus.valid(validUntil: null),

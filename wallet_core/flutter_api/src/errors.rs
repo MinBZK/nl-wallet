@@ -449,7 +449,6 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _)
             | DisclosureError::DisclosureUriQuery(_)
-            | DisclosureError::Organization(_)
             | DisclosureError::RecoveryCodeRequested { .. }
             | DisclosureError::UnexpectedRedirectUriPurpose { .. } => FlutterApiErrorType::Verifier,
             DisclosureError::DisclosureUri(_)
@@ -664,6 +663,13 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
         match value {
             CloseProximityDisclosureError::InconsistentReaderAuths
             | CloseProximityDisclosureError::InvalidDocRequest(_)
+            | CloseProximityDisclosureError::ReaderCertificateSubject(_)
+            | CloseProximityDisclosureError::ReaderCertificateRelyingParty(_)
+            | CloseProximityDisclosureError::RegistrationCertificateParsing(_)
+            | CloseProximityDisclosureError::RegistrationCertificateVerification(_)
+            | CloseProximityDisclosureError::RegistrationCertificateBinding(_)
+            | CloseProximityDisclosureError::RegistrationCertificateStatus(_)
+            | CloseProximityDisclosureError::RegistrationCertificateAuthorization(_)
             | CloseProximityDisclosureError::UnsupportedDocFormat { .. }
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidDeviceRequest(_) => FlutterApiErrorType::Verifier,

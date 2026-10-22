@@ -103,19 +103,31 @@ impl From<wallet::DisclosureStatus> for DisclosureStatus {
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_json::Value;
     use serde_json::json;
-    use wallet::attestation_data::Organization;
 
     use super::WalletEvent;
 
     #[rstest]
-    #[case::registered(Some("Verify your identity"), "Verify your identity")]
-    #[case::proximity(None, "Disclosure")]
-    fn disclosure_history_purpose(#[case] registered_purpose: Option<&str>, #[case] expected: &str) {
-        let mut stored = serde_json::to_value(Organization::default()).unwrap();
-        if let Some(purpose) = registered_purpose {
-            stored["purpose"] = json!([{ "lang": "en", "value": purpose }]);
-        }
+    #[case::registered(
+        Some(json!([
+            { "lang": "en", "value": "Verify your identity" },
+            { "lang": "nl", "value": "Uw identiteit controleren" }
+        ])),
+        vec![("en", "Verify your identity"), ("nl", "Uw identiteit controleren")]
+    )]
+    #[case::without_purpose(None, vec![])]
+    fn disclosure_history_purpose(#[case] registered_purpose: Option<Value>, #[case] expected: Vec<(&str, &str)>) {
+        let stored = json!({
+            "displayName": "Example",
+            "legalName": "Example B.V.",
+            "description": [],
+            "identifier": "example",
+            "countryCode": "NL",
+            "supportUri": "https://example.com/support",
+            "personType": "legalPerson",
+            "purpose": registered_purpose,
+        });
         let event = WalletEvent::from(wallet::WalletEvent::Disclosure {
             id: Default::default(),
             timestamp: Default::default(),
@@ -127,7 +139,12 @@ mod tests {
         let WalletEvent::Disclosure { purpose, .. } = event else {
             panic!("expected disclosure event");
         };
-        assert_eq!(purpose[0].language, "en");
-        assert_eq!(purpose[0].value, expected);
+        assert_eq!(
+            purpose
+                .iter()
+                .map(|translation| (translation.language.as_str(), translation.value.as_str()))
+                .collect::<Vec<_>>(),
+            expected
+        );
     }
 }

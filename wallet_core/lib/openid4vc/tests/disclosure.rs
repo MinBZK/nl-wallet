@@ -168,7 +168,7 @@ async fn disclosure_direct() {
     let registration_certificate =
         MockRegistrationCertificate::new_verifier(auth_keypair.certificate(), Query::from(credential_requests.clone()));
     let registration_certificate =
-        RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
         credential_requests,
         ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
@@ -372,7 +372,7 @@ impl DirectMockVpMessageClient {
             Query::from(credential_requests.clone()),
         );
         let registration_certificate_envelope =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             credential_requests,
             ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
@@ -1116,7 +1116,7 @@ where
     let registration_certificate =
         registration_certificate_authority.issue_jwt(access_key_pair.certificate(), dcql_query.clone());
     let registration_certificate =
-        RegistrationCertificateEnvelope::try_from(registration_certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(registration_certificate.as_slice()).unwrap();
     let use_case = WalletInitiatedUseCase::new(
         UseCaseData::new(
             access_key_pair,
@@ -1170,12 +1170,12 @@ fn setup_verifier(
     let default_registration_certificate =
         registration_certificate_authority.issue_jwt(default_access_key_pair.certificate(), dcql_query.clone());
     let default_registration_certificate =
-        RegistrationCertificateEnvelope::try_from(default_registration_certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(default_registration_certificate.as_slice()).unwrap();
     let all_access_key_pair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let all_registration_certificate =
         registration_certificate_authority.issue_jwt(all_access_key_pair.certificate(), dcql_query.clone());
     let all_registration_certificate =
-        RegistrationCertificateEnvelope::try_from(all_registration_certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(all_registration_certificate.as_slice()).unwrap();
 
     // Initialize the verifier
     let usecases = HashMap::from([

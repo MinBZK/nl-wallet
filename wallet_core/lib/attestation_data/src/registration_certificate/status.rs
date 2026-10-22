@@ -95,9 +95,9 @@ impl BoundRegistrationCertificate {
     }
 }
 
-/// A WRPAC-bound, time-checked registration-certificate payload whose referenced status-list entry is valid.
+/// A WRPAC-bound registration-certificate payload whose referenced status-list entry is valid.
 ///
-/// Registration-certificate header and signature validation are performed by
+/// Registration-certificate header, signature and expiry validation are performed by
 /// [`super::verify_registration_certificate_envelope`].
 pub struct StatusValidatedRegistrationCertificate(BoundRegistrationCertificate);
 
@@ -149,7 +149,6 @@ mod tests {
     use super::super::test::legal_person_access_certificate_subject;
     use super::super::test::valid_parsed_payload;
     use super::super::test::valid_payload_json;
-    use super::super::test::validation_time;
     use super::RegistrationCertificateStatusValidationError;
     use super::StatusListIndexError;
     use super::StatusWireFormat;
@@ -225,7 +224,7 @@ mod tests {
         payload["status"] = status;
         let payload: ParsedRegistrationCertificate = serde_json::from_value(payload).unwrap();
         let result = payload
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap()
             .validate_status(&context.verifier, &context.trust_anchors, &context.time)
             .await;
@@ -237,7 +236,7 @@ mod tests {
     async fn accept_registration_certificate_with_valid_referenced_status() {
         let context = status_validation_context(StatusType::Valid, 8).await;
         let certificate = valid_parsed_payload()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap()
             .validate_status(&context.verifier, &context.trust_anchors, &context.time)
             .await
@@ -264,7 +263,7 @@ mod tests {
         );
 
         let result = valid_parsed_payload()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap()
             .validate_status(&verifier, &ca.to_trust_anchors(), &time)
             .await;
@@ -276,7 +275,7 @@ mod tests {
     async fn reject_registration_certificate_with_revoked_status() {
         let context = status_validation_context(StatusType::Invalid, 8).await;
         let result = valid_parsed_payload()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap()
             .validate_status(&context.verifier, &context.trust_anchors, &context.time)
             .await;
@@ -291,7 +290,7 @@ mod tests {
         payload["status"]["idx"] = json!("8");
         let payload: ParsedRegistrationCertificate = serde_json::from_value(payload).unwrap();
         let result = payload
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap()
             .validate_status(&context.verifier, &context.trust_anchors, &context.time)
             .await;
@@ -307,7 +306,7 @@ mod tests {
         let context = status_validation_context(StatusType::Valid, 8).await;
         let untrusted_ca = Ca::generate_mock();
         let result = valid_parsed_payload()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap()
             .validate_status(&context.verifier, &untrusted_ca.to_trust_anchors(), &context.time)
             .await;
@@ -329,7 +328,7 @@ mod tests {
             context.time.clone(),
         );
         let result = valid_parsed_payload()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap()
             .validate_status(&verifier, &context.trust_anchors, &context.time)
             .await;

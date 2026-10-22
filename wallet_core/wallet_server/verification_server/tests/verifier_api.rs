@@ -157,7 +157,7 @@ async fn wallet_server_settings_and_listener(
         UseCaseSettings {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
-            registration_certificate: RegistrationCertificateEnvelope::try_from(
+            registration_certificate: RegistrationCertificateEnvelope::from_slice(
                 registration_certificate.certificate.as_slice(),
             )
             .unwrap(),

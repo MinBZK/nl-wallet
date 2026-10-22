@@ -107,6 +107,8 @@ void _setupMockitoDummies() {
         serviceDescription: [],
         identifier: '',
         countryCode: '',
+        supportUri: 'https://example.org/support',
+        personType: core.PersonType.LegalPerson,
       ),
       missingAttributes: [],
       sharedDataWithRelyingPartyBefore: false,

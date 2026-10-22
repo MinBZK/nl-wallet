@@ -15,6 +15,7 @@ import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/notification/notification_channel.dart';
 import '../../../domain/model/organization.dart';
+import '../../../domain/model/person_type.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
@@ -136,6 +137,8 @@ final _kSampleOrganization = Organization(
   legalName: 'Organization Legal Name',
   displayName: 'Organization Display Name',
   publicBody: true,
+  personType: PersonType.legalPerson,
+  supportUri: 'https://example.org/support',
   description: 'Organization description'.untranslated,
   countryCode: 'NL',
   organizationId: 'NLID-123456',
