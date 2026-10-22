@@ -135,6 +135,7 @@ android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
 attestation_data = { path = "../../lib/attestation_data", features = ["mock"] }
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
+audit_log = { path = "../audit_log", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 http_utils = { path = "../../lib/http_utils", features = ["httpmock"] }
 jwt = { path = "../../lib/jwt", features = ["test"] }

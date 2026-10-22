@@ -4,8 +4,10 @@ use std::error::Error;
 use audit_log::audited;
 use audit_log::entity;
 use audit_log::model::AuditLog;
+use audit_log::model::DbAuditLog;
 use audit_log::model::FromAuditLogError;
-use audit_log::model::PostgresAuditLog;
+use audit_log::model::mock::MockAuditUser;
+use audit_log::repository::PostgresAuditLogRepository;
 use chrono::Utc;
 use db_test::DbSetup;
 use db_test::connection_from_url;
@@ -41,14 +43,21 @@ impl FromAuditLogError for TestError {
     }
 }
 
-async fn setup_test_database(correlation_id: Uuid) -> (DbSetup, PostgresAuditLog<MockUuid, MockTimeGenerator>) {
+async fn setup_test_database(
+    correlation_id: Uuid,
+) -> (
+    DbSetup,
+    DbAuditLog<PostgresAuditLogRepository, MockUuid, MockTimeGenerator>,
+) {
     let db_setup = DbSetup::create().await;
 
     let now = Utc::now();
     let time_generator = MockTimeGenerator::new(now);
 
-    let audit_log = PostgresAuditLog {
-        db_connection: connection_from_url(db_setup.audit_log_url()).await,
+    let audit_log = DbAuditLog {
+        repository: PostgresAuditLogRepository {
+            db_connection: connection_from_url(db_setup.audit_log_url()).await,
+        },
         time_generator,
         uuid_generator: MockUuid(correlation_id),
     };
@@ -68,7 +77,7 @@ async fn operation(
 #[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_audit(#[values(true, false)] is_success: bool) {
-    // Setup PostgresAuditLog and database connection
+    // Setup DbAuditLog and database connection
     let correlation_id = Uuid::new_v4();
     let (db_setup, audit_log) = setup_test_database(correlation_id).await;
 
@@ -106,7 +115,7 @@ async fn test_audit(#[values(true, false)] is_success: bool) {
 #[audited]
 async fn operation_with_user(
     #[auditor] audit_log: &impl AuditLog,
-    #[audit_user] user_id: &str,
+    #[audit_user] user_id: &MockAuditUser,
     is_success: bool,
 ) -> Result<(), TestError> {
     if is_success { Ok(()) } else { Err(TestError::Test) }
@@ -117,7 +126,7 @@ async fn test_audit_records_user_id_when_present() {
     let correlation_id = Uuid::new_v4();
     let (db_setup, audit_log) = setup_test_database(correlation_id).await;
 
-    operation_with_user(&audit_log, "user-42", true)
+    operation_with_user(&audit_log, &MockAuditUser::from("user-42"), true)
         .await
         .expect("should succeed");
 

@@ -131,6 +131,7 @@ where
 {
     let model = admin_portal_user_session::ActiveModel {
         id: Set(id),
+        user_id: Set(session.user_id),
         display_name: Set(session.display_name),
         roles: Set(session.roles),
         id_token: Set(session.id_token),
@@ -181,6 +182,7 @@ where
     }
 
     Ok(Some(AdminPortalUserSession {
+        user_id: model.user_id,
         display_name: model.display_name,
         roles: model.roles,
         id_token: model.id_token,
@@ -212,6 +214,7 @@ where
     tx.commit().await.map_err(PersistenceError::Transaction)?;
 
     Ok(Some(AdminPortalUserSession {
+        user_id: model.user_id,
         display_name: model.display_name,
         roles: model.roles,
         id_token: model.id_token,

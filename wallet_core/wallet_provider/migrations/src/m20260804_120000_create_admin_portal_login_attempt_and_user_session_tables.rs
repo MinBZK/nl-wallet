@@ -27,6 +27,7 @@ impl MigrationTrait for Migration {
                     .table(AdminPortalUserSession::Table)
                     .if_not_exists()
                     .col(text(AdminPortalUserSession::Id).primary_key())
+                    .col(string(AdminPortalUserSession::UserId))
                     .col(string(AdminPortalUserSession::DisplayName))
                     .col(array(AdminPortalUserSession::Roles, ColumnType::Text))
                     .col(string(AdminPortalUserSession::IdToken))
@@ -52,6 +53,7 @@ enum AdminPortalLoginAttempt {
 enum AdminPortalUserSession {
     Table,
     Id,
+    UserId,
     DisplayName,
     Roles,
     IdToken,

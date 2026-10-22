@@ -110,6 +110,7 @@ where
     let admin_portal_state = Arc::new(AdminPortalState::try_new(
         admin_portal,
         state.user_state.repositories.clone(),
+        state.audit_log.clone(),
     )?);
     let wallet_transfer_permits = Arc::new(Semaphore::new(state.wallet_transfer_concurrency_limit));
     let router = Router::new()

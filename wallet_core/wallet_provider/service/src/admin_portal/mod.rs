@@ -10,6 +10,7 @@ use std::collections::HashSet;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use audit_log::model::AuditUser;
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::DateTime;
@@ -43,6 +44,7 @@ use tracing::warn;
 use url::Url;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminPortalSessionRepository;
 use wallet_provider_domain::repository::PersistenceError;
 
@@ -50,6 +52,7 @@ use self::oidc_client::OidcHttpClientError;
 use crate::admin_portal::oidc_client::OidcHttpClient;
 
 pub mod oidc_client;
+pub mod task;
 
 const PRIVILEGE_ROLE_PREFIX: &str = "privilege_";
 
@@ -65,8 +68,26 @@ static ADMIN_SCOPES: LazyLock<HashSet<Scope>> = LazyLock::new(|| {
 /// The logged-in user, as reported to the Admin Portal frontend.
 #[derive(Debug)]
 pub struct LoggedInUser {
+    pub user_id: String,
     pub display_name: String,
     pub privileges: Vec<String>,
+}
+
+impl LoggedInUser {
+    /// The task types this user may create and review, i.e. the privileges that name a [`TaskType`].
+    pub fn authorized_task_types(&self) -> HashSet<TaskType> {
+        self.privileges
+            .iter()
+            .filter_map(|privilege| privilege.parse().ok())
+            .collect()
+    }
+}
+
+/// Identifies the user by their user ID, e.g. as the `#[audit_user]` of an audited operation.
+impl AuditUser for LoggedInUser {
+    fn to_audit_user_id(&self) -> String {
+        self.user_id.clone()
+    }
 }
 
 /// Errors from [`AdminPortalService::authorization_url`] (the `/auth/login` flow).
@@ -417,6 +438,7 @@ where
             .insert_user_session(
                 session_id.clone(),
                 AdminPortalUserSession {
+                    user_id: id_token.sub,
                     display_name: id_token.name,
                     roles,
                     id_token: token_response.id_token,
@@ -459,6 +481,7 @@ where
             .inspect_err(|error| warn!("failed to extend admin portal session: {error}"))?;
 
         Ok(session.map(|session| LoggedInUser {
+            user_id: session.user_id,
             display_name: session.display_name,
             privileges: to_privileges(&session.roles),
         }))
@@ -480,6 +503,7 @@ fn to_privileges(roles: &[String]) -> Vec<String> {
 
 #[derive(Deserialize)]
 struct IdTokenClaims {
+    sub: String,
     name: String,
     nonce: Option<String>,
 }
@@ -658,6 +682,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     fn user_session(roles: impl IntoIterator<Item = String>) -> AdminPortalUserSession {
         AdminPortalUserSession {
+            user_id: "user_id".to_string(),
             display_name: "Jane Doe".to_string(),
             roles: roles.into_iter().collect(),
             id_token: "the-id-token".to_string(),
