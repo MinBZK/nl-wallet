@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-wget --no-hsts -q -O ./rustup-init https://static.rust-lang.org/rustup/archive/1.29.0/x86_64-unknown-linux-gnu/rustup-init
-echo "4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10  rustup-init" | sha256sum -c
+wget --no-hsts -q -O ./rustup-init https://static.rust-lang.org/rustup/archive/1.29.2/x86_64-unknown-linux-gnu/rustup-init
+echo "5be191e8c70a5007074254cb74d78dbfdd25cd5a61c27de7b8e5410122ec24f4  rustup-init" | sha256sum -c
 
 chmod +x ./rustup-init
 ./rustup-init -y --default-toolchain 1.98.0 --profile minimal --component clippy,rustfmt
