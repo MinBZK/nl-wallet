@@ -46,6 +46,10 @@ const WALLET_PROVIDER_CERTIFICATE_POLICIES: &[u8] = &[
     0x31,
 ];
 
+/// The QcType of wallet provider certificates, id-etsi-qct-wal (ETSI TS 119 412-6, Annex A).
+#[cfg(any(test, feature = "generate"))]
+const ID_ETSI_QCT_WAL: der::oid::ObjectIdentifier = der::oid::ObjectIdentifier::new_unwrap("0.4.0.194126.1.2");
+
 #[derive(thiserror::Error, Debug)]
 pub enum CertificateUsageError {
     #[error("X509 coding error: {0}")]
@@ -126,6 +130,19 @@ impl CertificateUsage {
     pub fn certificate_policies(&self) -> Option<&'static [u8]> {
         match self {
             Self::Wia | Self::KeyAttestation => Some(WALLET_PROVIDER_CERTIFICATE_POLICIES),
+            Self::Mdl | Self::StatusListSigning => None,
+        }
+    }
+
+    /// The value of the QcType statement (ETSI EN 319 412-5, section 4.2.3), see [`ID_ETSI_QCT_WAL`].
+    ///
+    /// ETSI TS 119 412-6, WAL-5.2-01 requires the QcType statement with the value id-etsi-qct-wal in wallet provider
+    /// certificates. PID-4.5-01 requires the same for PID provider certificates with id-etsi-qct-pid, which we don't
+    /// distinguish from other issuer certificates yet.
+    #[cfg(any(test, feature = "generate"))]
+    pub fn qc_type(&self) -> Option<der::oid::ObjectIdentifier> {
+        match self {
+            Self::Wia | Self::KeyAttestation => Some(ID_ETSI_QCT_WAL),
             Self::Mdl | Self::StatusListSigning => None,
         }
     }

@@ -152,7 +152,9 @@ mod tests {
 #[cfg(any(test, feature = "generate"))]
 pub mod generate {
     use der::Encode;
+    use der::Sequence;
     use der::asn1::OctetStringRef;
+    use der::oid::ObjectIdentifier;
     use p256::ecdsa::SigningKey;
     use p256::pkcs8::DecodePrivateKey;
     use rcgen::BasicConstraints;
@@ -228,6 +230,20 @@ pub mod generate {
     /// RFC 5280, section 4.2.1.4: id-ce-certificatePolicies.
     const OID_CERTIFICATE_POLICIES: &[u64] = &[2, 5, 29, 32];
 
+    /// RFC 3739, section 3.2.6: id-pe-qcStatements, which is { id-pe 3 } with id-pe from RFC 5280, appendix A.1.
+    const OID_QC_STATEMENTS: &[u64] = &[1, 3, 6, 1, 5, 5, 7, 1, 3];
+
+    /// ETSI EN 319 412-5, Annex B: id-etsi-qcs-QcType.
+    const ID_ETSI_QCS_QC_TYPE: ObjectIdentifier = ObjectIdentifier::new_unwrap("0.4.0.1862.1.6");
+
+    /// RFC 3739, section 3.2.6: QCStatement, with the statementInfo of a QcType statement (ETSI EN 319 412-5,
+    /// section 4.2.3).
+    #[derive(Sequence)]
+    struct QcTypeStatement {
+        statement_id: ObjectIdentifier,
+        statement_info: Vec<ObjectIdentifier>,
+    }
+
     /// Subject key identifier extension for end-entity certificates, computed as the SHA-1 hash of the subjectPublicKey
     /// BIT STRING value (RFC 5280, section 4.2.1.2, method 1).
     ///
@@ -246,6 +262,21 @@ pub mod generate {
             .map_err(CertificateGenerationError::ExtensionEncoding)?;
 
         Ok(CustomExtension::from_oid_content(OID_SUBJECT_KEY_IDENTIFIER, content))
+    }
+
+    /// QCStatements extension (RFC 3739, section 3.2.6) with a single QcType statement (ETSI EN 319 412-5, section
+    /// 4.2.3) of `qc_type`. It does not contain QcCompliance, as we don't issue EU qualified certificates.
+    ///
+    /// ETSI EN 319 412-5, QCS-4.1-02 requires this extension to be non-critical.
+    fn qc_statements_extension(qc_type: ObjectIdentifier) -> Result<CustomExtension, CertificateGenerationError> {
+        let content = vec![QcTypeStatement {
+            statement_id: ID_ETSI_QCS_QC_TYPE,
+            statement_info: vec![qc_type],
+        }]
+        .to_der()
+        .map_err(CertificateGenerationError::ExtensionEncoding)?;
+
+        Ok(CustomExtension::from_oid_content(OID_QC_STATEMENTS, content))
     }
 
     fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateGenerationError> {
@@ -440,6 +471,7 @@ pub mod generate {
             configuration: CertificateConfiguration,
         ) -> Result<BorrowingCertificate, CertificateGenerationError> {
             let certificate_policies = configuration.usage.and_then(|usage| usage.certificate_policies());
+            let qc_type = configuration.usage.and_then(|usage| usage.qc_type());
 
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
@@ -451,6 +483,9 @@ pub mod generate {
                     OID_CERTIFICATE_POLICIES,
                     certificate_policies.to_vec(),
                 ));
+            }
+            if let Some(qc_type) = qc_type {
+                params.custom_extensions.push(qc_statements_extension(qc_type)?);
             }
             params.distinguished_name = distinguished_name
                 .try_into()

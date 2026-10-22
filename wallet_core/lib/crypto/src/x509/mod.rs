@@ -473,6 +473,9 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use der::Decode;
+    use der::Sequence;
+    use der::oid::ObjectIdentifier;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use p256::pkcs8::EncodePublicKey;
@@ -727,6 +730,62 @@ mod tests {
             }
             (None, None) => {}
             (actual, expected) => panic!("expected certificate policy {expected:?}, got {actual:?}"),
+        }
+
+        key_pair
+            .certificate()
+            .verify(usage, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .expect("leaf must verify against the CA");
+    }
+
+    /// RFC 3739, section 3.2.6: QCStatement, with the statementInfo of a QcType statement (ETSI EN 319 412-5,
+    /// section 4.2.3).
+    #[derive(derive_more::Debug, PartialEq, Eq, Sequence)]
+    struct QcTypeStatement {
+        statement_id: ObjectIdentifier,
+        statement_info: Vec<ObjectIdentifier>,
+    }
+
+    #[rstest]
+    #[case::issuer(Some(CertificateUsage::Mdl), None)]
+    #[case::status_list(Some(CertificateUsage::StatusListSigning), None)]
+    #[case::wia(Some(CertificateUsage::Wia), Some("0.4.0.194126.1.2"))]
+    #[case::key_attestation(Some(CertificateUsage::KeyAttestation), Some("0.4.0.194126.1.2"))]
+    #[case::without_eku(None, None)]
+    fn generated_leaf_qc_statements(#[case] usage: Option<CertificateUsage>, #[case] expected_qc_type: Option<&str>) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    usage,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        // x509-parser does not parse the QCStatements extension, so look it up by its OID and decode it here.
+        let qc_statements = x509_cert
+            .extensions()
+            .iter()
+            .find(|ext| ext.oid.to_id_string() == "1.3.6.1.5.5.7.1.3");
+
+        match (qc_statements, expected_qc_type) {
+            (Some(qc_statements), Some(expected_qc_type)) => {
+                // ETSI EN 319 412-5, QCS-4.1-02: a non-critical extension.
+                assert!(!qc_statements.critical);
+                let statements = Vec::<QcTypeStatement>::from_der(qc_statements.value).unwrap();
+                assert_eq!(
+                    statements,
+                    vec![QcTypeStatement {
+                        statement_id: ObjectIdentifier::new_unwrap("0.4.0.1862.1.6"),
+                        statement_info: vec![ObjectIdentifier::new(expected_qc_type).unwrap()],
+                    }]
+                );
+            }
+            (None, None) => {}
+            (actual, expected) => panic!("expected QcType {expected:?}, got {actual:?}"),
         }
 
         key_pair
