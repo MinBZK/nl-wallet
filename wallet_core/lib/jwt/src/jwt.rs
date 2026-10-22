@@ -2281,8 +2281,8 @@ mod tests {
     #[case::ecdsa_p256(PrivateKey::P256(p256::ecdsa::SigningKey::generate()), Algorithm::ES256)]
     #[case::ecdsa_p384(PrivateKey::P384(p384::ecdsa::SigningKey::generate()), Algorithm::ES384)]
     #[case::rsa2048(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa3072(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa4096(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa3072(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS384)]
+    #[case::rsa4096(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS512)]
     fn test_sign_and_verify_with_algorithms(#[case] private_key: PrivateKey, #[case] algorithm: Algorithm) {
         let payload = ToyMessage::default();
 
