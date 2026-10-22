@@ -159,6 +159,11 @@ enum Command {
         /// certificate carries no CDP extension, so consumers that enforce revocation checking will reject it.
         #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
         crl_distribution_points: Vec<Url>,
+        /// Location URL(s) of the given CA certificate to embed in this certificate, as id-ad-caIssuers access
+        /// descriptions in the authority information access extension. Each URL should serve the CA certificate in DER
+        /// format. If omitted, the certificate carries no authority information access extension.
+        #[arg(long = "ca-issuer", num_args(0..))]
+        ca_issuers: Vec<Url>,
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
@@ -212,6 +217,11 @@ enum Command {
         /// certificate carries no CDP extension, so consumers that enforce revocation checking will reject it.
         #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
         crl_distribution_points: Vec<Url>,
+        /// Location URL(s) of the given CA certificate to embed in this certificate, as id-ad-caIssuers access
+        /// descriptions in the authority information access extension. Each URL should serve the CA certificate in DER
+        /// format. If omitted, the certificate carries no authority information access extension.
+        #[arg(long = "ca-issuer", num_args(0..))]
+        ca_issuers: Vec<Url>,
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
@@ -407,6 +417,7 @@ impl Command {
         cert_type: CertType,
         days: u32,
         crl_distribution_points: Vec<Url>,
+        ca_issuers: Vec<Url>,
         san_uris: Vec<HttpsUri>,
     ) -> CertificateConfiguration {
         let usage = match cert_type {
@@ -421,6 +432,7 @@ impl Command {
         CertificateConfiguration {
             usage,
             crl_distribution_points,
+            ca_issuers,
             subject_alt_names,
             ..Self::get_ca_configuration(days)
         }
@@ -460,6 +472,7 @@ impl Command {
                 ca_key_file,
                 ca_crt_file,
                 crl_distribution_points,
+                ca_issuers,
                 common_name,
                 country_name,
                 organization_name,
@@ -484,7 +497,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points, san_uris);
+                let config =
+                    Self::get_certificate_configuration(cert_type, days, crl_distribution_points, ca_issuers, san_uris);
                 let key_pair = ca.generate_key_pair(distinguished_name, config)?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
                 Ok(())
@@ -494,6 +508,7 @@ impl Command {
                 ca_key_file,
                 ca_crt_file,
                 crl_distribution_points,
+                ca_issuers,
                 common_name,
                 country_name,
                 organization_name,
@@ -519,7 +534,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points, san_uris);
+                let config =
+                    Self::get_certificate_configuration(cert_type, days, crl_distribution_points, ca_issuers, san_uris);
                 let certificate = ca.generate_certificate(public_key.contents(), distinguished_name, config)?;
                 write_certificate(&certificate, &file_prefix, force)?;
                 Ok(())

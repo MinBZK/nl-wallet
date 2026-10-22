@@ -153,6 +153,7 @@ mod tests {
 pub mod generate {
     use der::Encode;
     use der::Sequence;
+    use der::asn1::Ia5StringRef;
     use der::asn1::OctetStringRef;
     use der::oid::ObjectIdentifier;
     use p256::ecdsa::SigningKey;
@@ -179,6 +180,7 @@ pub mod generate {
     use rustls_pki_types::TrustAnchor;
     use time::Duration;
     use time::OffsetDateTime;
+    use url::Url;
     use x509_parser::error::X509Error;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
@@ -230,6 +232,21 @@ pub mod generate {
     /// RFC 5280, section 4.2.1.4: id-ce-certificatePolicies.
     const OID_CERTIFICATE_POLICIES: &[u64] = &[2, 5, 29, 32];
 
+    /// RFC 5280, section 4.2.2.1: id-pe-authorityInfoAccess, which is { id-pe 1 }.
+    const OID_AUTHORITY_INFO_ACCESS: &[u64] = &[1, 3, 6, 1, 5, 5, 7, 1, 1];
+
+    /// RFC 5280, section 4.2.2.1: id-ad-caIssuers, which is { id-ad 2 } with id-ad from RFC 5280, appendix A.1.
+    const ID_AD_CA_ISSUERS: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.48.2");
+
+    /// RFC 5280, section 4.2.2.1: AccessDescription, where the access location is a GeneralName of the
+    /// uniformResourceIdentifier choice.
+    #[derive(Sequence)]
+    struct AccessDescription<'a> {
+        access_method: ObjectIdentifier,
+        #[asn1(context_specific = "6", tag_mode = "IMPLICIT")]
+        access_location: Ia5StringRef<'a>,
+    }
+
     /// RFC 3739, section 3.2.6: id-pe-qcStatements, which is { id-pe 3 } with id-pe from RFC 5280, appendix A.1.
     const OID_QC_STATEMENTS: &[u64] = &[1, 3, 6, 1, 5, 5, 7, 1, 3];
 
@@ -277,6 +294,27 @@ pub mod generate {
         .map_err(CertificateGenerationError::ExtensionEncoding)?;
 
         Ok(CustomExtension::from_oid_content(OID_QC_STATEMENTS, content))
+    }
+
+    /// Authority information access extension (RFC 5280, section 4.2.2.1) with an id-ad-caIssuers access description
+    /// for each of `ca_issuers`.
+    ///
+    /// ETSI EN 319 412-2, GEN-4.4.1-2 and GEN-4.4.1-3 require it, which applies to wallet provider certificates through
+    /// ETSI TS 119 412-6, WAL-5.1-01 and PID-4.4.3. RFC 5280 requires it to be non-critical.
+    fn authority_info_access_extension(ca_issuers: &[Url]) -> Result<CustomExtension, CertificateGenerationError> {
+        let content = ca_issuers
+            .iter()
+            .map(|ca_issuer| {
+                Ia5StringRef::new(ca_issuer.as_str()).map(|access_location| AccessDescription {
+                    access_method: ID_AD_CA_ISSUERS,
+                    access_location,
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .and_then(|access_descriptions| access_descriptions.to_der())
+            .map_err(CertificateGenerationError::ExtensionEncoding)?;
+
+        Ok(CustomExtension::from_oid_content(OID_AUTHORITY_INFO_ACCESS, content))
     }
 
     fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateGenerationError> {
@@ -472,6 +510,9 @@ pub mod generate {
         ) -> Result<BorrowingCertificate, CertificateGenerationError> {
             let certificate_policies = configuration.usage.and_then(|usage| usage.certificate_policies());
             let qc_type = configuration.usage.and_then(|usage| usage.qc_type());
+            let authority_info_access = (!configuration.ca_issuers.is_empty())
+                .then(|| authority_info_access_extension(&configuration.ca_issuers))
+                .transpose()?;
 
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
@@ -487,6 +528,7 @@ pub mod generate {
             if let Some(qc_type) = qc_type {
                 params.custom_extensions.push(qc_statements_extension(qc_type)?);
             }
+            params.custom_extensions.extend(authority_info_access);
             params.distinguished_name = distinguished_name
                 .try_into()
                 .map_err(CertificateGenerationError::GeneratingFailed)?;

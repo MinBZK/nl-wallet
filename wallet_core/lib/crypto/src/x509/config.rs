@@ -12,6 +12,9 @@ pub struct CertificateConfiguration {
     pub exclude_aki: bool,
     pub usage: Option<CertificateUsage>,
     pub crl_distribution_points: Vec<Url>,
+    /// Locations of the certificate of the issuing CA, which are included in the authority information access
+    /// extension of end-entity certificates.
+    pub ca_issuers: Vec<Url>,
     pub subject_alt_names: Vec<SubjectAltNameUri>,
 }
 

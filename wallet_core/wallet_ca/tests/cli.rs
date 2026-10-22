@@ -45,8 +45,10 @@ use token_status_list::status_list_token::StatusListToken;
 use url::Url;
 use utils::generator::TimeGenerator;
 use x509_parser::extensions::GeneralName;
+use x509_parser::extensions::ParsedExtension;
 use x509_parser::num_bigint::BigUint;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
+use x509_parser::oid_registry::OID_PKIX_ACCESS_DESCRIPTOR_CA_ISSUERS;
 use x509_parser::parse_x509_crl;
 
 trait RangeCompare<Offset> {
@@ -198,6 +200,33 @@ fn assert_generated_certificate_crl_distribution_points(crt_file: &ChildPath, ex
     let cert = BorrowingCertificate::from_der(crt_pem.contents)?;
 
     let uris = extract_crl_distribution_points(&cert)?;
+    assert_eq!(uris.as_slice(), expected);
+
+    Ok(())
+}
+
+/// Verify the id-ad-caIssuers URIs from a generated certificate's authority information access extension against the
+/// expected URIs.
+fn assert_generated_certificate_ca_issuers(crt_file: &ChildPath, expected: &[Url]) -> Result<()> {
+    let crt_pem_bytes = std::fs::read(crt_file)?;
+    let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
+    let cert = BorrowingCertificate::from_der(crt_pem.contents)?;
+
+    let uris = cert
+        .x509_certificate()
+        .extensions()
+        .iter()
+        .filter_map(|ext| match ext.parsed_extension() {
+            ParsedExtension::AuthorityInfoAccess(aia) => Some(aia),
+            _ => None,
+        })
+        .flat_map(|aia| aia.iter())
+        .filter(|access_description| access_description.access_method == OID_PKIX_ACCESS_DESCRIPTOR_CA_ISSUERS)
+        .map(|access_description| match access_description.access_location {
+            GeneralName::URI(uri) => Ok(uri.parse::<Url>()?),
+            ref access_location => Err(anyhow::anyhow!("unexpected access location: {access_location:?}")),
+        })
+        .collect::<Result<Vec<_>>>()?;
     assert_eq!(uris.as_slice(), expected);
 
     Ok(())
@@ -1172,6 +1201,82 @@ fn happy_flow_with_crl_distribution_points() -> Result<()> {
             .stderr(predicate_successfully_generated_certificate(&rp_auth_crt)?);
 
         assert_generated_certificate_crl_distribution_points(&rp_auth_crt, &[])?;
+    }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_with_ca_issuers() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    let ca_issuers: Vec<Url> = vec![
+        "http://ca1.example.com/ca.crt.der".parse().unwrap(),
+        "http://ca2.example.com/ca.crt.der".parse().unwrap(),
+    ];
+
+    // Generate TSL key pair with multiple CA issuers
+    {
+        let (tsl_prefix, tsl_crt, tsl_key) = keypair_paths(&temp, "test-tsl-aia-kp");
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .arg("--ca-issuer")
+            .args(ca_issuers.iter().map(Url::as_str))
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_key_pair(&tsl_crt, &tsl_key)?);
+
+        assert_generated_key(&tsl_key)?;
+        assert_generated_certificate_ca_issuers(&tsl_crt, &ca_issuers)?;
+    }
+
+    // Generate TSL certificate with multiple CA issuers
+    {
+        let (tsl_prefix, tsl_crt, _) = keypair_paths(&temp, "test-tsl-aia-crt");
+
+        let public_key_path = public_key_path(&temp, "test-tsl-aia-crt");
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .arg("--ca-issuer")
+            .args(ca_issuers.iter().map(Url::as_str))
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
+
+        assert_generated_certificate_ca_issuers(&tsl_crt, &ca_issuers)?;
+    }
+
+    // Generate a TSL certificate without the flag: no authority information access extension should be present
+    {
+        let (tsl_prefix, tsl_crt, _) = keypair_paths(&temp, "test-tsl-no-aia-crt");
+
+        let public_key_path = public_key_path(&temp, "test-tsl-no-aia-crt");
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
+
+        assert_generated_certificate_ca_issuers(&tsl_crt, &[])?;
     }
 
     // Explicitly close the temp folder, for better error reporting

@@ -489,6 +489,7 @@ mod tests {
     use time::macros::datetime;
     use utils::generator::TimeGenerator;
     use x509_parser::certificate::X509Certificate;
+    use x509_parser::extensions::GeneralName;
 
     use super::*;
     use crate::server_keys::generate::Ca;
@@ -735,6 +736,71 @@ mod tests {
         key_pair
             .certificate()
             .verify(usage, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .expect("leaf must verify against the CA");
+    }
+
+    /// A URL of more than 127 bytes, of which the DER encoding needs a length in the long form.
+    const LONG_CA_ISSUER: &str = concat!(
+        "http://ca.example.com/",
+        "0123456789012345678901234567890123456789012345678901234567890123456789",
+        "0123456789012345678901234567890123456789012345678901234567890123456789",
+        "/ca.crt.der",
+    );
+
+    #[rstest]
+    #[case::none(&[])]
+    #[case::one(&["http://localhost:3021/wptl.crt.der"])]
+    #[case::multiple(&["http://localhost:3021/wptl.crt.der", "https://ca.example.com/ca.crt.der"])]
+    #[case::long(&[LONG_CA_ISSUER])]
+    fn generated_leaf_authority_info_access(#[case] ca_issuers: &[&str]) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    ca_issuers: ca_issuers.iter().map(|url| url.parse().unwrap()).collect(),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        let authority_info_access = x509_cert
+            .extensions()
+            .iter()
+            .find_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::AuthorityInfoAccess(aia) => Some((ext.critical, aia)),
+                _ => None,
+            });
+
+        if ca_issuers.is_empty() {
+            assert!(authority_info_access.is_none());
+        } else {
+            let (critical, aia) = authority_info_access.expect("leaf must contain authority information access");
+            // RFC 5280, section 4.2.2.1: a non-critical extension.
+            assert!(!critical);
+            let access_descriptions = aia
+                .iter()
+                .map(|access_description| {
+                    let GeneralName::URI(uri) = access_description.access_location else {
+                        panic!(
+                            "expected a URI access location, got {:?}",
+                            access_description.access_location
+                        );
+                    };
+                    (access_description.access_method.to_id_string(), uri)
+                })
+                .collect_vec();
+            let expected = ca_issuers
+                .iter()
+                .map(|ca_issuer| ("1.3.6.1.5.5.7.48.2".to_string(), *ca_issuer))
+                .collect_vec();
+            assert_eq!(access_descriptions, expected);
+        }
+
+        key_pair
+            .certificate()
+            .verify(None, &[], &TimeGenerator, &ca.to_trust_anchors())
             .expect("leaf must verify against the CA");
     }
 

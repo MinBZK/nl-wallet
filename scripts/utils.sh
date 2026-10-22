@@ -400,6 +400,7 @@ function generate_wia_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --ca-issuer "${WPTL_CA_ISSUER}" \
         --common-name "${access_certificates[(wptl,name)]}" \
         --organization-name "${access_certificates[(wptl,legal_name)]}" \
         --organization-id "${access_certificates[(wptl,oid)]}" \
@@ -446,6 +447,7 @@ function generate_key_attestation_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/key_attestation_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --ca-issuer "${WPTL_CA_ISSUER}" \
         --common-name "${access_certificates[(wptl,name)]}" \
         --organization-name "${access_certificates[(wptl,legal_name)]}" \
         --organization-id "${access_certificates[(wptl,oid)]}" \
