@@ -55,12 +55,11 @@ spec:
             - name: settings
               mountPath: /issuance_server.toml
               subPath: issuance_server.toml
+            {{- range .Values.typeMetadata }}
             - name: metadata
-              mountPath: /com.example.degree.json
-              subPath: com.example.degree.json
-            - name: metadata
-              mountPath: /com.example.housing.json
-              subPath: com.example.housing.json
+              mountPath: /{{ . }}
+              subPath: {{ . }}
+            {{- end }}
             - name: status-lists
               mountPath: /status-lists
           env:
@@ -72,8 +71,10 @@ spec:
               value: {{ .Values.universalLinkBaseUrl }}
             - name: ISSUANCE_SERVER__STRUCTURED_LOGGING
               value: "true"
+            {{- if .Values.typeMetadata }}
             - name: ISSUANCE_SERVER__TYPE_METADATA
-              value: "com.example.degree.json,com.example.housing.json"
+              value: {{ join "," .Values.typeMetadata | quote }}
+            {{- end }}
             - name: ISSUANCE_SERVER__REGISTRATION_CERTIFICATE
               valueFrom:
                 secretKeyRef:

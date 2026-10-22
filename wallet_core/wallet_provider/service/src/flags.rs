@@ -186,7 +186,7 @@ pub mod mock {
 
     use crate::flags::WalletFlags;
 
-    #[derive(Default, Clone)]
+    #[derive(Debug, Clone, Default)]
     pub struct StubWalletFlags {
         solution_revoked: Arc<AtomicBool>,
     }

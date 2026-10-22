@@ -6,7 +6,6 @@ import '../card/wallet_card.dart';
 import '../disclosure/disclose_card_request.dart';
 import '../disclosure/disclosure_session_type.dart';
 import '../organization.dart';
-import '../policy/policy.dart';
 
 part 'start_issuance_result.freezed.dart';
 
@@ -32,7 +31,6 @@ sealed class StartIssuanceResult with _$StartIssuanceResult {
     required LocalizedText requestPurpose,
     required DisclosureSessionType sessionType,
     required List<DiscloseCardRequest> cardRequests,
-    required Policy policy,
   }) = StartIssuanceReadyToDisclose;
 
   const factory StartIssuanceResult.missingAttributes({

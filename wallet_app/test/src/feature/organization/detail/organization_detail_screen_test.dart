@@ -124,7 +124,7 @@ void main() {
       expect(find.text(l10n.organizationDetailScreenOrganizationTypeNonGovernment), findsOneWidget);
       expect(find.text(l10n.organizationDetailScreenLegalNameInfo), findsOneWidget);
       expect(find.text(l10n.organizationDetailScreenOrganizationIdInfo), findsOneWidget);
-      expect(find.text(WalletMockData.organization.supportUri!.replaceAll('https://', '')), findsOneWidget);
+      expect(find.text(WalletMockData.organization.supportUri.replaceAll('https://', '')), findsOneWidget);
       expect(find.text(WalletMockData.organization.privacyPolicyUri!.replaceAll('https://', '')), findsOneWidget);
       expect(find.text(WalletMockData.organization.organizationId), findsOneWidget);
       final location = CountryCodeFormatter.format(WalletMockData.organization.countryCode);

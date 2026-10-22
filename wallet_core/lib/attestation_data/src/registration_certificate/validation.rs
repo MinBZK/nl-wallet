@@ -38,10 +38,11 @@ pub(super) const ANNEX_A_3_1_SUB_ENTITLEMENTS: [&str; 5] = [
     "https://uri.etsi.org/19475/SubEntitlement/psp/unspecified",
 ];
 
-/// A parsed registration-certificate payload bound to a WRPAC subject and checked against the current time.
+/// A parsed registration-certificate payload bound to a WRPAC subject.
 ///
-/// Header and signature validation are performed by [`super::verify_registration_certificate_envelope`]. Verification
-/// of the referenced status list is a separate asynchronous step; use [`Self::validate_status`] to perform it.
+/// Header, signature and expiry validation are performed by [`super::verify_registration_certificate_envelope`].
+/// Verification of the referenced status list is a separate asynchronous step; use [`Self::validate_status`] to perform
+/// it.
 pub struct BoundRegistrationCertificate(ParsedRegistrationCertificate);
 
 impl BoundRegistrationCertificate {
@@ -79,10 +80,6 @@ pub enum CredentialSetValidationError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateValidationError {
-    #[error("registration certificate has no `id`")]
-    MissingId,
-    #[error("status must use the direct object shape with `idx` encoded as a numeric string")]
-    InvalidStatusWireFormat,
     #[error("field `{field}` must not be empty")]
     EmptyField { field: &'static str },
     #[error("registration certificate contains both legal-person and natural-person subject fields")]
@@ -184,14 +181,6 @@ fn validate_credential_set(value: &[Credential]) -> Result<(), CredentialSetVali
 
 impl UncheckedRegistrationCertificate {
     pub(super) fn parse_structure(&self) -> Result<Subject, RegistrationCertificateValidationError> {
-        let id = self
-            .id
-            .as_deref()
-            .ok_or(RegistrationCertificateValidationError::MissingId)?;
-        validate_non_empty("id", id)?;
-        if !self.status.has_normative_input_format() {
-            return Err(RegistrationCertificateValidationError::InvalidStatusWireFormat);
-        }
         validate_non_empty("sub", &self.sub)?;
         if let Some(name) = &self.name {
             validate_non_empty("name", name)?;
@@ -336,10 +325,9 @@ impl UncheckedRegistrationCertificate {
 }
 
 impl ParsedRegistrationCertificate {
-    pub fn validate_binding_and_time(
+    pub fn validate_binding(
         self,
         access_certificate_subject: &RelyingParty,
-        now: DateTime<Utc>,
     ) -> Result<BoundRegistrationCertificate, RegistrationCertificateValidationError> {
         let subject_type = match self.subject() {
             Subject::LegalPerson { .. } => SubjectType::LegalPerson,
@@ -380,13 +368,18 @@ impl ParsedRegistrationCertificate {
         if self.payload().sub != access_identifier {
             return Err(RegistrationCertificateValidationError::SubjectIdentifierMismatch { field: subject_field });
         }
+
+        Ok(BoundRegistrationCertificate(self))
+    }
+
+    pub fn validate_expiry(&self, now: DateTime<Utc>) -> Result<(), RegistrationCertificateValidationError> {
         if let Some(expiration) = self.payload().exp
             && now >= expiration
         {
             return Err(RegistrationCertificateValidationError::Expired { expiration });
         }
 
-        Ok(BoundRegistrationCertificate(self))
+        Ok(())
     }
 }
 
@@ -432,7 +425,6 @@ mod tests {
     use super::super::test::legal_person_access_certificate_subject;
     use super::super::test::valid_payload;
     use super::super::test::valid_payload_json;
-    use super::super::test::validation_time;
     use super::ANNEX_A_3_1_SUB_ENTITLEMENTS;
     use super::CredentialSetValidationError;
     use super::MultiLanguageStringSetValidationError;
@@ -447,10 +439,10 @@ mod tests {
     fn validate_payload_based_on_annex_c_example() {
         let certificate = ParsedRegistrationCertificate::try_from(valid_payload())
             .unwrap()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time())
+            .validate_binding(&legal_person_access_certificate_subject())
             .unwrap();
 
-        assert_eq!(certificate.payload().id.as_deref(), Some("wrprc-example-1"));
+        assert_eq!(certificate.payload().sub, "LEIXG-529900T8BM49AURSDO55");
         assert_matches!(certificate.subject(), Subject::LegalPerson { legal_name } if legal_name == "Example Company GmbH");
     }
 
@@ -474,7 +466,7 @@ mod tests {
 
         let certificate = ParsedRegistrationCertificate::try_from(payload)
             .unwrap()
-            .validate_binding_and_time(&access_subject, validation_time())
+            .validate_binding(&access_subject)
             .unwrap();
         assert_matches!(
             certificate.subject(),
@@ -521,7 +513,7 @@ mod tests {
         assert_matches!(
             ParsedRegistrationCertificate::try_from(payload)
                 .unwrap()
-                .validate_binding_and_time(&legal_person_access_certificate_subject(), validation_time()),
+                .validate_binding(&legal_person_access_certificate_subject()),
             Err(RegistrationCertificateValidationError::SubjectIdentifierMismatch {
                 field: "organizationIdentifier"
             })
@@ -543,7 +535,7 @@ mod tests {
         assert_matches!(
             ParsedRegistrationCertificate::try_from(payload)
                 .unwrap()
-                .validate_binding_and_time(&access_subject, validation_time()),
+                .validate_binding(&access_subject),
             Err(
                 RegistrationCertificateValidationError::AccessCertificateSubjectTypeMismatch {
                     registration: SubjectType::LegalPerson,
@@ -673,7 +665,7 @@ mod tests {
         valid.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 0).unwrap());
         ParsedRegistrationCertificate::try_from(valid)
             .unwrap()
-            .validate_binding_and_time(&legal_person_access_certificate_subject(), now)
+            .validate_expiry(now)
             .unwrap();
 
         let mut too_late = valid_payload();
@@ -690,7 +682,7 @@ mod tests {
         assert_matches!(
             ParsedRegistrationCertificate::try_from(expired)
                 .unwrap()
-                .validate_binding_and_time(&legal_person_access_certificate_subject(), now),
+                .validate_expiry(now),
             Err(RegistrationCertificateValidationError::Expired { .. })
         );
     }
@@ -838,13 +830,6 @@ mod tests {
 
     #[test]
     fn reject_invalid_core_values() {
-        let mut invalid_id = valid_payload();
-        invalid_id.id = Some("  ".to_string());
-        assert_matches!(
-            ParsedRegistrationCertificate::try_from(invalid_id),
-            Err(RegistrationCertificateValidationError::EmptyField { field: "id" })
-        );
-
         let mut invalid_name = valid_payload();
         invalid_name.name = Some("  ".to_string());
         assert_matches!(

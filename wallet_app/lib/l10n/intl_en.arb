@@ -580,7 +580,6 @@
     "generalOkCta": "OK",
     "generalOsVersionText": "OS version:",
     "generalPageChangeWCAGAnnouncement": "Showing page {current} of {total}.",
-    "generalPolicyAllTermsCta": "All terms",
     "generalPolicyDataIsSignature": "By signing the agreement will be definitive",
     "generalRetry": "Try again",
     "generalSeconds": "{seconds, plural, one {{seconds} second} other {{seconds} seconds}}",
@@ -1114,26 +1113,6 @@
     "placeholderScreenContractDescription": "The contract will be displayed here.",
     "placeholderScreenGenericDescription": "Please try again later.",
     "placeholderScreenHeadline": "Sorry, this page is still under construction.",
-    "policyScreenDataIsSignature": "By continuing the agreements will be definitive",
-    "policyScreenDataPurposeDescription": "Your data is not used for anything besides the stated purpose.",
-    "policyScreenPolicySectionPolicyCta": "privacy policy",
-    "policyScreenPolicySectionText": "Read more in the {policy} of the {organization}. Here you can read more about how the {organization} will use your data.",
-    "@policyScreenPolicySectionText": {
-        "placeholders": {
-            "organization": {
-                "example": "Municipality of Amsterdam",
-                "type": "String"
-            },
-            "policy": {
-                "example": "privacy policy",
-                "type": "String"
-            }
-        }
-    },
-    "policyScreenPolicySectionTitle": "Learn more?",
-    "policyScreenReportIssueCta": "Would you like to report a problem?",
-    "policyScreenSubtitle": "The following agreements apply only to this sharing invitation.",
-    "policyScreenTitle": "Agreements",
     "privacySectionCta": "Read how the organisation uses your data",
     "privacySectionTitle": "Privacy Policy",
     "qrActionButtonSubtitle": "Scan QR or show your QR code",
@@ -1155,11 +1134,12 @@
     "qrPresentScreenReportIssueCta": "Would you like to report a problem?",
     "qrPresentScreenTitle": "Show your QR code",
     "qrScanTabContinueCta": "Scan another QR code",
-    "qrScanTabGrantPermissionCta": "Grant access to camera",
+    "qrScanTabGrantPermissionCta": "Grant access to the camera",
     "qrScreenCheckingCodeWCAGAnnouncement": "QR code is being checked",
     "qrScreenDisableTorchCta": "Turn flashlight off",
     "qrScreenEnableTorchCta": "Turn flashlight on",
-    "qrScreenPermissionHint": "The NL Wallet needs access to your camera to scan a QR code",
+    "qrScreenPermissionHint": "The wallet needs access to your camera to scan a QR code.",
+    "qrScreenPermissionTitle": "Camera access needed",
     "qrScreenScanHint": "Point your camera at a QR code",
     "qrScreenScanScannerActiveWCAGAnnouncement": "No QR code found. Point your camera at a QR code",
     "qrScreenScanSuccessfulWCAGAnnouncement": "Scan successful",

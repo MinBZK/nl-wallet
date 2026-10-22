@@ -6,7 +6,6 @@ import '../../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../../domain/model/disclosure/disclosure_type.dart';
 import '../../../../domain/model/organization.dart';
-import '../../../../domain/model/policy/policy.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../disclosure_repository.dart';
@@ -17,7 +16,6 @@ class CoreDisclosureRepository implements DisclosureRepository {
   final Mapper<core.AttestationPresentation, WalletCard> _attestationMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
-  final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
   final Mapper<List<core.LocalizedString>, LocalizedText> _localizedStringMapper;
   final Mapper<core.DisclosureSessionType, DisclosureSessionType> _disclosureSessionTypeMapper;
   final Mapper<core.DisclosureType, DisclosureType> _disclosureTypeMapper;
@@ -27,7 +25,6 @@ class CoreDisclosureRepository implements DisclosureRepository {
     this._attestationMapper,
     this._relyingPartyMapper,
     this._missingAttributeMapper,
-    this._requestPolicyMapper,
     this._localizedStringMapper,
     this._disclosureSessionTypeMapper,
     this._disclosureTypeMapper,
@@ -52,14 +49,12 @@ class CoreDisclosureRepository implements DisclosureRepository {
             .map((it) => DiscloseCardRequest(candidates: _attestationMapper.mapList(it.field0)))
             .toList();
         final relyingParty = _relyingPartyMapper.map(result.relyingParty);
-        final policy = _requestPolicyMapper.map(result.policy);
         return StartDisclosureReadyToDisclose(
           relyingParty: relyingParty,
           requestPurpose: _localizedStringMapper.map(result.requestPurpose),
           sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
           type: _disclosureTypeMapper.map(result.requestType),
           cardRequests: requests,
-          policy: policy,
           sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
       case core.StartDisclosureResult_RequestAttributesMissing():

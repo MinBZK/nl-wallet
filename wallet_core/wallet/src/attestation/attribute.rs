@@ -156,7 +156,7 @@ impl AttestationPresentation {
                 attributes.push(AttestationAttribute {
                     key: claim_path,
                     metadata: claim.display,
-                    value: value.to_owned(),
+                    value: value.clone().into(),
                     svg_id: claim.svg_id.map(Into::into),
                 })
             }
@@ -206,8 +206,8 @@ pub mod test {
     use attestation_data::organization::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use indexmap::IndexMap;
     use mdoc::iso::mdocs::DataElementValue;
@@ -221,6 +221,7 @@ pub mod test {
     use super::super::AttestationError;
     use super::super::AttestationIdentity;
     use super::super::AttestationPresentation;
+    use super::super::AttributeValue;
     use super::super::mock::EmptyPresentationConfig;
     use crate::attestation::AttestationValidity;
     use crate::attestation::metadata::ClaimDisplay;
@@ -272,11 +273,11 @@ pub mod test {
             [
                 (
                     vec_nonempty![String::from("example_attestation_type"), String::from("entry1")],
-                    Attribute::Text(String::from("value1"))
+                    AttributeValue::Text(String::from("value1"))
                 ),
                 (
                     vec_nonempty![String::from("example_attestation_type"), String::from("entry2")],
-                    Attribute::Bool(true)
+                    AttributeValue::Bool(true)
                 ),
             ],
             attrs.as_slice()
@@ -425,7 +426,7 @@ pub mod test {
                         label: "name".to_string(),
                         description: None
                     }],
-                    value: Attribute::Text("Wallet".to_string()),
+                    value: AttributeValue::Text("Wallet".to_string()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -435,7 +436,7 @@ pub mod test {
                         label: "birth date".to_string(),
                         description: None
                     }],
-                    value: Attribute::Text("1996-06-16".to_owned()),
+                    value: AttributeValue::Text("1996-06-16".to_owned()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -445,7 +446,7 @@ pub mod test {
                         label: "address street".to_string(),
                         description: None
                     }],
-                    value: Attribute::Text("Gracht".to_string()),
+                    value: AttributeValue::Text("Gracht".to_string()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -455,7 +456,7 @@ pub mod test {
                         label: "address number".to_string(),
                         description: None
                     }],
-                    value: Attribute::Number(123.into()),
+                    value: AttributeValue::Number(123.into()),
                     svg_id: None
                 },
             ]
@@ -504,7 +505,7 @@ pub mod test {
     fn test_filter_recovery_code() {
         let config = test_wallet_config();
         let mdoc_attributes = IndexMap::from([(
-            String::from(PID_ATTESTATION_TYPE),
+            String::from(PID_MDOC_DOCTYPE),
             vec![
                 Entry {
                     name: String::from(PID_BSN),
@@ -519,12 +520,11 @@ pub mod test {
             ],
         )]);
 
-        let credential_metadata =
-            CredentialMetadata::new_mdoc_example(PID_ATTESTATION_TYPE, &[PID_BSN, PID_RECOVERY_CODE]);
+        let credential_metadata = CredentialMetadata::new_mdoc_example(PID_MDOC_DOCTYPE, &[PID_BSN, PID_RECOVERY_CODE]);
 
         let attestation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
-            PID_ATTESTATION_TYPE.to_string(),
+            PID_MDOC_DOCTYPE.to_string(),
             credential_metadata,
             Organization::new_mock().into(),
             AttestationValidity {
@@ -544,8 +544,8 @@ pub mod test {
 
         assert_eq!(
             [(
-                vec_nonempty![String::from(PID_ATTESTATION_TYPE), String::from(PID_BSN)],
-                Attribute::Text(String::from("999991772"))
+                vec_nonempty![String::from(PID_MDOC_DOCTYPE), String::from(PID_BSN)],
+                AttributeValue::Text(String::from("999991772"))
             ),],
             attrs.as_slice()
         );

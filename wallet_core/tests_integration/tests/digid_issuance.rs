@@ -17,13 +17,15 @@ use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::HttpBrpClient;
-use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
-use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
-use pid_issuer::pid::constants::PID_BSN;
-use pid_issuer::pid::constants::PID_FAMILY_NAME;
-use pid_issuer::pid::constants::PID_GIVEN_NAME;
-use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
 use pid_issuer::pid::digid::DigidMetadataClient;
+use pid_issuer::pid::rulebook::constants::PID_BSN;
+use pid_issuer::pid::rulebook::constants::PID_FAMILY_NAME;
+use pid_issuer::pid::rulebook::constants::PID_GIVEN_NAME;
+use pid_issuer::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
+use pid_issuer::pid::rulebook::constants::PID_SD_JWT_COUNTRY;
+use pid_issuer::pid::rulebook::country_code::IsoCountryCode;
+use pid_issuer::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
@@ -109,12 +111,17 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         // follows the callback. Keep the port (3003) in sync with the redirect_uris statically registered in
         // `scripts/devenv/digid-connector/clients.json` and `deploy/helm-charts/rdo-max/values.yaml`.
         let callback_base_url = local_http_base_url(3003);
+        let issuer_metadata = PidIssuerMetadata {
+            issuing_country: IsoCountryCode::Netherlands,
+            issuing_authority: "Test Issuing Authority".to_owned(),
+        };
         UpstreamOidcAuthorizationCodeFlow::try_new(
             brp_client,
             &bsn_privkey,
             digid_client_id,
             digid_metadata_cache,
             recovery_secret_key,
+            issuer_metadata,
             store_connection,
             &callback_base_url,
         )
@@ -190,7 +197,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .expect("previews should include SD-JWT PID")
         .credential_payload;
 
-    assert_eq!(payload.attestation_type, PID_ATTESTATION_TYPE);
+    assert_eq!(payload.attestation_type, PID_NL_SD_JWT_VCT);
 
     let attributes = payload.attributes.as_ref();
 
@@ -210,13 +217,13 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     }
 
     let address = attributes
-        .get(PID_ADDRESS_GROUP)
-        .unwrap_or_else(|| panic!("preview is missing {PID_ADDRESS_GROUP} group"));
+        .get(PID_SD_JWT_ADDRESS_GROUP)
+        .unwrap_or_else(|| panic!("preview is missing {PID_SD_JWT_ADDRESS_GROUP} group"));
     let Attribute::Object(address_fields) = address else {
-        panic!("{PID_ADDRESS_GROUP} is not a nested group: {address:?}");
+        panic!("{PID_SD_JWT_ADDRESS_GROUP} is not a nested group: {address:?}");
     };
     let country = address_fields
-        .get(PID_RESIDENT_COUNTRY)
-        .unwrap_or_else(|| panic!("address is missing {PID_RESIDENT_COUNTRY}"));
-    assert_eq!(country, &Attribute::Text("Nederland".to_string()));
+        .get(PID_SD_JWT_COUNTRY)
+        .unwrap_or_else(|| panic!("address is missing {PID_SD_JWT_COUNTRY}"));
+    assert_eq!(country, &Attribute::Text("NL".to_string()));
 }

@@ -1010,8 +1010,9 @@ open class MobileActions {
     fun startMockBleReaderApp(
         mdocQrString: String,
         timeoutSeconds: Int = 60,
-        wrpacCaCrtFile: String? = null,
-        wrpacCaKeyFile: String? = null,
+        wrpacCrtFile: String? = null,
+        wrpacKeyFile: String? = null,
+        wrprcFile: String? = null,
         requestDocType: String? = null,
         requestAttributes: List<String> = emptyList(),
         waitForDeviceResponse: Boolean = false,
@@ -1019,8 +1020,9 @@ open class MobileActions {
         val qrPayload = mdocQrString.removePrefix("mdoc:")
         val scriptPath = File("../scripts/close_proximity/disclosure_mac_reader.swift").canonicalPath
         val cmd = mutableListOf("swift", scriptPath, "--qr-code", qrPayload, "--timeout", timeoutSeconds.toString())
-        if (wrpacCaCrtFile != null && wrpacCaKeyFile != null) {
-            cmd += listOf("--wrpac-ca-crt-file", wrpacCaCrtFile, "--wrpac-ca-key-file", wrpacCaKeyFile)
+        if (wrpacCrtFile != null && wrpacKeyFile != null) {
+            cmd += listOf("--wrpac-crt-file", wrpacCrtFile, "--wrpac-key-file", wrpacKeyFile)
+            wrprcFile?.let { cmd += listOf("--wrprc-file", it) }
             requestDocType?.let { cmd += listOf("--request-doc-type", it) }
             requestAttributes.forEach { cmd += listOf("--request-attribute", it) }
         }

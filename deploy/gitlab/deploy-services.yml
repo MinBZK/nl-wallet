@@ -1,5 +1,6 @@
 .create-deployment:
   extends: .clone-variables
+  stage: init
   rules: !reference [.default-branch, rules]
   script:
     # CI variables take precedence over dotenv
@@ -34,6 +35,7 @@ create-deployment-pub:
     DEPLOY_ENV: pub
 
 .deploy-apps:
+  stage: deploy
   needs:
     - job: build-update-policy-server-image
       artifacts: false

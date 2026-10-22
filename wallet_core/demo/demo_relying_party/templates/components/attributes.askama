@@ -2,11 +2,13 @@
 <dl class="attributes">
 {% for attestation in attributes %}
   {% for (key, value) in attestation.attributes.flattened() %}
-    <dt>{{ base.trans[key.into_last()] }}</dt>
+    {% let key_str = key.into_last() %}
+    <dt>{{ base.trans.get(key_str).unwrap_or(key_str) }}</dt>
     <dd>
     {% match value %}
     {% when Attribute::Bool(bool) %}
-      {{ base.trans[format!("{bool:?}").as_str()] }}
+      {% let bool_str = format!("{bool:?}") %}
+      {{ base.trans.get(bool_str.as_str()).unwrap_or(bool_str.as_str()) }}
     {% else %}
       {{ value }}
     {% endmatch %}

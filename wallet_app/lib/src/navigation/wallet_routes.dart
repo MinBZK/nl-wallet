@@ -69,8 +69,6 @@ import '../feature/pin/bloc/pin_bloc.dart';
 import '../feature/pin/pin_screen.dart';
 import '../feature/pin_blocked/pin_blocked_screen.dart';
 import '../feature/pin_timeout/pin_timeout_screen.dart';
-import '../feature/policy/policy_screen.dart';
-import '../feature/policy/policy_screen_arguments.dart';
 import '../feature/privacy_policy/privacy_policy_screen.dart';
 import '../feature/qr/present/bloc/qr_present_bloc.dart';
 import '../feature/qr/present/qr_present_screen.dart';
@@ -168,7 +166,6 @@ class WalletRoutes {
   static const pinRoute = '/pin';
   static const pinRecoveryRoute = '/pin/recovery';
   static const pinTimeoutRoute = '/pin/timeout';
-  static const policyRoute = '/policy';
   static const privacyPolicyRoute = '/privacy_policy';
   static const qrPresentRoute = '/qr/present';
   static const qrScanRoute = '/qr/scan';
@@ -210,7 +207,6 @@ class WalletRoutes {
     WalletRoutes.themeRoute: (_) => _createThemeScreenBuilder,
     WalletRoutes.disclosureRoute: _createDisclosureScreenBuilder,
     WalletRoutes.forgotPinRoute: _createForgotPinScreenBuilder,
-    WalletRoutes.policyRoute: _createPolicyScreenBuilder,
     WalletRoutes.issuanceRoute: _createIssuanceScreenBuilder,
     WalletRoutes.signRoute: _createSignScreenBuilder,
     WalletRoutes.walletPersonalizeRoute: _createWalletPersonalizeScreenBuilder,
@@ -408,17 +404,6 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
   };
 }
 
-WidgetBuilder _createPolicyScreenBuilder(RouteSettings settings) {
-  return (context) {
-    final PolicyScreenArguments args = PolicyScreen.getArguments(settings);
-    return PolicyScreen(
-      relyingParty: args.relyingParty,
-      policy: args.policy,
-      showSignatureRow: args.showSignatureRow,
-    );
-  };
-}
-
 WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
   return (context) {
     final IssuanceScreenArgument argument = IssuanceScreen.getArgument(settings);
@@ -532,7 +517,6 @@ WidgetBuilder _createLoginDetailScreenBuilder(RouteSettings settings) {
     final argument = LoginDetailScreen.getArgument(settings);
     return LoginDetailScreen(
       organization: argument.organization,
-      policy: argument.policy,
       cardRequests: argument.cardRequests,
       sharedDataWithOrganizationBefore: argument.sharedDataWithOrganizationBefore,
     );

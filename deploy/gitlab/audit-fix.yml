@@ -1,23 +1,25 @@
-pnpm-audit-fix:
-  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+.base-audit-fix:
+  stage: qa
   rules:
     - !reference [.on-schedule-security, rules]
+
+pnpm-audit-fix:
+  extends: .base-audit-fix
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   script:
     - scripts/pnpm-audit-fix.sh
 
 cargo-audit-fix:
+  extends: .base-audit-fix
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-rust:${BUILD_TAG}"
   tags:
     - linux
-  rules:
-    - !reference [.on-schedule-security, rules]
   script:
     - scripts/cargo-audit-fix.sh
 
 pip-audit-fix:
+  extends: .base-audit-fix
   tags:
     - linux
-  rules:
-    - !reference [.on-schedule-security, rules]
   script:
     - scripts/pip-audit-fix.sh

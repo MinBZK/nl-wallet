@@ -2,7 +2,6 @@ use itertools::Itertools;
 
 use super::attestation::AttestationPresentation;
 use super::disclosure::DisclosureType;
-use super::disclosure::RequestPolicy;
 use super::disclosure::request_purpose;
 use super::localize::LocalizedString;
 use super::organization::Organization;
@@ -15,7 +14,6 @@ pub enum WalletEvent {
         relying_party: Organization,
         purpose: Vec<LocalizedString>,
         shared_attestations: Option<Vec<AttestationPresentation>>,
-        request_policy: RequestPolicy,
         status: DisclosureStatus,
         typ: DisclosureType,
     },
@@ -73,7 +71,6 @@ impl From<wallet::WalletEvent> for WalletEvent {
                     id: id.to_string(),
                     date_time: timestamp.to_rfc3339(),
                     purpose: request_purpose(&organization),
-                    request_policy: RequestPolicy::new(organization.privacy_policy_url.as_ref()),
                     relying_party: (*organization).into(),
                     shared_attestations: (!attestations.is_empty()).then_some(attestations),
                     status: status.into(),
@@ -106,26 +103,31 @@ impl From<wallet::DisclosureStatus> for DisclosureStatus {
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_json::Value;
     use serde_json::json;
-    use wallet::attestation_data::Organization;
 
     use super::WalletEvent;
 
     #[rstest]
-    #[case::registered(Some("Verify your identity"), "Verify your identity")]
-    #[case::proximity(None, "Disclosure")]
-    fn disclosure_history_registration_fields(
-        #[case] registered_purpose: Option<&str>,
-        #[case] expected: &str,
-        #[values(None, Some("https://example.org/privacy"))] privacy_policy_url: Option<&str>,
-    ) {
-        let mut stored = serde_json::to_value(Organization::default()).unwrap();
-        if let Some(purpose) = registered_purpose {
-            stored["purpose"] = json!([{ "lang": "en", "value": purpose }]);
-        }
-        if let Some(url) = privacy_policy_url {
-            stored["privacyPolicyUrl"] = json!(url);
-        }
+    #[case::registered(
+        Some(json!([
+            { "lang": "en", "value": "Verify your identity" },
+            { "lang": "nl", "value": "Uw identiteit controleren" }
+        ])),
+        vec![("en", "Verify your identity"), ("nl", "Uw identiteit controleren")]
+    )]
+    #[case::without_purpose(None, vec![])]
+    fn disclosure_history_purpose(#[case] registered_purpose: Option<Value>, #[case] expected: Vec<(&str, &str)>) {
+        let stored = json!({
+            "displayName": "Example",
+            "legalName": "Example B.V.",
+            "description": [],
+            "identifier": "example",
+            "countryCode": "NL",
+            "supportUri": "https://example.com/support",
+            "personType": "legalPerson",
+            "purpose": registered_purpose,
+        });
         let event = WalletEvent::from(wallet::WalletEvent::Disclosure {
             id: Default::default(),
             timestamp: Default::default(),
@@ -134,16 +136,15 @@ mod tests {
             status: wallet::DisclosureStatus::Success,
             r#type: wallet::attestation_data::DisclosureType::Regular,
         });
-        let WalletEvent::Disclosure {
-            purpose,
-            request_policy,
-            ..
-        } = event
-        else {
+        let WalletEvent::Disclosure { purpose, .. } = event else {
             panic!("expected disclosure event");
         };
-        assert_eq!(purpose[0].language, "en");
-        assert_eq!(purpose[0].value, expected);
-        assert_eq!(request_policy.policy_url.as_deref(), privacy_policy_url);
+        assert_eq!(
+            purpose
+                .iter()
+                .map(|translation| (translation.language.as_str(), translation.value.as_str()))
+                .collect::<Vec<_>>(),
+            expected
+        );
     }
 }

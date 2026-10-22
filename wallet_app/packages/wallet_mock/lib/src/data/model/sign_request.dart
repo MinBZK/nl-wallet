@@ -8,7 +8,6 @@ class SignRequest {
   final Organization trustProvider;
   final Document document;
   final List<RequestedAttribute> requestedAttributes;
-  final RequestPolicy policy;
 
   const SignRequest({
     required this.id,
@@ -16,7 +15,6 @@ class SignRequest {
     required this.document,
     required this.trustProvider,
     required this.requestedAttributes,
-    required this.policy,
   });
 }
 

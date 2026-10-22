@@ -5,10 +5,12 @@ mod status;
 mod validation;
 
 pub use authorization::RegistrationCertificateAuthorizationError;
+pub use envelope::REQUEST_INFO_WRPRC_KEY;
 pub use envelope::RegistrationCertificateEnvelope;
 pub use envelope::RegistrationCertificateEnvelopeError;
 pub use envelope::RegistrationCertificateEnvelopeParseError;
 pub use envelope::RegistrationCertificateJwtParseError;
+pub use envelope::RegistrationCertificateRequestParseError;
 pub use envelope::VerifiedRegistrationCertificateEnvelope;
 pub use envelope::verify_registration_certificate_envelope;
 pub use payload::Credential;
@@ -19,7 +21,6 @@ pub use payload::ParsedRegistrationCertificate;
 pub use payload::Subject;
 pub use payload::SupervisoryAuthority;
 pub use payload::UncheckedRegistrationCertificate;
-pub use status::RegistrationCertificateStatus;
 pub use status::RegistrationCertificateStatusValidationError;
 pub use status::StatusValidatedRegistrationCertificate;
 pub use validation::BoundRegistrationCertificate;
@@ -35,9 +36,6 @@ pub mod mock;
 mod test {
     use std::fmt;
 
-    use chrono::DateTime;
-    use chrono::TimeZone;
-    use chrono::Utc;
     use crypto::x509::DistinguishedName;
     use serde_json::Value;
     use serde_json::json;
@@ -74,7 +72,6 @@ mod test {
 
     pub(super) fn valid_payload_json() -> Value {
         let mut payload: Value = serde_json::from_str(ANNEX_C_EXAMPLE).unwrap();
-        payload["id"] = json!("wrprc-example-1");
         payload["status"] = json!({
             "idx": "0",
             "uri": STATUS_LIST_URI,
@@ -94,9 +91,5 @@ mod test {
 
     pub(super) fn valid_payload() -> UncheckedRegistrationCertificate {
         serde_json::from_value(valid_payload_json()).unwrap()
-    }
-
-    pub(super) fn validation_time() -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(2023, 5, 3, 0, 0, 0).unwrap()
     }
 }

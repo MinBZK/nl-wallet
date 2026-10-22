@@ -907,7 +907,7 @@ mod tests {
 
         assert_matches!(
             err,
-            PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingRecoveryCode)
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingIssuedRecoveryCode)
         );
     }
 

@@ -34,7 +34,7 @@ impl AsRef<[NormalizedCredentialRequest]> for NormalizedCredentialRequests {
 }
 
 impl NormalizedCredentialRequests {
-    pub fn nonempty_iter<'a>(&'a self) -> Iter<'a, NormalizedCredentialRequest> {
+    pub fn nonempty_iter(&self) -> Iter<'_, NormalizedCredentialRequest> {
         self.0.nonempty_iter()
     }
 }
@@ -346,7 +346,16 @@ impl From<MdocAttributeRequest> for ClaimsQuery {
 impl TryFrom<ClaimsQuery> for SdJwtAttributeRequest {
     type Error = UnsupportedDcqlFeatures;
 
-    fn try_from(source: ClaimsQuery) -> Result<Self, Self::Error> {
+    fn try_from(mut source: ClaimsQuery) -> Result<Self, Self::Error> {
+        // TODO(PVW-6271): interim workaround. A trailing null selects all array elements; we request the whole array
+        // instead. Array elements that an issuer conceals separately are therefore not disclosed.
+        if let ClaimPath::SelectAll = source.path.last() {
+            let (path, _) = source.path.into_inner_last();
+            source.path = path
+                .try_into()
+                .map_err(|_| UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)?;
+        }
+
         check_claims_query(&source)?;
 
         if source.intent_to_retain.is_some() {
@@ -374,6 +383,7 @@ impl From<SdJwtAttributeRequest> for ClaimsQuery {
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
     use crypto::x509::KeyIdentifier;
     use itertools::Itertools;
@@ -416,7 +426,24 @@ pub mod mock {
     }
 
     impl CredentialQuery {
-        pub fn new_mock_mdoc(id: &str, doc_type: &str, name_space: &str, attributes: &[&str]) -> Self {
+        pub fn new_mock_mdoc<'a>(
+            id: &str,
+            doc_type: &str,
+            name_space: &'a str,
+            attributes: impl IntoIterator<Item = &'a str>,
+        ) -> Self {
+            Self::new_mock_mdoc_with_name_spaces(
+                id,
+                doc_type,
+                attributes.into_iter().map(|attribute| (name_space, attribute)),
+            )
+        }
+
+        pub fn new_mock_mdoc_with_name_spaces<'a>(
+            id: &str,
+            doc_type: &str,
+            attributes: impl IntoIterator<Item = (&'a str, &'a str)>,
+        ) -> Self {
             CredentialQuery {
                 id: id.try_into().expect("identifier should be valid"),
                 format: CredentialQueryFormat::MsoMdoc {
@@ -427,8 +454,8 @@ pub mod mock {
                 require_cryptographic_holder_binding: true,
                 claims_selection: ClaimsSelection::All {
                     claims: attributes
-                        .iter()
-                        .map(|attribute| ClaimsQuery {
+                        .into_iter()
+                        .map(|(name_space, attribute)| ClaimsQuery {
                             id: None,
                             path: vec_nonempty![
                                 ClaimPath::SelectByKey(name_space.to_string()),
@@ -488,16 +515,16 @@ pub mod mock {
                 "mdoc_iso_example",
                 EXAMPLE_DOC_TYPE,
                 EXAMPLE_NAMESPACE,
-                EXAMPLE_ATTRIBUTES.as_slice(),
+                EXAMPLE_ATTRIBUTES.iter().copied(),
             )
         }
 
         pub fn new_mock_mdoc_pid_example() -> Self {
             Self::new_mock_mdoc(
                 "mdoc_pid_example",
-                PID_ATTESTATION_TYPE,
-                PID_ATTESTATION_TYPE,
-                &["bsn", "given_name", "family_name"],
+                PID_MDOC_DOCTYPE,
+                PID_MDOC_DOCTYPE,
+                ["bsn", "given_name", "family_name"],
             )
         }
 
@@ -723,11 +750,11 @@ pub mod mock {
             Self::new_mock_from_slices(
                 "mdoc_pid_example",
                 MockCredentialFormat::MsoMdoc { intent_to_retain: None },
-                &[PID_ATTESTATION_TYPE],
+                &[PID_MDOC_DOCTYPE],
                 &[
-                    &[PID_ATTESTATION_TYPE, "bsn"],
-                    &[PID_ATTESTATION_TYPE, "given_name"],
-                    &[PID_ATTESTATION_TYPE, "family_name"],
+                    &[PID_MDOC_DOCTYPE, "bsn"],
+                    &[PID_MDOC_DOCTYPE, "given_name"],
+                    &[PID_MDOC_DOCTYPE, "family_name"],
                 ],
             )
         }
@@ -746,6 +773,7 @@ pub mod mock {
 #[cfg(test)]
 mod test {
     use rstest::rstest;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use super::MdocAttributeRequest;
@@ -825,6 +853,45 @@ mod test {
         if let Ok(normalized) = result {
             assert_eq!(Query::from(normalized), strip_claim_values(query));
         }
+    }
+
+    fn key(key: &str) -> ClaimPath {
+        ClaimPath::SelectByKey(key.to_string())
+    }
+
+    #[rstest]
+    #[case(vec_nonempty![key("nationalities"), ClaimPath::SelectAll], Ok(vec_nonempty![key("nationalities")]))]
+    #[case(
+        vec_nonempty![key("nationalities"), ClaimPath::SelectAll, ClaimPath::SelectAll],
+        Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
+    )]
+    #[case(vec_nonempty![ClaimPath::SelectAll], Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant))]
+    #[case(
+        vec_nonempty![ClaimPath::SelectAll, ClaimPath::SelectAll],
+        Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
+    )]
+    #[case(
+        vec_nonempty![key("degrees"), ClaimPath::SelectAll, key("type")],
+        Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
+    )]
+    #[case(
+        vec_nonempty![key("nationalities"), ClaimPath::SelectByIndex(0)],
+        Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
+    )]
+    fn test_sd_jwt_trailing_select_all(
+        #[case] path: VecNonEmpty<ClaimPath>,
+        #[case] expected: Result<VecNonEmpty<ClaimPath>, UnsupportedDcqlFeatures>,
+    ) {
+        let claims_query = ClaimsQuery {
+            id: None,
+            path,
+            values: vec![],
+            intent_to_retain: None,
+        };
+
+        let result = SdJwtAttributeRequest::try_from(claims_query).map(|request| request.path);
+
+        assert_eq!(result, expected);
     }
 
     fn mdoc_example_query_mutate_first_credential_query<F>(mutate: F) -> Query

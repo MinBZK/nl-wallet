@@ -27,9 +27,7 @@ pub fn jwk_alg_from_public_key(value: &PublicKey) -> Result<jwk::AlgorithmParame
     match value {
         PublicKey::ESP256(key) => jwk_alg_from_ecdsa(key),
         PublicKey::ESP384(key) => jwk_alg_from_ecdsa(key),
-        PublicKey::RSA2048(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
-        PublicKey::RSA3072(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
-        PublicKey::RSA4096(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
+        PublicKey::RSA(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
     }
 }
 

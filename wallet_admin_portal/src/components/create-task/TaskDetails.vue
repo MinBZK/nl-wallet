@@ -25,5 +25,6 @@ defineProps<{
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.4286;
+  line-break: anywhere;
 }
 </style>

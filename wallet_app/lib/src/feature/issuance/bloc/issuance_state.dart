@@ -48,14 +48,12 @@ class IssuanceAuthenticateWithIssuer extends IssuanceState {
 class IssuanceCheckOrganization extends IssuanceState {
   final Organization organization;
   final List<DiscloseCardRequest> cardRequests;
-  final Policy policy;
   final LocalizedText purpose;
   final bool afterBackPressed;
 
   const IssuanceCheckOrganization({
     required this.organization,
     required this.cardRequests,
-    required this.policy,
     required this.purpose,
     this.afterBackPressed = false,
   });
@@ -71,14 +69,12 @@ class IssuanceCheckOrganization extends IssuanceState {
   IssuanceCheckOrganization copyWith({
     Organization? organization,
     List<DiscloseCardRequest>? cardRequests,
-    Policy? policy,
     LocalizedText? purpose,
     bool? afterBackPressed,
   }) {
     return IssuanceCheckOrganization(
       organization: organization ?? this.organization,
       cardRequests: cardRequests ?? this.cardRequests,
-      policy: policy ?? this.policy,
       purpose: purpose ?? this.purpose,
       afterBackPressed: afterBackPressed ?? this.afterBackPressed,
     );
@@ -91,7 +87,7 @@ class IssuanceCheckOrganization extends IssuanceState {
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kIssuanceSteps);
 
   @override
-  List<Object?> get props => [organization, policy, cardRequests, purpose, ...super.props];
+  List<Object?> get props => [organization, cardRequests, purpose, ...super.props];
 }
 
 class IssuanceMissingAttributes extends IssuanceState {

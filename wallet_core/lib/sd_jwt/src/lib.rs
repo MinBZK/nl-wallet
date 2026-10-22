@@ -127,7 +127,7 @@
 //! let unverified = signed.into_unverified();
 //!
 //! // 4) Holder parses and verifies SD-JWT against trust anchors.
-//! let trust_anchors = TrustAnchors::from(&ca);
+//! let trust_anchors = ca.to_trust_anchors();
 //! let verified = unverified.into_verified_against_trust_anchors(
 //!     &trust_anchors,
 //!     &TimeGenerator::default()

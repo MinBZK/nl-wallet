@@ -2,12 +2,14 @@ use tracing::warn;
 
 use crate::repository::errors::PersistenceError;
 
+#[trait_variant::make(Send)]
 pub trait Committable {
     async fn commit(self) -> Result<(), PersistenceError>;
 }
 
+#[trait_variant::make(Send)]
 pub trait TransactionStarter {
-    type TransactionType: Committable;
+    type TransactionType: Committable + Sync;
 
     async fn begin_transaction(&self) -> Result<Self::TransactionType, PersistenceError>;
 }

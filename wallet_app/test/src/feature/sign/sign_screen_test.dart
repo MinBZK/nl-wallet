@@ -87,7 +87,6 @@ void main() {
             relyingParty: WalletMockData.organization,
             document: WalletMockData.document,
             trustProvider: WalletMockData.organization,
-            policy: WalletMockData.policy,
             requestedAttributes: [WalletMockData.textDataAttribute],
           ),
         ),
@@ -102,7 +101,6 @@ void main() {
           SignConfirmAgreement(
             relyingParty: WalletMockData.organization,
             requestedAttributes: [WalletMockData.textDataAttribute],
-            policy: WalletMockData.policy,
             trustProvider: WalletMockData.organization,
             document: WalletMockData.document,
           ),
@@ -207,7 +205,6 @@ void main() {
             relyingParty: WalletMockData.organization,
             trustProvider: WalletMockData.organization,
             document: WalletMockData.document,
-            policy: WalletMockData.policy,
             requestedAttributes: const [],
           ),
         ),

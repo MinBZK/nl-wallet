@@ -591,14 +591,8 @@ impl UnverifiedSdJwtPresentation {
 
         let revocation_status = match &issuer_signed.payload().status {
             Some(status_claim) => {
-                let issuer_certificate = issuer_signed.header().x5c.first();
                 let revocation_status = revocation_verifier
-                    .verify(
-                        trust_anchors,
-                        issuer_certificate.to_canonical_distinguished_name()?,
-                        status_claim.clone(),
-                        time,
-                    )
+                    .verify(trust_anchors, status_claim.clone(), time)
                     .await;
                 Some(revocation_status)
             }
@@ -1043,7 +1037,7 @@ mod test {
         let err = sd_jwt
             .parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>()
             .unwrap()
-            .into_verified(&PublicKey::from(*issuer_keypair.certificate().public_key()).into())
+            .into_verified(&issuer_keypair.certificate().public_key().into())
             .expect_err("should fail");
 
         assert_matches!(

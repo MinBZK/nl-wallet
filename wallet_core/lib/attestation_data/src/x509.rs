@@ -1,9 +1,6 @@
 use crypto::x509::DistinguishedName;
 use derive_more::Debug;
 
-use crate::organization::Organization;
-use crate::registration_certificate::SubjectType;
-
 /// Relying party of X509 certificates following ETSI EN 319 412-2 and ETSI EN 319 412-3 standard.
 #[derive(Debug, Clone)]
 pub enum RelyingParty {
@@ -62,51 +59,6 @@ impl TryFrom<DistinguishedName> for RelyingParty {
     }
 }
 
-// TODO (PVW-6052): Source proximity proposals, errors, and history from WRPRC, then remove this WRPAC mapping
-impl From<RelyingParty> for Organization {
-    fn from(rp: RelyingParty) -> Self {
-        match rp {
-            RelyingParty::LegalPerson {
-                common_name,
-                country_name,
-                organization_name,
-                organization_identifier,
-            } => Organization {
-                display_name: common_name,
-                legal_name: organization_name,
-                description: Default::default(),
-                web_url: None,
-                identifier: organization_identifier,
-                country_code: country_name,
-                privacy_policy_url: None,
-                purpose: None,
-                support_uri: None,
-                public_body: None,
-                person_type: Some(SubjectType::LegalPerson),
-            },
-            RelyingParty::NaturalPerson {
-                common_name,
-                country_name,
-                serial_number,
-                given_name,
-                surname,
-            } => Organization {
-                display_name: common_name,
-                legal_name: format!("{}, {}", surname, given_name),
-                description: Default::default(),
-                web_url: None,
-                identifier: serial_number,
-                country_code: country_name,
-                privacy_policy_url: None,
-                purpose: None,
-                support_uri: None,
-                public_body: None,
-                person_type: Some(SubjectType::NaturalPerson),
-            },
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -117,10 +69,6 @@ mod tests {
     fn parse_legal_person_name() {
         let dn = DistinguishedName::create_legal_person_mock("Test");
         let rp = RelyingParty::try_from(dn.clone()).unwrap();
-        assert_eq!(
-            Organization::from(rp.clone()).person_type,
-            Some(SubjectType::LegalPerson)
-        );
 
         let RelyingParty::LegalPerson {
             common_name,
@@ -141,10 +89,6 @@ mod tests {
     fn parse_natural_person_name() {
         let dn = DistinguishedName::create_natural_person_mock("John", "Doe");
         let rp = RelyingParty::try_from(dn.clone()).unwrap();
-        assert_eq!(
-            Organization::from(rp.clone()).person_type,
-            Some(SubjectType::NaturalPerson)
-        );
 
         let RelyingParty::NaturalPerson {
             common_name,

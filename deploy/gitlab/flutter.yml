@@ -2,6 +2,8 @@
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-flutter:${BUILD_TAG}"
   tags:
     - linux
+  stage: test
+  needs: []
   before_script:
     - cd wallet_app
     - set -euxo pipefail

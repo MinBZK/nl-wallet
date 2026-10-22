@@ -25,7 +25,6 @@ void main() {
   Widget buildLoginDetailScreen({required List<DiscloseCardRequest> cardRequests}) {
     return LoginDetailScreen(
       organization: WalletMockData.organization,
-      policy: WalletMockData.policy,
       cardRequests: cardRequests,
       sharedDataWithOrganizationBefore: false,
     );

@@ -576,6 +576,19 @@ fn generate_and_validate_registration_certificate() -> Result<()> {
         .into_payload();
     assert_eq!(cwt_payload.sub, "NTRNL-00000002");
 
+    let mut expired_payload = payload.clone();
+    let now = Utc::now().timestamp();
+    expired_payload["iat"] = json!(now - 120);
+    expired_payload["exp"] = json!(now - 60);
+    payload_file.write_str(&serde_json::to_string_pretty(&expired_payload)?)?;
+    for format in ["jwt", "cwt"] {
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_registration_certificate(&wrprc_crt, &wrprc_key, &wrpac_crt, &payload_file, format)
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("registration certificate expired at"));
+    }
+
     payload["sub"] = json!("NTRNL-DIFFERENT");
     payload_file.write_str(&serde_json::to_string_pretty(&payload)?)?;
 
@@ -625,8 +638,7 @@ fn generate_and_validate_status_list_token() -> Result<()> {
 
     let token: StatusListToken = std::str::from_utf8(&output)?.trim().parse()?;
     let trust_anchors = trust_anchors_from_pem(&ca_crt)?;
-    let signing_certificate_dn = certificate_from_pem(&tsl_crt)?.to_canonical_distinguished_name()?;
-    let claims = token.parse_and_verify(&trust_anchors, signing_certificate_dn, uri.clone(), &TimeGenerator)?;
+    let claims = token.parse_and_verify(&trust_anchors, uri.clone(), &TimeGenerator)?;
 
     assert!(claims.iat.timestamp() >= before.timestamp() && claims.iat.timestamp() <= after.timestamp());
     let expiration = claims.exp.expect("token should have an expiration");

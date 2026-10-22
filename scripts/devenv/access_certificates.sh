@@ -61,4 +61,20 @@ declare -A access_certificates=(
     [(mvc,name)]='RDW Demo'
     [(mvc,legal_name)]='Dienst Wegverkeer'
     [(mvc,oid)]='NTRNL-99876548'
+
+    [(issuance_server,name)]='Demo Issuer (disclosure based)'
+    [(issuance_server,legal_name)]='Demo Issuer (disclosure based)'
+    [(issuance_server,oid)]='NTRNL-99876552'
+
+    [(acf_demo_issuer,name)]='Demo Issuer (authorization code)'
+    [(acf_demo_issuer,legal_name)]='Demo Issuer (authorization code)'
+    [(acf_demo_issuer,oid)]='NTRNL-99876550'
+
+    [(pacf_issuance_server,name)]='Demo Issuer (pre-authorized code)'
+    [(pacf_issuance_server,legal_name)]='Demo Issuer (pre-authorized code)'
+    [(pacf_issuance_server,oid)]='NTRNL-99876551'
+
+    [(dezi,name)]='CIBG'
+    [(dezi,legal_name)]='CIBG'
+    [(dezi,oid)]='NTRNL-50000535'
 )

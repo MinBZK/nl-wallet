@@ -3,6 +3,7 @@
 use cose::CoseKeyConversionError;
 use crypto::utils::hkdf;
 use crypto::utils::sha256;
+use crypto::utils::sha256_into_vec;
 use derive_more::Debug;
 use error_category::ErrorCategory;
 use p256::PublicKey;
@@ -32,7 +33,7 @@ pub enum CryptoError {
 
 /// Computes the SHA256 of the CBOR encoding of the argument.
 pub fn cbor_digest<T: Serialize>(val: &T) -> std::result::Result<Vec<u8>, CborError> {
-    let digest = sha256(cbor_serialize(val)?.as_ref());
+    let digest = sha256_into_vec(cbor_serialize(val)?.as_ref());
     Ok(digest)
 }
 

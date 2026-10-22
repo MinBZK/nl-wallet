@@ -368,7 +368,7 @@ async fn authorization_code_flow(
     let issued_creds = session
         .accept_issuance(
             NonZeroU8::MAX,
-            AcceptIssuanceTrustAnchors::new(&server.issuer_trust_anchors, &TrustAnchors::from(&server.wptl_ca)),
+            AcceptIssuanceTrustAnchors::new(&server.issuer_trust_anchors, &server.wptl_ca.to_trust_anchors()),
             &wscd,
             &MockTimeGenerator::default(),
         )
@@ -413,7 +413,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     let issued_creds = session
         .accept_issuance(
             NonZeroU8::MAX,
-            AcceptIssuanceTrustAnchors::new(&server.issuer_trust_anchors, &TrustAnchors::from(&server.wptl_ca)),
+            AcceptIssuanceTrustAnchors::new(&server.issuer_trust_anchors, &server.wptl_ca.to_trust_anchors()),
             &wscd,
             &MockTimeGenerator::default(),
         )
@@ -475,7 +475,7 @@ async fn pre_authorized_code_flow(
     let issued_creds = session
         .accept_issuance(
             NonZeroU8::MAX,
-            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &TrustAnchors::from(&wptl_ca)),
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_ca.to_trust_anchors()),
             &wscd,
             &MockTimeGenerator::default(),
         )

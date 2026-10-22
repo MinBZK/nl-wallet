@@ -26,7 +26,7 @@ const { loggedInUser } = useAuth()
 <style scoped>
 .shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-columns: var(--width-sidebar) 1fr;
   grid-template-rows: auto 1fr auto;
   height: 100dvh;
   overflow: hidden;

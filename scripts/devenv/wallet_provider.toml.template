@@ -1,3 +1,5 @@
+public_url = "https://${SERVICES_HOST}:${WALLET_PROVIDER_PORT}/"
+
 current_certificate_kid = "${WP_CERTIFICATE_KID}"
 current_instruction_result_kid = "${WP_INSTRUCTION_RESULT_KID}"
 
@@ -58,8 +60,10 @@ options = { acquire_timeout_in_sec = 5, connect_timeout_in_sec = 1, max_connecti
 list_size = 100
 base_url = "https://${SERVICES_HOST}:${STATIC_SERVER_PORT}/wia"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
-key_identifier = "wia_tsl_key"
 key_certificate = "${WIA_TSL_CRT}"
+
+[key_storage_status_list]
+key_certificate = "${KEY_STORAGE_TSL_CRT}"
 
 [webserver]
 ip = "0.0.0.0"

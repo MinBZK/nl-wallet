@@ -17,6 +17,7 @@ use rstest::rstest;
 use serial_test::serial;
 use tests_integration::common::*;
 use utils::vec_nonempty;
+use wallet::AttributeValue;
 use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureUriSource;
 use wallet::Pin;
@@ -139,7 +140,9 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
                         .attributes
                         .iter()
                         .find(|attribute| attribute.key.iter().eq(["education"]))
-                        .is_some_and(|attribute| attribute.value.to_string() == "MSc")
+                        .is_some_and(
+                            |attribute| matches!(&attribute.value, AttributeValue::Text(string) if string == "MSc"),
+                        )
                 })
                 .unwrap()
         }

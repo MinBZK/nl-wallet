@@ -1,0 +1,62 @@
+test-ios-platform-support-device:
+  extends: [.automation-tests-macos-devices, .install-ios-signing]
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-load-device-config
+      artifacts: true
+  rules:
+    - !reference [.on-schedule-automation, rules]
+    - !reference [.merge-request-manual, rules]
+  before_script:
+    - !reference [.install-ios-signing, before_script]
+  script:
+    - bundle exec fastlane ios test_platform_support_device
+  after_script:
+    - deploy/bin/store-artifact.sh fastlane/test_output/platform-support-device.junit
+      qt/quality-time/junit-results/ios-device.xml
+  artifacts:
+    name: platform-support-ios-device
+    when: always
+    paths:
+      - fastlane/test_output/platform-support-device.junit
+      - fastlane/test_output/platform-support-device.log
+      - fastlane/test_output/PlatformSupportDevice.xcresult
+    reports:
+      junit: fastlane/test_output/platform-support-device.junit
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    IOS_DEVICE_UDID: "${IOS_2_UDID}"
+
+test-android-platform-support-device:
+  extends: .automation-tests-macos-android-devices
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-load-device-config
+      artifacts: true
+  rules:
+    - !reference [.on-schedule-automation, rules]
+    - !reference [.merge-request-manual, rules]
+  before_script:
+    - export PATH="$ANDROID_HOME/platform-tools:$HOME/.cargo/bin:$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
+    - bundle install
+  script:
+    - test -n "${ANDROID_SERIAL}" ||
+      { echo "ANDROID_SERIAL is empty, check android_1_udid in the nl-wallet-macmini secret"; exit 1; }
+    - adb -s "${ANDROID_SERIAL}" shell svc bluetooth enable
+    - bundle exec fastlane android test_platform_support_device
+  after_script: >
+    deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/android-device.zip
+    wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml
+  artifacts:
+    name: platform-support-android-device
+    when: always
+    paths:
+      - wallet_core/wallet/platform_support/android/build/outputs/androidTest-results
+      - wallet_core/wallet/platform_support/android/build/reports
+    reports:
+      junit: wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/**/TEST*.xml
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    ANDROID_SERIAL: "${ANDROID_1_UDID}"

@@ -50,10 +50,8 @@ abstract class CoreMockData {
     ],
     identifier: 'identifier',
     countryCode: 'NL',
-  );
-
-  static const RequestPolicy policy = RequestPolicy(
-    policyUrl: 'https://example.org',
+    supportUri: 'https://example.org/support',
+    personType: PersonType.LegalPerson,
   );
 
   static const FlutterConfiguration flutterConfiguration = FlutterConfiguration(

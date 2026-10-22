@@ -14,6 +14,7 @@ use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::account_server::UserState;
+use crate::admin_portal::LoggedInUser;
 use crate::revocation::RevocationError;
 use crate::revocation::system_revoke_wallets_by_wallet_id;
 
@@ -24,7 +25,7 @@ use crate::revocation::system_revoke_wallets_by_wallet_id;
 pub async fn revoke_wallets<T, R, F, H>(
     #[audit] task_id: Uuid,
     #[audit] wallet_ids: &HashSet<WalletId>,
-    #[audit_user] approved_by_user_id: &str,
+    #[audit_user] approved_by: &LoggedInUser,
     user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,

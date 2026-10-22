@@ -5,7 +5,6 @@ use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::generate::Ca;
-use crypto::trust_anchor::TrustAnchors;
 use futures::FutureExt;
 use indexmap::IndexMap;
 use token_status_list::verification::client::mock::StatusListClientStub;
@@ -107,7 +106,7 @@ async fn do_and_verify_iso_example_disclosure() {
             None,
             &session_transcript,
             &IsoCertTimeGenerator,
-            &TrustAnchors::from(&ca),
+            &ca.to_trust_anchors(),
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 ca.generate_issuer_status_list_mock().unwrap(),
             ))),
@@ -153,7 +152,7 @@ async fn iso_examples_custom_disclosure() {
             None,
             &session_transcript,
             &IsoCertTimeGenerator,
-            &TrustAnchors::from(&ca),
+            &ca.to_trust_anchors(),
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 ca.generate_issuer_status_list_mock().unwrap(),
             ))),

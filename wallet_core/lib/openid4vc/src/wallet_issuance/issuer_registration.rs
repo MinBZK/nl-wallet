@@ -104,7 +104,7 @@ impl IssuerRegistration {
             &access_certificate,
             [CredentialKind::new(Format::SdJwt, "urn:example:credential".to_string())],
         );
-        let envelope = RegistrationCertificateEnvelope::try_from(certificate.certificate.as_slice()).unwrap();
+        let envelope = RegistrationCertificateEnvelope::from_slice(certificate.certificate.as_slice()).unwrap();
         let verifier = RevocationVerifier::new_with_defaults(Arc::new(certificate.status_list_client), TimeGenerator);
         let validated = crate::registration_certificate::validate_registration_certificate(
             &envelope,
@@ -150,7 +150,7 @@ mod tests {
         payload.0["iat"] = json!((Utc::now() - Duration::hours(2)).timestamp());
         payload.0["exp"] = json!((Utc::now() - Duration::hours(1)).timestamp());
         registration.registration_certificate =
-            RegistrationCertificateEnvelope::try_from(sign(&authority, &payload).as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(sign(&authority, &payload).as_slice()).unwrap();
 
         let mut stored = serde_json::to_value(&registration).unwrap();
         assert_eq!(stored.as_object().unwrap().len(), 2);
@@ -161,7 +161,7 @@ mod tests {
 
         // Reject malformed stored payloads instead of accepting an independent organization snapshot.
         payload.0["sub"] = json!(null);
-        let invalid = RegistrationCertificateEnvelope::try_from(sign(&authority, &payload).as_slice()).unwrap();
+        let invalid = RegistrationCertificateEnvelope::from_slice(sign(&authority, &payload).as_slice()).unwrap();
         stored["registration_certificate"] = json!(String::try_from(&invalid).unwrap());
         stored["organization"] = serde_json::to_value(registration.organization()).unwrap();
         assert!(serde_json::from_value::<IssuerRegistration>(stored).is_err());

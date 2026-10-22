@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use audit_log::model::AuditLog;
 use audit_log::model::FromAuditLogError;
 use audit_log::model::mock::MockAuditLog;
+use audit_log::model::mock::MockAuditUser;
 use audit_log_macros::audited;
 use serde::Serialize;
 use serde_json::Value as JsonValue;
@@ -40,7 +41,7 @@ impl AuditLog for RecordingAuditLog {
         &self,
         _operation_name: impl Into<String>,
         parameters: JsonValue,
-        _user_id: Option<impl Into<String>>,
+        _user_id: Option<String>,
         operation: F,
     ) -> Result<T, E>
     where
@@ -108,7 +109,7 @@ async fn test_operation_invalid_json(#[audit] param: MyMap, #[auditor] auditor: 
 #[audited]
 async fn test_operation_with_user(
     #[audit] name: &str,
-    #[audit_user] user_id: &str,
+    #[audit_user] user_id: &MockAuditUser,
     #[auditor] auditor: &MockAuditLog,
 ) -> Result<(), MyError> {
     tracing::debug!("performed test operation for user {user_id} with input: {name}");
@@ -210,7 +211,7 @@ async fn test_macro_operation_invalid_json() {
 async fn test_macro_with_audit_user() {
     let audit_log = MockAuditLog;
 
-    test_operation_with_user("input", "user-1", &audit_log)
+    test_operation_with_user("input", &MockAuditUser::from("user-1"), &audit_log)
         .await
         .expect("success");
 

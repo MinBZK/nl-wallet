@@ -5,7 +5,6 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/policy.dart';
 import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
@@ -174,10 +173,9 @@ class RequestDetailCommonBuilders {
   static Widget buildPolicy(
     BuildContext context, {
     required Organization organization,
-    required Policy policy,
     DividerSide side = DividerSide.none,
   }) {
-    final privacyPolicyUrl = organization.privacyPolicyUri ?? policy.privacyPolicyUrl;
+    final privacyPolicyUrl = organization.privacyPolicyUri;
     if (privacyPolicyUrl == null) return const SizedBox.shrink();
     return Column(
       mainAxisSize: .min,

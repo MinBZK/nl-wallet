@@ -311,7 +311,7 @@ fn serialize_message(payload: &SessionData) -> Result<Vec<u8>, SessionEncryption
     cbor_serialize(payload).map_err(Into::into)
 }
 
-fn session_transcript_salt(session_transcript: &SessionTranscript) -> Result<Vec<u8>, SessionEncryptionError> {
+fn session_transcript_salt(session_transcript: &SessionTranscript) -> Result<[u8; 32], SessionEncryptionError> {
     // ISO 18013-5:2021 derives the HKDF salt from `SessionTranscriptBytes`, i.e.
     // `#6.24(bstr .cbor SessionTranscript)`, not from the raw `SessionTranscript` CBOR itself.
     // Hashing the wrong representation would produce different session keys.

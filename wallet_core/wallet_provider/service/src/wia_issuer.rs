@@ -15,7 +15,7 @@ use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
-use wscd::payload::wia::ClientStatus;
+use wscd::payload::status_claim::TimeBoundedStatusClaim;
 use wscd::payload::wia::WiaClaims;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::payload::wia::WiaPopClaims;
@@ -84,10 +84,7 @@ where
                 self.sub.clone(),
                 wia_exp,
                 self.wallet_info.clone(),
-                ClientStatus {
-                    status: status_claim,
-                    exp: wallet_exp,
-                },
+                TimeBoundedStatusClaim::new(status_claim, wallet_exp),
                 time,
             )
             .map_err(WiaIssuerError::KeyConversion)?,
@@ -135,7 +132,6 @@ mod tests {
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateUsage;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
@@ -174,7 +170,7 @@ mod tests {
         let (_, wia_claims) = wia_disclosure
             .wia()
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &TimeGenerator,
                 Some(CertificateUsage::Wia),
                 WIA_JWT_VALIDATION.to_owned(),

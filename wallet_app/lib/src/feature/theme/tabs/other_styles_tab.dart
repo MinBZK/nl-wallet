@@ -15,7 +15,7 @@ import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/notification/notification_channel.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/policy.dart';
+import '../../../domain/model/person_type.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
@@ -54,7 +54,6 @@ import '../../common/widget/numbered_list.dart';
 import '../../common/widget/pin_field_demo.dart';
 import '../../common/widget/pin_header.dart';
 import '../../common/widget/policy/policy_row.dart';
-import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/select_card_row.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/stepper_indicator.dart';
@@ -70,7 +69,6 @@ import '../../revocation/widget/revocation_code_text.dart';
 import '../theme_screen.dart';
 
 const _kMockPurpose = 'Kaart uitgifte';
-const _kMockUrl = 'https://www.example.org';
 const _kMockOtherKey = 'mock_other';
 
 final _kSampleCardStatus = CardStatusValid(validUntil: clock.now().add(const Duration(days: 35)));
@@ -139,6 +137,8 @@ final _kSampleOrganization = Organization(
   legalName: 'Organization Legal Name',
   displayName: 'Organization Display Name',
   publicBody: true,
+  personType: PersonType.legalPerson,
+  supportUri: 'https://example.org/support',
   description: 'Organization description'.untranslated,
   countryCode: 'NL',
   organizationId: 'NLID-123456',
@@ -156,10 +156,6 @@ final _kSampleInteractionAttribute = WalletEvent.disclosure(
   relyingParty: _kSampleOrganization,
   cards: [_kSampleCard],
   status: EventStatus.success,
-  policy: const Policy(
-    dataPurpose: _kMockPurpose,
-    privacyPolicyUrl: _kMockUrl,
-  ),
   purpose: _kMockPurpose.untranslated,
   type: DisclosureType.regular,
 );
@@ -577,10 +573,6 @@ class OtherStylesTab extends StatelessWidget {
         dateTime: clock.now(),
         relyingParty: _kSampleOrganization,
         status: EventStatus.success,
-        policy: const Policy(
-          dataPurpose: _kMockPurpose,
-          privacyPolicyUrl: _kMockUrl,
-        ),
         purpose: _kMockPurpose.untranslated,
         cards: [
           WalletCard(
@@ -605,10 +597,6 @@ class OtherStylesTab extends StatelessWidget {
         dateTime: clock.now(),
         relyingParty: _kSampleOrganization,
         status: EventStatus.cancelled,
-        policy: const Policy(
-          dataPurpose: _kMockPurpose,
-          privacyPolicyUrl: _kMockUrl,
-        ),
         purpose: _kMockPurpose.untranslated,
         cards: [
           WalletCard(
@@ -627,21 +615,13 @@ class OtherStylesTab extends StatelessWidget {
   }
 
   Widget _buildPolicySection(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const ThemeSectionHeader(title: 'Policy'),
-        const SizedBox(height: 12),
-        const ThemeSectionSubHeader(title: 'PolicyRow'),
-        const PolicyRow(icon: Icons.alarm, title: 'This is a Policy Row'),
-        const ThemeSectionSubHeader(title: 'PolicySection'),
-        PolicySection(
-          relyingParty: _kSampleOrganization,
-          policy: const Policy(
-            dataPurpose: _kMockPurpose,
-            privacyPolicyUrl: _kMockUrl,
-          ),
-        ),
+        ThemeSectionHeader(title: 'Policy'),
+        SizedBox(height: 12),
+        ThemeSectionSubHeader(title: 'PolicyRow'),
+        PolicyRow(icon: Icons.alarm, title: 'This is a Policy Row'),
       ],
     );
   }

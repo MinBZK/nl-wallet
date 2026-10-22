@@ -88,7 +88,6 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
                 RequestDetailCommonBuilders.buildPolicy(
                   context,
                   organization: state.organization,
-                  policy: state.policy,
                   side: DividerSide.top,
                 ),
                 const Divider(),

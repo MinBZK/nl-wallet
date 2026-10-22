@@ -56,12 +56,13 @@ extension ImagePatterns on Image {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Image_Jpeg value)?  jpeg,TResult Function( Image_Png value)?  png,TResult Function( Image_Svg value)?  svg,TResult Function( Image_Asset value)?  asset,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Image_Jpeg value)?  jpeg,TResult Function( Image_Png value)?  png,TResult Function( Image_Bmp value)?  bmp,TResult Function( Image_Svg value)?  svg,TResult Function( Image_Asset value)?  asset,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case Image_Jpeg() when jpeg != null:
 return jpeg(_that);case Image_Png() when png != null:
-return png(_that);case Image_Svg() when svg != null:
+return png(_that);case Image_Bmp() when bmp != null:
+return bmp(_that);case Image_Svg() when svg != null:
 return svg(_that);case Image_Asset() when asset != null:
 return asset(_that);case _:
   return orElse();
@@ -81,12 +82,13 @@ return asset(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Image_Jpeg value)  jpeg,required TResult Function( Image_Png value)  png,required TResult Function( Image_Svg value)  svg,required TResult Function( Image_Asset value)  asset,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Image_Jpeg value)  jpeg,required TResult Function( Image_Png value)  png,required TResult Function( Image_Bmp value)  bmp,required TResult Function( Image_Svg value)  svg,required TResult Function( Image_Asset value)  asset,}){
 final _that = this;
 switch (_that) {
 case Image_Jpeg():
 return jpeg(_that);case Image_Png():
-return png(_that);case Image_Svg():
+return png(_that);case Image_Bmp():
+return bmp(_that);case Image_Svg():
 return svg(_that);case Image_Asset():
 return asset(_that);}
 }
@@ -102,12 +104,13 @@ return asset(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Image_Jpeg value)?  jpeg,TResult? Function( Image_Png value)?  png,TResult? Function( Image_Svg value)?  svg,TResult? Function( Image_Asset value)?  asset,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Image_Jpeg value)?  jpeg,TResult? Function( Image_Png value)?  png,TResult? Function( Image_Bmp value)?  bmp,TResult? Function( Image_Svg value)?  svg,TResult? Function( Image_Asset value)?  asset,}){
 final _that = this;
 switch (_that) {
 case Image_Jpeg() when jpeg != null:
 return jpeg(_that);case Image_Png() when png != null:
-return png(_that);case Image_Svg() when svg != null:
+return png(_that);case Image_Bmp() when bmp != null:
+return bmp(_that);case Image_Svg() when svg != null:
 return svg(_that);case Image_Asset() when asset != null:
 return asset(_that);case _:
   return null;
@@ -126,11 +129,12 @@ return asset(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Uint8List data)?  jpeg,TResult Function( Uint8List data)?  png,TResult Function( SanitizedSvg svg)?  svg,TResult Function( String path)?  asset,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Uint8List data)?  jpeg,TResult Function( Uint8List data)?  png,TResult Function( Uint8List data)?  bmp,TResult Function( SanitizedSvg svg)?  svg,TResult Function( String path)?  asset,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Image_Jpeg() when jpeg != null:
 return jpeg(_that.data);case Image_Png() when png != null:
-return png(_that.data);case Image_Svg() when svg != null:
+return png(_that.data);case Image_Bmp() when bmp != null:
+return bmp(_that.data);case Image_Svg() when svg != null:
 return svg(_that.svg);case Image_Asset() when asset != null:
 return asset(_that.path);case _:
   return orElse();
@@ -150,11 +154,12 @@ return asset(_that.path);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Uint8List data)  jpeg,required TResult Function( Uint8List data)  png,required TResult Function( SanitizedSvg svg)  svg,required TResult Function( String path)  asset,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Uint8List data)  jpeg,required TResult Function( Uint8List data)  png,required TResult Function( Uint8List data)  bmp,required TResult Function( SanitizedSvg svg)  svg,required TResult Function( String path)  asset,}) {final _that = this;
 switch (_that) {
 case Image_Jpeg():
 return jpeg(_that.data);case Image_Png():
-return png(_that.data);case Image_Svg():
+return png(_that.data);case Image_Bmp():
+return bmp(_that.data);case Image_Svg():
 return svg(_that.svg);case Image_Asset():
 return asset(_that.path);}
 }
@@ -170,11 +175,12 @@ return asset(_that.path);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Uint8List data)?  jpeg,TResult? Function( Uint8List data)?  png,TResult? Function( SanitizedSvg svg)?  svg,TResult? Function( String path)?  asset,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Uint8List data)?  jpeg,TResult? Function( Uint8List data)?  png,TResult? Function( Uint8List data)?  bmp,TResult? Function( SanitizedSvg svg)?  svg,TResult? Function( String path)?  asset,}) {final _that = this;
 switch (_that) {
 case Image_Jpeg() when jpeg != null:
 return jpeg(_that.data);case Image_Png() when png != null:
-return png(_that.data);case Image_Svg() when svg != null:
+return png(_that.data);case Image_Bmp() when bmp != null:
+return bmp(_that.data);case Image_Svg() when svg != null:
 return svg(_that.svg);case Image_Asset() when asset != null:
 return asset(_that.path);case _:
   return null;
@@ -312,6 +318,74 @@ class _$Image_PngCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? data = null,}) {
   return _then(Image_Png(
+data: null == data ? _self.data : data // ignore: cast_nullable_to_non_nullable
+as Uint8List,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class Image_Bmp extends Image {
+  const Image_Bmp({required this.data}): super._();
+  
+
+ final  Uint8List data;
+
+/// Create a copy of Image
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$Image_BmpCopyWith<Image_Bmp> get copyWith => _$Image_BmpCopyWithImpl<Image_Bmp>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Bmp&&const DeepCollectionEquality().equals(other.data, data));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(data));
+}
+
+@override
+String toString() {
+    return 'Image.bmp(data: $data)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $Image_BmpCopyWith<$Res> implements $ImageCopyWith<$Res> {
+  factory $Image_BmpCopyWith(Image_Bmp value, $Res Function(Image_Bmp) _then) = _$Image_BmpCopyWithImpl;
+@useResult
+$Res call({
+ Uint8List data
+});
+
+
+
+
+}
+/// @nodoc
+class _$Image_BmpCopyWithImpl<$Res>
+    implements $Image_BmpCopyWith<$Res> {
+  _$Image_BmpCopyWithImpl(this._self, this._then);
+
+  final Image_Bmp _self;
+  final $Res Function(Image_Bmp) _then;
+
+/// Create a copy of Image
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? data = null,}) {
+  return _then(Image_Bmp(
 data: null == data ? _self.data : data // ignore: cast_nullable_to_non_nullable
 as Uint8List,
   ));

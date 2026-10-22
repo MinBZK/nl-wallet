@@ -119,9 +119,6 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
   /// List of card requests for the user to choose which card to disclose.
   final List<DiscloseCardRequest> cardRequests;
 
-  /// The policy document outlining how the relying party handles disclosed data.
-  final Policy policy;
-
   /// Type of session (i.e., cross-device or regular).
   final DisclosureSessionType sessionType;
 
@@ -145,7 +142,6 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
   const DisclosureCheckOrganizationForLogin({
     required this.relyingParty,
     required this.sessionType,
-    required this.policy,
     required this.cardRequests,
     required this.sharedDataWithOrganizationBefore,
     this.afterBackPressed = false,
@@ -155,7 +151,6 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
   List<Object?> get props => [
     relyingParty,
     sessionType,
-    policy,
     cardRequests,
     sharedDataWithOrganizationBefore,
     ...super.props,
@@ -204,9 +199,6 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
   /// A list of card disclosure requests, each allowing the user to select which card to share.
   final List<DiscloseCardRequest> cardRequests;
 
-  /// The relying party's policy document outlining data handling practices.
-  final Policy policy;
-
   /// Indicates if this state was reached by pressing the back button.
   final bool afterBackPressed;
 
@@ -228,7 +220,6 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
     required this.relyingParty,
     required this.requestPurpose,
     required this.cardRequests,
-    required this.policy,
     required this.sessionType,
     this.afterBackPressed = false,
   });
@@ -237,7 +228,6 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
     Organization? relyingParty,
     LocalizedText? requestPurpose,
     List<DiscloseCardRequest>? cardRequests,
-    Policy? policy,
     DisclosureSessionType? sessionType,
     bool? afterBackPressed,
   }) {
@@ -245,7 +235,6 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
       relyingParty: relyingParty ?? this.relyingParty,
       requestPurpose: requestPurpose ?? this.requestPurpose,
       cardRequests: cardRequests ?? this.cardRequests,
-      policy: policy ?? this.policy,
       sessionType: sessionType ?? this.sessionType,
       afterBackPressed: afterBackPressed ?? this.afterBackPressed,
     );
@@ -262,7 +251,6 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
     relyingParty,
     requestPurpose,
     cardRequests,
-    policy,
     sessionType,
     ...super.props,
   ];

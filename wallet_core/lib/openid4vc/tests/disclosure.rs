@@ -22,6 +22,7 @@ use attestation_data::test_credential::nl_pid_credentials_given_name_for_query_i
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
 use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
@@ -131,14 +132,14 @@ fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<D
         .exactly_one()
         .expect("there should be only one disclosed attestation");
 
-    assert_eq!(disclosed_attestation.attestation_type, PID_ATTESTATION_TYPE);
+    assert_eq!(disclosed_attestation.attestation_type, PID_MDOC_DOCTYPE);
 
     let DisclosedAttributes::MsoMdoc(attributes) = &disclosed_attestation.attributes else {
         panic!("disclosed attributes should be in mdoc format");
     };
 
     let name_space = attributes
-        .get(PID_ATTESTATION_TYPE)
+        .get(PID_MDOC_DOCTYPE)
         .expect("disclosed attributes should include PID");
 
     assert_eq!(name_space.len(), 3);
@@ -167,7 +168,7 @@ async fn disclosure_direct() {
     let registration_certificate =
         MockRegistrationCertificate::new_verifier(auth_keypair.certificate(), Query::from(credential_requests.clone()));
     let registration_certificate =
-        RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
         credential_requests,
         ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
@@ -186,7 +187,7 @@ async fn disclosure_direct() {
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let jwe = disclosure_jwe(
         &auth_request_jws.into(),
-        &TrustAnchors::from(&ca),
+        &ca.to_trust_anchors(),
         &crl_verifier,
         &issuer_ca,
         MdocStatus::StatusList(StatusListClaim::new_mock()),
@@ -200,7 +201,7 @@ async fn disclosure_direct() {
         &iso_auth_request,
         &[MOCK_WALLET_CLIENT_ID.to_string()],
         &MockTimeGenerator::default(),
-        &TrustAnchors::from(&issuer_ca),
+        &issuer_ca.to_trust_anchors(),
         &ExtendingVctRetrieverStub,
         &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
             issuer_ca.generate_issuer_status_list_mock().unwrap(),
@@ -293,7 +294,7 @@ async fn disclosure_using_message_client(
         test_credentials,
         formats,
         rp_keypair,
-        TrustAnchors::from(&issuer_ca),
+        issuer_ca.to_trust_anchors(),
         issuer_ca.generate_pid_issuer_status_list_mock().unwrap(),
     );
     let request_uri = message_client.start_session();
@@ -312,7 +313,7 @@ async fn disclosure_using_message_client(
             &request_uri,
             DisclosureUriSource::Link,
             DisclosureTrustAnchors {
-                wrpac: &TrustAnchors::from(&ca),
+                wrpac: &ca.to_trust_anchors(),
                 wrprc: &registration_certificate_trust_anchors,
             },
         )
@@ -371,7 +372,7 @@ impl DirectMockVpMessageClient {
             Query::from(credential_requests.clone()),
         );
         let registration_certificate_envelope =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             credential_requests,
             ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
@@ -1115,7 +1116,7 @@ where
     let registration_certificate =
         registration_certificate_authority.issue_jwt(access_key_pair.certificate(), dcql_query.clone());
     let registration_certificate =
-        RegistrationCertificateEnvelope::try_from(registration_certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(registration_certificate.as_slice()).unwrap();
     let use_case = WalletInitiatedUseCase::new(
         UseCaseData::new(
             access_key_pair,
@@ -1131,7 +1132,7 @@ where
     let verifier = Arc::new(MockWalletInitiatedUseCaseVerifier::new(
         WalletInitiatedUseCases::new(usecases),
         sessions,
-        TrustAnchors::from(&issuer_ca),
+        issuer_ca.to_trust_anchors(),
         Some(Box::new(MockDisclosureResultHandler::new(None))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::default(),
@@ -1146,7 +1147,7 @@ where
         issuer_keypair,
         client_id,
         WalletValidationContext {
-            access_certificate_trust_anchors: TrustAnchors::from(&wrpac_ca),
+            access_certificate_trust_anchors: wrpac_ca.to_trust_anchors(),
             access_certificate_crl_verifier: CertificateCrlVerifier::new_for_ca(&wrpac_ca),
             registration_certificate_trust_anchors: registration_certificate_authority.trust_anchors,
             registration_certificate_status_list_client: registration_certificate_authority.status_list_client,
@@ -1169,12 +1170,12 @@ fn setup_verifier(
     let default_registration_certificate =
         registration_certificate_authority.issue_jwt(default_access_key_pair.certificate(), dcql_query.clone());
     let default_registration_certificate =
-        RegistrationCertificateEnvelope::try_from(default_registration_certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(default_registration_certificate.as_slice()).unwrap();
     let all_access_key_pair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let all_registration_certificate =
         registration_certificate_authority.issue_jwt(all_access_key_pair.certificate(), dcql_query.clone());
     let all_registration_certificate =
-        RegistrationCertificateEnvelope::try_from(all_registration_certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(all_registration_certificate.as_slice()).unwrap();
 
     // Initialize the verifier
     let usecases = HashMap::from([
@@ -1219,7 +1220,7 @@ fn setup_verifier(
     let verifier = Arc::new(MockRpInitiatedUseCaseVerifier::new(
         usecases,
         sessions,
-        TrustAnchors::from(&issuer_ca),
+        issuer_ca.to_trust_anchors(),
         Some(Box::new(MockDisclosureResultHandler::new(session_result_query_param))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::from([(
@@ -1235,7 +1236,7 @@ fn setup_verifier(
         verifier,
         issuer_keypair,
         WalletValidationContext {
-            access_certificate_trust_anchors: TrustAnchors::from(&wrpac_ca),
+            access_certificate_trust_anchors: wrpac_ca.to_trust_anchors(),
             access_certificate_crl_verifier: CertificateCrlVerifier::new_for_ca(&wrpac_ca),
             registration_certificate_trust_anchors: registration_certificate_authority.trust_anchors,
             registration_certificate_status_list_client: registration_certificate_authority.status_list_client,

@@ -4,8 +4,11 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
-import '../../../common/widget/button/button_content.dart';
+import '../../../../wallet_assets.dart';
+import '../../../common/page/terminal_page.dart';
+import '../../../common/widget/button/primary_button.dart';
 import '../../../common/widget/button/tertiary_button.dart';
+import '../../../common/widget/page_illustration.dart';
 import '../../../common/widget/utility/check_permissions_on_resume.dart';
 import '../bloc/qr_scan_bloc.dart';
 
@@ -16,46 +19,29 @@ class QrScannerNoPermission extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: context.mediaQuery.padding.top),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              context.l10n.qrScreenPermissionHint,
-              textAlign: TextAlign.center,
-              style: context.textTheme.bodyLarge,
-            ),
-          ),
-          const Spacer(),
-          Icon(
-            Icons.camera_alt_outlined,
-            color: context.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 8),
-          CheckPermissionsOnResume(
-            permissions: const [Permission.camera],
-            onPermissionGranted: () => context.read<QrScanBloc>().add(const QrScanCheckPermission()),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TertiaryButton(
-                onPressed: () {
-                  if (isPermanentlyDenied) {
-                    openAppSettings();
-                  } else {
-                    context.read<QrScanBloc>().add(const QrScanCheckPermission());
-                  }
-                },
-                iconPosition: IconPosition.end,
-                text: Text.rich(context.l10n.qrScanTabGrantPermissionCta.toTextSpan(context)),
-              ),
-            ),
-          ),
-          const Spacer(),
-        ],
+    return CheckPermissionsOnResume(
+      permissions: const [Permission.camera],
+      onPermissionGranted: () => context.read<QrScanBloc>().add(const QrScanCheckPermission()),
+      child: TerminalPage(
+        title: context.l10n.qrScreenPermissionTitle,
+        description: context.l10n.qrScreenPermissionHint,
+        illustration: const PageIllustration(asset: WalletAssets.svg_camera_permission),
+        primaryButton: PrimaryButton(
+          onPressed: () {
+            if (isPermanentlyDenied) {
+              openAppSettings();
+            } else {
+              context.read<QrScanBloc>().add(const QrScanCheckPermission());
+            }
+          },
+          icon: const Icon(Icons.camera_alt),
+          text: Text.rich(context.l10n.qrScanTabGrantPermissionCta.toTextSpan(context)),
+        ),
+        secondaryButton: TertiaryButton(
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Icons.arrow_back),
+          text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
+        ),
       ),
     );
   }

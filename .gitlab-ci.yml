@@ -1,6 +1,14 @@
 include:
   - local: "deploy/gitlab/**.yml"
 
+stages:
+  - init
+  - test
+  - build
+  - deploy
+  - qa
+  - publish
+
 default:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-base:${BUILD_TAG}"
 

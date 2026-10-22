@@ -20,7 +20,6 @@ use derive_more::Into;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwk_simple::Algorithm;
-use jwk_simple::Key;
 use jwt::JwtTyp;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::issuer_identifier::IssuerUrl;
@@ -48,6 +47,7 @@ use wscd::payload::key_attestation::AttackPotentialResistance;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
+use crate::jwks::Jwks;
 
 /// Represents a Credential Configuration Identifier as contained in the `credential_configurations_supported` section
 /// of the Issuer Metadata. This is a newtype around [`String`] that exists purely for semantic reasons.
@@ -229,7 +229,7 @@ pub struct CredentialRequestEncryption {
     /// ID) parameter that uniquely identifies the key.
     // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
     //                  request encryption. Additionally this should check for the presence of `kid` parameters.
-    pub jwks: VecNonEmpty<Key>,
+    pub jwks: Jwks,
 
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
     /// by the Credential Endpoint to decode the Credential Request from a JWT.
@@ -1082,6 +1082,10 @@ mod tests {
     #[test]
     fn test_sd_jwt_issuer_metadata_deserialization() {
         // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-I.1-4
+        // Note: the `credential_request_encryption` format in the (non-normative) example from the spec doesn't match
+        // the normative text from the spec
+        // (https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4-2.7.1). For that
+        // reason, the example below has been changed to adhere to [RFC7591].
         let example_json = json!({
             "credential_issuer": "https://credential-issuer.example.com",
             "authorization_servers": [
@@ -1092,13 +1096,15 @@ mod tests {
             "deferred_credential_endpoint": "https://credential-issuer.example.com/deferred_credential",
             "notification_endpoint": "https://credential-issuer.example.com/notification",
             "credential_request_encryption": {
-                "jwks": [
-                    {
-                        "kty":"EC", "kid":"ac", "use":"enc", "crv":"P-256", "alg":"ECDH-ES",
-                        "x":"YO4epjifD-KWeq1sL2tNmm36BhXnkJ0He-WqMYrp9Fk",
-                        "y":"Hekpm0zfK7C-YccH5iBjcIXgf6YdUvNUac_0At55Okk"
-                    }
-                ],
+                "jwks": {
+                    "keys": [
+                        {
+                            "kty":"EC", "kid":"ac", "use":"enc", "crv":"P-256", "alg":"ECDH-ES",
+                            "x":"YO4epjifD-KWeq1sL2tNmm36BhXnkJ0He-WqMYrp9Fk",
+                            "y":"Hekpm0zfK7C-YccH5iBjcIXgf6YdUvNUac_0At55Okk"
+                        }
+                    ]
+                },
                 "enc_values_supported": ["A128GCM"],
                 "zip_values_supported": ["DEF"],
                 "encryption_required": true
@@ -1256,8 +1262,8 @@ mod tests {
                 .credential_request_encryption
                 .as_ref()
                 .expect("IssuerMetadata should contain CredentialRequestEncryption");
-            assert_eq!(request_encryption.jwks.len().get(), 1);
-            assert_matches!(request_encryption.jwks.first().params(), KeyParams::Ec(_));
+            assert_eq!(request_encryption.jwks.keys.len().get(), 1);
+            assert_matches!(request_encryption.jwks.keys.first().params(), KeyParams::Ec(_));
             assert!(
                 request_encryption
                     .enc_values_supported

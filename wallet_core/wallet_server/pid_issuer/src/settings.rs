@@ -24,6 +24,8 @@ use server_utils::settings::Settings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::pid::rulebook::country_code::IsoCountryCode;
+
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct PidIssuerSettings {
@@ -33,6 +35,10 @@ pub struct PidIssuerSettings {
 
     #[debug(skip)]
     pub recovery_code: SecretKey,
+
+    /// PID rulebook mandatory issuer metadata
+    pub issuing_country: IsoCountryCode,
+    pub issuing_authority: String,
 
     #[serde(flatten)]
     pub authorizing_issuer_settings: AuthorizingIssuerSettings,
@@ -100,7 +106,8 @@ impl ServerSettings for PidIssuerSettings {
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
-            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?;
+            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?
+            .set_default("issuing_country", "NL")?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.

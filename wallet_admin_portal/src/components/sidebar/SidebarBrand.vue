@@ -5,10 +5,16 @@
     </RouterLink>
     <div>
       <div class="brand-title">NL Wallet</div>
-      <div class="brand-subtitle">Acceptatie</div>
+      <div v-if="environment" class="brand-subtitle">{{ environment }}</div>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { useEnvironment } from '@/composables/environment.ts'
+
+const { environment } = useEnvironment()
+</script>
 
 <style scoped>
 .brand {

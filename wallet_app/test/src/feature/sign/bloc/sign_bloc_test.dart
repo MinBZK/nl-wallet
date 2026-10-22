@@ -41,7 +41,6 @@ void main() {
       return Result.success(
         StartSignReadyToSign(
           document: WalletMockData.document,
-          policy: WalletMockData.policy,
           relyingParty: WalletMockData.organization,
           trustProvider: WalletMockData.organization,
           requestedCards: [],
@@ -76,7 +75,6 @@ void main() {
         (_) async => Result.success(
           StartSignReadyToSign(
             document: WalletMockData.document,
-            policy: WalletMockData.policy,
             relyingParty: WalletMockData.organization,
             trustProvider: WalletMockData.organization,
             requestedCards: [],
@@ -103,7 +101,6 @@ void main() {
         (_) async => Result.success(
           StartSignReadyToSign(
             document: WalletMockData.document,
-            policy: WalletMockData.policy,
             relyingParty: WalletMockData.organization,
             trustProvider: WalletMockData.organization,
             requestedCards: [],
@@ -131,7 +128,6 @@ void main() {
       return Result.success(
         StartSignReadyToSign(
           document: WalletMockData.document,
-          policy: WalletMockData.policy,
           relyingParty: WalletMockData.organization,
           trustProvider: WalletMockData.organization,
           requestedCards: [],

@@ -35,7 +35,6 @@ class HistoryDetailDisclosePage extends StatelessWidget {
           RequestDetailCommonBuilders.buildPolicy(
             context,
             organization: event.relyingParty,
-            policy: event.policy,
             side: DividerSide.bottom,
           ),
         RequestDetailCommonBuilders.buildAboutOrganization(

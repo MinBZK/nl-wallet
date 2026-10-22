@@ -101,7 +101,6 @@ import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.da
 import 'package:wallet/src/feature/login/argument/login_detail_screen_argument.dart';
 import 'package:wallet/src/feature/organization/detail/argument/organization_detail_screen_argument.dart';
 import 'package:wallet/src/feature/pin_timeout/argument/pin_timeout_screen_argument.dart';
-import 'package:wallet/src/feature/policy/policy_screen_arguments.dart';
 import 'package:wallet/src/feature/sign/argument/sign_screen_argument.dart';
 import 'package:wallet/src/feature/tour/video/argument/tour_video_screen_argument.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
@@ -161,7 +160,6 @@ Object? _getMockArgumentsForRoute(String routeName) {
     case WalletRoutes.loginDetailRoute:
       return LoginDetailScreenArgument(
         organization: WalletMockData.organization,
-        policy: WalletMockData.policy,
         cardRequests: const [],
         sharedDataWithOrganizationBefore: false,
       );
@@ -172,8 +170,6 @@ Object? _getMockArgumentsForRoute(String routeName) {
       ).toMap();
     case WalletRoutes.pinTimeoutRoute:
       return PinTimeoutScreenArgument(expiryTime: DateTime.now().add(const Duration(minutes: 5))).toMap();
-    case WalletRoutes.policyRoute:
-      return PolicyScreenArguments(relyingParty: WalletMockData.organization, policy: WalletMockData.policy);
     case WalletRoutes.signRoute:
       return const SignScreenArgument(uri: 'uri').toJson();
     case WalletRoutes.tourVideoRoute:

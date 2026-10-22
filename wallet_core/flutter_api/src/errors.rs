@@ -449,7 +449,6 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _)
             | DisclosureError::DisclosureUriQuery(_)
-            | DisclosureError::Organization(_)
             | DisclosureError::RecoveryCodeRequested { .. }
             | DisclosureError::UnexpectedRedirectUriPurpose { .. } => FlutterApiErrorType::Verifier,
             DisclosureError::DisclosureUri(_)
@@ -664,6 +663,13 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
         match value {
             CloseProximityDisclosureError::InconsistentReaderAuths
             | CloseProximityDisclosureError::InvalidDocRequest(_)
+            | CloseProximityDisclosureError::ReaderCertificateSubject(_)
+            | CloseProximityDisclosureError::ReaderCertificateRelyingParty(_)
+            | CloseProximityDisclosureError::RegistrationCertificateParsing(_)
+            | CloseProximityDisclosureError::RegistrationCertificateVerification(_)
+            | CloseProximityDisclosureError::RegistrationCertificateBinding(_)
+            | CloseProximityDisclosureError::RegistrationCertificateStatus(_)
+            | CloseProximityDisclosureError::RegistrationCertificateAuthorization(_)
             | CloseProximityDisclosureError::UnsupportedDocFormat { .. }
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidDeviceRequest(_) => FlutterApiErrorType::Verifier,
@@ -742,7 +748,9 @@ impl FlutterApiErrorFields for PinRecoveryError {
                 FlutterApiErrorType::WrongDigid
             }
             PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingPid)
-            | PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingRecoveryCode) => FlutterApiErrorType::Issuer,
+            | PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingIssuedRecoveryCode) => {
+                FlutterApiErrorType::Issuer
+            }
             PinRecoveryError::DiscloseRecoveryCode(InstructionError::AccountRevoked(_)) => FlutterApiErrorType::Revoked,
             PinRecoveryError::DiscloseRecoveryCode(..) => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,
@@ -836,7 +844,6 @@ mod tests {
     use serde_json::json;
     use wallet::AccountRevokedData;
     use wallet::RevocationReason;
-    use wallet::attestation_data::Attribute;
     use wallet::errors::CancelSessionError;
     use wallet::errors::ChangePinError;
     use wallet::errors::CheckPreconditionsError;
@@ -933,8 +940,8 @@ mod tests {
     )]
     #[case::issuance::recoverycode(
         IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode {
-            expected: Box::new(Attribute::Text("a".to_string())),
-            received: Box::new(Attribute::Text("b".to_string()))
+            expected: "a".to_string(),
+            received: "b".to_string()
         }),
         FlutterApiErrorType::WrongDigid,
         serde_json::Value::Null

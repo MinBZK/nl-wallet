@@ -179,7 +179,7 @@ impl MockVerifierSession {
     ) -> Self {
         // Generate trust anchors, signing key and certificate.
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
         let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
         let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
@@ -241,7 +241,7 @@ impl MockVerifierSession {
             )
         });
         let registration_certificate =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
         let mut auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             self.credential_requests.clone(),
             ClientId::x509_hash_from_certificate(self.key_pair.certificate()),

@@ -19,7 +19,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   procps \
   gettext-base # envsubst
 # Unsafe sudo for easy switching to wallet user
-sed -i'' -E '/^Defaults\s+(env_reset|mail_badpass|secure_path)/d' /etc/sudoers
+sed -i -E '/^Defaults\s+(env_reset|mail_badpass|secure_path)/d' /etc/sudoers
 
 # yq
 # Download from: https://github.com/mikefarah/yq/releases/

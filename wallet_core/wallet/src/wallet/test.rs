@@ -14,17 +14,18 @@ use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_AGE_OVER_18;
-use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_BIRTH_DATE;
 use attestation_types::pid_constants::PID_BSN;
 use attestation_types::pid_constants::PID_FAMILY_NAME;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
 use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use attestation_types::pid_constants::PID_RESIDENT_CITY;
 use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
 use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
 use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
 use attestation_types::pid_constants::PID_RESIDENT_STREET;
+use attestation_types::pid_constants::pid_attestation_type;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
@@ -248,7 +249,7 @@ pub fn create_example_pid_credential_payload(
     time_generator: &impl Generator<DateTime<Utc>>,
     format: Format,
 ) -> (CredentialPayload, OfferedCredentialMetadata) {
-    create_example_credential_payload(time_generator, format, PID_ATTESTATION_TYPE)
+    create_example_credential_payload(time_generator, format, pid_attestation_type(format))
 }
 
 /// Generate valid `CredentialPreview`.
@@ -273,7 +274,7 @@ pub fn create_example_pid_preview_data(
     create_example_preview_data(
         time_generator,
         format,
-        PID_ATTESTATION_TYPE,
+        pid_attestation_type(format),
         "config_id".to_string().into(),
     )
 }
@@ -315,7 +316,7 @@ pub fn create_example_pid_mdoc(holder_key: &SigningKey) -> (Mdoc, CredentialMeta
 /// [`PreviewableCredentialPayload::nl_pid_mdoc_example()`].
 pub fn nl_pid_mdoc_credential_metadata_example() -> CredentialMetadata {
     CredentialMetadata::new_mdoc_example(
-        PID_ATTESTATION_TYPE,
+        PID_MDOC_DOCTYPE,
         &[
             PID_GIVEN_NAME,
             PID_FAMILY_NAME,
@@ -377,8 +378,8 @@ pub fn create_wallet_configuration() -> WalletConfiguration {
         DerVerifyingKey::from(*keys.instruction_result_signing_key.verifying_key()),
     )]);
 
-    config.issuer_trust_anchors = TrustAnchors::try_from(vec![ISSUER_KEY.trust_anchor.clone()]).unwrap();
-    config.wrpac_trust_anchors = TrustAnchors::from(&*WRPAC_CA);
+    config.issuer_trust_anchors = TrustAnchors::try_from_trust_anchors([ISSUER_KEY.trust_anchor.clone()]).unwrap();
+    config.wrpac_trust_anchors = WRPAC_CA.to_trust_anchors();
 
     config
 }

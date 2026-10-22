@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use crypto::utils::random_string;
-use crypto::utils::sha256;
+use crypto::utils::sha256_into_vec;
 use derive_more::From;
 use http_utils::reqwest::HttpClient;
 use serde::Deserialize;
@@ -51,7 +51,7 @@ impl AccessToken {
     }
 
     pub fn sha256(&self) -> Vec<u8> {
-        sha256(self.as_ref().as_bytes())
+        sha256_into_vec(self.as_ref().as_bytes())
     }
 }
 

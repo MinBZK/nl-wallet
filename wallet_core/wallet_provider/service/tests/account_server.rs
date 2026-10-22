@@ -12,6 +12,7 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::utils::sha256;
 use db_test::DbSetup;
 use hsm::model::TestHsm;
 use hsm::model::mock::MockPkcs11Client;
@@ -133,7 +134,7 @@ async fn do_registration(
         .await
         .expect("Could not get registration challenge");
 
-    let challenge_hash = crypto::utils::sha256(&challenge);
+    let challenge_hash = crypto::utils::sha256_into_vec(&challenge);
     let (registration_message, hw_privkey) = match attestation_ca {
         AttestationCa::Apple(apple_mock_ca) => {
             let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
@@ -930,7 +931,7 @@ async fn test_attestation_wrapping_key_rollover() {
         .into_first();
 
     let sign_instruction = |key_identifier: String| Sign {
-        messages_with_identifiers: vec![(b"message".to_vec(), vec![key_identifier])],
+        messages_with_identifiers: vec![(sha256(b"message"), vec![key_identifier])],
         poa_nonce: None,
         poa_aud: "aud".to_string(),
     };

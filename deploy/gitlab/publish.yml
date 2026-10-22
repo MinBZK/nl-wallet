@@ -1,4 +1,6 @@
 publish-code:
+  stage: publish
   rules: !reference [.default-branch, rules]
+  needs: []
   trigger:
     project: logius/wallet/publication-guard

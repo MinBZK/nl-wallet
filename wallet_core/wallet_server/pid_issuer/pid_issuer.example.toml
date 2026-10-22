@@ -29,6 +29,10 @@ batch_size = 10
 # Base64url-encoded WRPRC bound to the WRPAC in credential_metadata_keypair
 registration_certificate = "<base64url-encoded WRPRC>"
 
+# PID rulebook mandatory issuer metadata
+issuing_country = "NL"
+issuing_authority = "Example Issuing Authority"
+
 [storage]
 url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
 

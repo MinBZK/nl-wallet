@@ -3,9 +3,11 @@ use chrono::Utc;
 use sea_orm::ColumnTrait;
 use sea_orm::Condition;
 use sea_orm::ConnectionTrait;
+use sea_orm::DbErr;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
+use sea_orm::QuerySelect;
 use sea_orm::Set;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
@@ -18,6 +20,7 @@ use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 use crate::entity::admin_task;
+use crate::transaction::Transaction;
 
 impl TryFrom<AdminTaskCreate> for admin_task::ActiveModel {
     type Error = PersistenceError;
@@ -94,19 +97,30 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let task = admin_task::Entity::find_by_id(task_id)
+    admin_task::Entity::find_by_id(task_id)
         .one(db.connection())
         .await
         .map_err(PersistenceError::Execution)?
         .map(TryInto::try_into)
-        .transpose()?;
-    Ok(task)
+        .transpose()
+}
+
+pub async fn find_task_by_id_for_update(
+    db: &Transaction,
+    task_id: Uuid,
+) -> Result<Option<AdminTask>, PersistenceError> {
+    admin_task::Entity::find_by_id(task_id)
+        .lock_exclusive()
+        .one(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?
+        .map(TryInto::try_into)
+        .transpose()
 }
 
 pub async fn withdraw_task<S, T>(
     db: &T,
     task_id: Uuid,
-    user_id: &str,
     now: DateTime<Utc>,
 ) -> Result<Option<AdminTask>, PersistenceError>
 where
@@ -114,23 +128,21 @@ where
     T: PersistenceConnection<S>,
 {
     let model = admin_task::ActiveModel {
+        id: Set(task_id),
         status: Set(TaskStatus::Withdrawn.to_string()),
         withdrawn_at: Set(Some(now.into())),
         ..Default::default()
     };
-    let task = admin_task::Entity::update_many()
-        .set(model)
-        .filter(admin_task::Column::Id.eq(task_id))
-        .filter(admin_task::Column::CreatedByUserId.eq(user_id))
+
+    match admin_task::Entity::update(model)
         .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
-        .exec_with_returning(db.connection())
+        .exec(db.connection())
         .await
-        .map_err(PersistenceError::Execution)?
-        .into_iter()
-        .next()
-        .map(TryInto::try_into)
-        .transpose()?;
-    Ok(task)
+    {
+        Ok(task) => Ok(Some(task.try_into()?)),
+        Err(DbErr::RecordNotUpdated) => Ok(None),
+        Err(error) => Err(PersistenceError::Execution(error)),
+    }
 }
 
 pub async fn review_task<S, T>(db: &T, review: AdminTaskReview) -> Result<Option<AdminTask>, PersistenceError>
@@ -139,6 +151,7 @@ where
     T: PersistenceConnection<S>,
 {
     let model = admin_task::ActiveModel {
+        id: Set(review.id),
         status: Set(review.review_verdict.resulting_status().to_string()),
         reviewed_at: Set(Some(review.reviewed_at.into())),
         reviewed_by_user_id: Set(Some(review.reviewed_by_user_id)),
@@ -146,18 +159,16 @@ where
         review_comment: Set(Some(review.review_comment)),
         ..Default::default()
     };
-    let task = admin_task::Entity::update_many()
-        .set(model)
-        .filter(admin_task::Column::Id.eq(review.id))
+
+    match admin_task::Entity::update(model)
         .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
-        .exec_with_returning(db.connection())
+        .exec(db.connection())
         .await
-        .map_err(PersistenceError::Execution)?
-        .into_iter()
-        .next()
-        .map(TryInto::try_into)
-        .transpose()?;
-    Ok(task)
+    {
+        Ok(task) => Ok(Some(task.try_into()?)),
+        Err(DbErr::RecordNotUpdated) => Ok(None),
+        Err(error) => Err(PersistenceError::Execution(error)),
+    }
 }
 
 pub async fn list_tasks<S, T>(db: &T, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError>
@@ -284,40 +295,34 @@ mod tests {
     }
 
     #[test]
-    fn model_maps_all_fields_and_parses_all_statuses() {
-        for (stored_status, status) in [
-            ("created", TaskStatus::Created),
-            ("withdrawn", TaskStatus::Withdrawn),
-            ("approved", TaskStatus::Approved),
-            ("rejected", TaskStatus::Rejected),
-        ] {
-            let row = admin_task::Model {
-                status: stored_status.into(),
-                ..model()
-            };
-            let expected = AdminTask {
-                id: row.id,
-                created_at: row.created_at.into(),
-                created_by_user_id: row.created_by_user_id.clone(),
-                created_by_display_name: row.created_by_display_name.clone(),
-                payload: payload(),
-                task_reason: row.task_reason.clone(),
-                status,
-                withdrawn_at: row.withdrawn_at.map(Into::into),
-                reviewed_at: row.reviewed_at.map(Into::into),
-                reviewed_by_user_id: row.reviewed_by_user_id.clone(),
-                reviewed_by_display_name: row.reviewed_by_display_name.clone(),
-                review_comment: row.review_comment.clone(),
-                executed_at: row.executed_at.map(Into::into),
-                execution_successful: row.execution_successful,
-                execution_details: row.execution_details.clone(),
-            };
-            assert_eq!(AdminTask::try_from(row).unwrap(), expected);
-        }
+    fn model_maps_all_fields() {
+        let (stored_status, status) = ("created", TaskStatus::Created);
+        let row = admin_task::Model {
+            status: stored_status.into(),
+            ..model()
+        };
+        let expected = AdminTask {
+            id: row.id,
+            created_at: row.created_at.into(),
+            created_by_user_id: row.created_by_user_id.clone(),
+            created_by_display_name: row.created_by_display_name.clone(),
+            payload: payload(),
+            task_reason: row.task_reason.clone(),
+            status,
+            withdrawn_at: row.withdrawn_at.map(Into::into),
+            reviewed_at: row.reviewed_at.map(Into::into),
+            reviewed_by_user_id: row.reviewed_by_user_id.clone(),
+            reviewed_by_display_name: row.reviewed_by_display_name.clone(),
+            review_comment: row.review_comment.clone(),
+            executed_at: row.executed_at.map(Into::into),
+            execution_successful: row.execution_successful,
+            execution_details: row.execution_details.clone(),
+        };
+        assert_eq!(AdminTask::try_from(row).unwrap(), expected);
     }
 
     #[test]
-    fn model_with_invalid_enum_value_fails_conversion() {
+    fn model_with_invalid_task_type_or_status_fails_conversion() {
         for row in [
             admin_task::Model {
                 task_type: "unknown".into(),

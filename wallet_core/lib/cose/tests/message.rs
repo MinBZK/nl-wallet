@@ -7,9 +7,9 @@ use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
 use crypto::server_keys::generate::Ca;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateVerifyError;
 use crypto::x509::DistinguishedName;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
@@ -139,7 +139,7 @@ async fn signs_and_verifies_with_certificate() {
 
     assert_eq!(cose.x5chain().unwrap().first(), key_pair.certificate());
     assert_eq!(
-        cose.verify_against_trust_anchors(&TrustAnchors::from(&ca), &TimeGenerator, Some(CertificateUsage::Mdl),)
+        cose.verify_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),)
             .unwrap(),
         ToyMessage::default()
     );
@@ -155,7 +155,7 @@ async fn verifies_certificate_and_crl() {
         .unwrap();
 
     assert_eq!(
-        cose.verify_against_trust_anchors_with_crl(&TrustAnchors::from(&ca), &crl_verifier, &TimeGenerator, None,)
+        cose.verify_against_trust_anchors_with_crl(&ca.to_trust_anchors(), &crl_verifier, &TimeGenerator, None,)
             .await
             .unwrap(),
         ToyMessage::default()
@@ -172,13 +172,47 @@ async fn crl_verification_requires_distribution_point() {
         .unwrap();
 
     let error = cose
-        .verify_against_trust_anchors_with_crl(&TrustAnchors::from(&ca), &crl_verifier, &TimeGenerator, None)
+        .verify_against_trust_anchors_with_crl(&ca.to_trust_anchors(), &crl_verifier, &TimeGenerator, None)
         .await
         .unwrap_err();
 
     assert!(matches!(
         error,
         CoseError::CertificateCrl(CertificateCrlVerificationError::NoCrlDistributionPoint)
+    ));
+}
+
+#[tokio::test]
+async fn rejects_trust_anchor_in_x5chain() {
+    let ca = Ca::generate_mock();
+    let key_pair = ca.generate_issuer_mock().unwrap();
+    let ca_certificate = ca.as_borrowing_certificate().unwrap();
+    let header = header_with_x5chain(&vec_nonempty![key_pair.certificate(), &ca_certificate]);
+    let cose: TypedCose<_, ToyMessage> = TypedCose::sign(&ToyMessage::default(), header, key_pair.private_key(), true)
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        cose.verify_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl)),
+        Err(CoseError::CertificateVerify(CertificateVerifyError::TrustAnchorInChain))
+    ));
+}
+
+#[tokio::test]
+async fn crl_verification_rejects_trust_anchor_in_x5chain() {
+    let ca = Ca::generate_mock();
+    let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
+    let ca_certificate = ca.as_borrowing_certificate().unwrap();
+    let header = header_with_x5chain(&vec_nonempty![key_pair.certificate(), &ca_certificate]);
+    let cose: TypedCose<_, ToyMessage> = TypedCose::sign(&ToyMessage::default(), header, key_pair.private_key(), true)
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        cose.verify_against_trust_anchors_with_crl(&ca.to_trust_anchors(), &crl_verifier, &TimeGenerator, None)
+            .await,
+        Err(CoseError::CertificateVerify(CertificateVerifyError::TrustAnchorInChain))
     ));
 }
 
@@ -206,12 +240,8 @@ async fn verifies_certificate_chain_with_intermediate() {
             .unwrap();
 
     assert_eq!(
-        cose.verify_against_trust_anchors(
-            &TrustAnchors::from(&root_ca),
-            &TimeGenerator,
-            Some(CertificateUsage::Mdl),
-        )
-        .unwrap(),
+        cose.verify_against_trust_anchors(&root_ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),)
+            .unwrap(),
         ToyMessage::default()
     );
 }
@@ -239,11 +269,7 @@ async fn rejects_missing_intermediate_certificate() {
             .unwrap();
 
     assert!(matches!(
-        cose.verify_against_trust_anchors(
-            &TrustAnchors::from(&root_ca),
-            &TimeGenerator,
-            Some(CertificateUsage::Mdl),
-        ),
+        cose.verify_against_trust_anchors(&root_ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),),
         Err(CoseError::CertificateVerify(_))
     ));
 }

@@ -539,8 +539,9 @@ impl Command {
                 let access_certificate = read_certificate(&wrpac_crt_file)?;
                 let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
                 let payload: Value = serde_json::from_reader(payload_file)?;
-                serde_json::from_value::<ParsedRegistrationCertificate>(payload.clone())?
-                    .validate_binding_and_time(&access_subject, Utc::now())?;
+                let parsed_payload = serde_json::from_value::<ParsedRegistrationCertificate>(payload.clone())?;
+                parsed_payload.validate_expiry(Utc::now())?;
+                parsed_payload.validate_binding(&access_subject)?;
 
                 let runtime = tokio::runtime::Builder::new_current_thread().build()?;
                 let serialized = runtime.block_on(sign_registration_certificate(

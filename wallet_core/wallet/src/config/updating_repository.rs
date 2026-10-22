@@ -7,6 +7,7 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
+use error_category::sentry::classify_mask_and_capture;
 use http_utils::client::TlsPinningConfig;
 use parking_lot::Mutex;
 use rand::Rng;
@@ -25,6 +26,7 @@ use super::ConfigurationError;
 use super::FileStorageConfigurationRepository;
 use super::WalletConfigurationRepository;
 use super::is_expired;
+use crate::repository::HttpClientError;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
 use crate::repository::RepositoryCallback;
@@ -159,7 +161,10 @@ impl WalletConfigurationRepository {
 
 impl<T> UpdatingConfigurationRepository<T>
 where
-    T: UpdateableRepository<Arc<WalletConfiguration>, TlsPinningConfig> + Send + Sync + 'static,
+    T: UpdateableRepository<Arc<WalletConfiguration>, TlsPinningConfig, Error = ConfigurationError>
+        + Send
+        + Sync
+        + 'static,
 {
     pub async fn new(wrapped: T, config: ConfigServerConfiguration) -> UpdatingConfigurationRepository<T> {
         let wrapped = Arc::new(wrapped);
@@ -199,7 +204,21 @@ where
                     }
                     // The configuration did not change, so there is nothing to report.
                     Ok(RepositoryUpdateState::Unmodified(_) | RepositoryUpdateState::Cached(_)) => {}
-                    Err(e) => error!("fetch configuration error: {}", e),
+                    Err(error) => {
+                        error!("fetch configuration error: {error}");
+
+                        // Networking errors are expected on mobile devices, so only report other errors to Sentry.
+                        if !matches!(
+                            error,
+                            ConfigurationError::HttpClient(
+                                HttpClientError::Networking(_)
+                                    | HttpClientError::Response(_, _)
+                                    | HttpClientError::EmptyBody
+                            )
+                        ) {
+                            classify_mask_and_capture(&error);
+                        }
+                    }
                 }
 
                 // Read the clock once, so that the expiry and the delay derived from it cannot disagree.

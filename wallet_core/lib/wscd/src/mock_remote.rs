@@ -32,6 +32,7 @@ use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::payload::jwt_proof::JwtProofClaims;
 use crate::payload::key_attestation::KeyAttestation;
 use crate::payload::poa::Poa;
+use crate::payload::status_claim::TimeBoundedStatusClaim;
 
 pub static MOCK_CERTIFICATION_URL: LazyLock<Url> =
     LazyLock::new(|| "https://wallet-provider.example.com/certification".parse().unwrap());
@@ -95,6 +96,7 @@ impl MockRemoteWscd {
                 .nonempty_iter(),
             MOCK_CERTIFICATION_URL.clone(),
             nonce,
+            TimeBoundedStatusClaim::new_mock(),
             &self.attestation_key_pair,
             time,
         )

@@ -58,6 +58,7 @@ use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wia;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock::user_state;
+use wallet_provider_service::admin_portal::LoggedInUser;
 use wallet_provider_service::admin_portal::execution::revoke_wallets;
 use wallet_provider_service::flags::WalletFlags;
 use wallet_provider_service::flags::mock::StubWalletFlags;
@@ -144,7 +145,7 @@ async fn register_wallets_with_wias(
             for _ in 0..wia_count {
                 let wia_id = Uuid::new_v4();
                 let claim = user_state
-                    .status_list_service
+                    .wia_status_list
                     .obtain_status_claims(wia_id, None, NonZeroUsize::MIN)
                     .await
                     .unwrap()
@@ -304,7 +305,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
             for _ in 0..wia_count {
                 let wia_id = Uuid::new_v4();
                 let claim = user_state
-                    .status_list_service
+                    .wia_status_list
                     .obtain_status_claims(wia_id, None, NonZeroUsize::MIN)
                     .await
                     .unwrap()
@@ -504,7 +505,11 @@ async fn test_revoke_wallets_for_admin_task_counts_only_newly_revoked_wallets() 
     let revoked_count = revoke_wallets(
         Uuid::new_v4(),
         &wallets.iter().cloned().collect(),
-        "approver-id",
+        &LoggedInUser {
+            user_id: "approver-id".to_string(),
+            display_name: "Approver".to_string(),
+            privileges: vec![],
+        },
         &user_state,
         &MockTimeGenerator::default(),
         &MockAuditLog,

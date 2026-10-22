@@ -1,5 +1,6 @@
 .wallet-config:
   extends: .rust
+  stage: init
   script:
     - scripts/generate-wallet-config.sh wallet_core/wallet "$CONFIG_ENV" "$STATIC_HOSTNAME" "$CONFIG_PUBKEY"
       "$CONFIG_TLS_CA"

@@ -11,8 +11,6 @@ workspace = true
 doctest = false
 
 [features]
-# Implements SeaORM traits for types that can be persisted
-persistence = ["sea-orm/macros"]
 # Include examples from the ISO specification
 examples = ["dep:anyhow", "dep:hex-literal"]
 # Include code for generating certificates and keys
@@ -34,7 +32,7 @@ indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 moka = { workspace = true, features = ["future"] }
 nutype.workspace = true
-p256 = { workspace = true, features = ["pem", "serde"] }
+p256 = { workspace = true, features = ["pkcs8", "serde"] }
 p384 = { workspace = true, features = ["pkcs8", "serde"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
@@ -63,7 +61,6 @@ hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true }
-sea-orm = { workspace = true, optional = true }
 time = { workspace = true, optional = true }
 
 [dev-dependencies]
@@ -75,7 +72,7 @@ der = { workspace = true, features = ["derive", "heapless", "oid"] }
 ecdsa.workspace = true
 hex-literal.workspace = true
 httpmock.workspace = true
-rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
+rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs", "pem"] }
 rsa = { workspace = true, features = ["pem"] }
 rstest.workspace = true
 time.workspace = true

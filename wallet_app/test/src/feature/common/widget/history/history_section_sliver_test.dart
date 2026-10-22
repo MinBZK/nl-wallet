@@ -18,7 +18,6 @@ void main() {
       relyingParty: WalletMockData.organization,
       purpose: 'disclosure'.untranslated,
       cards: [WalletMockData.card],
-      policy: WalletMockData.policy,
       type: DisclosureType.regular,
     ),
     WalletEvent.disclosure(
@@ -27,7 +26,6 @@ void main() {
       relyingParty: WalletMockData.organization,
       purpose: 'disclosure'.untranslated,
       cards: [WalletMockData.card],
-      policy: WalletMockData.policy,
       type: DisclosureType.regular,
     ),
     WalletEvent.disclosure(
@@ -36,7 +34,6 @@ void main() {
       relyingParty: WalletMockData.organization,
       purpose: 'disclosure'.untranslated,
       cards: [WalletMockData.card],
-      policy: WalletMockData.policy,
       type: DisclosureType.regular,
     ),
   ];

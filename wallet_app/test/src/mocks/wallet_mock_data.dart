@@ -24,7 +24,6 @@ import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/person_type.dart';
 import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
 import 'package:wallet/src/theme/dark_wallet_theme.dart';
 import 'package:wallet/src/theme/light_wallet_theme.dart';
@@ -201,11 +200,6 @@ abstract class WalletMockData {
     value: const StringValue('Value'),
   );
 
-  static const Policy policy = Policy(
-    dataPurpose: 'Data Purpose',
-    privacyPolicyUrl: 'https://www.example.org',
-  );
-
   static const Document document = Document(
     title: 'Title',
     fileName: 'docs/agreement.pdf',
@@ -258,7 +252,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.regular,
   ) as DisclosureEvent;
 
@@ -268,7 +261,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.login,
   ) as DisclosureEvent;
 
@@ -278,7 +270,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.login,
   ) as DisclosureEvent;
 
@@ -288,7 +279,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: const [],
-    policy: policy,
     type: DisclosureType.login,
   ) as DisclosureEvent;
 
@@ -298,7 +288,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.regular,
   ) as DisclosureEvent;
 
@@ -308,7 +297,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure - nothing shared error'.untranslated,
     cards: const [],
-    policy: policy,
     type: DisclosureType.regular,
   ) as DisclosureEvent;
 
@@ -318,7 +306,6 @@ abstract class WalletMockData {
     relyingParty: organization,
     purpose: 'disclosure'.untranslated,
     cards: [card],
-    policy: policy,
     type: DisclosureType.regular,
   ) as DisclosureEvent;
 
@@ -328,7 +315,6 @@ abstract class WalletMockData {
     dateTime: DateTime(2024, 1, 1),
     status: EventStatus.success,
     relyingParty: organization,
-    policy: policy,
     document: document,
   ) as SignEvent;
 

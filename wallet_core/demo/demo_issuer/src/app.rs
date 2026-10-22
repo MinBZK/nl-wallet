@@ -83,6 +83,7 @@ pub const LOYALTY_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/loyalty.cs
 pub const MUSEUM_MAANDKAART_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/museum_maandkaart.css"));
 pub const MDL_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mdl.css"));
 pub const MVC_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/mvc.css"));
+pub const DEZI_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/dezi.css"));
 
 static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
     let script_src = format!("'sha256-{}' 'sha256-{}'", *LANGUAGE_JS_SHA256, *WALLET_WEB_JS_SHA256);
@@ -137,6 +138,10 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         .route(
             "/static/css/mvc.css",
             get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, MVC_CSS) }),
+        )
+        .route(
+            "/static/css/dezi.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, DEZI_CSS) }),
         );
 
     let mut app = app

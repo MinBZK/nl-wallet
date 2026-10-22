@@ -16,7 +16,6 @@ import '../../../mocks/wallet_mocks.dart';
 
 final _kDefaultReadyToDiscloseResponse = StartIssuanceReadyToDisclose(
   relyingParty: WalletMockData.organization,
-  policy: WalletMockData.policy,
   sessionType: DisclosureSessionType.sameDevice,
   cardRequests: [WalletMockData.discloseCardRequestMultiCard],
   requestPurpose: {},
@@ -64,7 +63,6 @@ void main() {
         (_) async => Result.success(
           StartIssuanceReadyToDisclose(
             relyingParty: WalletMockData.organization,
-            policy: WalletMockData.policy,
             sessionType: DisclosureSessionType.crossDevice,
             cardRequests: [],
             requestPurpose: {},

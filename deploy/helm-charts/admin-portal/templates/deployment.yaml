@@ -49,3 +49,6 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          env:
+            - name: ADMIN_PORTAL_ENVIRONMENT
+              value: {{ .Values.environment | quote }}

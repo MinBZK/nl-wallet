@@ -27,22 +27,15 @@ pub struct HttpConfigurationRepository<B> {
 }
 
 impl<B> HttpConfigurationRepository<B> {
-    pub async fn new(
-        signing_public_key: JwtDecodingKey,
-        storage_path: PathBuf,
-        initial_config: WalletConfiguration,
-    ) -> Result<Self, ConfigurationError> {
-        let repo = Self {
+    pub fn new(signing_public_key: JwtDecodingKey, storage_path: PathBuf, initial_config: WalletConfiguration) -> Self {
+        Self {
             client: EtagHttpClient::new(
                 "wallet-config".parse().expect("should be a valid filename"),
                 storage_path,
-            )
-            .await?,
+            ),
             signing_public_key,
             config: RwLock::new((Arc::new(initial_config), None)),
-        };
-
-        Ok(repo)
+        }
     }
 }
 

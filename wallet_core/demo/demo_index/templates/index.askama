@@ -72,6 +72,8 @@
                     {{ base.trans.mdl_index }}
                   {% when "mvc" %}
                     {{ base.trans.mvc_index }}
+                  {% when "dezi" %}
+                    {{ base.trans.dezi_index }}
                   {% else %}
                     {{ usecase_id }}
                 {% endmatch %}

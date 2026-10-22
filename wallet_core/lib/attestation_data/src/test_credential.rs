@@ -6,11 +6,11 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_ADDRESS_GROUP;
-use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_BIRTH_DATE;
 use attestation_types::pid_constants::PID_BSN;
 use attestation_types::pid_constants::PID_FAMILY_NAME;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
+use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
 use attestation_types::pid_constants::PID_RESIDENT_CITY;
 use attestation_types::pid_constants::PID_RESIDENT_COUNTRY;
 use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
@@ -75,6 +75,7 @@ pub struct TestCredentials(VecNonEmpty<TestCredential>);
 #[derive(Debug, Clone)]
 pub struct TestCredential {
     sd_jwt_payload_preview: PreviewableCredentialPayload,
+    mdoc_doctype: String,
     mdoc_attributes: Attributes,
     #[debug(skip)]
     type_metadata_documents: Option<TypeMetadataDocuments>,
@@ -166,10 +167,11 @@ impl TestCredentials {
             let attestation = disclosed.attestations.first();
 
             // Verify the attestation type.
-            assert_eq!(
-                attestation.attestation_type,
-                credential.sd_jwt_payload_preview.attestation_type
-            );
+            let expected_attestation_type = match expected_format {
+                Format::MsoMdoc => credential.mdoc_doctype.clone(),
+                Format::SdJwt => credential.sd_jwt_payload_preview.attestation_type.clone(),
+            };
+            assert_eq!(attestation.attestation_type, expected_attestation_type);
 
             // Verify the actual attributes.
             credential.assert_matches_disclosed_attributes(&attestation.attributes, expected_format);
@@ -199,6 +201,7 @@ impl TestCredential {
     #[expect(clippy::too_many_arguments, reason = "test constructor")]
     pub fn new<'a>(
         sd_jwt_payload_preview: PreviewableCredentialPayload,
+        mdoc_doctype: String,
         mdoc_attributes: Attributes,
         type_metadata_documents: Option<TypeMetadataDocuments>,
         query_id: CredentialQueryIdentifier,
@@ -229,6 +232,7 @@ impl TestCredential {
 
         Self {
             sd_jwt_payload_preview,
+            mdoc_doctype,
             mdoc_attributes,
             type_metadata_documents,
             query_id,
@@ -266,6 +270,8 @@ impl TestCredential {
     }
 
     fn to_mdoc_normalized_credential_request(&self) -> NormalizedCredentialRequest {
+        let doctype_value = self.mdoc_doctype.clone();
+
         let claims = self
             .to_mdoc_claim_paths()
             .map(|path| MdocAttributeRequest {
@@ -278,7 +284,7 @@ impl TestCredential {
 
         NormalizedCredentialRequest::MsoMdoc {
             id: self.query_id.clone(),
-            doctype_value: self.sd_jwt_payload_preview.attestation_type.clone(),
+            doctype_value,
             claims,
             aki: vec![],
         }
@@ -305,6 +311,7 @@ impl TestCredential {
     fn to_credential_payload(
         &self,
         wscd: &impl AsRef<MockRemoteWscd>,
+        attestation_type: String,
         attributes: Attributes,
         vct_integrity: Option<Integrity>,
     ) -> (CredentialPayload, String) {
@@ -313,6 +320,7 @@ impl TestCredential {
         let StatusClaim::StatusList(status) = &self.status;
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
             PreviewableCredentialPayload {
+                attestation_type,
                 attributes,
                 ..self.sd_jwt_payload_preview.clone()
             },
@@ -328,7 +336,7 @@ impl TestCredential {
 
     pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (Mdoc, String) {
         let (credential_payload, holder_key_identifier) =
-            self.to_credential_payload(wscd, self.mdoc_attributes.clone(), None);
+            self.to_credential_payload(wscd, self.mdoc_doctype.clone(), self.mdoc_attributes.clone(), None);
 
         let (issuer_signed, mso) = credential_payload
             .into_signed_mdoc(issuer_keypair)
@@ -352,6 +360,7 @@ impl TestCredential {
 
         let (credential_payload, holder_key_identifier) = self.to_credential_payload(
             wscd,
+            self.sd_jwt_payload_preview.attestation_type.clone(),
             self.sd_jwt_payload_preview.attributes.clone(),
             Some(vct_integrity),
         );
@@ -456,6 +465,7 @@ impl TestCredential {
 
         Self::new(
             PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            PID_MDOC_DOCTYPE.to_owned(),
             Attributes::nl_pid_mdoc_example(),
             Some(type_metadata_documents),
             query_id.parse().unwrap(),
@@ -470,10 +480,10 @@ impl TestCredential {
             "nl_pid_all",
             [[PID_GIVEN_NAME], [PID_FAMILY_NAME], [PID_BIRTH_DATE], [PID_BSN]],
             [
-                [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
-                [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
-                [PID_ATTESTATION_TYPE, PID_BIRTH_DATE],
-                [PID_ATTESTATION_TYPE, PID_BSN],
+                [PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
+                [PID_MDOC_DOCTYPE, PID_FAMILY_NAME],
+                [PID_MDOC_DOCTYPE, PID_BIRTH_DATE],
+                [PID_MDOC_DOCTYPE, PID_BSN],
             ],
         )
     }
@@ -482,10 +492,7 @@ impl TestCredential {
         Self::new_nl_pid(
             "nl_pid_full_name",
             [[PID_GIVEN_NAME], [PID_FAMILY_NAME]],
-            [
-                [PID_ATTESTATION_TYPE, PID_GIVEN_NAME],
-                [PID_ATTESTATION_TYPE, PID_FAMILY_NAME],
-            ],
+            [[PID_MDOC_DOCTYPE, PID_GIVEN_NAME], [PID_MDOC_DOCTYPE, PID_FAMILY_NAME]],
         )
     }
 
@@ -493,19 +500,19 @@ impl TestCredential {
         Self::new_nl_pid(
             "nl_pid_given_name",
             [[PID_GIVEN_NAME]],
-            [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]],
+            [[PID_MDOC_DOCTYPE, PID_GIVEN_NAME]],
         )
     }
 
     pub fn new_nl_pid_given_name_for_query_id(query_id: &str) -> Self {
-        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]], [[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])
+        Self::new_nl_pid(query_id, [[PID_GIVEN_NAME]], [[PID_MDOC_DOCTYPE, PID_GIVEN_NAME]])
     }
 
     pub fn new_nl_pid_family_name() -> Self {
         Self::new_nl_pid(
             "nl_pid_family_name",
             [[PID_FAMILY_NAME]],
-            [[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]],
+            [[PID_MDOC_DOCTYPE, PID_FAMILY_NAME]],
         )
     }
 
@@ -518,6 +525,7 @@ impl TestCredential {
 
         Self::new(
             PreviewableCredentialPayload::nl_pid_address_example(&MockTimeGenerator::default()),
+            PID_MDOC_DOCTYPE.to_owned(),
             Attributes::nl_pid_address_mdoc_example(),
             Some(type_metadata_documents),
             query_id.parse().unwrap(),

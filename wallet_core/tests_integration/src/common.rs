@@ -26,7 +26,6 @@ use crypto::PublicKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
-use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use ctor::ctor;
@@ -66,6 +65,8 @@ use pid_issuer::pid::brp::client::BrpClient;
 use pid_issuer::pid::digid::DigidClient;
 use pid_issuer::pid::mock::MockBrpClient;
 use pid_issuer::pid::mock::MockDigidClient;
+use pid_issuer::pid::rulebook::country_code::IsoCountryCode;
+use pid_issuer::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use reqwest::Certificate;
@@ -380,6 +381,11 @@ pub async fn setup_env(
         SecretKeyVariant::from_settings(pid_issuer_settings.recovery_code.clone(), Some(hsm.clone()))
             .expect("could not initialize recovery code secret key");
 
+    let issuer_metadata = PidIssuerMetadata {
+        issuing_country: IsoCountryCode::Netherlands,
+        issuing_authority: "Test Issuing Authority".to_owned(),
+    };
+
     let pid_issuer_url = start_pid_issuer_server(pid_issuer_settings, Some(hsm), |public_url| {
         // The production `UpstreamOidcAuthorizationCodeFlow` (state bridge, callback handler, BRP
         // attribute mapping, recovery-code HMAC) with only its two external boundaries mocked:
@@ -391,6 +397,7 @@ pub async fn setup_env(
             MockBrpClient::default(),
             MockDigidClient::default(),
             recovery_code_secret_key,
+            issuer_metadata,
             StoreConnection::Memory,
             public_url.as_base_url(),
             "mock-digid-client".to_string(),
@@ -603,9 +610,7 @@ where
         PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
         tempfile::tempdir().unwrap().keep(),
         wallet_config,
-    )
-    .await
-    .unwrap();
+    );
 
     config_repository
         .fetch(&config_server_config.http_config)
@@ -871,12 +876,14 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
 }
 
 pub async fn start_wallet_provider_with_abort_handle(
-    settings: WpSettings,
+    mut settings: WpSettings,
     hsm: Pkcs11Hsm,
     trust_anchor: ReqwestTrustAnchor,
 ) -> (u16, tokio::task::AbortHandle) {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
+
+    settings.public_url = local_https_base_url(port);
 
     let play_integrity_client = MockPlayIntegrityClient::new(
         settings.android.package_name.clone(),
@@ -935,7 +942,7 @@ pub fn pid_issuer_settings(db_url: Url, wptl_ca_override: Option<&Ca>) -> PidIss
         pid_settings
             .authorizing_issuer_settings
             .issuer_settings
-            .wptl_trust_anchors = TrustAnchors::from(wptl_ca);
+            .wptl_trust_anchors = wptl_ca.to_trust_anchors();
         pid_settings
             .authorizing_issuer_settings
             .issuer_settings
@@ -1186,7 +1193,7 @@ pub fn acf_demo_issuer_settings(db_url: Url, wptl_ca_override: Option<&Ca>) -> A
     });
 
     if let Some(wptl_ca) = wptl_ca_override {
-        settings.authorizing_issuer_settings.issuer_settings.wptl_trust_anchors = TrustAnchors::from(wptl_ca);
+        settings.authorizing_issuer_settings.issuer_settings.wptl_trust_anchors = wptl_ca.to_trust_anchors();
         // `MockWiaClient` always issues WIAs with `sub` set to `MOCK_WALLET_CLIENT_ID`.
         settings
             .authorizing_issuer_settings

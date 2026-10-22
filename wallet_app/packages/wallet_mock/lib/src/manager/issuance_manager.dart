@@ -46,7 +46,6 @@ class IssuanceManager {
     if (issuancePossible) {
       return StartDisclosureResult_Request(
         relyingParty: response.relyingParty,
-        policy: response.policy,
         disclosureOptions: _requestedAttestationsForActiveRequest.map((it) => DisclosureOptions(field0: [it])).toList(),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(response.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,
@@ -85,7 +84,6 @@ class IssuanceManager {
         _itemsHaveBeenDisclosed = true;
         _eventLog.logDisclosureStep(
           _activeIssuanceResponse!.relyingParty,
-          _activeIssuanceResponse!.policy,
           _requestedAttestationsForActiveRequest,
           DisclosureStatus.Success,
           purpose: [
@@ -130,7 +128,6 @@ class IssuanceManager {
     if (_activeIssuanceResponse != null && !_itemsHaveBeenDisclosed /* true when already logged */ ) {
       _eventLog.logDisclosureStep(
         _activeIssuanceResponse!.relyingParty,
-        _activeIssuanceResponse!.policy,
         _requestedAttestationsForActiveRequest,
         DisclosureStatus.Cancelled,
         purpose: [

@@ -124,7 +124,6 @@ class HistoryTests : TestBase() {
             { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("family_name")), "lastname label not visible") },
             { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("given_name")), "first name label not visible") },
             { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("birthdate")), "birthdate label not visible") },
-            { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("age_over_18")), "18+ label not visible") },
             { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("bsn")), "BSN label not visible") },
             { assertTrue(historyDetailScreen.reportProblemButtonVisible(), "report problem button not visible") }
         )

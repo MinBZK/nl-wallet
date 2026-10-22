@@ -5,7 +5,6 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/policy/policy.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../check_attributes/check_attributes_screen.dart';
@@ -47,9 +46,6 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   /// List of wallet cards whose attributes are being requested.
   final List<DiscloseCardRequest> cardRequests;
 
-  /// The policy document defining how the relying party handles disclosed data.
-  final Policy policy;
-
   /// Calculates the total number of attributes across all requested wallet cards.
   int get totalNrOfAttributes => cardRequests.map((it) => it.selection.attributes).flattened.length;
 
@@ -59,7 +55,6 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
     required this.onAlternativeCardSelected,
     required this.relyingParty,
     required this.cardRequests,
-    required this.policy,
     required this.requestPurpose,
     super.key,
   });
@@ -92,7 +87,6 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
               child: RequestDetailCommonBuilders.buildPolicy(
                 context,
                 organization: relyingParty,
-                policy: policy,
                 side: DividerSide.top,
               ),
             ),

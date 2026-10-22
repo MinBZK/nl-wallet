@@ -41,7 +41,6 @@ class WalletCoreForSigning {
     if (signPossible) {
       return StartSignResultReadyToDisclose(
         organization: request.organization,
-        policy: request.policy,
         trustProvider: request.trustProvider,
         document: request.document,
         requestedAttestations: _requestedAttestationsForActiveRequest,
@@ -56,7 +55,6 @@ class WalletCoreForSigning {
       });
       return StartSignResultRequestedAttributesMissing(
         organization: request.organization,
-        policy: request.policy,
         trustProvider: request.trustProvider,
         document: request.document,
         missingAttributes: missingAttributes.toList(),
@@ -70,7 +68,6 @@ class WalletCoreForSigning {
     if (result is WalletInstructionResult_Ok) {
       _eventLog.logDisclosureStep(
         _activeSignRequest!.organization,
-        _activeSignRequest!.policy,
         _requestedAttestationsForActiveRequest,
         DisclosureStatus.Success,
         purpose: [
@@ -86,7 +83,6 @@ class WalletCoreForSigning {
     if (_activeSignRequest != null) {
       _eventLog.logDisclosureStep(
         _activeSignRequest!.organization,
-        _activeSignRequest!.policy,
         _requestedAttestationsForActiveRequest,
         DisclosureStatus.Cancelled,
         purpose: [
@@ -103,11 +99,9 @@ sealed class StartSigningResult {
   final Organization organization;
   final Organization trustProvider;
   final Document document;
-  final RequestPolicy policy;
 
   StartSigningResult({
     required this.organization,
-    required this.policy,
     required this.trustProvider,
     required this.document,
   });
@@ -118,7 +112,6 @@ class StartSignResultReadyToDisclose extends StartSigningResult {
 
   StartSignResultReadyToDisclose({
     required super.organization,
-    required super.policy,
     required super.trustProvider,
     required super.document,
     required this.requestedAttestations,
@@ -130,7 +123,6 @@ class StartSignResultRequestedAttributesMissing extends StartSigningResult {
 
   StartSignResultRequestedAttributesMissing({
     required super.organization,
-    required super.policy,
     required super.trustProvider,
     required super.document,
     required this.missingAttributes,

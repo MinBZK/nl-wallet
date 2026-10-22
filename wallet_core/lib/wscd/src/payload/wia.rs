@@ -1,7 +1,6 @@
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
@@ -27,6 +26,8 @@ use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+
+use super::status_claim::TimeBoundedStatusClaim;
 
 pub const WIA_HEADER_NAME: &str = "oauth-client-attestation";
 pub const WIA_POP_HEADER_NAME: &str = "oauth-client-attestation-pop";
@@ -89,7 +90,7 @@ pub struct WiaClaims {
     #[serde(flatten)]
     pub wallet_info: WiaWalletInfo,
 
-    pub client_status: ClientStatus,
+    pub client_status: TimeBoundedStatusClaim,
 }
 
 #[skip_serializing_none]
@@ -104,16 +105,6 @@ pub struct WiaWalletInfo {
     pub wallet_solution_certification_information: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClientStatus {
-    // Revocation status of the Wallet Instance that presented the WIA.
-    pub status: StatusClaim,
-
-    // The duration for which the WP will track revocation status in the `status` URL.
-    // (Distinct in terms of semantics as well as value from the top level WIA `exp` claim, which is max 24h.)
-    pub exp: DateTimeSeconds,
-}
-
 impl JwtTyp for WiaClaims {
     const TYP: &'static str = WIA_JWT_TYP;
 }
@@ -126,7 +117,7 @@ impl WiaClaims {
         sub: String,
         exp: DateTimeSeconds,
         wallet_info: WiaWalletInfo,
-        client_status: ClientStatus,
+        client_status: TimeBoundedStatusClaim,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Self, JwkConversionError> {
         let now = time.generate().into();
@@ -248,7 +239,6 @@ mod mock {
 mod tests {
     use std::assert_matches;
 
-    use attestation_types::status_claim::StatusClaim;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::TimeDelta;
@@ -256,7 +246,6 @@ mod tests {
     use crypto::PublicKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use jwt::SignedJwt;
     use jwt::UnverifiedJwt;
@@ -273,12 +262,12 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
 
-    use super::ClientStatus;
     use super::WiaClaims;
     use super::WiaDisclosure;
     use super::WiaPopClaims;
     use super::WiaVerificationError;
     use super::WiaWalletInfo;
+    use crate::payload::status_claim::TimeBoundedStatusClaim;
 
     const AUD: &str = "https://issuer.example.com/";
     const ISS: &str = "https://wia-issuer.example.com/";
@@ -305,10 +294,7 @@ mod tests {
             WALLET_CLIENT_ID.to_string(),
             (Utc::now() + Duration::hours(1)).into(),
             WiaWalletInfo::new_mock(),
-            ClientStatus {
-                status: StatusClaim::new_mock(),
-                exp: (Utc::now() + Duration::days(365)).into(),
-            },
+            TimeBoundedStatusClaim::new_mock(),
             time,
         )
         .unwrap();
@@ -353,7 +339,7 @@ mod tests {
     fn verify_valid(ca: Ca, holder_key: SigningKey, #[values(Some(Nonce::new_random()), None)] nonce: Option<Nonce>) {
         let disclosure = make_wia_disclosure(&ca, &holder_key, nonce.clone());
         let (_, verified_nonce) = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], None)
             .unwrap();
 
         assert_eq!(nonce, verified_nonce);
@@ -372,7 +358,7 @@ mod tests {
             make_pop(&wrong_key, None, AUD),
         );
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], None)
             .unwrap_err();
         assert_matches!(error, WiaVerificationError::JwtVerify(_));
     }
@@ -389,7 +375,7 @@ mod tests {
             make_pop(&holder_key, None, "https://wrong.example.com/"),
         );
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], None)
             .unwrap_err();
         assert_matches!(error, WiaVerificationError::JwtVerify(_));
     }
@@ -398,7 +384,7 @@ mod tests {
     fn verify_unaccepted_wallet_client_id(ca: Ca, holder_key: SigningKey) {
         let disclosure = make_wia_disclosure(&ca, &holder_key, None);
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, ["other-client"], None)
+            .verify(&ca.to_trust_anchors(), AUD, ["other-client"], None)
             .unwrap_err();
         assert_matches!(error, WiaVerificationError::JwtVerify(_));
     }
@@ -415,7 +401,7 @@ mod tests {
             make_pop(&holder_key, None, AUD),
         );
         let error = disclosure
-            .verify(&TrustAnchors::from(&ca), AUD, [WALLET_CLIENT_ID], None)
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], None)
             .unwrap_err();
         assert_matches!(
             error,
@@ -428,12 +414,7 @@ mod tests {
     fn verify_correct_client_id(ca: Ca, holder_key: SigningKey) {
         let disclosure = make_wia_disclosure(&ca, &holder_key, None);
         disclosure
-            .verify(
-                &TrustAnchors::from(&ca),
-                AUD,
-                [WALLET_CLIENT_ID],
-                Some(WALLET_CLIENT_ID),
-            )
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], Some(WALLET_CLIENT_ID))
             .unwrap();
     }
 
@@ -441,12 +422,7 @@ mod tests {
     fn verify_incorrect_client_id(ca: Ca, holder_key: SigningKey) {
         let disclosure = make_wia_disclosure(&ca, &holder_key, None);
         let error = disclosure
-            .verify(
-                &TrustAnchors::from(&ca),
-                AUD,
-                [WALLET_CLIENT_ID],
-                Some("wrong-client-id"),
-            )
+            .verify(&ca.to_trust_anchors(), AUD, [WALLET_CLIENT_ID], Some("wrong-client-id"))
             .unwrap_err();
         assert_matches!(error, WiaVerificationError::IncorrectSub(found, expected)
             if found == WALLET_CLIENT_ID && expected == "wrong-client-id");

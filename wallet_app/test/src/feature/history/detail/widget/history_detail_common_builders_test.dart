@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/feature/common/builder/request_detail_common_builders.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
 import 'package:wallet/src/feature/common/widget/divider_side.dart';
@@ -86,7 +85,6 @@ void main() {
         widgetBuilder: (context) => RequestDetailCommonBuilders.buildPolicy(
           context,
           organization: WalletMockData.disclosureEvent.relyingParty,
-          policy: WalletMockData.disclosureEvent.policy,
           side: DividerSide.bottom,
         ),
       ),
@@ -103,7 +101,6 @@ void main() {
         widgetBuilder: (context) => RequestDetailCommonBuilders.buildPolicy(
           context,
           organization: WalletMockData.disclosureEvent.relyingParty.copyWith(privacyPolicyUri: null),
-          policy: const Policy(privacyPolicyUrl: null),
           side: DividerSide.bottom,
         ),
       ),

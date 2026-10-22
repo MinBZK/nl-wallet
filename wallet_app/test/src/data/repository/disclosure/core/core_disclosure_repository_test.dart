@@ -20,7 +20,6 @@ void main() {
       MockMapper(),
       MockMapper(),
       MockMapper(),
-      MockMapper(),
     );
   });
 
@@ -43,13 +42,12 @@ void main() {
           serviceDescription: [],
           identifier: '',
           countryCode: '',
+          supportUri: 'https://example.org/support',
+          personType: PersonType.LegalPerson,
         ),
         sharedDataWithRelyingPartyBefore: false,
         sessionType: DisclosureSessionType.CrossDevice,
         requestPurpose: [],
-        policy: RequestPolicy(
-          policyUrl: 'https://example.org',
-        ),
         requestType: DisclosureType.Login,
         disclosureOptions: [],
       );

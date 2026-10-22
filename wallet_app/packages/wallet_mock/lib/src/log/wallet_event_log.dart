@@ -54,12 +54,6 @@ class WalletEventLog {
         disclosureOptions.map((it) => it.field0.first).toList(),
       StartDisclosureResult_RequestAttributesMissing() => [],
     };
-    final RequestPolicy policy = switch (disclosure) {
-      StartDisclosureResult_Request(:final policy) => policy,
-      StartDisclosureResult_RequestAttributesMissing(:final relyingParty) => RequestPolicy(
-        policyUrl: relyingParty.privacyPolicyUrl ?? relyingParty.webUrl ?? '',
-      ) /* We invent a policy here, mainly because it's only for the mock and not used in the current setup. */,
-    };
     final bool isLogin = sharedAttestations.onlyContainsBsn;
     final event = WalletEvent.disclosure(
       id: 'id123',
@@ -67,7 +61,6 @@ class WalletEventLog {
       relyingParty: disclosure.relyingParty,
       purpose: disclosure.requestPurpose,
       sharedAttestations: sharedAttestations,
-      requestPolicy: policy,
       status: status,
       typ: isLogin ? DisclosureType.Login : DisclosureType.Regular,
     );
@@ -77,7 +70,6 @@ class WalletEventLog {
   /// Log the moment where attributes are disclosed as part of the sign/issuance process
   void logDisclosureStep(
     Organization organization,
-    RequestPolicy policy,
     List<AttestationPresentation> sharedAttestations,
     DisclosureStatus status, {
     List<LocalizedString>? purpose,
@@ -88,7 +80,6 @@ class WalletEventLog {
       relyingParty: organization,
       purpose: purpose ?? ''.untranslated,
       sharedAttestations: sharedAttestations,
-      requestPolicy: policy,
       status: status,
       typ: sharedAttestations.onlyContainsBsn ? DisclosureType.Login : DisclosureType.Regular,
     );

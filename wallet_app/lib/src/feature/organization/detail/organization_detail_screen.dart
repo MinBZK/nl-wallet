@@ -162,7 +162,7 @@ class OrganizationDetailScreen extends StatelessWidget {
       if (organization.publicBody != null) _buildTypeRow(context, publicBody: organization.publicBody!),
       if (country != null) _buildLocationRow(context, country),
       if (organization.webUri != null) _buildWebUrlRow(context, organization.webUri!),
-      if (organization.supportUri != null) _buildSupportRow(context, organization.supportUri!),
+      _buildSupportRow(context, organization.supportUri),
       if (organization.privacyPolicyUri != null) _buildPrivacyRow(context, organization.privacyPolicyUri!),
       _buildOrganizationIdRow(context, organization),
     ];

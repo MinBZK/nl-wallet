@@ -1,5 +1,6 @@
 .zap-base:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
+  stage: qa
   rules:
     - !reference [.on-schedule-scan, rules]
     - !reference [.default-branch, rules]
@@ -113,6 +114,7 @@ zap-scan-admin-portal:
     SUT: "ADMIN_PORTAL"
 
 zap-scan-publish-results:
+  stage: qa
   rules: !reference [.zap-base, rules]
   needs:
     - { job: zap-scan-demo }

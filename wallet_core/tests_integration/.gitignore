@@ -15,5 +15,7 @@
 /*.der
 *.snap.new
 /eudi_*.json
+/eu.europa.ec.eudi.*.json
 /com.example.*.json
 /org.iso.*.json
+/dezi_*.json

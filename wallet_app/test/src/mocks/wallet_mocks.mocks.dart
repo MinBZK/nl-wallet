@@ -4310,31 +4310,6 @@ class MockWalletCoreApi extends _i1.Mock implements _i14.WalletCoreApi {
   ) as _i9.Future<_i14.IdentifyUriResult>);
 
   @override
-  _i9.Future<_i14.Image> crateModelsImageImageTryJpegFromBytes({
-    required List<int>? value,
-  }) => (super.noSuchMethod(
-    Invocation.method(#crateModelsImageImageTryJpegFromBytes, [], {
-      #value: value,
-    }),
-    returnValue: _i9.Future<_i14.Image>.value(
-      _i11.dummyValue<_i14.Image>(
-        this,
-        Invocation.method(#crateModelsImageImageTryJpegFromBytes, [], {
-          #value: value,
-        }),
-      ),
-    ),
-    returnValueForMissingStub: _i9.Future<_i14.Image>.value(
-      _i11.dummyValue<_i14.Image>(
-        this,
-        Invocation.method(#crateModelsImageImageTryJpegFromBytes, [], {
-          #value: value,
-        }),
-      ),
-    ),
-  ) as _i9.Future<_i14.Image>);
-
-  @override
   _i9.Future<void> crateApiFullInit() => (super.noSuchMethod(
     Invocation.method(#crateApiFullInit, []),
     returnValue: _i9.Future<void>.value(),

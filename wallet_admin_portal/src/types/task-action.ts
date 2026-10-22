@@ -12,16 +12,16 @@ export enum TaskActionType {
 export interface TaskActionInfo {
   /** Title shown throughout the create-task wizard. */
   title: string
-  /** Subtext shown under the header on the wizard's first step. */
-  description: string
   /** Heading shown on the wizard's first step. */
   header: string
+  /** Subtext shown under the header on the wizard's first step. */
+  description: string
   /** Bullet points shown on the check/confirm step. */
   consequences: string[]
 }
 
 /** Single source of truth for each task action's wizard copy, keyed by {@link TaskActionType}. */
-export const taskActionInfo: Record<TaskActionType, TaskActionInfo> = {
+export const TASK_ACTION_INFO: Record<TaskActionType, TaskActionInfo> = {
   [TaskActionType.RevokeWallet]: {
     title: 'Wallet(s) intrekken',
     header: 'Zoek een wallet en voeg die toe aan de lijst',

@@ -21,7 +21,7 @@ nutype = { workspace = true, features = ["serde"] }
 rand.workspace = true
 semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_with = { workspace = true, features = ["base64", "chrono"] }
+serde_with = { workspace = true, features = ["chrono"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "time"] }
 uuid = { workspace = true, features = ["v4"] }

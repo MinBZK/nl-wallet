@@ -350,6 +350,10 @@ CI pipelines.
 Make sure you can run Docker on your development system. You can follow the
 [getting started guide][24] to do so. Make sure `docker` is on your path.
 
+You also need the Compose plugin and the Buildx plugin. The digid-connector
+build needs Buildx 0.19 or newer. Check the versions with `docker compose
+version` and `docker buildx version`.
+
 #### PKCS #11 library
 
 The wallet_provider is designed to use a HSM with the [PKCS #11][29] API. For

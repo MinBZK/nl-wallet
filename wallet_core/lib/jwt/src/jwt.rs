@@ -147,6 +147,10 @@ impl<T, H> UnverifiedJwt<T, H> {
         &self.serialization
     }
 
+    pub fn into_serialization(self) -> String {
+        self.serialization
+    }
+
     pub fn signed_slice(&self) -> &str {
         &self.serialization[..self.payload_end]
     }
@@ -272,15 +276,31 @@ where
         leaf_certificate: &BorrowingCertificate,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let pubkey = PublicKey::from(*leaf_certificate.public_key());
-        let validation = validation.into_validation(&pubkey);
+        let pubkey = leaf_certificate.public_key();
+        let validation = validation.into_validation(pubkey);
         self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
             .map_err(JwtX5cVerifyError::JwtVerify)
     }
 
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header.
+    ///
+    /// As mandated by HAIP 1.0, the `x5c` JWT header must not contain the trust anchor.
     pub fn parse_and_verify_against_trust_anchors(
+        &self,
+        trust_anchors: &TrustAnchors,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+        validation: JwtValidation,
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        let certificates = self.extract_x5c_certificates_without_trust_anchor(trust_anchors)?;
+
+        self.parse_and_verify_with_x5c_certificates(&certificates, trust_anchors, time, certificate_usage, validation)
+    }
+
+    /// Like [`Self::parse_and_verify_against_trust_anchors`], but allows the trust anchor being present in the `x5c`
+    /// JWT header. HAIP forbids this, so only use this for profiles unrelated to HAIP, such as JAdES B-B.
+    pub(crate) fn parse_and_verify_allow_trust_anchor_in_x5c(
         &self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
@@ -292,12 +312,38 @@ where
             .map_err(JwtVerifyError::ParseError)
             .map_err(JwtX5cVerifyError::JwtVerify)?;
 
-        // Verify the certificate chain against the trust anchors.
-        let leaf_cert = certificates.first();
+        self.parse_and_verify_with_x5c_certificates(&certificates, trust_anchors, time, certificate_usage, validation)
+    }
 
-        let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
+    /// Extract the certificates from the `x5c` JWT header, rejecting them if they contain the trust anchor, as
+    /// mandated by HAIP 1.0.
+    fn extract_x5c_certificates_without_trust_anchor(
+        &self,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<VecNonEmpty<BorrowingCertificate>, JwtX5cVerifyError> {
+        let certificates = self
+            .extract_x5c_certificates()
+            .map_err(JwtVerifyError::ParseError)
+            .map_err(JwtX5cVerifyError::JwtVerify)?;
+
+        BorrowingCertificate::ensure_trust_anchor_not_in_chain(&certificates, trust_anchors)
+            .map_err(JwtX5cVerifyError::CertificateValidation)?;
+
+        Ok(certificates)
+    }
+
+    fn parse_and_verify_with_x5c_certificates(
+        &self,
+        certificates: &VecNonEmpty<BorrowingCertificate>,
+        trust_anchors: &TrustAnchors,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+        validation: JwtValidation,
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        // Verify the certificate chain against the trust anchors.
+        let (leaf_cert, intermediate_certs) = certificates.split_first();
         leaf_cert
-            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
+            .verify(certificate_usage, intermediate_certs, time, trust_anchors)
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
@@ -305,6 +351,8 @@ where
     }
 
     /// Verify the X.509 certificate chain, including fail-closed CRL checking, and then verify the JWS.
+    ///
+    /// As mandated by HAIP 1.0, the `x5c` JWT header must not contain the trust anchor.
     pub async fn parse_and_verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
@@ -313,10 +361,7 @@ where
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let certificates = self
-            .extract_x5c_certificates()
-            .map_err(JwtVerifyError::ParseError)
-            .map_err(JwtX5cVerifyError::JwtVerify)?;
+        let certificates = self.extract_x5c_certificates_without_trust_anchor(trust_anchors)?;
 
         crl_verifier
             .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
@@ -534,7 +579,7 @@ impl<T, H> SignedJwt<T, H> {
 }
 
 impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, H> {
-    async fn sign_with_header(
+    pub(crate) async fn sign_with_header(
         header: H,
         payload: &T,
         privkey: &impl EcdsaKey,
@@ -849,9 +894,7 @@ impl From<&PublicKey> for JwtDecodingKey {
         match value {
             PublicKey::ESP256(key) => JwtDecodingKey::from_ec_public_key(key),
             PublicKey::ESP384(key) => JwtDecodingKey::from_ec_public_key(key),
-            PublicKey::RSA2048(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
-            PublicKey::RSA3072(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
-            PublicKey::RSA4096(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
+            PublicKey::RSA(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
         }
     }
 }
@@ -1007,7 +1050,7 @@ impl SupportedAlgorithms for PublicKey {
     fn supported_algorithms(&self) -> &[Algorithm] {
         match self {
             PublicKey::ESP256(_) | PublicKey::ESP384(_) => AlgorithmFamily::Ec.algorithms(),
-            PublicKey::RSA2048(_) | PublicKey::RSA3072(_) | PublicKey::RSA4096(_) => AlgorithmFamily::Rsa.algorithms(),
+            PublicKey::RSA(_) => AlgorithmFamily::Rsa.algorithms(),
         }
     }
 }
@@ -1336,7 +1379,6 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateVerifyError;
     use crypto::x509::DistinguishedName;
@@ -1792,7 +1834,7 @@ mod tests {
 
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -1833,7 +1875,7 @@ mod tests {
 
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors_with_crl(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &crl_verifier,
                 &TimeGenerator,
                 None,
@@ -1860,7 +1902,7 @@ mod tests {
 
         let error = jwt
             .parse_and_verify_against_trust_anchors_with_crl(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &crl_verifier,
                 &TimeGenerator,
                 None,
@@ -2057,7 +2099,7 @@ mod tests {
         // Verifying this JWT against the CA's trust anchor should succeed.
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&ca),
+                &ca.to_trust_anchors(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -2083,7 +2125,7 @@ mod tests {
 
         let err = jwt
             .parse_and_verify_against_trust_anchors(
-                &TrustAnchors::from(&other_ca),
+                &other_ca.to_trust_anchors(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
@@ -2104,7 +2146,7 @@ mod tests {
 
         // Put the ca_cert in both the certificate list and the trust anchors.
         let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
@@ -2114,6 +2156,41 @@ mod tests {
 
         let err = jwt
             .parse_and_verify_against_trust_anchors(&trust_anchors, &TimeGenerator, None, DEFAULT_VALIDATION.to_owned())
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::TrustAnchorInChain)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_rejects_jwt_with_trust_anchor_in_x5c_with_crl() {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
+        let crl_verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+
+        let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
+
+        // Put the ca_cert in both the certificate list and the trust anchors.
+        let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
+        let trust_anchors = ca.to_trust_anchors();
+
+        let payload = json!({"hello": "world"});
+        let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
+            .await
+            .unwrap()
+            .into_unverified();
+
+        let err = jwt
+            .parse_and_verify_against_trust_anchors_with_crl(
+                &trust_anchors,
+                &crl_verifier,
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )
+            .await
             .unwrap_err();
 
         assert_matches!(
@@ -2192,9 +2269,7 @@ mod tests {
     enum PrivateKey {
         P256(p256::ecdsa::SigningKey),
         P384(p384::ecdsa::SigningKey),
-        Rsa2048(RsaPrivateKey),
-        Rsa3072(RsaPrivateKey),
-        Rsa4096(RsaPrivateKey),
+        Rsa(RsaPrivateKey),
     }
 
     impl PrivateKey {
@@ -2202,9 +2277,7 @@ mod tests {
             match self {
                 PrivateKey::P256(key) => EncodingKey::from_ec_der(key.to_pkcs8_der().unwrap().as_bytes()),
                 PrivateKey::P384(key) => EncodingKey::from_ec_der(key.to_pkcs8_der().unwrap().as_bytes()),
-                PrivateKey::Rsa2048(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
-                PrivateKey::Rsa3072(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
-                PrivateKey::Rsa4096(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
+                PrivateKey::Rsa(key) => EncodingKey::from_rsa_der(key.to_pkcs1_der().unwrap().as_bytes()),
             }
         }
 
@@ -2212,9 +2285,7 @@ mod tests {
             match self {
                 PrivateKey::P256(key) => PublicKey::ESP256(*key.verifying_key()),
                 PrivateKey::P384(key) => PublicKey::ESP384(*key.verifying_key()),
-                PrivateKey::Rsa2048(key) => PublicKey::RSA2048(key.to_public_key().try_into().unwrap()),
-                PrivateKey::Rsa3072(key) => PublicKey::RSA3072(key.to_public_key().try_into().unwrap()),
-                PrivateKey::Rsa4096(key) => PublicKey::RSA4096(key.to_public_key().try_into().unwrap()),
+                PrivateKey::Rsa(key) => PublicKey::RSA(key.to_public_key().try_into().unwrap()),
             }
         }
     }
@@ -2222,9 +2293,9 @@ mod tests {
     #[rstest]
     #[case::ecdsa_p256(PrivateKey::P256(p256::ecdsa::SigningKey::generate()), Algorithm::ES256)]
     #[case::ecdsa_p384(PrivateKey::P384(p384::ecdsa::SigningKey::generate()), Algorithm::ES384)]
-    #[case::rsa2048(PrivateKey::Rsa2048(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa3072(PrivateKey::Rsa3072(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa4096(PrivateKey::Rsa4096(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa2048(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa3072(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa4096(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS256)]
     fn test_sign_and_verify_with_algorithms(#[case] private_key: PrivateKey, #[case] algorithm: Algorithm) {
         let payload = ToyMessage::default();
 

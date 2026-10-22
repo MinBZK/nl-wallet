@@ -169,21 +169,19 @@ impl TryFrom<IndexSet<BorrowingCertificate>> for TrustAnchors {
     }
 }
 
-#[cfg(any(test, feature = "examples"))]
-impl TryFrom<Vec<BorrowingTrustAnchor>> for TrustAnchors {
-    type Error = CertificateParseError;
-
-    fn try_from(trust_anchors: Vec<BorrowingTrustAnchor>) -> Result<Self, Self::Error> {
-        let certificates: IndexSet<BorrowingCertificate> = trust_anchors
-            .iter()
-            .map(|ta| BorrowingCertificate::from_der(ta.as_ref()))
+#[cfg(any(test, feature = "examples", feature = "generate"))]
+impl TrustAnchors {
+    pub fn try_from_trust_anchors(
+        trust_anchors: impl IntoIterator<Item = BorrowingTrustAnchor>,
+    ) -> Result<Self, CertificateParseError> {
+        let (certificates, trust_anchors) = trust_anchors
+            .into_iter()
+            .map(|ta| BorrowingCertificate::from_der(ta.as_ref()).map(|cert| (cert, ta.to_owned_trust_anchor())))
             .try_collect()?;
-
-        let owned_anchors = trust_anchors.iter().map(|ta| ta.to_owned_trust_anchor()).collect();
 
         Ok(Self {
             certificates,
-            trust_anchors: owned_anchors,
+            trust_anchors,
         })
     }
 }
@@ -207,22 +205,5 @@ impl<'de> Deserialize<'de> for TrustAnchors {
             .map(|s| BASE64_STANDARD.decode(s).map_err(serde::de::Error::custom))
             .collect::<Result<_, _>>()?;
         TrustAnchors::try_from(der_bytes).map_err(serde::de::Error::custom)
-    }
-}
-
-#[cfg(any(test, all(feature = "mock", feature = "generate")))]
-pub mod mock {
-    use indexmap::IndexSet;
-
-    use crate::server_keys::generate::Ca;
-    use crate::trust_anchor::TrustAnchors;
-
-    impl From<&Ca> for TrustAnchors {
-        fn from(value: &Ca) -> Self {
-            // This implementation is meant for unit and integration tests, it expects a proper `Ca` with a valid
-            // certificate, hence the `unwrap`s.
-            let certs = IndexSet::from_iter([value.as_borrowing_certificate().unwrap()]);
-            certs.try_into().unwrap()
-        }
     }
 }

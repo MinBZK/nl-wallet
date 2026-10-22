@@ -83,3 +83,9 @@
 | `probes.config.startup`         | Additional configuration for startup probe   | `{}`    |
 | `probes.disableLiveness`        | Disable liveness probe                       | `false` |
 | `probes.useLivenessAsReadiness` | Use liveness endpoint for readiness          | `false` |
+
+### Application parameters
+
+| Name          | Description                                                                       | Value |
+| ------------- | --------------------------------------------------------------------------------- | ----- |
+| `environment` | Environment name shown in the admin portal (e.g. "Acceptatie"), hidden when empty | `""`  |

@@ -171,7 +171,6 @@ mod tests {
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::TrustAnchors;
     use dcql::unique_id_vec::UniqueIdVec;
     use indexmap::IndexMap;
     use oauth::errors::ErrorWithCode;
@@ -288,12 +287,12 @@ mod tests {
         };
 
         // Normally this is its own CA; here we just reuse the ca we have.
-        let wptl_trust_anchors = TrustAnchors::from(&ca);
+        let wptl_trust_anchors = ca.to_trust_anchors();
 
         Issuer::new(
             "https://example.com".parse().unwrap(),
             metadata_keypair,
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap(),
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap(),
             NonZeroU8::MIN,
             HashSet::new(),
             CredentialConfigurations::try_new([("credential_config_id".to_string().into(), credential_config)].into())

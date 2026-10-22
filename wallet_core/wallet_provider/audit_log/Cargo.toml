@@ -17,7 +17,7 @@ required-features = ["mock"]
 
 [features]
 mock = []
-db_test = ["dep:db_test", "tokio/rt-multi-thread"]
+db_test = ["mock", "dep:db_test", "tokio/rt-multi-thread"]
 
 [[test]]
 name = "db_test"

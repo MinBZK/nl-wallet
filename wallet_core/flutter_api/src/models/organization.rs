@@ -42,9 +42,9 @@ pub struct Organization {
     pub privacy_policy_url: Option<String>,
     pub identifier: String,
     pub country_code: String,
-    pub support_uri: Option<String>,
+    pub support_uri: String,
     pub public_body: Option<bool>,
-    pub person_type: Option<PersonType>,
+    pub person_type: PersonType,
 }
 
 impl From<wallet::attestation_data::Organization> for Organization {
@@ -59,7 +59,7 @@ impl From<wallet::attestation_data::Organization> for Organization {
             privacy_policy_url: value.privacy_policy_url.map(|url| url.to_string()),
             support_uri: value.support_uri,
             public_body: value.public_body,
-            person_type: value.person_type.map(Into::into),
+            person_type: value.person_type.into(),
         }
     }
 }

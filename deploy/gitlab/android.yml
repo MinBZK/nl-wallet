@@ -3,6 +3,8 @@ test-android:
   tags:
     - linux
   rules: !reference [.default-or-merge-request, rules]
+  stage: test
+  needs: []
   artifacts:
     name: test-android
     when: always
@@ -33,6 +35,7 @@ test-android:
   extends: [.sentry-env, .ruby-cache]
   tags:
     - linux
+  stage: build
   needs:
     - job: test-flutter
       artifacts: false
@@ -153,6 +156,7 @@ build-android-app-pub:
 ### Android deploying
 .deploy-android-app:
   extends: [.env-k8s, .ruby-cache]
+  stage: deploy
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"

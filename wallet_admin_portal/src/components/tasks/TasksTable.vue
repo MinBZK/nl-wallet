@@ -2,15 +2,28 @@
   <div class="table-wrap">
     <div class="table-inner">
       <table class="tasks-table">
-        <TasksTableHeader :columns="columns" />
+        <TasksTableHeader :columns="variant === 'history' ? HISTORY_COLUMNS : OPEN_COLUMNS" />
         <tbody v-if="tasks.length">
           <tr v-for="task in tasks" :key="task.id">
             <td>{{ task.id }}</td>
-            <td>{{ task.action }}</td>
-            <td>{{ task.target }}</td>
-            <td>{{ dateFormatter.format(task.createdAt) }}</td>
-            <td>{{ task.createdBy }}</td>
-            <td><a href="#" class="details">BEKIJK DETAILS</a></td>
+            <td>{{ TASK_ACTION_INFO[task.action].title }}</td>
+            <td>{{ task.purpose }}</td>
+            <template v-if="isTaskHistoryEntry(task)">
+              <td>{{ task.verdict }}</td>
+              <td>{{ task.result }}</td>
+              <td>{{ dateFormatter.format(task.completedAt) }}</td>
+              <td>{{ task.completedBy }}</td>
+              <td>{{ task.createdBy }}</td>
+            </template>
+            <template v-else>
+              <td>{{ dateFormatter.format(task.createdAt) }}</td>
+              <td>{{ task.createdBy }}</td>
+            </template>
+            <td>
+              <RouterLink :to="{ name: 'task-details', params: { id: task.id } }" class="details">
+                BEKIJK DETAILS
+              </RouterLink>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -21,16 +34,39 @@
 
 <script setup lang="ts">
 import type { Task } from '@/types/task.ts'
+import { isTaskHistoryEntry, type TaskHistoryEntry } from '@/types/task-history-entry.ts'
+import { TASK_ACTION_INFO } from '@/types/task-action.ts'
 import { dateFormatter } from '@/utils/dateFormatters.ts'
 import EmptyState from '../ui/EmptyState.vue'
 import TasksTableHeader from './TasksTableHeader.vue'
 
 defineProps<{
-  columns: { label: string; width?: string }[]
-  tasks: Task[]
+  variant: 'open' | 'history'
+  tasks: (Task | TaskHistoryEntry)[]
   emptyTitle: string
   emptyDescription: string
 }>()
+
+const OPEN_COLUMNS = [
+  { label: 'TAAK-ID' },
+  { label: 'ACTIE' },
+  { label: 'DOEL' },
+  { label: 'AANGEMAAKT OP' },
+  { label: 'AANGEMAAKT DOOR' },
+  { label: 'VOLGENDE STAP', width: '8.125rem' },
+]
+
+const HISTORY_COLUMNS = [
+  { label: 'TAAK-ID' },
+  { label: 'ACTIE' },
+  { label: 'DOEL' },
+  { label: 'OORDEEL' },
+  { label: 'RESULTAAT' },
+  { label: 'AFGEROND OP' },
+  { label: 'AFGEROND DOOR' },
+  { label: 'AANGEMAAKT DOOR' },
+  { label: 'VOLGENDE STAP', width: '8.125rem' },
+]
 </script>
 
 <style scoped>

@@ -2,30 +2,36 @@
   "pid": [
     {
       "format": "mso_mdoc",
-      "meta": { "doctype_value": "urn:eudi:pid:nl:1" }
+      "meta": { "doctype_value": "eu.europa.ec.eudi.pid.1" }
     },
     {
       "format": "dc+sd-jwt",
       "meta": { "vct_values": ["urn:eudi:pid:nl:1"] }
     }
   ],
-  "university": [
+  "issuance_server": [
     {
       "format": "dc+sd-jwt",
-      "meta": { "vct_values": ["com.example.degree", "com.example.housing"] }
+      "meta": {
+        "vct_values": [
+          "com.example.degree",
+          "com.example.housing",
+          "https://www.dezi.nl/vct/v1/deziVerklaringDcSdJwt"
+        ]
+      }
     }
   ],
-  "insurance": [
+  "acf_demo_issuer": [
     {
       "format": "mso_mdoc",
       "meta": { "doctype_value": "com.example.insurance" }
     },
     {
-      "format": "mso_mdoc",
-      "meta": { "doctype_value": "com.example.jum.bonuskaart" }
+      "format": "dc+sd-jwt",
+      "meta": { "vct_values": ["com.example.jum.bonuskaart"] }
     }
   ],
-  "museum_maandkaart": [
+  "pacf_issuance_server": [
     {
       "format": "mso_mdoc",
       "meta": { "doctype_value": "com.example.museum_maandkaart" }

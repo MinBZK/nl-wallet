@@ -1,5 +1,3 @@
-import 'package:wallet_core/core.dart';
-
 import '../model/disclosure_request.dart';
 import '../model/requested_attribute.dart';
 import 'mock_organizations.dart';
@@ -21,7 +19,6 @@ const _kMockCityKey = 'mock_city';
 const _kMockStreetNameKey = 'mock_streetName';
 const _kMockPostalCodeKey = 'mock_postalCode';
 const _kMockHouseNumberKey = 'mock_houseNumber';
-const _kMockUrl = 'https://www.example.org';
 
 final List<DisclosureRequest> kDisclosureRequests = [
   DisclosureRequest(
@@ -29,77 +26,66 @@ final List<DisclosureRequest> kDisclosureRequests = [
     relyingParty: kOrganizations[kEmployerId]!,
     requestedAttributes: _kJobApplicationRequestedAttributes,
     purpose: 'Sollicitatie',
-    policy: _kEmployerPolicy,
   ),
   DisclosureRequest(
     id: _kMarketplaceLoginId,
     relyingParty: kOrganizations[kMarketplaceId]!,
     requestedAttributes: _kMarketplaceLoginRequestedAttributes,
     purpose: 'Account aanmaken',
-    policy: _kMockMarketPlacePolicy,
   ),
   DisclosureRequest(
     id: _kBarId,
     relyingParty: kOrganizations[kBarId]!,
     requestedAttributes: _kBarRequestedAttributes,
     purpose: 'Leeftijd controle',
-    policy: _kMockBarPolicy,
   ),
   DisclosureRequest(
     id: _kCarRental,
     relyingParty: kOrganizations[kCarRentalId]!,
     requestedAttributes: _kCarRentalRequestedAttributes,
     purpose: 'Gegevens & Rijbewijs controle',
-    policy: _kMockCarRentalPolicy,
   ),
   DisclosureRequest(
     id: _kFirstAid,
     relyingParty: kOrganizations[kFirstAidId]!,
     requestedAttributes: _kFirstAidRequestedAttributes,
     purpose: 'Gegevens & Verzekering controle',
-    policy: _kMockFirstAidPolicy,
   ),
   DisclosureRequest(
     id: _kParkingPermit,
     relyingParty: kOrganizations[kMunicipalityTheHagueId]!,
     requestedAttributes: _kParkingPermitRequestedAttributes,
     purpose: 'Parkeervergunning',
-    policy: _kMockMunicipalityGenericPolicy,
   ),
   DisclosureRequest(
     id: _kOpenBankAccount,
     relyingParty: kOrganizations[kBankId]!,
     requestedAttributes: _kOpenBankAccountRequestedAttributes,
     purpose: 'Rekening openen',
-    policy: _kMockBankPolicy,
   ),
   DisclosureRequest(
     id: _kProvideContractDetails,
     relyingParty: kOrganizations[kHousingCorpId]!,
     requestedAttributes: _kProvideContractDetailsRequestedAttributes,
     purpose: 'Identificeren',
-    policy: _kMockHousingCorpPolicy,
   ),
   DisclosureRequest(
     id: _kCreateMonkeyBikeAccount,
     relyingParty: kOrganizations[kMonkeyBikeId]!,
     requestedAttributes: _kCreateMbAccountRequestedAttributes,
     purpose: 'Account aanmaken',
-    policy: _kMonkeyBikePolicy,
   ),
   DisclosureRequest(
     id: _kPharmacy,
     relyingParty: kOrganizations[kPharmacyId]!,
     requestedAttributes: _kPharmacyRequestedAttributes,
     purpose: 'Herhaalrecept',
-    policy: _kMockFirstAidPolicy,
   ),
   DisclosureRequest(
     id: _kAmsterdamLoginId,
     relyingParty: kOrganizations[kMunicipalityAmsterdamId]!,
     requestedAttributes: _kCitizenshipNumberRequest,
     purpose: 'Inloggen',
-    policy: _kMunicipalityAmsterdamPolicy,
   ),
 ];
 
@@ -295,59 +281,5 @@ final _kCreateMbAccountRequestedAttributes = [
     key: 'mock_city',
   ),
 ];
-
-// endregion
-
-// region InteractionPolicies
-
-const _kEmployerPolicy = RequestPolicy(
-  // dataPurpose: 'Gegevens controle',
-  policyUrl: _kMockUrl,
-);
-
-const _kMockMarketPlacePolicy = RequestPolicy(
-  // dataPurpose: 'Registreren',
-  policyUrl: _kMockUrl,
-);
-
-const _kMockBarPolicy = RequestPolicy(
-  // dataPurpose: 'Leeftijd controle',
-  policyUrl: _kMockUrl,
-);
-
-const _kMockCarRentalPolicy = RequestPolicy(
-  // dataPurpose: 'Rijvaardigheid',
-  policyUrl: _kMockUrl,
-);
-
-const _kMockFirstAidPolicy = RequestPolicy(
-  // dataPurpose: 'Zorgverlening',
-  policyUrl: _kMockUrl,
-);
-
-const _kMockMunicipalityGenericPolicy = RequestPolicy(
-  // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
-  policyUrl: _kMockUrl,
-);
-
-const _kMockBankPolicy = RequestPolicy(
-  // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
-  policyUrl: _kMockUrl,
-);
-
-const _kMockHousingCorpPolicy = RequestPolicy(
-  // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
-  policyUrl: _kMockUrl,
-);
-
-const _kMonkeyBikePolicy = RequestPolicy(
-  // dataPurpose: 'Gegevens worden ook gebruikt voor andere doelen',
-  // dataPurposeDescription: 'De gegevens kunnen worden gebruikt voor marketing en personalisatie.',
-  policyUrl: _kMockUrl,
-);
-
-const _kMunicipalityAmsterdamPolicy = RequestPolicy(
-  policyUrl: 'https://www.amsterdam.nl/privacy',
-);
 
 // endregion

@@ -39,7 +39,9 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use p256::ecdsa::signature::Signer;
+    use p256::ecdsa::signature::hazmat::RandomizedPrehashSigner;
     use p256::elliptic_curve::Generate;
+    use p256::elliptic_curve::common::getrandom;
     use sha2::Sha256;
 
     use crate::model::Hsm;
@@ -260,14 +262,6 @@ pub mod mock {
             todo!()
         }
 
-        async fn unwrap_signing_key(
-            &self,
-            _unwrapping_key: &SecretKeyHandle,
-            _wrapped_key: WrappedKey,
-        ) -> Result<PrivateKeyHandle, HsmError> {
-            todo!()
-        }
-
         async fn generate_wrapped_key(&self, _wrapping_key_identifier: &str) -> Result<WrappedKey, HsmError> {
             let key = SigningKey::generate();
             Ok(WrappedKey::new(key.to_bytes().to_vec(), *key.verifying_key()))
@@ -277,10 +271,10 @@ pub mod mock {
             &self,
             _wrapping_key_identifier: &str,
             wrapped_key: WrappedKey,
-            data: &[u8],
+            data: [u8; 32],
         ) -> Result<Signature, HsmError> {
             let key = SigningKey::from_slice(wrapped_key.wrapped_private_key()).unwrap();
-            let signature = Signer::sign(&key, data);
+            let signature = key.sign_prehash_with_rng(&mut getrandom::SysRng, data.as_slice())?;
             Ok(signature)
         }
     }

@@ -40,7 +40,6 @@ class DisclosureManager {
       );
       return _ongoingDisclosure = StartDisclosureResult.request(
         relyingParty: request.relyingParty,
-        policy: request.policy,
         disclosureOptions: requestedAttestations.map((it) => DisclosureOptions(field0: [it])).toList(),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,

@@ -14,5 +14,6 @@ export APPLICATION_ID
 export APP_NAME
 export UL_HOSTNAME
 export APPLE_ATTESTATION_ENVIRONMENT
+export ALLOW_RELEASE_LOGS
 
 exec "${SCRIPTS_DIR}/run-ios-env.sh" "$@"

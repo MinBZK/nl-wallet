@@ -240,6 +240,10 @@ nav a::before {
   background: url("../non-free/images/rdw.svg") no-repeat center center / cover;
 }
 
+#dezi::before {
+  background: url("../non-free/images/dezi.png") no-repeat center center / cover;
+}
+
 @media only screen and (min-width: 70rem) {
   main {
     max-width: 70rem;

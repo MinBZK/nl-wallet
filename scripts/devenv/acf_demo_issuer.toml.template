@@ -12,8 +12,8 @@ wptl_trust_anchors = ["${WPTL_CA_CRT}"]
 
 [credential_metadata_keypair]
 private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_INSURANCE_WRPAC}"
-certificate = "${DEMO_ISSUER_CRT_INSURANCE_WRPAC}"
+private_key = "${ACF_DEMO_ISSUER_WRPAC_KEY}"
+certificate = "${ACF_DEMO_ISSUER_WRPAC_CRT}"
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/acf_demo_issuer'

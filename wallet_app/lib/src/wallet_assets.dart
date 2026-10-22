@@ -40,6 +40,7 @@ class WalletAssets {
   static const svg_app_store = 'assets/non-free/svg/app_store_logo.svg';
   static const svg_play_store = 'assets/non-free/svg/play_store_logo.svg';
 
+  static const svg_camera_permission = 'assets/non-free/svg/NL_WALLET_camera_permission.svg';
   static const svg_biometrics_face = 'assets/non-free/svg/NL_WALLET_biometrics_face.svg';
   static const svg_biometrics_finger = 'assets/non-free/svg/NL_WALLET_biometrics_finger.svg';
   static const svg_blocked_final = 'assets/non-free/svg/NL_WALLET_blocked_final.svg';

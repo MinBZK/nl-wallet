@@ -166,10 +166,10 @@ return missingAttributes(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Organization relyingParty,  LocalizedText requestPurpose,  bool sharedDataWithOrganizationBefore,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests,  Policy policy,  DisclosureType type)?  readyToDisclose,TResult Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)?  missingAttributes,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( Organization relyingParty,  LocalizedText requestPurpose,  bool sharedDataWithOrganizationBefore,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests,  DisclosureType type)?  readyToDisclose,TResult Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)?  missingAttributes,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case StartDisclosureReadyToDisclose() when readyToDisclose != null:
-return readyToDisclose(_that.relyingParty,_that.requestPurpose,_that.sharedDataWithOrganizationBefore,_that.sessionType,_that.cardRequests,_that.policy,_that.type);case StartDisclosureMissingAttributes() when missingAttributes != null:
+return readyToDisclose(_that.relyingParty,_that.requestPurpose,_that.sharedDataWithOrganizationBefore,_that.sessionType,_that.cardRequests,_that.type);case StartDisclosureMissingAttributes() when missingAttributes != null:
 return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttributes);case _:
   return orElse();
 
@@ -188,10 +188,10 @@ return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttri
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Organization relyingParty,  LocalizedText requestPurpose,  bool sharedDataWithOrganizationBefore,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests,  Policy policy,  DisclosureType type)  readyToDisclose,required TResult Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)  missingAttributes,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( Organization relyingParty,  LocalizedText requestPurpose,  bool sharedDataWithOrganizationBefore,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests,  DisclosureType type)  readyToDisclose,required TResult Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)  missingAttributes,}) {final _that = this;
 switch (_that) {
 case StartDisclosureReadyToDisclose():
-return readyToDisclose(_that.relyingParty,_that.requestPurpose,_that.sharedDataWithOrganizationBefore,_that.sessionType,_that.cardRequests,_that.policy,_that.type);case StartDisclosureMissingAttributes():
+return readyToDisclose(_that.relyingParty,_that.requestPurpose,_that.sharedDataWithOrganizationBefore,_that.sessionType,_that.cardRequests,_that.type);case StartDisclosureMissingAttributes():
 return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttributes);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -206,10 +206,10 @@ return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttri
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Organization relyingParty,  LocalizedText requestPurpose,  bool sharedDataWithOrganizationBefore,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests,  Policy policy,  DisclosureType type)?  readyToDisclose,TResult? Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)?  missingAttributes,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( Organization relyingParty,  LocalizedText requestPurpose,  bool sharedDataWithOrganizationBefore,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests,  DisclosureType type)?  readyToDisclose,TResult? Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)?  missingAttributes,}) {final _that = this;
 switch (_that) {
 case StartDisclosureReadyToDisclose() when readyToDisclose != null:
-return readyToDisclose(_that.relyingParty,_that.requestPurpose,_that.sharedDataWithOrganizationBefore,_that.sessionType,_that.cardRequests,_that.policy,_that.type);case StartDisclosureMissingAttributes() when missingAttributes != null:
+return readyToDisclose(_that.relyingParty,_that.requestPurpose,_that.sharedDataWithOrganizationBefore,_that.sessionType,_that.cardRequests,_that.type);case StartDisclosureMissingAttributes() when missingAttributes != null:
 return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttributes);case _:
   return null;
 
@@ -222,7 +222,7 @@ return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttri
 
 
 class StartDisclosureReadyToDisclose implements StartDisclosureResult {
-  const StartDisclosureReadyToDisclose({required this.relyingParty, required  LocalizedText requestPurpose, required this.sharedDataWithOrganizationBefore, required this.sessionType, required  List<DiscloseCardRequest> cardRequests, required this.policy, required this.type}): _requestPurpose = requestPurpose,_cardRequests = cardRequests;
+  const StartDisclosureReadyToDisclose({required this.relyingParty, required  LocalizedText requestPurpose, required this.sharedDataWithOrganizationBefore, required this.sessionType, required  List<DiscloseCardRequest> cardRequests, required this.type}): _requestPurpose = requestPurpose,_cardRequests = cardRequests;
   
 
 @override final  Organization relyingParty;
@@ -242,7 +242,6 @@ class StartDisclosureReadyToDisclose implements StartDisclosureResult {
   return EqualUnmodifiableListView(_cardRequests);
 }
 
- final  Policy policy;
  final  DisclosureType type;
 
 /// Create a copy of StartDisclosureResult
@@ -255,18 +254,18 @@ $StartDisclosureReadyToDiscloseCopyWith<StartDisclosureReadyToDisclose> get copy
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureReadyToDisclose&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other.requestPurpose, _requestPurpose)&&(identical(other.sharedDataWithOrganizationBefore, sharedDataWithOrganizationBefore) || other.sharedDataWithOrganizationBefore == sharedDataWithOrganizationBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.cardRequests, _cardRequests)&&(identical(other.policy, policy) || other.policy == policy)&&(identical(other.type, type) || other.type == type));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartDisclosureReadyToDisclose&&(identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty)&&const DeepCollectionEquality().equals(other.requestPurpose, _requestPurpose)&&(identical(other.sharedDataWithOrganizationBefore, sharedDataWithOrganizationBefore) || other.sharedDataWithOrganizationBefore == sharedDataWithOrganizationBefore)&&(identical(other.sessionType, sessionType) || other.sessionType == sessionType)&&const DeepCollectionEquality().equals(other.cardRequests, _cardRequests)&&(identical(other.type, type) || other.type == type));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,relyingParty,const DeepCollectionEquality().hash(_requestPurpose),sharedDataWithOrganizationBefore,sessionType,const DeepCollectionEquality().hash(_cardRequests),policy,type);
+    return Object.hash(runtimeType,relyingParty,const DeepCollectionEquality().hash(_requestPurpose),sharedDataWithOrganizationBefore,sessionType,const DeepCollectionEquality().hash(_cardRequests),type);
 }
 
 @override
 String toString() {
-    return 'StartDisclosureResult.readyToDisclose(relyingParty: $relyingParty, requestPurpose: $requestPurpose, sharedDataWithOrganizationBefore: $sharedDataWithOrganizationBefore, sessionType: $sessionType, cardRequests: $cardRequests, policy: $policy, type: $type)';
+    return 'StartDisclosureResult.readyToDisclose(relyingParty: $relyingParty, requestPurpose: $requestPurpose, sharedDataWithOrganizationBefore: $sharedDataWithOrganizationBefore, sessionType: $sessionType, cardRequests: $cardRequests, type: $type)';
 }
 
 
@@ -277,7 +276,7 @@ abstract mixin class $StartDisclosureReadyToDiscloseCopyWith<$Res> implements $S
   factory $StartDisclosureReadyToDiscloseCopyWith(StartDisclosureReadyToDisclose value, $Res Function(StartDisclosureReadyToDisclose) _then) = _$StartDisclosureReadyToDiscloseCopyWithImpl;
 @override @useResult
 $Res call({
- Organization relyingParty, LocalizedText requestPurpose, bool sharedDataWithOrganizationBefore, DisclosureSessionType sessionType, List<DiscloseCardRequest> cardRequests, Policy policy, DisclosureType type
+ Organization relyingParty, LocalizedText requestPurpose, bool sharedDataWithOrganizationBefore, DisclosureSessionType sessionType, List<DiscloseCardRequest> cardRequests, DisclosureType type
 });
 
 
@@ -294,15 +293,14 @@ class _$StartDisclosureReadyToDiscloseCopyWithImpl<$Res>
 
 /// Create a copy of StartDisclosureResult
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? relyingParty = null,Object? requestPurpose = null,Object? sharedDataWithOrganizationBefore = null,Object? sessionType = null,Object? cardRequests = null,Object? policy = null,Object? type = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? relyingParty = null,Object? requestPurpose = null,Object? sharedDataWithOrganizationBefore = null,Object? sessionType = null,Object? cardRequests = null,Object? type = null,}) {
   return _then(StartDisclosureReadyToDisclose(
 relyingParty: null == relyingParty ? _self.relyingParty : relyingParty // ignore: cast_nullable_to_non_nullable
 as Organization,requestPurpose: null == requestPurpose ? _self._requestPurpose : requestPurpose // ignore: cast_nullable_to_non_nullable
 as LocalizedText,sharedDataWithOrganizationBefore: null == sharedDataWithOrganizationBefore ? _self.sharedDataWithOrganizationBefore : sharedDataWithOrganizationBefore // ignore: cast_nullable_to_non_nullable
 as bool,sessionType: null == sessionType ? _self.sessionType : sessionType // ignore: cast_nullable_to_non_nullable
 as DisclosureSessionType,cardRequests: null == cardRequests ? _self._cardRequests : cardRequests // ignore: cast_nullable_to_non_nullable
-as List<DiscloseCardRequest>,policy: null == policy ? _self.policy : policy // ignore: cast_nullable_to_non_nullable
-as Policy,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as List<DiscloseCardRequest>,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as DisclosureType,
   ));
 }

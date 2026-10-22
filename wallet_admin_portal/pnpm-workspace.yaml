@@ -5,3 +5,4 @@ overrides:
   nanoid@<3.3.18: ^3.3.18
   tinypool@<2.1.2: ^2.1.2
   tinypool@<=2.1.0: ^2.1.1
+  vite@>=8.3.0 <=8.3.2: 8.3.3

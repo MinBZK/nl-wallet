@@ -1,5 +1,6 @@
 use std::ops::Index;
 
+use tracing::warn;
 use web_utils::language::Language;
 
 pub struct Translations<'a> {
@@ -73,9 +74,16 @@ pub const TRANSLATIONS: Translations = Translations {
         given_name: "First name",
         family_name: "Last name",
         birthdate: "Date of birth",
+        birth_date: "Date of birth",
+        nationality: "Nationality",
+        nationalities: "Nationalities",
         postal_code: "Postal code",
         street_address: "Street",
         house_number: "House number",
+        resident_street: "Address",
+        resident_postal_code: "Postal code",
+        resident_city: "City",
+        resident_country: "Country",
         education: "Education",
         university: "University",
         cum_laude: "Cum laude",
@@ -136,9 +144,16 @@ pub const TRANSLATIONS: Translations = Translations {
         given_name: "Voornaam",
         family_name: "Achternaam",
         birthdate: "Geboortedatum",
+        birth_date: "Geboortedatum",
+        nationality: "Nationaliteit",
+        nationalities: "Nationaliteiten",
         postal_code: "Postcode",
         street_address: "Straat",
         house_number: "Huisnummer",
+        resident_street: "Adres",
+        resident_postal_code: "Postcode",
+        resident_city: "Stad",
+        resident_country: "Land",
         education: "Opleiding",
         university: "Universiteit",
         cum_laude: "Cum laude",
@@ -201,9 +216,16 @@ pub struct Words<'a> {
     pub given_name: &'a str,
     pub family_name: &'a str,
     pub birthdate: &'a str,
+    pub birth_date: &'a str,
+    pub nationality: &'a str,
+    pub nationalities: &'a str,
     pub postal_code: &'a str,
     pub street_address: &'a str,
     pub house_number: &'a str,
+    pub resident_street: &'a str,
+    pub resident_postal_code: &'a str,
+    pub resident_city: &'a str,
+    pub resident_country: &'a str,
     pub education: &'a str,
     pub university: &'a str,
     pub cum_laude: &'a str,
@@ -222,24 +244,32 @@ impl<'a> Index<Language> for Words<'a> {
     }
 }
 
-impl<'a> Index<&str> for Words<'a> {
-    type Output = &'a str;
-
-    fn index(&self, index: &str) -> &Self::Output {
+impl<'a> Words<'a> {
+    pub fn get(&self, index: &str) -> Option<&'a str> {
         match index {
-            "bsn" => &self.bsn,
-            "given_name" => &self.given_name,
-            "family_name" => &self.family_name,
-            "birthdate" => &self.birthdate,
-            "postal_code" => &self.postal_code,
-            "street_address" => &self.street_address,
-            "house_number" => &self.house_number,
-            "education" => &self.education,
-            "university" => &self.university,
-            "cum_laude" => &self.cum_laude,
-            "true" => &self.r#true,
-            "false" => &self.r#false,
-            _ => panic!("no translation for: {index}"),
+            "bsn" => Some(self.bsn),
+            "given_name" => Some(self.given_name),
+            "family_name" => Some(self.family_name),
+            "birthdate" => Some(self.birthdate),
+            "birth_date" => Some(self.birth_date),
+            "nationality" => Some(self.nationality),
+            "nationalities" => Some(self.nationalities),
+            "postal_code" => Some(self.postal_code),
+            "street_address" => Some(self.street_address),
+            "house_number" => Some(self.house_number),
+            "resident_street" => Some(self.resident_street),
+            "resident_postal_code" => Some(self.resident_postal_code),
+            "resident_city" => Some(self.resident_city),
+            "resident_country" => Some(self.resident_country),
+            "education" => Some(self.education),
+            "university" => Some(self.university),
+            "cum_laude" => Some(self.cum_laude),
+            "true" => Some(self.r#true),
+            "false" => Some(self.r#false),
+            _ => {
+                warn!("no translation for: {index}");
+                None
+            }
         }
     }
 }

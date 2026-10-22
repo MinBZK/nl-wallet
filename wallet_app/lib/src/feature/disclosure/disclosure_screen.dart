@@ -195,7 +195,6 @@ class DisclosureScreen extends StatelessWidget {
         LoginDetailScreen.show(
           context,
           state.relyingParty,
-          state.policy,
           state.cardRequests,
           onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context, state)),
           sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
@@ -221,7 +220,6 @@ class DisclosureScreen extends StatelessWidget {
           context.bloc.add(DisclosureAlternativeCardSelected(updatedRequest)),
       relyingParty: state.relyingParty,
       cardRequests: state.cardRequests,
-      policy: state.policy,
       requestPurpose: state.requestPurpose,
     );
   }

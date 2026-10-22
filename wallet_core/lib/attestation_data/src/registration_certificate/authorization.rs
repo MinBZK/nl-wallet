@@ -1,10 +1,13 @@
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use dcql::ClaimsQuery;
 use dcql::ClaimsSelection;
 use dcql::CredentialQuery;
 use dcql::CredentialQueryFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
+use mdoc::ItemsRequest;
 
 use super::BoundRegistrationCertificate;
 use super::Credential;
@@ -13,24 +16,62 @@ use super::StatusValidatedRegistrationCertificate;
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateAuthorizationError {
     #[error("registration certificate does not authorize credential query `{0}`")]
-    UnauthorizedCredential(CredentialQueryIdentifier),
+    UnauthorizedCredentialQuery(CredentialQueryIdentifier),
+    #[error("registration certificate does not authorize items request for document type `{0}`")]
+    UnauthorizedItemsRequest(String),
+    #[error("issuer registration certificate is missing provides_attestations")]
+    MissingProvidesAttestations,
+    #[error("registration certificate does not authorize issuance of credential `{0}`")]
+    UnauthorizedCredentialKind(CredentialKind),
 }
 
 impl StatusValidatedRegistrationCertificate {
+    pub fn validate_issuance_authorization(
+        &self,
+        credential_kinds: impl IntoIterator<Item = CredentialKind>,
+    ) -> Result<(), RegistrationCertificateAuthorizationError> {
+        let Some(provides_attestations) = &self.payload().provides_attestations else {
+            return Err(RegistrationCertificateAuthorizationError::MissingProvidesAttestations);
+        };
+
+        for kind in credential_kinds {
+            if !provides_attestations
+                .iter()
+                .any(|authorized| credential_kind_is_authorized(&kind, authorized))
+            {
+                return Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialKind(
+                    kind,
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
     /// Validate that every credential, claim and requested value in a DCQL query is authorized by this certificate.
-    pub fn validate_query_authorization(&self, query: &Query) -> Result<(), RegistrationCertificateAuthorizationError> {
-        validate_query_authorization(query, self.payload().credentials.as_deref().unwrap_or_default())
+    pub fn validate_dcql_authorization(&self, query: &Query) -> Result<(), RegistrationCertificateAuthorizationError> {
+        validate_dcql_authorization(query, self.payload().credentials.as_deref().unwrap_or_default())
+    }
+
+    pub fn validate_mdoc_items_request_authorization(
+        &self,
+        items_request: &ItemsRequest,
+    ) -> Result<(), RegistrationCertificateAuthorizationError> {
+        validate_mdoc_items_request_authorization(
+            items_request,
+            self.payload().credentials.as_deref().unwrap_or_default(),
+        )
     }
 }
 
 impl BoundRegistrationCertificate {
     /// Validate that every credential, claim and requested value in a DCQL query is authorized by this certificate.
-    pub fn validate_query_authorization(&self, query: &Query) -> Result<(), RegistrationCertificateAuthorizationError> {
-        validate_query_authorization(query, self.payload().credentials.as_deref().unwrap_or_default())
+    pub fn validate_dcql_authorization(&self, query: &Query) -> Result<(), RegistrationCertificateAuthorizationError> {
+        validate_dcql_authorization(query, self.payload().credentials.as_deref().unwrap_or_default())
     }
 }
 
-fn validate_query_authorization(
+fn validate_dcql_authorization(
     query: &Query,
     authorized_credentials: &[Credential],
 ) -> Result<(), RegistrationCertificateAuthorizationError> {
@@ -39,13 +80,52 @@ fn validate_query_authorization(
             .iter()
             .any(|authorized| credential_query_is_authorized(credential_query, authorized))
         {
-            return Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(
+            return Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
                 credential_query.id.clone(),
             ));
         }
     }
 
     Ok(())
+}
+
+fn validate_mdoc_items_request_authorization(
+    items_request: &ItemsRequest,
+    authorized_credentials: &[Credential],
+) -> Result<(), RegistrationCertificateAuthorizationError> {
+    if !authorized_credentials
+        .iter()
+        .any(|authorized| items_request_is_authorized(items_request, authorized))
+    {
+        return Err(RegistrationCertificateAuthorizationError::UnauthorizedItemsRequest(
+            items_request.doc_type.clone(),
+        ));
+    }
+
+    Ok(())
+}
+
+fn items_request_is_authorized(items_request: &ItemsRequest, authorized: &Credential) -> bool {
+    matches!(
+        &authorized.format,
+        CredentialQueryFormat::MsoMdoc { doctype_value } if *doctype_value == items_request.doc_type
+    ) && authorized.claim.as_deref().is_some_and(|authorized_claims| {
+        items_request.claims().all(|path| {
+            authorized_claims
+                .iter()
+                .any(|claim| claim.path == path && claim.values.is_empty())
+        })
+    })
+}
+
+fn credential_kind_is_authorized(kind: &CredentialKind, authorized: &Credential) -> bool {
+    match (kind.format, &authorized.format) {
+        (Format::MsoMdoc, CredentialQueryFormat::MsoMdoc { doctype_value }) => kind.attestation_type == *doctype_value,
+        (Format::SdJwt, CredentialQueryFormat::SdJwt { vct_values }) => {
+            vct_values.as_slice().contains(&kind.attestation_type)
+        }
+        _ => false,
+    }
 }
 
 fn credential_query_is_authorized(query: &CredentialQuery, authorized: &Credential) -> bool {
@@ -118,13 +198,15 @@ mod tests {
     use dcql::ClaimsSelection;
     use dcql::CredentialQuery;
     use dcql::Query;
+    use mdoc::ItemsRequest;
     use rstest::rstest;
     use serde_json::Value;
     use serde_json::json;
 
     use super::Credential;
     use super::RegistrationCertificateAuthorizationError;
-    use super::validate_query_authorization;
+    use super::validate_dcql_authorization;
+    use super::validate_mdoc_items_request_authorization;
 
     fn credential(value: Value) -> Credential {
         serde_json::from_value(value).unwrap()
@@ -162,6 +244,117 @@ mod tests {
         }))
     }
 
+    fn items_request(name_spaces: &Value) -> ItemsRequest {
+        serde_json::from_value(json!({
+            "docType": "urn:example:pid",
+            "nameSpaces": name_spaces
+        }))
+        .unwrap()
+    }
+
+    fn authorized_mdoc(claims: &Value) -> Credential {
+        credential(json!({
+            "format": "mso_mdoc",
+            "meta": { "doctype_value": "urn:example:pid" },
+            "claim": claims
+        }))
+    }
+
+    #[rstest]
+    #[case::not_retained(false)]
+    #[case::retained(true)]
+    fn authorize_items_request_with_multiple_namespaces(#[case] intent_to_retain: bool) {
+        let request = items_request(&json!({
+            "urn:example:pid": { "family_name": intent_to_retain, "given_name": intent_to_retain },
+            "urn:example:address": { "street": intent_to_retain }
+        }));
+        let authorized = [
+            authorized_sd_jwt(),
+            authorized_mdoc(&json!([
+                { "path": ["urn:example:pid", "family_name"], "intent_to_retain": false },
+                { "path": ["urn:example:pid", "given_name"] },
+                { "path": ["urn:example:address", "street"] },
+                { "path": ["urn:example:pid", "age"], "values": [18] }
+            ])),
+        ];
+
+        validate_mdoc_items_request_authorization(&request, &authorized).unwrap();
+    }
+
+    #[rstest]
+    #[case::no_credentials(vec![])]
+    #[case::wrong_format(
+        vec![credential(json!({
+            "format": "dc+sd-jwt",
+            "meta": { "vct_values": ["urn:example:pid"] },
+            "claim": [{ "path": ["urn:example:pid", "family_name"] }]
+        }))]
+    )]
+    #[case::wrong_document_type(
+        vec![credential(json!({
+            "format": "mso_mdoc",
+            "meta": { "doctype_value": "urn:example:address" },
+            "claim": [{ "path": ["urn:example:pid", "family_name"] }]
+        }))]
+    )]
+    fn reject_items_request_without_matching_credential(#[case] authorized: Vec<Credential>) {
+        let request = items_request(&json!({ "urn:example:pid": { "family_name": false } }));
+
+        assert_matches!(
+            validate_mdoc_items_request_authorization(&request, &authorized),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedItemsRequest(doc_type))
+                if doc_type == request.doc_type
+        );
+    }
+
+    #[rstest]
+    #[case::missing_claims(json!(null))]
+    #[case::empty_claims(json!([]))]
+    #[case::wrong_namespace(json!([{ "path": ["urn:example:other", "family_name"] }]))]
+    #[case::wrong_attribute(json!([{ "path": ["urn:example:pid", "given_name"] }]))]
+    #[case::namespace_only(json!([{ "path": ["urn:example:pid"] }]))]
+    #[case::nested_path(json!([{ "path": ["urn:example:pid", "family_name", "nested"] }]))]
+    #[case::array_wildcard(json!([{ "path": ["urn:example:pid", null] }]))]
+    #[case::restricted_values(json!([{ "path": ["urn:example:pid", "family_name"], "values": ["Doe"] }]))]
+    fn reject_items_request_without_matching_claim(#[case] claims: Value) {
+        let request = items_request(&json!({ "urn:example:pid": { "family_name": false } }));
+
+        assert_matches!(
+            validate_mdoc_items_request_authorization(&request, &[authorized_mdoc(&claims)]),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedItemsRequest(doc_type))
+                if doc_type == request.doc_type
+        );
+    }
+
+    #[rstest]
+    #[case::attributes(
+        json!({ "urn:example:pid": { "family_name": false, "given_name": false } }),
+        json!(["urn:example:pid", "given_name"])
+    )]
+    #[case::namespaces(
+        json!({
+            "urn:example:pid": { "family_name": false },
+            "urn:example:address": { "street": false }
+        }),
+        json!(["urn:example:address", "street"])
+    )]
+    fn reject_items_request_when_authorization_is_split_across_credentials(
+        #[case] name_spaces: Value,
+        #[case] other_path: Value,
+    ) {
+        let request = items_request(&name_spaces);
+        let authorized = [
+            authorized_mdoc(&json!([{ "path": ["urn:example:pid", "family_name"] }])),
+            authorized_mdoc(&json!([{ "path": other_path }])),
+        ];
+
+        assert_matches!(
+            validate_mdoc_items_request_authorization(&request, &authorized),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedItemsRequest(doc_type))
+                if doc_type == request.doc_type
+        );
+    }
+
     #[test]
     fn authorize_query_when_format_claims_and_values_are_subsets() {
         let query = sd_jwt_query(
@@ -172,7 +365,7 @@ mod tests {
             ]),
         );
 
-        validate_query_authorization(&query, &[authorized_sd_jwt()]).unwrap();
+        validate_dcql_authorization(&query, &[authorized_sd_jwt()]).unwrap();
     }
 
     #[rstest]
@@ -202,7 +395,7 @@ mod tests {
         }));
 
         assert_eq!(
-            validate_query_authorization(&query, &[authorized]).is_ok(),
+            validate_dcql_authorization(&query, &[authorized]).is_ok(),
             expected_authorized
         );
     }
@@ -226,7 +419,7 @@ mod tests {
         }));
 
         assert_eq!(
-            validate_query_authorization(&query, &[authorized]).is_ok(),
+            validate_dcql_authorization(&query, &[authorized]).is_ok(),
             expected_authorized
         );
     }
@@ -236,8 +429,10 @@ mod tests {
         let query = sd_jwt_query(&json!(["urn:example:pid"]), &json!([{ "path": ["family_name"] }]));
 
         assert_matches!(
-            validate_query_authorization(&query, &[]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            validate_dcql_authorization(&query, &[]),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -264,7 +459,7 @@ mod tests {
             authorized_sd_jwt(),
         ];
 
-        validate_query_authorization(&query, &authorized).unwrap();
+        validate_dcql_authorization(&query, &authorized).unwrap();
     }
 
     #[test]
@@ -283,8 +478,8 @@ mod tests {
         ]);
 
         assert_matches!(
-            validate_query_authorization(&query, &[authorized_sd_jwt()]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(id))
+            validate_dcql_authorization(&query, &[authorized_sd_jwt()]),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(id))
                 if id.as_ref() == "address"
         );
     }
@@ -310,8 +505,10 @@ mod tests {
         let query = sd_jwt_query(&vct_values, &claims);
 
         assert_matches!(
-            validate_query_authorization(&query, &[authorized_sd_jwt()]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            validate_dcql_authorization(&query, &[authorized_sd_jwt()]),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -335,8 +532,10 @@ mod tests {
         ];
 
         assert_matches!(
-            validate_query_authorization(&query, &authorized),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            validate_dcql_authorization(&query, &authorized),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -352,7 +551,7 @@ mod tests {
             "claim": [{ "path": ["age"] }]
         }));
 
-        validate_query_authorization(&query, &[authorized]).unwrap();
+        validate_dcql_authorization(&query, &[authorized]).unwrap();
     }
 
     #[rstest]
@@ -370,8 +569,10 @@ mod tests {
         let authorized = credential(authorized);
 
         assert_matches!(
-            validate_query_authorization(&query, &[authorized]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            validate_dcql_authorization(&query, &[authorized]),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -393,7 +594,7 @@ mod tests {
             "meta": { "vct_values": ["urn:example:pid"] }
         }));
 
-        validate_query_authorization(&query, &[authorized]).unwrap();
+        validate_dcql_authorization(&query, &[authorized]).unwrap();
     }
 
     #[test]
@@ -422,10 +623,12 @@ mod tests {
             "claim": [{ "path": ["family_name"] }]
         }));
 
-        validate_query_authorization(&query, &[fully_authorized]).unwrap();
+        validate_dcql_authorization(&query, &[fully_authorized]).unwrap();
         assert_matches!(
-            validate_query_authorization(&query, &[partially_authorized]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            validate_dcql_authorization(&query, &[partially_authorized]),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 
@@ -457,7 +660,7 @@ mod tests {
             "claim": [{ "path": ["urn:example:pid", "family_name"] }]
         }));
 
-        validate_query_authorization(&query, &[authorized]).unwrap();
+        validate_dcql_authorization(&query, &[authorized]).unwrap();
     }
 
     #[rstest]
@@ -491,8 +694,10 @@ mod tests {
         let authorized = credential(authorized);
 
         assert_matches!(
-            validate_query_authorization(&query, &[authorized]),
-            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredential(_))
+            validate_dcql_authorization(&query, &[authorized]),
+            Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialQuery(
+                _
+            ))
         );
     }
 }

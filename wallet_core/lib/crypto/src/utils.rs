@@ -25,8 +25,12 @@ pub fn random_string(len: usize) -> String {
     Alphanumeric.sample_string(&mut rand::thread_rng(), len)
 }
 
-pub fn sha256(bts: &[u8]) -> Vec<u8> {
+pub fn sha256_into_vec(bts: &[u8]) -> Vec<u8> {
     Sha256::digest(bts).to_vec()
+}
+
+pub fn sha256(bts: &[u8]) -> [u8; 32] {
+    Sha256::digest(bts).into()
 }
 
 /// Key material. Zeroed on drop to prevent it from lingering in memory.

@@ -30,7 +30,6 @@ sealed class WalletEvent with _$WalletEvent {
     required Organization relyingParty,
     required List<LocalizedString> purpose,
     List<AttestationPresentation>? sharedAttestations,
-    required RequestPolicy requestPolicy,
     required DisclosureStatus status,
     required DisclosureType typ,
   }) = WalletEvent_Disclosure;

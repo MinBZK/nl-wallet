@@ -143,7 +143,6 @@ fn registration_certificate_subject_payload(
         } => (serial_number, json!({ "sub_gn": given_name, "sub_fn": surname })),
     };
     let mut payload = json!({
-        "id": "mock-registration-certificate",
         "sub": subject,
         "country": "NL",
         "registry_uri": "https://example.com/register",
@@ -221,7 +220,7 @@ impl MockRegistrationCertificateAuthority {
 
     pub fn new_with_status(status: StatusType) -> Self {
         let ca = Ca::generate_mock();
-        let trust_anchors = TrustAnchors::from(&ca);
+        let trust_anchors = ca.to_trust_anchors();
         let status_list_key_pair = ca.generate_issuer_status_list_mock().unwrap();
         let mut status_list = StatusList::new(10);
         if status != StatusType::Valid {
@@ -265,6 +264,15 @@ impl MockRegistrationCertificateAuthority {
             .unwrap()
             .unwrap()
             .to_vec()
+            .unwrap()
+    }
+
+    pub fn sign_status_list(&self, status_list: StatusList) -> StatusListToken {
+        let signing_key_pair = self.ca.generate_issuer_status_list_mock().unwrap();
+        StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack())
+            .sign(&signing_key_pair)
+            .now_or_never()
+            .unwrap()
             .unwrap()
     }
 }

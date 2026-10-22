@@ -1,5 +1,5 @@
 use base64::prelude::*;
-use crypto::utils::sha256;
+use crypto::utils::sha256_into_vec;
 
 use crate::sd_alg::SdAlg;
 
@@ -25,7 +25,7 @@ pub struct Sha256Hasher;
 
 impl Hasher for Sha256Hasher {
     fn digest(&self, input: &[u8]) -> Vec<u8> {
-        sha256(input)
+        sha256_into_vec(input)
     }
 
     fn alg(&self) -> SdAlg {

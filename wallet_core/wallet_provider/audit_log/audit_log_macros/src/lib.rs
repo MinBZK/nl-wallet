@@ -13,7 +13,7 @@ use syn::parse_macro_input;
 /// `AuditLog` implementor. Zero or more parameters may be annotated with
 /// `#[audit]` to include them in the JSON parameters passed to the audit log.
 /// At most one parameter may be annotated with `#[audit_user]` to provide the
-/// user id passed to the audit log; if omitted, `None` is passed.
+/// user ID via `audit_log::model::AuditUser`; if omitted, `None` is passed.
 ///
 /// The macro generates a struct named `AuditParameters` with a field for each
 /// `#[audit]` parameter, derives `serde::Serialize`, and uses
@@ -28,6 +28,7 @@ use syn::parse_macro_input;
 ///
 /// ```rust
 /// # use audit_log::model::AuditLog;
+/// # use audit_log::model::mock::MockAuditUser;
 /// # use audit_log_macros::audited;
 /// # struct DbErr;
 /// # struct RevocationError;
@@ -38,7 +39,7 @@ use syn::parse_macro_input;
 /// #[audited]
 /// pub async fn revoke_wallet(
 ///     #[audit] wallet_id: &WalletId,
-///     #[audit_user] user_id: &str,
+///     #[audit_user] user: &MockAuditUser,
 ///     #[auditor] audit_log: &impl AuditLog,
 /// ) -> Result<(), RevocationError> {
 ///     Ok(())
@@ -49,6 +50,7 @@ use syn::parse_macro_input;
 ///
 /// ```rust
 /// # use audit_log::model::AuditLog;
+/// # use audit_log::model::mock::MockAuditUser;
 /// # struct DbErr;
 /// # struct RevocationError;
 /// # type WalletId = String;
@@ -57,7 +59,7 @@ use syn::parse_macro_input;
 /// # }
 /// pub async fn revoke_wallet(
 ///     wallet_id: &WalletId,
-///     user_id: &str,
+///     user: &MockAuditUser,
 ///     audit_log: &impl AuditLog,
 /// ) -> Result<(), RevocationError> {
 ///     #[derive(::serde::Serialize)]
@@ -79,7 +81,7 @@ use syn::parse_macro_input;
 ///         audit_log,
 ///         "revoke_wallet",
 ///         __audit_params_json,
-///         Some(::std::convert::AsRef::<str>::as_ref(&user_id)),
+///         Some(::audit_log::model::AuditUser::to_audit_user_id(user)),
 ///         async move || Ok(()),
 ///     )
 ///     .await
@@ -195,8 +197,8 @@ fn audited_inner(input: &ItemFn) -> syn::Result<proc_macro2::TokenStream> {
     let stmts = &input.block.stmts;
 
     let user_id_expr = match &audit_user_ident {
-        Some(ident) => quote! { Some(::std::convert::AsRef::<str>::as_ref(&#ident)) },
-        None => quote! { ::std::option::Option::<&str>::None },
+        Some(ident) => quote! { Some(::audit_log::model::AuditUser::to_audit_user_id(&#ident)) },
+        None => quote! { ::std::option::Option::<String>::None },
     };
 
     let output = quote! {

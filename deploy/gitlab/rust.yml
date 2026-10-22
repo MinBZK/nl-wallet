@@ -5,7 +5,9 @@
 
 lint-rust:
   extends: .rust
+  stage: test
   rules: !reference [.default-or-merge-request, rules]
+  needs: []
   variables:
     CARGO_BUILD_WARNINGS: "deny"
   before_script:
@@ -33,8 +35,10 @@ lint-rust:
 scheduled-check-rust-feature-powerset:
   timeout: 2h
   extends: .rust
+  stage: test
   rules:
     - !reference [.on-schedule-rust-features-check, rules]
+  needs: []
   before_script:
     - set -euxo pipefail
     - cd wallet_core
@@ -44,6 +48,8 @@ scheduled-check-rust-feature-powerset:
 
 manual-check-rust-feature-powerset:
   rules: !reference [.default-or-merge-request, rules]
+  stage: test
+  needs: []
   trigger:
     include:
       - local: .gitlab-ci.yml
@@ -54,6 +60,8 @@ manual-check-rust-feature-powerset:
 
 .test-rust:
   extends: .rust
+  stage: test
+  needs: []
   variables:
     NEXTEST_PROFILE: "ci"
   before_script:
@@ -113,7 +121,9 @@ test-rust:
 
 test-rust-doctest:
   extends: .rust
+  stage: test
   rules: !reference [.default-or-merge-request, rules]
+  needs: []
   before_script:
     - set -euxo pipefail
     - cd wallet_core
@@ -122,6 +132,8 @@ test-rust-doctest:
 
 .test-rust-compilation:
   rules: !reference [.default-or-merge-request, rules]
+  stage: test
+  needs: []
   variables:
     CARGO_BUILD_WARNINGS: "deny"
     CONFIG_ENV: "dev"
@@ -170,6 +182,7 @@ test-sea-orm-generate-entity:
 
 .build-binary:
   extends: .rust
+  stage: build
   rules:
     - !reference [.default-or-merge-request, rules]
   needs:
@@ -190,6 +203,7 @@ test-sea-orm-generate-entity:
 
 test-static-server-compilation:
   extends: .build-binary
+  stage: test
   script:
     - cargo check --locked --release --package static_server --bin static_server
 

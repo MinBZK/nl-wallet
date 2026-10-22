@@ -20,6 +20,8 @@
   <link rel="stylesheet" href="../static/css/mdl.css" />
 {% when "mvc" %}
   <link rel="stylesheet" href="../static/css/mvc.css" />
+{% when "dezi" %}
+  <link rel="stylesheet" href="../static/css/dezi.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}
@@ -45,6 +47,8 @@
    {% include "mdl.askama" %}
   {% when "mvc" %}
    {% include "mvc.askama" %}
+  {% when "dezi" %}
+    {% include "dezi.askama" %}
   {% else %}
     <nl-wallet-button
       text={{ base.trans.add_to_nl_wallet }}
