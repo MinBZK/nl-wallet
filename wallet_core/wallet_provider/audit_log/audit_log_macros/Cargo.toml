@@ -22,4 +22,4 @@ rstest.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 
-audit_log.path = "../"
+audit_log = { path = "../", features = ["mock"] }

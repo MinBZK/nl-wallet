@@ -6,6 +6,7 @@ use audit_log::entity;
 use audit_log::model::AuditLog;
 use audit_log::model::DbAuditLog;
 use audit_log::model::FromAuditLogError;
+use audit_log::model::mock::MockAuditUser;
 use audit_log::repository::PostgresAuditLogRepository;
 use chrono::Utc;
 use db_test::DbSetup;
@@ -114,7 +115,7 @@ async fn test_audit(#[values(true, false)] is_success: bool) {
 #[audited]
 async fn operation_with_user(
     #[auditor] audit_log: &impl AuditLog,
-    #[audit_user] user_id: &str,
+    #[audit_user] user_id: &MockAuditUser,
     is_success: bool,
 ) -> Result<(), TestError> {
     if is_success { Ok(()) } else { Err(TestError::Test) }
@@ -125,7 +126,7 @@ async fn test_audit_records_user_id_when_present() {
     let correlation_id = Uuid::new_v4();
     let (db_setup, audit_log) = setup_test_database(correlation_id).await;
 
-    operation_with_user(&audit_log, "user-42", true)
+    operation_with_user(&audit_log, &MockAuditUser::from("user-42"), true)
         .await
         .expect("should succeed");
 
