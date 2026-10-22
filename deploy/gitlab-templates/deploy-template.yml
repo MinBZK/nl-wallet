@@ -12,30 +12,7 @@ tag-images-${DEPLOY_ENV}:
   script:
     - set -euo pipefail
     - |
-      BUILD_IMAGES=(
-      "nl-wallet-provider"
-      "nl-wallet-provider-migrations"
-      "nl-audit-log-migrations"
-      "nl-wallet-demo-relying-party"
-      "nl-wallet-demo-issuer"
-      "nl-wallet-demo-index"
-      "nl-wallet-verification-server"
-      "nl-wallet-verification-server-migrations"
-      "nl-wallet-issuance-server"
-      "nl-wallet-issuance-server-migrations"
-      "nl-wallet-pacf-issuance-server"
-      "nl-wallet-pacf-issuance-server-migrations"
-      "nl-wallet-acf-demo-issuer"
-      "nl-wallet-acf-demo-issuer-migrations"
-      "nl-wallet-pid-issuer"
-      "nl-wallet-pid-issuer-migrations"
-      "nl-wallet-revocation-portal"
-      "nl-wallet-admin-portal"
-      "nl-wallet-gba-hc-converter"
-      "nl-wallet-gba-fetch"
-      "nl-wallet-gba-fetch-frontend"
-      "nl-wallet-update-policy-server"
-      )
+      mapfile -t BUILD_IMAGES < deploy/build-images.txt
 
       tag_images() {
         local registry="$1"
