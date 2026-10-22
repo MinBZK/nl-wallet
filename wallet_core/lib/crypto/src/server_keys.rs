@@ -225,6 +225,9 @@ pub mod generate {
     /// RFC 5280, section 4.2.1.2: id-ce-subjectKeyIdentifier.
     const OID_SUBJECT_KEY_IDENTIFIER: &[u64] = &[2, 5, 29, 14];
 
+    /// RFC 5280, section 4.2.1.4: id-ce-certificatePolicies.
+    const OID_CERTIFICATE_POLICIES: &[u64] = &[2, 5, 29, 32];
+
     /// Subject key identifier extension for end-entity certificates, computed as the SHA-1 hash of the subjectPublicKey
     /// BIT STRING value (RFC 5280, section 4.2.1.2, method 1).
     ///
@@ -436,9 +439,19 @@ pub mod generate {
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
         ) -> Result<BorrowingCertificate, CertificateGenerationError> {
+            let certificate_policies = configuration.usage.and_then(|usage| usage.certificate_policies());
+
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
             params.custom_extensions.push(subject_key_identifier_extension(pk)?);
+            if let Some(certificate_policies) = certificate_policies {
+                // ETSI EN 319 412-2, GEN-4.3.3-1 recommends this extension to be non-critical, and ETSI TS 119 412-6,
+                // PID-4.1-02 requires it.
+                params.custom_extensions.push(CustomExtension::from_oid_content(
+                    OID_CERTIFICATE_POLICIES,
+                    certificate_policies.to_vec(),
+                ));
+            }
             params.distinguished_name = distinguished_name
                 .try_into()
                 .map_err(CertificateGenerationError::GeneratingFailed)?;

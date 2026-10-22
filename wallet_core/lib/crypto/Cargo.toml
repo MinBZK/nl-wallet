@@ -66,6 +66,9 @@ time = { workspace = true, optional = true }
 
 [dev-dependencies]
 aes.workspace = true
+# Not used directly: enables `bigint` for the asn1-rs used by x509-parser, which doesn't forward this feature, so
+# that `Oid::to_id_string()` renders arcs larger than 64 bits in dotted notation
+asn1-rs = { workspace = true, features = ["bigint"] }
 chrono = { workspace = true, features = ["now"] }
 cmac.workspace = true
 ctr.workspace = true

@@ -24,6 +24,28 @@ const EXTENDED_KEY_USAGE_WIA: &Oid = &oid!(1.3.6.1.5.5.7.3.128);
 // The .129 is made up, the real child node is TBD
 const EXTENDED_KEY_USAGE_KEY_ATTESTATION: &Oid = &oid!(1.3.6.1.5.5.7.3.129);
 
+/// The DER encoded content of the certificate policies extension (RFC 5280, section 4.2.1.4) of wallet provider
+/// certificates, which contains a single policy without qualifiers:
+///
+/// ```text
+/// SEQUENCE {                    -- CertificatePolicies
+///   SEQUENCE {                  -- PolicyInformation
+///     OBJECT IDENTIFIER 2.25.150580842064059311066423755779195795505
+///   }
+/// }
+/// ```
+///
+/// The policy identifier is a temporary UUID OID (ITU-T X.667) for UUID `7148d0b6-12d3-4c0e-af93-f5d209a3f831`.
+/// We encode it ourselves, because the `der` crate only supports OID arcs of up to 32 bits.
+#[cfg(any(test, feature = "generate"))]
+const WALLET_PROVIDER_CERTIFICATE_POLICIES: &[u8] = &[
+    0x30, 0x18, // SEQUENCE
+    0x30, 0x16, // SEQUENCE
+    0x06, 0x14, // OBJECT IDENTIFIER
+    0x69, 0x81, 0xe2, 0xc8, 0xe8, 0xad, 0xc2, 0xad, 0x9a, 0xb0, 0x9d, 0xaf, 0xc9, 0xfd, 0xba, 0xa0, 0xcd, 0x8f, 0xf0,
+    0x31,
+];
+
 #[derive(thiserror::Error, Debug)]
 pub enum CertificateUsageError {
     #[error("X509 coding error: {0}")]
@@ -93,6 +115,18 @@ impl CertificateUsage {
             Self::StatusListSigning | Self::Wia | Self::KeyAttestation => {
                 vec![rcgen::KeyUsagePurpose::DigitalSignature]
             }
+        }
+    }
+
+    /// The DER encoded content of the certificate policies extension, see [`WALLET_PROVIDER_CERTIFICATE_POLICIES`].
+    ///
+    /// ETSI EN 319 412-2, GEN-4.3.3-2 requires the identifier of at least one certificate policy, which applies to
+    /// wallet provider certificates through ETSI TS 119 412-6, WAL-5.1-01 and PID-4.1-01.
+    #[cfg(any(test, feature = "generate"))]
+    pub fn certificate_policies(&self) -> Option<&'static [u8]> {
+        match self {
+            Self::Wia | Self::KeyAttestation => Some(WALLET_PROVIDER_CERTIFICATE_POLICIES),
+            Self::Mdl | Self::StatusListSigning => None,
         }
     }
 

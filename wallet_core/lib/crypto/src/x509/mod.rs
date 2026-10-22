@@ -685,6 +685,56 @@ mod tests {
             .expect("leaf must verify against the CA");
     }
 
+    #[rstest]
+    #[case::issuer(Some(CertificateUsage::Mdl), None)]
+    #[case::status_list(Some(CertificateUsage::StatusListSigning), None)]
+    #[case::wia(Some(CertificateUsage::Wia), Some("2.25.150580842064059311066423755779195795505"))]
+    #[case::key_attestation(
+        Some(CertificateUsage::KeyAttestation),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::without_eku(None, None)]
+    fn generated_leaf_certificate_policies(#[case] usage: Option<CertificateUsage>, #[case] expected: Option<&str>) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    usage,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        let certificate_policies = x509_cert
+            .extensions()
+            .iter()
+            .find_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::CertificatePolicies(policies) => Some((ext.critical, policies)),
+                _ => None,
+            });
+
+        match (certificate_policies, expected) {
+            (Some((critical, policies)), Some(expected)) => {
+                // ETSI EN 319 412-2, GEN-4.3.3-1 and ETSI TS 119 412-6, PID-4.1-02: a non-critical extension.
+                assert!(!critical);
+                let [policy] = policies.as_slice() else {
+                    panic!("expected exactly one certificate policy, got {}", policies.len());
+                };
+                assert_eq!(policy.policy_id.to_id_string(), expected);
+                assert!(policy.policy_qualifiers.is_none());
+            }
+            (None, None) => {}
+            (actual, expected) => panic!("expected certificate policy {expected:?}, got {actual:?}"),
+        }
+
+        key_pair
+            .certificate()
+            .verify(usage, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .expect("leaf must verify against the CA");
+    }
+
     #[test]
     fn test_key_usage() {
         let ca = Ca::generate_mock();
