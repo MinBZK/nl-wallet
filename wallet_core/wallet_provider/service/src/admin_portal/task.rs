@@ -8,13 +8,14 @@ use chrono::Utc;
 use utils::generator::Generator;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
-use wallet_provider_domain::model::admin_task::AdminTaskCreate;
-use wallet_provider_domain::model::admin_task::AdminTaskReview;
+use wallet_provider_domain::model::admin_task::CreateAdminTask;
+use wallet_provider_domain::model::admin_task::ReviewAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
+use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::repository::AdminTaskRepository;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
@@ -134,7 +135,7 @@ where
 
         let task = self
             .repository
-            .insert_task(AdminTaskCreate {
+            .insert_task(CreateAdminTask {
                 id: self.uuid.generate(),
                 created_at: self.time.generate(),
                 created_by_user_id: user.user_id.clone(),
@@ -153,6 +154,7 @@ where
     pub async fn withdraw_task(
         &self,
         #[audit] task_id: Uuid,
+        #[audit] withdrawal_comment: &str,
         #[audit_user] user: &LoggedInUser,
         #[auditor] audit_log: &impl AuditLog,
     ) -> Result<AdminTask, WithdrawTaskError> {
@@ -181,9 +183,14 @@ where
 
         // Actually withdraw the task now, while enforcing that the task is still in the `Created` state, so it will not
         // override another review or withdrawal.
+        let withdrawal = WithdrawAdminTask {
+            task_id,
+            withdrawal_comment: withdrawal_comment.to_string(),
+            withdrawn_at: self.time.generate(),
+        };
         let task = self
             .repository
-            .withdraw_task(&transaction, task_id, self.time.generate())
+            .withdraw_task(&transaction, withdrawal)
             .await
             .map_err(WithdrawTaskError::Storage)?
             .ok_or(WithdrawTaskError::InvalidState)?;
@@ -235,8 +242,8 @@ where
 
         // Actually store the review now, while enforcing that the task is still in the `Created~ state, so it will not
         // override another review or withdrawal.
-        let review = AdminTaskReview {
-            id: existing.id,
+        let review = ReviewAdminTask {
+            task_id: existing.id,
             reviewed_at: self.time.generate(),
             reviewed_by_user_id: reviewer.user_id.clone(),
             reviewed_by_display_name: reviewer.display_name.clone(),
@@ -355,6 +362,7 @@ mod tests {
             payload: stub_payload(task_type),
             task_reason: "reason".to_string(),
             status: TaskStatus::Created,
+            withdrawal_comment: None,
             withdrawn_at: None,
             reviewed_at: None,
             reviewed_by_user_id: None,
@@ -593,7 +601,7 @@ mod tests {
             .returning(|| Err(PersistenceError::NoRowsUpdated));
 
         let result = TaskService::new(repository, FixedTime(Utc::now()), FixedUuid(Uuid::new_v4()))
-            .withdraw_task(Uuid::new_v4(), &user("user-1", &[]), &MockAuditLog)
+            .withdraw_task(Uuid::new_v4(), "no longer needed", &user("user-1", &[]), &MockAuditLog)
             .await;
 
         assert_matches!(result, Err(WithdrawTaskError::Storage(_)));
@@ -637,7 +645,7 @@ mod tests {
         repository.expect_withdraw_task().never();
 
         let result = service(repository, Utc::now())
-            .withdraw_task(id, &user("user-1", &[]), &MockAuditLog)
+            .withdraw_task(id, "no longer needed", &user("user-1", &[]), &MockAuditLog)
             .await
             .expect("already withdrawn task should be returned");
 
@@ -690,7 +698,7 @@ mod tests {
             .times(1)
             .returning(|_, _| Ok(None));
         let result = service(repository, Utc::now())
-            .withdraw_task(id, &user("user-1", &[]), &MockAuditLog)
+            .withdraw_task(id, "no longer needed", &user("user-1", &[]), &MockAuditLog)
             .await;
         assert_matches!(result, Err(WithdrawTaskError::NotFound(task_id)) if task_id == id);
     }
@@ -707,7 +715,7 @@ mod tests {
             .returning(move |_, _| Ok(Some(task.clone())));
 
         let result = service(repository, Utc::now())
-            .withdraw_task(id, &user("another-user", &[]), &MockAuditLog)
+            .withdraw_task(id, "no longer needed", &user("another-user", &[]), &MockAuditLog)
             .await;
         assert_matches!(result, Err(WithdrawTaskError::InvalidState));
     }
@@ -727,9 +735,13 @@ mod tests {
             .returning(move |_, _| Ok(Some(stub_task(id, TaskType::RevokeWallet, "user-1"))));
         repository
             .expect_withdraw_task()
-            .withf(move |_, task_id, timestamp| *task_id == id && *timestamp == now)
+            .withf(move |_, withdrawal| {
+                withdrawal.task_id == id
+                    && withdrawal.withdrawn_at == now
+                    && withdrawal.withdrawal_comment == "no longer needed"
+            })
             .times(1)
-            .returning(move |_, _, _| {
+            .returning(move |_, _| {
                 if storage_error {
                     return Err(PersistenceError::NoRowsUpdated);
                 }
@@ -738,11 +750,12 @@ mod tests {
                 }
                 let mut task = stub_task(id, TaskType::RevokeWallet, "user-1");
                 task.status = TaskStatus::Withdrawn;
+                task.withdrawal_comment = Some("no longer needed".to_string());
                 task.withdrawn_at = Some(now);
                 Ok(Some(task))
             });
         let result = service(repository, now)
-            .withdraw_task(id, &user("user-1", &[]), &MockAuditLog)
+            .withdraw_task(id, "no longer needed", &user("user-1", &[]), &MockAuditLog)
             .await;
         if storage_error {
             assert_matches!(result, Err(WithdrawTaskError::Storage(_)));
@@ -751,6 +764,7 @@ mod tests {
         } else {
             let task = result.unwrap();
             assert_eq!(task.status, TaskStatus::Withdrawn);
+            assert_eq!(task.withdrawal_comment.as_deref(), Some("no longer needed"));
             assert_eq!(task.withdrawn_at, Some(now));
             assert_eq!(task.reviewed_at, None);
             assert_eq!(task.executed_at, None);
@@ -767,7 +781,7 @@ mod tests {
             .times(1)
             .returning(|_, _| Err(PersistenceError::NoRowsUpdated));
         let result = service(repository, Utc::now())
-            .withdraw_task(Uuid::new_v4(), &user("user-1", &[]), &MockAuditLog)
+            .withdraw_task(Uuid::new_v4(), "no longer needed", &user("user-1", &[]), &MockAuditLog)
             .await;
         assert_matches!(result, Err(WithdrawTaskError::Storage(_)));
     }

@@ -1,20 +1,19 @@
-use chrono::DateTime;
-use chrono::Utc;
 use uuid::Uuid;
 
 use super::errors::PersistenceError;
 use super::transaction::TransactionStarter;
 use crate::model::admin_task::AdminTask;
-use crate::model::admin_task::AdminTaskCreate;
-use crate::model::admin_task::AdminTaskReview;
+use crate::model::admin_task::CreateAdminTask;
+use crate::model::admin_task::ReviewAdminTask;
 use crate::model::admin_task::TaskListView;
+use crate::model::admin_task::WithdrawAdminTask;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
 /// Persists [`AdminTask`]s, the 4-eyes task-proposal/review framework's core data.
 #[trait_variant::make(Send)]
 pub trait AdminTaskRepository: TransactionStarter {
-    async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask>;
+    async fn insert_task(&self, task: CreateAdminTask) -> Result<AdminTask>;
 
     async fn find_task_by_id(&self, task_id: Uuid) -> Result<Option<AdminTask>>;
 
@@ -31,8 +30,7 @@ pub trait AdminTaskRepository: TransactionStarter {
     async fn withdraw_task(
         &self,
         transaction: &Self::TransactionType,
-        task_id: Uuid,
-        now: DateTime<Utc>,
+        withdrawal: WithdrawAdminTask,
     ) -> Result<Option<AdminTask>>;
 
     /// Reviews the task, provided it is still in `Created` status. Returns `None` if no row matched. The caller is
@@ -40,7 +38,7 @@ pub trait AdminTaskRepository: TransactionStarter {
     async fn review_task(
         &self,
         transaction: &Self::TransactionType,
-        review: AdminTaskReview,
+        review: ReviewAdminTask,
     ) -> Result<Option<AdminTask>>;
 
     /// Returns tasks matching `view`, ordered by `created_at` ascending (oldest first).

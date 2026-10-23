@@ -30,15 +30,17 @@ use wallet_provider::admin_portal::AdminPortalState;
 use wallet_provider::admin_portal::CreateTaskRequest;
 use wallet_provider::admin_portal::ReviewTaskRequest;
 use wallet_provider::admin_portal::TaskResponse;
+use wallet_provider::admin_portal::WithdrawTaskRequest;
 use wallet_provider::router_state::UuidV7Generator;
 use wallet_provider::settings::AdminPortalSettings;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
-use wallet_provider_domain::model::admin_task::AdminTaskCreate;
+use wallet_provider_domain::model::admin_task::CreateAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
+use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::repository::AdminPortalSessionRepository;
 use wallet_provider_domain::repository::AdminTaskRepository;
 use wallet_provider_domain::repository::Committable;
@@ -133,7 +135,7 @@ fn revoke_wallet_payload() -> TaskPayload {
 
 async fn seed_task(repositories: &Repositories, creator: &TestUser) -> Uuid {
     let task = repositories
-        .insert_task(AdminTaskCreate {
+        .insert_task(CreateAdminTask {
             id: Uuid::new_v4(),
             created_at: Utc::now(),
             created_by_user_id: creator.id.clone(),
@@ -173,7 +175,16 @@ async fn test_concurrent_task_mutations(
 
     let request = |verdict: Option<ReviewVerdict>| {
         let (action, cookie, body) = match verdict {
-            None => ("withdraw", &creator_cookie, Body::empty()),
+            None => (
+                "withdraw",
+                &creator_cookie,
+                Body::from(
+                    serde_json::to_string(&WithdrawTaskRequest {
+                        withdrawal_comment: "concurrent withdrawal".to_string(),
+                    })
+                    .unwrap(),
+                ),
+            ),
             Some(verdict) => (
                 "review",
                 &reviewer_cookie,
@@ -278,7 +289,13 @@ async fn test_withdraw_task_succeeds() {
         .method("POST")
         .uri(format!("/tasks/{task_id}/withdraw"))
         .header(header::COOKIE, cookie)
-        .body(Body::empty())
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(
+            serde_json::to_string(&WithdrawTaskRequest {
+                withdrawal_comment: "no longer needed".to_string(),
+            })
+            .unwrap(),
+        ))
         .unwrap();
 
     let response = app.oneshot(request).await.unwrap();
@@ -287,6 +304,7 @@ async fn test_withdraw_task_succeeds() {
     let task: TaskResponse = json_body(response).await;
     assert_eq!(task.task_id, task_id);
     assert_eq!(task.status, TaskStatus::Withdrawn);
+    assert_eq!(task.withdrawal_comment, Some("no longer needed".to_string()));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -381,7 +399,14 @@ async fn test_list_tasks_history_succeeds() {
     let task_id = seed_task(&repositories, &alice).await;
     let transaction = repositories.begin_transaction().await.unwrap();
     repositories
-        .withdraw_task(&transaction, task_id, Utc::now())
+        .withdraw_task(
+            &transaction,
+            WithdrawAdminTask {
+                task_id,
+                withdrawal_comment: "no longer needed".to_string(),
+                withdrawn_at: Utc::now(),
+            },
+        )
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");

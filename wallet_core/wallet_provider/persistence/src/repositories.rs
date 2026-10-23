@@ -18,9 +18,10 @@ use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
 use wallet_provider_domain::model::admin_task::AdminTask;
-use wallet_provider_domain::model::admin_task::AdminTaskCreate;
-use wallet_provider_domain::model::admin_task::AdminTaskReview;
+use wallet_provider_domain::model::admin_task::CreateAdminTask;
+use wallet_provider_domain::model::admin_task::ReviewAdminTask;
 use wallet_provider_domain::model::admin_task::TaskListView;
+use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
@@ -626,7 +627,7 @@ impl WalletUserRepository for Repositories {
 
 impl AdminTaskRepository for Repositories {
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError> {
+    async fn insert_task(&self, task: CreateAdminTask) -> Result<AdminTask, PersistenceError> {
         admin_task::insert_task(&self.0, task).await
     }
 
@@ -648,17 +649,16 @@ impl AdminTaskRepository for Repositories {
     async fn withdraw_task(
         &self,
         transaction: &Self::TransactionType,
-        task_id: Uuid,
-        now: DateTime<Utc>,
+        withdrawal: WithdrawAdminTask,
     ) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::withdraw_task(transaction, task_id, now).await
+        admin_task::withdraw_task(transaction, withdrawal).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn review_task(
         &self,
         transaction: &Self::TransactionType,
-        review: AdminTaskReview,
+        review: ReviewAdminTask,
     ) -> Result<Option<AdminTask>, PersistenceError> {
         admin_task::review_task(transaction, review).await
     }
@@ -694,9 +694,10 @@ pub mod mock {
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
     use wallet_provider_domain::model::admin_task::AdminTask;
-    use wallet_provider_domain::model::admin_task::AdminTaskCreate;
-    use wallet_provider_domain::model::admin_task::AdminTaskReview;
+    use wallet_provider_domain::model::admin_task::CreateAdminTask;
+    use wallet_provider_domain::model::admin_task::ReviewAdminTask;
     use wallet_provider_domain::model::admin_task::TaskListView;
+    use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
     use wallet_provider_domain::model::wallet_flag::WalletFlag;
     use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
@@ -733,7 +734,7 @@ pub mod mock {
         }
 
         impl AdminTaskRepository for AdminTaskRepository {
-            async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError>;
+            async fn insert_task(&self, task: CreateAdminTask) -> Result<AdminTask, PersistenceError>;
 
             async fn find_task_by_id(&self, id: Uuid) -> Result<Option<AdminTask>, PersistenceError>;
 
@@ -746,14 +747,13 @@ pub mod mock {
             async fn withdraw_task(
                 &self,
                 transaction: &MockTransaction,
-                id: Uuid,
-                now: DateTime<Utc>,
+                withdrawal: WithdrawAdminTask,
             ) -> Result<Option<AdminTask>, PersistenceError>;
 
             async fn review_task(
                 &self,
                 transaction: &MockTransaction,
-                review: AdminTaskReview,
+                review: ReviewAdminTask,
             ) -> Result<Option<AdminTask>, PersistenceError>;
 
             async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError>;

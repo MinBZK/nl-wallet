@@ -22,6 +22,7 @@ impl MigrationTrait for Migration {
                     .col(string(AdminTask::TaskReason))
                     .col(string(AdminTask::Status))
                     .col(timestamp_with_time_zone_null(AdminTask::WithdrawnAt))
+                    .col(string_null(AdminTask::WithdrawalComment))
                     .col(timestamp_with_time_zone_null(AdminTask::ReviewedAt))
                     .col(string_null(AdminTask::ReviewedByUserId))
                     .col(string_null(AdminTask::ReviewedByDisplayName))
@@ -78,6 +79,7 @@ enum AdminTask {
     TaskReason,
     Status,
     WithdrawnAt,
+    WithdrawalComment,
     ReviewedAt,
     ReviewedByUserId,
     ReviewedByDisplayName,

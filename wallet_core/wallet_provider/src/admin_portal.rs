@@ -342,6 +342,13 @@ pub struct CreateTaskRequest {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "web_test", derive(Serialize))]
 #[serde(rename_all = "camelCase")]
+pub struct WithdrawTaskRequest {
+    pub withdrawal_comment: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "web_test", derive(Serialize))]
+#[serde(rename_all = "camelCase")]
 pub struct ReviewTaskRequest {
     pub verdict: ReviewVerdict,
     pub review_comment: String,
@@ -358,6 +365,7 @@ pub struct TaskResponse {
     pub payload: TaskPayload,
     pub task_reason: String,
     pub status: TaskStatus,
+    pub withdrawal_comment: Option<String>,
     pub withdrawn_at: Option<DateTime<Utc>>,
     pub reviewed_at: Option<DateTime<Utc>>,
     pub reviewed_by: Option<String>,
@@ -376,6 +384,7 @@ impl From<AdminTask> for TaskResponse {
             payload: task.payload,
             task_reason: task.task_reason,
             status: task.status,
+            withdrawal_comment: task.withdrawal_comment,
             withdrawn_at: task.withdrawn_at,
             reviewed_at: task.reviewed_at,
             reviewed_by: task.reviewed_by_display_name,
@@ -410,6 +419,7 @@ async fn withdraw_task<R, AR>(
     State(state): State<Arc<AdminPortalState<R, AR>>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Path(task_id): Path<Uuid>,
+    Json(payload): Json<WithdrawTaskRequest>,
 ) -> Result<Json<TaskResponse>, TaskApiError>
 where
     R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
@@ -417,7 +427,7 @@ where
 {
     let task = state
         .tasks
-        .withdraw_task(task_id, &user, &state.audit_log)
+        .withdraw_task(task_id, &payload.withdrawal_comment, &user, &state.audit_log)
         .await
         .map_err(TaskApiError::Withdraw)?;
 
@@ -497,11 +507,12 @@ mod tests {
     use utils::vec_nonempty;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
-    use wallet_provider_domain::model::admin_task::AdminTaskCreate;
-    use wallet_provider_domain::model::admin_task::AdminTaskReview;
+    use wallet_provider_domain::model::admin_task::CreateAdminTask;
+    use wallet_provider_domain::model::admin_task::ReviewAdminTask;
     use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
     use wallet_provider_domain::model::admin_task::TaskListView;
     use wallet_provider_domain::model::admin_task::TaskType;
+    use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
     use wallet_provider_domain::repository::AdminPortalSessionRepository;
     use wallet_provider_domain::repository::Committable;
     use wallet_provider_domain::repository::PersistenceError;
@@ -670,7 +681,7 @@ mod tests {
     }
 
     impl AdminTaskRepository for InMemoryRepository {
-        async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError> {
+        async fn insert_task(&self, task: CreateAdminTask) -> Result<AdminTask, PersistenceError> {
             self.handle_error()?;
             let task: AdminTask = task.into();
             self.tasks.lock().unwrap().insert(task.id, task.clone());
@@ -693,30 +704,30 @@ mod tests {
         async fn withdraw_task(
             &self,
             _transaction: &InMemoryTransaction,
-            task_id: Uuid,
-            now: DateTime<Utc>,
+            withdrawal: WithdrawAdminTask,
         ) -> Result<Option<AdminTask>, PersistenceError> {
             self.handle_error()?;
             let mut tasks = self.tasks.lock().unwrap();
-            let Some(task) = tasks.get_mut(&task_id) else {
+            let Some(task) = tasks.get_mut(&withdrawal.task_id) else {
                 return Ok(None);
             };
             if task.status != TaskStatus::Created {
                 return Ok(None);
             }
             task.status = TaskStatus::Withdrawn;
-            task.withdrawn_at = Some(now);
+            task.withdrawal_comment = Some(withdrawal.withdrawal_comment);
+            task.withdrawn_at = Some(withdrawal.withdrawn_at);
             Ok(Some(task.clone()))
         }
 
         async fn review_task(
             &self,
             _transaction: &InMemoryTransaction,
-            review: AdminTaskReview,
+            review: ReviewAdminTask,
         ) -> Result<Option<AdminTask>, PersistenceError> {
             self.handle_error()?;
-            let AdminTaskReview {
-                id,
+            let ReviewAdminTask {
+                task_id,
                 reviewed_at,
                 reviewed_by_user_id,
                 reviewed_by_display_name,
@@ -725,7 +736,7 @@ mod tests {
             } = review;
 
             let mut tasks = self.tasks.lock().unwrap();
-            let task: &mut AdminTask = match tasks.get_mut(&id) {
+            let task: &mut AdminTask = match tasks.get_mut(&task_id) {
                 Some(task) => task,
                 None => return Ok(None),
             };
@@ -854,7 +865,7 @@ mod tests {
         let repository = InMemoryRepository::default();
         repository.tasks.lock().unwrap().insert(
             task_id,
-            AdminTaskCreate {
+            CreateAdminTask {
                 id: task_id,
                 created_at: Utc::now(),
                 created_by_user_id: user_id.clone(),
@@ -1074,6 +1085,7 @@ mod tests {
             payload: revoke_wallet_payload(),
             task_reason: "reason".to_string(),
             status: TaskStatus::Created,
+            withdrawal_comment: None,
             withdrawn_at: None,
             reviewed_at: None,
             reviewed_by_user_id: None,
@@ -1142,7 +1154,7 @@ mod tests {
         let id = Uuid::new_v4();
         if exists {
             repository
-                .insert_task(AdminTaskCreate {
+                .insert_task(CreateAdminTask {
                     id,
                     created_at: Utc::now(),
                     created_by_user_id: owner.to_string(),
@@ -1164,7 +1176,8 @@ mod tests {
                 header::COOKIE,
                 format!("sid={}", jar.get(SESSION_ID_COOKIE).unwrap().value()),
             )
-            .body(Body::empty())
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(r#"{"withdrawalComment":"not needed"}"#))
             .unwrap();
         let app = router(state);
         let response = app.clone().oneshot(request).await.unwrap();
@@ -1173,6 +1186,7 @@ mod tests {
             let task: Value = json_body(response).await;
             assert_eq!(task["taskId"], id.to_string());
             assert_eq!(task["status"], "withdrawn");
+            assert_eq!(task["withdrawalComment"], "not needed");
             assert_eq!(task["createdBy"], "Jane Doe");
             for field in ["executedAt", "executionResult", "executionResultDetails"] {
                 assert!(task[field].is_null());
@@ -1184,7 +1198,8 @@ mod tests {
                     header::COOKIE,
                     format!("sid={}", jar.get(SESSION_ID_COOKIE).unwrap().value()),
                 )
-                .body(Body::empty())
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(r#"{"withdrawalComment":"not needed"}"#))
                 .unwrap();
             let response = app.oneshot(request).await.unwrap();
             assert_eq!(response.status(), StatusCode::OK);

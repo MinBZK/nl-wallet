@@ -1,5 +1,3 @@
-use chrono::DateTime;
-use chrono::Utc;
 use sea_orm::ColumnTrait;
 use sea_orm::Condition;
 use sea_orm::ConnectionTrait;
@@ -11,21 +9,22 @@ use sea_orm::QuerySelect;
 use sea_orm::Set;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
-use wallet_provider_domain::model::admin_task::AdminTaskCreate;
-use wallet_provider_domain::model::admin_task::AdminTaskReview;
+use wallet_provider_domain::model::admin_task::CreateAdminTask;
+use wallet_provider_domain::model::admin_task::ReviewAdminTask;
 use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
+use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 use crate::entity::admin_task;
 use crate::transaction::Transaction;
 
-impl TryFrom<AdminTaskCreate> for admin_task::ActiveModel {
+impl TryFrom<CreateAdminTask> for admin_task::ActiveModel {
     type Error = PersistenceError;
 
-    fn try_from(task: AdminTaskCreate) -> Result<Self, Self::Error> {
+    fn try_from(task: CreateAdminTask) -> Result<Self, Self::Error> {
         Ok(Self {
             id: Set(task.id),
             created_at: Set(task.created_at.into()),
@@ -38,6 +37,7 @@ impl TryFrom<AdminTaskCreate> for admin_task::ActiveModel {
                 .map_err(PersistenceError::TaskParametersConversion)?),
             task_reason: Set(task.task_reason),
             status: Set(TaskStatus::Created.to_string()),
+            withdrawal_comment: Set(None),
             withdrawn_at: Set(None),
             reviewed_at: Set(None),
             reviewed_by_user_id: Set(None),
@@ -66,6 +66,7 @@ impl TryFrom<admin_task::Model> for AdminTask {
             .map_err(PersistenceError::TaskParametersConversion)?,
             task_reason: model.task_reason,
             status: model.status.parse().map_err(PersistenceError::EnumConversion)?,
+            withdrawal_comment: model.withdrawal_comment,
             withdrawn_at: model.withdrawn_at.map(Into::into),
             reviewed_at: model.reviewed_at.map(Into::into),
             reviewed_by_user_id: model.reviewed_by_user_id,
@@ -78,7 +79,7 @@ impl TryFrom<admin_task::Model> for AdminTask {
     }
 }
 
-pub async fn insert_task<S, T>(db: &T, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError>
+pub async fn insert_task<S, T>(db: &T, task: CreateAdminTask) -> Result<AdminTask, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -118,19 +119,16 @@ pub async fn find_task_by_id_for_update(
         .transpose()
 }
 
-pub async fn withdraw_task<S, T>(
-    db: &T,
-    task_id: Uuid,
-    now: DateTime<Utc>,
-) -> Result<Option<AdminTask>, PersistenceError>
+pub async fn withdraw_task<S, T>(db: &T, withdrawal: WithdrawAdminTask) -> Result<Option<AdminTask>, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     let model = admin_task::ActiveModel {
-        id: Set(task_id),
+        id: Set(withdrawal.task_id),
         status: Set(TaskStatus::Withdrawn.to_string()),
-        withdrawn_at: Set(Some(now.into())),
+        withdrawal_comment: Set(Some(withdrawal.withdrawal_comment)),
+        withdrawn_at: Set(Some(withdrawal.withdrawn_at.into())),
         ..Default::default()
     };
 
@@ -145,13 +143,13 @@ where
     }
 }
 
-pub async fn review_task<S, T>(db: &T, review: AdminTaskReview) -> Result<Option<AdminTask>, PersistenceError>
+pub async fn review_task<S, T>(db: &T, review: ReviewAdminTask) -> Result<Option<AdminTask>, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     let model = admin_task::ActiveModel {
-        id: Set(review.id),
+        id: Set(review.task_id),
         status: Set(review.review_verdict.resulting_status().to_string()),
         reviewed_at: Set(Some(review.reviewed_at.into())),
         reviewed_by_user_id: Set(Some(review.reviewed_by_user_id)),
@@ -217,7 +215,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use chrono::DateTime;
     use chrono::FixedOffset;
+    use chrono::Utc;
     use serde_json::json;
     use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
 
@@ -242,6 +242,7 @@ mod tests {
             task_parameters: json!({"walletIds": ["wallet-1"]}),
             task_reason: "task reason".into(),
             status: "approved".into(),
+            withdrawal_comment: None,
             withdrawn_at: None,
             reviewed_at: Some(
                 DateTime::from_timestamp(1_700_000_100, 0)
@@ -264,7 +265,7 @@ mod tests {
     #[test]
     fn create_maps_fields_and_initializes_lifecycle_fields() {
         let row = model();
-        let create = AdminTaskCreate {
+        let create = CreateAdminTask {
             id: row.id,
             created_at: row.created_at.into(),
             created_by_user_id: row.created_by_user_id.clone(),
@@ -284,6 +285,7 @@ mod tests {
         assert_eq!(active.task_parameters, Set(row.task_parameters));
         assert_eq!(active.task_reason, Set(row.task_reason));
         assert_eq!(active.status, Set("created".to_owned()));
+        assert_eq!(active.withdrawal_comment, Set(None));
         assert_eq!(active.withdrawn_at, Set(None));
         assert_eq!(active.reviewed_at, Set(None));
         assert_eq!(active.reviewed_by_user_id, Set(None));
@@ -309,6 +311,7 @@ mod tests {
             payload: payload(),
             task_reason: row.task_reason.clone(),
             status,
+            withdrawal_comment: row.withdrawal_comment.clone(),
             withdrawn_at: row.withdrawn_at.map(Into::into),
             reviewed_at: row.reviewed_at.map(Into::into),
             reviewed_by_user_id: row.reviewed_by_user_id.clone(),

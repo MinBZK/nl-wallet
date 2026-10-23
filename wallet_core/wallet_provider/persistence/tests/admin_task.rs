@@ -5,14 +5,15 @@ use db_test::DbName;
 use db_test::DbSetup;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
-use wallet_provider_domain::model::admin_task::AdminTaskCreate;
-use wallet_provider_domain::model::admin_task::AdminTaskReview;
+use wallet_provider_domain::model::admin_task::CreateAdminTask;
+use wallet_provider_domain::model::admin_task::ReviewAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
 use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
+use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::admin_task;
 use wallet_provider_persistence::database::Db;
@@ -51,8 +52,8 @@ fn task_payload(task_type: TaskType) -> TaskPayload {
     }
 }
 
-fn task_create(creator: &User, created_at: DateTime<Utc>, task_type: TaskType) -> AdminTaskCreate {
-    AdminTaskCreate {
+fn task_create(creator: &User, created_at: DateTime<Utc>, task_type: TaskType) -> CreateAdminTask {
+    CreateAdminTask {
         id: Uuid::new_v4(),
         created_at,
         created_by_user_id: creator.id.clone(),
@@ -87,7 +88,7 @@ impl TestDatabase {
         }
     }
 
-    async fn insert(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError> {
+    async fn insert(&self, task: CreateAdminTask) -> Result<AdminTask, PersistenceError> {
         admin_task::insert_task(&self.db, task).await
     }
 
@@ -104,8 +105,18 @@ impl TestDatabase {
         admin_task::find_task_by_id(&self.db, id).await
     }
 
-    async fn withdraw(&self, id: Uuid, withdrawn_at: DateTime<Utc>) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::withdraw_task(&self.db, id, withdrawn_at).await
+    async fn withdraw(
+        &self,
+        id: Uuid,
+        withdrawal_comment: String,
+        withdrawn_at: DateTime<Utc>,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        let withdrawal = WithdrawAdminTask {
+            task_id: id,
+            withdrawal_comment,
+            withdrawn_at,
+        };
+        admin_task::withdraw_task(&self.db, withdrawal).await
     }
 
     async fn review(
@@ -115,8 +126,8 @@ impl TestDatabase {
         review_verdict: ReviewVerdict,
         reviewed_at: DateTime<Utc>,
     ) -> Result<Option<AdminTask>, PersistenceError> {
-        let review = AdminTaskReview {
-            id,
+        let review = ReviewAdminTask {
+            task_id: id,
             reviewed_at,
             reviewed_by_user_id: reviewer.id.clone(),
             reviewed_by_display_name: reviewer.display_name.clone(),
@@ -175,6 +186,7 @@ async fn test_insert_and_find_task_by_id() {
         payload: create.payload,
         task_reason: create.task_reason,
         status: TaskStatus::Created,
+        withdrawal_comment: None,
         withdrawn_at: None,
         reviewed_at: None,
         reviewed_by_user_id: None,
@@ -197,7 +209,7 @@ async fn test_insert_fails_for_duplicate_id() {
         .await
         .expect("should create task");
 
-    let duplicate = AdminTaskCreate {
+    let duplicate = CreateAdminTask {
         id: task.id,
         ..task_create(&alice, at(TimeDelta::minutes(1)), TaskType::RevokeWallet)
     };
@@ -220,12 +232,13 @@ async fn test_withdraw_succeeds_for_creator_of_created_task() {
         .expect("should create task");
 
     let withdrawn = db
-        .withdraw(task.id, at(TimeDelta::minutes(1)))
+        .withdraw(task.id, "no longer needed".to_string(), at(TimeDelta::minutes(1)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
 
     assert_eq!(withdrawn.status, TaskStatus::Withdrawn);
+    assert_eq!(withdrawn.withdrawal_comment.as_deref(), Some("no longer needed"));
     assert_eq!(withdrawn.withdrawn_at, Some(at(TimeDelta::minutes(1))));
     assert_eq!(withdrawn.reviewed_at, None);
     assert_eq!(withdrawn.reviewed_by_user_id, None);
@@ -237,7 +250,7 @@ async fn test_withdraw_fails_for_unknown_task() {
     let db = TestDatabase::new().await;
 
     assert_eq!(
-        db.withdraw(Uuid::new_v4(), at(TimeDelta::zero()))
+        db.withdraw(Uuid::new_v4(), "no longer needed".to_string(), at(TimeDelta::zero()))
             .await
             .expect("should execute withdrawal"),
         None
@@ -260,7 +273,7 @@ async fn test_withdraw_fails_when_already_reviewed() {
         .expect("task should be reviewed");
 
     assert_eq!(
-        db.withdraw(task.id, at(TimeDelta::minutes(2)))
+        db.withdraw(task.id, "no longer needed".to_string(), at(TimeDelta::minutes(2)))
             .await
             .expect("should execute withdrawal"),
         None
@@ -373,7 +386,7 @@ async fn test_review_fails_when_withdrawn() {
         .await
         .expect("should create task");
     let withdrawn = db
-        .withdraw(task.id, at(TimeDelta::minutes(1)))
+        .withdraw(task.id, "no longer needed".to_string(), at(TimeDelta::minutes(1)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
@@ -445,7 +458,7 @@ async fn test_open_tasks_returns_own_created_tasks_oldest_first() {
         .create_task(&alice, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
-    db.withdraw(withdrawn.id, at(TimeDelta::minutes(2)))
+    db.withdraw(withdrawn.id, "no longer needed".to_string(), at(TimeDelta::minutes(2)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
@@ -498,7 +511,11 @@ async fn test_history_returns_finished_tasks_created_or_reviewed_by_user_oldest_
         .await
         .expect("should create task");
     let withdrawn_by_alice = db
-        .withdraw(withdrawn_by_alice.id, at(TimeDelta::minutes(3)))
+        .withdraw(
+            withdrawn_by_alice.id,
+            "no longer needed".to_string(),
+            at(TimeDelta::minutes(3)),
+        )
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");
@@ -567,7 +584,7 @@ async fn test_reviewable_returns_authorized_tasks_of_other_users_oldest_first() 
         .create_task(&bob, at(TimeDelta::zero()), TaskType::RevokeWallet)
         .await
         .expect("should create task");
-    db.withdraw(withdrawn.id, at(TimeDelta::minutes(2)))
+    db.withdraw(withdrawn.id, "no longer needed".to_string(), at(TimeDelta::minutes(2)))
         .await
         .expect("should execute withdrawal")
         .expect("task should be withdrawn");

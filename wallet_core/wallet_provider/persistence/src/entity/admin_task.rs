@@ -14,6 +14,7 @@ pub struct Model {
     pub task_parameters: Json,
     pub task_reason: String,
     pub status: String,
+    pub withdrawal_comment: Option<String>,
     pub withdrawn_at: Option<DateTimeWithTimeZone>,
     pub reviewed_at: Option<DateTimeWithTimeZone>,
     pub reviewed_by_user_id: Option<String>,

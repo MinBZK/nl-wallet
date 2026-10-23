@@ -98,6 +98,7 @@ pub struct AdminTask {
     pub payload: TaskPayload,
     pub task_reason: String,
     pub status: TaskStatus,
+    pub withdrawal_comment: Option<String>,
     pub withdrawn_at: Option<DateTime<Utc>>,
     pub reviewed_at: Option<DateTime<Utc>>,
     pub reviewed_by_user_id: Option<String>,
@@ -108,10 +109,10 @@ pub struct AdminTask {
     pub execution_details: Option<String>,
 }
 
-/// Request model to create a new [`AdminTask`].
+/// Command to create a new [`AdminTask`].
 /// Will create it with `status = Created` and all optional fields set to `None`.
 #[derive(Debug, Clone)]
-pub struct AdminTaskCreate {
+pub struct CreateAdminTask {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
     pub created_by_user_id: String,
@@ -120,8 +121,8 @@ pub struct AdminTaskCreate {
     pub task_reason: String,
 }
 
-impl From<AdminTaskCreate> for AdminTask {
-    fn from(task: AdminTaskCreate) -> Self {
+impl From<CreateAdminTask> for AdminTask {
+    fn from(task: CreateAdminTask) -> Self {
         AdminTask {
             id: task.id,
             created_at: task.created_at,
@@ -130,6 +131,7 @@ impl From<AdminTaskCreate> for AdminTask {
             payload: task.payload,
             task_reason: task.task_reason,
             status: TaskStatus::Created,
+            withdrawal_comment: None,
             withdrawn_at: None,
             reviewed_at: None,
             reviewed_by_user_id: None,
@@ -142,10 +144,18 @@ impl From<AdminTaskCreate> for AdminTask {
     }
 }
 
-/// Request model for a review verdict, updates [`AdminTask`]
+/// Command to withdraw an existing [`AdminTask`].
 #[derive(Debug, Clone)]
-pub struct AdminTaskReview {
-    pub id: Uuid,
+pub struct WithdrawAdminTask {
+    pub task_id: Uuid,
+    pub withdrawal_comment: String,
+    pub withdrawn_at: DateTime<Utc>,
+}
+
+/// Command to review an existing [`AdminTask`].
+#[derive(Debug, Clone)]
+pub struct ReviewAdminTask {
+    pub task_id: Uuid,
     pub reviewed_at: DateTime<Utc>,
     pub reviewed_by_user_id: String,
     pub reviewed_by_display_name: String,
