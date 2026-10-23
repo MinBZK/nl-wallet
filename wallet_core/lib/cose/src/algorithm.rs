@@ -8,7 +8,7 @@ use serde::Serialize;
 /// [`CoseAlgorithmIdentifier::Known`] means that this type explicitly models the registered identifier. It does not
 /// imply that every signing or verification operation in this crate supports that algorithm. Identifiers not yet
 /// modeled by this type, including registered identifiers, are preserved as [`CoseAlgorithmIdentifier::Unknown`].
-#[derive(Debug, Clone, Copy, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "i64", into = "i64")]
 pub enum CoseAlgorithmIdentifier {
     Known(iana::Algorithm),
@@ -49,11 +49,5 @@ impl From<iana::Algorithm> for CoseAlgorithmIdentifier {
             iana::Algorithm::ES256 | iana::Algorithm::ESP256 => Self::Known(algorithm),
             algorithm => Self::Unknown(algorithm.to_i64()),
         }
-    }
-}
-
-impl PartialEq for CoseAlgorithmIdentifier {
-    fn eq(&self, other: &Self) -> bool {
-        i64::from(*self) == i64::from(*other)
     }
 }
