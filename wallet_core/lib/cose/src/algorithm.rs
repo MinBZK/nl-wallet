@@ -45,9 +45,6 @@ impl From<i64> for CoseAlgorithmIdentifier {
 
 impl From<iana::Algorithm> for CoseAlgorithmIdentifier {
     fn from(algorithm: iana::Algorithm) -> Self {
-        match algorithm {
-            iana::Algorithm::ES256 | iana::Algorithm::ESP256 => Self::Known(algorithm),
-            algorithm => Self::Unknown(algorithm.to_i64()),
-        }
+        Self::Known(algorithm)
     }
 }
