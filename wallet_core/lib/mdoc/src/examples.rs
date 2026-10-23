@@ -73,7 +73,6 @@ mod test {
 
     use super::DeviceResponse;
     use super::Example;
-    use crate::utils::cose;
 
     impl DeviceResponse {
         pub async fn example_resigned(ca: &Ca) -> Self {

@@ -251,7 +251,7 @@ fn signature_data_with_header(payload: &[u8], header: Header) -> (Vec<u8>, Prote
     (signature_data, protected_header)
 }
 
-pub async fn sign_cose(
+async fn sign_cose(
     payload: Vec<u8>,
     unprotected_header: Header,
     private_key: &impl EcdsaKey,
