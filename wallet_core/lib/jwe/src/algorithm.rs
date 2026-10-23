@@ -55,7 +55,7 @@ impl From<EcdhAlgorithm> for EcdhEsJweAlgorithm {
 
 /// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm. It contains only
 /// those algorithms supported by this crate. See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, EnumString)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum EncryptionAlgorithm {
     #[strum(serialize = "A128CBC-HS256")]
@@ -69,7 +69,7 @@ pub enum EncryptionAlgorithm {
     A256Gcm,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, EnumString)]
 pub enum CompressionAlgorithm {
     #[strum(serialize = "DEF")]
     Deflate,

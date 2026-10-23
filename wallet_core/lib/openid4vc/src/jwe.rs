@@ -9,7 +9,7 @@ use serde_with::SerializeDisplay;
 
 /// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
-#[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, From, Display, SerializeDisplay, DeserializeFromStr)]
 pub enum JweEncryptionAlgorithm {
     #[from]
     Known(EncryptionAlgorithm),
@@ -60,7 +60,7 @@ impl JweEncryptionAlgorithm {
 
 /// A type representing the "zip" header parameter value for JWE, i.e. the JWE encryption compression algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-7.3>
-#[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, From, Display, SerializeDisplay, DeserializeFromStr)]
 pub enum JweCompressionAlgorithm {
     #[from]
     Known(CompressionAlgorithm),

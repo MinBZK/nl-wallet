@@ -5360,6 +5360,9 @@ name = "nonempty-collections"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3fc446c90b1fb75a59aeacd45aa8b107a1777c080a719d4e0ae1a8e6ddabae5"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "noop_proc_macro"

@@ -66,7 +66,7 @@ indexmap.workspace = true
 itertools.workspace = true
 jwk-simple.workspace = true
 mime.workspace = true
-nonempty-collections.workspace = true
+nonempty-collections = { workspace = true, features = ["serde"] }
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["serde"] }
 rand_core.workspace = true
