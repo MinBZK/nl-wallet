@@ -18,7 +18,7 @@ variables:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
-  BUILD_TAG: "261008-c3e35b87"
+  BUILD_TAG: "261022-9e7d0037"
   HSM_CLIENT_TAG: "a5b03ac4"
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
@@ -36,7 +36,7 @@ variables:
       namespace: ${K8S_NAMESPACE}
 
 .env-macos-runner:
-  image: tahoe-wallet:0.3.14
+  image: tahoe-wallet:0.3.15
   tags:
     - macos
 
