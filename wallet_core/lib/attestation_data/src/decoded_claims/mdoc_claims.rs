@@ -165,10 +165,6 @@ mod test {
     const NAME_SPACE: &str = "com.example.name_space";
     const OTHER_NAME_SPACE: &str = "com.example.other_name_space";
 
-    fn text(text: &str) -> Value {
-        Value::Text(text.to_string())
-    }
-
     fn map(key: Value, value: Value) -> Value {
         Value::Map(vec![(key, value)])
     }
@@ -200,21 +196,18 @@ mod test {
             (
                 NAME_SPACE.to_string(),
                 vec![
-                    entry("given_name", text("Willeke")),
+                    entry("given_name", "Willeke".into()),
                     entry(
                         "address",
                         Value::Map(vec![
-                            (text("street"), text("Turfmarkt")),
-                            (Value::Integer(1.into()), text("positive")),
-                            (Value::Integer((-1).into()), text("negative")),
+                            ("street".into(), "Turfmarkt".into()),
+                            (Value::from(1), "positive".into()),
+                            (Value::from(-1), "negative".into()),
                         ]),
                     ),
                 ],
             ),
-            (
-                OTHER_NAME_SPACE.to_string(),
-                vec![entry("number", Value::Integer(42.into()))],
-            ),
+            (OTHER_NAME_SPACE.to_string(), vec![entry("number", Value::from(42))]),
         ])
     }
 
@@ -281,29 +274,29 @@ mod test {
     }
 
     #[rstest]
-    #[case::text(Value::Text("text".to_string()))]
-    #[case::integer(Value::Integer(1.into()))]
+    #[case::text(Value::from("text"))]
+    #[case::integer(Value::from(1))]
     #[case::bool(Value::Bool(true))]
     #[case::null(Value::Null)]
     #[case::bytes(Value::Bytes(vec![1, 2, 3]))]
     #[case::float(Value::Float(1.5))]
     #[case::empty_map(Value::Map(vec![]))]
     #[case::empty_array(Value::Array(vec![]))]
-    #[case::text_key(map(text("key"), text("value")))]
-    #[case::positive_integer_key(map(Value::Integer(1.into()), text("value")))]
-    #[case::negative_integer_key(map(Value::Integer((-1).into()), text("value")))]
+    #[case::text_key(map("key".into(), "value".into()))]
+    #[case::positive_integer_key(map(Value::from(1), "value".into()))]
+    #[case::negative_integer_key(map(Value::from(-1), "value".into()))]
     #[case::equal_text_and_integer_key(Value::Map(vec![
-        (text("1"), Value::Null),
-        (Value::Integer(1.into()), Value::Null),
+        ("1".into(), Value::Null),
+        (Value::from(1), Value::Null),
     ]))]
     #[case::equal_keys_in_different_maps(Value::Array(vec![
-        map(text("key"), Value::Null),
-        map(text("key"), Value::Null),
+        map("key".into(), Value::Null),
+        map("key".into(), Value::Null),
     ]))]
-    #[case::nested_map(map(text("outer"), map(Value::Integer((-1).into()), map(text("inner"), Value::Null))))]
-    #[case::map_in_array(Value::Array(vec![map(text("key"), Value::Null)]))]
-    #[case::map_in_tag(Value::Tag(1004, Box::new(map(text("key"), Value::Null))))]
-    #[case::full_date(Value::Tag(1004, Box::new(text("2024-03-01"))))]
+    #[case::nested_map(map("outer".into(), map(Value::from(-1), map("inner".into(), Value::Null))))]
+    #[case::map_in_array(Value::Array(vec![map("key".into(), Value::Null)]))]
+    #[case::map_in_tag(Value::Tag(1004, Box::new(map("key".into(), Value::Null))))]
+    #[case::full_date(Value::Tag(1004, Box::new("2024-03-01".into())))]
     fn test_check_map_keys_valid(#[case] value: Value) {
         check_map_keys(&value).expect("map keys should be valid");
     }
@@ -313,15 +306,15 @@ mod test {
     #[case::null_key(Value::Null, UnsupportedKeyType::Null)]
     #[case::bytes_key(Value::Bytes(vec![1]), UnsupportedKeyType::Bytes)]
     #[case::float_key(Value::Float(1.0), UnsupportedKeyType::Float)]
-    #[case::array_key(Value::Array(vec![text("key")]), UnsupportedKeyType::Array)]
-    #[case::map_key(map(text("key"), Value::Null), UnsupportedKeyType::Map)]
-    #[case::tagged_text_key(Value::Tag(0, Box::new(text("key"))), UnsupportedKeyType::Tag)]
+    #[case::array_key(Value::Array(vec!["key".into()]), UnsupportedKeyType::Array)]
+    #[case::map_key(map("key".into(), Value::Null), UnsupportedKeyType::Map)]
+    #[case::tagged_text_key(Value::Tag(0, Box::new("key".into())), UnsupportedKeyType::Tag)]
     fn test_check_map_keys_unsupported_type(
         #[case] key: Value,
         #[case] expected_key_type: UnsupportedKeyType,
         #[values(
             |value| value,
-            |value| map(text("outer"), value),
+            |value| map("outer".into(), value),
             |value| Value::Array(vec![Value::Null, value]),
             |value| Value::Tag(1004, Box::new(value)),
         )]
@@ -335,13 +328,13 @@ mod test {
     }
 
     #[rstest]
-    #[case::text_key(text("key"))]
-    #[case::integer_key(Value::Integer((-1).into()))]
+    #[case::text_key(Value::from("key"))]
+    #[case::integer_key(Value::from(-1))]
     fn test_check_map_keys_duplicate(
         #[case] key: Value,
         #[values(
             |value| value,
-            |value| map(text("outer"), value),
+            |value| map("outer".into(), value),
             |value| Value::Array(vec![Value::Null, value]),
             |value| Value::Tag(1004, Box::new(value)),
         )]
@@ -349,7 +342,7 @@ mod test {
     ) {
         let value = wrap(Value::Map(vec![
             (key.clone(), Value::Null),
-            (text("other"), Value::Null),
+            ("other".into(), Value::Null),
             (key.clone(), Value::Bool(true)),
         ]));
 
