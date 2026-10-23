@@ -14,6 +14,9 @@ mod wallet;
 
 pub mod errors;
 
+#[cfg(feature = "hardware_integration_test")]
+pub use crate::wallet::hardware_test;
+
 #[cfg(any(test, feature = "test"))]
 pub mod test_assets {
     pub const JPEG_IMAGE: &[u8] = include_bytes!("../assets/tests/willeke.jpeg");

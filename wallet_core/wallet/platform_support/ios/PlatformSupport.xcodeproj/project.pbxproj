@@ -543,7 +543,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${PROJECT_DIR}/../../../../scripts/find-cargo.sh\" > /dev/null\n\nexec > >(tee ${PROJECT_DIR}/compile_rust_platform_support.log) 2>&1\n\nCARGO_FLAGS=\"--package platform_support\"\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../Cargo.toml\" --features hardware_integration_test,ios_session_crypto --lib ${CARGO_FLAGS}\n";
+			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${PROJECT_DIR}/../../../../scripts/find-cargo.sh\" > /dev/null\n\nexec > >(tee ${PROJECT_DIR}/compile_rust_platform_support.log) 2>&1\n\nCARGO_FLAGS=\"--package wallet\"\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../../Cargo.toml\" --features hardware_integration_test,ios_session_crypto,platform_support/hardware_integration_test --example device_integration_tests ${CARGO_FLAGS}\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -628,9 +628,9 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios/debug/libplatform_support.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios-sim/debug/libplatform_support.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../../target/x86_64-apple-ios/debug/libplatform_support.a";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios/debug/examples/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios-sim/debug/examples/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../../target/x86_64-apple-ios/debug/examples/libdevice_integration_tests.a";
 				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
@@ -659,9 +659,9 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios/release/libplatform_support.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios-sim/release/libplatform_support.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../../target/x86_64-apple-ios/release/libplatform_support.a";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios/release/examples/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios-sim/release/examples/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../../target/x86_64-apple-ios/release/examples/libdevice_integration_tests.a";
 				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
@@ -763,9 +763,9 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios/release/libplatform_support.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios-sim/release/libplatform_support.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../../target/x86_64-apple-ios/release/libplatform_support.a";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios/release/examples/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../../target/aarch64-apple-ios-sim/release/examples/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../../target/x86_64-apple-ios/release/examples/libdevice_integration_tests.a";
 				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";

@@ -1,0 +1,60 @@
+use std::ffi::CString;
+use std::os::raw::c_char;
+use std::panic::AssertUnwindSafe;
+use std::panic::catch_unwind;
+use std::time::Duration;
+
+use anyhow::Context;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
+use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
+
+/// Run off the iOS main thread. The callback receives a borrowed string, valid only during the call.
+/// Return null on success, otherwise an owned error to release with `wallet_device_test_free_error`.
+#[unsafe(no_mangle)]
+pub extern "C" fn wallet_close_proximity_disclosure_test(reader_ready: extern "C" fn(*const c_char)) -> *mut c_char {
+    let result = catch_unwind(|| -> anyhow::Result<()> {
+        let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            runtime.block_on(wallet::hardware_test::run_disclosure::<
+                HardwareCloseProximityDisclosureClient,
+            >(|ready| {
+                let marker = CString::new(format!(
+                    "CLOSE_PROXIMITY_MAC_READER={}",
+                    serde_json::to_string(&ready).unwrap()
+                ))
+                .expect("JSON has no interior NUL bytes");
+                reader_ready(marker.as_ptr());
+            }))
+        }));
+        match result {
+            Ok(result) => result,
+            Err(_) => {
+                // Normal failures clean up in the scenario; a panicking fixture must also release BLE.
+                let _ = runtime.block_on(async {
+                    tokio::time::timeout(
+                        Duration::from_secs(5),
+                        HardwareCloseProximityDisclosureClient::stop_ble_server(),
+                    )
+                    .await
+                });
+                Err(anyhow::anyhow!("Rust device test panicked")).context("see the test process log")
+            }
+        }
+    });
+    let message = match result {
+        Ok(Ok(())) => return std::ptr::null_mut(),
+        Ok(Err(error)) => format!("{error:#}"),
+        Err(_) => "Rust device test panicked; see the test process log".to_owned(),
+    };
+    CString::new(message.replace('\0', "\\0"))
+        .expect("NUL bytes replaced")
+        .into_raw()
+}
+
+/// # Safety
+/// `error` must be a non-null pointer returned by `wallet_close_proximity_disclosure_test`, freed exactly once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn wallet_device_test_free_error(error: *mut c_char) {
+    // SAFETY: the caller transfers ownership of the error string back to Rust.
+    drop(unsafe { CString::from_raw(error) });
+}

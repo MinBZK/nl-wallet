@@ -10,6 +10,19 @@ workspace = true
 [lib]
 doctest = false
 
+[[example]]
+name = "device_integration_tests"
+crate-type = ["staticlib"]
+required-features = ["hardware_integration_test"]
+
+[[example]]
+name = "verify_close_proximity_response"
+required-features = ["hardware_integration_test"]
+
+[[test]]
+name = "close_proximity_device_scenario"
+required-features = ["hardware_integration_test"]
+
 [features]
 # Allow the disclosure return URL and its prefix to use "http://" and
 # allow Credential Issuer Identifiers to contain "http://"
@@ -29,14 +42,35 @@ test = [
     "platform_support/mock_hw_keystore",
     "platform_support/mock_close_proximity_disclosure",
 ]
+# Test scenarios embedded in the native device test runner; never enabled by the app.
+hardware_integration_test = [
+    "test",
+    "dep:anyhow",
+    "dep:hex",
+    "apple_app_attest/mock",
+    "attestation_data/mock",
+    "crypto/generate",
+    "crypto/mock",
+    "crypto/mock_secure_keys",
+    "dcql/mock",
+    "jwt/test",
+    "mdoc/test",
+    "openid4vc/example_constructors",
+    "platform_support/mock_attested_key",
+    "token_status_list/mock",
+    "wallet_account/server",
+    "tokio/time",
+]
 
 [dependencies]
+anyhow = { workspace = true, optional = true }
 async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["now"] }
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug", "display", "is_variant"] }
 futures = { workspace = true, features = ["async-await"] }
+hex = { workspace = true, optional = true }
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true

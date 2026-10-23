@@ -280,6 +280,21 @@ final class CloseProximityDisclosureTests: XCTestCase {
         }.value
     }
 
+    func testWalletCloseProximityDisclosureWithMacReader() async throws {
+        // The main thread must remain available for CoreBluetooth callbacks while Rust runs Tokio.
+        let error = await Task.detached { () -> String? in
+            let error = wallet_close_proximity_disclosure_test { marker in
+                guard let marker else { return }
+                // Signed request fixtures exceed unified logging's message-size limits.
+                FileHandle.standardError.write(Data((String(cString: marker) + "\n").utf8))
+            }
+            guard let error else { return nil }
+            defer { wallet_device_test_free_error(error) }
+            return String(cString: error)
+        }.value
+        XCTAssertNil(error, error ?? "")
+    }
+
     func testStartQrHandoverStartsAndStopsBleServer() async throws {
         let closeProximityDisclosure = CloseProximityDisclosure()
         let channel = TestChannel()

@@ -1,0 +1,150 @@
+use std::sync::Arc;
+
+use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use crypto::server_keys::generate::Ca;
+use mdoc::CipherSuiteIdentifier;
+use mdoc::DeviceAuth;
+use mdoc::DeviceEngagement;
+use mdoc::DeviceResponse;
+use mdoc::Engagement;
+use mdoc::EngagementVersion;
+use mdoc::SecurityKeyed;
+use mdoc::utils::cose::CoseKey;
+use mdoc::utils::serialization::cbor_deserialize;
+use mdoc::utils::serialization::cbor_serialize;
+use p256::ecdsa::SigningKey;
+use p256::elliptic_curve::Generate;
+use parking_lot::Mutex;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureError;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate;
+use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
+use serial_test::serial;
+use tokio::sync::mpsc;
+use wallet::hardware_test::ResponseArtifact;
+use wallet::hardware_test::Verification;
+use wallet::hardware_test::run_disclosure;
+use wallet::hardware_test::verify_response;
+
+/// Runs the same public wallet API and real signatures as the device test, replacing only BLE.
+#[tokio::test]
+#[serial(MockCloseProximityDisclosureClient)]
+async fn signed_disclosure_round_trip_and_verifier_rejections() {
+    let (updates, receiver) = mpsc::channel(128);
+    let start = MockCloseProximityDisclosureClient::start_qr_handover_context();
+    start.expect().once().return_once(|| {
+        let engagement = DeviceEngagement::from(Engagement {
+            version: EngagementVersion::V1_0,
+            security: SecurityKeyed {
+                cipher_suite_identifier: CipherSuiteIdentifier::P256,
+                e_device_key_bytes: CoseKey::try_from(SigningKey::generate().verifying_key())
+                    .unwrap()
+                    .into(),
+            }
+            .into(),
+            device_retrieval_methods: None,
+        });
+        Ok((
+            BASE64_URL_SAFE_NO_PAD.encode(cbor_serialize(&engagement).unwrap()),
+            receiver,
+        ))
+    });
+    let captured = Arc::new(Mutex::new(None));
+    let captured_response = Arc::clone(&captured);
+    let close_updates = updates.clone();
+    let send = MockCloseProximityDisclosureClient::send_device_response_context();
+    send.expect().once().return_once(move |response| {
+        *captured_response.lock() = Some(response);
+        close_updates.try_send(CloseProximityDisclosureUpdate::Closed).unwrap();
+        Ok(())
+    });
+    let stop = MockCloseProximityDisclosureClient::stop_ble_server_context();
+    stop.expect().once().returning(|| Ok(()));
+    let expected = Arc::new(Mutex::new(None));
+    let expected_ready = Arc::clone(&expected);
+    run_disclosure::<MockCloseProximityDisclosureClient>(move |ready| {
+        let verification = serde_json::to_value(&ready.wallet_verification).unwrap();
+        let transcript = verification["session_transcript_hex"].as_str().unwrap();
+        updates.try_send(CloseProximityDisclosureUpdate::Connected).unwrap();
+        updates
+            .try_send(CloseProximityDisclosureUpdate::SessionEstablished {
+                session_transcript: hex::decode(transcript).unwrap(),
+                device_request: hex::decode(ready.device_request_hex).unwrap(),
+            })
+            .unwrap();
+        *expected_ready.lock() = Some(ready.wallet_verification);
+    })
+    .await
+    .expect("wallet scenario should complete with a signed disclosure and persisted history");
+
+    let expected = expected.lock().take().unwrap();
+    let expected_json = serde_json::to_value(&expected).unwrap();
+    let mut received = ResponseArtifact {
+        device_response_hex: hex::encode(captured.lock().take().unwrap()),
+        session_transcript_hex: expected_json["session_transcript_hex"].as_str().unwrap().to_owned(),
+    };
+    verify_response(&expected, &received)
+        .await
+        .expect("the actual response signature must verify");
+
+    let mut untrusted = expected_json.clone();
+    untrusted["issuer_trust_anchors"] =
+        serde_json::to_value(Ca::generate_issuer_mock_ca().unwrap().to_trust_anchors()).unwrap();
+    let untrusted: Verification = serde_json::from_value(untrusted).unwrap();
+    assert!(
+        verify_response(&untrusted, &received).await.is_err(),
+        "untrusted issuer must fail"
+    );
+
+    // A transcript mismatch must fail even when the response itself is otherwise valid.
+    let real_transcript = received.session_transcript_hex.clone();
+    received.session_transcript_hex = "83f6f6f6".to_owned();
+    assert!(verify_response(&expected, &received).await.is_err());
+    // If the reader and expected metadata agree on a different transcript, device authentication must still fail.
+    let mut wrong_session = expected_json;
+    wrong_session["session_transcript_hex"] = serde_json::json!(received.session_transcript_hex);
+    let wrong_session: Verification = serde_json::from_value(wrong_session).unwrap();
+    assert!(
+        verify_response(&wrong_session, &received).await.is_err(),
+        "device signature must bind the actual session"
+    );
+    received.session_transcript_hex = real_transcript;
+
+    let mut response: DeviceResponse =
+        cbor_deserialize(hex::decode(&received.device_response_hex).unwrap().as_slice()).unwrap();
+    let mut tampered = response.clone();
+    let mut documents = tampered.documents.take().unwrap().into_inner();
+    let DeviceAuth::DeviceSignature(signature) = &mut documents[0].device_signed.device_auth else {
+        panic!("expected device signature");
+    };
+    signature.as_mut().signature[0] ^= 1;
+    tampered.documents = Some(documents.try_into().unwrap());
+    received.device_response_hex = hex::encode(cbor_serialize(&tampered).unwrap());
+    assert!(
+        verify_response(&expected, &received).await.is_err(),
+        "modified signature must fail"
+    );
+    response.status = mdoc::DeviceResponseStatus::GeneralError;
+    received.device_response_hex = hex::encode(cbor_serialize(&response).unwrap());
+    assert!(
+        verify_response(&expected, &received).await.is_err(),
+        "error response must not pass"
+    );
+}
+
+#[tokio::test]
+#[serial(MockCloseProximityDisclosureClient)]
+async fn transport_failure_preserves_error_and_cleans_up() {
+    let start = MockCloseProximityDisclosureClient::start_qr_handover_context();
+    start.expect().once().returning(|| {
+        Err(CloseProximityDisclosureError::PlatformError {
+            reason: "synthetic BLE start failure".to_owned(),
+        })
+    });
+    let stop = MockCloseProximityDisclosureClient::stop_ble_server_context();
+    stop.expect().once().returning(|| Ok(()));
+    let error = run_disclosure::<MockCloseProximityDisclosureClient>(|_| panic!("reader must not start"))
+        .await
+        .unwrap_err();
+    assert!(format!("{error:#}").contains("synthetic BLE start failure"));
+}
