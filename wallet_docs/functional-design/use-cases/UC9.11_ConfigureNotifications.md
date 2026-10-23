@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User selects 'Notifications' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md).</li></ul>                                                                                                                                                                        |
 | **Additional Documentation** | <ul><li>[Notifications](../notifications.md)</li></ul>                                                                                                                                                                                                                |
 | **Possible errors**          | *None*                                                                                                                                                                                                                                                                |
-| **Logical test cases**       | <ul><li>[LTC71 Card status update notifications](../logical-test-cases.md#ltc71)</li><li>[LTC72 Configure notifications](../logical-test-cases.md#ltc72)</li></ul>                                                                                                    |
+| **Logical test cases**       | <ul><li>[LTC71 Card status update notifications](../logical-test-cases.md#ltc71)</li><li>[LTC72 Configure notifications](../logical-test-cases.md#ltc72)</li><li>[LTC88 Notification permission is not granted](../logical-test-cases.md#ltc88)</li></ul>             |
 
 ---
 

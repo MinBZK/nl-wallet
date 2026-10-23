@@ -35,7 +35,7 @@ class NotificationPermissionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("Denying notification permission keeps notifications disabled")
+    @DisplayName("LTC88 Denying notification permission keeps notifications disabled")
     fun verifyDenyingNotificationPermissionKeepsNotificationsDisabled(testInfo: TestInfo) {
         setUp(testInfo)
         menuScreen.clickSettingsButton()
