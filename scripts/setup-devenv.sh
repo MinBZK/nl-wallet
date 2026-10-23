@@ -442,6 +442,12 @@ export PID_ISSUER_WRPAC_KEY
 PID_ISSUER_WRPAC_CRT=$(< "${TARGET_DIR}/pid_issuer/wrpac.crt.der" ${BASE64})
 export PID_ISSUER_WRPAC_CRT
 
+# Generate pid issuer credential request encryption private key
+generate_credential_request_encryption_private_key pid_issuer
+
+PID_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/pid_issuer/pid_issuer_credential_request_encryption.key.der" ${BASE64})
+export PID_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
+
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
 generate_demo_relying_party_key_pair mijn_amsterdam
@@ -624,6 +630,20 @@ generate_issuance_registration_certificate pid 7 \
     "${TARGET_DIR}/pid_issuer/wrpac.crt.pem" "${TARGET_DIR}/pid_issuer/issuance" PID_Provider
 PID_ISSUER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/pid_issuer/issuance.wrprc")
 export PID_ISSUER_REGISTRATION_CERTIFICATE
+
+# Generate credential request encryption private keys for each of the demo issuers
+generate_credential_request_encryption_private_key demo_issuer issuance_server
+generate_credential_request_encryption_private_key demo_issuer acf_demo_issuer
+generate_credential_request_encryption_private_key demo_issuer pacf_issuance_server
+
+ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/issuance_server_credential_request_encryption.key.der" ${BASE64})
+export ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
+
+ACF_DEMO_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/acf_demo_issuer_credential_request_encryption.key.der" ${BASE64})
+export ACF_DEMO_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
+
+PACF_ISSUANCE_SERVER_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/pacf_issuance_server_credential_request_encryption.key.der" ${BASE64})
+export PACF_ISSUANCE_SERVER_REQUEST_ENCRYPTION_KEY
 
 # The shared demo issuance services have their own identities, separate from the demo organizations.
 generate_demo_issuer_issuance_key_pair issuance_server wrpac

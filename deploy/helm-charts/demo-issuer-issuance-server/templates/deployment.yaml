@@ -92,6 +92,11 @@ spec:
                   key: private_key
             - name: ISSUANCE_SERVER__CREDENTIAL_METADATA_KEYPAIR__PRIVATE_KEY_TYPE
               value: "software"
+            - name: ISSUANCE_SERVER__CREDENTIAL_REQUEST_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-issuer-issuance-server-credential-request-encryption-key
+                  key: private_key
             - name: ISSUANCE_SERVER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
             - name: ISSUANCE_SERVER__STORAGE__URL

@@ -7,6 +7,8 @@ wrpac_trust_anchors = ["${WRPAC_CA_CRT}"]
 wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
 wptl_trust_anchors = ["${WPTL_CA_CRT}"]
 
+credential_request_encryption_key = "${PACF_ISSUANCE_SERVER_REQUEST_ENCRYPTION_KEY}"
+
 [credential_metadata_keypair]
 private_key_type = "software"
 private_key = "${PACF_ISSUANCE_SERVER_WRPAC_KEY}"

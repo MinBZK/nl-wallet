@@ -4516,6 +4516,7 @@ version = "0.7.1-dev"
 dependencies = [
  "attestation_data",
  "attestation_types",
+ "base64 0.22.1",
  "chrono",
  "crypto",
  "db_test",
@@ -4528,6 +4529,7 @@ dependencies = [
  "jwt",
  "oauth",
  "openid4vc",
+ "p256 0.14.0",
  "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
