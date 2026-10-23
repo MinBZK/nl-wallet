@@ -31,6 +31,7 @@ use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::COSE_X5CHAIN_HEADER_LABEL;
+use crate::Cose;
 use crate::CoseError;
 use crate::TypedCose;
 use crate::serialization::cbor_deserialize;
@@ -67,27 +68,35 @@ impl WrprcCwtHeader {
 pub enum WrprcCwtError {
     #[error("COSE error: {0}")]
     Cose(#[source] CoseError),
+
     #[error("could not decode or encode the COSE_Sign1 object: {0}")]
     #[category(critical)]
     CoseSerialization(#[source] coset::CoseError),
+
     #[error("invalid COSE_Sign1 structure: {0}")]
     #[category(critical)]
     InvalidCoseSign1(&'static str),
+
     #[error("unexpected CBOR tag for COSE_Sign1: {0}")]
     #[category(critical)]
     UnexpectedCborTag(u64),
+
     #[error("missing protected WRPRC CWT type")]
     #[category(critical)]
     MissingType,
+
     #[error("unexpected protected WRPRC CWT type: {0:?}")]
     #[category(pd)]
     UnexpectedType(Value),
+
     #[error("WRPRC CWT header parameter {0:?} must be protected")]
     #[category(pd)]
     UnprotectedHeaderParameter(Label),
+
     #[error("unsupported critical COSE header parameter: {0:?}")]
     #[category(pd)]
     UnsupportedCriticalHeader(RegisteredLabelWithPrivate<iana::HeaderParameter>),
+
     #[error("WRPRC CWT iat claim is not a finite NumericDate")]
     #[category(critical)]
     InvalidIssuedAt,
@@ -128,7 +137,8 @@ impl<T> Clone for UnverifiedWrprcCwt<T> {
 }
 
 impl<T> UnverifiedWrprcCwt<T> {
-    /// Parse a COSE_Sign1 object that is untagged, tagged as COSE_Sign1, or tagged as CWT around a tagged COSE_Sign1.
+    /// Parse a `COSE_Sign1` object that is untagged, tagged as `COSE_Sign1`, or tagged as CWT around a tagged
+    /// `COSE_Sign1`.
     pub fn from_slice(bytes: &[u8]) -> Result<Self, WrprcCwtError> {
         Self::try_from(parse_cose_sign1(bytes)?)
     }
@@ -341,7 +351,8 @@ fn validate_wrprc_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<WrprcCwtHe
         }
     }
 
-    cose.validate_algorithm().map_err(WrprcCwtError::Cose)?;
+    // Check algorithm here (is checked again when verifying)
+    cose.as_ref().validate_algorithm().map_err(WrprcCwtError::Cose)?;
 
     match protected
         .rest
@@ -631,7 +642,7 @@ mod tests {
         ));
 
         let unsupported_algorithm = HeaderBuilder::new()
-            .algorithm(iana::Algorithm::ES384)
+            .algorithm(iana::Algorithm::ES512)
             .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key_pair.certificate().to_vec()))
             .build();
@@ -864,7 +875,7 @@ mod tests {
 
         assert!(matches!(
             cwt.into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None,),
-            Err(WrprcCwtError::Cose(CoseError::EcdsaSignatureVerificationFailed(_)))
+            Err(WrprcCwtError::Cose(CoseError::Es256SignatureVerificationFailed(_)))
         ));
     }
 

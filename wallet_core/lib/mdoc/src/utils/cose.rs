@@ -143,6 +143,7 @@ impl ClonePayload for CoseMac0 {
 #[cfg(test)]
 mod tests {
     use coset::Header;
+    use crypto::PublicKey;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use serde::Deserialize;
@@ -172,6 +173,7 @@ mod tests {
         assert!(without_payload.as_ref().payload.is_none());
 
         let with_payload = without_payload.clone_with_payload(payload_bytes);
-        assert_eq!(with_payload.verify_and_parse(key.verifying_key()).unwrap(), payload);
+        let public_key = PublicKey::ESP256(*key.verifying_key());
+        assert_eq!(with_payload.verify_and_parse(&public_key).unwrap(), payload);
     }
 }

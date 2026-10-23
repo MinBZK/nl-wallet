@@ -12,7 +12,6 @@ use coset::ProtectedHeader;
 use coset::SignatureContext;
 use coset::iana;
 use coset::sig_structure_data;
-use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
@@ -241,12 +240,7 @@ impl<T> TypedCose<CoseSign1, T> {
         certificate
             .verify(certificate_usage, intermediate_certs, time, trust_anchors)
             .map_err(CoseError::CertificateVerify)?;
-
-        let PublicKey::ESP256(verifying_key) = certificate.public_key() else {
-            return Err(CoseError::UnsupportedCertificateAlgorithm);
-        };
-
-        self.verify_and_parse(verifying_key)
+        self.verify_and_parse(certificate.public_key())
     }
 
     async fn verify_against_trust_anchors_with_chain_and_crl(
@@ -267,12 +261,7 @@ impl<T> TypedCose<CoseSign1, T> {
                 CertificateCrlVerificationError::CertificateVerify(source) => CoseError::CertificateVerify(source),
                 error => CoseError::CertificateCrl(error),
             })?;
-
-        let PublicKey::ESP256(verifying_key) = x5chain.first().public_key() else {
-            return Err(CoseError::UnsupportedCertificateAlgorithm);
-        };
-
-        self.verify_and_parse(verifying_key)
+        self.verify_and_parse(x5chain.first().public_key())
     }
 }
 

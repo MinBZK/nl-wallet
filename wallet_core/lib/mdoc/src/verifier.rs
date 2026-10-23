@@ -5,6 +5,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use coset::RegisteredLabelWithPrivate;
 use coset::iana::Algorithm;
+use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use crypto::x509::KeyIdentifier;
@@ -369,7 +370,7 @@ impl Document {
             DeviceAuth::DeviceSignature(sig) => {
                 debug!("verifying DeviceSignature");
                 sig.clone_with_payload(device_authentication_bts.to_vec())
-                    .verify(&device_key)?;
+                    .verify(&PublicKey::ESP256(device_key))?;
             }
             DeviceAuth::DeviceMac(mac) => {
                 debug!("verifying DeviceMac");

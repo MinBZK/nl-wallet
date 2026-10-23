@@ -7,31 +7,59 @@ use coset::Header;
 use coset::Label;
 use coset::ProtectedHeader;
 use coset::iana;
+use crypto::PublicKey;
 use derive_more::AsMut;
 use derive_more::AsRef;
-use p256::ecdsa::Signature;
-use p256::ecdsa::VerifyingKey;
-use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::signature::Verifier as _;
 use ring::hmac;
+use rsa::RsaPublicKey;
+use rsa::signature::Verifier as _;
 use serde::de::DeserializeOwned;
 
+use crate::CoseAlgorithmIdentifier;
 use crate::error::CoseError;
 use crate::serialization::cbor_deserialize;
 
 /// Trait implemented by the supported COSE message types.
 pub trait Cose {
     type Key;
-    const ALGORITHM: iana::Algorithm;
+    const ALGORITHMS: &[iana::Algorithm];
 
     fn payload(&self) -> Option<&[u8]>;
     fn protected(&self) -> &ProtectedHeader;
     fn unprotected(&self) -> &Header;
     fn verify(&self, key: &Self::Key) -> Result<(), CoseError>;
+
+    fn validate_algorithm(&self) -> Result<iana::Algorithm, CoseError> {
+        match self.protected().header.alg.as_ref() {
+            Some(algorithm @ coset::Algorithm::Assigned(assigned)) => {
+                match CoseAlgorithmIdentifier::from(*assigned as i64) {
+                    CoseAlgorithmIdentifier::Known(identifier) if Self::ALGORITHMS.contains(&identifier) => {
+                        Ok(identifier)
+                    }
+                    _ => Err(CoseError::UnsupportedAlgorithm(algorithm.clone())),
+                }
+            }
+            Some(algorithm) => Err(CoseError::UnsupportedAlgorithm(algorithm.clone()))?,
+            None => Err(CoseError::MissingAlgorithm)?,
+        }
+    }
 }
 
 impl Cose for CoseSign1 {
-    type Key = VerifyingKey;
-    const ALGORITHM: iana::Algorithm = iana::Algorithm::ES256;
+    type Key = PublicKey;
+    const ALGORITHMS: &[iana::Algorithm] = &[
+        iana::Algorithm::ES256,
+        iana::Algorithm::ESP256,
+        iana::Algorithm::ES384,
+        iana::Algorithm::ESP384,
+        iana::Algorithm::RS256,
+        iana::Algorithm::RS384,
+        iana::Algorithm::RS512,
+        iana::Algorithm::PS256,
+        iana::Algorithm::PS384,
+        iana::Algorithm::PS512,
+    ];
 
     fn payload(&self) -> Option<&[u8]> {
         self.payload.as_deref()
@@ -45,22 +73,77 @@ impl Cose for CoseSign1 {
         &self.unprotected
     }
 
-    fn verify(&self, key: &VerifyingKey) -> Result<(), CoseError> {
+    fn verify(&self, key: &PublicKey) -> Result<(), CoseError> {
         if self.payload.is_none() {
             return Err(CoseError::MissingPayload);
         }
+
+        let algorithm = self.validate_algorithm()?;
         self.verify_signature(b"", |signature, data| {
-            let signature = &Signature::try_from(signature).map_err(CoseError::EcdsaSignatureParsingFailed)?;
-            key.verify(data, signature)
-                .map_err(CoseError::EcdsaSignatureVerificationFailed)?;
+            match (key, algorithm) {
+                (PublicKey::ESP256(verifying_key), iana::Algorithm::ES256 | iana::Algorithm::ESP256) => {
+                    p256::ecdsa::Signature::from_slice(signature)
+                        .and_then(|signature| verifying_key.verify(data, &signature))
+                        .map_err(CoseError::Es256SignatureVerificationFailed)
+                }
+                (PublicKey::ESP384(verifying_key), iana::Algorithm::ES384 | iana::Algorithm::ESP384) => {
+                    p384::ecdsa::Signature::from_slice(signature)
+                        .and_then(|signature| verifying_key.verify(data, &signature))
+                        .map_err(CoseError::Es384SignatureVerificationFailed)
+                }
+                (PublicKey::RSA(rsa_public_key), iana::Algorithm::RS256) => {
+                    verify_rsa_pkcs1v15::<sha2::Sha256>(data, signature, rsa_public_key.as_ref().clone())
+                }
+                (PublicKey::RSA(rsa_public_key), iana::Algorithm::RS384) => {
+                    verify_rsa_pkcs1v15::<sha2::Sha384>(data, signature, rsa_public_key.as_ref().clone())
+                }
+                (PublicKey::RSA(rsa_public_key), iana::Algorithm::RS512) => {
+                    verify_rsa_pkcs1v15::<sha2::Sha512>(data, signature, rsa_public_key.as_ref().clone())
+                }
+                (PublicKey::RSA(rsa_public_key), iana::Algorithm::PS256) => {
+                    verify_rsa_pss::<sha2::Sha256>(data, signature, rsa_public_key.as_ref().clone())
+                }
+                (PublicKey::RSA(rsa_public_key), iana::Algorithm::PS384) => {
+                    verify_rsa_pss::<sha2::Sha384>(data, signature, rsa_public_key.as_ref().clone())
+                }
+                (PublicKey::RSA(rsa_public_key), iana::Algorithm::PS512) => {
+                    verify_rsa_pss::<sha2::Sha512>(data, signature, rsa_public_key.as_ref().clone())
+                }
+                (_, _) => Err(CoseError::MismatchAlgorithmWithPublicKey(algorithm)),
+            }?;
+
             Ok(())
         })
     }
 }
 
+fn verify_rsa_pkcs1v15<D>(data: &[u8], signature: &[u8], public_key: RsaPublicKey) -> Result<(), CoseError>
+where
+    D: sha2::Digest + rsa::pkcs8::AssociatedOid,
+{
+    rsa::pkcs1v15::Signature::try_from(signature)
+        .and_then(|signature| {
+            let verifying_key = rsa::pkcs1v15::VerifyingKey::<D>::new(public_key);
+            verifying_key.verify(data, &signature)
+        })
+        .map_err(CoseError::RsaPkcs1v15SignatureVerificationFailed)
+}
+
+fn verify_rsa_pss<D>(data: &[u8], signature: &[u8], public_key: RsaPublicKey) -> Result<(), CoseError>
+where
+    D: sha2::digest::Digest + sha2::digest::FixedOutputReset,
+{
+    rsa::pss::Signature::try_from(signature)
+        .and_then(|signature| {
+            let verifying_key = rsa::pss::VerifyingKey::<D>::new(public_key);
+            verifying_key.verify(data, &signature)
+        })
+        .map_err(CoseError::RsaPssSignatureVerificationFailed)
+}
+
 impl Cose for CoseMac0 {
     type Key = hmac::Key;
-    const ALGORITHM: iana::Algorithm = iana::Algorithm::HMAC_256_256;
+    const ALGORITHMS: &[iana::Algorithm] = &[iana::Algorithm::HMAC_256_256];
 
     fn payload(&self) -> Option<&[u8]> {
         self.payload.as_deref()
@@ -75,6 +158,7 @@ impl Cose for CoseMac0 {
     }
 
     fn verify(&self, key: &hmac::Key) -> Result<(), CoseError> {
+        self.validate_algorithm()?;
         self.verify_payload_tag(
             b"",
             || CoseError::MissingPayload,
@@ -111,7 +195,6 @@ where
 {
     /// Verify the COSE message using the specified key.
     pub fn verify(&self, key: &C::Key) -> Result<(), CoseError> {
-        self.validate_algorithm()?;
         self.as_ref().verify(key)
     }
 
@@ -127,14 +210,6 @@ where
 
     pub fn protected_header(&self) -> &Header {
         &self.as_ref().protected().header
-    }
-
-    pub(crate) fn validate_algorithm(&self) -> Result<(), CoseError> {
-        match self.protected_header().alg.as_ref() {
-            Some(coset::Algorithm::Assigned(algorithm)) if algorithm == &C::ALGORITHM => Ok(()),
-            Some(algorithm) => Err(CoseError::UnsupportedAlgorithm(algorithm.clone())),
-            None => Err(CoseError::MissingAlgorithm),
-        }
     }
 }
 
