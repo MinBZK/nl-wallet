@@ -188,6 +188,7 @@ pub mod generate {
     use crate::server_keys::KeyPair;
     use crate::trust_anchor::BorrowingTrustAnchor;
     use crate::trust_anchor::TrustAnchors;
+    use crate::utils::random_bytes;
     use crate::x509::BorrowingCertificate;
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateParseError;
@@ -619,6 +620,7 @@ pub mod generate {
             if let Some(not_after) = source.not_after.and_then(|ts| ts.timestamp_nanos_opt()) {
                 result.not_after = OffsetDateTime::from_unix_timestamp_nanos(i128::from(not_after)).unwrap();
             }
+            result.serial_number = Some(random_serial_number());
             result.use_authority_key_identifier_extension = !source.exclude_aki;
             if let Some(usage) = source.usage {
                 result.key_usages = usage.key_usages();
@@ -633,6 +635,17 @@ pub mod generate {
 
             result
         }
+    }
+
+    /// RFC 5280, section 4.1.2.2 requires a positive serial number of at most 20 octets that is unique per issuer.
+    /// rcgen derives the serial number from the public key by default, which repeats when a certificate is reissued
+    /// for the same key. A random serial number avoids that. It also makes the content to be signed unpredictable,
+    /// which protects against hash collision attacks.
+    fn random_serial_number() -> SerialNumber {
+        let mut serial_number = random_bytes(20);
+        // Clear the sign bit, so that the serial number is positive and fits in 20 octets.
+        serial_number[0] &= 0x7f;
+        SerialNumber::from(serial_number)
     }
 
     #[cfg(any(test, feature = "mock"))]
