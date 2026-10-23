@@ -8,7 +8,7 @@
 | **Goal**                     | Starting a close proximity sharing session.                                                                            |
 | **Preconditions**            | *None*                                                                                                                 |
 | **Postconditions**           | *None*                                                                                                                 |
-| **Triggered by**             | <ul><li>User selects 'Show your QR code' in [UC7.1 Show all available cards](UC7.1_ShowAllAvailableCards.md)</li></ul> |
+| **Triggered by**             | <ul><li>User selects 'Show your QR code' in [UC7.1 App overview](UC7.1_AppOverview.md)</li></ul>                       |
 | **Additional documentation** | *None*                                                                                                                 |
 | **Possible errors**          | *None*                                                                                                                 |
 | **Logical test cases**       | <ul><li>[LTC79 Close proximity data sharing](../logical-test-cases.md#ltc79)</li></ul>                                 |
@@ -30,7 +30,7 @@
 | 1.2b    | User rejects permission                                                                                                                            | 2                                                                      |
 | **1.3** | **System displays screen 'Show your QR code'**<ul><li>Actions: Center QR code on screen, Back, Help, Would you like to report a problem?</li></ul> |                                                                        |
 | 1.3a    | User scans Center QR code on screen                                                                                                                | 1.4                                                                    |
-| 1.3b    | User selects Back                                                                                                                                  | Go to: [UC7.1 Show all available cards](./UC7.1_ShowAllAvailableCards) |
+| 1.3b    | User selects Back                                                                                                                                  | Go to: [UC7.1 App overview](./UC7.1_AppOverview)                       |
 | 1.3c    | User selects Help                                                                                                                                  | Show placeholder 'under construction'                                  |
 | 1.3d    | User selects Would you like to report a problem?                                                                                                   | Show placeholder 'under construction'                                  |
 | 1.3e    | Verifier scan QR                                                                                                                                   | Go to: [UC5.1 Share data](./UC5.1_ShareDataWithRP)                     |
@@ -42,10 +42,9 @@
 | 2.1a    | User selects Close                                                                                                                                 | End                                                                    |
 | 2.1b    | User selects Open Settings<br>&rarr; System opens OS settings and suspends app                                                                     |                                                                        |
 | **3**   | **WHEN BLUETOOTH PERMISSION IS DISABLED**                                                                                                          |                                                                        |
-| **3.1** | **System displays screen 'Turn on Bluetooth first'**<ul><li>Actions: Close, Help, Turn on Bluetooth (Android only)</li></ul>                       |                                                                        |
-| 3.1a    | User selects Close                                                                                                                                 | Go to: [UC7.1 Show all available cards](./UC7.1_ShowAllAvailableCards) |
-| 3.1b    | User selects Help                                                                                                                                  | Show placeholder 'under construction'                                  |
-| 3.1c    | User selects Turn on Bluetooth                                                                                                                     | Show placeholder 'under construction'                                  |
+| **3.1** | **System displays screen 'Turn on Bluetooth first'**<ul><li>Actions: Close, Turn on Bluetooth (Android only)</li></ul>                             |                                                                        |
+| 3.1a    | User selects Close                                                                                                                                 | Go to: [UC7.1 App overview](./UC7.1_AppOverview)                       |
+| 3.1b    | User selects Turn on Bluetooth                                                                                                                     | Show placeholder 'under construction'                                  |
 | **3.2** | **System asks permission to turn on Bluetooth**                                                                                                    |                                                                        |
 | 3.2a    | User grants permission                                                                                                                             | 1.3                                                                    |
 | 3.2b    | User rejects permission                                                                                                                            | 3.1                                                                    |
