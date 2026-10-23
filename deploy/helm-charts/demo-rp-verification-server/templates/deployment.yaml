@@ -228,17 +228,17 @@ spec:
             - name: VERIFICATION_SERVER__USECASES__car_insurance__CERTIFICATE
               valueFrom:
                 secretKeyRef:
-                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-car-insurance
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-insurance
                   key: certificate
             - name: VERIFICATION_SERVER__USECASES__car_insurance__REGISTRATION_CERTIFICATE
               valueFrom:
                 secretKeyRef:
-                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-car-insurance
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-insurance
                   key: registration_certificate
             - name: VERIFICATION_SERVER__USECASES__car_insurance__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
-                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-car-insurance
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-insurance
                   key: private_key
             - name: VERIFICATION_SERVER__USECASES__car_insurance__PRIVATE_KEY_TYPE
               value: "software"

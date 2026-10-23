@@ -485,14 +485,14 @@ DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER=$(< "${TARGET_DIR}/demo_r
 export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER
 
 # Generate relying party key and cert.
-generate_demo_relying_party_key_pair car_insurance
-DEMO_RELYING_PARTY_KEY_CAR_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/car_insurance.key.der" ${BASE64})
-export DEMO_RELYING_PARTY_KEY_CAR_INSURANCE
-DEMO_RELYING_PARTY_CRT_CAR_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/car_insurance.crt.der" ${BASE64})
-export DEMO_RELYING_PARTY_CRT_CAR_INSURANCE
-generate_demo_relying_party_disclosure_registration_certificate car_insurance 12
-DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_CAR_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/car_insurance.wrprc")
-export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_CAR_INSURANCE
+generate_demo_relying_party_key_pair insurance
+DEMO_RELYING_PARTY_KEY_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/insurance.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_INSURANCE
+DEMO_RELYING_PARTY_CRT_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/insurance.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_INSURANCE
+generate_demo_relying_party_disclosure_registration_certificate insurance 12
+DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/insurance.wrprc")
+export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_INSURANCE
 
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
 ISSUER_CA_AKI=$(openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)

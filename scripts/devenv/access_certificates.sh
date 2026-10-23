@@ -34,10 +34,6 @@ declare -A access_certificates=(
     [(job_finder,surname)]='Baan'
     [(job_finder,given_name)]='Jan'
 
-    [(car_insurance,name)]='VerzekerAar'
-    [(car_insurance,legal_name)]='VerzekerAar N.V.'
-    [(car_insurance,oid)]='NTRNL-99876544'
-
     [(university,name)]='Holland University'
     [(university,legal_name)]='Holland Universiteit'
     [(university,oid)]='NTRNL-99876543'
