@@ -689,6 +689,32 @@ mod tests {
             .expect("leaf must verify against the CA");
     }
 
+    #[test]
+    fn generated_certificate_serial_number() {
+        let ca = Ca::generate_mock();
+        let public_key = SigningKey::generate().verifying_key().to_public_key_der().unwrap();
+        let generate_serial = || {
+            ca.generate_certificate(
+                public_key.as_bytes(),
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration::default(),
+            )
+            .unwrap()
+            .x509_certificate()
+            .raw_serial()
+            .to_vec()
+        };
+
+        let serial = generate_serial();
+
+        // RFC 5280, section 4.1.2.2: a positive serial number of at most 20 octets.
+        assert!(serial.len() <= 20);
+        assert_eq!(serial[0] & 0x80, 0);
+
+        // RFC 5280, section 4.1.2.2: unique per issuer, also when reissuing a certificate for the same public key.
+        assert_ne!(serial, generate_serial());
+    }
+
     #[rstest]
     #[case::issuer(Some(CertificateUsage::Mdl), None)]
     #[case::status_list(Some(CertificateUsage::StatusListSigning), None)]
