@@ -370,6 +370,11 @@ fi
 WPTL_CA_CRT=$(< "${TARGET_DIR}/ca.wptl.crt.der" ${BASE64})
 export WPTL_CA_CRT
 
+# Location of the WPTL CA certificate in the authority information access extension of the WIA and Key Attestation
+# certificates. This is a placeholder: the static server doesn't serve the CA certificate (yet).
+WPTL_CA_ISSUER="http://${SERVICES_HOST}:${STATIC_SERVER_CRL_PORT}/wptl.crt.der"
+export WPTL_CA_ISSUER
+
 
 ########################################################################
 # Configure verification_server, issuance_server, pid_issuer and demo
