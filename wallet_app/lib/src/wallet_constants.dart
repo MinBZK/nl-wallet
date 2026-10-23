@@ -45,3 +45,6 @@ const kDarwinInitSettings = DarwinInitializationSettings(
 // Permissions
 const kAndroidBlePermissions = [Permission.bluetoothConnect, Permission.bluetoothAdvertise];
 const kIosBlePermissions = [Permission.bluetooth];
+
+// Temporary Close Proximity fallback; keep in sync with wallet/close_proximity_disclosure.rs.
+const kWrprcSupportUnavailableUri = 'https://example.invalid/wrprc-support-unavailable';

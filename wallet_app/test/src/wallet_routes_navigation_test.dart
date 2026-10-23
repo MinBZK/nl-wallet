@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
+import 'package:wallet/src/data/repository/close_proximity/close_proximity_repository.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/data/repository/help/help_content_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
@@ -196,6 +197,7 @@ List<SingleChildWidget> _getRequiredProviders() {
 
 List<SingleChildWidget> _getRepositoryProviders() {
   return [
+    RepositoryProvider<CloseProximityRepository>(create: (c) => Mocks.create()),
     RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
     RepositoryProvider<HelpContentRepository>(create: (c) => Mocks.create()),
     RepositoryProvider<LanguageRepository>(create: _createLanguageRepositoryMock),

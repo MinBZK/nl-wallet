@@ -130,8 +130,12 @@ Future<StartDisclosureResult> startDisclosure({required String uri, required boo
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 
 Future<String> startCloseProximityDisclosure({
+  required bool wrprcStrictMode,
   required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
-}) => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure(callback: callback);
+}) => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure(
+  wrprcStrictMode: wrprcStrictMode,
+  callback: callback,
+);
 
 Future<StartDisclosureResult> continueCloseProximityDisclosure() =>
     WalletCore.instance.api.crateApiFullContinueCloseProximityDisclosure();
