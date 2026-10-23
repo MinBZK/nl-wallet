@@ -1161,6 +1161,25 @@ mod tests {
         IndexMap::from_iter([(REQUEST_INFO_WRPRC_KEY.to_string(), Value::Bytes(certificate))])
     });
 
+    #[derive(Debug, Clone, Copy)]
+    enum EnvelopeFormat {
+        Jwt,
+        Cwt,
+    }
+
+    impl EnvelopeFormat {
+        fn sign(
+            self,
+            authority: &MockRegistrationCertificateAuthority,
+            payload: &RegistrationCertificateFixture,
+        ) -> Vec<u8> {
+            match self {
+                Self::Jwt => authority.sign_jwt(payload),
+                Self::Cwt => authority.sign_cwt(payload),
+            }
+        }
+    }
+
     fn close_proximity_wallet_configuration() -> WalletConfiguration {
         WalletConfiguration {
             wrprc_trust_anchors: REGISTRATION_CERTIFICATE_AUTHORITY.trust_anchors.clone(),
@@ -1922,12 +1941,25 @@ mod tests {
     async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_verification_error(
         #[case] authority: &MockRegistrationCertificateAuthority,
         #[case] tamper_signature: bool,
+        #[values(EnvelopeFormat::Jwt, EnvelopeFormat::Cwt)] format: EnvelopeFormat,
     ) {
-        let reader = WRPAC_CA.generate_wrpac_verifier_mock().unwrap();
-        let mut certificate = authority.issue_cwt(reader.certificate(), Query::new_mock_mdoc_pid_example());
+        let mut certificate = format.sign(authority, &registration_certificate_payload());
         if tamper_signature {
-            // COSE_Sign1 ends with the signature byte string; preserve the envelope structure.
-            *certificate.last_mut().unwrap() ^= 1;
+            match format {
+                EnvelopeFormat::Jwt => {
+                    // Change the first base64url signature character, preserving the JWT structure and encoding.
+                    let signature_start = certificate.iter().rposition(|byte| *byte == b'.').unwrap() + 1;
+                    certificate[signature_start] = if certificate[signature_start] == b'A' {
+                        b'B'
+                    } else {
+                        b'A'
+                    };
+                }
+                EnvelopeFormat::Cwt => {
+                    // COSE_Sign1 ends with the signature byte string; preserve the envelope structure.
+                    *certificate.last_mut().unwrap() ^= 1;
+                }
+            }
         }
         let error = assert_registration_certificate_rejected(
             Some(Value::Bytes(certificate)),
@@ -1940,9 +1972,11 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError::CloseProximityDisclosureSessionError(
-                CloseProximityDisclosureError::RegistrationCertificateVerification(
-                    RegistrationCertificateEnvelopeError::Cwt(_)
-                )
+                CloseProximityDisclosureError::RegistrationCertificateVerification(ref error)
+            ) if matches!(
+                (format, error),
+                (EnvelopeFormat::Jwt, RegistrationCertificateEnvelopeError::Jwt(_))
+                    | (EnvelopeFormat::Cwt, RegistrationCertificateEnvelopeError::Cwt(_))
             )
         );
     }
@@ -1990,10 +2024,11 @@ mod tests {
     async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_validation_error(
         #[case] modify_payload: fn(&mut RegistrationCertificateFixture),
         #[case] matches_error: fn(&CloseProximityDisclosureError) -> bool,
+        #[values(EnvelopeFormat::Jwt, EnvelopeFormat::Cwt)] format: EnvelopeFormat,
     ) {
         let mut payload = registration_certificate_payload();
         modify_payload(&mut payload);
-        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
+        let certificate = format.sign(&REGISTRATION_CERTIFICATE_AUTHORITY, &payload);
         let error = assert_registration_certificate_rejected(
             Some(Value::Bytes(certificate)),
             DeviceResponseStatus::GeneralError,
@@ -2008,12 +2043,15 @@ mod tests {
         );
     }
 
+    #[rstest]
     #[tokio::test]
     #[serial(MockCloseProximityDisclosureClient)]
-    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_authorization_error() {
+    async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_authorization_error(
+        #[values(EnvelopeFormat::Jwt, EnvelopeFormat::Cwt)] format: EnvelopeFormat,
+    ) {
         let mut payload = registration_certificate_payload();
         payload.0["credentials"][0]["claim"] = json!([{ "path": [PID_MDOC_DOCTYPE, PID_FAMILY_NAME] }]);
-        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
+        let certificate = format.sign(&REGISTRATION_CERTIFICATE_AUTHORITY, &payload);
         let error = assert_registration_certificate_rejected(
             Some(Value::Bytes(certificate)),
             DeviceResponseStatus::GeneralError,
@@ -2051,6 +2089,7 @@ mod tests {
     #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_continue_close_proximity_disclosure_reports_registration_certificate_status_error(
         #[case] failure: RegistrationCertificateStatusFailure,
+        #[values(EnvelopeFormat::Jwt, EnvelopeFormat::Cwt)] format: EnvelopeFormat,
     ) {
         let mut payload = registration_certificate_payload();
         payload.0["status"]["idx"] = json!(match failure {
@@ -2058,7 +2097,7 @@ mod tests {
             RegistrationCertificateStatusFailure::OutOfBounds => "16",
             _ => "1",
         });
-        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
+        let certificate = format.sign(&REGISTRATION_CERTIFICATE_AUTHORITY, &payload);
         let status_list_result = match failure {
             RegistrationCertificateStatusFailure::Revoked | RegistrationCertificateStatusFailure::Suspended => {
                 let mut status_list = StatusList::new(10);
@@ -2215,12 +2254,15 @@ mod tests {
     #[case::without_expiry(None)]
     #[case::unexpired(Some(60))]
     #[tokio::test]
-    async fn test_verify_device_request_success(#[case] expires_in_seconds: Option<i64>) {
+    async fn test_verify_device_request_success(
+        #[case] expires_in_seconds: Option<i64>,
+        #[values(EnvelopeFormat::Jwt, EnvelopeFormat::Cwt)] format: EnvelopeFormat,
+    ) {
         let mut payload = registration_certificate_payload();
         if let Some(expires_in_seconds) = expires_in_seconds {
             payload.0["exp"] = json!(Utc::now().timestamp() + expires_in_seconds);
         }
-        let certificate = REGISTRATION_CERTIFICATE_AUTHORITY.sign_cwt(&payload);
+        let certificate = format.sign(&REGISTRATION_CERTIFICATE_AUTHORITY, &payload);
         let mut items_request = pid_given_name_items_request();
         items_request.request_info = Some(IndexMap::from_iter([(
             REQUEST_INFO_WRPRC_KEY.to_string(),
@@ -2244,7 +2286,7 @@ mod tests {
         )
         .await;
 
-        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), registration_certificate_organization());
     }
 
     #[rstest]

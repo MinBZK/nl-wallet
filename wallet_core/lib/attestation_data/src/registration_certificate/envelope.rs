@@ -44,8 +44,8 @@ pub enum RegistrationCertificateRequestParseError {
     Missing,
     #[error("requestInfo.euWrprc must be a CBOR byte string")]
     NotByteString,
-    #[error("could not parse requestInfo.euWrprc as a WRPRC CWT: {0}")]
-    Cwt(#[source] WrprcCwtError),
+    #[error("could not parse requestInfo.euWrprc as a WRPRC: {0}")]
+    Envelope(#[source] RegistrationCertificateEnvelopeParseError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -88,9 +88,7 @@ impl RegistrationCertificateEnvelope {
             .as_bytes()
             .ok_or(RegistrationCertificateRequestParseError::NotByteString)?;
 
-        UnverifiedWrprcCwt::from_slice(bytes)
-            .map(|cwt| Self::Cwt(Box::new(cwt)))
-            .map_err(RegistrationCertificateRequestParseError::Cwt)
+        Self::from_slice(bytes).map_err(RegistrationCertificateRequestParseError::Envelope)
     }
 }
 
@@ -98,8 +96,8 @@ impl TryFrom<String> for RegistrationCertificateEnvelope {
     type Error = RegistrationCertificateEnvelopeParseError;
 
     fn try_from(data: String) -> Result<Self, Self::Error> {
-        // ETSI TS 119 472-2 requires the base64url encoding of the serialized registration certificate. Since a
-        // registration certificate encoded as a compact JWT already consists of base64url-encoded parts, some
+        // ETSI TS 119 472-2 requires base64url encoding of the serialized certificate in OpenID4VP verifier_info.data.
+        // Since a registration certificate encoded as a compact JWT already consists of base64url-encoded parts, some
         // implementations wrongly include it without encoding it. Even though this is not spec-compliant, we leniently
         // accept that as well. Try parsing a compact JWT first: the JWT parser requires a '.', which never occurs
         // in base64url-encoded data.
@@ -178,6 +176,7 @@ pub fn verify_registration_certificate_envelope(
 mod tests {
     use std::assert_matches;
 
+    use base64::prelude::*;
     use ciborium::value::Value;
     use indexmap::IndexMap;
     use mdoc::ItemsRequest;
@@ -272,26 +271,49 @@ mod tests {
 
         assert_matches!(
             RegistrationCertificateEnvelope::from_request_info(&request),
-            Err(RegistrationCertificateRequestParseError::Cwt(_))
+            Err(RegistrationCertificateRequestParseError::Envelope(_))
         );
     }
 
     #[test]
-    fn reject_jwt_items_request_registration_certificate() {
+    fn parse_jwt_items_request_registration_certificate() {
         let authority = MockRegistrationCertificateAuthority::new();
         let certificate = authority.sign_jwt(&RegistrationCertificateFixture(valid_payload_json()));
-        assert_matches!(
-            RegistrationCertificateEnvelope::from_slice(certificate.as_slice()),
-            Ok(RegistrationCertificateEnvelope::Jwt(_))
-        );
         let request = items_request(Some(IndexMap::from_iter([(
             REQUEST_INFO_WRPRC_KEY.to_string(),
-            Value::Bytes(certificate),
+            Value::Bytes(certificate.clone()),
+        )])));
+        let encoded_request = cbor_serialize(&request).unwrap();
+        let request: ItemsRequest = cbor_deserialize(encoded_request.as_slice()).unwrap();
+
+        let envelope = RegistrationCertificateEnvelope::from_request_info(&request).unwrap();
+
+        assert_matches!(&envelope, RegistrationCertificateEnvelope::Jwt(_));
+        assert_eq!(envelope.to_vec().unwrap(), certificate);
+        // Reader authentication covers the original serialized request, including the JWT bytes.
+        assert_eq!(cbor_serialize(&request).unwrap(), encoded_request);
+
+        let payload = verify_registration_certificate_envelope(&envelope, &authority.trust_anchors, &TimeGenerator)
+            .unwrap()
+            .into_payload();
+        assert_eq!(payload.payload().sub, "LEIXG-529900T8BM49AURSDO55");
+    }
+
+    // This test guards against accidentally applying OpenID4VP's extra base64url encoding to CP.
+    // ETSI TS 119 472-2 requires serialized certificate bytes in CP (ISO/IEC 18013-REQ-07/08); the extra encoding
+    // belongs to OpenID4VP verifier_info.data (OIDFVP-HAIP-COMMON-REQ-RO-16).
+    #[test]
+    fn reject_base64url_encoded_items_request_registration_certificate() {
+        let authority = MockRegistrationCertificateAuthority::new();
+        let certificate = authority.sign_jwt(&RegistrationCertificateFixture(valid_payload_json()));
+        let request = items_request(Some(IndexMap::from_iter([(
+            REQUEST_INFO_WRPRC_KEY.to_string(),
+            Value::Bytes(BASE64_URL_SAFE_NO_PAD.encode(certificate).into_bytes()),
         )])));
 
         assert_matches!(
             RegistrationCertificateEnvelope::from_request_info(&request),
-            Err(RegistrationCertificateRequestParseError::Cwt(_))
+            Err(RegistrationCertificateRequestParseError::Envelope(_))
         );
     }
 }

@@ -386,7 +386,7 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                                          WRPAC leaf certificate and private key (PEM) used to
                                          sign reader authentication. Requires --request-doc-type
                                          and one or more --request-attribute.
-                  --wrprc-file <path>    File containing a base64url-encoded CWT registration
+                  --wrprc-file <path>    File containing a base64url-encoded JWT or CWT registration
                                          certificate, as emitted by wallet_ca. Requires the
                                          WRPAC certificate and key. Included in requestInfo.euWrprc.
                   --request-doc-type <docType>
@@ -741,7 +741,7 @@ private func registrationCertificateData(fromFile path: String) throws -> Data {
         .trimmingCharacters(in: .whitespacesAndNewlines)
     guard !encoded.isEmpty, let data = try? base64UrlDecodedData(encoded) else {
         throw ArgumentError.invalidConfiguration(
-            "--wrprc-file must contain a base64url-encoded CWT registration certificate")
+            "--wrprc-file must contain a base64url-encoded JWT or CWT registration certificate")
     }
     return data
 }
@@ -1288,6 +1288,17 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
         }
 
         @objc func testRegistrationCertificateIsCoveredByReaderSignature() throws {
+            try assertRegistrationCertificateIsCoveredByReaderSignature(
+                Data([0xd8, 0x3d, 0xd2, 0x84, 0x40, 0xa0, 0x41, 0xa0, 0x40]))
+        }
+
+        @objc func testJwtRegistrationCertificateIsCoveredByReaderSignature() throws {
+            // Only transport is tested here; the wallet verifies the JWT's signature and claims.
+            try assertRegistrationCertificateIsCoveredByReaderSignature(
+                Data("eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl".utf8))
+        }
+
+        private func assertRegistrationCertificateIsCoveredByReaderSignature(_ wrprc: Data) throws {
             let key = P256.Signing.PrivateKey()
             let keyFile = directory.appendingPathComponent("reader.key.pem")
             let certificateFile = directory.appendingPathComponent("reader.crt.pem")
@@ -1296,7 +1307,6 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
             // The reader transports certificates verbatim; trust validation belongs to the wallet.
             try "-----BEGIN CERTIFICATE-----\nMAA=\n-----END CERTIFICATE-----\n"
                 .write(to: certificateFile, atomically: true, encoding: .utf8)
-            let wrprc = Data([0xd8, 0x3d, 0xd2, 0x84, 0x40, 0xa0, 0x41, 0xa0, 0x40])
             let encodedWrprc = wrprc.base64EncodedString()
                 .replacingOccurrences(of: "+", with: "-")
                 .replacingOccurrences(of: "/", with: "_")
