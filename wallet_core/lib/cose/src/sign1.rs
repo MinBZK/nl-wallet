@@ -111,7 +111,7 @@ impl<T> TypedCose<CoseSign1, T> {
     {
         let payload = cbor_serialize(payload).map_err(CoseError::Cbor)?;
         Ok(sign_cose_with_headers(
-            &payload,
+            payload,
             protected_header,
             unprotected_header,
             private_key,
@@ -268,7 +268,7 @@ fn signature_data_with_header(payload: &[u8], header: Header) -> (Vec<u8>, Prote
 }
 
 pub async fn sign_cose(
-    payload: &[u8],
+    payload: Vec<u8>,
     unprotected_header: Header,
     private_key: &impl EcdsaKey,
     include_payload: bool,
@@ -284,13 +284,13 @@ pub async fn sign_cose(
 }
 
 async fn sign_cose_with_headers(
-    payload: &[u8],
+    payload: Vec<u8>,
     protected_header: Header,
     unprotected_header: Header,
     private_key: &impl EcdsaKey,
     include_payload: bool,
 ) -> Result<CoseSign1, CoseError> {
-    let (signature_data, protected_header) = signature_data_with_header(payload, protected_header);
+    let (signature_data, protected_header) = signature_data_with_header(&payload, protected_header);
     let signature = private_key
         .try_sign(&signature_data)
         .await
@@ -299,7 +299,7 @@ async fn sign_cose_with_headers(
 
     Ok(CoseSign1 {
         signature,
-        payload: include_payload.then(|| payload.to_vec()),
+        payload: include_payload.then(|| payload),
         protected: protected_header,
         unprotected: unprotected_header,
     })
