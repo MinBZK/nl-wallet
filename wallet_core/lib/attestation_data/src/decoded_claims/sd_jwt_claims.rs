@@ -1,3 +1,4 @@
+use error_category::ErrorCategory;
 use sd_jwt::error::DecoderError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
@@ -8,12 +9,14 @@ use serde_json::Value;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SdJwtClaims(Map<String, Value>);
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum SdJwtClaimsError {
     #[error("could not decode SD-JWT claims: {0}")]
+    #[category(pd)]
     Decoding(#[source] DecoderError),
 
     #[error("could not convert SD-JWT claims to JSON: {0}")]
+    #[category(pd)]
     JsonConversion(#[source] serde_json::Error),
 }
 

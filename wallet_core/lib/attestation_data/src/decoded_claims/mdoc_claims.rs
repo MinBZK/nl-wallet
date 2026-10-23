@@ -3,6 +3,8 @@ use std::collections::HashSet;
 
 use ciborium::Value;
 use ciborium::value::Integer;
+use derive_more::Display;
+use error_category::ErrorCategory;
 use mdoc::DataElementIdentifier;
 use mdoc::IssuerSigned;
 use mdoc::NameSpace;
@@ -15,9 +17,10 @@ use mdoc::holder::disclosure::PartialMdoc;
 #[derive(Debug, Clone, PartialEq)]
 pub struct MdocClaims(HashMap<NameSpace, HashMap<DataElementIdentifier, Value>>);
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum MdocClaimsError {
     #[error("invalid CBOR map key in attribute \"{element_identifier}\" of namespace \"{name_space}\": {error}")]
+    #[category(pd)]
     InvalidMapKey {
         name_space: NameSpace,
         element_identifier: DataElementIdentifier,
@@ -28,11 +31,50 @@ pub enum MdocClaimsError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum MapKeyError {
-    #[error("unsupported key type: {0:?}")]
-    UnsupportedType(Box<Value>),
+    #[error("unsupported key type: {0}")]
+    UnsupportedType(UnsupportedKeyType),
 
-    #[error("duplicate key: {0:?}")]
-    Duplicate(Box<Value>),
+    #[error("duplicate key")]
+    Duplicate,
+}
+
+/// CBOR type of a map key that is neither text nor an integer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
+#[display(rename_all = "snake_case")]
+pub enum UnsupportedKeyType {
+    Bytes,
+    Float,
+    Bool,
+    Null,
+    Tag,
+    Array,
+    Map,
+    Other,
+}
+
+/// Supported CBOR map key, used to detect duplicates.
+#[derive(PartialEq, Eq, Hash)]
+enum MapKey<'a> {
+    Text(&'a str),
+    Integer(Integer),
+}
+
+impl<'a> MapKey<'a> {
+    fn parse(key: &'a Value) -> Result<Self, UnsupportedKeyType> {
+        match key {
+            Value::Text(text) => Ok(Self::Text(text)),
+            Value::Integer(integer) => Ok(Self::Integer(*integer)),
+            Value::Bytes(_) => Err(UnsupportedKeyType::Bytes),
+            Value::Float(_) => Err(UnsupportedKeyType::Float),
+            Value::Bool(_) => Err(UnsupportedKeyType::Bool),
+            Value::Null => Err(UnsupportedKeyType::Null),
+            Value::Tag(_, _) => Err(UnsupportedKeyType::Tag),
+            Value::Array(_) => Err(UnsupportedKeyType::Array),
+            Value::Map(_) => Err(UnsupportedKeyType::Map),
+            // `Value` is non-exhaustive.
+            _ => Err(UnsupportedKeyType::Other),
+        }
+    }
 }
 
 impl MdocClaims {
@@ -73,25 +115,15 @@ impl MdocClaims {
 ///
 /// Recursion depth is bounded by `ciborium`'s nesting limit (256) for deserialized values.
 fn check_map_keys(value: &Value) -> Result<(), MapKeyError> {
-    #[derive(PartialEq, Eq, Hash)]
-    enum MapKey<'a> {
-        Text(&'a str),
-        Integer(Integer),
-    }
-
     match value {
         Value::Map(entries) => {
             let mut keys = HashSet::with_capacity(entries.len());
 
             entries.iter().try_for_each(|(key, value)| {
-                let map_key = match key {
-                    Value::Text(text) => MapKey::Text(text),
-                    Value::Integer(integer) => MapKey::Integer(*integer),
-                    _ => return Err(MapKeyError::UnsupportedType(Box::new(key.clone()))),
-                };
+                let map_key = MapKey::parse(key).map_err(MapKeyError::UnsupportedType)?;
 
                 if !keys.insert(map_key) {
-                    return Err(MapKeyError::Duplicate(Box::new(key.clone())));
+                    return Err(MapKeyError::Duplicate);
                 }
 
                 check_map_keys(value)
@@ -126,6 +158,7 @@ mod test {
     use super::MapKeyError;
     use super::MdocClaims;
     use super::MdocClaimsError;
+    use super::UnsupportedKeyType;
     use super::check_map_keys;
 
     const DOC_TYPE: &str = "com.example.doc_type";
@@ -242,8 +275,8 @@ mod test {
             MdocClaimsError::InvalidMapKey {
                 name_space,
                 element_identifier,
-                error: MapKeyError::UnsupportedType(key),
-            } if name_space == OTHER_NAME_SPACE && element_identifier == "invalid" && *key == Value::Bool(true)
+                error: MapKeyError::UnsupportedType(UnsupportedKeyType::Bool),
+            } if name_space == OTHER_NAME_SPACE && element_identifier == "invalid"
         );
     }
 
@@ -276,15 +309,16 @@ mod test {
     }
 
     #[rstest]
-    #[case::bool_key(Value::Bool(true))]
-    #[case::null_key(Value::Null)]
-    #[case::bytes_key(Value::Bytes(vec![1]))]
-    #[case::float_key(Value::Float(1.0))]
-    #[case::array_key(Value::Array(vec![text("key")]))]
-    #[case::map_key(map(text("key"), Value::Null))]
-    #[case::tagged_text_key(Value::Tag(0, Box::new(text("key"))))]
+    #[case::bool_key(Value::Bool(true), UnsupportedKeyType::Bool)]
+    #[case::null_key(Value::Null, UnsupportedKeyType::Null)]
+    #[case::bytes_key(Value::Bytes(vec![1]), UnsupportedKeyType::Bytes)]
+    #[case::float_key(Value::Float(1.0), UnsupportedKeyType::Float)]
+    #[case::array_key(Value::Array(vec![text("key")]), UnsupportedKeyType::Array)]
+    #[case::map_key(map(text("key"), Value::Null), UnsupportedKeyType::Map)]
+    #[case::tagged_text_key(Value::Tag(0, Box::new(text("key"))), UnsupportedKeyType::Tag)]
     fn test_check_map_keys_unsupported_type(
         #[case] key: Value,
+        #[case] expected_key_type: UnsupportedKeyType,
         #[values(
             |value| value,
             |value| map(text("outer"), value),
@@ -293,11 +327,11 @@ mod test {
         )]
         wrap: fn(Value) -> Value,
     ) {
-        let value = wrap(map(key.clone(), Value::Null));
+        let value = wrap(map(key, Value::Null));
 
         let error = check_map_keys(&value).expect_err("map keys should be invalid");
 
-        assert_matches!(error, MapKeyError::UnsupportedType(error_key) if *error_key == key);
+        assert_matches!(error, MapKeyError::UnsupportedType(key_type) if key_type == expected_key_type);
     }
 
     #[rstest]
@@ -321,6 +355,13 @@ mod test {
 
         let error = check_map_keys(&value).expect_err("map keys should be invalid");
 
-        assert_matches!(error, MapKeyError::Duplicate(error_key) if *error_key == key);
+        assert_matches!(error, MapKeyError::Duplicate);
+    }
+
+    #[test]
+    fn test_map_key_error_display() {
+        let error = MapKeyError::UnsupportedType(UnsupportedKeyType::Bytes);
+
+        assert_eq!(error.to_string(), "unsupported key type: bytes");
     }
 }
