@@ -17,8 +17,6 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 use utils::generator::Generator;
-use wscd::payload::poa::JwtPoaInput;
-use wscd::payload::poa::Poa;
 
 use super::DisclosableAttestations;
 use super::DisclosureSession;
@@ -92,7 +90,7 @@ where
     ) -> Result<Option<Url>, (Box<Self>, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        W: DisclosureWscd<Key = K, Poa = Poa>,
+        W: DisclosureWscd<Key = K>,
     {
         info!("disclose attestations");
         // TODO (PVW-4780): This method assumes that the attestations passed to it only contain those attributes that
@@ -105,12 +103,8 @@ where
         //                  intermediate types of the attestations that contain a subset of the attributes.
 
         let encryption_nonce = random_string(32);
-        let poa_input = JwtPoaInput::new(
-            Some(self.auth_request.nonce.clone()),
-            self.auth_request.client_id.to_string(),
-        );
 
-        let (vp_token, poa) = match attestations.into_inner() {
+        let vp_token = match attestations.into_inner() {
             DisclosableAttestations::MsoMdoc(partial_mdocs_map) => {
                 info!("signing disclosed mdoc documents");
 
@@ -130,16 +124,14 @@ where
                     // type guarantees that it contains at least one attestation.
                     .unwrap();
 
-                // Have the WSCD sign all of the partial mdocs in one operation,
-                // producing a PoA if multiple unique keys are used for this.
+                // Have the WSCD sign all of the partial mdocs in one operation.
                 let result = DeviceResponse::sign_multiple_from_partial_mdocs(
                     partial_mdocs,
                     &self.auth_request.session_transcript(),
                     wscd,
-                    poa_input,
                 )
                 .await;
-                let (received_device_responses, poa) = match result {
+                let received_device_responses = match result {
                     Ok(value) => value,
                     Err(error) => {
                         return Err((
@@ -153,7 +145,7 @@ where
 
                 // Reconstruct a `HashMap` from the identifier and `DeviceResponse`s.
                 let mut received_device_responses = VecDeque::from(received_device_responses.into_inner());
-                let vp_token = id_and_counts
+                id_and_counts
                     .into_iter()
                     .map(|(id, count)| {
                         // Note that:
@@ -168,9 +160,7 @@ where
 
                         (id, VerifiablePresentation::MsoMdoc(responses))
                     })
-                    .collect();
-
-                (vp_token, poa)
+                    .collect()
             }
             DisclosableAttestations::SdJwt(unsigned_presentations_map) => {
                 info!("signing disclosed SD-JWT documents");
@@ -191,19 +181,13 @@ where
                     // type guarantees that it contains at least one attestation.
                     .unwrap();
 
-                // Have the WSCD sign all of the unsigned presentations in one operation,
-                // producing a PoA if multiple unique keys are used for this.
+                // Have the WSCD sign all of the unsigned presentations in one operation.
                 let key_binding_builder =
                     KeyBindingJwtBuilder::new(self.auth_request.client_id.to_string(), self.auth_request.nonce.clone());
-                let result = UnsignedSdJwtPresentation::sign_multiple(
-                    unsigned_presentations,
-                    key_binding_builder,
-                    wscd,
-                    poa_input,
-                    time,
-                )
-                .await;
-                let (signed_presentations, poa) = match result {
+                let result =
+                    UnsignedSdJwtPresentation::sign_multiple(unsigned_presentations, key_binding_builder, wscd, time)
+                        .await;
+                let signed_presentations = match result {
                     Ok(value) => value,
                     Err(error) => {
                         return Err((
@@ -215,7 +199,7 @@ where
 
                 // Reconstruct a `HashMap` from the identifier and `SdJwtPresentation`s.
                 let mut received_presentations = VecDeque::from(signed_presentations.into_inner());
-                let vp_token = id_and_counts
+                id_and_counts
                     .into_iter()
                     .map(|(id, count)| {
                         // Note that:
@@ -232,8 +216,7 @@ where
 
                         (id, VerifiablePresentation::SdJwt(presentations))
                     })
-                    .collect();
-                (vp_token, poa)
+                    .collect()
             }
         };
 
@@ -243,7 +226,6 @@ where
             &self.auth_request,
             self.selected_encryption_algorithm,
             &encryption_nonce,
-            poa,
         );
         let jwe = match result {
             Ok(value) => value,
@@ -288,6 +270,7 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use crypto::PublicKey;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -302,7 +285,6 @@ mod tests {
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MockRemoteWscd;
 
     use super::super::DisclosableAttestations;
     use super::super::DisclosureSession;
@@ -383,7 +365,7 @@ mod tests {
     fn setup_disclosure_mdoc() -> (
         NormalizedCredentialRequests,
         NonEmptyDisclosableAttestations,
-        MockRemoteWscd,
+        DisclosureMockRemoteWscd,
     ) {
         let requests = NormalizedCredentialRequests::new_mock_mdoc_pid_example();
 
@@ -398,7 +380,7 @@ mod tests {
         .try_into()
         .unwrap();
 
-        let wscd = MockRemoteWscd::new_with_keys(vec![mdoc_key]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![mdoc_key]);
 
         (requests, attestations, wscd)
     }
@@ -406,7 +388,7 @@ mod tests {
     fn setup_disclosure_sd_jwt() -> (
         NormalizedCredentialRequests,
         NonEmptyDisclosableAttestations,
-        MockRemoteWscd,
+        DisclosureMockRemoteWscd,
     ) {
         let requests = NormalizedCredentialRequests::new_mock_sd_jwt_pid_example();
 
@@ -414,7 +396,7 @@ mod tests {
         let issuer_key_pair = ca.generate_issuer_mock().unwrap();
         let sd_jwt_key = MockRemoteEcdsaKey::new_random("sd_jwt_key".to_string());
         let sd_jwt_public_key = *sd_jwt_key.verifying_key();
-        let wscd = MockRemoteWscd::new_with_keys(vec![sd_jwt_key]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![sd_jwt_key]);
 
         let verified_sd_jwt =
             SignedSdJwt::pid_example(&issuer_key_pair, &PublicKey::from(sd_jwt_public_key)).into_verified();
@@ -472,7 +454,7 @@ mod tests {
         let (requests, attestations, mut wscd) = setup_disclosure_mdoc();
         let (disclosure_session, _verifier_session) = setup_disclosure_session(None, requests);
 
-        wscd.disclosure.has_multi_key_signing_error = true;
+        wscd.has_multi_key_signing_error = true;
 
         let (_disclosure_session, error) = disclosure_session
             .disclose(attestations, &wscd, &MockTimeGenerator::default())
@@ -495,7 +477,7 @@ mod tests {
         let (requests, attestations, mut wscd) = setup_disclosure_sd_jwt();
         let (disclosure_session, _verifier_session) = setup_disclosure_session(None, requests);
 
-        wscd.disclosure.has_multi_key_signing_error = true;
+        wscd.has_multi_key_signing_error = true;
 
         let (_disclosure_session, error) = disclosure_session
             .disclose(attestations, &wscd, &MockTimeGenerator::default())

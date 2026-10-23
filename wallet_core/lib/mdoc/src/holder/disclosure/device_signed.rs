@@ -4,7 +4,6 @@ use coset::HeaderBuilder;
 use coset::iana;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use indexmap::IndexMap;
 use p256::PublicKey;
 use p256::SecretKey;
@@ -18,17 +17,12 @@ use crate::utils::serialization::TaggedBytes;
 use crate::utils::serialization::cbor_serialize;
 
 impl DeviceSigned {
-    pub async fn new_signatures<K, W, P>(
-        keys_and_challenges: Vec<(K, &[u8])>,
-        wscd: &W,
-        poa_input: P::Input,
-    ) -> Result<(Vec<DeviceSigned>, Option<P>)>
+    pub async fn new_signatures<K, W>(keys_and_challenges: Vec<(K, &[u8])>, wscd: &W) -> Result<Vec<DeviceSigned>>
     where
         K: CredentialEcdsaKey,
-        W: DisclosureWscd<Key = K, Poa = P>,
-        P: WscdPoa,
+        W: DisclosureWscd<Key = K>,
     {
-        let (coses, poa) = sign_coses(keys_and_challenges, wscd, Header::default(), poa_input, false).await?;
+        let coses = sign_coses(keys_and_challenges, wscd, Header::default(), false).await?;
 
         let signed = coses
             .into_iter()
@@ -38,7 +32,7 @@ impl DeviceSigned {
             })
             .collect();
 
-        Ok((signed, poa))
+        Ok(signed)
     }
 
     pub fn new_mac(

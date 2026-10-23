@@ -387,16 +387,11 @@ pub struct CredentialConfiguration {
 }
 
 impl CredentialConfiguration {
-    pub fn new_mdoc_ecdsa_p256_sha256(
-        doctype: String,
-        scope: Scope,
-        proof_types: HashSet<ProofType>,
-        credential_metadata: CredentialMetadata,
-    ) -> Self {
+    pub fn new_mdoc_ecdsa_p256_sha256(doctype: String, scope: Scope, credential_metadata: CredentialMetadata) -> Self {
         Self {
             format: CredentialFormat::new_mdoc_ecdsa_p256_sha256(doctype),
             scope: Some(scope),
-            cryptographic_binding: Some(CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types)),
+            cryptographic_binding: Some(CryptographicBinding::new_mdoc_ecdsa_p256_sha256()),
             credential_metadata: Some(credential_metadata),
         }
     }
@@ -404,14 +399,13 @@ impl CredentialConfiguration {
     pub fn new_sd_jwt_ecdsa_p256_sha256(
         vct: String,
         scope: Scope,
-        proof_types: HashSet<ProofType>,
         credential_metadata: CredentialMetadata,
         type_metadata_uri: Option<IssuerUrl>,
     ) -> Self {
         Self {
             format: CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct, type_metadata_uri),
             scope: Some(scope),
-            cryptographic_binding: Some(CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types)),
+            cryptographic_binding: Some(CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256()),
             credential_metadata: Some(credential_metadata),
         }
     }
@@ -522,28 +516,21 @@ pub struct CryptographicBinding {
 }
 
 impl CryptographicBinding {
-    fn new_mdoc_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
-        Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::CoseKey, proof_types)
+    fn new_mdoc_ecdsa_p256_sha256() -> Self {
+        Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::CoseKey)
     }
 
-    fn new_sd_jwt_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
-        Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::Jwk, proof_types)
+    fn new_sd_jwt_ecdsa_p256_sha256() -> Self {
+        Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::Jwk)
     }
 
-    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod, proof_types: HashSet<ProofType>) -> Self {
+    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod) -> Self {
+        // Even though support for both the `attestation` and `jwt` proof types is mandatory, we decide to only
+        // implement the `attestation` proof type here, as this Issuer implementation need not be fully compliant.
+        // The `jwt` proof type does not add significant additional benefits over the `attestation` proof type.
         Self {
             cryptographic_binding_methods_supported: vec_nonempty![binding_method],
-            proof_types_supported: proof_types
-                .into_iter()
-                .map(|proof_type| {
-                    let requires_key_attestation = matches!(proof_type, ProofType::Attestation);
-
-                    (
-                        proof_type,
-                        ProofMetadata::new_ecdsa_p256_sha256(requires_key_attestation),
-                    )
-                })
-                .collect(),
+            proof_types_supported: HashMap::from([(ProofType::Attestation, ProofMetadata::new_ecdsa_p256_sha256())]),
         }
     }
 }
@@ -572,7 +559,6 @@ pub enum CryptographicBindingMethod {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProofType {
-    Jwt,
     Attestation,
 
     // Allow the issuer to announce types that the wallet doesn't support.
@@ -596,15 +582,13 @@ pub struct ProofMetadata {
 }
 
 impl ProofMetadata {
-    fn new_ecdsa_p256_sha256(requires_key_attestation: bool) -> Self {
-        let key_attestations_required = requires_key_attestation.then(|| KeyAttestationsRequired {
-            key_storage: HashSet::from([AttackPotentialResistance::Iso18045High]),
-            user_authentication: HashSet::from([AttackPotentialResistance::Iso18045High]),
-        });
-
+    fn new_ecdsa_p256_sha256() -> Self {
         Self {
             proof_signing_alg_values_supported: vec_nonempty![JwsAlgorithm::ES256],
-            key_attestations_required,
+            key_attestations_required: Some(KeyAttestationsRequired {
+                key_storage: HashSet::from([AttackPotentialResistance::Iso18045High]),
+                user_authentication: HashSet::from([AttackPotentialResistance::Iso18045High]),
+            }),
         }
     }
 }

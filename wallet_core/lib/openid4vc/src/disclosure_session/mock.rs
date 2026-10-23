@@ -8,7 +8,6 @@ use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use url::Url;
 use utils::generator::Generator;
-use wscd::payload::poa::Poa;
 
 use super::DisclosureClient;
 use super::DisclosureSession;
@@ -75,7 +74,7 @@ impl DisclosureSession for MockDisclosureSession {
     ) -> Result<Option<Url>, (Box<Self>, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        W: DisclosureWscd<Key = K, Poa = Poa>,
+        W: DisclosureWscd<Key = K>,
     {
         self.disclose(attestations).await
     }

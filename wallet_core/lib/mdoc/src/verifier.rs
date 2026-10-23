@@ -456,8 +456,8 @@ mod tests {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::examples::Examples;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
@@ -575,13 +575,12 @@ mod tests {
         });
         let partial_mdoc = PartialMdoc::new_mock_with_ca_key_and_status(&ca, &key, Some(status));
         let session_transcript = SessionTranscript::new_mock();
-        let wscd = MockRemoteWscd::new(vec![key.clone()]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![key.clone()]);
 
-        let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
+        let device_responses = DeviceResponse::sign_multiple_from_partial_mdocs(
             vec_nonempty![(partial_mdoc, key.identifier.clone())],
             &session_transcript,
             &wscd,
-            (),
         )
         .await
         .expect("signing DeviceResponse from mdoc should succeed");

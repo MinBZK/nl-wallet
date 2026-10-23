@@ -391,7 +391,7 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::MalformedToken | Self::Unauthorized => CredentialErrorCode::InvalidToken,
 
-            Self::MissingCredentialRequestProof | Self::JwtProofTypeUnsupported => CredentialErrorCode::InvalidProof,
+            Self::MissingCredentialRequestProof | Self::ProofTypeUnsupported(..) => CredentialErrorCode::InvalidProof,
 
             Self::TooManyCopiesRequested(_) => CredentialErrorCode::InvalidCredentialRequest,
 
