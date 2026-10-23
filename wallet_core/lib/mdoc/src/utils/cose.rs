@@ -170,7 +170,7 @@ mod tests {
             string: "Hello, world!".to_owned(),
         };
 
-        let cose = TypedCose::sign(&payload, Header::default(), &key, true).await.unwrap();
+        let cose = TypedCose::sign(&payload, Header::default(), &key).await.unwrap();
         let payload_bytes = cose.as_ref().payload.clone().unwrap();
 
         let without_payload = cose.clone_without_payload();

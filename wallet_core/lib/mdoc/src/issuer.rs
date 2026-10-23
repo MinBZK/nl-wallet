@@ -14,8 +14,7 @@ impl IssuerSigned {
 
         let mso = self.issuer_auth.dangerous_parse_unverified()?.0;
 
-        self.issuer_auth =
-            TypedCose::sign(&mso.into(), self.issuer_auth.as_ref().unprotected.clone(), key, true).await?;
+        self.issuer_auth = TypedCose::sign(&mso.into(), self.issuer_auth.as_ref().unprotected.clone(), key).await?;
 
         Ok(())
     }

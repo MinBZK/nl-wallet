@@ -3119,7 +3119,7 @@ mod tests {
                     certificate: None,
                 }));
                 let mso_tagged = TaggedBytes(mso);
-                let issuer_auth = TypedCose::sign_with_certificate(&mso_tagged, &signer.issuer_key, true)
+                let issuer_auth = TypedCose::sign_with_certificate(&mso_tagged, &signer.issuer_key)
                     .now_or_never()
                     .unwrap()
                     .unwrap();

@@ -287,7 +287,7 @@ where
             )
             .build();
 
-        let cose = TypedCose::sign_with_protected_header(payload, protected_header, Header::default(), key_pair, true)
+        let cose = TypedCose::sign_with_protected_header(payload, protected_header, Header::default(), key_pair)
             .await
             .map_err(WrprcCwtError::Cose)?;
 
@@ -442,7 +442,7 @@ mod tests {
     }
 
     async fn sign_with_header(header: Header, key_pair: &KeyPair) -> TypedCose<CoseSign1, ToyMessage> {
-        TypedCose::sign_with_protected_header(&ToyMessage::default(), header, Header::default(), key_pair, true)
+        TypedCose::sign_with_protected_header(&ToyMessage::default(), header, Header::default(), key_pair)
             .await
             .unwrap()
     }
@@ -696,10 +696,9 @@ mod tests {
         let unprotected = HeaderBuilder::new()
             .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .build();
-        let cose =
-            TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair, true)
-                .await
-                .unwrap();
+        let cose = TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair)
+            .await
+            .unwrap();
         assert!(matches!(
             UnverifiedWrprcCwt::try_from(cose),
             Err(WrprcCwtError::UnprotectedHeaderParameter(Label::Int(
@@ -733,10 +732,9 @@ mod tests {
 
         let protected = valid_wrprc_protected_header(&key_pair, None);
         let unprotected = HeaderBuilder::new().add_critical(iana::HeaderParameter::Alg).build();
-        let cose =
-            TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair, true)
-                .await
-                .unwrap();
+        let cose = TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair)
+            .await
+            .unwrap();
         assert!(matches!(
             UnverifiedWrprcCwt::try_from(cose),
             Err(WrprcCwtError::UnprotectedHeaderParameter(Label::Int(
