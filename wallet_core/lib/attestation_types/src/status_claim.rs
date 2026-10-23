@@ -15,7 +15,7 @@ use url::Url;
 /// }
 /// ```
 ///
-/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-referenced-token>
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-6>
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StatusClaim {

@@ -33,7 +33,7 @@ type SparseStatusVec = HashMap<usize, StatusType, BuildHasherDefault<IdentityHas
 /// A Status List is a data structure that contains the statuses of many Referenced Tokens represented by one or
 /// multiple bits.
 ///
-/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list>
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-4>
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct StatusList {
     sparse: SparseStatusVec,
@@ -332,7 +332,7 @@ impl Bits {
 
 /// A status describes the state, mode, condition or stage of an entity that is represented by the Referenced Token.
 ///
-/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-types>
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-7>
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum StatusType {
     /// The status of the Referenced Token is valid, correct or legal.
@@ -346,7 +346,7 @@ pub enum StatusType {
     /// usually temporary.
     Suspended, // 0x02
 
-    /// The Status Type value 0x03 and Status Type values in the range 0x0B until 0x0F are permanently reserved as
+    /// The Status Type value 0x03 and Status Type values in the range 0x0C until 0x0F are permanently reserved as
     /// application specific. The processing of Status Types using these values is application specific.
     ApplicationSpecific(u8),
 
@@ -361,7 +361,7 @@ impl From<u8> for StatusType {
             1 => StatusType::Invalid,
             2 => StatusType::Suspended,
             3 => StatusType::ApplicationSpecific(3),
-            0x0B..=0x0F => StatusType::ApplicationSpecific(value),
+            0x0C..=0x0F => StatusType::ApplicationSpecific(value),
             _ => StatusType::Reserved(value),
         }
     }
@@ -579,6 +579,20 @@ pub mod test {
     fn test_get(#[case] index: usize, #[case] expected: StatusType) {
         let packed = FOUR_BIT_STATUS_LIST.to_owned().pack();
         assert_eq!(packed.get(index), Some(expected));
+    }
+
+    #[rstest]
+    #[case(0x00, StatusType::Valid)]
+    #[case(0x01, StatusType::Invalid)]
+    #[case(0x02, StatusType::Suspended)]
+    #[case(0x03, StatusType::ApplicationSpecific(0x03))]
+    #[case(0x04, StatusType::Reserved(0x04))]
+    #[case(0x0B, StatusType::Reserved(0x0B))]
+    #[case(0x0C, StatusType::ApplicationSpecific(0x0C))]
+    #[case(0x0F, StatusType::ApplicationSpecific(0x0F))]
+    #[case(0x10, StatusType::Reserved(0x10))]
+    fn test_status_type_from_u8(#[case] value: u8, #[case] expected: StatusType) {
+        assert_eq!(StatusType::from(value), expected);
     }
 
     #[test]
