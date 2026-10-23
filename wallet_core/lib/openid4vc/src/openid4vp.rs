@@ -571,9 +571,7 @@ impl NormalizedVpAuthorizationRequest {
             response_uri,
             credential_requests,
             client_metadata: VpClientMetadata {
-                jwks: Jwks {
-                    keys: vec_nonempty![jwk],
-                },
+                jwks: Jwks::new(vec_nonempty![jwk]),
                 vp_formats_supported: VpFormatsSupported {
                     mso_mdoc: Some(MsoMdocAlgValues {
                         issuerauth_alg_values: vec_nonempty![iana::Algorithm::ESP256.into()].into(),
