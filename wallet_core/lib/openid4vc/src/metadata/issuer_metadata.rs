@@ -916,6 +916,7 @@ mod tests {
     use coset::iana;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
+    use jwe::algorithm::CompressionAlgorithm;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;
@@ -1260,7 +1261,7 @@ mod tests {
                     .as_ref()
                     .map(|values| values.iter())
                     .unwrap_or_default()
-                    .eq(&[JweCompressionAlgorithm::Deflate])
+                    .eq(&[JweCompressionAlgorithm::Known(CompressionAlgorithm::Deflate)])
             );
             assert!(request_encryption.encryption_required);
         } else {
@@ -1285,7 +1286,7 @@ mod tests {
                     .as_ref()
                     .map(|values| values.iter())
                     .unwrap_or_default()
-                    .eq(&[JweCompressionAlgorithm::Deflate])
+                    .eq(&[JweCompressionAlgorithm::Known(CompressionAlgorithm::Deflate)])
             );
         } else {
             assert!(response_encryption.zip_values_supported.is_none());

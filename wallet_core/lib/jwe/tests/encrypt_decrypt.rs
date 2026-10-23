@@ -1,11 +1,11 @@
 use std::assert_matches;
 
+use jwe::algorithm::CompressionAlgorithm;
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
-use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
 use jwe::error::JweDecryptionError;
@@ -41,7 +41,7 @@ where
             EncryptionAlgorithm::A256Gcm,
             Some(b"apu"),
             Some(b"apv"),
-            JweCompression::Deflate,
+            Some(CompressionAlgorithm::Deflate),
         )
         .expect("encrypting payload to JWE should succeed")
 }

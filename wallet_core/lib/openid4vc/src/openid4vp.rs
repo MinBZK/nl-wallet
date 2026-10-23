@@ -35,7 +35,6 @@ use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
-use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
 use jwe::error::EcdhPublicJwkError;
@@ -896,7 +895,7 @@ impl VpAuthorizationResponse {
             encryption_algorithm,
             Some(encryption_nonce.as_bytes()),
             Some(auth_request.nonce.as_ref().as_bytes()),
-            JweCompression::None,
+            None,
         )
     }
 

@@ -69,6 +69,12 @@ pub enum EncryptionAlgorithm {
     A256Gcm,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString)]
+pub enum CompressionAlgorithm {
+    #[strum(serialize = "DEF")]
+    Deflate,
+}
+
 #[cfg(feature = "rsa")]
 mod rsa {
     use josekit::jwe::alg::rsaes::RsaesJweAlgorithm;

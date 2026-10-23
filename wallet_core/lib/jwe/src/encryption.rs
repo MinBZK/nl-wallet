@@ -20,6 +20,7 @@ use serde::Serialize;
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 
+use crate::algorithm::CompressionAlgorithm;
 use crate::algorithm::EcdhAlgorithm;
 use crate::algorithm::EncryptionAlgorithm;
 use crate::error::EcdhPublicJwkError;
@@ -153,12 +154,6 @@ pub struct JweEncrypter {
     encrypter: EcdhEsJweEncrypter,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum JweCompression {
-    None,
-    Deflate,
-}
-
 impl JweEncrypter {
     fn new(id: Option<String>, public_key: PublicKey, algorithm: EcdhAlgorithm) -> Self {
         let der = public_key
@@ -182,7 +177,7 @@ impl JweEncrypter {
         encryption_algorithm: EncryptionAlgorithm,
         apu: Option<&[u8]>,
         apv: Option<&[u8]>,
-        use_compression: JweCompression,
+        use_compression: Option<CompressionAlgorithm>,
     ) -> Result<String, JweJsonEncryptionError>
     where
         T: Serialize,
@@ -204,8 +199,8 @@ impl JweEncrypter {
             header.set_agreement_partyvinfo(apv);
         }
 
-        if matches!(use_compression, JweCompression::Deflate) {
-            header.set_compression("DEF");
+        if let Some(compression) = use_compression {
+            header.set_compression(compression.to_string());
         }
 
         let jwe = josekit::jwe::serialize_compact(&payload, &header, &self.encrypter)
@@ -232,10 +227,10 @@ mod tests {
     use serde::Serialize;
     use serde_json::json;
 
-    use super::JweCompression;
     use super::JweEncrypter;
     use super::JweJsonEncryptionError;
     use super::JwePublicKey;
+    use crate::algorithm::CompressionAlgorithm;
     use crate::algorithm::EcdhAlgorithm;
     use crate::algorithm::EncryptionAlgorithm;
     use crate::error::EcdhPublicJwkError;
@@ -440,7 +435,7 @@ mod tests {
         encryption_algorithm: EncryptionAlgorithm,
         #[values(None, Some("apu"))] apu: Option<&str>,
         #[values(None, Some("apv"))] apv: Option<&str>,
-        #[values(JweCompression::None, JweCompression::Deflate)] use_compression: JweCompression,
+        #[values(None, Some(CompressionAlgorithm::Deflate))] use_compression: Option<CompressionAlgorithm>,
     ) where
         T: Serialize,
     {
@@ -474,7 +469,7 @@ mod tests {
         assert_eq!(header.claim("apu").is_some(), apu.is_some());
         assert_eq!(header.claim("apv").is_some(), apv.is_some());
 
-        if matches!(use_compression, JweCompression::Deflate) {
+        if use_compression.is_some() {
             assert_eq!(header.claim("zip").and_then(serde_json::Value::as_str), Some("DEF"));
         } else {
             assert!(header.claim("zip").is_none())
@@ -488,7 +483,7 @@ mod tests {
         let encrypter = JweEncrypter::from(key);
 
         let data = HashMap::from([(("one".to_string(), "two".to_string()), "three".to_string())]);
-        let result = encrypter.encrypt_json(&data, EncryptionAlgorithm::A256Gcm, None, None, JweCompression::None);
+        let result = encrypter.encrypt_json(&data, EncryptionAlgorithm::A256Gcm, None, None, None);
 
         let error = result.expect_err("encrypting data with JweEncrypter should fail");
 
