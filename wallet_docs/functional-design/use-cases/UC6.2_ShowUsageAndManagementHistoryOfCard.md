@@ -2,16 +2,16 @@
 
 ## Overview
 
-| Aspect                       | Description                                                                                                                                              |
-|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Summary**                  | The user reviews activity history specific to a selected card by choosing an activity, then explores related data, agreements or organizational details. |
-| **Goal**                     | Reviewing usage and management events of a card                                                                                                          |
-| **Preconditions**            | *None*                                                                                                                                                   |
-| **Postconditions**           | *None*                                                                                                                                                   |
-| **Triggered by**             | <ul><li>User selects 'Activities' in [UC7.2 Show Card Details](UC7.2_ShowCardDetails.md)</ul></li>                                                       |
-| **Additional Documentation** | *None*                                                                                                                                                   |
-| **Possible errors**          | *None*                                                                                                                                                   |
-| **Logical test cases**       | <ul><li>[LTC23 View card-specific history list](../logical-test-cases.md#ltc23)</li></ul>                                                                |
+| Aspect                       | Description                                                                                                                                                      |
+|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Summary**                  | The user reviews activity history specific to a selected card by choosing an activity, then explores related data, the privacy policy or organizational details. |
+| **Goal**                     | Reviewing usage and management events of a card                                                                                                                  |
+| **Preconditions**            | *None*                                                                                                                                                           |
+| **Postconditions**           | *None*                                                                                                                                                           |
+| **Triggered by**             | <ul><li>User selects 'Activities' in [UC7.2 Show Card Details](UC7.2_ShowCardDetails.md)</ul></li>                                                               |
+| **Additional Documentation** | *None*                                                                                                                                                           |
+| **Possible errors**          | *None*                                                                                                                                                           |
+| **Logical test cases**       | <ul><li>[LTC23 View card-specific history list](../logical-test-cases.md#ltc23)</li></ul>                                                                        |
 
 ---
 

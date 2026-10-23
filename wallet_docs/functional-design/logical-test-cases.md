@@ -434,9 +434,15 @@ obtain card)<br>
 
 #### Get help
 
-**Given** system displays a PIN screen<br>
-**When** user selects 'help'<br>
-**Then** system displays get help screen<br>
+**Given** system displays the app menu<br>
+**When** user selects 'Help and information'<br>
+**Then** system displays the help overview with the help categories<br>
+**When** user selects a help category<br>
+**Then** system displays the subcategories of that category<br>
+**When** user selects a subcategory<br>
+**Then** system displays the topics of that subcategory<br>
+**When** user selects a topic<br>
+**Then** system displays the content of that topic<br>
 
 ---
 
