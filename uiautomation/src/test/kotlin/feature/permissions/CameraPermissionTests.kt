@@ -38,7 +38,7 @@ class CameraPermissionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("Camera permission not granted shows in-app permission screen")
+    @DisplayName("LTC86 Camera permission not granted shows in-app permission screen")
     fun verifyCameraPermissionScreenShownWhenPermissionNotGranted(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.openQRScanner()
@@ -49,7 +49,7 @@ class CameraPermissionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_SIMULATOR_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("Camera permission granted once is re-requested after app restart")
+    @DisplayName("LTC85 Camera permission granted once is re-requested after app restart")
     fun verifyCameraPermissionRequestedAgainAfterOnceGrantAndAppRestart(testInfo: TestInfo) {
         assumeTrue(testConfig.platform == Platform.ANDROID, "Allow one time only permission on iOS is not supported")
 

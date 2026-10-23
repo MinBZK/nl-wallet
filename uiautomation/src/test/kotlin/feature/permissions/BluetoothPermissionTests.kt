@@ -33,7 +33,7 @@ class BluetoothPermissionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("Bluetooth permission not granted shows in-app permission screen")
+    @DisplayName("LTC87 Bluetooth permission not granted shows in-app permission screen")
     fun verifyBluetoothPermissionScreenShownWhenPermissionNotGranted(testInfo: TestInfo) {
         // The iOS simulator has no Bluetooth and on real iOS devices the permissions cannot be reliably reset.
         assumeTrue(testConfig.platform == Platform.ANDROID, "Bluetooth permission prompt is not available on the iOS simulator")

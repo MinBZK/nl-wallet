@@ -241,7 +241,7 @@ extract-manual-test-set:
   rules: !reference [.default-branch-manual, rules]
   needs: []
   script:
-    - ./deploy/qa-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
+    - ./deploy/qa-util/extract-manual-test-set.py wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
   artifacts:
     name: manual-test-set
     when: always

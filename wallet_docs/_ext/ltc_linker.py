@@ -7,6 +7,12 @@ from docutils import nodes
 from sphinx.application import Sphinx
 from sphinx.util import logging as sphinx_logging
 
+from manual_marker import ManualMarker
+from manual_marker import MarkerError
+from manual_marker import covers_all_platforms
+from manual_marker import merged_platforms
+from manual_marker import parse_marker_body
+
 logger = sphinx_logging.getLogger(__name__)
 
 _LTC_REF_RE = re.compile(r'\[LTC(\d+)', re.IGNORECASE)
@@ -104,12 +110,20 @@ def _scan_design_files(app: Sphinx) -> dict[str, list[dict[str, Any]]]:
     return covers
 
 
-def _has_manual_marker(section: nodes.section) -> bool:
-    """Return True if the section contains a '% manual' comment."""
+def _manual_markers(section: nodes.section, ltc_id: str) -> list[ManualMarker]:
+    """Return the '% manual' markers of a section, in document order."""
+    markers: list[ManualMarker] = []
+
     for comment in section.findall(nodes.comment):
-        if comment.astext().strip().lower() == 'manual':
-            return True
-    return False
+        try:
+            marker = parse_marker_body(comment.astext())
+        except MarkerError as e:
+            logger.warning(f'[ltc_linker] LTC{ltc_id}: {e}')
+            continue
+        if marker is not None:
+            markers.append(marker)
+
+    return markers
 
 
 def _find_transition(section: nodes.section) -> tuple[nodes.Node, int] | None:
@@ -127,13 +141,17 @@ def _build_impl_nodes(
     implementations: list[dict[str, Any]],
     repo_url: str,
     repo_ref: str,
-    is_manual: bool,
+    markers: list[ManualMarker],
 ) -> nodes.raw:
     """Build the Implementations block for a single LTC."""
     parts = ['<details class="ltc-implementations"><summary>Implementations</summary><ul>']
 
-    if is_manual:
-        parts.append('<li><em>Manual test</em></li>')
+    for marker in markers:
+        label = html.escape(marker.label)
+        if marker.reason:
+            parts.append(f'<li><em>{label}</em> &mdash; {html.escape(marker.reason)}</li>')
+        else:
+            parts.append(f'<li><em>{label}</em></li>')
 
     for impl in implementations:
         file_path = impl['file_path']
@@ -210,19 +228,20 @@ def process_ltc_links(app: Sphinx, doctree: nodes.document, docname: str) -> Non
         if ltc_id is None:
             continue
 
-        is_manual = _has_manual_marker(section)
+        markers = _manual_markers(section, ltc_id)
         code_impls = implementations.get(ltc_id, [])
         design_covers = covers.get(ltc_id, [])
 
-        if not code_impls and not is_manual:
+        # A platform scoped marker still needs an automated test on the other platform.
+        if not code_impls and not covers_all_platforms(merged_platforms(markers)):
             no_impl.append(ltc_id)
         if not design_covers:
             no_covers.append(ltc_id)
 
-        if not code_impls and not is_manual and not design_covers:
+        if not code_impls and not markers and not design_covers:
             continue
 
-        impl_nodes = _build_impl_nodes(code_impls, repo_url, repo_ref, is_manual)
+        impl_nodes = _build_impl_nodes(code_impls, repo_url, repo_ref, markers)
         covers_nodes = _build_covers_nodes(design_covers, app, docname)
 
         location = _find_transition(section)

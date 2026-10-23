@@ -2,16 +2,16 @@
 
 ## Overview
 
-| Aspect                       | Description                                                                                                            |
-|------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| **Summary**                  | The user shows the QR to a third party reader, to initiate a close proximity sharing session.                          |
-| **Goal**                     | Starting a close proximity sharing session.                                                                            |
-| **Preconditions**            | *None*                                                                                                                 |
-| **Postconditions**           | *None*                                                                                                                 |
-| **Triggered by**             | <ul><li>User selects 'Show your QR code' in [UC7.1 App overview](UC7.1_AppOverview.md)</li></ul>                       |
-| **Additional documentation** | *None*                                                                                                                 |
-| **Possible errors**          | *None*                                                                                                                 |
-| **Logical test cases**       | <ul><li>[LTC79 Close proximity data sharing](../logical-test-cases.md#ltc79)</li></ul>                                 |
+| Aspect                       | Description                                                                                                                                                                |
+|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Summary**                  | The user shows the QR to a third party reader, to initiate a close proximity sharing session.                                                                              |
+| **Goal**                     | Starting a close proximity sharing session.                                                                                                                                |
+| **Preconditions**            | *None*                                                                                                                                                                     |
+| **Postconditions**           | *None*                                                                                                                                                                     |
+| **Triggered by**             | <ul><li>User selects 'Show your QR code' in [UC7.1 App overview](UC7.1_AppOverview.md)</li></ul>                                                                           |
+| **Additional documentation** | *None*                                                                                                                                                                     |
+| **Possible errors**          | *None*                                                                                                                                                                     |
+| **Logical test cases**       | <ul><li>[LTC79 Close proximity data sharing](../logical-test-cases.md#ltc79)</li><li>[LTC87 Bluetooth permission is not granted](../logical-test-cases.md#ltc87)</li></ul> |
 
 ---
 
