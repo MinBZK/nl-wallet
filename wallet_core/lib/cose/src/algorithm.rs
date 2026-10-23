@@ -13,7 +13,7 @@ use serde::Serialize;
 #[derive(Debug, Clone, Copy, Eq, Serialize, Deserialize)]
 #[serde(from = "i64", into = "i64")]
 pub enum CoseAlgorithmIdentifier {
-    Known(KnownCoseAlgorithmIdentifier),
+    Known(iana::Algorithm),
     Unknown(i64),
 }
 
@@ -24,28 +24,8 @@ impl CoseAlgorithmIdentifier {
     /// ES256 and fully specified ESP256 (-9) describe the same operation. This classification does not imply that every
     /// cryptographic operation in this crate accepts both identifiers on the wire.
     pub fn is_ecdsa_p256(&self) -> bool {
-        matches!(
-            self,
-            Self::Known(KnownCoseAlgorithmIdentifier::Es256 | KnownCoseAlgorithmIdentifier::Esp256)
-        )
+        matches!(self, Self::Known(iana::Algorithm::ES256 | iana::Algorithm::ESP256))
     }
-}
-
-impl From<KnownCoseAlgorithmIdentifier> for CoseAlgorithmIdentifier {
-    fn from(value: KnownCoseAlgorithmIdentifier) -> Self {
-        Self::Known(value)
-    }
-}
-
-/// Registered COSE algorithm identifiers explicitly recognized by [`CoseAlgorithmIdentifier`].
-///
-/// This list is deliberately not exhaustive, and recognition does not imply support by every cryptographic operation
-/// in this crate.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::FromRepr)]
-#[repr(i64)]
-pub enum KnownCoseAlgorithmIdentifier {
-    Es256 = -7,
-    Esp256 = -9,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -67,9 +47,17 @@ impl From<CoseAlgorithmIdentifier> for i64 {
 
 impl From<i64> for CoseAlgorithmIdentifier {
     fn from(value: i64) -> Self {
-        match KnownCoseAlgorithmIdentifier::from_repr(value) {
-            Some(identifier) => Self::Known(identifier),
-            None => Self::Unknown(value),
+        iana::Algorithm::from_i64(value)
+            .map(Into::into)
+            .unwrap_or_else(|| Self::Unknown(value))
+    }
+}
+
+impl From<iana::Algorithm> for CoseAlgorithmIdentifier {
+    fn from(algorithm: iana::Algorithm) -> Self {
+        match algorithm {
+            iana::Algorithm::ES256 | iana::Algorithm::ESP256 => Self::Known(algorithm),
+            algorithm => Self::Unknown(algorithm.to_i64()),
         }
     }
 }
@@ -98,16 +86,17 @@ impl TryFrom<CoseAlgorithmIdentifier> for coset::Algorithm {
     type Error = CoseAlgorithmIdentifierConversionError;
 
     fn try_from(value: CoseAlgorithmIdentifier) -> Result<Self, Self::Error> {
-        let identifier = i64::from(value);
-
-        if let Some(algorithm) = iana::Algorithm::from_i64(identifier) {
-            Ok(RegisteredLabelWithPrivate::Assigned(algorithm))
-        } else if iana::Algorithm::is_private(identifier) {
-            Ok(RegisteredLabelWithPrivate::PrivateUse(identifier))
-        } else {
-            Err(CoseAlgorithmIdentifierConversionError::NotRepresentedByCoset(
-                identifier,
-            ))
+        match value {
+            CoseAlgorithmIdentifier::Known(algorithm) => Ok(RegisteredLabelWithPrivate::Assigned(algorithm)),
+            CoseAlgorithmIdentifier::Unknown(identifier) => {
+                if iana::Algorithm::is_private(identifier) {
+                    Ok(RegisteredLabelWithPrivate::PrivateUse(identifier))
+                } else {
+                    Err(CoseAlgorithmIdentifierConversionError::NotRepresentedByCoset(
+                        identifier,
+                    ))
+                }
+            }
         }
     }
 }
@@ -121,24 +110,17 @@ mod tests {
         let algorithm = coset::Algorithm::Assigned(iana::Algorithm::ES256);
         let identifier = CoseAlgorithmIdentifier::try_from(algorithm.clone()).unwrap();
 
-        assert_eq!(
-            identifier,
-            CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Es256)
-        );
+        assert_eq!(identifier, CoseAlgorithmIdentifier::Known(iana::Algorithm::ES256));
         assert_eq!(coset::Algorithm::try_from(identifier).unwrap(), algorithm);
     }
 
     #[test]
-    fn unmodeled_assigned_and_private_use_algorithms_roundtrip() {
-        for algorithm in [
-            coset::Algorithm::Assigned(iana::Algorithm::EdDSA),
-            coset::Algorithm::PrivateUse(-65_537),
-        ] {
-            let identifier = CoseAlgorithmIdentifier::try_from(algorithm.clone()).unwrap();
+    fn private_use_algorithms_roundtrip() {
+        let algorithm = coset::Algorithm::PrivateUse(-65_537);
+        let identifier = CoseAlgorithmIdentifier::try_from(algorithm.clone()).unwrap();
 
-            assert!(matches!(identifier, CoseAlgorithmIdentifier::Unknown(_)));
-            assert_eq!(coset::Algorithm::try_from(identifier).unwrap(), algorithm);
-        }
+        assert!(matches!(identifier, CoseAlgorithmIdentifier::Unknown(_)));
+        assert_eq!(coset::Algorithm::try_from(identifier).unwrap(), algorithm);
     }
 
     #[test]
@@ -150,8 +132,8 @@ mod tests {
             ))
         );
         assert_eq!(
-            coset::Algorithm::try_from(CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Esp256)),
-            Err(CoseAlgorithmIdentifierConversionError::NotRepresentedByCoset(-9))
+            coset::Algorithm::try_from(CoseAlgorithmIdentifier::Unknown(-1337)),
+            Err(CoseAlgorithmIdentifierConversionError::NotRepresentedByCoset(-1337))
         );
     }
 }

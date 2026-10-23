@@ -14,7 +14,7 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use cose::CoseAlgorithmIdentifier;
-use cose::KnownCoseAlgorithmIdentifier;
+use coset::iana;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::crl::CertificateCrlVerifier;
@@ -576,8 +576,8 @@ impl NormalizedVpAuthorizationRequest {
                 },
                 vp_formats_supported: VpFormatsSupported {
                     mso_mdoc: Some(MsoMdocAlgValues {
-                        issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
-                        deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                        issuerauth_alg_values: vec_nonempty![iana::Algorithm::ESP256.into()].into(),
+                        deviceauth_alg_values: vec_nonempty![iana::Algorithm::ESP256.into()].into(),
                     }),
                     sd_jwt: Some(SdJwtAlgValues {
                         sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
@@ -1157,7 +1157,7 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use base64::prelude::*;
-    use cose::KnownCoseAlgorithmIdentifier;
+    use coset::iana;
     use crypto::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -3039,8 +3039,8 @@ mod tests {
         assert_eq!(
             deserialized.mso_mdoc,
             Some(MsoMdocAlgValues {
-                issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
-                deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                issuerauth_alg_values: vec_nonempty![iana::Algorithm::ESP256.into()].into(),
+                deviceauth_alg_values: vec_nonempty![iana::Algorithm::ESP256.into()].into(),
             })
         );
         assert_eq!(

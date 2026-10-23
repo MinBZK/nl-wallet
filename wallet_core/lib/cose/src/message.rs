@@ -47,10 +47,6 @@ impl Cose for CoseSign1 {
 
     fn verify(&self, key: &VerifyingKey) -> Result<(), CoseError> {
         self.verify_signature(b"", |signature, data| {
-            if self.payload.is_none() {
-                return Err(CoseError::MissingPayload);
-            }
-
             let signature = &Signature::try_from(signature).map_err(CoseError::EcdsaSignatureParsingFailed)?;
             key.verify(data, signature)
                 .map_err(CoseError::EcdsaSignatureVerificationFailed)?;
@@ -76,13 +72,11 @@ impl Cose for CoseMac0 {
     }
 
     fn verify(&self, key: &hmac::Key) -> Result<(), CoseError> {
-        if self.payload.is_none() {
-            return Err(CoseError::MissingPayload);
-        }
-
-        self.verify_tag(b"", |tag, data| {
-            hmac::verify(key, data, tag).map_err(|_| CoseError::MacVerificationFailed)
-        })?;
+        self.verify_payload_tag(
+            b"",
+            || CoseError::MissingPayload,
+            |tag, data| hmac::verify(key, data, tag).map_err(|_| CoseError::MacVerificationFailed),
+        )?;
         Ok(())
     }
 }

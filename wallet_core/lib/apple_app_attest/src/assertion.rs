@@ -206,8 +206,11 @@ mod mock {
             counter: AssertionCounter,
             client_data: &[u8],
         ) -> Self {
-            let authenticator_data =
-                AuthenticatorDataWithSource::from(AuthenticatorData::new(app_identifier.as_ref(), Some(*counter)));
+            let authenticator_data = AuthenticatorDataWithSource::from(AuthenticatorData::new(
+                app_identifier.as_ref(),
+                Some(*counter),
+                &passkey_crypto::AvailableBackend,
+            ));
 
             let nonce = Sha256::new()
                 .chain_update(authenticator_data.source())
