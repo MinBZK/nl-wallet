@@ -48,7 +48,6 @@ scheduled-automation-tests-trigger:
     - echo "$AMSTERDAM_WRPAC_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/amsterdam.wrpac.crt.pem
     - export AMSTERDAM_WRPAC_KEY_FILE=/tmp/amsterdam.wrpac.key.pem
     - export AMSTERDAM_WRPAC_CRT_FILE=/tmp/amsterdam.wrpac.crt.pem
-    # The reader requires the registration certificates as base64url-encoded CWTs.
     - kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.registration_certificate_mdoc}' | base64 --decode > /tmp/amsterdam.wrprc
     - export AMSTERDAM_WRPRC_FILE=/tmp/amsterdam.wrprc
     - MONKEY_BIKE_WRPAC_KEY_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.private_key}' | base64 --decode)
