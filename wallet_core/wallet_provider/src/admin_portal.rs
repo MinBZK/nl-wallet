@@ -1188,8 +1188,8 @@ mod tests {
             assert_eq!(task["status"], "withdrawn");
             assert_eq!(task["withdrawalComment"], "not needed");
             assert_eq!(task["createdBy"], "Jane Doe");
-            for field in ["executedAt", "executionResult", "executionResultDetails"] {
-                assert!(task[field].is_null());
+            for field in ["executedAt", "executionSuccessful", "executionDetails"] {
+                assert_eq!(task.get(field), Some(&Value::Null));
             }
             let request = Request::builder()
                 .method("POST")
