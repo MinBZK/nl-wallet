@@ -670,14 +670,6 @@ earlier mentioned example, this would be a database containing academic degrees
 indexed by BSNs.</p>
 <p>Finally, the issuer issues the attestations using OpenID4VCI in a pre-authorized
 code flow.</p>
-<p>During OpenID4VCI, the issuer requires the wallet to include the keys of the
-attestations that it disclosed earlier in its Proof of Association (PoA) when
-it sends its Proofs of Possession (PoPs) for the keys of the attestation
-(copies).</p>
-<p>This enforces that the newly issued attestations are bound to the same Wallet
-Secure Cryptographic Device (WSCD, see <a class="reference external" href="https://eudi.dev/latest/main/04-high-level-architecture/#43-reference-architecture">section 4.3.2, Components of a Wallet
-Unit</a>) as the one that disclosed the attestations in the first part of the
-protocol.</p>
 <pre  class="mermaid">
         sequenceDiagram
     autonumber
@@ -694,7 +686,7 @@ protocol.</p>
     App -&gt;&gt;-User: Request approval for disclosure
     User-&gt;&gt;+ App: Approve disclosure with PIN
 
-    App-&gt;&gt;+Issuer: Authorization Response [OpenID4VP] (including PoA) *
+    App-&gt;&gt;+Issuer: Authorization Response [OpenID4VP]
     Issuer-&gt;&gt;Issuer: Verify disclosed attributes
     Issuer-&gt;&gt;+IssuerDataProvider: Disclosed attributes
     IssuerDataProvider-&gt;&gt;-Issuer: Respond with attestations to issue
@@ -710,7 +702,6 @@ protocol.</p>
     User-&gt;&gt;+App: Approve attestation issuance with PIN
 
     App-&gt;&gt;+Issuer: Access token [OpenID4VCI]
-    Issuer-&gt;&gt;Issuer: Enforce disclosed attestation keys in PoA (from Step 7 *)
     Issuer-&gt;&gt;-App: Attestations [OpenID4VCI]
     deactivate App
     </pre><!-- References -->

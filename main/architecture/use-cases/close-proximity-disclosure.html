@@ -600,9 +600,9 @@ window.addEventListener("load", load);
 
     user-&gt;&gt;wallet: Approve with pin
 
-    wallet-&gt;&gt;wallet: Sign DeviceAuthenticationBytes using WSCA, construct DeviceResponse and PoA
+    wallet-&gt;&gt;wallet: Sign DeviceAuthenticationBytes using WSCA, construct DeviceResponse
 
-    wallet-&gt;&gt;reader: Encrypted DeviceResponse with PoA
+    wallet-&gt;&gt;reader: Encrypted DeviceResponse
     wallet--&gt;&gt;-user: Render &quot;attributes disclosed&quot;
 
     reader--&gt;&gt;reader: verify DeviceResponse
@@ -616,8 +616,8 @@ window.addEventListener("load", load);
 <li><p>The wallet verifies the <code class="docutils literal notranslate"><span class="pre">ReaderAuth</span></code> contained in the <code class="docutils literal notranslate"><span class="pre">DeviceRequest</span></code> and determines which locally stored attributes could fulfill the request and also if the reader is allowed to request these attributes. In ISO 18013-5 terms, <code class="docutils literal notranslate"><span class="pre">ReaderAuth</span></code> binds the request to the current <code class="docutils literal notranslate"><span class="pre">SessionTranscript</span></code> and the request bytes, so the wallet can check that the request really came from the reader identity associated with the supplied certificate chain.</p></li>
 <li><p>The wallet shows the reader information and the attributes that would be disclosed, so that the user can see what is being shared and also the identity information of the party which will receive the data.</p></li>
 <li><p>The user reviews the request and approves disclosure with a PIN. The approval step is the user-authorisation gate before the wallet is allowed to release the requested attributes.</p></li>
-<li><p>The wallet signs the <code class="docutils literal notranslate"><span class="pre">DeviceAuthenticationBytes</span></code> using the <code class="docutils literal notranslate"><span class="pre">WSCA</span></code>, constructs the <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code>, and prepares a <code class="docutils literal notranslate"><span class="pre">PoA</span></code> where the requested presentation requires proof that multiple attestations are associated with the same secure cryptographic environment. <code class="docutils literal notranslate"><span class="pre">DeviceAuthenticationBytes</span></code> cryptographically binds the disclosed device-signed data to the <code class="docutils literal notranslate"><span class="pre">SessionTranscript</span></code> and document type, which is what the reader will later verify.</p></li>
-<li><p>The wallet sends the encrypted <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code> with <code class="docutils literal notranslate"><span class="pre">PoA</span></code> back to the reader and updates the UI to show that the attributes have been disclosed. The reader then verifies the response, including the authenticated device-signed data and any accompanying proof material.</p></li>
+<li><p>The wallet signs the <code class="docutils literal notranslate"><span class="pre">DeviceAuthenticationBytes</span></code> using the <code class="docutils literal notranslate"><span class="pre">WSCA</span></code> and constructs the <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code>. <code class="docutils literal notranslate"><span class="pre">DeviceAuthenticationBytes</span></code> cryptographically binds the disclosed device-signed data to the <code class="docutils literal notranslate"><span class="pre">SessionTranscript</span></code> and document type, which is what the reader will later verify.</p></li>
+<li><p>The wallet sends the encrypted <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code> back to the reader and updates the UI to show that the attributes have been disclosed. The reader then verifies the response, including the authenticated device-signed data.</p></li>
 </ol>
 </section>
 <section id="detailed-sequence-diagram">
@@ -716,7 +716,7 @@ window.addEventListener("load", load);
 
     wallet_app-&gt;&gt;wallet_core: acceptDisclosure(pin, selected)
 
-    wallet_core-&gt;&gt;wallet_core: Sign DeviceAuthenticationBytes and PoA using WSCA
+    wallet_core-&gt;&gt;wallet_core: Sign DeviceAuthenticationBytes using WSCA
 
     wallet_core-&gt;&gt;wallet_core: Construct DeviceResponse
     wallet_core-&gt;&gt;platform_support: sendDeviceResponse(DeviceResponse)
@@ -742,7 +742,7 @@ wallet_app--&gt;&gt;-user: Render &quot;attributes disclosed&quot;
 <li><p>If the user rejects the reader, the flow is cancelled. The core logs the cancellation, sends a session-termination message to the reader side and stops the BLE server. This branch prevents any further disclosure processing after requester rejection.</p></li>
 <li><p>If the user accepts the reader, the app renders the attributes to be shared. The user then gets a second approval point focused specifically on the requested claims. This corresponds to selective disclosure and explicit user authorisation before release.</p></li>
 <li><p>If the user rejects attribute sharing, the implementation follows the same cancellation path as reader rejection: cancel, terminate the session, and stop BLE.</p></li>
-<li><p>If the user accepts the disclosure of the requested attributes, the user can also select which attestation to share the attributes from (in the case that there are multiple). After this, the app asks for the PIN and calls <code class="docutils literal notranslate"><span class="pre">acceptDisclosure(pin,</span> <span class="pre">selected)</span></code>. At that point, <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> performs the critical cryptographic step: it signs <code class="docutils literal notranslate"><span class="pre">DeviceAuthenticationBytes</span></code> and, where applicable, <code class="docutils literal notranslate"><span class="pre">PoA</span></code> using the <code class="docutils literal notranslate"><span class="pre">WSCA</span></code>, and then constructs the <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code>.</p></li>
+<li><p>If the user accepts the disclosure of the requested attributes, the user can also select which attestation to share the attributes from (in the case that there are multiple). After this, the app asks for the PIN and calls <code class="docutils literal notranslate"><span class="pre">acceptDisclosure(pin,</span> <span class="pre">selected)</span></code>. At that point, <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> performs the critical cryptographic step: it signs <code class="docutils literal notranslate"><span class="pre">DeviceAuthenticationBytes</span></code> using the <code class="docutils literal notranslate"><span class="pre">WSCA</span></code>, and then constructs the <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> hands the completed response to <code class="docutils literal notranslate"><span class="pre">platform_support</span></code>, which sends the encrypted <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code> to the reader application and then stops the BLE server. The reader verifies the response, <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> logs the successful session, and <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> renders the final “attributes disclosed” screen.</p></li>
 </ol>
 </section>

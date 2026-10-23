@@ -561,8 +561,7 @@ window.addEventListener("load", load);
   <section id="disclosure-with-openid4vp">
 <h1>Disclosure with OpenID4VP<a class="headerlink" href="#disclosure-with-openid4vp" title="Link to this heading"></a></h1>
 <p>This diagram shows how OpenID4VP is implemented in the NL Wallet Solution.
-This implementation is based on <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html">OpenID4VP draft 20</a>, with
-Proof of Association (PoA) as a custom addition.</p>
+This implementation is based on <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html">OpenID4VP draft 20</a>.</p>
 <section id="how-disclosure-is-implemented">
 <h2>How disclosure is implemented<a class="headerlink" href="#how-disclosure-is-implemented" title="Link to this heading"></a></h2>
 <p>This diagram shows how OpenID4VP is implemented within the NL Wallet Solution.</p>
@@ -632,17 +631,13 @@ supported. In more detail, the protocol works as follows:</p>
     participant HSM as HSM
     participant DB as WB Database
 
-    Wallet -&gt;&gt;+ WB: instruction: Sign(message[], key_identifiers, [PoA nonce])
+    Wallet -&gt;&gt;+ WB: instruction: Sign(message[], key_identifiers)
     WB -&gt;&gt;+ DB: retrieve key(s) by key_identifiers
     DB --&gt;&gt;- WB: wrapped_key(s) from account (from key_identifiers)
     WB -&gt;&gt;+ HSM: sign message(s) using wrapped_key(s)
     HSM -&gt;&gt; HSM: unwrap wrapped_key(s) using attestationWrappingKey and&lt;br/&gt; use unwrapped key (attestationPrivateKey) for signing message(s)
     HSM -&gt;&gt;- WB: signed message
-    opt PoA requested (in case of multiple messages)
-        WB -&gt;&gt;+ HSM: sign PoAs for keys, using PoA nonce
-        HSM --&gt;&gt;- WB: signed PoAs
-    end
-    WB --&gt;&gt;- Wallet: instruction response: signed messsage(s), PoA
+    WB --&gt;&gt;- Wallet: instruction response: signed messsage(s)
 
     </pre><!-- References -->
 </section>
