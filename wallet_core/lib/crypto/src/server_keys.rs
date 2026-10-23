@@ -164,7 +164,6 @@ pub mod generate {
     use rcgen::CertificateRevocationListParams;
     use rcgen::CrlDistributionPoint;
     use rcgen::CustomExtension;
-    use rcgen::DnType;
     use rcgen::IsCa;
     use rcgen::Issuer;
     use rcgen::KeyIdMethod;
@@ -172,7 +171,6 @@ pub mod generate {
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PublicKeyData;
     use rcgen::RevokedCertParams;
-    use rcgen::SanType;
     use rcgen::SerialNumber;
     use rcgen::SubjectPublicKeyInfo;
     use ring::digest;
@@ -639,6 +637,9 @@ pub mod generate {
     pub mod mock {
 
         use std::sync::LazyLock;
+
+        use rcgen::DnType;
+        use rcgen::SanType;
 
         use super::*;
         use crate::x509::CertificateUsage;
