@@ -214,6 +214,7 @@ retrieve-performance-test-results-ont:
     - python3 -m venv venv
     - source venv/bin/activate
     - pip3 install --no-cache-dir --upgrade pip
+    - pip3 install --uploaded-prior-to P3D certifi==2026.10.19 # Exception to the standard 7D rule
     - pip3 install --no-cache-dir -r deploy/qa-util/requirements.txt
   script:
     - START_TIME=$(grep START_TIME perf-test-timeframe.txt | cut -d'=' -f2-)
