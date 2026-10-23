@@ -1,8 +1,7 @@
 # Disclosure with OpenID4VP
 
 This diagram shows how OpenID4VP is implemented in the NL Wallet Solution.
-This implementation is based on [OpenID4VP draft 20][1], with
-Proof of Association (PoA) as a custom addition.
+This implementation is based on [OpenID4VP draft 20][1].
 
 ## How disclosure is implemented
 
@@ -77,17 +76,13 @@ sequenceDiagram
     participant HSM as HSM
     participant DB as WB Database
 
-    Wallet ->>+ WB: instruction: Sign(message[], key_identifiers, [PoA nonce])
+    Wallet ->>+ WB: instruction: Sign(message[], key_identifiers)
     WB ->>+ DB: retrieve key(s) by key_identifiers
     DB -->>- WB: wrapped_key(s) from account (from key_identifiers)
     WB ->>+ HSM: sign message(s) using wrapped_key(s)
     HSM ->> HSM: unwrap wrapped_key(s) using attestationWrappingKey and<br/> use unwrapped key (attestationPrivateKey) for signing message(s)
     HSM ->>- WB: signed message
-    opt PoA requested (in case of multiple messages)
-        WB ->>+ HSM: sign PoAs for keys, using PoA nonce
-        HSM -->>- WB: signed PoAs
-    end
-    WB -->>- Wallet: instruction response: signed messsage(s), PoA
+    WB -->>- Wallet: instruction response: signed messsage(s)
 
 ```
 

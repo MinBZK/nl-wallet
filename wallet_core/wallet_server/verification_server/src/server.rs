@@ -79,7 +79,6 @@ where
         settings.universal_link_base_url,
         usecases,
         settings.server_settings.issuer_trust_anchors,
-        settings.wallet_client_ids,
         settings.extending_vct_values.unwrap_or_default(),
     )
     .create_routers(settings.allow_origins, disclosure_sessions, revocation_verifier, None);

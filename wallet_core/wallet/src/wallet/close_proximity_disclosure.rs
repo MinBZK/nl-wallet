@@ -34,12 +34,10 @@ use futures::future::try_join_all;
 use http_utils::client::TlsPinningConfig;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use jwt::nonce::Nonce;
 use mdoc::DeviceRequest;
 use mdoc::DeviceRequestParseError;
 use mdoc::DeviceResponse;
 use mdoc::DeviceResponseStatus;
-use mdoc::DeviceResponseWithPoa;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::PartialMdoc;
 use mdoc::utils::cose::CoseError;
@@ -71,8 +69,6 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
-use wscd::payload::poa::JwtPoaInput;
-use wscd::payload::poa::Poa;
 
 use crate::AttributesNotAvailable;
 use crate::DisclosureProposalPresentation;
@@ -668,7 +664,6 @@ where
         let device_response = match Self::create_close_proximity_device_response(
             attestation_values,
             session_transcript.as_ref(),
-            organization.identifier.clone(),
             &remote_wscd,
         )
         .await
@@ -811,12 +806,11 @@ where
     async fn create_close_proximity_device_response<'a, K, W>(
         attestations: impl IntoNonEmptyIterator<Item = &'a CloseProximityDisclosableAttestation>,
         session_transcript: &SessionTranscript,
-        organization_identifier: String,
         wscd: &W,
-    ) -> Result<DeviceResponseWithPoa<Poa>, DisclosureError>
+    ) -> Result<DeviceResponse, DisclosureError>
     where
         K: CredentialEcdsaKey,
-        W: DisclosureWscd<Key = K, Poa = Poa>,
+        W: DisclosureWscd<Key = K>,
     {
         // Gather all partial mdocs presentations by cloning the attestations held in the session, as disclosing
         // attestations needs to be retryable.
@@ -825,14 +819,9 @@ where
             .map(|attestation| attestation.partial_attestation().clone())
             .collect();
 
-        // if this fails, there's a bug in the code
-        let nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
-        // use the same aud as for SD-JWT
-        let poa_input = JwtPoaInput::new(Some(nonce), organization_identifier);
-
         // Create the device response, casting any `InstructionError` that occurs during signing
         // to `RemoteEcdsaKeyError::Instruction`.
-        DeviceResponseWithPoa::sign_from_partial_mdocs(partial_mdocs, session_transcript, wscd, poa_input)
+        DeviceResponse::sign_from_partial_mdocs(partial_mdocs, session_transcript, wscd)
             .await
             .map_err(|error| match error {
                 mdoc::Error::Cose(CoseError::Signing(signing_error))
@@ -1053,8 +1042,8 @@ mod tests {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use chrono::Utc;
     use ciborium::value::Value;
-    use crypto::PublicKey;
     use crypto::WithVerifyingKey;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;
     use crypto::trust_anchor::TrustAnchors;
@@ -1066,7 +1055,6 @@ mod tests {
     use futures::future::join_all;
     use indexmap::IndexMap;
     use jwt::error::JwtParseError;
-    use jwt::nonce::Nonce;
     use mdoc::DeviceEngagement;
     use mdoc::DeviceRequest;
     use mdoc::DeviceResponse;
@@ -1109,8 +1097,6 @@ mod tests {
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::SignResult;
     use wallet_configuration::wallet_config::WalletConfiguration;
-    use wscd::mock::MOCK_WALLET_CLIENT_ID;
-    use wscd::mock_remote::MockRemoteWscd;
 
     use super::CloseProximityDisclosableAttestation;
     use super::CloseProximityDisclosureAttestations;
@@ -2636,7 +2622,6 @@ mod tests {
             .return_once(move |_, _: Instruction<Sign>| {
                 Ok(create_wp_result(SignResult {
                     signatures: vec![vec![der_sig]],
-                    poa: None,
                 }))
             });
     }
@@ -2698,12 +2683,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_close_proximity_device_response_includes_expected_poa() {
-        let organization = registration_certificate_organization();
+    async fn test_create_close_proximity_device_response_multiple_attestations() {
         let session_transcript = qr_session_transcript(None);
-
-        let expected_nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
-        let expected_aud = organization.identifier.clone();
 
         let (pid1, key1) = pid_given_name_disclosable_attestation();
         let (pid2, key2) = example_pid_stored_attestation_copy(Format::MsoMdoc);
@@ -2723,35 +2704,24 @@ mod tests {
             .unwrap(),
         ];
 
-        let expected_keys = [
-            PublicKey::from(*key1.verifying_key()),
-            PublicKey::from(*key2.verifying_key()),
-        ];
-
         let remote_key1 = MockRemoteEcdsaKey::new(key_id1, key1);
         let remote_key2 = MockRemoteEcdsaKey::new(key_id2, key2);
-        let wscd = MockRemoteWscd::new_with_keys(vec![remote_key1, remote_key2]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![remote_key1, remote_key2]);
 
         let device_response =
             TestWalletMockStorage::<LocalConfigurationRepository>::create_close_proximity_device_response(
                 disclosable_attestations.nonempty_iter(),
                 &session_transcript,
-                organization.identifier,
                 &wscd,
             )
             .await
             .expect("device response creation should succeed");
 
-        let poa = device_response
-            .poa
-            .expect("device response should contain a POA when disclosing multiple credential keys");
-        poa.verify(
-            &expected_keys,
-            &expected_aud,
-            &[MOCK_WALLET_CLIENT_ID.to_string()],
-            &expected_nonce,
-        )
-        .expect("POA should verify");
+        assert_eq!(device_response.status, DeviceResponseStatus::Ok);
+        assert_eq!(
+            device_response.documents.expect("should contain documents").len().get(),
+            2
+        );
     }
 
     #[tokio::test]

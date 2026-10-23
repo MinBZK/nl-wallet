@@ -1,21 +1,16 @@
-use std::hash::Hash;
-use std::hash::Hasher;
 use std::num::NonZeroUsize;
 
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
-use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::p256_der::DerSignature;
-use crypto::utils::sha256;
 use futures::future;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use itertools::Itertools;
-use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use token_status_list::status_list_service::ObtainClaimError;
@@ -25,7 +20,6 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
-use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 use wallet_account::NL_WALLET_CLIENT_ID;
@@ -69,9 +63,7 @@ use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
-use wscd::payload::jwt_proof::JwtProofClaims;
 use wscd::payload::key_attestation::KeyAttestation;
-use wscd::payload::poa::Poa;
 use wscd::payload::status_claim::TimeBoundedStatusClaim;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::payload::wia::WiaPopClaims;
@@ -600,23 +592,6 @@ where
     Ok(wia_disclosure)
 }
 
-fn attestation_key<'a, T, R, H>(
-    wrapped_key: &'a WrappedKey,
-    kid: &Kid,
-    user_state: &'a UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
-) -> HsmCredentialSigningKey<'a, H>
-where
-    T: Committable,
-    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
-{
-    HsmCredentialSigningKey {
-        hsm: &user_state.wallet_user_hsm,
-        wrapped_key,
-        wrapping_key_identifier: attestation_wrapping_key_identifier(kid),
-    }
-}
-
 impl HandleInstruction for PerformIssuance {
     type Result = PerformIssuanceResult;
 
@@ -703,7 +678,7 @@ impl HandleInstruction for Sign {
     async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        generators: &G,
+        _generators: &G,
         user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<SignResult, InstructionError>
@@ -750,32 +725,7 @@ impl HandleInstruction for Sign {
         }))
         .await?;
 
-        // A PoA should be generated only if the unique keys, i.e. the keys referenced in the instruction
-        // after deduplication, count two or more.
-        if VecAtLeastTwoUnique::try_from(found_keys.values().map(|wrapped_key| &wrapped_key.value).collect_vec())
-            .is_ok()
-        {
-            // We have to feed a Vec of references to `Poa::new()`, so we need to iterate twice to construct that.
-            let keys = found_keys
-                .values()
-                .map(|wrapped_key| attestation_key(&wrapped_key.value, &wrapped_key.kid, user_state))
-                .collect_vec();
-            let keys = keys.iter().collect_vec().try_into().unwrap_or_else(|_| unreachable!()); // We know there are at least two keys
-            let claims = JwtProofClaims::new(
-                NL_WALLET_CLIENT_ID.to_string(),
-                self.poa_aud,
-                self.poa_nonce,
-                generators,
-            );
-            let poa = Poa::new(keys, claims).await?;
-
-            Ok(SignResult {
-                signatures,
-                poa: Some(poa),
-            })
-        } else {
-            Ok(SignResult { signatures, poa: None })
-        }
+        Ok(SignResult { signatures })
     }
 }
 
@@ -1395,44 +1345,6 @@ where
     Ok(transfer_session)
 }
 
-struct HsmCredentialSigningKey<'a, H> {
-    hsm: &'a H,
-    wrapped_key: &'a WrappedKey,
-    wrapping_key_identifier: String,
-}
-
-impl<H> PartialEq for HsmCredentialSigningKey<'_, H> {
-    fn eq(&self, other: &Self) -> bool {
-        self.wrapped_key == other.wrapped_key
-    }
-}
-
-impl<H> Eq for HsmCredentialSigningKey<'_, H> {}
-
-impl<H> Hash for HsmCredentialSigningKey<'_, H> {
-    fn hash<HASH: Hasher>(&self, state: &mut HASH) {
-        self.wrapped_key.hash(state);
-    }
-}
-
-impl<H> EcdsaKey for HsmCredentialSigningKey<'_, H>
-where
-    H: Pkcs11Client,
-{
-    type Error = HsmError;
-
-    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        Ok(*self.wrapped_key.public_key())
-    }
-
-    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        // `sign_wrapped()` signs its input as is, so hash the message first to compute a normal ECDSA signature.
-        self.hsm
-            .sign_wrapped(&self.wrapping_key_identifier, self.wrapped_key.clone(), sha256(msg))
-            .await
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -1444,7 +1356,6 @@ mod tests {
     use std::sync::Mutex;
 
     use chrono::Utc;
-    use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
@@ -1601,8 +1512,6 @@ mod tests {
     async fn should_handle_sign() {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_kid = Kid::try_from("0").unwrap();
-        let poa_nonce = Some(Nonce::from("nonce".to_string()));
-        let poa_aud = "aud".to_string();
 
         // The instruction contains SHA-256 digests, so that the signatures verify as normal ECDSA signatures
         // over the messages themselves.
@@ -1613,8 +1522,6 @@ mod tests {
                 (sha256(&random_msg_1), vec!["key1".to_string(), "key2".to_string()]),
                 (sha256(&random_msg_2), vec!["key2".to_string()]),
             ],
-            poa_nonce: poa_nonce.clone(),
-            poa_aud: poa_aud.clone(),
         };
         let signing_key_1 = SigningKey::generate();
         let signing_key_2 = SigningKey::generate();
@@ -1676,20 +1583,6 @@ mod tests {
             .verifying_key()
             .verify(&random_msg_2, result.signatures[1][0].as_inner())
             .unwrap();
-
-        result
-            .poa
-            .unwrap()
-            .verify(
-                &[
-                    PublicKey::from(signing_key_1_public),
-                    PublicKey::from(signing_key_2_public),
-                ],
-                &poa_aud,
-                &[NL_WALLET_CLIENT_ID.to_string()],
-                poa_nonce.as_ref().unwrap(),
-            )
-            .unwrap();
     }
 
     #[tokio::test]
@@ -1700,8 +1593,6 @@ mod tests {
 
         let instruction = Sign {
             messages_with_identifiers: vec![(random_bytes(32).try_into().unwrap(), vec!["key1".to_owned()])],
-            poa_nonce: None,
-            poa_aud: "aud".to_owned(),
         };
         let signing_key = SigningKey::generate();
 
@@ -2342,8 +2233,6 @@ mod tests {
     fn mock_sign_instruction() -> Sign {
         Sign {
             messages_with_identifiers: vec![],
-            poa_nonce: None,
-            poa_aud: "aud".to_string(),
         }
     }
 

@@ -1504,8 +1504,8 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_nonempty;
+    use wscd::mock_remote::IssuanceMockRemoteWscd;
     use wscd::mock_remote::MOCK_CERTIFICATION_URL;
-    use wscd::mock_remote::MockRemoteWscd;
     use wscd::payload::key_attestation::KeyAttestation;
     use wscd::payload::key_attestation::KeyAttestationVerificationError;
     use wscd::payload::status_claim::TimeBoundedStatusClaim;
@@ -2850,7 +2850,7 @@ mod tests {
                         .map(|jwk| jwk_to_public_key(jwk).unwrap())
                         .collect::<VecNonEmpty<_>>()
                 }
-                CredentialRequestProofs::Jwt(_) => {
+                CredentialRequestProofs::Other(_) => {
                     panic!("proof should be of \"attestation\" type");
                 }
             };
@@ -2961,9 +2961,9 @@ mod tests {
             .unwrap();
     }
 
-    fn create_mock_wscd() -> (MockRemoteWscd, TrustAnchors) {
+    fn create_mock_wscd() -> (IssuanceMockRemoteWscd, TrustAnchors) {
         let wptl_ca = Ca::generate_wptl_mock_ca().unwrap();
-        let wscd = MockRemoteWscd::new_with_wptl_ca(&wptl_ca);
+        let wscd = IssuanceMockRemoteWscd::new(&wptl_ca);
         let wptl_trust_anchors = wptl_ca.to_trust_anchors();
 
         (wscd, wptl_trust_anchors)

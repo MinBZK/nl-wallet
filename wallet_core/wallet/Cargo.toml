@@ -37,7 +37,6 @@ chrono = { workspace = true, features = ["now"] }
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug", "display", "is_variant"] }
 futures = { workspace = true, features = ["async-await"] }
-hex.workspace = true
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
@@ -106,6 +105,7 @@ libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-ope
 [dev-dependencies]
 aes-gcm.workspace = true
 getrandom.workspace = true
+hex.workspace = true
 httpmock.workspace = true
 mockall.workspace = true
 rand_core.workspace = true

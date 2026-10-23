@@ -15,7 +15,6 @@ use crypto::EcdsaKey;
 use crypto::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
@@ -471,18 +470,16 @@ impl DecodedSdJwt {
 impl UnsignedSdJwtPresentation {
     /// Create multiple `SdJwtPresentation`s by having the WSCD sign multiple `UnsignedSdJwtPresentation`s,
     /// using the contents of a single `KeyBindingJwtBuilder`.
-    pub async fn sign_multiple<I, W, K, P>(
+    pub async fn sign_multiple<I, W, K>(
         unsigned_presentations_and_keys_ids: VecNonEmpty<(UnsignedSdJwtPresentation, I)>,
         key_binding_jwt_builder: KeyBindingJwtBuilder,
         wscd: &W,
-        poa_input: P::Input,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<(VecNonEmpty<SignedSdJwtPresentation>, Option<P>), SigningError>
+    ) -> Result<VecNonEmpty<SignedSdJwtPresentation>, SigningError>
     where
         I: Into<String>,
-        W: DisclosureWscd<Key = K, Poa = P>,
+        W: DisclosureWscd<Key = K>,
         K: CredentialEcdsaKey,
-        P: WscdPoa,
     {
         // Create the WSCD keys from the provided key identifiers and public keys present in the `cnf` claim.
         // Note that the latter is not actually used, as all we do is signing.
@@ -500,9 +497,9 @@ impl UnsignedSdJwtPresentation {
             })
             .collect::<Result<_, SigningError>>()?;
 
-        // Have the WSCD create `KeyBindingJwt`s and the PoA, if required.
-        let (key_binding_jwts, poa) = key_binding_jwt_builder
-            .finish_multiple(&sd_jwts_and_keys, wscd, poa_input, time)
+        // Have the WSCD create `KeyBindingJwt`s.
+        let key_binding_jwts = key_binding_jwt_builder
+            .finish_multiple(&sd_jwts_and_keys, wscd, time)
             .await?;
 
         // Combine the `SdJwt`s with the `KeyBindingJwt`s to create `SdJwtPresentation`s.
@@ -515,7 +512,7 @@ impl UnsignedSdJwtPresentation {
             })
             .collect();
 
-        Ok((sd_jwt_presentations, poa))
+        Ok(sd_jwt_presentations)
     }
 }
 

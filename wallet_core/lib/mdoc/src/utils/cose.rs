@@ -22,7 +22,6 @@ use coset::iana;
 use coset::sig_structure_data;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use error_category::ErrorCategory;
 
 fn signatures_data_and_header(payloads: &[&[u8]]) -> (Vec<Vec<u8>>, ProtectedHeader) {
@@ -47,13 +46,12 @@ fn signatures_data_and_header(payloads: &[&[u8]]) -> (Vec<Vec<u8>>, ProtectedHea
     (signatures_data, protected_header)
 }
 
-pub async fn sign_coses<K: CredentialEcdsaKey, P: WscdPoa>(
+pub async fn sign_coses<K: CredentialEcdsaKey>(
     keys_and_challenges: Vec<(K, &[u8])>,
-    wscd: &impl DisclosureWscd<Key = K, Poa = P>,
+    wscd: &impl DisclosureWscd<Key = K>,
     unprotected_header: Header,
-    poa_input: P::Input,
     include_payload: bool,
-) -> Result<(Vec<CoseSign1>, Option<P>), CoseError> {
+) -> Result<Vec<CoseSign1>, CoseError> {
     let (keys, challenges): (Vec<_>, Vec<_>) = keys_and_challenges.into_iter().unzip();
     let (signatures_data, protected_header) = signatures_data_and_header(&challenges);
 
@@ -64,12 +62,11 @@ pub async fn sign_coses<K: CredentialEcdsaKey, P: WscdPoa>(
         .collect::<Vec<_>>();
 
     let result = wscd
-        .sign(keys_and_signature_data, poa_input)
+        .sign(keys_and_signature_data)
         .await
         .map_err(|error| CoseError::Signing(error.into()))?;
 
     let signed = result
-        .signatures
         .into_iter()
         .zip(challenges)
         .map(|(signature, payload)| {
@@ -82,7 +79,7 @@ pub async fn sign_coses<K: CredentialEcdsaKey, P: WscdPoa>(
         })
         .collect::<Result<Vec<_>, CoseError>>()?;
 
-    Ok((signed, result.poa))
+    Ok(signed)
 }
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]

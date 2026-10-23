@@ -932,8 +932,6 @@ async fn test_attestation_wrapping_key_rollover() {
 
     let sign_instruction = |key_identifier: String| Sign {
         messages_with_identifiers: vec![(sha256(b"message"), vec![key_identifier])],
-        poa_nonce: None,
-        poa_aud: "aud".to_string(),
     };
 
     // Sign with the key wrapped under the current kid ("0")

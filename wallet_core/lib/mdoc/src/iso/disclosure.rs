@@ -49,18 +49,6 @@ pub struct DeviceResponse {
     pub status: DeviceResponseStatus,
 }
 
-/// A [`DeviceResponse`] with a POA attached.
-#[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeviceResponseWithPoa<P> {
-    #[serde(flatten)]
-    pub device_response: DeviceResponse,
-
-    /// Optional because it is not in the spec.
-    pub poa: Option<P>,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(u64)]
 pub enum DeviceResponseStatus {

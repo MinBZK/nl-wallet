@@ -14,9 +14,7 @@ use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use crypto::x509::crl::CertificateCrlVerificationError;
@@ -667,17 +665,15 @@ where
 }
 
 impl<T: Serialize + JwtTyp> SignedJwt<T> {
-    /// Have the WSCD sign multiple [`UnverifiedJwt`]s at once, producing a PoA if more than one unique key is used.
-    pub async fn sign_multiple<'a, W, K, P>(
+    /// Have the WSCD sign multiple [`UnverifiedJwt`]s at once.
+    pub async fn sign_multiple<'a, W, K>(
         payloads_and_keys: impl IntoNonEmptyIterator<Item = (&'a T, &'a K)>,
         wscd: &W,
-        poa_input: P::Input,
-    ) -> Result<(VecNonEmpty<SignedJwt<T>>, Option<P>), JwtSignError>
+    ) -> Result<VecNonEmpty<SignedJwt<T>>, JwtSignError>
     where
         T: Serialize + 'a,
-        W: DisclosureWscd<Key = K, Poa = P>,
+        W: DisclosureWscd<Key = K>,
         K: CredentialEcdsaKey + 'a,
-        P: WscdPoa,
     {
         let header = HeaderWithTyp::new::<T>();
         let encoded_header =
@@ -697,10 +693,9 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
             })
             .process_results::<_, _, JwtSignError, (Vec<_>, _)>(|iter| iter.unzip())?;
 
-        // Have the WSCD sign the combination of header and payload, also
-        // receiving a PoA if more than one unique key was used for signing.
-        let DisclosureResult { signatures, poa } = wscd
-            .sign(messages_and_keys, poa_input)
+        // Have the WSCD sign the combination of header and payload.
+        let signatures = wscd
+            .sign(messages_and_keys)
             .await
             .map_err(|err| JwtSignError::Signing(Box::new(err)))?;
 
@@ -732,7 +727,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
             // of the returned signatures.
             .unwrap_or_else(|_| unreachable!());
 
-        Ok((jwts, poa))
+        Ok(jwts)
     }
 }
 
@@ -1376,8 +1371,8 @@ mod tests {
     use ::axum::response::IntoResponse;
     use chrono::TimeDelta;
     use crypto::PublicKey;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateVerifyError;
@@ -1676,7 +1671,7 @@ mod tests {
     fn test_sign_multiple_and_verify() {
         let key1 = MockRemoteEcdsaKey::new_random("key1".to_string());
         let key2 = MockRemoteEcdsaKey::new_random("key2".to_string());
-        let wscd = MockRemoteWscd::new(vec![key1.clone(), key2.clone()]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![key1.clone(), key2.clone()]);
 
         let message1 = ToyMessage {
             number: 1,
@@ -1689,10 +1684,9 @@ mod tests {
         let mut payloads_and_keys = vec_nonempty![(message1.clone(), &key1)];
 
         // Make a single `SignedJWt`.
-        let (signed_jwts, poa) = SignedJwt::sign_multiple(
+        let signed_jwts = SignedJwt::sign_multiple(
             payloads_and_keys.nonempty_iter().map(|(payload, key)| (payload, *key)),
             &wscd,
-            (),
         )
         .now_or_never()
         .unwrap()
@@ -1712,16 +1706,12 @@ mod tests {
 
         assert_eq!(parsed, message1);
 
-        // Check that no PoA was produced.
-        assert!(poa.is_none());
-
         // Make two `UnverifiedJwt`s and two `VerifiedJwt`s.
         payloads_and_keys.push((message2.clone(), &key2));
 
-        let (signed_jwts, poa) = SignedJwt::sign_multiple(
+        let signed_jwts = SignedJwt::sign_multiple(
             payloads_and_keys.nonempty_iter().map(|(payload, key)| (payload, *key)),
             &wscd,
-            (),
         )
         .now_or_never()
         .unwrap()
@@ -1741,9 +1731,6 @@ mod tests {
 
             assert_eq!(parsed, *expected_message);
         }
-
-        // Check that a PoA was produced.
-        assert!(poa.is_some());
     }
 
     #[tokio::test]

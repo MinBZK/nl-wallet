@@ -4,8 +4,8 @@ use std::time::Duration;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::PublicKey;
+use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteEcdsaKey;
-use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -403,7 +403,7 @@ fn test_wscd_presentation() {
     let ca = Ca::generate_mock();
     let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
-    let wscd = MockRemoteWscd::new(vec![holder_key]);
+    let wscd = DisclosureMockRemoteWscd::new(vec![holder_key]);
 
     // Create a SD-JWT, signed by the issuer.
     let signed_sd_jwt = SdJwtBuilder::new(claims)
@@ -423,21 +423,18 @@ fn test_wscd_presentation() {
         .unwrap()
         .finish();
 
-    let (sd_jwt_presentations, poa) = UnsignedSdJwtPresentation::sign_multiple(
+    let sd_jwt_presentations = UnsignedSdJwtPresentation::sign_multiple(
         vec_nonempty![(unsigned_presentation, "holder_key")],
         KeyBindingJwtBuilder::new(
             String::from("https://example.com"),
             Nonce::from("abcdefghi".to_string()),
         ),
         &wscd,
-        (),
         &time,
     )
     .now_or_never()
     .unwrap()
     .expect("signing SD-JWT presentation should succeed");
-
-    assert!(poa.is_none());
 
     let signed_presentation = sd_jwt_presentations.into_iter().exactly_one().unwrap();
     let unverified_sd_jwt_presentation = signed_presentation.into_unverified();
