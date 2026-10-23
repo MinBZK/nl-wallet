@@ -87,7 +87,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC10.1_DeleteWalletUsingRevocationCode.html">Use Case 10.1 Revoke the wallet using the revocation code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/UC2.1_SecureTheAppWithPinAndBiometrics.html">Use Case 2.1 Secure the app with PIN and biometrics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
@@ -101,7 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/UC7.1_AppOverview.html">Use Case 7.1 App overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
@@ -122,7 +122,7 @@
 <li class="toctree-l2"><a class="reference internal" href="PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
 <li class="toctree-l2"><a class="reference internal" href="PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
 <li class="toctree-l2"><a class="reference internal" href="PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
-<li class="toctree-l2"><a class="reference internal" href="PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="PF2.9_SetupPin.html">Partial Flow 2.9 Setup PIN</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../errors.html">Errors</a></li>
@@ -309,7 +309,7 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>3.1</strong></p></td>
-<td><p><strong>System displays screen ‘Your wallet is blocked’</strong><ul><li>Message: Close this app or create a new wallet to use the app again.</li><li>Actions: Create new NL Wallet, To help desk, Help</li></ul></p></td>
+<td><p><strong>System displays screen ‘Your wallet is blocked’</strong><ul><li>Message: Close this app or create a new wallet to use the app again.</li><li>Actions: Create new NL Wallet, To help desk</li></ul></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>3.1a</p></td>
@@ -317,40 +317,32 @@
 <td><p>3.2</p></td>
 </tr>
 <tr class="row-odd"><td><p>3.1b</p></td>
-<td><p>User selects Help</p></td>
-<td><p>Show placeholder ‘under construction’</p></td>
-</tr>
-<tr class="row-even"><td><p>3.1c</p></td>
 <td><p>User selects Create new NL Wallet</p></td>
 <td><p>Go to: <a class="reference internal" href="../use-cases/UC1.1_IntroduceTheApp.html"><span class="std std-doc">UC1.1 Introduce the app</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>3.2</strong></p></td>
+<tr class="row-even"><td><p><strong>3.2</strong></p></td>
 <td><p><strong>System displays screen ‘Contact’</strong><ul><li>Message: Check our website or contact us</li><li>Actions: Call, Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>3.2a</p></td>
+<tr class="row-odd"><td><p>3.2a</p></td>
 <td><p>User selects Call<br>→ System opens phone and suspends app</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>3.2b</p></td>
+<tr class="row-even"><td><p>3.2b</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>4</strong></p></td>
+<tr class="row-odd"><td><p><strong>4</strong></p></td>
 <td><p><strong>WHEN WALLET RECOVERY CODE IS REVOKED BY ADMIN</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>4.1</strong></p></td>
-<td><p><strong>System displays screen ‘You have been blocked’</strong><ul><li>Message: You cannot use NL Wallet right now.</li><li>Actions: To help desk, Help</li></ul></p></td>
+<tr class="row-even"><td><p><strong>4.1</strong></p></td>
+<td><p><strong>System displays screen ‘You have been blocked’</strong><ul><li>Message: You cannot use NL Wallet right now.</li><li>Actions: To help desk</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>4.1a</p></td>
+<tr class="row-odd"><td><p>4.1a</p></td>
 <td><p>User selects To help desk</p></td>
 <td><p>4.2</p></td>
-</tr>
-<tr class="row-odd"><td><p>4.1b</p></td>
-<td><p>User selects Help</p></td>
-<td><p>Show placeholder ‘under construction’</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>4.2</strong></p></td>
 <td><p><strong>System displays screen ‘Contact’</strong><ul><li>Message: Check our website or contact us</li><li>Actions: Call, Back</li></ul></p></td>
@@ -369,22 +361,18 @@
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>5.1</strong></p></td>
-<td><p><strong>System displays screen ‘NL Wallet can no longer be used’</strong><ul><li>Message: You cannot use NL Wallet right now due to a technical problem on our side.</li><li>Actions: Read more information, Help</li></ul></p></td>
+<td><p><strong>System displays screen ‘NL Wallet can no longer be used’</strong><ul><li>Message: You cannot use NL Wallet right now due to a technical problem on our side.</li><li>Actions: Read more information</li></ul></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p>5.1a</p></td>
 <td><p>User selects Read more information</p></td>
 <td><p>5.2</p></td>
 </tr>
-<tr class="row-even"><td><p>5.1b</p></td>
-<td><p>User selects Help</p></td>
-<td><p>Show placeholder ‘under construction’</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>5.2</strong></p></td>
+<tr class="row-even"><td><p><strong>5.2</strong></p></td>
 <td><p><strong>System displays screen ‘More information’</strong><ul><li>Actions: Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>5.2a</p></td>
+<tr class="row-odd"><td><p>5.2a</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>

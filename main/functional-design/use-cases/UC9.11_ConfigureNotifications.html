@@ -87,7 +87,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC10.1_DeleteWalletUsingRevocationCode.html">Use Case 10.1 Revoke the wallet using the revocation code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC2.1_SecureTheAppWithPinAndBiometrics.html">Use Case 2.1 Secure the app with PIN and biometrics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
@@ -101,7 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
-<li class="toctree-l2"><a class="reference internal" href="UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC7.1_AppOverview.html">Use Case 7.1 App overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
@@ -122,7 +122,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../partial-flows/PF2.9_SetupPin.html">Partial Flow 2.9 Setup PIN</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../errors.html">Errors</a></li>
@@ -205,22 +205,22 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><strong>Summary</strong></p></td>
-<td><p>The user opens the notification settings screen from the menu, where they can turn notifications on or off.</p></td>
+<td><p>The user turns push notifications on or off. When the app does not have permission to send notifications yet, the operating system asks for it. When notifications are blocked in the device settings, the app shows an alert that points the user to those settings.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Goal</strong></p></td>
-<td><p>Turning notifications on or off.</p></td>
+<td><p>Managing whether the user receives alerts about card changes, app updates and other important messages.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Preconditions</strong></p></td>
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Postconditions</strong></p></td>
-<td><p>Notifications are turned on or off.</p></td>
+<td><p><ul><li>Push notifications are enabled or disabled.</li><li>The app setting matches the notification permission granted at operating system level.</li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Triggered by</strong></p></td>
 <td><p><ul><li>User selects ‘Notifications’ in <a class="reference internal" href="UC9.1_ShowAppMenu.html"><span class="std std-doc">UC9.1 Show app menu</span></a>.</li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Additional Documentation</strong></p></td>
-<td><p><em>None</em></p></td>
+<td><p><ul><li><a class="reference internal" href="../notifications.html"><span class="std std-doc">Notifications</span></a></li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
 <td><p><em>None</em></p></td>
@@ -247,23 +247,80 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.1</strong></p></td>
-<td><p><strong>System displays screen ‘Notifications’</strong><ul><li>Toggle: Push notification</li><li>Current language is selected</li><li>Actions: Back</li></ul></p></td>
+<td><p><strong>System displays screen ‘Notifications’</strong><ul><li>Message: Get alerts about your cards changes, app updates, and other important messages.</li><li>Toggle: Push notifications — Get alerts, even when you don’t open the app.</li><li>Actions: Back</li></ul></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1a</p></td>
-<td><p>User toggles notifications on<br>→ Notifications are enabled (When user has not given permission, OS ask for permission to send push notifications)</p></td>
-<td><p></p></td>
+<td><p>User toggles push notifications on</p></td>
+<td><p>1.2</p></td>
 </tr>
 <tr class="row-odd"><td><p>1.1b</p></td>
-<td><p>User toggles notifications off<br>→ Notifications are disabled</p></td>
+<td><p>User toggles push notifications off <br>→ Push notifications are disabled</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1c</p></td>
 <td><p>User selects Back</p></td>
 <td><p>Back</p></td>
 </tr>
+<tr class="row-odd"><td><p><strong>1.2</strong></p></td>
+<td><p><strong>System determines whether permission to send notifications was granted</strong><sup>1</sup></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.2a</p></td>
+<td><p>Case: Permission is granted <br>→ Push notifications are enabled</p></td>
+<td><p>1.1</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.2b</p></td>
+<td><p>Case: Permission was not requested before</p></td>
+<td><p>1.3</p></td>
+</tr>
+<tr class="row-even"><td><p>1.2c</p></td>
+<td><p>Case: Permission is permanently denied</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.3</strong></p></td>
+<td><p><strong>Operating system asks permission to send notifications</strong><ul><li>iOS: “NL Wallet” Would Like to Send You Push Notifications</li><li>Android: Allow NL Wallet to send you notifications?</li><li>Actions: Allow, Don’t allow</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.3a</p></td>
+<td><p>User selects Allow <br>→ Push notifications are enabled</p></td>
+<td><p>1.1</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.3b</p></td>
+<td><p>User selects Don’t allow <br>→ Push notifications stay disabled</p></td>
+<td><p>1.1</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>2</strong></p></td>
+<td><p><strong>WHEN NOTIFICATIONS ARE BLOCKED IN THE DEVICE SETTINGS</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
+<td><p><strong>System displays alert ‘Change push notifications?’</strong><ul><li>Message: To change this, go to your phone settings.</li><li>Actions: CLOSE, OPEN SETTINGS</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>2.1a</p></td>
+<td><p>User selects CLOSE</p></td>
+<td><p>1.1</p></td>
+</tr>
+<tr class="row-odd"><td><p>2.1b</p></td>
+<td><p>User selects OPEN SETTINGS</p></td>
+<td><p>2.2</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>2.2</strong></p></td>
+<td><p><strong>System opens the notification settings of the device and suspends the app</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>2.2a</p></td>
+<td><p>User enables notifications and returns to the app <br>→ Push notifications are enabled</p></td>
+<td><p>1.1</p></td>
+</tr>
+<tr class="row-even"><td><p>2.2b</p></td>
+<td><p>User returns to the app without enabling notifications</p></td>
+<td><p>1.1</p></td>
+</tr>
 </tbody>
 </table>
+<div class="table-notes">1. The operating system is only asked for permission when the user actively turns the toggle on.</div>
 </section>
 </section>
 
