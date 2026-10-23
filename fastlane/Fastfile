@@ -162,6 +162,7 @@ platform :android do
     mock_repositories = options[:mock] || false
     demo_index_url = options[:demo_index_url] || ""
     show_debug_options = options[:show_debug_options] || false
+    enable_wrprc_strict_mode_toggle = options[:enable_wrprc_strict_mode_toggle] || false
     allow_insecure_url = options[:allow_insecure_url] || (build_mode == "debug")
     allow_release_logs = options[:allow_release_logs] || false
 
@@ -191,6 +192,7 @@ platform :android do
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
             "--dart-define=SHOW_DEBUG_OPTIONS=#{show_debug_options}",
+            "--dart-define=ENABLE_WRPRC_STRICT_MODE_TOGGLE=#{enable_wrprc_strict_mode_toggle}",
             "--dart-define=ALLOW_INSECURE_URL=#{allow_insecure_url}",
       )
 
@@ -367,6 +369,7 @@ platform :ios do
     mock_repositories = options[:mock] || false
     demo_index_url = options[:demo_index_url] || ""
     show_debug_options = options[:show_debug_options] || false
+    enable_wrprc_strict_mode_toggle = options[:enable_wrprc_strict_mode_toggle] || false
     allow_insecure_url = options[:allow_insecure_url] || (build_mode == "debug")
     allow_release_logs = options[:allow_release_logs] || false
 
@@ -407,6 +410,7 @@ platform :ios do
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
             "--dart-define=SHOW_DEBUG_OPTIONS=#{show_debug_options}",
+            "--dart-define=ENABLE_WRPRC_STRICT_MODE_TOGGLE=#{enable_wrprc_strict_mode_toggle}",
             "--dart-define=ALLOW_INSECURE_URL=#{allow_insecure_url}",
       )
 
@@ -438,6 +442,7 @@ platform :ios do
     mock_repositories = options[:mock] || false
     demo_index_url = options[:demo_index_url] || ""
     show_debug_options = options[:show_debug_options] || false
+    enable_wrprc_strict_mode_toggle = options[:enable_wrprc_strict_mode_toggle] || false
     allow_insecure_url = options[:allow_insecure_url] || (build_mode == "debug")
     allow_release_logs = options[:allow_release_logs] || false
 
@@ -470,6 +475,7 @@ platform :ios do
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
             "--dart-define=SHOW_DEBUG_OPTIONS=#{show_debug_options}",
+            "--dart-define=ENABLE_WRPRC_STRICT_MODE_TOGGLE=#{enable_wrprc_strict_mode_toggle}",
             "--dart-define=ALLOW_INSECURE_URL=#{allow_insecure_url}",
       )
 

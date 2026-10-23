@@ -3283,21 +3283,23 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__start_close_proximity_disclosure(
     int port_,
+    bool wrprc_strict_mode,
     ffi.Pointer<ffi.Void> callback,
   ) {
     return _wire__crate__api__full__start_close_proximity_disclosure(
       port_,
+      wrprc_strict_mode,
       callback,
     );
   }
 
   late final _wire__crate__api__full__start_close_proximity_disclosurePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<ffi.Void>)>>(
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Bool, ffi.Pointer<ffi.Void>)>>(
         'frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure',
       );
   late final _wire__crate__api__full__start_close_proximity_disclosure =
       _wire__crate__api__full__start_close_proximity_disclosurePtr
-          .asFunction<void Function(int, ffi.Pointer<ffi.Void>)>();
+          .asFunction<void Function(int, bool, ffi.Pointer<ffi.Void>)>();
 
   void wire__crate__api__full__start_disclosure(
     int port_,

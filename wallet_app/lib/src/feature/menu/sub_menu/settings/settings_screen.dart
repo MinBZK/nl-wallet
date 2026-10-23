@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../environment.dart';
 import '../../../../domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import '../../../../navigation/wallet_routes.dart';
 import '../../../../util/extension/biometrics_extension.dart';
@@ -107,6 +108,14 @@ class SettingsScreen extends StatelessWidget {
           onPressed: () => Navigator.pushNamed(context, WalletRoutes.reviewRevocationCodeRoute),
         ),
         const Divider(),
+        if (Environment.enableWrprcStrictModeToggle) ...[
+          MenuItem(
+            label: Text.rich(context.l10n.developerSettingsScreenTitle.toTextSpan(context)),
+            leftIcon: const Icon(Icons.construction),
+            onPressed: () => Navigator.pushNamed(context, WalletRoutes.developerSettingsRoute),
+          ),
+          const Divider(),
+        ],
         const SizedBox(height: 24),
       ],
     );

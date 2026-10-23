@@ -408,8 +408,9 @@ void main() {
     });
 
     test('startCloseProximityDisclosure is passed on to core', () async {
-      await typedWalletCore.startCloseProximityDisclosure(callback: (_) {});
-      verify(core.crateApiFullStartCloseProximityDisclosure(callback: anyNamed('callback'))).called(1);
+      await typedWalletCore.startCloseProximityDisclosure(wrprcStrictMode: true, callback: (_) {});
+      verify(core.crateApiFullStartCloseProximityDisclosure(wrprcStrictMode: true, callback: anyNamed('callback')))
+          .called(1);
     });
 
     test('continueCloseProximityDisclosure is passed on to core', () async {
@@ -613,8 +614,12 @@ void main() {
     });
 
     test('startCloseProximityDisclosure', () async {
-      when(core.crateApiFullStartCloseProximityDisclosure(callback: anyNamed('callback'))).thenThrow(ffiException);
-      expect(() => typedWalletCore.startCloseProximityDisclosure(callback: (_) {}), throwsA(isA<CoreError>()));
+      when(core.crateApiFullStartCloseProximityDisclosure(wrprcStrictMode: true, callback: anyNamed('callback')))
+          .thenThrow(ffiException);
+      expect(
+        () => typedWalletCore.startCloseProximityDisclosure(wrprcStrictMode: true, callback: (_) {}),
+        throwsA(isA<CoreError>()),
+      );
     });
 
     test('continueCloseProximityDisclosure', () async {
