@@ -618,7 +618,7 @@ impl Command {
                     StatusListToken::builder(uri, status_list.pack())
                         .exp(expiration)
                         .ttl(ttl)
-                        .build(),
+                        .build(&TimeGenerator),
                     &signing_key_pair,
                 ))?;
 

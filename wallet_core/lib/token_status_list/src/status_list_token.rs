@@ -3,6 +3,7 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use url::Url;
+use utils::generator::Generator;
 
 use crate::status_list::PackedStatusList;
 use crate::status_list_cwt::StatusListCwt;
@@ -70,9 +71,9 @@ impl StatusListTokenBuilder {
     }
 
     /// Build the claims, setting the `iat` claim to the current time.
-    pub fn build(self) -> StatusListTokenClaims {
+    pub fn build(self, time: &impl Generator<DateTime<Utc>>) -> StatusListTokenClaims {
         StatusListTokenClaims {
-            iat: Utc::now(),
+            iat: time.generate(),
             exp: self.exp,
             sub: self.sub,
             ttl: self.ttl,

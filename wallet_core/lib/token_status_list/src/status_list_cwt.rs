@@ -114,6 +114,7 @@ mod test {
     use coset::Label;
     use coset::TaggedCborSerializable;
     use crypto::server_keys::generate::Ca;
+    use utils::generator::mock::MockTimeGenerator;
 
     use super::*;
     use crate::status_list_token::StatusListToken;
@@ -177,7 +178,7 @@ mod test {
         let claims = StatusListToken::builder(sub.clone(), status_list.clone())
             .exp(Some(DateTime::from_timestamp(SLT_EXP, 0).unwrap()))
             .ttl(Some(Duration::from_secs(SLT_TTL)))
-            .build();
+            .build(&MockTimeGenerator::default());
         let token = StatusListCwt::sign(claims, &keypair).await.unwrap();
 
         // `from_tagged_slice` requires the `COSE_Sign1_Tagged` (CBOR tag 18) form

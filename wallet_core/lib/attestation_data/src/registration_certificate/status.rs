@@ -177,7 +177,8 @@ mod tests {
             assert_eq!(status_list.insert(0, status), None);
         }
         let status_list_token = StatusListJwt::sign(
-            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack()).build(),
+            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack())
+                .build(&MockTimeGenerator::default()),
             &status_list_signer,
         )
         .await
@@ -253,7 +254,8 @@ mod tests {
         let ca = Ca::generate_mock();
         let registration_certificate_signer = ca.generate_issuer_mock().unwrap();
         let status_list_token = StatusListJwt::sign(
-            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), StatusList::new(8).pack()).build(),
+            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), StatusList::new(8).pack())
+                .build(&MockTimeGenerator::default()),
             &registration_certificate_signer,
         )
         .await

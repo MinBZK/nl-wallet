@@ -124,6 +124,7 @@ impl<K, F> KeyStorageStatusList<K, F> {
                     now + self.token_expiry,
                     Some(self.token_ttl),
                     &self.key_pair,
+                    time,
                 )
                 .await?;
 
@@ -154,6 +155,7 @@ impl SingleEntryStatusListToken {
         expires: DateTime<Utc>,
         ttl: Option<Duration>,
         key_pair: &KeyPair<impl EcdsaKey>,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Self, JwtSignError> {
         let mut list = StatusList::new(1);
         list.insert(0, status);
@@ -162,7 +164,7 @@ impl SingleEntryStatusListToken {
             StatusListToken::builder(uri, list.pack())
                 .exp(Some(expires))
                 .ttl(ttl)
-                .build(),
+                .build(time),
             key_pair,
         )
         .await?;
@@ -212,7 +214,7 @@ mod tests {
         let expires = time.generate() + Duration::from_hours(1);
         let status = StatusType::Invalid;
 
-        let single_token = SingleEntryStatusListToken::try_new(uri.clone(), status, expires, None, key_pair)
+        let single_token = SingleEntryStatusListToken::try_new(uri.clone(), status, expires, None, key_pair, &time)
             .now_or_never()
             .unwrap()
             .expect("signing single entry token status list should succeed");

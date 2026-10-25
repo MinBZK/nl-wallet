@@ -228,7 +228,7 @@ impl MockRegistrationCertificateAuthority {
             assert_eq!(status_list.insert(0, status), None);
         }
         let status_list = StatusListJwt::sign(
-            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack()).build(),
+            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack()).build(&TimeGenerator),
             &status_list_key_pair,
         )
         .now_or_never()
@@ -273,7 +273,7 @@ impl MockRegistrationCertificateAuthority {
     pub fn sign_status_list(&self, status_list: StatusList) -> StatusListJwt {
         let signing_key_pair = self.ca.generate_issuer_status_list_mock().unwrap();
         StatusListJwt::sign(
-            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack()).build(),
+            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack()).build(&TimeGenerator),
             &signing_key_pair,
         )
         .now_or_never()

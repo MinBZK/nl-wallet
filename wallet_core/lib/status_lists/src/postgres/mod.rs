@@ -55,6 +55,7 @@ use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
@@ -932,7 +933,7 @@ where
             StatusListToken::builder(sub, packed)
                 .exp(Some(expires))
                 .ttl(self.config.ttl)
-                .build(),
+                .build(&TimeGenerator),
             &self.config.key_pair,
         )
         .await?;
@@ -1016,7 +1017,7 @@ where
         external_id: &ExternalId,
     ) -> Result<(), StatusListServiceError> {
         // Sign
-        let claims = builder.exp(Some(expires)).ttl(self.config.ttl).build();
+        let claims = builder.exp(Some(expires)).ttl(self.config.ttl).build(&TimeGenerator);
         let token = StatusListJwt::sign(claims, &self.config.key_pair).await?;
 
         // Write to a tempfile and atomically move via rename

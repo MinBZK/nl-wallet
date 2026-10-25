@@ -171,6 +171,7 @@ pub mod mock {
     use jwt::headers::HeaderWithTyp;
     use jwt::headers::HeaderWithX5c;
     use serde_json::json;
+    use utils::generator::TimeGenerator;
 
     use crate::status_list_jwt::StatusListJwt;
     use crate::status_list_jwt::StatusListJwtClaims;
@@ -212,7 +213,7 @@ pub mod mock {
         let claims = StatusListToken::builder(expected_claims.sub.clone(), expected_claims.status_list.clone())
             .exp(expected_claims.exp)
             .ttl(expected_claims.ttl)
-            .build();
+            .build(&TimeGenerator);
         let status_list_jwt = StatusListJwt::sign(claims, keypair).await.unwrap();
 
         (expected_header, expected_claims, status_list_jwt)

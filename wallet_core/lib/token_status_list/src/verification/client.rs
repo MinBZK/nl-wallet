@@ -29,6 +29,7 @@ pub mod mock {
     use crypto::server_keys::KeyPair;
     use derive_more::Constructor;
     use url::Url;
+    use utils::generator::TimeGenerator;
 
     use crate::status_list::StatusList;
     use crate::status_list_jwt::StatusListJwt;
@@ -87,7 +88,7 @@ pub mod mock {
             let status_list_token = StatusListJwt::sign(
                 StatusListToken::builder(url, StatusList::new(10).pack())
                     .ttl(Some(Duration::from_secs(3600)))
-                    .build(),
+                    .build(&TimeGenerator),
                 keypair,
             )
             .await
