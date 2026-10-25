@@ -1,4 +1,7 @@
+use cose::COSE_TYP_HEADER_LABEL;
+use cose::COSE_X5CHAIN_HEADER_LABEL;
 use cose::CoseError;
+use cose::CoseTyp;
 use cose::TypedCose;
 use cose::header_with_x5chain;
 use coset::CoseSign1;
@@ -6,6 +9,7 @@ use coset::CoseSign1Builder;
 use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
+use coset::iana;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateProfile;
@@ -34,6 +38,10 @@ impl Default for ToyMessage {
             string: "Hello, world!".to_owned(),
         }
     }
+}
+
+impl CoseTyp for ToyMessage {
+    const TYP: &'static str = "application/toy+cwt";
 }
 
 struct NonSerdePayload;
@@ -140,6 +148,42 @@ async fn signs_and_verifies_with_certificate() {
     assert_eq!(
         cose.verify_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),)
             .unwrap(),
+        ToyMessage::default()
+    );
+}
+
+#[tokio::test]
+async fn signs_with_typ_and_certificate_in_protected_header() {
+    let ca = Ca::generate_mock();
+    let key_pair = ca.generate_issuer_mock().unwrap();
+    let cose = TypedCose::sign_with_typ_and_certificate(&ToyMessage::default(), &key_pair)
+        .await
+        .unwrap();
+
+    let protected_header = cose.protected_header();
+    let protected_value = |label: i64| {
+        protected_header
+            .rest
+            .iter()
+            .find(|(candidate, _)| candidate == &Label::Int(label))
+            .map(|(_, value)| value)
+    };
+    assert_eq!(
+        protected_header.alg,
+        Some(coset::Algorithm::Assigned(iana::Algorithm::ES256))
+    );
+    assert_eq!(
+        protected_value(COSE_TYP_HEADER_LABEL).and_then(|value| value.as_text()),
+        Some("application/toy+cwt")
+    );
+    assert_eq!(
+        protected_value(COSE_X5CHAIN_HEADER_LABEL).and_then(|value| value.as_bytes()),
+        Some(&key_pair.certificate().to_vec())
+    );
+    assert_eq!(cose.as_ref().unprotected, Header::default());
+
+    assert_eq!(
+        cose.verify_and_parse(key_pair.private_key().verifying_key()).unwrap(),
         ToyMessage::default()
     );
 }

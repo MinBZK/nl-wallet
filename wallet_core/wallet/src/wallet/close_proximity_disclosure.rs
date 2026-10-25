@@ -1088,7 +1088,7 @@ mod tests {
     use serial_test::serial;
     use token_status_list::status_list::StatusList;
     use token_status_list::status_list::StatusType;
-    use token_status_list::status_list_token::StatusListToken;
+    use token_status_list::status_list_jwt::StatusListJwt;
     use token_status_list::verification::client::StatusListClientError;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use url::Url;
@@ -1837,7 +1837,7 @@ mod tests {
     async fn assert_registration_certificate_rejected(
         registration_certificate: Option<Value>,
         expected_status: DeviceResponseStatus,
-        status_list_result: Option<Result<StatusListToken, StatusListClientError>>,
+        status_list_result: Option<Result<StatusListJwt, StatusListClientError>>,
         wrprc_strict_mode: bool,
     ) -> DisclosureError {
         let send_context = MockCloseProximityDisclosureClient::send_device_response_context();

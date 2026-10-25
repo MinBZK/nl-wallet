@@ -26,12 +26,24 @@ use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use crate::CborIntMap;
 use crate::error::CoseError;
 use crate::message::TypedCose;
 use crate::serialization::cbor_serialize;
 
 /// COSE header label for `x5chain`, defined in RFC 9360.
 pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
+
+/// COSE header label for `typ`, defined in RFC 9596.
+pub const COSE_TYP_HEADER_LABEL: i64 = 16;
+
+pub trait CoseTyp {
+    const TYP: &'static str;
+}
+
+impl<T: CoseTyp> CoseTyp for CborIntMap<T> {
+    const TYP: &'static str = T::TYP;
+}
 
 pub fn header_with_x5chain(chain: &VecNonEmpty<&BorrowingCertificate>) -> Header {
     let encode_certificate = |certificate: &&BorrowingCertificate| Value::Bytes(certificate.to_vec());
@@ -116,6 +128,24 @@ impl<T> TypedCose<CoseSign1, T> {
     {
         let header = header_with_x5chain(&vec_nonempty![key_pair.certificate()]);
         Self::sign(payload, header, key_pair).await
+    }
+
+    /// Sign a COSE payload and include the algorithm, the type from [`CoseTyp::TYP`] and the key pair's certificate
+    /// (`x5chain`) in the protected header.
+    pub async fn sign_with_typ_and_certificate<K: EcdsaKey>(
+        payload: &T,
+        key_pair: &KeyPair<K>,
+    ) -> Result<Self, CoseError>
+    where
+        T: Serialize + CoseTyp,
+    {
+        let mut protected_header = header_with_x5chain(&vec_nonempty![key_pair.certificate()]);
+        protected_header.alg = Some(coset::Algorithm::Assigned(iana::Algorithm::ES256));
+        protected_header
+            .rest
+            .push((Label::Int(COSE_TYP_HEADER_LABEL), Value::Text(T::TYP.to_owned())));
+
+        Self::sign_with_protected_header(payload, protected_header, Header::default(), key_pair).await
     }
 
     /// Get the certificate chain from the unprotected `x5chain` header parameter.

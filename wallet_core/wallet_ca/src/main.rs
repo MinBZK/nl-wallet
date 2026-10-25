@@ -43,6 +43,7 @@ use serde_json::Value;
 use time::OffsetDateTime;
 use token_status_list::status_list::StatusList as TokenStatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::status_list_token::StatusListToken;
 use url::Url;
 use utils::built_info::version_string;
@@ -613,12 +614,13 @@ impl Command {
                 let ttl = ttl_seconds.map(|seconds| StdDuration::from_secs(seconds.get()));
 
                 let runtime = tokio::runtime::Builder::new_current_thread().build()?;
-                let token = runtime.block_on(
+                let token = runtime.block_on(StatusListJwt::sign(
                     StatusListToken::builder(uri, status_list.pack())
                         .exp(expiration)
                         .ttl(ttl)
-                        .sign(&signing_key_pair),
-                )?;
+                        .build(),
+                    &signing_key_pair,
+                ))?;
 
                 println!("{}", token.as_ref().serialization());
                 Ok(())

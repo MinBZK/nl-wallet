@@ -12,6 +12,7 @@ chrono.workspace = true
 ciborium.workspace = true
 coset.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"] }
+indexmap.workspace = true
 p256.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -23,6 +24,7 @@ error_category.path = "../error_category"
 utils.path = "../utils"
 
 [dev-dependencies]
+hex-literal.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

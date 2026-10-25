@@ -298,9 +298,8 @@ async fn key_storage_tsl<GRC, PIC>(
             warn!("generating key storage status list failed: {}", error);
 
             StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .into_inner()
-        .into_serialization();
+        })?;
+    let token = token.as_ref().serialization().to_owned();
 
     let ttl = state.user_state.key_storage_status_list.token_ttl;
     http_response_for_status_list_body(&headers, token.into_bytes(), Some(ttl))

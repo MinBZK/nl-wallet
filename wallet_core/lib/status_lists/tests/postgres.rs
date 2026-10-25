@@ -28,7 +28,6 @@ use futures::future::try_join_all;
 use itertools::Itertools;
 use jwt::ESP256_ONLY_VALIDATION;
 use jwt::JwtDecodingKey;
-use jwt::SignedJwt;
 use p256::ecdsa::SigningKey;
 use rstest::rstest;
 use sea_orm::ColumnTrait;
@@ -52,10 +51,11 @@ use tempfile::TempDir;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_jwt::StatusListJwt;
+use token_status_list::status_list_jwt::TOKEN_STATUS_LIST_JWT_TYP;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
-use token_status_list::status_list_token::StatusListToken;
-use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
+use token_status_list::status_list_token::StatusListTokenClaims;
 use tokio::task::AbortHandle;
 use tokio::time::error::Elapsed;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -205,7 +205,7 @@ async fn assert_published_list(
     let status_list_token = tokio::fs::read_to_string(path)
         .await
         .unwrap()
-        .parse::<StatusListToken>()
+        .parse::<StatusListJwt>()
         .unwrap();
 
     let public_key = PublicKey::from(config.key_pair.verifying_key().await.unwrap());
@@ -214,6 +214,7 @@ async fn assert_published_list(
         .parse_and_verify(JwtDecodingKey::from(&public_key), &*ESP256_ONLY_VALIDATION)
         .unwrap();
     assert_eq!(header.inner().typ, TOKEN_STATUS_LIST_JWT_TYP);
+    let claims = StatusListTokenClaims::from(claims);
 
     let bits = *claims.status_list.bits();
     assert_eq!(bits, Bits::One);
@@ -729,13 +730,11 @@ async fn test_service_revoke_attestation_batches_concurrently() {
 }
 
 async fn republish_list_with_expiry(path: &Path, key_pair: &KeyPair<impl EcdsaKey>, expiry: Option<DateTime<Utc>>) {
-    let token: StatusListToken = tokio::fs::read_to_string(path).await.unwrap().parse().unwrap();
-    let (_, mut claims) = token.as_ref().dangerous_parse_unverified().unwrap();
+    let token: StatusListJwt = tokio::fs::read_to_string(path).await.unwrap().parse().unwrap();
+    let (_, mut claims) = token.dangerous_parse_unverified().unwrap();
     claims.exp = expiry;
-    let signed = SignedJwt::sign_with_certificate(&claims, key_pair).await.unwrap();
-    tokio::fs::write(path, signed.into_unverified().serialization())
-        .await
-        .unwrap();
+    let signed = StatusListJwt::sign(claims, key_pair).await.unwrap();
+    tokio::fs::write(path, signed.as_ref().serialization()).await.unwrap();
     let lock_path = path.with_extension("lock");
     tokio::fs::write(&lock_path, []).await.unwrap();
 }

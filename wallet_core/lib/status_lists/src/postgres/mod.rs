@@ -45,6 +45,7 @@ use sea_orm::sqlx::types::chrono::NaiveDate;
 use token_status_list::status_list::PackedStatusList;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
@@ -927,11 +928,14 @@ where
         } else {
             PackedStatusList::new(self.config.list_size.as_usize())
         };
-        let token = StatusListToken::builder(sub, packed)
-            .exp(Some(expires))
-            .ttl(self.config.ttl)
-            .sign(&self.config.key_pair)
-            .await?;
+        let token = StatusListJwt::sign(
+            StatusListToken::builder(sub, packed)
+                .exp(Some(expires))
+                .ttl(self.config.ttl)
+                .build(),
+            &self.config.key_pair,
+        )
+        .await?;
 
         // Write to disk
         let publish_lock = self.config.publish_dir.lock_for(external_id);
@@ -1012,11 +1016,8 @@ where
         external_id: &ExternalId,
     ) -> Result<(), StatusListServiceError> {
         // Sign
-        let token = builder
-            .exp(Some(expires))
-            .ttl(self.config.ttl)
-            .sign(&self.config.key_pair)
-            .await?;
+        let claims = builder.exp(Some(expires)).ttl(self.config.ttl).build();
+        let token = StatusListJwt::sign(claims, &self.config.key_pair).await?;
 
         // Write to a tempfile and atomically move via rename
         let jwt_path = self.config.publish_dir.jwt_path(external_id);
@@ -1085,9 +1086,9 @@ enum TokenReadError {
 }
 
 async fn read_token_expiry(path: &Path) -> Result<DateTime<Utc>, TokenReadError> {
-    let token = tokio::fs::read_to_string(path).await?.parse::<StatusListToken>()?;
+    let token = tokio::fs::read_to_string(path).await?.parse::<StatusListJwt>()?;
     // Trusting the files this service writes
-    let (_, claims) = token.as_ref().dangerous_parse_unverified()?;
+    let (_, claims) = token.dangerous_parse_unverified()?;
     claims.exp.ok_or(TokenReadError::NoExpiry)
 }
 
