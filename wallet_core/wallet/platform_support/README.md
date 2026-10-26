@@ -362,6 +362,11 @@ successful disclosure history, cleared session, and disconnect. The wrapper requ
 and reader verification to succeed; a missing artifact, failed signature, or timeout fails the run.
 Tests must run serially because they share the device's native BLE bridge.
 
+`testWalletJwtRegistrationCertificateWithMacReader` runs the same successful disclosure using a
+compact JWT registration certificate in the `requestInfo.euWrprc` byte string. Both the JWT and CWT
+scenarios enable strict WRPRC validation and check the proposal, signing, disclosure history, session
+cleanup and cryptographically verified BLE response.
+
 The `testWalletRegistrationCertificate*` tests exercise the EUDI registration-certificate rejection
 paths through the same wallet and BLE transport. They cover missing/wrongly typed/malformed WRPRCs,
 tampered signatures, expiry, untrusted signing chains, reader identity and subject-type mismatches,

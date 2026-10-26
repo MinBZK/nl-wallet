@@ -65,6 +65,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use super::CREDENTIAL_STATUS_LIST_URI;
 use super::EXPECTED_GIVEN_NAME;
 use super::RegistrationCertificateCase;
+use super::Scenario;
 use super::Verification;
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
@@ -107,7 +108,8 @@ pub(super) struct Fixture<C> {
 }
 
 impl<C> Fixture<C> {
-    pub async fn new(rejection: Option<RegistrationCertificateCase>) -> Result<Self> {
+    pub async fn new(scenario: Scenario) -> Result<Self> {
+        let rejection = scenario.rejection();
         // All key material is generated for this run and remains inside the test process.
         let issuer_ca = Ca::generate_issuer_mock_ca()?;
         let issuer = issuer_ca.generate_issuer_mock()?;
@@ -133,7 +135,10 @@ impl<C> Fixture<C> {
                 )
             }
             None => (
-                Some(Value::Bytes(registration_ca.sign_cwt(&registration_payload))),
+                Some(Value::Bytes(match scenario {
+                    Scenario::JwtDisclosure => registration_ca.sign_jwt(&registration_payload),
+                    _ => registration_ca.sign_cwt(&registration_payload),
+                })),
                 Ok(registration_ca.status_list_client.0.clone()),
             ),
         };

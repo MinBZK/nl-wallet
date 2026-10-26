@@ -284,6 +284,10 @@ final class CloseProximityDisclosureTests: XCTestCase {
         await runWalletDisclosure()
     }
 
+    func testWalletJwtRegistrationCertificateWithMacReader() async {
+        await runWalletDisclosure(jwtRegistrationCertificate: true)
+    }
+
     func testWalletRegistrationCertificateMissing() async {
         await runWalletDisclosure(registrationCase: "missing")
     }
@@ -354,6 +358,7 @@ final class CloseProximityDisclosureTests: XCTestCase {
 
     private func runWalletDisclosure(
         registrationCase: String? = nil,
+        jwtRegistrationCertificate: Bool = false,
         file: StaticString = #filePath,
         line: UInt = #line
     ) async {
@@ -368,6 +373,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
                 let error: UnsafeMutablePointer<CChar>?
                 if let registrationCase {
                     error = registrationCase.withCString { wallet_registration_certificate_test($0, readerReady) }
+                } else if jwtRegistrationCertificate {
+                    error = wallet_jwt_registration_certificate_test(readerReady)
                 } else {
                     error = wallet_close_proximity_disclosure_test(readerReady)
                 }

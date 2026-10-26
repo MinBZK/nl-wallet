@@ -53,6 +53,22 @@ const EXPECTED_GIVEN_NAME: &str = "Bluetooth Test";
 const CREDENTIAL_STATUS_LIST_URI: &str = "https://example.com/credential-status/1";
 const SCENARIO_TIMEOUT: Duration = Duration::from_secs(90);
 
+#[derive(Clone, Copy)]
+enum Scenario {
+    CwtDisclosure,
+    JwtDisclosure,
+    Rejection(RegistrationCertificateCase),
+}
+
+impl Scenario {
+    fn rejection(self) -> Option<RegistrationCertificateCase> {
+        match self {
+            Self::Rejection(case) => Some(case),
+            _ => None,
+        }
+    }
+}
+
 /// Public test material for the host. No private keys or real personal data are sent to the host.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Verification {
@@ -80,7 +96,14 @@ pub struct ResponseArtifact {
 /// Exercise the public wallet disclosure API, including the signing instruction and history storage.
 /// Keep the runtime alive for this entire future; the native bridge delivers updates asynchronously.
 pub async fn run_disclosure<C: CloseProximityDisclosureClient>(reader_ready: impl FnOnce(ReaderReady)) -> Result<()> {
-    run_scenario::<C>(None, reader_ready).await
+    run_scenario::<C>(Scenario::CwtDisclosure, reader_ready).await
+}
+
+/// Exercise the same disclosure with a compact JWT in the requestInfo.euWrprc byte string.
+pub async fn run_disclosure_with_jwt<C: CloseProximityDisclosureClient>(
+    reader_ready: impl FnOnce(ReaderReady),
+) -> Result<()> {
+    run_scenario::<C>(Scenario::JwtDisclosure, reader_ready).await
 }
 
 /// Run a signed reader request that must be rejected before approval or holder signing.
@@ -88,20 +111,23 @@ pub async fn run_registration_certificate_rejection<C: CloseProximityDisclosureC
     case: RegistrationCertificateCase,
     reader_ready: impl FnOnce(ReaderReady),
 ) -> Result<()> {
-    run_scenario::<C>(Some(case), reader_ready)
+    run_scenario::<C>(Scenario::Rejection(case), reader_ready)
         .await
         .with_context(|| format!("registration certificate case: {case}"))
 }
 
 async fn run_scenario<C: CloseProximityDisclosureClient>(
-    rejection: Option<RegistrationCertificateCase>,
+    scenario: Scenario,
     reader_ready: impl FnOnce(ReaderReady),
 ) -> Result<()> {
-    let mut fixture = Fixture::<C>::new(rejection).await.context("prepare wallet fixture")?;
-    let result = timeout(SCENARIO_TIMEOUT, disclose(&mut fixture, rejection, reader_ready))
-        .await
-        .context("wallet disclosure timed out")
-        .and_then(std::convert::identity);
+    let mut fixture = Fixture::<C>::new(scenario).await.context("prepare wallet fixture")?;
+    let result = timeout(
+        SCENARIO_TIMEOUT,
+        disclose(&mut fixture, scenario.rejection(), reader_ready),
+    )
+    .await
+    .context("wallet disclosure timed out")
+    .and_then(std::convert::identity);
 
     // Also clean up on validation failure or timeout so the next test can advertise again.
     if let Some(Session::CloseProximityDisclosure(session)) = fixture.wallet.session.take() {
