@@ -120,7 +120,7 @@ test_credentials = [
     "pid_issuer/mock",
 ]
 
-# Allow the disclosure return URL and its prefix to use http://
+# Allow the disclosure return URL to use http://
 allow_insecure_url = ["wallet?/allow_insecure_url"]
 
 # Initialize global logging using tracing-subscriber
