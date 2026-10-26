@@ -46,6 +46,9 @@ impl Cose for CoseSign1 {
     }
 
     fn verify(&self, key: &VerifyingKey) -> Result<(), CoseError> {
+        if self.payload.is_none() {
+            return Err(CoseError::MissingPayload);
+        }
         self.verify_signature(b"", |signature, data| {
             let signature = &Signature::try_from(signature).map_err(CoseError::EcdsaSignatureParsingFailed)?;
             key.verify(data, signature)
