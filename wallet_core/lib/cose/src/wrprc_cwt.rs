@@ -23,6 +23,8 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
+use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
@@ -31,6 +33,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::COSE_X5CHAIN_HEADER_LABEL;
 use crate::CoseError;
 use crate::TypedCose;
+use crate::serialization::cbor_deserialize;
 use crate::x5chain_from_header;
 
 /// ETSI TS 119 475 type for a Wallet Relying Party Registration Certificate encoded as a CWT.
@@ -43,6 +46,9 @@ const COSE_ALGORITHM_HEADER_LABEL: i64 = 1;
 const COSE_CRITICAL_HEADER_LABEL: i64 = 2;
 /// COSE `typ` header parameter, registered by RFC 9596.
 const COSE_TYPE_HEADER_LABEL: i64 = 16;
+
+// Match jsonwebtoken's default tolerance for clock skew.
+const EXPIRATION_LEEWAY_SECONDS: i64 = 60;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WrprcCwtHeader {
@@ -85,6 +91,20 @@ pub enum WrprcCwtError {
     #[error("WRPRC CWT iat claim is not a finite NumericDate")]
     #[category(critical)]
     InvalidIssuedAt,
+    #[error("WRPRC CWT has expired")]
+    #[category(critical)]
+    Expired,
+}
+
+#[derive(Deserialize)]
+struct ExpirationClaims {
+    // An omitted expiry is allowed, but an explicit null is not.
+    #[serde(default, deserialize_with = "deserialize_expiration")]
+    exp: Option<i64>,
+}
+
+fn deserialize_expiration<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<i64>, D::Error> {
+    i64::deserialize(deserializer).map(Some)
 }
 
 /// A parsed, but not yet authenticated, WRPRC encoded as a CWT.
@@ -132,6 +152,7 @@ where
     }
 
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.
+    /// If payload `exp` is present, it must be an integer timestamp; expiry allows 60 seconds for clock skew.
     ///
     /// A `None` certificate usage still validates the certificate path, but does not require a profile-specific
     /// extended key usage.
@@ -148,6 +169,22 @@ where
             .cose
             .verify_with_x5chain(&self.unverified_header.x5chain, trust_anchors, time, certificate_usage)
             .map_err(WrprcCwtError::Cose)?;
+
+        // Inspect the authenticated payload independently of T, as JWT verification does for registered claims.
+        let claims: ExpirationClaims = cbor_deserialize(
+            self.cose
+                .as_ref()
+                .payload
+                .as_deref()
+                .ok_or(WrprcCwtError::Cose(CoseError::MissingPayload))?,
+        )
+        .map_err(|error| WrprcCwtError::Cose(CoseError::Cbor(error)))?;
+        if claims
+            .exp
+            .is_some_and(|expiration| expiration < time.generate().timestamp() - EXPIRATION_LEEWAY_SECONDS)
+        {
+            return Err(WrprcCwtError::Expired);
+        }
 
         Ok(VerifiedWrprcCwt {
             unverified: self,
@@ -370,6 +407,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateVerifyError;
     use error_category::Category;
+    use rstest::rstest;
     use serde::Deserialize;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
@@ -445,6 +483,64 @@ mod tests {
             Some(&Timestamp::WholeSeconds(issued_at.timestamp()))
         );
         assert_eq!(verified.header().x5chain.first(), key_pair.certificate());
+    }
+
+    #[rstest]
+    #[case::without_expiry(None, false)]
+    #[case::before_expiry(Some(1), false)]
+    #[case::at_expiry(Some(0), false)]
+    #[case::one_second_after_expiry(Some(-1), false)]
+    #[case::just_inside_leeway(Some(-59), false)]
+    #[case::at_leeway_boundary(Some(-60), false)]
+    #[case::just_outside_leeway(Some(-61), true)]
+    #[case::well_outside_leeway(Some(-120), true)]
+    #[tokio::test]
+    async fn verify_wrprc_cwt_checks_payload_expiry(#[case] seconds: Option<i64>, #[case] expired: bool) {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+        let now = Utc.timestamp_opt(1_700_000_000, 0).unwrap();
+        let time = MockTimeGenerator::new(now);
+
+        let payload = Value::Map(
+            seconds
+                .map(|seconds| (Value::Text("exp".to_owned()), Value::from(now.timestamp() + seconds)))
+                .into_iter()
+                .collect(),
+        );
+        let signed = SignedWrprcCwt::sign_with_certificate(&payload, &key_pair, &time)
+            .await
+            .unwrap();
+
+        let result = signed
+            .into_unverified()
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &time, None);
+
+        if expired {
+            assert!(matches!(result, Err(WrprcCwtError::Expired)));
+        } else {
+            assert_eq!(result.unwrap().into_payload(), payload);
+        }
+    }
+
+    #[tokio::test]
+    async fn verify_wrprc_cwt_rejects_malformed_payload_expiry() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+
+        for exp in [Value::Null, Value::Text("1700000000".to_owned()), Value::Float(1.5)] {
+            let payload = Value::Map(vec![(Value::Text("exp".to_owned()), exp)]);
+            let signed = SignedWrprcCwt::sign_with_certificate(&payload, &key_pair, &TimeGenerator)
+                .await
+                .unwrap();
+
+            let result = signed.into_unverified().into_verified_against_trust_anchors(
+                &ca.to_trust_anchors(),
+                &TimeGenerator,
+                None,
+            );
+
+            assert!(matches!(result, Err(WrprcCwtError::Cose(CoseError::Cbor(_)))));
+        }
     }
 
     #[tokio::test]

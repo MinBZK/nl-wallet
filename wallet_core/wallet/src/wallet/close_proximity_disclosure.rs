@@ -2000,12 +2000,11 @@ mod tests {
         |payload: &mut RegistrationCertificateFixture| {
             let now = Utc::now().timestamp();
             payload.0["iat"] = json!(now - 180);
-            // Stay beyond the JWT validator's 60-second leeway, regardless of when verification runs.
             payload.0["exp"] = json!(now - 120);
         },
         |error: &CloseProximityDisclosureError| {
             matches!(error, CloseProximityDisclosureError::RegistrationCertificateVerification(
-                RegistrationCertificateEnvelopeError::Validity(RegistrationCertificateValidationError::Expired { .. })
+                RegistrationCertificateEnvelopeError::Cwt(_)
             )) || matches!(error, CloseProximityDisclosureError::RegistrationCertificateVerification(
                 RegistrationCertificateEnvelopeError::Jwt(JwtX5cVerifyError::JwtVerify(
                     JwtVerifyError::Validation(error)

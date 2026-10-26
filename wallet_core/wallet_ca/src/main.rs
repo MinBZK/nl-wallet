@@ -560,7 +560,11 @@ impl Command {
                 let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
                 let payload: Value = serde_json::from_reader(payload_file)?;
                 let parsed_payload = serde_json::from_value::<ParsedRegistrationCertificate>(payload.clone())?;
-                parsed_payload.validate_expiry(Utc::now())?;
+                if let Some(expiration) = parsed_payload.payload().exp
+                    && Utc::now() >= expiration
+                {
+                    anyhow::bail!("registration certificate expired at {expiration}");
+                }
                 parsed_payload.validate_binding(&access_subject)?;
 
                 let runtime = tokio::runtime::Builder::new_current_thread().build()?;

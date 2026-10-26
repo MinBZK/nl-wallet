@@ -1692,6 +1692,7 @@ dependencies = [
  "p256 0.14.0",
  "rand_core 0.9.5",
  "ring",
+ "rstest",
  "serde",
  "strum 0.28.0",
  "thiserror 2.0.17",
