@@ -22,19 +22,22 @@ class AppVersionText extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final data = snapshot.data!;
-          return Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: context.l10n.generalVersionText,
-                  style: prefixTextStyle ?? context.textTheme.bodyMedium,
-                ),
-                alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
-                TextSpan(
-                  text: '${data.version} (${data.buildNumber})',
-                  style: valueTextStyle ?? context.textTheme.bodyMedium,
-                ),
-              ],
+          return Semantics(
+            container: true /* keeps sibling rows from merging into a single announcement */,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: context.l10n.generalVersionText,
+                    style: prefixTextStyle ?? context.textTheme.bodyMedium,
+                  ),
+                  alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
+                  TextSpan(
+                    text: '${data.version} (${data.buildNumber})',
+                    style: valueTextStyle ?? context.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
           );
         } else {

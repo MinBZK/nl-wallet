@@ -70,5 +70,22 @@ void main() {
       final widgetFinder = find.text(l10n.aboutScreenTitle);
       expect(widgetFinder, findsOneWidget);
     });
+
+    testWidgets('ltc28 app version and config are separate semantics nodes', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidgetWithAppWrapper(
+        const AboutScreen()
+            .withDependency<GetVersionStringUseCase>((context) => getVersionUsecase)
+            .withDependency<ConfigurationRepository>((context) => Mocks.create()),
+      );
+      await tester.pumpAndSettle();
+
+      final versionSemantics = tester.getSemantics(find.textContaining(l10n.generalVersionText, findRichText: true));
+      final configSemantics = tester.getSemantics(
+        find.textContaining(l10n.generalConfigVersionText, findRichText: true),
+      );
+      expect(versionSemantics.label, isNot(contains(l10n.generalConfigVersionText)));
+      expect(configSemantics.label, isNot(contains(l10n.generalVersionText)));
+    });
   });
 }

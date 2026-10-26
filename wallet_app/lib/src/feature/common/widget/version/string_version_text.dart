@@ -25,19 +25,22 @@ class StringVersionText extends StatelessWidget {
         if (!snapshot.hasData) return const SizedBox.shrink();
         final versionResult = snapshot.data!;
         if (versionResult.hasError) return const SizedBox.shrink();
-        return Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: context.l10n.generalVersionText,
-                style: prefixTextStyle ?? context.textTheme.bodyMedium,
-              ),
-              alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
-              TextSpan(
-                text: versionResult.value,
-                style: valueTextStyle ?? context.textTheme.bodyMedium,
-              ),
-            ],
+        return Semantics(
+          container: true /* keeps sibling rows from merging into a single announcement */,
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: context.l10n.generalVersionText,
+                  style: prefixTextStyle ?? context.textTheme.bodyMedium,
+                ),
+                alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
+                TextSpan(
+                  text: versionResult.value,
+                  style: valueTextStyle ?? context.textTheme.bodyMedium,
+                ),
+              ],
+            ),
           ),
         );
       },
