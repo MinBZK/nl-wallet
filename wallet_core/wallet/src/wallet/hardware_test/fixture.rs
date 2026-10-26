@@ -22,6 +22,7 @@ use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::TimeDelta;
 use chrono::Utc;
+use ciborium::value::Value;
 use crypto::PublicKey;
 use crypto::p256_der::DerSignature;
 use crypto::server_keys::KeyPair;
@@ -63,6 +64,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::CREDENTIAL_STATUS_LIST_URI;
 use super::EXPECTED_GIVEN_NAME;
+use super::RegistrationCertificateCase;
 use super::Verification;
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
@@ -99,13 +101,13 @@ pub(super) type TestWallet<C> = Wallet<
 pub(super) struct Fixture<C> {
     pub wallet: TestWallet<C>,
     pub reader: KeyPair,
-    pub registration_certificate: Vec<u8>,
+    pub registration_certificate: Option<Value>,
     pub organization: attestation_data::organization::Organization,
     pub verification: Verification,
 }
 
 impl<C> Fixture<C> {
-    pub async fn new() -> Result<Self> {
+    pub async fn new(rejection: Option<RegistrationCertificateCase>) -> Result<Self> {
         // All key material is generated for this run and remains inside the test process.
         let issuer_ca = Ca::generate_issuer_mock_ca()?;
         let issuer = issuer_ca.generate_issuer_mock()?;
@@ -116,13 +118,25 @@ impl<C> Fixture<C> {
         let reader_ca = Ca::generate_wrpac_mock_ca()?;
         let reader = reader_ca.generate_wrpac_verifier_mock_with_crl()?;
         let registration_ca = MockRegistrationCertificateAuthority::new();
-        let registration_payload =
+        let mut registration_payload =
             verifier_registration_certificate_payload(reader.certificate(), Query::new_mock_mdoc_pid_example());
         let organization =
             attestation_data::organization::Organization::from(
                 &serde_json::from_value::<ParsedRegistrationCertificate>(registration_payload.0.clone())?,
             );
-        let registration_certificate = registration_ca.sign_cwt(&registration_payload);
+        let (registration_certificate, registration_status_list) = match rejection {
+            Some(case) => {
+                case.modify_payload(&mut registration_payload);
+                (
+                    case.certificate(&registration_ca, &registration_payload),
+                    case.status_list(&registration_ca),
+                )
+            }
+            None => (
+                Some(Value::Bytes(registration_ca.sign_cwt(&registration_payload))),
+                Ok(registration_ca.status_list_client.0.clone()),
+            ),
+        };
         let account_key = SigningKey::generate();
         let holder_key = SigningKey::generate();
         let mut config: WalletConfiguration = serde_json::from_str(include_str!("../../../test-wallet-config.json"))?;
@@ -238,6 +252,7 @@ impl<C> Fixture<C> {
             issuer_trust_anchors: issuer_ca.to_trust_anchors(),
             session_transcript_hex: String::new(),
             credential_status_list,
+            expected_error_status: rejection.map(RegistrationCertificateCase::response_status),
         };
         let mut wallet = Wallet::new(
             storage,
@@ -263,16 +278,19 @@ impl<C> Fixture<C> {
             .expect("fixture owns status-list client")
             .expect_fetch()
             .with(eq(STATUS_LIST_URI.parse::<url::Url>()?))
-            .returning(move |_| Ok(registration_ca.status_list_client.0.clone()));
+            .times(0..=1)
+            .return_once(move |_| registration_status_list);
         let account_client = Arc::get_mut(&mut wallet.account_provider_client).expect("fixture owns account client");
+        // Rejected requests must never reach the account provider or use the holder signing key.
+        let max_signing_calls = usize::from(rejection.is_none());
         account_client
             .expect_instruction_challenge()
-            .times(0..=1)
+            .times(0..=max_signing_calls)
             .returning(|_, _| Ok(vec![42; 32]));
         account_client
             .expect_instruction()
             // An earlier validation failure should retain its error instead of panicking when the mock is dropped.
-            .times(0..=1)
+            .times(0..=max_signing_calls)
             .return_once(move |_, instruction: Instruction<Sign>| {
                 // The provider is controlled test infrastructure. Production instruction construction and
                 // result verification still run; provider-side PIN/attestation verification is outside this test.

@@ -362,7 +362,26 @@ successful disclosure history, cleared session, and disconnect. The wrapper requ
 and reader verification to succeed; a missing artifact, failed signature, or timeout fails the run.
 Tests must run serially because they share the device's native BLE bridge.
 
-The same Rust scenario can run without Bluetooth using a loopback transport:
+The `testWalletRegistrationCertificate*` tests exercise the EUDI registration-certificate rejection
+paths through the same wallet and BLE transport. They cover missing/wrongly typed/malformed WRPRCs,
+tampered signatures, expiry, untrusted signing chains, reader identity and subject-type mismatches,
+revoked/suspended registrations, unavailable or untrusted status lists, out-of-bounds status indices,
+and unauthorized document types, namespaces and attributes. A two-document request also checks that
+an unauthorized second document rejects the entire request.
+
+Each request is reader-signed after the invalid registration data is inserted. The wallet must return
+the specific registration-certificate error, make no signing-instruction calls, record no disclosure,
+clear the session and stop its update listener. The Mac reader must receive and decrypt an error-only
+`DeviceResponse`: `InvalidRequest` for WRPRC parsing failures, `GeneralError` for the other cases.
+The host verifier rejects missing responses, incorrect statuses and responses containing documents.
+Status-list retrieval is controlled test infrastructure; the unavailable case returns a token-parsing
+failure. These tests exercise this branch's EUDI WRPRC policy, not every ISO 18013-5 requirement.
+
+All these tests run in the existing `LocalRealDevice` plan and iOS device CI job. To include them
+locally, select `Integration Tests/CloseProximityDisclosureTests` in the command above, or select an
+individual `testWalletRegistrationCertificate*` method by its full name.
+
+The same Rust scenarios can run without Bluetooth using a loopback transport:
 
 ```bash
 cargo test --manifest-path wallet_core/Cargo.toml -p wallet \

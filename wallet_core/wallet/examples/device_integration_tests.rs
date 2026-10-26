@@ -1,3 +1,4 @@
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::panic::AssertUnwindSafe;
@@ -12,19 +13,52 @@ use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximi
 /// Return null on success, otherwise an owned error to release with `wallet_device_test_free_error`.
 #[unsafe(no_mangle)]
 pub extern "C" fn wallet_close_proximity_disclosure_test(reader_ready: extern "C" fn(*const c_char)) -> *mut c_char {
+    run_test(None, reader_ready)
+}
+
+/// Run a named EUDI registration-certificate rejection case.
+///
+/// # Safety
+/// `case` must point to a NUL-terminated UTF-8 string, valid for the duration of this call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn wallet_registration_certificate_test(
+    case: *const c_char,
+    reader_ready: extern "C" fn(*const c_char),
+) -> *mut c_char {
+    // SAFETY: the caller keeps the case string alive until this function returns.
+    let case = unsafe { CStr::from_ptr(case) };
+    run_test(Some(case), reader_ready)
+}
+
+fn run_test(case: Option<&CStr>, reader_ready: extern "C" fn(*const c_char)) -> *mut c_char {
     let result = catch_unwind(|| -> anyhow::Result<()> {
+        let case = case
+            .map(|case| case.to_str()?.parse().context("unknown registration certificate case"))
+            .transpose()?;
         let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
         let result = catch_unwind(AssertUnwindSafe(|| {
-            runtime.block_on(wallet::hardware_test::run_disclosure::<
-                HardwareCloseProximityDisclosureClient,
-            >(|ready| {
+            let notify_reader = |ready| {
                 let marker = CString::new(format!(
                     "CLOSE_PROXIMITY_MAC_READER={}",
                     serde_json::to_string(&ready).unwrap()
                 ))
                 .expect("JSON has no interior NUL bytes");
                 reader_ready(marker.as_ptr());
-            }))
+            };
+            runtime.block_on(async {
+                match case {
+                    Some(case) => {
+                        wallet::hardware_test::run_registration_certificate_rejection::<
+                            HardwareCloseProximityDisclosureClient,
+                        >(case, notify_reader)
+                        .await
+                    }
+                    None => {
+                        wallet::hardware_test::run_disclosure::<HardwareCloseProximityDisclosureClient>(notify_reader)
+                            .await
+                    }
+                }
+            })
         }));
         match result {
             Ok(result) => result,
@@ -52,7 +86,7 @@ pub extern "C" fn wallet_close_proximity_disclosure_test(reader_ready: extern "C
 }
 
 /// # Safety
-/// `error` must be a non-null pointer returned by `wallet_close_proximity_disclosure_test`, freed exactly once.
+/// `error` must be a non-null pointer returned by a wallet device test, freed exactly once.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wallet_device_test_free_error(error: *mut c_char) {
     // SAFETY: the caller transfers ownership of the error string back to Rust.

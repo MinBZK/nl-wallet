@@ -19,17 +19,17 @@ use parking_lot::Mutex;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureError;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate;
 use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
+use rstest::rstest;
 use serial_test::serial;
 use tokio::sync::mpsc;
 use wallet::hardware_test::ResponseArtifact;
 use wallet::hardware_test::Verification;
 use wallet::hardware_test::run_disclosure;
+use wallet::hardware_test::run_registration_certificate_rejection;
 use wallet::hardware_test::verify_response;
 
-/// Runs the same public wallet API and real signatures as the device test, replacing only BLE.
-#[tokio::test]
-#[serial(MockCloseProximityDisclosureClient)]
-async fn signed_disclosure_round_trip_and_verifier_rejections() {
+/// Runs the same public wallet API and real signatures as the device tests, replacing only BLE.
+async fn round_trip(rejection: Option<RegistrationCertificateCase>) -> (Verification, ResponseArtifact) {
     let (updates, receiver) = mpsc::channel(128);
     let start = MockCloseProximityDisclosureClient::start_qr_handover_context();
     start.expect().once().return_once(|| {
@@ -62,7 +62,7 @@ async fn signed_disclosure_round_trip_and_verifier_rejections() {
     stop.expect().once().returning(|| Ok(()));
     let expected = Arc::new(Mutex::new(None));
     let expected_ready = Arc::clone(&expected);
-    run_disclosure::<MockCloseProximityDisclosureClient>(move |ready| {
+    let reader_ready = move |ready: wallet::hardware_test::ReaderReady| {
         let verification = serde_json::to_value(&ready.wallet_verification).unwrap();
         let transcript = verification["session_transcript_hex"].as_str().unwrap();
         updates.try_send(CloseProximityDisclosureUpdate::Connected).unwrap();
@@ -73,16 +73,29 @@ async fn signed_disclosure_round_trip_and_verifier_rejections() {
             })
             .unwrap();
         *expected_ready.lock() = Some(ready.wallet_verification);
-    })
-    .await
-    .expect("wallet scenario should complete with a signed disclosure and persisted history");
+    };
+    match rejection {
+        Some(case) => {
+            run_registration_certificate_rejection::<MockCloseProximityDisclosureClient>(case, reader_ready).await
+        }
+        None => run_disclosure::<MockCloseProximityDisclosureClient>(reader_ready).await,
+    }
+    .expect("wallet scenario should produce its expected outcome and clean up");
 
     let expected = expected.lock().take().unwrap();
     let expected_json = serde_json::to_value(&expected).unwrap();
-    let mut received = ResponseArtifact {
+    let received = ResponseArtifact {
         device_response_hex: hex::encode(captured.lock().take().unwrap()),
         session_transcript_hex: expected_json["session_transcript_hex"].as_str().unwrap().to_owned(),
     };
+    (expected, received)
+}
+
+#[tokio::test]
+#[serial(MockCloseProximityDisclosureClient)]
+async fn signed_disclosure_round_trip_and_verifier_rejections() {
+    let (expected, mut received) = round_trip(None).await;
+    let expected_json = serde_json::to_value(&expected).unwrap();
     verify_response(&expected, &received)
         .await
         .expect("the actual response signature must verify");
@@ -132,6 +145,71 @@ async fn signed_disclosure_round_trip_and_verifier_rejections() {
     );
 }
 
+#[rstest]
+#[case::missing(RegistrationCertificateCase::Missing)]
+#[case::wrong_type(RegistrationCertificateCase::WrongType)]
+#[case::malformed(RegistrationCertificateCase::Malformed)]
+#[case::tampered_signature(RegistrationCertificateCase::TamperedSignature)]
+#[case::expired(RegistrationCertificateCase::Expired)]
+#[case::untrusted(RegistrationCertificateCase::Untrusted)]
+#[case::mismatched_reader(RegistrationCertificateCase::MismatchedReader)]
+#[case::mismatched_subject_type(RegistrationCertificateCase::MismatchedSubjectType)]
+#[case::revoked(RegistrationCertificateCase::Revoked)]
+#[case::suspended(RegistrationCertificateCase::Suspended)]
+#[case::status_unavailable(RegistrationCertificateCase::StatusUnavailable)]
+#[case::untrusted_status_list(RegistrationCertificateCase::UntrustedStatusList)]
+#[case::status_index_out_of_bounds(RegistrationCertificateCase::StatusIndexOutOfBounds)]
+#[case::unauthorized_document_type(RegistrationCertificateCase::UnauthorizedDocumentType)]
+#[case::unauthorized_namespace(RegistrationCertificateCase::UnauthorizedNamespace)]
+#[case::unauthorized_attribute(RegistrationCertificateCase::UnauthorizedAttribute)]
+#[case::unauthorized_second_document(RegistrationCertificateCase::UnauthorizedSecondDocument)]
+#[tokio::test]
+#[serial(MockCloseProximityDisclosureClient)]
+async fn registration_certificate_rejection(#[case] case: RegistrationCertificateCase) {
+    let (expected, mut received) = round_trip(Some(case)).await;
+    verify_response(&expected, &received).await.unwrap();
+
+    let mut response: DeviceResponse =
+        cbor_deserialize(hex::decode(&received.device_response_hex).unwrap().as_slice()).unwrap();
+    // An unrelated error or an empty success response must not satisfy a rejection test.
+    for status in [
+        mdoc::DeviceResponseStatus::CborDecodingError,
+        mdoc::DeviceResponseStatus::Ok,
+    ] {
+        response.status = status;
+        received.device_response_hex = hex::encode(cbor_serialize(&response).unwrap());
+        assert!(verify_response(&expected, &received).await.is_err());
+    }
+}
+
+#[tokio::test]
+#[serial(MockCloseProximityDisclosureClient)]
+async fn rejection_verifier_rejects_disclosed_documents() {
+    let (expected, mut received) = round_trip(None).await;
+    let mut expected = serde_json::to_value(expected).unwrap();
+    expected["expected_error_status"] = serde_json::json!(10);
+    let expected: Verification = serde_json::from_value(expected).unwrap();
+    let mut response: DeviceResponse =
+        cbor_deserialize(hex::decode(&received.device_response_hex).unwrap().as_slice()).unwrap();
+    response.status = mdoc::DeviceResponseStatus::GeneralError;
+    received.device_response_hex = hex::encode(cbor_serialize(&response).unwrap());
+    assert!(
+        verify_response(&expected, &received).await.is_err(),
+        "error status must not conceal disclosed documents"
+    );
+    response.documents = None;
+    response.document_errors = Some(
+        vec![indexmap::IndexMap::from([("example.document".to_owned(), 0)])]
+            .try_into()
+            .unwrap(),
+    );
+    received.device_response_hex = hex::encode(cbor_serialize(&response).unwrap());
+    assert!(
+        verify_response(&expected, &received).await.is_err(),
+        "rejection must not include per-document results"
+    );
+}
+
 #[tokio::test]
 #[serial(MockCloseProximityDisclosureClient)]
 async fn transport_failure_preserves_error_and_cleans_up() {
@@ -148,3 +226,4 @@ async fn transport_failure_preserves_error_and_cleans_up() {
         .unwrap_err();
     assert!(format!("{error:#}").contains("synthetic BLE start failure"));
 }
+use wallet::hardware_test::RegistrationCertificateCase;

@@ -2,6 +2,7 @@
 //! The transport is real on the device; registration, credentials and provider services are fixtures.
 
 mod fixture;
+mod registration_certificate;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -20,6 +21,7 @@ use crypto::trust_anchor::TrustAnchors;
 use indexmap::IndexMap;
 use mdoc::DeviceRequest;
 use mdoc::DeviceResponse;
+use mdoc::DeviceResponseStatus;
 use mdoc::ItemsRequest;
 use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::create_doc_request;
@@ -37,9 +39,9 @@ use token_status_list::verification::verifier::RevocationVerifier;
 use tokio::sync::mpsc;
 use tokio::time::timeout;
 use utils::generator::TimeGenerator;
-use utils::vec_nonempty;
 
 use self::fixture::Fixture;
+pub use self::registration_certificate::RegistrationCertificateCase;
 use crate::DisclosureAttestationOptions;
 use crate::DisclosureStatus;
 use crate::WalletEvent;
@@ -57,6 +59,8 @@ pub struct Verification {
     issuer_trust_anchors: TrustAnchors,
     session_transcript_hex: String,
     credential_status_list: StatusListToken,
+    #[serde(default)]
+    expected_error_status: Option<DeviceResponseStatus>,
 }
 
 #[derive(Serialize)]
@@ -76,8 +80,25 @@ pub struct ResponseArtifact {
 /// Exercise the public wallet disclosure API, including the signing instruction and history storage.
 /// Keep the runtime alive for this entire future; the native bridge delivers updates asynchronously.
 pub async fn run_disclosure<C: CloseProximityDisclosureClient>(reader_ready: impl FnOnce(ReaderReady)) -> Result<()> {
-    let mut fixture = Fixture::<C>::new().await.context("prepare wallet fixture")?;
-    let result = timeout(SCENARIO_TIMEOUT, disclose(&mut fixture, reader_ready))
+    run_scenario::<C>(None, reader_ready).await
+}
+
+/// Run a signed reader request that must be rejected before approval or holder signing.
+pub async fn run_registration_certificate_rejection<C: CloseProximityDisclosureClient>(
+    case: RegistrationCertificateCase,
+    reader_ready: impl FnOnce(ReaderReady),
+) -> Result<()> {
+    run_scenario::<C>(Some(case), reader_ready)
+        .await
+        .with_context(|| format!("registration certificate case: {case}"))
+}
+
+async fn run_scenario<C: CloseProximityDisclosureClient>(
+    rejection: Option<RegistrationCertificateCase>,
+    reader_ready: impl FnOnce(ReaderReady),
+) -> Result<()> {
+    let mut fixture = Fixture::<C>::new(rejection).await.context("prepare wallet fixture")?;
+    let result = timeout(SCENARIO_TIMEOUT, disclose(&mut fixture, rejection, reader_ready))
         .await
         .context("wallet disclosure timed out")
         .and_then(std::convert::identity);
@@ -99,6 +120,7 @@ pub async fn run_disclosure<C: CloseProximityDisclosureClient>(reader_ready: imp
 
 async fn disclose<C: CloseProximityDisclosureClient>(
     fixture: &mut Fixture<C>,
+    rejection: Option<RegistrationCertificateCase>,
     reader_ready: impl FnOnce(ReaderReady),
 ) -> Result<()> {
     let (sender, mut updates) = mpsc::unbounded_channel();
@@ -127,14 +149,21 @@ async fn disclose<C: CloseProximityDisclosureClient>(
             IndexMap::from([(PID_GIVEN_NAME.to_owned(), false)]).try_into()?,
         )])
         .try_into()?,
-        request_info: Some(IndexMap::from([(
-            REQUEST_INFO_WRPRC_KEY.to_owned(),
-            Value::Bytes(fixture.registration_certificate.clone()),
-        )])),
+        request_info: fixture
+            .registration_certificate
+            .clone()
+            .map(|certificate| IndexMap::from([(REQUEST_INFO_WRPRC_KEY.to_owned(), certificate)])),
     };
-    let request = DeviceRequest::from_doc_requests(vec_nonempty![
-        create_doc_request(items_request, &session_transcript, &fixture.reader).await
-    ]);
+    let items_requests = match rejection {
+        Some(case) => case.items_requests(items_request)?,
+        None => vec![items_request],
+    };
+    let mut doc_requests = Vec::with_capacity(items_requests.len());
+    for items_request in items_requests {
+        // Sign after altering the WRPRC/request, so reader authentication remains valid.
+        doc_requests.push(create_doc_request(items_request, &session_transcript, &fixture.reader).await);
+    }
+    let request = DeviceRequest::from_doc_requests(doc_requests.try_into()?);
     fixture.verification.session_transcript_hex = hex::encode(session_transcript_bytes);
     reader_ready(ReaderReady {
         qr,
@@ -150,11 +179,42 @@ async fn disclose<C: CloseProximityDisclosureClient>(
         Some(CloseProximityDisclosureUpdate::DeviceRequestReceived) => {}
         update => bail!("expected the reader request, received {update:?}"),
     }
-    let proposal = fixture
-        .wallet
-        .continue_close_proximity_disclosure()
-        .await
-        .context("validate reader request")?;
+    let proposal = fixture.wallet.continue_close_proximity_disclosure().await;
+    if let Some(case) = rejection {
+        let error = proposal.expect_err("invalid registration certificate must not produce a proposal");
+        case.check_error(&error)?;
+        ensure!(
+            fixture.wallet.session.is_none(),
+            "rejected wallet session was not cleared"
+        );
+        ensure!(
+            !fixture
+                .wallet
+                .get_history(None)
+                .await?
+                .iter()
+                .any(|event| matches!(event, WalletEvent::Disclosure { .. })),
+            "rejected request must not create a disclosure history entry"
+        );
+        ensure!(
+            !fixture
+                .wallet
+                .storage
+                .read()
+                .await
+                .did_share_data_with_relying_party(&fixture.organization)
+                .await?,
+            "rejected request must not mark data as shared"
+        );
+        // Rejection aborts the wallet listener before sending the error response. Unlike success,
+        // it closes the callback channel instead of publishing a Disconnected update.
+        ensure!(
+            updates.recv().await.is_none(),
+            "rejected wallet listener was not stopped"
+        );
+        return Ok(());
+    }
+    let proposal = proposal.context("validate reader request")?;
     ensure!(
         proposal.organization == fixture.organization,
         "unexpected reader organization"
@@ -238,6 +298,18 @@ pub async fn verify_response(expected: &Verification, received: &ResponseArtifac
         "reader and wallet session transcripts differ"
     );
     let response: DeviceResponse = cbor_deserialize(hex::decode(&received.device_response_hex)?.as_slice())?;
+    if let Some(status) = expected.expected_error_status {
+        ensure!(
+            response.status == status,
+            "unexpected rejection status: {:?}",
+            response.status
+        );
+        ensure!(
+            response.documents.is_none() && response.document_errors.is_none(),
+            "rejected request must return only an error status, without documents"
+        );
+        return Ok(());
+    }
     let transcript = SessionTranscript::try_from_bytes(&hex::decode(&received.session_transcript_hex)?)?;
     let mut status_list_client = MockStatusListClient::new();
     let status_list = expected.credential_status_list.clone();

@@ -20,8 +20,6 @@ fn main() -> Result<()> {
         .enable_all()
         .build()?
         .block_on(wallet::hardware_test::verify_response(&expected, &received))?;
-    println!(
-        "Verified BLE DeviceResponse: issuer signature, device signature, session binding and requested attributes"
-    );
+    println!("Verified BLE DeviceResponse: expected disclosure or registration-certificate rejection");
     Ok(())
 }

@@ -46,6 +46,7 @@ test = [
 hardware_integration_test = [
     "test",
     "dep:anyhow",
+    "dep:cose",
     "dep:hex",
     "apple_app_attest/mock",
     "attestation_data/mock",
@@ -107,6 +108,7 @@ mockall = { workspace = true, optional = true }
 
 attestation_data.path = "../lib/attestation_data"
 attestation_types.path = "../lib/attestation_types"
+cose = { path = "../lib/cose", optional = true }
 crypto.path = "../lib/crypto"
 dcql.path = "../lib/dcql"
 entity.path = "entity"
