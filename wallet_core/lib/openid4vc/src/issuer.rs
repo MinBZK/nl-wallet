@@ -62,7 +62,6 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
-use utils::vec_nonempty;
 use uuid::Uuid;
 use wscd::payload::key_attestation::KeyAttestationVerificationError;
 use wscd::payload::key_attestation::KeyAttestationVerificationResult;
@@ -88,10 +87,8 @@ use crate::credential_configurations::CredentialConfigurations;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
-use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
-use crate::metadata::issuer_metadata::IssuerInfo;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
@@ -659,29 +656,13 @@ where
             credential_preview_endpoint.then(|| server_url.join_issuer_url("/credential_preview"));
         let type_metadata_base_url = server_url.join_issuer_url("/type_metadata");
 
-        let batch_credential_issuance = AtLeastTwoU64::try_new(batch_size.into())
-            .ok()
-            .map(|batch_size| BatchCredentialIssuance { batch_size });
-        let metadata = IssuerMetadata {
-            credential_issuer: issuer_identifier,
-            authorization_servers: None,
-            endpoints: IssuerEndpoints {
-                credential_endpoint,
-                nonce_endpoint: Some(nonce_endpoint),
-                deferred_credential_endpoint: None,
-                notification_endpoint: None,
-                credential_preview_endpoint,
-            },
-            credential_request_encryption: None,
-            credential_response_encryption: None,
-            batch_credential_issuance,
-            display: None,
-            issuer_info: Some(vec_nonempty![IssuerInfo::RegistrationCertificate {
-                data: registration_certificate,
-            }]),
-            credential_configurations_supported: credential_configs
-                .to_credential_configurations_supported(&type_metadata_base_url),
-        };
+        let issuer_metadata = IssuerMetadata::new(
+            issuer_identifier,
+            IssuerEndpoints::new(credential_endpoint, nonce_endpoint, credential_preview_endpoint),
+            AtLeastTwoU64::try_new(batch_size.into()).ok(),
+            registration_certificate,
+            credential_configs.to_credential_configurations_supported(&type_metadata_base_url),
+        );
 
         let issuer_data = IssuerData::new(
             credential_configs,
@@ -690,7 +671,7 @@ where
             // In this implementation, the public server URL is composed of the Credential Issuer Identifier appended
             // with the "/issuance/" path.
             server_url.into_inner(),
-            metadata,
+            issuer_metadata,
             metadata_keypair,
             wp_trusted_list_anchors,
         );
@@ -1774,6 +1755,7 @@ mod tests {
     use crate::errors::VciTokenErrorCode;
     use crate::issuable_document::IssuableDocument;
     use crate::metadata::issuer_metadata::CredentialMetadata;
+    use crate::metadata::issuer_metadata::IssuerInfo;
     use crate::nonce::response::NonceResponse;
     use crate::preview::CredentialPreviewResponse;
     use crate::server_state::MemorySessionStore;

@@ -14,6 +14,7 @@ use attestation_types::credential_kind::CredentialKind;
 use cose::CoseAlgorithmIdentifier;
 use coset::iana;
 use derive_more::AsRef;
+use derive_more::Constructor;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
@@ -133,6 +134,28 @@ pub struct IssuerMetadata {
 }
 
 impl IssuerMetadata {
+    pub fn new(
+        credential_issuer: IssuerIdentifier,
+        endpoints: IssuerEndpoints,
+        batch_size: Option<AtLeastTwoU64>,
+        registration_certificate: RegistrationCertificateEnvelope,
+        credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+    ) -> Self {
+        Self {
+            credential_issuer,
+            authorization_servers: None,
+            endpoints,
+            credential_request_encryption: None,
+            credential_response_encryption: None,
+            batch_credential_issuance: batch_size.map(BatchCredentialIssuance::new),
+            display: None,
+            issuer_info: Some(vec_nonempty![IssuerInfo::RegistrationCertificate {
+                data: registration_certificate,
+            }]),
+            credential_configurations_supported,
+        }
+    }
+
     /// Returns a non-empty slice of authorization servers.
     pub fn authorization_servers(&self) -> VecNonEmpty<&IssuerIdentifier> {
         self.authorization_servers
@@ -219,6 +242,22 @@ pub struct IssuerEndpoints {
     /// URL of the credential issuer's credential preview endpoint. This URL MUST use the https scheme and MAY contain
     /// port, path and query parameter components.
     pub credential_preview_endpoint: Option<IssuerUrl>,
+}
+
+impl IssuerEndpoints {
+    pub fn new(
+        credential_endpoint: IssuerUrl,
+        nonce_endpoint: IssuerUrl,
+        credential_preview_endpoint: Option<IssuerUrl>,
+    ) -> Self {
+        Self {
+            credential_endpoint,
+            nonce_endpoint: Some(nonce_endpoint),
+            deferred_credential_endpoint: None,
+            notification_endpoint: None,
+            credential_preview_endpoint,
+        }
+    }
 }
 
 // Information about whether the Credential Issuer supports encryption of the Credential Request on top of TLS.
@@ -314,7 +353,7 @@ impl TryFrom<NonZeroU64> for AtLeastTwoU64 {
 /// Endpoint. The presence of this parameter means that the issuer supports more than one key proof in the proofs
 /// parameter in the Credential Request so can issue more than one Verifiable Credential for the same Credential Dataset
 /// in a single request/response.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Constructor)]
 pub struct BatchCredentialIssuance {
     // Integer value specifying the maximum array size for the proofs parameter in a Credential Request. It MUST be 2
     // or greater.

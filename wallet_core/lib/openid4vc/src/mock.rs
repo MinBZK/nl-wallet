@@ -59,7 +59,7 @@ impl IssuerMetadata {
             })
             .collect();
 
-        IssuerMetadata {
+        Self {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
             endpoints,
@@ -82,13 +82,7 @@ impl IssuerEndpoints {
         let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
         let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
 
-        Self {
-            credential_endpoint,
-            nonce_endpoint: Some(nonce_endpoint),
-            deferred_credential_endpoint: None,
-            notification_endpoint: None,
-            credential_preview_endpoint: Some(credential_preview_endpoint),
-        }
+        Self::new(credential_endpoint, nonce_endpoint, Some(credential_preview_endpoint))
     }
 }
 
