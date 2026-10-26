@@ -15,24 +15,13 @@ pub enum SdJwtClaimsError {
     #[error("could not decode SD-JWT claims: {0}")]
     #[category(pd)]
     Decoding(#[source] DecoderError),
-
-    #[error("could not convert SD-JWT claims to JSON: {0}")]
-    #[category(pd)]
-    JsonConversion(#[source] serde_json::Error),
 }
 
 impl SdJwtClaims {
     pub fn from_verified_sd_jwt(verified_sd_jwt: &VerifiedSdJwt) -> Result<Self, SdJwtClaimsError> {
         let decoded_claims = verified_sd_jwt.decoded_claims().map_err(SdJwtClaimsError::Decoding)?;
 
-        let claims = decoded_claims
-            .claims
-            .into_iter()
-            .map(|(name, value)| Ok((name.into_inner(), serde_json::to_value(value)?)))
-            .collect::<Result<_, _>>()
-            .map_err(SdJwtClaimsError::JsonConversion)?;
-
-        Ok(Self(claims))
+        Ok(Self(decoded_claims.into_bare_json().into_iter().collect()))
     }
 
     pub fn from_unsigned_sd_jwt_presentation(
