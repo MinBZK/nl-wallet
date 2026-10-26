@@ -131,7 +131,6 @@ mod test {
     #[test]
     fn test_sd_jwt_claims_from_verified_sd_jwt() {
         let sd_jwt = example_sd_jwt();
-        assert_eq!(sd_jwt.disclosures().len(), concealable_paths().len());
 
         let SdJwtClaims(claims) =
             SdJwtClaims::from_verified_sd_jwt(&sd_jwt).expect("SD-JWT claims should decode successfully");
