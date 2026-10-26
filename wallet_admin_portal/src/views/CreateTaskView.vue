@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watchEffect } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { usePageTitle } from '@/composables/pageTitle.ts'
 import { useAuth } from '@/composables/authentication.ts'
 import { useNavigation } from '@/composables/navigation.ts'
@@ -75,10 +75,9 @@ const STEP_ORDER: WizardStep[] = ['intro', 'reason', 'check', 'done']
 const NUMBERED_STEPS: WizardStep[] = ['intro', 'reason', 'check']
 
 const route = useRoute()
-const router = useRouter()
 const { setPageTitle, resetPageTitle } = usePageTitle()
 const { loggedInUser } = useAuth()
-const { goBackOrHome } = useNavigation()
+const { goBackOrHome, goHome } = useNavigation()
 
 const step = ref<WizardStep>('intro')
 const reason = ref('')
@@ -114,10 +113,6 @@ watchEffect(() => {
   setPageTitle(pageTitle.value)
 })
 onBeforeUnmount(resetPageTitle)
-
-function goHome() {
-  router.push({ name: 'home' })
-}
 
 function goToPreviousStep() {
   taskCreationFailed.value = false
