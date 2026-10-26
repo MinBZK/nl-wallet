@@ -2,6 +2,7 @@ use std::num::NonZeroUsize;
 
 use chrono::DateTime;
 use chrono::Utc;
+use ciborium::tag::Required;
 use ciborium::value::Value;
 use coset::CoseSign1;
 use coset::Header;
@@ -44,6 +45,15 @@ pub trait CoseTyp {
 impl<T: CoseTyp> CoseTyp for CborIntMap<T> {
     const TYP: &'static str = T::TYP;
 }
+
+/// A tagged COSE_Sign1 structure is identified by the CBOR tag 18.
+///
+/// ```cddl
+/// COSE_Sign1_Tagged = #6.18(COSE_Sign1)
+/// ```
+///
+/// <https://www.rfc-editor.org/rfc/rfc9052.html#section-4.2>
+pub type TaggedCoseSign1<T> = Required<TypedCose<CoseSign1, T>, { iana::CborTag::CoseSign1 as u64 }>;
 
 pub fn header_with_x5chain(chain: &VecNonEmpty<&BorrowingCertificate>) -> Header {
     let encode_certificate = |certificate: &&BorrowingCertificate| Value::Bytes(certificate.to_vec());

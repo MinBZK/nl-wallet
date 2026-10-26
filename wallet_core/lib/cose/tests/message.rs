@@ -1,7 +1,9 @@
+use ciborium::tag::Required;
 use cose::COSE_TYP_HEADER_LABEL;
 use cose::COSE_X5CHAIN_HEADER_LABEL;
 use cose::CoseError;
 use cose::CoseTyp;
+use cose::TaggedCoseSign1;
 use cose::TypedCose;
 use cose::header_with_x5chain;
 use coset::CoseSign1;
@@ -313,4 +315,29 @@ async fn rejects_missing_intermediate_certificate() {
         cose.verify_against_trust_anchors(&root_ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),),
         Err(CoseError::CertificateVerify(_))
     ));
+}
+
+#[tokio::test]
+async fn tagged_cose_sign1_requires_tag() {
+    let key = SigningKey::generate();
+    let cose = TypedCose::sign(&ToyMessage::default(), Header::default(), &key)
+        .await
+        .unwrap();
+
+    // Serialization emits CBOR tag 18 (0xd2) in front of the `COSE_Sign1` array (0x84)
+    let tagged_cose: TaggedCoseSign1<ToyMessage> = Required(cose.clone());
+    let mut tagged = Vec::new();
+    ciborium::ser::into_writer(&tagged_cose, &mut tagged).unwrap();
+    assert_eq!(&tagged[..2], &[0xd2, 0x84]);
+
+    let Required(decoded): TaggedCoseSign1<ToyMessage> = ciborium::de::from_reader(tagged.as_slice()).unwrap();
+    assert_eq!(
+        decoded.verify_and_parse(key.verifying_key()).unwrap(),
+        ToyMessage::default()
+    );
+
+    // Deserialization rejects an untagged `COSE_Sign1`
+    let mut untagged = Vec::new();
+    ciborium::ser::into_writer(&cose, &mut untagged).unwrap();
+    assert!(ciborium::de::from_reader::<TaggedCoseSign1<ToyMessage>, _>(untagged.as_slice()).is_err());
 }

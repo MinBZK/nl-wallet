@@ -9017,6 +9017,8 @@ dependencies = [
  "attestation_types",
  "axum",
  "chrono",
+ "cose",
+ "coset",
  "crypto",
  "db_test",
  "derive_more",

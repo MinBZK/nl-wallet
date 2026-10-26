@@ -4,12 +4,13 @@ use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
+use ciborium::tag::Required;
 use cose::CborIndexedFields;
 use cose::CborIntMap;
 use cose::CoseError;
 use cose::CoseTyp;
+use cose::TaggedCoseSign1;
 use cose::TypedCose;
-use coset::CoseSign1;
 use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use derive_more::AsRef;
@@ -34,13 +35,13 @@ pub static TOKEN_STATUS_LIST_CWT_TYP: &str = "application/statuslist+cwt";
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-5.2>
 #[derive(Debug, Clone, AsRef, Into, Serialize, Deserialize)]
-pub struct StatusListCwt(TypedCose<CoseSign1, CborIntMap<StatusListCwtClaims>>);
+pub struct StatusListCwt(TaggedCoseSign1<CborIntMap<StatusListCwtClaims>>);
 
 impl StatusListCwt {
     pub async fn sign(claims: StatusListTokenClaims, keypair: &KeyPair<impl EcdsaKey>) -> Result<Self, CoseError> {
         let claims = CborIntMap(StatusListCwtClaims::from(claims));
         let cose = TypedCose::sign_with_typ_and_certificate(&claims, keypair).await?;
-        Ok(Self(cose))
+        Ok(Self(Required(cose)))
     }
 }
 
@@ -111,6 +112,8 @@ mod test {
 
     use ciborium::Value;
     use cose::COSE_TYP_HEADER_LABEL;
+    use cose::cbor_serialize;
+    use coset::CoseSign1;
     use coset::Label;
     use coset::TaggedCborSerializable;
     use crypto::server_keys::generate::Ca;
@@ -181,8 +184,7 @@ mod test {
             .build(&MockTimeGenerator::default());
         let token = StatusListCwt::sign(claims, &keypair).await.unwrap();
 
-        // `from_tagged_slice` requires the `COSE_Sign1_Tagged` (CBOR tag 18) form
-        let tagged = token.0.into_inner().to_tagged_vec().unwrap();
+        let tagged = cbor_serialize(&token).unwrap();
         let cose = TypedCose::<CoseSign1, Value>::from(CoseSign1::from_tagged_slice(&tagged).unwrap());
         let typ = cose
             .protected_header()

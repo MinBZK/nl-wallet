@@ -18,5 +18,5 @@ pub use cbor_int_map::*;
 pub use error::*;
 pub use key::*;
 pub use message::*;
-pub use serialization::CborError;
+pub use serialization::*;
 pub use sign1::*;
