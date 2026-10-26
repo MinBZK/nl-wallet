@@ -58,10 +58,6 @@ pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[source] VpMessageClientError),
 
-    #[error("received credential request with mix of formats from verifier, this is unsupported")]
-    #[category(critical)]
-    MixedFormatCredentialRequest,
-
     #[error("attestations provided for unknown credential query: {0}")]
     #[category(critical)]
     UnknownCredentialQuery(CredentialQueryIdentifier),
