@@ -1055,6 +1055,9 @@ mod tests {
     use futures::future::join_all;
     use indexmap::IndexMap;
     use jwt::error::JwtParseError;
+    use jwt::error::JwtVerifyError;
+    use jwt::error::JwtX5cVerifyError;
+    use jwt::error::ValidationErrorKind;
     use mdoc::DeviceEngagement;
     use mdoc::DeviceRequest;
     use mdoc::DeviceResponse;
@@ -1996,13 +1999,18 @@ mod tests {
     #[case::expired(
         |payload: &mut RegistrationCertificateFixture| {
             let now = Utc::now().timestamp();
-            payload.0["iat"] = json!(now - 120);
-            payload.0["exp"] = json!(now - 60);
+            payload.0["iat"] = json!(now - 180);
+            // Stay beyond the JWT validator's 60-second leeway, regardless of when verification runs.
+            payload.0["exp"] = json!(now - 120);
         },
         |error: &CloseProximityDisclosureError| {
             matches!(error, CloseProximityDisclosureError::RegistrationCertificateVerification(
                 RegistrationCertificateEnvelopeError::Validity(RegistrationCertificateValidationError::Expired { .. })
-            ))
+            )) || matches!(error, CloseProximityDisclosureError::RegistrationCertificateVerification(
+                RegistrationCertificateEnvelopeError::Jwt(JwtX5cVerifyError::JwtVerify(
+                    JwtVerifyError::Validation(error)
+                ))
+            ) if *error.kind() == ValidationErrorKind::ExpiredSignature)
         }
     )]
     #[tokio::test]
