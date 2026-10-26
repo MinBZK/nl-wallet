@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 
-import 'base_wallet_theme.dart';
+import 'colored_wallet_theme.dart';
 
 class DarkWalletTheme {
   DarkWalletTheme._();
@@ -13,181 +13,36 @@ class DarkWalletTheme {
     primary: _Colors.primary,
     secondary: Color(0xFFA5C8FF),
     onSecondary: Color(0XFF383EDE),
-    error: Color(0xFFFF8989),
-    surface: Color(0xFF1C1E25),
+    error: _Colors.textError,
+    surface: _Colors.pageBackground,
     inverseSurface: Color(0xFF414966),
-    primaryContainer: Color(0xFF2F3444),
-    onPrimaryContainer: textColor,
+    primaryContainer: _Colors.pageContainers,
+    onPrimaryContainer: _Colors.textPrimary,
     secondaryContainer: Color(0xFF004785),
     tertiaryContainer: _Colors.pageGutter,
     onPrimary: Color(0xFF002C71),
-    onSurface: primaryColorDark,
+    onSurface: _Colors.textPrimary,
     onSurfaceVariant: Color(0xFF8292CC),
     outlineVariant: Color(0xFF656D87),
     shadow: Color(0x14FFFFFF),
   );
 
-  // Other Colors
-  static const bottomNavigationUnselectedColor = Color(0xFFAAACB3);
-  static const focusColor = Colors.white12;
-  static const primaryColorDark = Color(0xFFFFFFFF);
-  static const textColor = primaryColorDark;
-
-  // TextTheme
-  static final textTheme = BaseWalletTheme.baseTextTheme.apply(
-    bodyColor: textColor,
-    displayColor: textColor,
-  );
-
-  // DialogTheme
-  static final dialogTheme = DialogThemeData(
-    backgroundColor: _Colors.modalBg,
-    barrierColor: _Colors.modalBarrierColor,
-    titleTextStyle: textTheme.headlineMedium,
-    surfaceTintColor: Colors.transparent,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
+  static final theme = ColoredWalletTheme(
+    const WalletThemeColors(
+      colorScheme: colorScheme,
+      textColor: _Colors.textPrimary,
+      focusColor: Colors.white12,
+      bottomNavigationUnselectedColor: Color(0xFFAAACB3),
+      modalBackground: _Colors.modalBg,
+      modalBarrier: _Colors.modalBarrierColor,
+      actionPrimaryHover: _Colors.actionPrimaryHover,
+      actionPrimaryBackgroundHover: _Colors.actionPrimaryBgHover,
+      actionSecondary: _Colors.actionSecondary,
+      elevatedButtonForeground: _Colors.textWhite,
     ),
   );
 
-  //region Modified (colored) BaseThemes
-  static final dividerTheme = BaseWalletTheme.baseDividerTheme.copyWith(
-    color: colorScheme.outlineVariant,
-  );
-
-  static final appBarTheme = BaseWalletTheme.baseAppBarTheme.copyWith(
-    backgroundColor: colorScheme.surface,
-    surfaceTintColor: colorScheme.surface,
-    titleTextStyle: textTheme.headlineMedium,
-    shadowColor: colorScheme.shadow,
-  );
-
-  static final bottomNavigationBarTheme = BaseWalletTheme.baseBottomNavigationBarThemeData.copyWith(
-    backgroundColor: colorScheme.surface,
-    unselectedItemColor: bottomNavigationUnselectedColor,
-  );
-
-  static final elevatedButtonTheme = ElevatedButtonThemeData(
-    style: BaseWalletTheme.baseElevatedButtonTheme.style?.copyWith(
-      backgroundColor: WidgetStateColor.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : colorScheme.primary,
-      ),
-      foregroundColor: const WidgetStatePropertyAll(_Colors.textWhite),
-      iconColor: const WidgetStatePropertyAll(_Colors.textWhite),
-      overlayColor: WidgetStateProperty.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : null,
-      ),
-      side: WidgetStateBorderSide.resolveWith(
-        (states) => states.isFocused ? _Sides.buttonBorderSideFocused : null,
-      ),
-    ),
-  );
-
-  static final outlinedButtonTheme = OutlinedButtonThemeData(
-    style: BaseWalletTheme.baseOutlinedButtonTheme.style?.copyWith(
-      backgroundColor: WidgetStateColor.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryBgHover : _Colors.actionPrimaryBg,
-      ),
-      foregroundColor: WidgetStateColor.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.textAction,
-      ),
-      iconColor: WidgetStateColor.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.textAction,
-      ),
-      overlayColor: WidgetStateProperty.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryBgHover : null,
-      ),
-      side: WidgetStateBorderSide.resolveWith(
-        (states) {
-          if (states.isPressed) return _Sides.outlineButtonBorderSidePressed;
-          if (states.isFocused) return _Sides.buttonBorderSideFocused;
-          return _Sides.outlineButtonBorderSideDefault;
-        },
-      ),
-    ),
-  );
-
-  static final textButtonTheme = TextButtonThemeData(
-    style: BaseWalletTheme.baseTextButtonTheme.style?.copyWith(
-      backgroundColor: WidgetStateColor.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryBgHover : _Colors.actionPrimaryBg,
-      ),
-      foregroundColor: WidgetStateColor.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.textAction,
-      ),
-      iconColor: WidgetStateColor.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.textAction,
-      ),
-      overlayColor: WidgetStateProperty.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryBgHover : null,
-      ),
-      side: WidgetStateBorderSide.resolveWith(
-        (states) => states.isFocused ? _Sides.buttonBorderSideFocused : null,
-      ),
-    ),
-  );
-
-  static final iconButtonTheme = IconButtonThemeData(
-    style: BaseWalletTheme.baseIconButtonTheme.style?.copyWith(
-      foregroundColor: WidgetStateColor.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.iconsAction,
-      ),
-      iconColor: WidgetStateColor.resolveWith(
-        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.iconsAction,
-      ),
-      side: WidgetStateProperty.resolveWith(
-        (states) => states.isFocused ? _Sides.buttonBorderSideFocused : null,
-      ),
-    ),
-  );
-
-  static final tabBarTheme = BaseWalletTheme.baseTabBarTheme.copyWith(
-    labelColor: colorScheme.primary,
-    unselectedLabelColor: colorScheme.onSurface,
-    indicatorColor: colorScheme.primary,
-  );
-
-  static final scrollBarTheme = BaseWalletTheme.baseScrollbarTheme.copyWith(
-    thumbColor: const WidgetStatePropertyAll(primaryColorDark),
-  );
-
-  static final bottomSheetTheme = BaseWalletTheme.baseBottomSheetTheme.copyWith(
-    backgroundColor: _Colors.modalBg,
-    modalBarrierColor: _Colors.modalBarrierColor,
-    surfaceTintColor: Colors.transparent,
-  );
-
-  static final iconTheme = BaseWalletTheme.baseIconTheme.copyWith(color: colorScheme.onSurface);
-
-  static final switchTheme = SwitchThemeData(
-    trackOutlineWidth: const WidgetStatePropertyAll(2),
-    trackOutlineColor: const WidgetStateMapper({
-      WidgetState.selected: _Colors.actionPrimary,
-      WidgetState.any: _Colors.actionSecondary,
-    }),
-    thumbIcon: const WidgetStateMapper({WidgetState.selected: Icon(Icons.check)}),
-    thumbColor: WidgetStateMapper({
-      WidgetState.selected: colorScheme.surface,
-      WidgetState.any: _Colors.actionSecondary,
-    }),
-  );
-
-  //endregion Modified (colored) BaseThemes
-
-  static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFF292D3A));
-}
-
-class _Sides {
-  static final BorderSide buttonBorderSideFocused = BaseWalletTheme.buttonBorderSideFocused.copyWith(
-    color: _Colors.actionPrimaryHover,
-  );
-
-  static final BorderSide outlineButtonBorderSideDefault = BaseWalletTheme.outlineButtonBorderSideDefault.copyWith(
-    color: _Colors.primary,
-  );
-  static final BorderSide outlineButtonBorderSidePressed = BaseWalletTheme.outlineButtonBorderSideDefault.copyWith(
-    color: _Colors.actionPrimaryHover,
-  );
+  static final textTheme = theme.textTheme;
 }
 
 // ignore: unused_element

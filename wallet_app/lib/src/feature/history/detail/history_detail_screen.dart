@@ -16,9 +16,8 @@ import '../../error/error_page.dart';
 import 'argument/history_detail_screen_argument.dart';
 import 'bloc/history_detail_bloc.dart';
 import 'widget/page/history_detail_deletion_page.dart';
-import 'widget/page/history_detail_disclose_page.dart';
+import 'widget/page/history_detail_disclosure_page.dart';
 import 'widget/page/history_detail_issue_page.dart';
-import 'widget/page/history_detail_login_page.dart';
 import 'widget/page/history_detail_sign_page.dart';
 
 class HistoryDetailScreen extends StatelessWidget {
@@ -86,12 +85,7 @@ class HistoryDetailScreen extends StatelessWidget {
       case DeletionEvent():
         return HistoryDetailDeletionPage.resolveTitle(context, event);
       case DisclosureEvent():
-        switch (event.type) {
-          case DisclosureType.regular:
-            return HistoryDetailDisclosePage.resolveDisclosureTitle(context, event);
-          case DisclosureType.login:
-            return HistoryDetailLoginPage.resolveLoginTitle(context, event);
-        }
+        return HistoryDetailDisclosurePage.resolveTitle(context, event);
       case IssuanceEvent():
         return HistoryDetailIssuePage.resolveTitle(context, event);
       case SignEvent():
@@ -103,10 +97,7 @@ class HistoryDetailScreen extends StatelessWidget {
     final WalletEvent event = state.event;
     final Widget page = switch (event) {
       DeletionEvent() => HistoryDetailDeletionPage(event: event),
-      DisclosureEvent() => switch (event.type) {
-        DisclosureType.regular => HistoryDetailDisclosePage(event: event),
-        DisclosureType.login => HistoryDetailLoginPage(event: event),
-      },
+      DisclosureEvent() => HistoryDetailDisclosurePage(event: event),
       IssuanceEvent() => HistoryDetailIssuePage(event: event),
       SignEvent() => HistoryDetailSignPage(event: event),
     };

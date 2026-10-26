@@ -208,7 +208,20 @@ class BaseWalletTheme {
   //region Other Themes
   static const baseDividerTheme = DividerThemeData(space: 1, thickness: 1);
 
-  static const baseBottomSheetTheme = BottomSheetThemeData(shape: ContinuousRectangleBorder());
+  static const baseBottomSheetTheme = BottomSheetThemeData(
+    shape: ContinuousRectangleBorder(),
+    surfaceTintColor: Colors.transparent,
+  );
+
+  static const baseDialogTheme = DialogThemeData(
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+  );
+
+  static const baseSwitchTheme = SwitchThemeData(
+    trackOutlineWidth: WidgetStatePropertyAll(2),
+    thumbIcon: WidgetStateMapper({WidgetState.selected: Icon(Icons.check)}),
+  );
 
   static final baseBottomNavigationBarThemeData = BottomNavigationBarThemeData(
     elevation: 0,
