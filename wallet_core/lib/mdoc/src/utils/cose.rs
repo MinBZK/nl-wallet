@@ -43,11 +43,10 @@ fn signatures_data_and_header(payloads: &[&[u8]]) -> (Vec<Vec<u8>>, ProtectedHea
     (signatures_data, protected_header)
 }
 
-pub async fn sign_coses<K: CredentialEcdsaKey>(
+pub async fn sign_coses_without_payload<K: CredentialEcdsaKey>(
     keys_and_challenges: Vec<(K, &[u8])>,
     wscd: &impl DisclosureWscd<Key = K>,
     unprotected_header: Header,
-    include_payload: bool,
 ) -> Result<Vec<CoseSign1>, CoseError> {
     let (keys, challenges): (Vec<_>, Vec<_>) = keys_and_challenges.into_iter().unzip();
     let (signatures_data, protected_header) = signatures_data_and_header(&challenges);
@@ -65,11 +64,10 @@ pub async fn sign_coses<K: CredentialEcdsaKey>(
 
     let signed = result
         .into_iter()
-        .zip(challenges)
-        .map(|(signature, payload)| {
+        .map(|signature| {
             Ok(CoseSign1 {
                 signature: signature.first().ok_or(CoseError::SignatureMissing)?.to_vec(),
-                payload: include_payload.then(|| payload.to_vec()),
+                payload: None,
                 protected: protected_header.clone(),
                 unprotected: unprotected_header.clone(),
             })
