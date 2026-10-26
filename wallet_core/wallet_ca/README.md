@@ -2,9 +2,8 @@
 
 `wallet_ca` is a development and operations utility for creating the X.509
 material used by NL Wallet. It can generate self-signed certificate authorities,
-issuer and access certificates, certificates for existing public keys, signed
-reader requests, OAuth Status List Tokens, and certificate revocation lists
-(CRLs).
+issuer and access certificates, certificates for existing public keys, OAuth
+Status List Tokens, and certificate revocation lists (CRLs).
 
 Run the CLI from the repository root:
 
