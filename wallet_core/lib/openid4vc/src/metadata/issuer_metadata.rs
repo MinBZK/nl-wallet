@@ -132,6 +132,35 @@ pub struct IssuerMetadata {
     pub credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
 }
 
+impl IssuerMetadata {
+    /// Returns a non-empty slice of authorization servers.
+    pub fn authorization_servers(&self) -> VecNonEmpty<&IssuerIdentifier> {
+        self.authorization_servers
+            .as_ref()
+            .map(|servers| servers.nonempty_iter().collect())
+            .unwrap_or_else(|| {
+                // Per the spec, "If [the authorization_servers] parameter is omitted, the entity
+                // providing the Credential Issuer is also acting as the Authorization Server".
+                vec_nonempty![&self.credential_issuer]
+            })
+    }
+
+    /// Returns the maximum batch size that issuer supports. If it does not support batch issuance, this returns 1.
+    pub fn batch_size(&self) -> NonZeroU64 {
+        self.batch_credential_issuance
+            .map(|batch_issuance| batch_issuance.batch_size.into())
+            .unwrap_or(NonZeroU64::MIN)
+    }
+}
+
+impl WellKnownMetadata for IssuerMetadata {
+    const PATH: &'static str = "openid-credential-issuer";
+
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        &self.credential_issuer
+    }
+}
+
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "format")]
@@ -190,35 +219,6 @@ pub struct IssuerEndpoints {
     /// URL of the credential issuer's credential preview endpoint. This URL MUST use the https scheme and MAY contain
     /// port, path and query parameter components.
     pub credential_preview_endpoint: Option<IssuerUrl>,
-}
-
-impl WellKnownMetadata for IssuerMetadata {
-    const PATH: &'static str = "openid-credential-issuer";
-
-    fn issuer_identifier(&self) -> &IssuerIdentifier {
-        &self.credential_issuer
-    }
-}
-
-impl IssuerMetadata {
-    /// Returns a non-empty slice of authorization servers.
-    pub fn authorization_servers(&self) -> VecNonEmpty<&IssuerIdentifier> {
-        self.authorization_servers
-            .as_ref()
-            .map(|servers| servers.nonempty_iter().collect())
-            .unwrap_or_else(|| {
-                // Per the spec, "If [the authorization_servers] parameter is omitted, the entity
-                // providing the Credential Issuer is also acting as the Authorization Server".
-                vec_nonempty![&self.credential_issuer]
-            })
-    }
-
-    /// Returns the maximum batch size that issuer supports. If it does not support batch issuance, this returns 1.
-    pub fn batch_size(&self) -> NonZeroU64 {
-        self.batch_credential_issuance
-            .map(|batch_issuance| batch_issuance.batch_size.into())
-            .unwrap_or(NonZeroU64::MIN)
-    }
 }
 
 // Information about whether the Credential Issuer supports encryption of the Credential Request on top of TLS.
