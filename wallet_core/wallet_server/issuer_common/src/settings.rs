@@ -775,7 +775,7 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
     use crypto::x509::CertificateConfiguration;
-    use crypto::x509::CertificateUsage;
+    use crypto::x509::CertificateProfile;
     use crypto::x509::CertificateVerifyError;
     use crypto::x509::DistinguishedName;
     use openid4vc::credential_configurations::SdJwtMetadata;
@@ -1028,7 +1028,7 @@ mod tests {
             .keypair = issuer_ca
             .generate_key_pair(
                 DistinguishedName::create_mock("Issuer without organization"),
-                CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                CertificateConfiguration::with_profile(CertificateProfile::Issuer),
             )
             .unwrap()
             .into();

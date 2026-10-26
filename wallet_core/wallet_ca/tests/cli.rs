@@ -232,6 +232,25 @@ fn assert_generated_certificate_ca_issuers(crt_file: &ChildPath, expected: &[Url
     Ok(())
 }
 
+/// Verify the DER encoded content of a generated certificate's QCStatements extension (RFC 3739, section 3.2.6), if
+/// any, against the expected content.
+fn assert_generated_certificate_qc_statements(crt_file: &ChildPath, expected: Option<&[u8]>) -> Result<()> {
+    let crt_pem_bytes = std::fs::read(crt_file)?;
+    let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
+    let cert = BorrowingCertificate::from_der(crt_pem.contents)?;
+
+    // x509-parser does not parse the QCStatements extension, so look it up by its OID.
+    let qc_statements = cert
+        .x509_certificate()
+        .extensions()
+        .iter()
+        .find(|ext| ext.oid.to_id_string() == "1.3.6.1.5.5.7.1.3")
+        .map(|ext| ext.value);
+    assert_eq!(qc_statements, expected);
+
+    Ok(())
+}
+
 /// Verify a generated CRL's issuer, validity window, `crlNumber` and revoked serial numbers (as raw bytes, in the
 /// order they appear on the CRL).
 fn assert_generated_crl(
@@ -1277,6 +1296,72 @@ fn happy_flow_with_ca_issuers() -> Result<()> {
             .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
 
         assert_generated_certificate_ca_issuers(&tsl_crt, &[])?;
+    }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_pid_issuer() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    // SEQUENCE {                    -- QCStatements
+    //   SEQUENCE {                  -- QCStatement
+    //     OBJECT IDENTIFIER 0.4.0.1862.1.6       -- id-etsi-qcs-QcType
+    //     SEQUENCE {
+    //       OBJECT IDENTIFIER 0.4.0.194126.1.1   -- id-etsi-qct-pid
+    //     }
+    //   }
+    // }
+    let pid_qc_statements: &[u8] = &[
+        0x30, 0x15, 0x30, 0x13, 0x06, 0x06, 0x04, 0x00, 0x8e, 0x46, 0x01, 0x06, 0x30, 0x09, 0x06, 0x07, 0x04, 0x00,
+        0x8b, 0xec, 0x4e, 0x01, 0x01,
+    ];
+
+    // Only a PID issuer certificate contains the id-etsi-qct-pid QcType, while both use the mdoc issuer EKU
+    for (cert_type, expected_qc_statements) in [("pid-issuer", Some(pid_qc_statements)), ("issuer", None)] {
+        let (issuer_prefix, issuer_crt, _) = keypair_paths(&temp, &format!("test-{cert_type}"));
+
+        let public_key_path = public_key_path(&temp, &format!("test-{cert_type}"));
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .arg("cert-pub")
+            .arg("--type")
+            .arg(cert_type)
+            .arg("--public-key-file")
+            .arg(public_key_path.path())
+            .arg("--ca-key-file")
+            .arg(ca_key.path())
+            .arg("--ca-crt-file")
+            .arg(ca_crt.path())
+            .arg("--common-name")
+            .arg("Test Issuer")
+            .arg("--file-prefix")
+            .arg(issuer_prefix.path())
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&issuer_crt)?);
+
+        let crt_pem_bytes = std::fs::read(&issuer_crt)?;
+        let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
+        assert_eq!(
+            CertificateUsage::from_certificate(&crt_pem.parse_x509()?)?,
+            CertificateUsage::Mdl
+        );
+        assert_generated_certificate_qc_statements(&issuer_crt, expected_qc_statements)?;
     }
 
     // Explicitly close the temp folder, for better error reporting
