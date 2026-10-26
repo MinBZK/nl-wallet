@@ -173,7 +173,7 @@ pub struct ExecuteAdminTask {
 }
 
 /// Request model for task lists
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TaskListView {
     Open {
         user_id: String,

@@ -35,10 +35,13 @@ use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_persistence::repositories::Repositories;
+use wallet_provider_persistence::test::WalletDeviceVendor;
+use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
 
 /// An admin portal user. Every user gets a unique id, so tests sharing a database do not see each other's data.
 struct TestUser {
@@ -90,14 +93,27 @@ fn revoke_wallet_payload() -> TaskPayload {
     })
 }
 
+/// Inserts a wallet user with a unique wallet id and returns that wallet id.
+async fn seed_wallet(repositories: &Repositories) -> WalletId {
+    let wallet_id = WalletId::from(format!("wallet-{}", Uuid::new_v4()));
+    let transaction = repositories.begin_transaction().await.unwrap();
+    create_wallet_user_with_random_keys(&transaction, WalletDeviceVendor::Apple, wallet_id.clone()).await;
+    transaction.commit().await.unwrap();
+    wallet_id
+}
+
 async fn seed_task(repositories: &Repositories, creator: &TestUser) -> Uuid {
+    seed_task_with_payload(repositories, creator, revoke_wallet_payload()).await
+}
+
+async fn seed_task_with_payload(repositories: &Repositories, creator: &TestUser, payload: TaskPayload) -> Uuid {
     let task = repositories
         .insert_task(CreateAdminTask {
             id: Uuid::new_v4(),
             created_at: Utc::now(),
             created_by_user_id: creator.id.clone(),
             created_by_display_name: creator.display_name.clone(),
-            payload: revoke_wallet_payload(),
+            payload,
             task_reason: "because reasons".to_string(),
         })
         .await
@@ -274,23 +290,16 @@ async fn test_review_task_approve_succeeds() {
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
-    let task_id = seed_task(&repositories, &alice).await;
+    let wallet_id = seed_wallet(&repositories).await;
+    let payload = TaskPayload::RevokeWallet(RevokeWalletParameters {
+        wallet_ids: vec_nonempty![wallet_id].into(),
+    });
+    let task_id = seed_task_with_payload(&repositories, &alice, payload).await;
 
-    let request = Request::builder()
-        .method("POST")
-        .uri(format!("/tasks/{task_id}/review"))
-        .header(header::COOKIE, cookie)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(
-            serde_json::to_string(&ReviewTaskRequest {
-                verdict: ReviewVerdict::Approve,
-                review_comment: "looks good".to_string(),
-            })
-            .unwrap(),
-        ))
+    let response = app
+        .oneshot(review_request(task_id, &cookie, ReviewVerdict::Approve))
+        .await
         .unwrap();
-
-    let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
     let task: TaskResponse = json_body(response).await;
@@ -298,38 +307,51 @@ async fn test_review_task_approve_succeeds() {
     assert_eq!(task.status, TaskStatus::Approved);
     assert_eq!(task.reviewed_by, Some(bob.display_name));
     assert_eq!(task.review_comment, Some("looks good".to_string()));
+    assert!(task.executed_at.is_some());
+    assert_eq!(task.execution_successful, Some(true));
+    assert_eq!(task.execution_details, Some("revoked 1 wallet(s)".to_string()));
 }
 
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_review_task_reject_succeeds() {
+async fn test_review_task_approve_stores_failed_execution_for_unknown_wallet() {
     let (app, repositories, _db_setup) = test_app().await;
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
     let task_id = seed_task(&repositories, &alice).await;
 
-    let request = Request::builder()
+    let response = app
+        .oneshot(review_request(task_id, &cookie, ReviewVerdict::Approve))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let task: TaskResponse = json_body(response).await;
+    assert_eq!(task.status, TaskStatus::Approved);
+    assert!(task.executed_at.is_some());
+    assert_eq!(task.execution_successful, Some(false));
+    assert!(task.execution_details.unwrap().contains("wallet ID not found"));
+}
+
+fn review_request(task_id: Uuid, cookie: &str, verdict: ReviewVerdict) -> Request<Body> {
+    let review_comment = match verdict {
+        ReviewVerdict::Approve => "looks good",
+        ReviewVerdict::Reject => "not today",
+    };
+    Request::builder()
         .method("POST")
         .uri(format!("/tasks/{task_id}/review"))
         .header(header::COOKIE, cookie)
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(
             serde_json::to_string(&ReviewTaskRequest {
-                verdict: ReviewVerdict::Reject,
-                review_comment: "not today".to_string(),
+                verdict,
+                review_comment: review_comment.to_string(),
             })
             .unwrap(),
         ))
-        .unwrap();
-
-    let response = app.oneshot(request).await.unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let task: TaskResponse = json_body(response).await;
-    assert_eq!(task.task_id, task_id);
-    assert_eq!(task.status, TaskStatus::Rejected);
-    assert_eq!(task.reviewed_by, Some(bob.display_name));
+        .unwrap()
 }
 
 #[serial_test::serial(hsm)]
