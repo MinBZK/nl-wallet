@@ -66,6 +66,14 @@ pub async fn sign_coses<K: CredentialEcdsaKey>(
         .await
         .map_err(|error| CoseError::Signing(error.into()))?;
 
+    // Make sure we received the correct number of signatures.
+    if result.len() != challenges.len() {
+        return Err(CoseError::IncorrectSignatureCount {
+            expected: challenges.len(),
+            received: result.len(),
+        });
+    }
+
     let signed = result
         .into_iter()
         .zip(challenges)

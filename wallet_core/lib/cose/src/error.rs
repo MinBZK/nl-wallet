@@ -65,6 +65,10 @@ pub enum CoseError {
     #[category(critical)]
     SignatureMissing,
 
+    #[error("incorrect number of signatures received, expected: {expected}, received: {received}")]
+    #[category(critical)]
+    IncorrectSignatureCount { expected: usize, received: usize },
+
     #[error("unsupported certificate algorithm")]
     #[category(critical)]
     UnsupportedCertificateAlgorithm,
@@ -90,5 +94,13 @@ mod tests {
     fn structural_errors_without_input_values_are_critical() {
         assert_eq!(CoseError::MissingPayload.category(), Category::Critical);
         assert_eq!(CoseError::MissingAlgorithm.category(), Category::Critical);
+        assert_eq!(
+            CoseError::IncorrectSignatureCount {
+                expected: 2,
+                received: 1
+            }
+            .category(),
+            Category::Critical
+        );
     }
 }
