@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use attestation_types::credential_format::Format;
+use dcql::CredentialQueryIdentifier;
 use derive_more::Constructor;
 use derive_more::Display;
 use error_category::ErrorCategory;
@@ -60,6 +61,18 @@ pub enum VpClientError {
     #[error("received credential request with mix of formats from verifier, this is unsupported")]
     #[category(critical)]
     MixedFormatCredentialRequest,
+
+    #[error("attestations provided for unknown credential query: {0}")]
+    #[category(critical)]
+    UnknownCredentialQuery(CredentialQueryIdentifier),
+
+    #[error("attestation format mismatch for credential query {id}: requested {requested}, provided {provided}")]
+    #[category(critical)]
+    AttestationFormatMismatch {
+        id: CredentialQueryIdentifier,
+        requested: Format,
+        provided: Format,
+    },
 
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] mdoc::Error),

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use attestation_data::organization::Organization;
+use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
@@ -62,6 +63,15 @@ pub trait DisclosureClient {
 pub enum DisclosableAttestations {
     MsoMdoc(VecNonEmpty<(PartialMdoc, String)>),
     SdJwt(VecNonEmpty<(UnsignedSdJwtPresentation, String)>),
+}
+
+impl DisclosableAttestations {
+    pub fn format(&self) -> Format {
+        match self {
+            Self::MsoMdoc(_) => Format::MsoMdoc,
+            Self::SdJwt(_) => Format::SdJwt,
+        }
+    }
 }
 
 /// The attestations to be disclosed per credential query. Note that different credential queries may

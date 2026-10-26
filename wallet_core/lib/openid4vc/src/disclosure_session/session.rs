@@ -107,6 +107,13 @@ where
         //                  of the attributes to be disclosed. This type then provides the canonical method of creating
         //                  intermediate types of the attestations that contain a subset of the attributes.
 
+        if let Err(error) = check_attestation_formats(&self.auth_request.credential_requests, &attestations) {
+            return Err((
+                Box::new(self),
+                DisclosureError::before_sharing(VpSessionError::Client(error)),
+            ));
+        }
+
         let encryption_nonce = random_string(32);
 
         // Split the attestations by format, as each format is signed in its own way.
@@ -203,6 +210,30 @@ where
 
         Ok(redirect_uri)
     }
+}
+
+/// Check that the attestations for each credential query have the format requested in that credential query.
+fn check_attestation_formats(
+    credential_requests: &NormalizedCredentialRequests,
+    attestations: &NonEmptyDisclosableAttestations,
+) -> Result<(), VpClientError> {
+    for (id, attestations) in attestations.as_ref() {
+        let request = credential_requests
+            .as_ref()
+            .iter()
+            .find(|request| request.id() == id)
+            .ok_or_else(|| VpClientError::UnknownCredentialQuery(id.clone()))?;
+
+        if request.format() != attestations.format() {
+            return Err(VpClientError::AttestationFormatMismatch {
+                id: id.clone(),
+                requested: request.format(),
+                provided: attestations.format(),
+            });
+        }
+    }
+
+    Ok(())
 }
 
 /// Lay out the attestations for all credential queries in a single linear list, have them all signed in one operation
@@ -479,6 +510,67 @@ mod tests {
                 error: VpSessionError::Client(VpClientError::SdJwtSigning(_))
             }
         );
+    }
+
+    #[test]
+    fn test_disclosure_session_disclose_error_unknown_credential_query() {
+        // Calling `VPDisclosureSession::disclose()` with attestations for a credential query that was not part of the
+        // request should result in an error.
+        let (requests, _, _) = setup_disclosure_mdoc();
+        let (_, attestations, wscd) = setup_disclosure_sd_jwt();
+        let (disclosure_session, verifier_session) = setup_disclosure_session(None, requests);
+
+        let (_disclosure_session, error) = disclosure_session
+            .disclose(attestations, &wscd, &MockTimeGenerator::default())
+            .now_or_never()
+            .unwrap()
+            .expect_err("disclosing using VpDisclosureSession should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError {
+                data_shared: DataDisclosed::NotDisclosed,
+                error: VpSessionError::Client(VpClientError::UnknownCredentialQuery(id))
+            } if id.as_ref() == "sd_jwt_pid_example"
+        );
+        assert!(verifier_session.wallet_messages.lock().is_empty());
+    }
+
+    #[test]
+    fn test_disclosure_session_disclose_error_attestation_format_mismatch() {
+        // Calling `VPDisclosureSession::disclose()` with attestations of a different format than the one requested in
+        // the credential query should result in an error.
+        let (requests, _, _) = setup_disclosure_mdoc();
+        let (_, attestations, wscd) = setup_disclosure_sd_jwt();
+        let (disclosure_session, verifier_session) = setup_disclosure_session(None, requests);
+
+        // Provide the SD-JWT attestations as the answer to the mdoc credential query.
+        let attestations = attestations
+            .into_inner()
+            .into_values()
+            .map(|attestations| ("mdoc_pid_example".try_into().unwrap(), attestations))
+            .collect::<HashMap<_, _>>()
+            .try_into()
+            .unwrap();
+
+        let (_disclosure_session, error) = disclosure_session
+            .disclose(attestations, &wscd, &MockTimeGenerator::default())
+            .now_or_never()
+            .unwrap()
+            .expect_err("disclosing using VpDisclosureSession should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError {
+                data_shared: DataDisclosed::NotDisclosed,
+                error: VpSessionError::Client(VpClientError::AttestationFormatMismatch {
+                    requested: Format::MsoMdoc,
+                    provided: Format::SdJwt,
+                    ..
+                })
+            }
+        );
+        assert!(verifier_session.wallet_messages.lock().is_empty());
     }
 
     /// Helper function for testing `VpDisclosureSession::disclose()` HTTP errors.
