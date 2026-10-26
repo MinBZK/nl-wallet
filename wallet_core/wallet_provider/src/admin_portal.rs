@@ -594,37 +594,6 @@ mod http_tests {
     use crate::test_support::TestState;
     use crate::test_support::setup_state;
 
-    #[derive(Clone)]
-    struct ConstLoggedInUser {
-        user_id: &'static str,
-        display_name: &'static str,
-        privileges: &'static [TaskType],
-    }
-
-    impl From<&ConstLoggedInUser> for LoggedInUser {
-        fn from(source: &ConstLoggedInUser) -> LoggedInUser {
-            LoggedInUser {
-                user_id: source.user_id.to_owned(),
-                display_name: source.display_name.to_owned(),
-                privileges: source.privileges.iter().map(ToString::to_string).collect(),
-            }
-        }
-    }
-
-    /// Builds a [`LoggedInUser`] from `user`, replacing its privileges with just `task_type`.
-    fn with_privilege(user: &ConstLoggedInUser, task_type: TaskType) -> LoggedInUser {
-        LoggedInUser {
-            privileges: vec![task_type.to_string()],
-            ..user.into()
-        }
-    }
-
-    const ALICE: ConstLoggedInUser = ConstLoggedInUser {
-        user_id: "alice",
-        display_name: "Alice",
-        privileges: &[],
-    };
-
     async fn setup_state_with_database_errors() -> TestState {
         let state = setup_state().await;
         state.repositories.as_ref().to_connection().close().await.unwrap();
@@ -852,7 +821,11 @@ mod http_tests {
         let state = setup_state().await;
         create_task(
             State(Arc::clone(&state)),
-            AuthenticatedAdminUser(with_privilege(&ALICE, TaskType::RevokeWallet)),
+            AuthenticatedAdminUser(LoggedInUser {
+                user_id: "alice".to_owned(),
+                display_name: "Alice".to_owned(),
+                privileges: vec![TaskType::RevokeWallet.to_string()],
+            }),
             Json::from_bytes(&serde_json::to_vec(&body).unwrap()),
         )
         .await
