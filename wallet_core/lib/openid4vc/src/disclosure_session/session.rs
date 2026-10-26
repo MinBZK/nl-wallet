@@ -7,6 +7,7 @@ use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
+use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use itertools::Itertools;
 use jwe::algorithm::EncryptionAlgorithm;
@@ -17,6 +18,9 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 use utils::generator::Generator;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 
 use super::DisclosableAttestations;
 use super::DisclosureSession;
@@ -105,114 +109,68 @@ where
         let encryption_nonce = random_string(32);
 
         let vp_token = match attestations.into_inner() {
-            DisclosableAttestations::MsoMdoc(partial_mdocs_map) => {
-                info!("signing disclosed mdoc documents");
-
-                // Lay out all of the partial mdocs in a linear `Vec`, but remember the keys and
-                // attestation counts of the `HashMap`, as we will need to reconstruct this later.
-                let mut id_and_counts = Vec::with_capacity(partial_mdocs_map.len());
-                let partial_mdocs = partial_mdocs_map
-                    .into_iter()
-                    .flat_map(|(id, partial_mdocs)| {
-                        id_and_counts.push((id, partial_mdocs.len()));
-
-                        partial_mdocs
-                    })
-                    .collect_vec()
-                    .try_into()
-                    // This unwrap to `VecNonEmpty` is safe, as the `NonEmptyDisclosableAttestations`
-                    // type guarantees that it contains at least one attestation.
-                    .unwrap();
-
+            DisclosableAttestations::MsoMdoc(partial_mdocs) => {
                 // Have the WSCD sign all of the partial mdocs in one operation.
-                let result = DeviceResponse::sign_multiple_from_partial_mdocs(
-                    partial_mdocs,
-                    &self.auth_request.session_transcript(),
-                    wscd,
-                )
-                .await;
-                let received_device_responses = match result {
-                    Ok(value) => value,
-                    Err(error) => {
-                        return Err((
-                            Box::new(self),
-                            DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(
-                                error,
-                            ))),
-                        ));
-                    }
-                };
-
-                // Reconstruct a `HashMap` from the identifier and `DeviceResponse`s.
-                let mut received_device_responses = VecDeque::from(received_device_responses.into_inner());
-                id_and_counts
-                    .into_iter()
-                    .map(|(id, count)| {
-                        // Note that:
-                        // * The `drain()` is guaranteed not to panic as the returned `DeviceRespones` should have
-                        //   exactly the same count as the amount of partial mdocs that we submitted for signing.
-                        // * The .`unwrap()` is guaranteed to succeed, as the count is non-zero.
-                        let responses = received_device_responses
-                            .drain(..count.get())
-                            .collect_vec()
-                            .try_into()
-                            .unwrap();
-
-                        (id, VerifiablePresentation::MsoMdoc(responses))
+                let device_responses =
+                    match sign_per_query(partial_mdocs.into_iter().collect(), |partial_mdocs| async {
+                        info!("signing disclosed mdoc documents");
+                        let session_transcript = self.auth_request.session_transcript();
+                        DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, wscd).await
                     })
+                    .await
+                    {
+                        Ok(value) => value,
+                        Err(error) => {
+                            return Err((
+                                Box::new(self),
+                                DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(
+                                    error,
+                                ))),
+                            ));
+                        }
+                    };
+
+                device_responses
+                    .into_iter()
+                    .map(|(id, device_responses)| (id, VerifiablePresentation::MsoMdoc(device_responses)))
                     .collect()
             }
-            DisclosableAttestations::SdJwt(unsigned_presentations_map) => {
-                info!("signing disclosed SD-JWT documents");
-
-                // Lay out all of the SD-JWT presentations in a linear `Vec`, but remember the keys and
-                // attestation counts of the `HashMap`, as we will need to reconstruct this later.
-                let mut id_and_counts = Vec::with_capacity(unsigned_presentations_map.len());
-                let unsigned_presentations = unsigned_presentations_map
-                    .into_iter()
-                    .flat_map(|(id, unsigned_presentations_and_key_ids)| {
-                        id_and_counts.push((id, unsigned_presentations_and_key_ids.len()));
-
-                        unsigned_presentations_and_key_ids
-                    })
-                    .collect_vec()
-                    .try_into()
-                    // This unwrap to `VecNonEmpty` is safe, as the `NonEmptyDisclosableAttestations`
-                    // type guarantees that it contains at least one attestation.
-                    .unwrap();
-
+            DisclosableAttestations::SdJwt(unsigned_presentations) => {
                 // Have the WSCD sign all of the unsigned presentations in one operation.
-                let key_binding_builder =
-                    KeyBindingJwtBuilder::new(self.auth_request.client_id.to_string(), self.auth_request.nonce.clone());
-                let result =
-                    UnsignedSdJwtPresentation::sign_multiple(unsigned_presentations, key_binding_builder, wscd, time)
-                        .await;
-                let signed_presentations = match result {
-                    Ok(value) => value,
-                    Err(error) => {
-                        return Err((
-                            Box::new(self),
-                            DisclosureError::before_sharing(VpSessionError::Client(VpClientError::SdJwtSigning(error))),
-                        ));
-                    }
-                };
+                let signed_presentations =
+                    match sign_per_query(unsigned_presentations.into_iter().collect(), |unsigned_presentations| {
+                        info!("signing disclosed SD-JWT documents");
+                        let key_binding_builder = KeyBindingJwtBuilder::new(
+                            self.auth_request.client_id.to_string(),
+                            self.auth_request.nonce.clone(),
+                        );
+                        UnsignedSdJwtPresentation::sign_multiple(
+                            unsigned_presentations,
+                            key_binding_builder,
+                            wscd,
+                            time,
+                        )
+                    })
+                    .await
+                    {
+                        Ok(value) => value,
+                        Err(error) => {
+                            return Err((
+                                Box::new(self),
+                                DisclosureError::before_sharing(VpSessionError::Client(VpClientError::SdJwtSigning(
+                                    error,
+                                ))),
+                            ));
+                        }
+                    };
 
-                // Reconstruct a `HashMap` from the identifier and `SdJwtPresentation`s.
-                let mut received_presentations = VecDeque::from(signed_presentations.into_inner());
-                id_and_counts
+                signed_presentations
                     .into_iter()
-                    .map(|(id, count)| {
-                        // Note that:
-                        // * The `drain()`` is guaranteed not to panic as the returned `DeviceRespones` should have
-                        //   exactly the same count as the amount of unsigned presentations that we submitted for
-                        //   signing.
-                        // * The .`unwrap()` is guaranteed to succeed, as the count is non-zero.
-                        let presentations = received_presentations
-                            .drain(..count.get())
-                            .map(|presentation| presentation.into_unverified())
-                            .collect_vec()
-                            .try_into()
-                            .unwrap();
+                    .map(|(id, presentations)| {
+                        let presentations = presentations
+                            .into_nonempty_iter()
+                            .map(|p| p.into_unverified())
+                            .collect();
 
                         (id, VerifiablePresentation::SdJwt(presentations))
                     })
@@ -257,6 +215,47 @@ where
 
         Ok(redirect_uri)
     }
+}
+
+/// Lay out the attestations for all credential queries in a single linear list, have them all signed in one operation
+/// by calling `sign`, and then group the results by credential query again. If there are no attestations at all,
+/// `sign` is not called and an empty `Vec` is returned.
+async fn sign_per_query<T, S, E, F, Fut>(
+    attestations: Vec<(CredentialQueryIdentifier, VecNonEmpty<T>)>,
+    sign: F,
+) -> Result<Vec<(CredentialQueryIdentifier, VecNonEmpty<S>)>, E>
+where
+    F: FnOnce(VecNonEmpty<T>) -> Fut,
+    Fut: Future<Output = Result<VecNonEmpty<S>, E>>,
+    S: std::fmt::Debug,
+{
+    // Remember the identifiers and attestation counts, as we will need these to reconstruct the grouping later.
+    let (id_and_counts, attestations): (Vec<_>, Vec<_>) = attestations
+        .into_iter()
+        .map(|(id, attestations)| ((id, attestations.len()), attestations))
+        .unzip();
+    let attestations = attestations.into_iter().flatten().collect_vec();
+
+    let Ok(attestations) = VecNonEmpty::try_from(attestations) else {
+        return Ok(Vec::new());
+    };
+
+    let mut signed = VecDeque::from(sign(attestations).await?.into_inner());
+
+    let grouped = id_and_counts
+        .into_iter()
+        .map(|(id, count)| {
+            // Note that:
+            // * The `drain()` is guaranteed not to panic as `sign` should return exactly the same amount of signed
+            //   attestations as it received.
+            // * The conversion to `VecNonEmpty` is guaranteed to succeed, as the count is non-zero.
+            let signed = signed.drain(..count.get()).collect_vec().try_into().unwrap();
+
+            (id, signed)
+        })
+        .collect();
+
+    Ok(grouped)
 }
 
 #[cfg(test)]
