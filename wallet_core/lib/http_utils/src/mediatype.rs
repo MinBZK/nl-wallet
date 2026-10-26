@@ -49,7 +49,7 @@ impl Display for MediaType<'_> {
     }
 }
 
-const ALL_MEDIA_TYPE: MediaType = MediaType::new(_STAR, _STAR, None);
+pub const ALL_MEDIA_TYPE: MediaType = MediaType::new(_STAR, _STAR, None);
 
 /// Parse accept header and find matching content type
 ///

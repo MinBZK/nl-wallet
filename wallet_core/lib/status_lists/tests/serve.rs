@@ -3,6 +3,7 @@ use std::time::Duration;
 use http::StatusCode;
 use reqwest::header::ACCEPT;
 use reqwest::header::CACHE_CONTROL;
+use reqwest::header::CONTENT_TYPE;
 use reqwest::header::ETAG;
 use reqwest::header::IF_NONE_MATCH;
 use reqwest::header::VARY;
@@ -61,30 +62,86 @@ async fn test_router_not_found() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
+async fn get_with_accept(url: &Url, accept: Option<&str>) -> reqwest::Response {
+    let mut request = reqwest::Client::new().get(url.join("test").unwrap());
+    if let Some(accept) = accept {
+        request = request.header(ACCEPT, accept);
+    };
+    request.send().await.unwrap()
+}
+
 #[tokio::test]
 #[rstest]
-#[case("application/statuslist+jwt", StatusCode::OK)]
-#[case("application/statuslist+cwt", StatusCode::NOT_ACCEPTABLE)]
-#[case("application/statuslist+cwt, application/statuslist+jwt", StatusCode::OK)]
-#[case("text/plain", StatusCode::NOT_ACCEPTABLE)]
-#[case("*/*", StatusCode::OK)]
-async fn test_router_media_type(#[case] accept: &str, #[case] status_code: StatusCode) {
+#[case::no_accept(None, StatusCode::OK, Some("application/statuslist+jwt"))]
+#[case::jwt(
+    Some("application/statuslist+jwt"),
+    StatusCode::OK,
+    Some("application/statuslist+jwt")
+)]
+#[case::cwt(
+    Some("application/statuslist+cwt"),
+    StatusCode::OK,
+    Some("application/statuslist+cwt")
+)]
+#[case::cwt_preferred(
+    Some("application/statuslist+cwt, application/statuslist+jwt"),
+    StatusCode::OK,
+    Some("application/statuslist+cwt")
+)]
+#[case::text(Some("text/plain"), StatusCode::NOT_ACCEPTABLE, None)]
+#[case::any(Some("*/*"), StatusCode::OK, Some("application/statuslist+jwt"))]
+async fn test_router_media_type(
+    #[case] accept: Option<&str>,
+    #[case] status_code: StatusCode,
+    #[case] expected_content_type: Option<&str>,
+) {
     let publish_dir = TempDir::new().unwrap();
     let url = setup_server(&publish_dir, None).await.unwrap();
 
-    let path = publish_dir.path().join("test.jwt");
-    tokio::fs::write(&path, "test123").await.unwrap();
-
-    let client = reqwest::Client::new();
-    let response = client
-        .request(reqwest::Method::GET, url.join("test").unwrap())
-        .header(ACCEPT, accept)
-        .send()
+    tokio::fs::write(publish_dir.path().join("test.jwt"), "jwt")
+        .await
+        .unwrap();
+    tokio::fs::write(publish_dir.path().join("test.cwt"), "cwt")
         .await
         .unwrap();
 
+    let response = get_with_accept(&url, accept).await;
+
     assert_eq!(response.headers().get(VARY).unwrap(), "accept");
     assert_eq!(response.status(), status_code);
+    if let Some(content_type) = expected_content_type {
+        assert_eq!(response.headers().get(CONTENT_TYPE).unwrap(), content_type);
+    }
+}
+
+#[tokio::test]
+#[rstest]
+#[case::no_accept(None, StatusCode::OK)]
+#[case::any(Some("*/*"), StatusCode::OK)]
+#[case::jwt(Some("application/statuslist+jwt"), StatusCode::OK)]
+#[case::cwt(Some("application/statuslist+cwt"), StatusCode::NOT_FOUND)]
+#[case::cwt_preferred(Some("application/statuslist+cwt, application/statuslist+jwt"), StatusCode::OK)]
+#[case::text(Some("text/plain"), StatusCode::NOT_ACCEPTABLE)]
+async fn test_router_media_type_only_jwt_published(
+    #[case] accept: Option<&str>,
+    #[case] expected_status_code: StatusCode,
+) {
+    let publish_dir = TempDir::new().unwrap();
+    let url = setup_server(&publish_dir, None).await.unwrap();
+
+    tokio::fs::write(publish_dir.path().join("test.jwt"), "jwt")
+        .await
+        .unwrap();
+
+    let response = get_with_accept(&url, accept).await;
+
+    assert_eq!(response.status(), expected_status_code);
+    if expected_status_code == StatusCode::OK {
+        assert_eq!(
+            response.headers().get(CONTENT_TYPE).unwrap(),
+            "application/statuslist+jwt"
+        );
+    }
 }
 
 #[tokio::test]
