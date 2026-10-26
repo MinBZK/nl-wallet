@@ -10,6 +10,7 @@ overrides:
   nanoid@<3.3.18: ^3.3.18
   tinypool@<2.1.2: ^2.1.2
   tinypool@<=2.1.0: ^2.1.1
+  undici@>=7.0.0 <7.30.1: 7.30.1
   vite@>=8.3.0 <=8.3.2: 8.3.3
 
 importers:
@@ -1990,8 +1991,8 @@ packages:
   undici-types@7.30.0:
     resolution: {integrity: sha512-7QjA5O+GhM27do7Id6hQZpnYEd7WzHbs7/XIS9A1k+Gat/ZVF7Jmpzt68zL/205f65FYwDNLSjQemHPS8ReM/A==}
 
-  undici@7.30.0:
-    resolution: {integrity: sha512-dkrQXeHSaoamnItlYbmzG0wFYrM0ZwDxCIg0A7aKjTyyhh9svRzCNFEzV+Vm05/yehjCzjDZ31KXfGEjYSztDQ==}
+  undici@7.30.1:
+    resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
 
   unplugin-utils@0.3.2:
@@ -3581,7 +3582,7 @@ snapshots:
       saxes: 6.0.0
       symbol-tree: 3.2.4
       tough-cookie: 6.0.2
-      undici: 7.30.0
+      undici: 7.30.1
       w3c-xmlserializer: 5.0.0
       webidl-conversions: 8.0.1
       whatwg-mimetype: 5.0.0
@@ -4039,7 +4040,7 @@ snapshots:
 
   undici-types@7.30.0: {}
 
-  undici@7.30.0: {}
+  undici@7.30.1: {}
 
   unplugin-utils@0.3.2:
     dependencies:
