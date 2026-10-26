@@ -10452,6 +10452,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "ciborium",
+ "cose",
  "crypto",
  "dcql",
  "derive_more",

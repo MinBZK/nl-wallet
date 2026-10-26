@@ -1042,6 +1042,7 @@ mod tests {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use chrono::Utc;
     use ciborium::value::Value;
+    use cose::wrprc_cwt::WrprcCwtError;
     use crypto::WithVerifyingKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -2004,7 +2005,7 @@ mod tests {
         },
         |error: &CloseProximityDisclosureError| {
             matches!(error, CloseProximityDisclosureError::RegistrationCertificateVerification(
-                RegistrationCertificateEnvelopeError::Cwt(_)
+                RegistrationCertificateEnvelopeError::Cwt(WrprcCwtError::Expired)
             )) || matches!(error, CloseProximityDisclosureError::RegistrationCertificateVerification(
                 RegistrationCertificateEnvelopeError::Jwt(JwtX5cVerifyError::JwtVerify(
                     JwtVerifyError::Validation(error)
