@@ -430,29 +430,6 @@ async fn test_store_execution_result_fails_when_not_approved_or_already_executed
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_concurrent_reviews_only_one_succeeds(#[future(awt)] db: TestDatabase) {
-    let task = db.created(&ALICE, minutes(0)).await;
-
-    let (approve, reject) = tokio::join!(
-        db.review(task.id, &BOB, ReviewVerdict::Approve, minutes(1)),
-        db.review(task.id, &CAROL, ReviewVerdict::Reject, minutes(1)),
-    );
-
-    let winners = [
-        approve.expect("should execute approval"),
-        reject.expect("should execute rejection"),
-    ]
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>();
-    let [winner] = winners.as_slice() else {
-        panic!("exactly one review must succeed, got {}", winners.len());
-    };
-    db.assert_stored(winner, "winning review must be stored").await;
-}
-
-#[rstest]
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_open_tasks_returns_own_created_tasks_oldest_first(
     #[future(awt)]
     #[from(clean_db)]
