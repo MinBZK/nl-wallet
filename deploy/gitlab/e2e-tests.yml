@@ -95,6 +95,7 @@ automation-tests-load-device-config:
   rules:
     - !reference [.on-schedule-automation, rules]
     - !reference [.merge-request, rules]
+    - !reference [.default-branch, rules]
   script:
     - |
       SECRET_JSON=$(kubectl get secret nl-wallet-macmini -o json)
@@ -142,7 +143,7 @@ automation-tests-load-device-config:
     - mc cp "qt/quality-time/apps/Runner.app.zip" "wallet_app/build/ios/iphonesimulator/Runner.app.zip"
 
 .automation-tests-macos-devices:
-  resource_group: automation-tests
+  resource_group: real-device-automation-tests
   tags:
     - macos-devices
   variables:
@@ -452,15 +453,17 @@ run-automation-english-tests-ios:
     ./gradlew --no-daemon --info --stacktrace testEnglish \
       -Dtest.config.app.path="../${APP}" \
       -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
-      -Dtest.config.device.udid="${IOS_1_UDID}" \
+      -Dtest.config.device.udid="${IOS_DEVICE_UDID}" \
       -Dtest.config.platform.name="IOS" \
-      -Dtest.config.platform.version="${IOS_1_OS_VERSION}" \
+      -Dtest.config.platform.version="${IOS_PLATFORM_VERSION}" \
       -Dtest.config.remote=false \
       -Dfile.encoding=UTF-8 \
       || true
     compgen -G "build/test-results/testEnglish/*.xml"
   variables:
     APP: "nl.ictu.edi.wallet.latest.ipa"
+    IOS_DEVICE_UDID: "${IOS_1_UDID}"
+    IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
   rules:
     - !reference [.on-schedule-automation, rules]
 
@@ -816,7 +819,7 @@ browserstack-a11y-merge:
     paths:
       - uiautomation/combined_summary.json
 
-run-automation-smoke-test-ont:
+run-automation-smoke-test-android-ont:
   extends: .run-automation-tests-common-setup
   rules: !reference [.default-branch, rules]
   needs:
@@ -829,14 +832,31 @@ run-automation-smoke-test-ont:
     - ./gradlew --no-daemon --info --stacktrace smokeTest -Dtest.config.remote=true -Dfile.encoding=UTF-8
 
 run-automation-smoke-test-ios-ont:
-  extends: .run-automation-tests-common-setup
+  extends: [.automation-tests-macos-devices, .install-ios-signing]
   rules: !reference [.default-branch, rules]
   needs:
-    - job: upload-browserstack-ios-app
-      artifacts: false
     - job: deploy-apps-ont
       artifacts: false
-  script:
-    - mv browserstack-config/browserstack-Iphone16Pro-18-NL.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS -Dtest.config.platform.name="IOS" -Dtest.config.remote=true
+    - job: build-ios-app-adhoc-ont
+      artifacts: false
+    - job: automation-tests-load-device-config
+      artifacts: true
+    - job: build-env-ont
+      artifacts: true
+  before_script:
+    - !reference [.install-ios-signing, before_script]
+    - !reference [.fetch-ios-app, before_script]
+  script: |
+    cd uiautomation
+    ./gradlew --no-daemon --info --stacktrace smokeTest \
+      -Dtest.config.app.path="../${APP}" \
+      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
+      -Dtest.config.device.udid="${IOS_DEVICE_UDID}" \
+      -Dtest.config.platform.name="IOS" \
+      -Dtest.config.platform.version="${IOS_PLATFORM_VERSION}" \
+      -Dtest.config.remote=false \
       -Dfile.encoding=UTF-8
+  variables:
+    APP: "nl.ictu.edi.wallet.latest.ipa"
+    IOS_DEVICE_UDID: "${IOS_1_UDID}"
+    IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
