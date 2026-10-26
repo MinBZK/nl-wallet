@@ -90,7 +90,7 @@ use crate::registration_certificate::RegistrationCertificateError;
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(90);
 const SD_JWT_IAT_WINDOW: Duration = Duration::from_secs(15 * 60);
 
-pub(crate) const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
+const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
     &[EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm];
 
 pub const REGISTRATION_CERTIFICATE_FORMAT: &str = "registration_cert";
