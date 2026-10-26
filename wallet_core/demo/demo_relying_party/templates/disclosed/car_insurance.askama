@@ -1,0 +1,12 @@
+{% call header::header(base.trans.car_insurance_title, web_utils::OPTION_STR_NONE, web_utils::OPTION_STR_NONE) %}
+<main>
+  <section>
+    <h4>{{ base.trans.car_insurance_report_damage }}</h4>
+    <h2>{{ base.trans.car_insurance_share_details }}</h2>
+    {% call notification::notification(base.trans.car_insurance_success, "", "") %}
+  </section>
+  <section>
+    {% call attributes::attributes(attributes) %}
+  </section>
+  <button disabled><span>{{ base.trans.next }}</span></button>
+</main>
