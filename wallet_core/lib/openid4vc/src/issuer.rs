@@ -23,6 +23,7 @@ use crypto::EcdsaKeySend;
 use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::utils::sha256;
 use derive_more::Constructor;
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -30,6 +31,8 @@ use futures::join;
 use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use jwe::algorithm::EcdhAlgorithm;
+use jwe::decryption::JweEcdhSecretKey;
 use jwt::SignedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
@@ -47,6 +50,7 @@ use oauth::pkce::S256PkcePair;
 use oauth::scope::Scope;
 use oauth::token::AccessToken;
 use oauth::token::AuthorizationCode;
+use p256::SecretKey;
 use reqwest::Method;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -425,6 +429,9 @@ pub struct Issuer<K, L, S, N> {
 pub struct IssuerData<K, L> {
     credential_configs: CredentialConfigurations<K, L>,
 
+    // TODO (PVW-6445): Use this key to decrypt Credential Requests.
+    #[expect(dead_code)]
+    credential_request_jwe_secret_key: JweEcdhSecretKey,
     batch_size: NonZeroU8,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
@@ -442,27 +449,6 @@ pub struct IssuerData<K, L> {
 }
 
 impl<K, L> IssuerData<K, L> {
-    #[expect(clippy::too_many_arguments, reason = "Internal constructor")]
-    fn new(
-        credential_configs: CredentialConfigurations<K, L>,
-        batch_size: NonZeroU8,
-        accepted_wallet_client_ids: HashSet<String>,
-        server_url: BaseUrl,
-        metadata: IssuerMetadata,
-        metadata_keypair: KeyPair<K>,
-        wp_trusted_list_anchors: TrustAnchors,
-    ) -> Self {
-        Self {
-            credential_configs,
-            batch_size,
-            accepted_wallet_client_ids,
-            server_url,
-            metadata,
-            metadata_keypair,
-            wp_trusted_list_anchors,
-        }
-    }
-
     fn get_checked_credential_config(
         &self,
         config_id: &CredentialConfigurationId,
@@ -641,8 +627,9 @@ where
         issuer_identifier: IssuerIdentifier,
         metadata_keypair: KeyPair<K>,
         registration_certificate: RegistrationCertificateEnvelope,
+        credential_request_encryption_key: SecretKey,
         batch_size: NonZeroU8,
-        wallet_client_ids: HashSet<String>,
+        accepted_wallet_client_ids: HashSet<String>,
         credential_configs: CredentialConfigurations<K, L>,
         credential_preview_endpoint: bool,
         wp_trusted_list_anchors: TrustAnchors,
@@ -656,25 +643,35 @@ where
             credential_preview_endpoint.then(|| server_url.join_issuer_url("/credential_preview"));
         let type_metadata_base_url = server_url.join_issuer_url("/type_metadata");
 
-        let issuer_metadata = IssuerMetadata::new(
+        // According to OpenID4VCI, a `credential_request_encryption` JWK published in the Issuer Metadata should always
+        // contain a `kid` value. Here, we generate the `kid` for the single public key this Issuer supports by
+        // hex-encoding a hash of its public key. If its configured key changes while an issuance request in progress,
+        // this should lead to an error that the `kid` is incorrect, instead of a decryption error.
+        let kid = hex::encode(sha256(&credential_request_encryption_key.public_key().to_sec1_bytes()));
+        // Choose `ECDH-ES` as the JWE algorithm for Credential Request encryption, both to mirror OpenID4VP where this
+        // value is mandated by HAIP and because key wrapping does not provided added benefit in this scenario.
+        let credential_request_jwe_secret_key =
+            JweEcdhSecretKey::new(Some(kid), credential_request_encryption_key, EcdhAlgorithm::EcdhEs);
+
+        let metadata = IssuerMetadata::new(
             issuer_identifier,
             IssuerEndpoints::new(credential_endpoint, nonce_endpoint, credential_preview_endpoint),
+            credential_request_jwe_secret_key.to_jwe_public_key(),
             AtLeastTwoU64::try_new(batch_size.into()).ok(),
             registration_certificate,
             credential_configs.to_credential_configurations_supported(&type_metadata_base_url),
         );
 
-        let issuer_data = IssuerData::new(
+        let issuer_data = IssuerData {
             credential_configs,
+            credential_request_jwe_secret_key,
             batch_size,
-            wallet_client_ids,
-            // In this implementation, the public server URL is composed of the Credential Issuer Identifier appended
-            // with the "/issuance/" path.
-            server_url.into_inner(),
-            issuer_metadata,
+            accepted_wallet_client_ids,
+            server_url: server_url.into_inner(),
+            metadata,
             metadata_keypair,
             wp_trusted_list_anchors,
-        );
+        };
 
         let nonce_store = Arc::new(nonce_store);
 

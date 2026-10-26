@@ -688,6 +688,7 @@ impl IssuerSettings {
             self.public_url,
             metadata_keypair,
             self.registration_certificate,
+            self.credential_request_encryption_key.into_inner(),
             self.batch_size,
             self.wallet_client_ids,
             credential_configs,

@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use attestation_types::credential_format::Format;
 use derive_more::Constructor;
+use jwe::algorithm::EncryptionAlgorithm;
 use jwk_simple::Key;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
@@ -25,6 +26,9 @@ use crate::authorization_details::CredentialId;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+
+pub(crate) const SUPPORTED_ENCRYPTION_ALGORITHMS: [EncryptionAlgorithm; 2] =
+    [EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm];
 
 /// A request sent to the issuer's Credential Endpoint.
 ///

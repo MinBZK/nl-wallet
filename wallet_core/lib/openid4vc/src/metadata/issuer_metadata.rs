@@ -20,8 +20,11 @@ use derive_more::From;
 use derive_more::Into;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
+use jwe::algorithm::CompressionAlgorithm;
+use jwe::encryption::JwePublicKey;
 use jwk_simple::Algorithm;
 use jwt::JwtTyp;
+use nonempty_collections::IntoNonEmptyIterator;
 use nonempty_collections::NESet;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::issuer_identifier::IssuerUrl;
@@ -47,6 +50,7 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::payload::key_attestation::AttackPotentialResistance;
 
+use crate::credential::SUPPORTED_ENCRYPTION_ALGORITHMS;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::jwks::Jwks;
@@ -137,6 +141,7 @@ impl IssuerMetadata {
     pub fn new(
         credential_issuer: IssuerIdentifier,
         endpoints: IssuerEndpoints,
+        credential_request_public_key: JwePublicKey,
         batch_size: Option<AtLeastTwoU64>,
         registration_certificate: RegistrationCertificateEnvelope,
         credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
@@ -145,7 +150,7 @@ impl IssuerMetadata {
             credential_issuer,
             authorization_servers: None,
             endpoints,
-            credential_request_encryption: None,
+            credential_request_encryption: Some(CredentialRequestEncryption::new(credential_request_public_key)),
             credential_response_encryption: None,
             batch_credential_issuance: batch_size.map(BatchCredentialIssuance::new),
             display: None,
@@ -260,7 +265,7 @@ impl IssuerEndpoints {
     }
 }
 
-// Information about whether the Credential Issuer supports encryption of the Credential Request on top of TLS.
+/// Information about whether the Credential Issuer supports encryption of the Credential Request on top of TLS.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialRequestEncryption {
@@ -290,6 +295,20 @@ pub struct CredentialRequestEncryption {
     /// TLS for the Credential Requests. If the value is true, the Credential Issuer requires encryption for every
     /// Credential Request. If the value is false, the Wallet MAY choose whether it encrypts the request or not.
     pub encryption_required: bool,
+}
+
+impl CredentialRequestEncryption {
+    pub fn new(public_key: JwePublicKey) -> Self {
+        Self {
+            jwks: Jwks::new(vec_nonempty![public_key.into()]),
+            enc_values_supported: SUPPORTED_ENCRYPTION_ALGORITHMS
+                .into_nonempty_iter()
+                .map(|algorithm| algorithm.into())
+                .collect(),
+            zip_values_supported: HashSet::from([CompressionAlgorithm::Deflate.into()]),
+            encryption_required: true,
+        }
+    }
 }
 
 /// Information about whether the Credential Issuer supports encryption of the Credential Response on top of TLS.
