@@ -71,8 +71,10 @@ struct Cli {
 
 #[derive(Clone, Copy, ValueEnum)]
 enum CertType {
-    /// Mdoc/mdl issuer certificate
+    /// Mdoc/SD-JWT issuer certificate for attestations other than PID
     Issuer,
+    /// Mdoc/SD-JWT PID issuer certificate
+    PidIssuer,
     /// Token Status List signing certificate
     Tsl,
     /// Wallet Issuer Authentication certificate
@@ -423,6 +425,7 @@ impl Command {
     ) -> CertificateConfiguration {
         let profile = match cert_type {
             CertType::Issuer => Some(CertificateProfile::Issuer),
+            CertType::PidIssuer => Some(CertificateProfile::PidIssuer),
             CertType::Tsl => Some(CertificateProfile::StatusListSigning),
             CertType::Wia => Some(CertificateProfile::Wia),
             CertType::KeyAttestation => Some(CertificateProfile::KeyAttestation),

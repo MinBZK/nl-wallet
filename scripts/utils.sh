@@ -340,7 +340,7 @@ function generate_pid_issuer_hsm_key_pair {
 
     # Generate a certificate for the public key
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert-pub --type issuer \
+        --bin wallet_ca cert-pub --type pid-issuer \
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
