@@ -100,7 +100,6 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
             sourceDisclosureScreen.share()
             sourcePinScreen.enterPin(DEFAULT_PIN)
             sourceDisclosureScreen.goToDashboard()
-            sourceDashboard.dismissNotificationsDrawer()
             assertTrue(sourceDashboard.visible(), "Dashboard not visible")
         }
 
@@ -131,7 +130,6 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
             sourceDisclosureScreen.login()
             sourcePinScreen.enterPin(DEFAULT_PIN)
             sourceDisclosureScreen.goToDashboard()
-            sourceDashboard.dismissNotificationsDrawer()
             assertTrue(sourceDashboard.visible(), "Dashboard not visible")
         }
 

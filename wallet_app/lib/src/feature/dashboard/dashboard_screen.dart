@@ -71,11 +71,14 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final PublishSubject<VisibilityInfo> _visibilitySubject = PublishSubject<VisibilityInfo>();
+  late final AppEventCoordinator _appEventCoordinator;
   late StreamSubscription _visibilitySubscription;
+  bool _reportedVisible = false;
 
   @override
   void initState() {
     super.initState();
+    _appEventCoordinator = context.read<AppEventCoordinator>();
     _visibilitySubscription =
         Rx.combineLatest2<bool, VisibilityInfo, bool>(
           context.read<ObserveWalletLockedUseCase>().invoke(),
@@ -83,9 +86,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           (locked, visibilityInfo) => !locked && visibilityInfo.visibleFraction >= 1,
         ).distinct().listen((visible) {
           final context = this.context;
-          if (context.mounted && visible) {
-            context.read<AppEventCoordinator>().onDashboardShown();
+          if (!context.mounted) return;
+          _reportedVisible = visible;
+          if (visible) {
+            _appEventCoordinator.onDashboardShown();
             context.read<AnnouncementService>().announce(context.l10n.dashboardScreenOverviewAnnouncement);
+          } else {
+            _appEventCoordinator.onDashboardHidden();
           }
         });
   }
@@ -93,6 +100,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void dispose() {
     _visibilitySubscription.cancel();
+    // The visibility stream is no longer observed, so it can't report the dashboard being removed. Only report
+    // it when this instance was the one that reported visible: a replacing dashboard can already be visible.
+    if (_reportedVisible) _appEventCoordinator.onDashboardHidden();
     super.dispose();
   }
 
