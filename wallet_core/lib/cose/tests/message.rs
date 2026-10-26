@@ -8,6 +8,7 @@ use coset::HeaderBuilder;
 use coset::Label;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateProfile;
 use crypto::x509::CertificateUsage;
 use crypto::x509::CertificateVerifyError;
 use crypto::x509::DistinguishedName;
@@ -223,14 +224,14 @@ async fn verifies_certificate_chain_with_intermediate() {
     let intermediate_ca = root_ca
         .generate_intermediate(
             DistinguishedName::create_mock("intermediate-ca"),
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            CertificateConfiguration::with_profile(CertificateProfile::Issuer),
         )
         .unwrap();
     let intermediate_certificate = intermediate_ca.as_borrowing_certificate().unwrap();
     let leaf_key_pair = intermediate_ca
         .generate_key_pair(
             DistinguishedName::create_mock("leaf"),
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            CertificateConfiguration::with_profile(CertificateProfile::Issuer),
         )
         .unwrap();
     let header = header_with_x5chain(&vec_nonempty![leaf_key_pair.certificate(), &intermediate_certificate]);
@@ -253,13 +254,13 @@ async fn rejects_missing_intermediate_certificate() {
     let intermediate_ca = root_ca
         .generate_intermediate(
             DistinguishedName::create_mock("intermediate-ca"),
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            CertificateConfiguration::with_profile(CertificateProfile::Issuer),
         )
         .unwrap();
     let leaf_key_pair = intermediate_ca
         .generate_key_pair(
             DistinguishedName::create_mock("leaf"),
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            CertificateConfiguration::with_profile(CertificateProfile::Issuer),
         )
         .unwrap();
     let header = header_with_x5chain(&vec_nonempty![leaf_key_pair.certificate()]);

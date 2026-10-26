@@ -22,6 +22,7 @@ use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate;
 use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateProfile;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use http_utils::urls::HttpsUri;
@@ -420,17 +421,17 @@ impl Command {
         ca_issuers: Vec<Url>,
         san_uris: Vec<HttpsUri>,
     ) -> CertificateConfiguration {
-        let usage = match cert_type {
-            CertType::Issuer => Some(CertificateUsage::Mdl),
-            CertType::Tsl => Some(CertificateUsage::StatusListSigning),
-            CertType::Wia => Some(CertificateUsage::Wia),
-            CertType::KeyAttestation => Some(CertificateUsage::KeyAttestation),
+        let profile = match cert_type {
+            CertType::Issuer => Some(CertificateProfile::Issuer),
+            CertType::Tsl => Some(CertificateProfile::StatusListSigning),
+            CertType::Wia => Some(CertificateProfile::Wia),
+            CertType::KeyAttestation => Some(CertificateProfile::KeyAttestation),
             CertType::Wrpac | CertType::Wrprc => None,
         };
         let subject_alt_names = san_uris.into_iter().map(Into::into).collect();
 
         CertificateConfiguration {
-            usage,
+            profile,
             crl_distribution_points,
             ca_issuers,
             subject_alt_names,
