@@ -97,7 +97,6 @@ class DisclosureBasedIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
 
         cardIssuanceScreen.clickToDashboardButton()
-        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
         dashboardScreen.captureA11ySnapshot("DashboardWithDiplomaCard")
@@ -134,7 +133,6 @@ class DisclosureBasedIssuanceTests : TestBase() {
         cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
-        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
     }
