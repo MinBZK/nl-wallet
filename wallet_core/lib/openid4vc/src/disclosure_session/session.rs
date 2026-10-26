@@ -9,6 +9,7 @@ use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
+use itertools::Either;
 use itertools::Itertools;
 use jwe::algorithm::EncryptionAlgorithm;
 use mdoc::iso::disclosure::DeviceResponse;
@@ -108,75 +109,62 @@ where
 
         let encryption_nonce = random_string(32);
 
-        let vp_token = match attestations.into_inner() {
-            DisclosableAttestations::MsoMdoc(partial_mdocs) => {
-                // Have the WSCD sign all of the partial mdocs in one operation.
-                let device_responses =
-                    match sign_per_query(partial_mdocs.into_iter().collect(), |partial_mdocs| async {
-                        info!("signing disclosed mdoc documents");
-                        let session_transcript = self.auth_request.session_transcript();
-                        DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, wscd).await
-                    })
-                    .await
-                    {
-                        Ok(value) => value,
-                        Err(error) => {
-                            return Err((
-                                Box::new(self),
-                                DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(
-                                    error,
-                                ))),
-                            ));
-                        }
-                    };
+        // Split the attestations by format, as each format is signed in its own way.
+        let (partial_mdocs, unsigned_presentations): (Vec<_>, Vec<_>) = attestations
+            .into_inner()
+            .into_iter()
+            .partition_map(|(id, attestations)| match attestations {
+                DisclosableAttestations::MsoMdoc(partial_mdocs) => Either::Left((id, partial_mdocs)),
+                DisclosableAttestations::SdJwt(unsigned_presentations) => Either::Right((id, unsigned_presentations)),
+            });
 
-                device_responses
-                    .into_iter()
-                    .map(|(id, device_responses)| (id, VerifiablePresentation::MsoMdoc(device_responses)))
-                    .collect()
-            }
-            DisclosableAttestations::SdJwt(unsigned_presentations) => {
-                // Have the WSCD sign all of the unsigned presentations in one operation.
-                let signed_presentations =
-                    match sign_per_query(unsigned_presentations.into_iter().collect(), |unsigned_presentations| {
-                        info!("signing disclosed SD-JWT documents");
-                        let key_binding_builder = KeyBindingJwtBuilder::new(
-                            self.auth_request.client_id.to_string(),
-                            self.auth_request.nonce.clone(),
-                        );
-                        UnsignedSdJwtPresentation::sign_multiple(
-                            unsigned_presentations,
-                            key_binding_builder,
-                            wscd,
-                            time,
-                        )
-                    })
-                    .await
-                    {
-                        Ok(value) => value,
-                        Err(error) => {
-                            return Err((
-                                Box::new(self),
-                                DisclosureError::before_sharing(VpSessionError::Client(VpClientError::SdJwtSigning(
-                                    error,
-                                ))),
-                            ));
-                        }
-                    };
-
-                signed_presentations
-                    .into_iter()
-                    .map(|(id, presentations)| {
-                        let presentations = presentations
-                            .into_nonempty_iter()
-                            .map(|p| p.into_unverified())
-                            .collect();
-
-                        (id, VerifiablePresentation::SdJwt(presentations))
-                    })
-                    .collect()
+        // Have the WSCD sign all of the partial mdocs in one operation, if there are any.
+        let device_responses = match sign_per_query(partial_mdocs, |partial_mdocs| async {
+            info!("signing disclosed mdoc documents");
+            let session_transcript = self.auth_request.session_transcript();
+            DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, wscd).await
+        })
+        .await
+        {
+            Ok(value) => value,
+            Err(error) => {
+                return Err((
+                    Box::new(self),
+                    DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(error))),
+                ));
             }
         };
+
+        // Have the WSCD sign all of the unsigned presentations in one operation, if there are any.
+        let signed_presentations = match sign_per_query(unsigned_presentations, |unsigned_presentations| {
+            info!("signing disclosed SD-JWT documents");
+            let key_binding_builder =
+                KeyBindingJwtBuilder::new(self.auth_request.client_id.to_string(), self.auth_request.nonce.clone());
+            UnsignedSdJwtPresentation::sign_multiple(unsigned_presentations, key_binding_builder, wscd, time)
+        })
+        .await
+        {
+            Ok(value) => value,
+            Err(error) => {
+                return Err((
+                    Box::new(self),
+                    DisclosureError::before_sharing(VpSessionError::Client(VpClientError::SdJwtSigning(error))),
+                ));
+            }
+        };
+
+        let vp_token = device_responses
+            .into_iter()
+            .map(|(id, device_responses)| (id, VerifiablePresentation::MsoMdoc(device_responses)))
+            .chain(signed_presentations.into_iter().map(|(id, presentations)| {
+                let presentations = presentations
+                    .into_nonempty_iter()
+                    .map(|p| p.into_unverified())
+                    .collect();
+
+                (id, VerifiablePresentation::SdJwt(presentations))
+            }))
+            .collect();
 
         // Finally, encrypt the response and send it to the verifier.
         let result = VpAuthorizationResponse::new_encrypted(
@@ -372,10 +360,10 @@ mod tests {
         let mdoc_key = MockRemoteEcdsaKey::new_random("mdoc_key".to_string());
 
         let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
-        let attestations = DisclosableAttestations::MsoMdoc(HashMap::from([(
+        let attestations = HashMap::from([(
             "mdoc_pid_example".try_into().unwrap(),
-            vec_nonempty![(partial_mdoc, "mdoc_key".to_string())],
-        )]))
+            DisclosableAttestations::MsoMdoc(vec_nonempty![(partial_mdoc, "mdoc_key".to_string())]),
+        )])
         .try_into()
         .unwrap();
 
@@ -409,10 +397,10 @@ mod tests {
             .unwrap()
             .finish();
 
-        let attestations = DisclosableAttestations::SdJwt(HashMap::from([(
+        let attestations = HashMap::from([(
             "sd_jwt_pid_example".try_into().unwrap(),
-            vec_nonempty![(unsigned_presentation, "sd_jwt_key".to_string())],
-        )]))
+            DisclosableAttestations::SdJwt(vec_nonempty![(unsigned_presentation, "sd_jwt_key".to_string())]),
+        )])
         .try_into()
         .unwrap();
 

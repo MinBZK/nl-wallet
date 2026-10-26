@@ -933,31 +933,19 @@ async fn perform_full_disclosure(
     // after which the status endpoint should report that the session is Done.
     let wscd = DisclosureMockRemoteWscd::default();
 
-    let attestations = match format {
-        Format::MsoMdoc => {
-            let partial_mdocs = disclosure_session
-                .credential_requests()
-                .as_ref()
-                .iter()
-                .map(|request| {
+    let attestations = disclosure_session
+        .credential_requests()
+        .as_ref()
+        .iter()
+        .map(|request| {
+            let attestations = match format {
+                Format::MsoMdoc => {
                     let (mdoc, holder_privkey_identifier) = prepare_example_mdoc_mock(&issuer_ca, &wscd);
                     let partial_mdoc = PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap();
 
-                    (
-                        request.id().clone(),
-                        vec_nonempty![(partial_mdoc, holder_privkey_identifier)],
-                    )
-                })
-                .collect();
-
-            DisclosableAttestations::MsoMdoc(partial_mdocs)
-        }
-        Format::SdJwt => {
-            let presentations = disclosure_session
-                .credential_requests()
-                .as_ref()
-                .iter()
-                .map(|request| {
+                    DisclosableAttestations::MsoMdoc(vec_nonempty![(partial_mdoc, holder_privkey_identifier)])
+                }
+                Format::SdJwt => {
                     let (sd_jwt, key_id) = prepare_example_sd_jwt_mock(&issuer_ca, &wscd);
                     let presentation = request
                         .claim_paths()
@@ -966,13 +954,13 @@ async fn perform_full_disclosure(
                         })
                         .finish();
 
-                    (request.id().clone(), vec_nonempty![(presentation, key_id)])
-                })
-                .collect();
+                    DisclosableAttestations::SdJwt(vec_nonempty![(presentation, key_id)])
+                }
+            };
 
-            DisclosableAttestations::SdJwt(presentations)
-        }
-    };
+            (request.id().clone(), attestations)
+        })
+        .collect::<HashMap<_, _>>();
 
     let return_url = disclosure_session
         .disclose(attestations.try_into().unwrap(), &wscd, &MockTimeGenerator::default())
@@ -1149,10 +1137,10 @@ async fn test_disclosed_attributes_failed_session() {
 
     disclosure_session
         .disclose(
-            DisclosableAttestations::MsoMdoc(HashMap::from([(
+            HashMap::from([(
                 CredentialQuery::new_mock_mdoc_iso_example().id,
-                vec_nonempty![(partial_mdoc, EXAMPLE_KEY_IDENTIFIER.to_string())],
-            )]))
+                DisclosableAttestations::MsoMdoc(vec_nonempty![(partial_mdoc, EXAMPLE_KEY_IDENTIFIER.to_string())]),
+            )])
             .try_into()
             .unwrap(),
             &DisclosureMockRemoteWscd::new_example(),

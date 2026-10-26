@@ -57,20 +57,20 @@ pub trait DisclosureClient {
     ) -> Result<Self::Session, VpSessionError>;
 }
 
+/// The attestations to be disclosed in response to a single credential query, along with their key identifiers.
 #[derive(Debug, Clone)]
 pub enum DisclosableAttestations {
-    MsoMdoc(HashMap<CredentialQueryIdentifier, VecNonEmpty<(PartialMdoc, String)>>),
-    SdJwt(HashMap<CredentialQueryIdentifier, VecNonEmpty<(UnsignedSdJwtPresentation, String)>>),
+    MsoMdoc(VecNonEmpty<(PartialMdoc, String)>),
+    SdJwt(VecNonEmpty<(UnsignedSdJwtPresentation, String)>),
 }
 
+/// The attestations to be disclosed per credential query. Note that different credential queries may
+/// be answered using attestations of different formats.
 #[nutype(
     derive(Debug, Clone, AsRef, TryFrom),
-    validate(predicate = |response| match response {
-        DisclosableAttestations::MsoMdoc(map) => !map.is_empty(),
-        DisclosableAttestations::SdJwt(map) => !map.is_empty(),
-    }),
+    validate(predicate = |attestations| !attestations.is_empty()),
 )]
-pub struct NonEmptyDisclosableAttestations(DisclosableAttestations);
+pub struct NonEmptyDisclosableAttestations(HashMap<CredentialQueryIdentifier, DisclosableAttestations>);
 
 pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;

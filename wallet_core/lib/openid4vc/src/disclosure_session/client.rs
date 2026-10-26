@@ -572,10 +572,10 @@ mod tests {
             Format::MsoMdoc => {
                 let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &attestation_key);
 
-                DisclosableAttestations::MsoMdoc(HashMap::from([(
+                HashMap::from([(
                     "mdoc_pid_example".try_into().unwrap(),
-                    vec_nonempty![(partial_mdoc, "attestation_key".to_string())],
-                )]))
+                    DisclosableAttestations::MsoMdoc(vec_nonempty![(partial_mdoc, "attestation_key".to_string())]),
+                )])
                 .try_into()
                 .unwrap()
             }
@@ -594,10 +594,13 @@ mod tests {
                     .unwrap()
                     .finish();
 
-                DisclosableAttestations::SdJwt(HashMap::from([(
+                HashMap::from([(
                     "sd_jwt_pid_example".try_into().unwrap(),
-                    vec_nonempty![(unsigned_presentation, "attestation_key".to_string())],
-                )]))
+                    DisclosableAttestations::SdJwt(vec_nonempty![(
+                        unsigned_presentation,
+                        "attestation_key".to_string()
+                    )]),
+                )])
                 .try_into()
                 .unwrap()
             }
