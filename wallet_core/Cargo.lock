@@ -731,7 +731,6 @@ dependencies = [
  "mdoc",
  "p256 0.14.0",
  "rand_core 0.9.5",
- "rcgen 0.14.5",
  "rstest",
  "sd_jwt",
  "sd_jwt_vc_metadata",
@@ -742,13 +741,11 @@ dependencies = [
  "ssri",
  "strum 0.28.0",
  "thiserror 2.0.17",
- "time",
  "token_status_list",
  "tokio",
  "url",
  "utils",
  "uuid",
- "x509-parser 0.18.0",
 ]
 
 [[package]]

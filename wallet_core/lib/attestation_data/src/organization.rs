@@ -128,7 +128,6 @@ pub mod mock {
 pub mod test {
     use std::sync::Arc;
 
-    use attestation_types::image::Image;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::DistinguishedName;
     use rstest::rstest;
@@ -143,17 +142,6 @@ pub mod test {
     use crate::registration_certificate::mock::issuer_registration_certificate_payload;
     use crate::registration_certificate::verify_registration_certificate_envelope;
     use crate::x509::RelyingParty;
-
-    #[rstest]
-    #[case("image/svg+xml", "<svg></svg>", Image::Svg("<svg></svg>".to_owned()))]
-    #[case("image/png", "yv4=", Image::Png(vec![0xca, 0xfe]))]
-    #[case("image/jpeg", "q80=", Image::Jpeg(vec![0xab, 0xcd]))]
-    fn image_deserialize(#[case] mime_type: &str, #[case] image_data: &str, #[case] expected: Image) {
-        assert_eq!(
-            serde_json::from_value::<Image>(json!({"mimeType": mime_type ,"imageData": image_data})).unwrap(),
-            expected,
-        )
-    }
 
     #[rstest]
     fn deserialize_organization_requires_registration_fields(
