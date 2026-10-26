@@ -1,13 +1,14 @@
+use std::collections::HashMap;
+
 use error_category::ErrorCategory;
 use sd_jwt::error::DecoderError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
-use serde_json::Map;
 use serde_json::Value;
 
 /// All decoded claims of an SD-JWT or SD-JWT presentation, i.e. with disclosures substituted.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SdJwtClaims(Map<String, Value>);
+pub struct SdJwtClaims(HashMap<String, Value>);
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum SdJwtClaimsError {
@@ -43,6 +44,8 @@ impl SdJwtClaims {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -51,7 +54,6 @@ mod test {
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::sd_jwt::SdJwtVcClaims;
     use sd_jwt::sd_jwt::VerifiedSdJwt;
-    use serde_json::Map;
     use serde_json::Value;
     use serde_json::json;
     use utils::generator::mock::MockTimeGenerator;
@@ -73,12 +75,12 @@ mod test {
         })
     }
 
-    fn claims_from_json(json: Value) -> Map<String, Value> {
+    fn claims_from_json(json: Value) -> HashMap<String, Value> {
         let Value::Object(claims) = json else {
             panic!("claims should be a JSON object");
         };
 
-        claims
+        claims.into_iter().collect()
     }
 
     fn path(elements: &[ClaimPath]) -> VecNonEmpty<ClaimPath> {
