@@ -1,11 +1,3 @@
-//! OIDC login flow for the Admin Portal, authenticating against Keycloak.
-//!
-//! Handles the PKCE authorization code flow, id_token/access_token validation against Keycloak's
-//! JWKS, and the resulting server-side sessions. Sessions and pending logins are persisted through
-//! an [`AdminPortalSessionRepository`], so that they are shared between replicas rather than kept
-//! in memory on a single instance; this is important since the Admin Portal runs with more than
-//! one replica.
-
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -42,10 +34,13 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 use url::Url;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
+use uuid::Uuid;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
 use wallet_provider_domain::model::admin_task::TaskType;
-use wallet_provider_domain::repository::AdminPortalSessionRepository;
+use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::PersistenceError;
 
 use self::oidc_client::OidcHttpClientError;
@@ -156,13 +151,26 @@ impl CallbackError {
     }
 }
 
-pub struct AdminPortalService<R> {
+/// Time-ordered UUIDs for database primary keys used by portal tasks and audit entries.
+#[derive(Clone, Copy)]
+pub struct UuidV7Generator;
+
+impl Generator<Uuid> for UuidV7Generator {
+    fn generate(&self) -> Uuid {
+        Uuid::now_v7()
+    }
+}
+
+/// Shared dependencies for the portal authentication and task operations.
+pub struct AdminPortalService<R, T = TimeGenerator, U = UuidV7Generator> {
     keycloak_client_id: String,
     redirect_uri: Url,
     session_ttl: Duration,
     login_attempt_ttl: Duration,
     oidc_client: OidcHttpClient,
     repository: R,
+    time: T,
+    uuid: U,
 }
 
 /// The Keycloak/session parameters needed to construct an [`AdminPortalService`].
@@ -175,8 +183,8 @@ pub struct AdminPortalConfig {
     pub login_attempt_ttl: Duration,
 }
 
-impl<R> AdminPortalService<R> {
-    pub fn new(config: AdminPortalConfig, client: reqwest::Client, repository: R) -> Self {
+impl<R, T, U> AdminPortalService<R, T, U> {
+    pub fn new(config: AdminPortalConfig, client: reqwest::Client, repository: R, time: T, uuid: U) -> Self {
         let issuer_url = config
             .keycloak_url
             .join_base_url(&format!("realms/{}", config.keycloak_realm));
@@ -189,6 +197,8 @@ impl<R> AdminPortalService<R> {
             login_attempt_ttl: config.login_attempt_ttl,
             oidc_client: OidcHttpClient::new(HttpClient::new(client), issuer),
             repository,
+            time,
+            uuid,
         }
     }
 
@@ -221,9 +231,9 @@ fn jwt_validation_from_header(header: &Header) -> Option<Validation> {
     SUPPORTED_ALGS.contains(&alg).then_some(Validation::new(alg))
 }
 
-impl<R> AdminPortalService<R>
+impl<R, T, U> AdminPortalService<R, T, U>
 where
-    R: AdminPortalSessionRepository,
+    R: AdminPortalRepository,
 {
     /// Best-effort garbage collection of expired login attempts and sessions. Failures are logged
     /// and otherwise ignored, since this is housekeeping and should not block the login flow.
@@ -286,16 +296,16 @@ where
         Self::decode_and_validate(token, jwks, header, &validation)
     }
 
-    fn decode_and_validate<T: DeserializeOwned>(
+    fn decode_and_validate<C: DeserializeOwned>(
         token: &str,
         jwks: &JwkSet,
         header: jwt::Header,
         validation: &Validation,
-    ) -> Result<T, TokenVerificationError> {
+    ) -> Result<C, TokenVerificationError> {
         let kid = header.kid.ok_or(TokenVerificationError::MissingKeyIdentifier)?;
         let key = DecodingKey::from_jwk(jwks.find(&kid).ok_or(TokenVerificationError::MissingKeyIdentifier)?)
             .map_err(TokenVerificationError::Token)?;
-        let data = jsonwebtoken::decode::<T>(token, &key, validation).map_err(TokenVerificationError::Token)?;
+        let data = jsonwebtoken::decode::<C>(token, &key, validation).map_err(TokenVerificationError::Token)?;
         Ok(data.claims)
     }
 
@@ -546,16 +556,18 @@ mod tests {
     use serde::Serialize;
     use serde_json::json;
     use url::Url;
+    use utils::generator::TimeGenerator;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
     use wallet_provider_domain::repository::PersistenceError;
-    use wallet_provider_persistence::repositories::mock::MockAdminPortalSessionRepository;
+    use wallet_provider_persistence::repositories::mock::MockAdminPortalRepository;
 
     use crate::admin_portal::AdminPortalConfig;
     use crate::admin_portal::AdminPortalService;
     use crate::admin_portal::CallbackError;
     use crate::admin_portal::LoginError;
     use crate::admin_portal::TokenVerificationError;
+    use crate::admin_portal::UuidV7Generator;
     use crate::admin_portal::to_privileges;
 
     // Test-only 2048 bit RSA key, used to sign fake Keycloak tokens and serve a matching JWKS.
@@ -631,16 +643,16 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     fn service_with_repository(
         keycloak_url: &BaseUrl,
-        repository: MockAdminPortalSessionRepository,
-    ) -> AdminPortalService<MockAdminPortalSessionRepository> {
+        repository: MockAdminPortalRepository,
+    ) -> AdminPortalService<MockAdminPortalRepository> {
         service_with_client(keycloak_url, reqwest::Client::new(), repository)
     }
 
     fn service_with_client(
         keycloak_url: &BaseUrl,
         client: reqwest::Client,
-        repository: MockAdminPortalSessionRepository,
-    ) -> AdminPortalService<MockAdminPortalSessionRepository> {
+        repository: MockAdminPortalRepository,
+    ) -> AdminPortalService<MockAdminPortalRepository> {
         AdminPortalService::new(
             AdminPortalConfig {
                 keycloak_url: keycloak_url.clone(),
@@ -652,12 +664,14 @@ yP3ST1F3e7Cha7l54e71Lg==
             },
             client,
             repository,
+            TimeGenerator,
+            UuidV7Generator,
         )
     }
 
     /// Every public `AdminPortalService` method starts with a best-effort cleanup of expired
     /// sessions, so every test needs expectations for it.
-    fn expect_cleanup(repository: &mut MockAdminPortalSessionRepository) {
+    fn expect_cleanup(repository: &mut MockAdminPortalRepository) {
         repository.expect_cleanup_expired_login_attempts().returning(|_| Ok(()));
         repository.expect_cleanup_expired_user_sessions().returning(|_| Ok(()));
     }
@@ -773,10 +787,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         /// Builds a service pointed at this mock server. Uses a client that trusts httpmock's
         /// pinned root CA, since httpmock may or may not serve TLS depending on which features are
         /// active for it elsewhere in the build (its "https" feature is unified workspace-wide).
-        fn service(
-            &self,
-            repository: MockAdminPortalSessionRepository,
-        ) -> AdminPortalService<MockAdminPortalSessionRepository> {
+        fn service(&self, repository: MockAdminPortalRepository) -> AdminPortalService<MockAdminPortalRepository> {
             let client = httpmock_reqwest_client_builder().build().unwrap();
 
             service_with_client(&self.keycloak_url, client, repository)
@@ -812,7 +823,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[test]
     fn session_ttl_returns_configured_duration() {
-        let repository = MockAdminPortalSessionRepository::new();
+        let repository = MockAdminPortalRepository::new();
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
         let service = service_with_repository(&keycloak_url, repository);
 
@@ -823,7 +834,7 @@ yP3ST1F3e7Cha7l54e71Lg==
     async fn authorization_url_stores_login_attempt_and_builds_correct_url() {
         let oidc = TestOidc::start().await;
         oidc.mock_metadata().await;
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
 
         let captured = Arc::new(Mutex::new(None));
@@ -863,7 +874,7 @@ yP3ST1F3e7Cha7l54e71Lg==
     async fn authorization_url_includes_login_hint_when_provided() {
         let oidc = TestOidc::start().await;
         oidc.mock_metadata().await;
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository.expect_insert_login_attempt().returning(|_, _| Ok(()));
 
@@ -879,7 +890,7 @@ yP3ST1F3e7Cha7l54e71Lg==
     async fn authorization_url_propagates_storage_error() {
         let oidc = TestOidc::start().await;
         oidc.mock_metadata().await;
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_insert_login_attempt()
@@ -894,7 +905,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn handle_callback_without_state_returns_invalid_state() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
 
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
@@ -907,7 +918,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn handle_callback_with_unknown_state_returns_invalid_state() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_login_attempt()
@@ -926,7 +937,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn handle_callback_with_unknown_state_but_with_active_session_returns_session() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_login_attempt()
@@ -949,7 +960,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn handle_callback_maps_login_attempt_storage_error() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_login_attempt()
@@ -965,7 +976,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn handle_callback_with_error_param_returns_upstream_error() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_login_attempt()
@@ -983,7 +994,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn handle_callback_without_code_returns_missing_code() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_login_attempt()
@@ -1003,7 +1014,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         oidc.mock_metadata().await;
         oidc.mock_token_endpoint_error().await;
 
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_login_attempt()
@@ -1040,7 +1051,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         });
         oidc.mock_token_endpoint(id_token, access_token).await;
 
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         // The stored login attempt has a different nonce than the one in the id_token.
         repository
@@ -1084,7 +1095,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         });
         oidc.mock_token_endpoint(id_token.clone(), access_token).await;
 
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_login_attempt()
@@ -1146,7 +1157,7 @@ yP3ST1F3e7Cha7l54e71Lg==
         });
         oidc.mock_token_endpoint(id_token, access_token).await;
 
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_login_attempt()
@@ -1162,7 +1173,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn end_session_returns_successfully_for_unknown_session() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository.expect_take_user_session().returning(|_| Ok(None));
 
@@ -1174,7 +1185,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn end_session_returns_error_on_storage_error() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_user_session()
@@ -1192,7 +1203,7 @@ yP3ST1F3e7Cha7l54e71Lg==
     async fn end_session_succeeds_for_known_session() {
         let oidc = TestOidc::start().await;
         oidc.mock_metadata().await;
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_take_user_session()
@@ -1205,7 +1216,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn authenticated_user_returns_none_for_unknown_session() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository.expect_fetch_user_session().returning(|_, _, _| Ok(None));
 
@@ -1217,7 +1228,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn authenticated_user_propagates_storage_error() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
             .expect_fetch_user_session()
@@ -1234,7 +1245,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     #[tokio::test]
     async fn authenticated_user_reports_display_name_and_stripped_privileges() {
-        let mut repository = MockAdminPortalSessionRepository::new();
+        let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
 
         let user_session = user_session([

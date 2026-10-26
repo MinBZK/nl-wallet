@@ -111,6 +111,7 @@ where
         admin_portal,
         state.user_state.repositories.clone(),
         state.audit_log.clone(),
+        Arc::clone(&state.user_state),
     )?);
     let wallet_transfer_permits = Arc::new(Semaphore::new(state.wallet_transfer_concurrency_limit));
     let router = Router::new()

@@ -34,8 +34,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::model::wallet_user::WithKid;
-use wallet_provider_domain::repository::AdminPortalSessionRepository;
-use wallet_provider_domain::repository::AdminTaskRepository;
+use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletFlagRepository;
@@ -56,7 +55,7 @@ use crate::wallet_user_wia;
 #[derive(Clone, From, AsRef)]
 pub struct Repositories(Db);
 
-impl AdminPortalSessionRepository for Repositories {
+impl AdminPortalRepository for Repositories {
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn insert_login_attempt(
         &self,
@@ -103,6 +102,48 @@ impl AdminPortalSessionRepository for Repositories {
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn cleanup_expired_user_sessions(&self, now: DateTime<Utc>) -> Result<(), PersistenceError> {
         admin_portal_session::cleanup_expired_user_sessions(&self.0, now).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn insert_task(&self, task: CreateAdminTask) -> Result<AdminTask, PersistenceError> {
+        admin_task::insert_task(&self.0, task).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_task_by_id(&self, task_id: Uuid) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::find_task_by_id(&self.0, task_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_task_by_id_for_update(
+        &self,
+        transaction: &Self::TransactionType,
+        task_id: Uuid,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::find_task_by_id_for_update(transaction, task_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn withdraw_task(
+        &self,
+        transaction: &Self::TransactionType,
+        withdrawal: WithdrawAdminTask,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::withdraw_task(transaction, withdrawal).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn review_task(
+        &self,
+        transaction: &Self::TransactionType,
+        review: ReviewAdminTask,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::review_task(transaction, review).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError> {
+        admin_task::list_tasks(&self.0, view).await
     }
 }
 
@@ -625,50 +666,6 @@ impl WalletUserRepository for Repositories {
     }
 }
 
-impl AdminTaskRepository for Repositories {
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn insert_task(&self, task: CreateAdminTask) -> Result<AdminTask, PersistenceError> {
-        admin_task::insert_task(&self.0, task).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn find_task_by_id(&self, task_id: Uuid) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::find_task_by_id(&self.0, task_id).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn find_task_by_id_for_update(
-        &self,
-        transaction: &Self::TransactionType,
-        task_id: Uuid,
-    ) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::find_task_by_id_for_update(transaction, task_id).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn withdraw_task(
-        &self,
-        transaction: &Self::TransactionType,
-        withdrawal: WithdrawAdminTask,
-    ) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::withdraw_task(transaction, withdrawal).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn review_task(
-        &self,
-        transaction: &Self::TransactionType,
-        review: ReviewAdminTask,
-    ) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::review_task(transaction, review).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError> {
-        admin_task::list_tasks(&self.0, view).await
-    }
-}
-
 #[cfg(feature = "mock")]
 pub mod mock {
     use std::collections::HashMap;
@@ -716,8 +713,7 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WithKid;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_1;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_with_id;
-    use wallet_provider_domain::repository::AdminPortalSessionRepository;
-    use wallet_provider_domain::repository::AdminTaskRepository;
+    use wallet_provider_domain::repository::AdminPortalRepository;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;
@@ -725,15 +721,15 @@ pub mod mock {
     use wallet_provider_domain::repository::WalletUserRepository;
 
     mockall::mock! {
-        pub AdminTaskRepository {}
+        pub AdminPortalRepository {}
 
-        impl TransactionStarter for AdminTaskRepository {
+        impl TransactionStarter for AdminPortalRepository {
             type TransactionType = MockTransaction;
 
             async fn begin_transaction(&self) -> Result<MockTransaction, PersistenceError>;
         }
 
-        impl AdminTaskRepository for AdminTaskRepository {
+        impl AdminPortalRepository for AdminPortalRepository {
             async fn insert_task(&self, task: CreateAdminTask) -> Result<AdminTask, PersistenceError>;
 
             async fn find_task_by_id(&self, id: Uuid) -> Result<Option<AdminTask>, PersistenceError>;
@@ -757,13 +753,8 @@ pub mod mock {
             ) -> Result<Option<AdminTask>, PersistenceError>;
 
             async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError>;
-        }
-    }
 
-    mockall::mock! {
-        pub AdminPortalSessionRepository {}
 
-        impl AdminPortalSessionRepository for AdminPortalSessionRepository {
             async fn insert_login_attempt(
                 &self,
                 state: String,
