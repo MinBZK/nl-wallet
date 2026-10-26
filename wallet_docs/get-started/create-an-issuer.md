@@ -400,9 +400,9 @@ signs issuer metadata. The following example uses the WRPRC CA created by
 `scripts/setup-devenv.sh`; for another environment, arrange the WRPRC and its
 status list with the registration authority trusted by that environment.
 
-Create separate WRPRC and status-list signing certificates with the same
-subject. Then create a registration payload for the insurance credential, using
-the organization identifier and legal name from the WRPAC above:
+Create WRPRC and status-list signing certificates. Then create a registration
+payload for the insurance credential, using the organization identifier and
+legal name from the WRPAC above:
 
 ```shell
 export WRPRC_CA_DIR=scripts/devenv/target
@@ -413,7 +413,7 @@ for CERT_TYPE in wrprc tsl; do
         --type "${CERT_TYPE}" \
         --ca-key-file "${WRPRC_CA_DIR}/ca.wrprc.key.pem" \
         --ca-crt-file "${WRPRC_CA_DIR}/ca.wrprc.crt.pem" \
-        --common-name "Development Registrar" \
+        --common-name "Development Registrar ${CERT_TYPE}" \
         --organization-name "Development Registrar" \
         --organization-id "NTRNL-00000001" \
         --file-prefix "${TARGET_DIR}/${CERT_TYPE}-registrar.${IDENTIFIER}"

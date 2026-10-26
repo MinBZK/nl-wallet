@@ -341,12 +341,12 @@ cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
     --file-prefix "${TARGET_DIR}/wrprc_signer" \
     --force
 
-# Generate the WRPRC status-list signing certificate with the same subject as the WRPRC signer.
+# Generate the WRPRC status-list signing certificate.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
     --bin wallet_ca cert --type tsl \
     --ca-key-file "${TARGET_DIR}/ca.wrprc.key.pem" \
     --ca-crt-file "${TARGET_DIR}/ca.wrprc.crt.pem" \
-    --common-name "Development WRPRC signer" \
+    --common-name "Development WRPRC status list signer" \
     --organization-name "Development Registrar B.V." \
     --organization-id "NTRNL-00000001" \
     --file-prefix "${TARGET_DIR}/wrprc_tsl" \
