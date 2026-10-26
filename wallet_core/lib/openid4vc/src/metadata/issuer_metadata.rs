@@ -272,8 +272,6 @@ pub struct CredentialRequestEncryption {
     /// REQUIRED. A JSON Web Key Set, as defined in [RFC7591], that contains one or more public keys, to be used by the
     /// Wallet as an input to a key agreement for encryption of the Credential Request. Each JWK in the set MUST
     /// have a kid (Key ID) parameter that uniquely identifies the key.
-    // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
-    //                  request encryption. Additionally this should check for the presence of `kid` parameters.
     pub jwks: Jwks,
 
     /// REQUIRED. A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518]

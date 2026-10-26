@@ -21,6 +21,7 @@ use futures::try_join;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
+use jwe::encryption::JweEncrypter;
 use jwt::nonce::Nonce;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
@@ -75,6 +76,8 @@ use super::credential::IssuedCredentialCopies;
 use super::credential::IssuedCredentialMetadata;
 use super::credential::MdocCopy;
 use super::credential::SdJwtCopy;
+use super::credential_request_encryption::CredentialRequestEncryptionOptions;
+use super::credential_request_encryption::CredentialRequestEncryptionParameters;
 use super::issuer_registration::IssuerRegistration;
 use crate::authorization_details::CredentialId;
 use crate::authorization_details::IssuerAuthorizationDetails;
@@ -636,6 +639,9 @@ struct IssuanceState {
     access_token: AccessToken,
     issuer_endpoints: IssuerEndpoints,
     batch_size: NonZeroU8,
+    // TODO (PVW-6445): Use this encrypter to encrypt Credential Requests.
+    #[expect(dead_code)]
+    credential_request_encryption: Option<CredentialRequestEncryption>,
     // Keep metadata separate from offered credentials to prevent duplication. Metadata is per credential
     // configuration, not per credential. `HttpIssuanceSession::create` enforces that every credential configuration
     // has metadata.
@@ -645,6 +651,23 @@ struct IssuanceState {
     #[debug(skip)]
     dpop_signing_key: SigningKey,
     dpop_nonce: Option<DpopNonce>,
+}
+
+// TODO (PVW-6445): Use this encrypter to encrypt Credential Requests.
+#[expect(dead_code)]
+#[derive(Debug)]
+struct CredentialRequestEncryption {
+    encrypter: JweEncrypter,
+    options: CredentialRequestEncryptionOptions,
+}
+
+impl From<CredentialRequestEncryptionParameters> for CredentialRequestEncryption {
+    fn from(value: CredentialRequestEncryptionParameters) -> Self {
+        Self {
+            encrypter: JweEncrypter::from(value.public_key),
+            options: value.options,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -774,6 +797,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         issuer_endpoints: IssuerEndpoints,
         issuer_registration: IssuerRegistration,
         batch_size: NonZeroU8,
+        encryption_parameters: Option<CredentialRequestEncryptionParameters>,
         token_endpoint: Url,
         client_auth_challenge: ClientAttestationChallengeMechanism,
         token_request: VciTokenRequest,
@@ -848,6 +872,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             access_token: token_response.oauth_response.access_token,
             issuer_endpoints,
             batch_size,
+            credential_request_encryption: encryption_parameters.map(Into::into),
             offered_credentials,
             metadata,
             issuer_registration,
@@ -1628,6 +1653,7 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
+            None,
             oauth_metadata.oauth_metadata.token_endpoint,
             mechanism,
             VciTokenRequest::new_mock(),
@@ -1756,6 +1782,7 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
+            None,
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
                 oauth_metadata
@@ -2677,6 +2704,7 @@ mod tests {
             access_token: "access_token".to_string().into(),
             issuer_endpoints,
             batch_size,
+            credential_request_encryption: None,
             offered_credentials,
             metadata,
             issuer_registration: IssuerRegistration::new_mock(),

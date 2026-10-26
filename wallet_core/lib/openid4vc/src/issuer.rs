@@ -2142,6 +2142,7 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
+            None,
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
                 oauth_metadata
@@ -2213,6 +2214,7 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
+            None,
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
                 oauth_metadata

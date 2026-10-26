@@ -27,6 +27,7 @@ use wscd::wia::WiaClient;
 use super::AuthorizationSession;
 use super::WalletIssuanceError;
 use super::authorization_endpoints::AuthorizationEndpoints;
+use super::credential_request_encryption::CredentialRequestEncryptionParameters;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
 use super::issuer_registration::IssuerRegistration;
@@ -83,6 +84,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     issuer_endpoints: IssuerEndpoints,
     issuer_registration: IssuerRegistration,
     batch_size: NonZeroU8,
+    encryption_parameters: Option<CredentialRequestEncryptionParameters>,
     token_endpoint: Url,
     client_attestation_challenge: ClientAttestationChallengeMechanism,
     authorization_server: IssuerIdentifier,
@@ -101,6 +103,7 @@ pub struct HttpAuthorizationSessionData {
     issuer_endpoints: IssuerEndpoints,
     issuer_registration: IssuerRegistration,
     batch_size: NonZeroU8,
+    encryption_parameters: Option<CredentialRequestEncryptionParameters>,
     token_endpoint: Url,
     client_attestation_challenge: ClientAttestationChallengeMechanism,
     authorization_server: IssuerIdentifier,
@@ -122,6 +125,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         issuer_endpoints: IssuerEndpoints,
         issuer_registration: IssuerRegistration,
         batch_size: NonZeroU8,
+        encryption_parameters: Option<CredentialRequestEncryptionParameters>,
         auth_endpoints: AuthorizationEndpoints,
         client_id: String,
         redirect_uri: Url,
@@ -211,6 +215,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             issuer_endpoints,
             issuer_registration,
             batch_size,
+            encryption_parameters,
             token_endpoint: auth_endpoints.token_endpoint,
             client_attestation_challenge: client_auth_challenge,
             authorization_server,
@@ -268,6 +273,7 @@ impl HttpAuthorizationSession {
             issuer_endpoints: data.issuer_endpoints,
             issuer_registration: data.issuer_registration,
             batch_size: data.batch_size,
+            encryption_parameters: data.encryption_parameters,
             token_endpoint: data.token_endpoint,
             client_attestation_challenge: data.client_attestation_challenge,
             authorization_server: data.authorization_server,
@@ -299,6 +305,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             issuer_endpoints: self.issuer_endpoints.clone(),
             issuer_registration: self.issuer_registration.clone(),
             batch_size: self.batch_size,
+            encryption_parameters: self.encryption_parameters.clone(),
             token_endpoint: self.token_endpoint.clone(),
             client_attestation_challenge: self.client_attestation_challenge.clone(),
             authorization_server: self.authorization_server.clone(),
@@ -333,6 +340,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             self.issuer_endpoints,
             self.issuer_registration,
             self.batch_size,
+            self.encryption_parameters,
             self.token_endpoint,
             self.client_attestation_challenge,
             token_request,
@@ -357,12 +365,17 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use httpmock::Method::POST;
     use httpmock::MockServer;
+    use jwe::algorithm::EcdhAlgorithm;
+    use jwe::algorithm::EncryptionAlgorithm;
+    use jwe::encryption::JwePublicKey;
     use jwt::nonce::Nonce;
     use oauth::errors::AuthorizationErrorCode;
     use oauth::errors::RemoteErrorCode;
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::pkce::MockPkcePair;
     use oauth::pkce::S256PkcePair;
+    use p256::SecretKey;
+    use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
@@ -372,6 +385,10 @@ mod tests {
 
     use super::super::AuthorizationSession;
     use super::super::WalletIssuanceError;
+    use super::super::authorization_endpoints::AuthorizationEndpoints;
+    use super::super::credential_request_encryption::CredentialRequestEncryptionParameters;
+    use super::super::issuer_registration::IssuerRegistration;
+    use super::super::mock::RecordingWiaClient;
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
@@ -380,9 +397,6 @@ mod tests {
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::wallet_issuance::authorization_endpoints::AuthorizationEndpoints;
-    use crate::wallet_issuance::issuer_registration::IssuerRegistration;
-    use crate::wallet_issuance::mock::RecordingWiaClient;
 
     const ISSUER_URL: &str = "https://example.com";
     const TOKEN_ENDPOINT: &str = "/issuance/token";
@@ -420,6 +434,7 @@ mod tests {
             issuer_endpoints: issuer_metadata.endpoints,
             issuer_registration: IssuerRegistration::new_mock(),
             batch_size,
+            encryption_parameters: None,
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             client_attestation_challenge: ClientAttestationChallengeMechanism::ChallengeEndpoint(
                 ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT),
@@ -543,6 +558,7 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
+            None,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -648,6 +664,7 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
+            None,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -722,6 +739,7 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
+            None,
             auth_endpoints,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -828,12 +846,22 @@ mod tests {
             )],
         );
         let batch_size = issuer_metadata.batch_size().try_into().unwrap();
+        let encryption_parameters = CredentialRequestEncryptionParameters::new(
+            JwePublicKey::new(
+                Some("key".to_string()),
+                SecretKey::generate().public_key(),
+                EcdhAlgorithm::EcdhEs,
+            ),
+            EncryptionAlgorithm::A128Gcm,
+            None,
+        );
         let persisted = HttpAuthorizationSessionData {
             credential_configurations: issuer_metadata.credential_configurations_supported,
             credential_issuer: issuer_metadata.credential_issuer,
             issuer_endpoints: issuer_metadata.endpoints,
             issuer_registration: IssuerRegistration::new_mock(),
             batch_size,
+            encryption_parameters: Some(encryption_parameters),
             token_endpoint: ISSUER_URL.parse::<BaseUrl>().unwrap().join(TOKEN_ENDPOINT),
             client_attestation_challenge: ClientAttestationChallengeMechanism::ChallengeEndpoint(
                 ISSUER_URL.parse::<BaseUrl>().unwrap().join(CHALLENGE_ENDPOINT),
@@ -852,6 +880,7 @@ mod tests {
             issuer_registration: persisted.issuer_registration.clone(),
             token_endpoint: persisted.token_endpoint,
             batch_size: persisted.batch_size,
+            encryption_parameters: persisted.encryption_parameters,
             client_attestation_challenge: persisted.client_attestation_challenge,
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
@@ -886,6 +915,11 @@ mod tests {
         assert_eq!(
             restored_persisted.issuer_registration.access_certificate(),
             persisted.issuer_registration.access_certificate(),
+        );
+        assert_eq!(restored_persisted.batch_size, restored_persisted.batch_size);
+        assert_eq!(
+            restored_persisted.encryption_parameters,
+            restored_persisted.encryption_parameters
         );
         assert_eq!(restored_persisted.auth_url, persisted.auth_url);
         assert_eq!(restored_persisted.redirect_uri, persisted.redirect_uri);
