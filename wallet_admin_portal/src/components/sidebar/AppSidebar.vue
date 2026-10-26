@@ -6,30 +6,14 @@
       <div class="section-label">ALGEMEEN</div>
 
       <RouterLink
-        v-if="
-          loggedInUser?.canCreateTask || loggedInUser?.privileges?.includes(Privilege.ShowAllTasks)
-        "
-        to="/tasks"
+        v-for="item in navItems"
+        :key="item.name"
+        :to="{ name: item.name }"
         class="nav-item"
         exact-active-class="active"
       >
-        <img src="@/assets/icons/checklist.svg" alt="" class="icon" />
-        <span>Openstaande taken</span>
-      </RouterLink>
-
-      <RouterLink
-        v-if="loggedInUser?.canCreateTask"
-        to="/my-tasks"
-        class="nav-item"
-        exact-active-class="active"
-      >
-        <img src="@/assets/icons/account_box.svg" alt="" class="icon" />
-        <span>Mijn open taken</span>
-      </RouterLink>
-
-      <RouterLink to="/history" class="nav-item" exact-active-class="active">
-        <img src="@/assets/icons/history.svg" alt="" class="icon" />
-        <span>Taakgeschiedenis</span>
+        <img :src="item.icon" alt="" class="icon" />
+        <span>{{ item.title }}</span>
       </RouterLink>
     </nav>
 
@@ -41,13 +25,15 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useAuth } from '@/composables/authentication.ts'
+import { navItemsFor } from '@/router/access.ts'
 import { Role } from '@/types/roles.ts'
-import { Privilege } from '@/types/privilege.ts'
 import SidebarBrand from './SidebarBrand.vue'
 import SidebarUserCard from './SidebarUserCard.vue'
 
 const { loggedInUser } = useAuth()
+const navItems = computed(() => (loggedInUser.value ? navItemsFor(loggedInUser.value) : []))
 </script>
 
 <style scoped>
