@@ -282,16 +282,25 @@ final class CloseProximityDisclosureTests: XCTestCase {
 
     func testWalletCloseProximityDisclosureWithMacReader() async throws {
         // The main thread must remain available for CoreBluetooth callbacks while Rust runs Tokio.
-        let error = await Task.detached { () -> String? in
-            let error = wallet_close_proximity_disclosure_test { marker in
-                guard let marker else { return }
-                // Signed request fixtures exceed unified logging's message-size limits.
-                FileHandle.standardError.write(Data((String(cString: marker) + "\n").utf8))
+        let error: String? = await withCheckedContinuation { continuation in
+            let thread = Thread {
+                let error = wallet_close_proximity_disclosure_test { marker in
+                    guard let marker else { return }
+                    // Signed request fixtures exceed unified logging's message-size limits.
+                    FileHandle.standardError.write(Data((String(cString: marker) + "\n").utf8))
+                }
+                guard let error else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                let message = String(cString: error)
+                wallet_device_test_free_error(error)
+                continuation.resume(returning: message)
             }
-            guard let error else { return nil }
-            defer { wallet_device_test_free_error(error) }
-            return String(cString: error)
-        }.value
+            // Debug-build compression needs more stack than Swift concurrency workers provide.
+            thread.stackSize = 2 * 1024 * 1024
+            thread.start()
+        }
         XCTAssertNil(error, error ?? "")
     }
 
