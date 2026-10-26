@@ -19,6 +19,7 @@ use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
 use wallet_provider_domain::model::admin_task::AdminTask;
 use wallet_provider_domain::model::admin_task::CreateAdminTask;
+use wallet_provider_domain::model::admin_task::ExecuteAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewAdminTask;
 use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
@@ -139,6 +140,15 @@ impl AdminPortalRepository for Repositories {
         review: ReviewAdminTask,
     ) -> Result<Option<AdminTask>, PersistenceError> {
         admin_task::review_task(transaction, review).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn store_execution_result(
+        &self,
+        transaction: &Self::TransactionType,
+        execution: ExecuteAdminTask,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::store_execution_result(transaction, execution).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -692,6 +702,7 @@ pub mod mock {
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
     use wallet_provider_domain::model::admin_task::AdminTask;
     use wallet_provider_domain::model::admin_task::CreateAdminTask;
+    use wallet_provider_domain::model::admin_task::ExecuteAdminTask;
     use wallet_provider_domain::model::admin_task::ReviewAdminTask;
     use wallet_provider_domain::model::admin_task::TaskListView;
     use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
@@ -750,6 +761,12 @@ pub mod mock {
                 &self,
                 transaction: &MockTransaction,
                 review: ReviewAdminTask,
+            ) -> Result<Option<AdminTask>, PersistenceError>;
+
+            async fn store_execution_result(
+                &self,
+                transaction: &MockTransaction,
+                execution: ExecuteAdminTask,
             ) -> Result<Option<AdminTask>, PersistenceError>;
 
             async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError>;

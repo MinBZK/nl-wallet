@@ -163,6 +163,15 @@ pub struct ReviewAdminTask {
     pub review_verdict: ReviewVerdict,
 }
 
+/// Command to store the result of executing an approved [`AdminTask`].
+#[derive(Debug, Clone)]
+pub struct ExecuteAdminTask {
+    pub task_id: Uuid,
+    pub executed_at: DateTime<Utc>,
+    pub execution_successful: bool,
+    pub execution_details: String,
+}
+
 /// Request model for task lists
 #[derive(Debug, Clone)]
 pub enum TaskListView {

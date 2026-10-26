@@ -106,4 +106,5 @@ android_attest = { path = "../../lib/android_attest", optional = true }
 db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
+rstest.workspace = true
 serde_json.workspace = true

@@ -7,9 +7,11 @@ use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
 use sea_orm::Set;
+use sea_orm::UpdateOne;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
 use wallet_provider_domain::model::admin_task::CreateAdminTask;
+use wallet_provider_domain::model::admin_task::ExecuteAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewAdminTask;
 use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::TaskPayload;
@@ -124,7 +126,7 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let model = admin_task::ActiveModel {
+    let store_withdraw = admin_task::ActiveModel {
         id: Set(withdrawal.task_id),
         status: Set(TaskStatus::Withdrawn.to_string()),
         withdrawal_comment: Set(Some(withdrawal.withdrawal_comment)),
@@ -132,15 +134,9 @@ where
         ..Default::default()
     };
 
-    match admin_task::Entity::update(model)
-        .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
-        .exec(db.connection())
-        .await
-    {
-        Ok(task) => Ok(Some(task.try_into()?)),
-        Err(DbErr::RecordNotUpdated) => Ok(None),
-        Err(error) => Err(PersistenceError::Execution(error)),
-    }
+    let store_withdraw = admin_task::Entity::update(store_withdraw)
+        .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()));
+    update_one(db, store_withdraw).await
 }
 
 pub async fn review_task<S, T>(db: &T, review: ReviewAdminTask) -> Result<Option<AdminTask>, PersistenceError>
@@ -148,7 +144,7 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let model = admin_task::ActiveModel {
+    let store_task_review = admin_task::ActiveModel {
         id: Set(review.task_id),
         status: Set(review.review_verdict.resulting_status().to_string()),
         reviewed_at: Set(Some(review.reviewed_at.into())),
@@ -158,11 +154,43 @@ where
         ..Default::default()
     };
 
-    match admin_task::Entity::update(model)
-        .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()))
-        .exec(db.connection())
-        .await
-    {
+    let store_task_review = admin_task::Entity::update(store_task_review)
+        .filter(admin_task::Column::Status.eq(TaskStatus::Created.to_string()));
+    update_one(db, store_task_review).await
+}
+
+pub async fn store_execution_result<S, T>(
+    db: &T,
+    execution: ExecuteAdminTask,
+) -> Result<Option<AdminTask>, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let store_execution_result = admin_task::ActiveModel {
+        id: Set(execution.task_id),
+        executed_at: Set(Some(execution.executed_at.into())),
+        execution_successful: Set(Some(execution.execution_successful)),
+        execution_details: Set(Some(execution.execution_details)),
+        ..Default::default()
+    };
+
+    let store_execution_result = admin_task::Entity::update(store_execution_result)
+        .filter(admin_task::Column::Status.eq(TaskStatus::Approved.to_string()))
+        .filter(admin_task::Column::ExecutedAt.is_null());
+    update_one(db, store_execution_result).await
+}
+
+/// Helper function to update one `AdminTask` and convert the result.
+async fn update_one<S, T>(
+    db: &T,
+    update_query: UpdateOne<admin_task::ActiveModel>,
+) -> Result<Option<AdminTask>, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    match update_query.exec(db.connection()).await {
         Ok(task) => Ok(Some(task.try_into()?)),
         Err(DbErr::RecordNotUpdated) => Ok(None),
         Err(error) => Err(PersistenceError::Execution(error)),

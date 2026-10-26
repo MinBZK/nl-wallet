@@ -8,6 +8,7 @@ use crate::model::admin_portal_session::AdminPortalLoginAttempt;
 use crate::model::admin_portal_session::AdminPortalUserSession;
 use crate::model::admin_task::AdminTask;
 use crate::model::admin_task::CreateAdminTask;
+use crate::model::admin_task::ExecuteAdminTask;
 use crate::model::admin_task::ReviewAdminTask;
 use crate::model::admin_task::TaskListView;
 use crate::model::admin_task::WithdrawAdminTask;
@@ -69,6 +70,14 @@ pub trait AdminPortalRepository: TransactionStarter {
         &self,
         transaction: &Self::TransactionType,
         review: ReviewAdminTask,
+    ) -> Result<Option<AdminTask>>;
+
+    /// Stores the execution result of the task, provided it is in `Approved` status and was not executed before.
+    /// Returns `None` if no row matched.
+    async fn store_execution_result(
+        &self,
+        transaction: &Self::TransactionType,
+        execution: ExecuteAdminTask,
     ) -> Result<Option<AdminTask>>;
 
     /// Returns tasks matching `view`, ordered by `created_at` ascending (oldest first).

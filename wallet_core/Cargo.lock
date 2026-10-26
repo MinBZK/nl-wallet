@@ -10726,6 +10726,7 @@ dependencies = [
  "mockall",
  "p256 0.14.0",
  "rand_core 0.9.5",
+ "rstest",
  "sea-orm",
  "semver",
  "serde",
