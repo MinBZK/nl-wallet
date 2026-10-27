@@ -77,10 +77,6 @@ pub enum CoseError {
     #[error("no signature received")]
     #[category(critical)]
     SignatureMissing,
-
-    #[error("unsupported certificate algorithm")]
-    #[category(critical)]
-    UnsupportedCertificateAlgorithm,
 }
 
 #[cfg(test)]
