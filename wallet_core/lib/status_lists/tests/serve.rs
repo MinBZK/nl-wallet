@@ -120,7 +120,10 @@ async fn test_router_media_type(
 #[case::any(Some("*/*"), StatusCode::OK)]
 #[case::jwt(Some("application/statuslist+jwt"), StatusCode::OK)]
 #[case::cwt(Some("application/statuslist+cwt"), StatusCode::NOT_FOUND)]
-#[case::cwt_preferred(Some("application/statuslist+cwt, application/statuslist+jwt"), StatusCode::OK)]
+#[case::cwt_preferred(
+    Some("application/statuslist+cwt, application/statuslist+jwt"),
+    StatusCode::NOT_FOUND
+)]
 #[case::text(Some("text/plain"), StatusCode::NOT_ACCEPTABLE)]
 async fn test_router_media_type_only_jwt_published(
     #[case] accept: Option<&str>,

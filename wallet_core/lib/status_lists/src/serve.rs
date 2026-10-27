@@ -20,17 +20,14 @@ use axum::response::Response;
 use axum::routing::get;
 use etag::EntityTag;
 use http::Method;
-use http_utils::mediatype::ALL_MEDIA_TYPE;
 use http_utils::mediatype::MediaType;
-use itertools::Itertools;
-use mediatype::MediaTypeList;
+use http_utils::mediatype::find_content_type_from_accept;
 use mediatype::Name;
 use strum::EnumIter;
 use strum::IntoEnumIterator;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::ExternalId;
 use crate::config::StatusListConfig;
@@ -51,7 +48,7 @@ const STATUSLIST_CWT_MEDIA_TYPE: MediaType = MediaType::new(
 const STATUSLIST_CWT_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("application/statuslist+cwt");
 
 /// The formats in which a Status List Token can be served, if no preference is given the enum variant order decides.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
 enum StatusListFormat {
     Jwt,
     Cwt,
@@ -209,8 +206,10 @@ async fn serve_status_list(
     Path(id): Path<ExternalId>,
     State(state): State<RouterState>,
 ) -> Result<Response, StatusCode> {
-    let formats = requested_formats(headers.get(header::ACCEPT))?;
-    let (format, bytes) = read_preferred_available(&state.publish_dir, &id, &formats).await?;
+    let format = requested_format(headers.get(header::ACCEPT))?;
+
+    let path = format.path(&state.publish_dir, &id);
+    let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
 
     let etag = EntityTag::from_data(&bytes);
     if let Some(request_etag) = headers.get(header::IF_NONE_MATCH)
@@ -236,10 +235,7 @@ pub fn http_response_for_status_list_body(
     ttl: Option<Duration>,
 ) -> Result<Response, StatusCode> {
     // The status list body is only available as JWT
-    if !requested_formats(request_headers.get(header::ACCEPT))?
-        .as_ref()
-        .contains(&StatusListFormat::Jwt)
-    {
+    if requested_format(request_headers.get(header::ACCEPT))? != StatusListFormat::Jwt {
         return Err(StatusCode::NOT_ACCEPTABLE);
     }
 
@@ -259,54 +255,20 @@ fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, Stat
     })
 }
 
-/// Translate the accept header into the formats to serve, in order of preference and without duplicates. Without an
-/// accept header, or for `*/*`, JWT is preferred over CWT. Returns `406 Not Acceptable` if no format is acceptable.
-///
-/// Note: quality values are ignored.
-fn requested_formats(header: Option<&HeaderValue>) -> Result<VecNonEmpty<StatusListFormat>, StatusCode> {
-    let formats = match header {
-        None => StatusListFormat::iter().collect_vec(),
-        Some(header) => MediaTypeList::new(ascii_header(header, "accept")?)
-            .map(|media_type| {
-                let media_type = MediaType::from(media_type.map_err(|err| {
-                    tracing::info!("invalid accept header: {err}");
-                    StatusCode::BAD_REQUEST
-                })?);
-
-                Ok(StatusListFormat::iter()
-                    .filter(move |format| media_type == ALL_MEDIA_TYPE || media_type == format.media_type()))
-            })
-            .flatten_ok()
-            .unique()
-            .collect::<Result<Vec<_>, StatusCode>>()?,
-    };
-
-    formats.try_into().map_err(|_| StatusCode::NOT_ACCEPTABLE)
-}
-
-/// Read the status list in the most preferred of the given formats, which are in order of preference, that is
-/// available in the publish dir. Returns `404 Not Found` if none of them is available.
-async fn read_preferred_available(
-    publish_dir: &PublishDir,
-    id: &ExternalId,
-    formats: &VecNonEmpty<StatusListFormat>,
-) -> Result<(StatusListFormat, Vec<u8>), StatusCode> {
-    for format in formats {
-        let path = format.path(publish_dir, id);
-        if let Some(bytes) = read_if_exists(&path).await.map_err(|err| map_io_error(&path, &err))? {
-            return Ok((*format, bytes));
+/// Determine the format to serve from the accept header. Without an accept header, or for `*/*`, JWT is served.
+/// Returns `406 Not Acceptable` if no format is acceptable.
+fn requested_format(header: Option<&HeaderValue>) -> Result<StatusListFormat, StatusCode> {
+    match find_content_type_from_accept(
+        header,
+        |media_type| StatusListFormat::iter().find(|format| format.media_type() == media_type),
+        StatusListFormat::Jwt,
+    ) {
+        Ok(Some(format)) => Ok(format),
+        Ok(None) => Err(StatusCode::NOT_ACCEPTABLE),
+        Err(err) => {
+            tracing::info!("invalid accept header: {err}");
+            Err(StatusCode::BAD_REQUEST)
         }
-    }
-
-    Err(StatusCode::NOT_FOUND)
-}
-
-/// Read the file at `path`, returning `None` if it does not exist.
-async fn read_if_exists(path: &std::path::Path) -> std::io::Result<Option<Vec<u8>>> {
-    match tokio::fs::read(path).await {
-        Ok(bytes) => Ok(Some(bytes)),
-        Err(err) if err.kind() == ErrorKind::NotFound => Ok(None),
-        Err(err) => Err(err),
     }
 }
 
@@ -332,7 +294,6 @@ mod tests {
     use std::assert_matches;
 
     use rstest::rstest;
-    use utils::vec_nonempty;
 
     use super::*;
 
@@ -419,31 +380,31 @@ mod tests {
     }
 
     #[test]
-    fn requested_formats_invalid_type() {
+    fn requested_format_invalid_type() {
         let header = HeaderValue::from_str("application/statuslist/jwt").unwrap();
-        assert_matches!(requested_formats(Some(&header)), Err(StatusCode::BAD_REQUEST));
+        assert_matches!(requested_format(Some(&header)), Err(StatusCode::BAD_REQUEST));
     }
 
     #[rstest]
-    #[case::no_accept(None, Ok(vec_nonempty![StatusListFormat::Jwt, StatusListFormat::Cwt]))]
-    #[case::any(Some("*/*"), Ok(vec_nonempty![StatusListFormat::Jwt, StatusListFormat::Cwt]))]
-    #[case::jwt(Some("application/statuslist+jwt"), Ok(vec_nonempty![StatusListFormat::Jwt]))]
-    #[case::cwt(Some("application/statuslist+cwt"), Ok(vec_nonempty![StatusListFormat::Cwt]))]
+    #[case::no_accept(None, Ok(StatusListFormat::Jwt))]
+    #[case::any(Some("*/*"), Ok(StatusListFormat::Jwt))]
+    #[case::jwt(Some("application/statuslist+jwt"), Ok(StatusListFormat::Jwt))]
+    #[case::cwt(Some("application/statuslist+cwt"), Ok(StatusListFormat::Cwt))]
     #[case::cwt_preferred(
         Some("application/statuslist+cwt, application/statuslist+jwt"),
-        Ok(vec_nonempty![StatusListFormat::Cwt, StatusListFormat::Jwt])
+        Ok(StatusListFormat::Cwt)
     )]
-    #[case::cwt_then_any(
-        Some("application/statuslist+cwt, */*"),
-        Ok(vec_nonempty![StatusListFormat::Cwt, StatusListFormat::Jwt])
+    #[case::jwt_preferred(
+        Some("application/statuslist+jwt, application/statuslist+cwt"),
+        Ok(StatusListFormat::Jwt)
     )]
     #[case::text(Some("text/plain"), Err(StatusCode::NOT_ACCEPTABLE))]
-    fn requested_formats_from_accept(
+    fn requested_format_from_accept(
         #[case] accept: Option<&str>,
-        #[case] expected: Result<VecNonEmpty<StatusListFormat>, StatusCode>,
+        #[case] expected: Result<StatusListFormat, StatusCode>,
     ) {
         let header = accept.map(|accept| HeaderValue::from_str(accept).unwrap());
-        assert_eq!(requested_formats(header.as_ref()), expected);
+        assert_eq!(requested_format(header.as_ref()), expected);
     }
 
     #[test]
