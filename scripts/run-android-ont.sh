@@ -13,5 +13,6 @@ export PIPELINE_DESCRIPTION
 export APPLICATION_ID
 export APP_NAME
 export UL_HOSTNAME
+export ALLOW_RELEASE_LOGS
 
 exec "${SCRIPTS_DIR}/run-android-env.sh" "$@"

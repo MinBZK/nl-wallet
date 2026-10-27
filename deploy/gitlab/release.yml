@@ -1,5 +1,6 @@
 .git-jira-check-base:
   extends: .env-k8s
+  stage: qa
   allow_failure: true
   before_script:
     - JIRA_PAT=$(kubectl get secret nl-wallet-git-jira-check-tokens -o jsonpath='{.data.JIRA_TOKEN}' | base64 --decode)
@@ -15,12 +16,14 @@
 nightly-git-jira-check:
   extends: .git-jira-check-base
   rules: !reference [ .on-schedule-scan, rules ]
+  needs: []
   script:
     - python3 deploy/qa-util/git_jira_sync.py sync-nightly
 
 verify-release-check:
   extends: .git-jira-check-base
   rules: !reference [.default-branch-manual, rules]
+  needs: []
   script:
     - python3 deploy/qa-util/git_jira_sync.py verify-release
   artifacts:
@@ -30,6 +33,7 @@ verify-release-check:
       - mrs_missing_jira.log
 
 create-release-artifacts:
+  stage: deploy
   rules: !reference [.default-branch-manual, rules]
   needs:
     - job: build-issuance-server-binary

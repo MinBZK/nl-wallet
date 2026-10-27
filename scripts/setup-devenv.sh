@@ -370,6 +370,11 @@ fi
 WPTL_CA_CRT=$(< "${TARGET_DIR}/ca.wptl.crt.der" ${BASE64})
 export WPTL_CA_CRT
 
+# Location of the WPTL CA certificate in the authority information access extension of the WIA and Key Attestation
+# certificates. This is a placeholder: the static server doesn't serve the CA certificate (yet).
+WPTL_CA_ISSUER="http://${SERVICES_HOST}:${STATIC_SERVER_CRL_PORT}/wptl.crt.der"
+export WPTL_CA_ISSUER
+
 
 ########################################################################
 # Configure verification_server, issuance_server, pid_issuer and demo
@@ -402,13 +407,17 @@ generate_wia_signing_key_pair
 WP_WIA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wia_signing.crt.der" ${BASE64})
 export WP_WIA_CERTIFICATE
 
+generate_wia_tsl_key_pair
+WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
+export WIA_TSL_CRT
+
 generate_key_attestation_signing_key_pair
 WP_KA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.der" ${BASE64})
 export WP_KA_CERTIFICATE
 
-generate_wia_tsl_key_pair
-WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
-export WIA_TSL_CRT
+generate_key_storage_tsl_key_pair
+KEY_STORAGE_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/key_storage_tsl.crt.der" ${BASE64})
+export KEY_STORAGE_TSL_CRT
 
 # Generate pid issuer recovery code key
 RECOVERY_CODE_SECRET_KEY=$(openssl rand 32 | xxd -p -c64)
@@ -483,6 +492,16 @@ export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 generate_demo_relying_party_disclosure_registration_certificate job_finder 4
 DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.wrprc")
 export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER
+
+# Generate relying party key and cert.
+generate_demo_relying_party_key_pair insurance
+DEMO_RELYING_PARTY_KEY_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/insurance.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_INSURANCE
+DEMO_RELYING_PARTY_CRT_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/insurance.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_INSURANCE
+generate_demo_relying_party_disclosure_registration_certificate insurance 12
+DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/insurance.wrprc")
+export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_INSURANCE
 
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
 ISSUER_CA_AKI=$(openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)
@@ -687,12 +706,12 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wrprc"
 
-# All twelve demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
+# All thirteen demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca status-list \
     --tsl-key-file "${TARGET_DIR}/wrprc_tsl.key.pem" \
     --tsl-crt-file "${TARGET_DIR}/wrprc_tsl.crt.pem" \
     --uri "${WRPRC_STATUS_LIST_URI}" \
-    --status valid valid valid valid valid valid valid valid valid valid valid valid \
+    --status valid valid valid valid valid valid valid valid valid valid valid valid valid \
     --ttl-seconds 3600 \
     > "${WALLET_CORE_DIR}/target/status-lists/wrprc/1.jwt"
 

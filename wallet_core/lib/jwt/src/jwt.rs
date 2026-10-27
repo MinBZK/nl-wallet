@@ -14,9 +14,7 @@ use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use crypto::x509::crl::CertificateCrlVerificationError;
@@ -145,6 +143,10 @@ impl<T, H> From<VerifiedJwt<T, H>> for UnverifiedJwt<T, H> {
 impl<T, H> UnverifiedJwt<T, H> {
     pub fn serialization(&self) -> &str {
         &self.serialization
+    }
+
+    pub fn into_serialization(self) -> String {
+        self.serialization
     }
 
     pub fn signed_slice(&self) -> &str {
@@ -280,7 +282,23 @@ where
 
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header.
+    ///
+    /// As mandated by HAIP 1.0, the `x5c` JWT header must not contain the trust anchor.
     pub fn parse_and_verify_against_trust_anchors(
+        &self,
+        trust_anchors: &TrustAnchors,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+        validation: JwtValidation,
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        let certificates = self.extract_x5c_certificates_without_trust_anchor(trust_anchors)?;
+
+        self.parse_and_verify_with_x5c_certificates(&certificates, trust_anchors, time, certificate_usage, validation)
+    }
+
+    /// Like [`Self::parse_and_verify_against_trust_anchors`], but allows the trust anchor being present in the `x5c`
+    /// JWT header. HAIP forbids this, so only use this for profiles unrelated to HAIP, such as JAdES B-B.
+    pub(crate) fn parse_and_verify_allow_trust_anchor_in_x5c(
         &self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
@@ -292,12 +310,38 @@ where
             .map_err(JwtVerifyError::ParseError)
             .map_err(JwtX5cVerifyError::JwtVerify)?;
 
-        // Verify the certificate chain against the trust anchors.
-        let leaf_cert = certificates.first();
+        self.parse_and_verify_with_x5c_certificates(&certificates, trust_anchors, time, certificate_usage, validation)
+    }
 
-        let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
+    /// Extract the certificates from the `x5c` JWT header, rejecting them if they contain the trust anchor, as
+    /// mandated by HAIP 1.0.
+    fn extract_x5c_certificates_without_trust_anchor(
+        &self,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<VecNonEmpty<BorrowingCertificate>, JwtX5cVerifyError> {
+        let certificates = self
+            .extract_x5c_certificates()
+            .map_err(JwtVerifyError::ParseError)
+            .map_err(JwtX5cVerifyError::JwtVerify)?;
+
+        BorrowingCertificate::ensure_trust_anchor_not_in_chain(&certificates, trust_anchors)
+            .map_err(JwtX5cVerifyError::CertificateValidation)?;
+
+        Ok(certificates)
+    }
+
+    fn parse_and_verify_with_x5c_certificates(
+        &self,
+        certificates: &VecNonEmpty<BorrowingCertificate>,
+        trust_anchors: &TrustAnchors,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateUsage>,
+        validation: JwtValidation,
+    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
+        // Verify the certificate chain against the trust anchors.
+        let (leaf_cert, intermediate_certs) = certificates.split_first();
         leaf_cert
-            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
+            .verify(certificate_usage, intermediate_certs, time, trust_anchors)
             .map_err(JwtX5cVerifyError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
@@ -305,6 +349,8 @@ where
     }
 
     /// Verify the X.509 certificate chain, including fail-closed CRL checking, and then verify the JWS.
+    ///
+    /// As mandated by HAIP 1.0, the `x5c` JWT header must not contain the trust anchor.
     pub async fn parse_and_verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
@@ -313,10 +359,7 @@ where
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let certificates = self
-            .extract_x5c_certificates()
-            .map_err(JwtVerifyError::ParseError)
-            .map_err(JwtX5cVerifyError::JwtVerify)?;
+        let certificates = self.extract_x5c_certificates_without_trust_anchor(trust_anchors)?;
 
         crl_verifier
             .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
@@ -534,7 +577,7 @@ impl<T, H> SignedJwt<T, H> {
 }
 
 impl<T: Serialize + JwtTyp, H: Serialize + Into<Header>> SignedJwt<T, H> {
-    async fn sign_with_header(
+    pub(crate) async fn sign_with_header(
         header: H,
         payload: &T,
         privkey: &impl EcdsaKey,
@@ -622,17 +665,15 @@ where
 }
 
 impl<T: Serialize + JwtTyp> SignedJwt<T> {
-    /// Have the WSCD sign multiple [`UnverifiedJwt`]s at once, producing a PoA if more than one unique key is used.
-    pub async fn sign_multiple<'a, W, K, P>(
+    /// Have the WSCD sign multiple [`UnverifiedJwt`]s at once.
+    pub async fn sign_multiple<'a, W, K>(
         payloads_and_keys: impl IntoNonEmptyIterator<Item = (&'a T, &'a K)>,
         wscd: &W,
-        poa_input: P::Input,
-    ) -> Result<(VecNonEmpty<SignedJwt<T>>, Option<P>), JwtSignError>
+    ) -> Result<VecNonEmpty<SignedJwt<T>>, JwtSignError>
     where
         T: Serialize + 'a,
-        W: DisclosureWscd<Key = K, Poa = P>,
+        W: DisclosureWscd<Key = K>,
         K: CredentialEcdsaKey + 'a,
-        P: WscdPoa,
     {
         let header = HeaderWithTyp::new::<T>();
         let encoded_header =
@@ -652,10 +693,9 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
             })
             .process_results::<_, _, JwtSignError, (Vec<_>, _)>(|iter| iter.unzip())?;
 
-        // Have the WSCD sign the combination of header and payload, also
-        // receiving a PoA if more than one unique key was used for signing.
-        let DisclosureResult { signatures, poa } = wscd
-            .sign(messages_and_keys, poa_input)
+        // Have the WSCD sign the combination of header and payload.
+        let signatures = wscd
+            .sign(messages_and_keys)
             .await
             .map_err(|err| JwtSignError::Signing(Box::new(err)))?;
 
@@ -687,7 +727,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
             // of the returned signatures.
             .unwrap_or_else(|_| unreachable!());
 
-        Ok((jwts, poa))
+        Ok(jwts)
     }
 }
 
@@ -1331,8 +1371,8 @@ mod tests {
     use ::axum::response::IntoResponse;
     use chrono::TimeDelta;
     use crypto::PublicKey;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateVerifyError;
@@ -1631,7 +1671,7 @@ mod tests {
     fn test_sign_multiple_and_verify() {
         let key1 = MockRemoteEcdsaKey::new_random("key1".to_string());
         let key2 = MockRemoteEcdsaKey::new_random("key2".to_string());
-        let wscd = MockRemoteWscd::new(vec![key1.clone(), key2.clone()]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![key1.clone(), key2.clone()]);
 
         let message1 = ToyMessage {
             number: 1,
@@ -1644,10 +1684,9 @@ mod tests {
         let mut payloads_and_keys = vec_nonempty![(message1.clone(), &key1)];
 
         // Make a single `SignedJWt`.
-        let (signed_jwts, poa) = SignedJwt::sign_multiple(
+        let signed_jwts = SignedJwt::sign_multiple(
             payloads_and_keys.nonempty_iter().map(|(payload, key)| (payload, *key)),
             &wscd,
-            (),
         )
         .now_or_never()
         .unwrap()
@@ -1667,16 +1706,12 @@ mod tests {
 
         assert_eq!(parsed, message1);
 
-        // Check that no PoA was produced.
-        assert!(poa.is_none());
-
         // Make two `UnverifiedJwt`s and two `VerifiedJwt`s.
         payloads_and_keys.push((message2.clone(), &key2));
 
-        let (signed_jwts, poa) = SignedJwt::sign_multiple(
+        let signed_jwts = SignedJwt::sign_multiple(
             payloads_and_keys.nonempty_iter().map(|(payload, key)| (payload, *key)),
             &wscd,
-            (),
         )
         .now_or_never()
         .unwrap()
@@ -1696,9 +1731,6 @@ mod tests {
 
             assert_eq!(parsed, *expected_message);
         }
-
-        // Check that a PoA was produced.
-        assert!(poa.is_some());
     }
 
     #[tokio::test]
@@ -2119,6 +2151,41 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn test_rejects_jwt_with_trust_anchor_in_x5c_with_crl() {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
+        let crl_verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+
+        let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
+
+        // Put the ca_cert in both the certificate list and the trust anchors.
+        let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
+        let trust_anchors = ca.to_trust_anchors();
+
+        let payload = json!({"hello": "world"});
+        let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
+            .await
+            .unwrap()
+            .into_unverified();
+
+        let err = jwt
+            .parse_and_verify_against_trust_anchors_with_crl(
+                &trust_anchors,
+                &crl_verifier,
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::TrustAnchorInChain)
+        );
+    }
+
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     enum ToyEnum {
         Variant,
@@ -2213,9 +2280,12 @@ mod tests {
     #[rstest]
     #[case::ecdsa_p256(PrivateKey::P256(p256::ecdsa::SigningKey::generate()), Algorithm::ES256)]
     #[case::ecdsa_p384(PrivateKey::P384(p384::ecdsa::SigningKey::generate()), Algorithm::ES384)]
-    #[case::rsa2048(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa3072(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa4096(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa2048_rs256(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa3072_rs384(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS384)]
+    #[case::rsa4096_rs512(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS512)]
+    #[case::rsa2048_ps256(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::PS256)]
+    #[case::rsa3072_ps384(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::PS384)]
+    #[case::rsa4096_ps512(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::PS512)]
     fn test_sign_and_verify_with_algorithms(#[case] private_key: PrivateKey, #[case] algorithm: Algorithm) {
         let payload = ToyMessage::default();
 

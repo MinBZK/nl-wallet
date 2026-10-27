@@ -23,20 +23,17 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
     privacyPolicyUri: input.privacyPolicyUrl,
   );
 
-  PersonType? _mapPersonType(core.PersonType? personType) => switch (personType) {
+  PersonType _mapPersonType(core.PersonType personType) => switch (personType) {
     core.PersonType.LegalPerson => PersonType.legalPerson,
     core.PersonType.NaturalPerson => PersonType.naturalPerson,
-    null => null,
   };
 
   /// The registration certificate allows a bare email address as support_uri, which can't be launched as is.
-  /// Anything else without a scheme is dropped rather than trusting the core's validation to stay in sync.
-  String? _mapSupportUri(String? supportUri) {
-    if (supportUri == null) return null;
+  String _mapSupportUri(String supportUri) {
     final trimmed = supportUri.trim();
     if (Uri.tryParse(trimmed)?.hasScheme ?? false) return trimmed;
     if (trimmed.contains('@')) return Uri(scheme: 'mailto', path: trimmed).toString();
-    return null;
+    throw const FormatException('Support URI must be a URI or email address');
   }
 
   LocalizedText? _mapDescription(List<ServiceDescription> descriptions) {

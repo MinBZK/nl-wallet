@@ -124,7 +124,7 @@ You need a CA certificate and key. By default, when you're running locally, the
 `setup-devenv.sh` script will have created these for you. You can also opt to
 create your own custom self-signed CA certificate and key, which is documented
 in the [Create a CA][26] document, and which is required if you need to
-participate in the NL Wallet community platform.
+participate in the NL Wallet Community.
 </div>
 
 <div class="admonition caution">
@@ -196,14 +196,14 @@ generated CA certificate is automatically added to the trust anchors within the
 configuration files of `pid_issuer`, `demo_issuer`, `verification_server`,
 `issuance_server`, `demo_relying_party` and the NL Wallet app config.
 
-When you [create your own CA][26], you need to make sure the public key of your
+When you [create your own CA][26], you need to make sure the certificate of your
 CA is in the relevant trust anchor configuration settings. When you are a
-member of the [NL Wallet community][11], and so using NL Wallet managed backend
+member of the [NL Wallet Community][11], and so using NL Wallet managed backend
 services and mobile apps, this is done for you (i.e., you just need to sign
 your WRPAC certificate with your CA, which the `wallet_ca` utility invocation
-above did for you, and during the NL Wallet community [onboarding][11] process
-you shared your CA certificate with the operations team who ensure your CA is
-in the various trust anchor lists).
+above did for you, and during the NL Wallet Community [onboarding][11] process
+you [shared your CA certificate][32], after which it was added to the various
+trust anchor lists).
 
 When you run locally, but with a manually created CA, you need to add the CA
 public certificate to your services and wallet app config yourself. When we
@@ -536,10 +536,8 @@ On Google Android this is configured using [app links][25].
 #### Access restriction settings (optional)
 
 There are various settings related to access restriction available. You can set
-an `api_key` to authenticate access to the requester API, you can configure
-cross-origin-resource-sharing (CORS) settings using the `allow_origins` option,
-and you can restrict which wallets are allowed to talk to you by configuring
-`wallet_client_ids`.
+an `api_key` to authenticate access to the requester API, and you can configure
+cross-origin-resource-sharing (CORS) settings using the `allow_origins` option.
 
 <div class="admonition note">
 <p class="title">Not mandatory, but nonetheless wise to configure</p>
@@ -551,25 +549,6 @@ section for more information about configuring listeners.
 
 In the following sections, we document each of these access restriction
 settings.
-
-##### Configuring allowed client IDs
-
-You can restrict which NL Wallet apps are accepted by the `verification_server`
-by configuring a `wallet_client_ids` array. The entries of this array would
-contain the `client_id` value of a wallet implementation. This allows you to
-allow-list groups of wallet apps based on their `client_id` value. For example,
-for allowing apps that have `https://wallet.edi.rijksoverheid.nl` configured as
-`client_id`:
-
-```shell
-cd nl-wallet
-export VS_WALLET_CLIENT_IDS=("https://wallet.edi.rijksoverheid.nl")
-export TARGET_DIR=target/vs-config && mkdir -p "$TARGET_DIR/parts"
-cat <<EOF > "$TARGET_DIR/parts/06-wallet-client-ids.toml"
-wallet_client_ids = [$(printf '"%s",' "${VS_WALLET_CLIENT_IDS[@]}" | sed 's/,$//')]
-EOF
-unset VS_WALLET_CLIENT_IDS
-```
 
 ##### Configuring cross-origin resource sharing
 
@@ -1022,3 +1001,4 @@ app for identification or verification of attributes with your application:
 [29]: ../development/openapi-specifications
 [30]: create-an-issuer
 [31]: ../development/authorized-attributes
+[32]: ../community/create-a-ca.md#sharing-your-ca-certificate

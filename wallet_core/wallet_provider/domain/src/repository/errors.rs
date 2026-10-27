@@ -23,6 +23,9 @@ pub enum PersistenceError {
     #[error("error converting to SemVer: {0}")]
     SemVerConversion(#[from] semver::Error),
 
+    #[error("invalid stored enum value: {0}")]
+    EnumConversion(#[source] strum::ParseError),
+
     #[error("no rows were updated")]
     NoRowsUpdated,
 }

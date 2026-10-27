@@ -36,9 +36,6 @@
             reference = "container:TestPlans/Simulator.xctestplan"
             default = "YES">
          </TestPlanReference>
-         <TestPlanReference
-            reference = "container:TestPlans/BrowserStackRealDevice.xctestplan">
-         </TestPlanReference>
       </TestPlans>
    </TestAction>
    <LaunchAction

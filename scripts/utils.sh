@@ -340,7 +340,7 @@ function generate_pid_issuer_hsm_key_pair {
 
     # Generate a certificate for the public key
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert-pub --type issuer \
+        --bin wallet_ca cert-pub --type pid-issuer \
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
@@ -400,6 +400,7 @@ function generate_wia_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --ca-issuer "${WPTL_CA_ISSUER}" \
         --common-name "${access_certificates[(wptl,name)]}" \
         --organization-name "${access_certificates[(wptl,legal_name)]}" \
         --organization-id "${access_certificates[(wptl,oid)]}" \
@@ -411,30 +412,7 @@ function generate_wia_signing_key_pair {
         -outform DER -out "${TARGET_DIR}/wallet_provider/wia_signing.crt.der"
 }
 
-# Generate an EC key pair for key attestations
-function generate_key_attestation_signing_key_pair {
-    echo -e "${INFO}Generating Key Attestation key pair in HSM${NC}"
-
-    generate_hsm_key_pair key_attestation_signing_key wallet_provider/key_attestation_signing_key.pub.pem
-
-    # Generate a certificate for the public key
-    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert-pub --type key-attestation \
-        --public-key-file "${TARGET_DIR}/wallet_provider/key_attestation_signing_key.pub.pem" \
-        --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
-        --common-name "${access_certificates[(wptl,name)]}" \
-        --organization-name "${access_certificates[(wptl,legal_name)]}" \
-        --organization-id "${access_certificates[(wptl,oid)]}" \
-        --file-prefix "${TARGET_DIR}/wallet_provider/key_attestation_signing" \
-        --force
-
-    # Convert the PEM certificate to DER format
-    openssl x509 -in "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.der"
-}
-
-# Generate an EC key pair for the wallet_provider
+# Generate an EC key pair for the WIA Token Status List
 function generate_wia_tsl_key_pair {
     echo -e "${INFO}Generating Wallet Provider WIA TSL key pair${NC}"
 
@@ -455,6 +433,53 @@ function generate_wia_tsl_key_pair {
     # Convert the PEM certificate to DER format
     openssl x509 -in "${TARGET_DIR}/wallet_provider/wia_tsl.crt.pem" \
         -outform DER -out "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der"
+}
+
+# Generate an EC key pair for Key Attestations
+function generate_key_attestation_signing_key_pair {
+    echo -e "${INFO}Generating Key Attestation key pair in HSM${NC}"
+
+    generate_hsm_key_pair key_attestation_signing_key wallet_provider/key_attestation_signing_key.pub.pem
+
+    # Generate a certificate for the public key
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca cert-pub --type key-attestation \
+        --public-key-file "${TARGET_DIR}/wallet_provider/key_attestation_signing_key.pub.pem" \
+        --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --ca-issuer "${WPTL_CA_ISSUER}" \
+        --common-name "${access_certificates[(wptl,name)]}" \
+        --organization-name "${access_certificates[(wptl,legal_name)]}" \
+        --organization-id "${access_certificates[(wptl,oid)]}" \
+        --file-prefix "${TARGET_DIR}/wallet_provider/key_attestation_signing" \
+        --force
+
+    # Convert the PEM certificate to DER format
+    openssl x509 -in "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/key_attestation_signing.crt.der"
+}
+
+# Generate an EC key pair for the Key Storage Token Status List for Key Attestations
+function generate_key_storage_tsl_key_pair {
+    echo -e "${INFO}Generating Wallet Provider Key Storage TSL key pair${NC}"
+
+    generate_hsm_key_pair key_storage_tsl_key wallet_provider/key_storage_tsl.pub.pem
+
+    # Generate a certificate for the public key
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca cert-pub --type tsl \
+        --public-key-file "${TARGET_DIR}/wallet_provider/key_storage_tsl.pub.pem" \
+        --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --common-name "${access_certificates[(wptl,name)]}" \
+        --organization-name "${access_certificates[(wptl,legal_name)]}" \
+        --organization-id "${access_certificates[(wptl,oid)]}" \
+        --file-prefix "${TARGET_DIR}/wallet_provider/key_storage_tsl" \
+        --force
+
+    # Convert the PEM certificate to DER format
+    openssl x509 -in "${TARGET_DIR}/wallet_provider/key_storage_tsl.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/key_storage_tsl.crt.der"
 }
 
 # Generate EC key pairs for the demo_issuer

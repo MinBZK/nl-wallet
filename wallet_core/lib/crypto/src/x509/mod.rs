@@ -2,12 +2,9 @@ use std::convert::Into;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter::Iterator;
-use std::iter::once;
 use std::sync::Arc;
 use std::time::Duration;
 
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
@@ -39,8 +36,6 @@ use webpki::ring::RSA_PSS_2048_8192_SHA256_LEGACY_KEY;
 use webpki::ring::RSA_PSS_2048_8192_SHA384_LEGACY_KEY;
 use webpki::ring::RSA_PSS_2048_8192_SHA512_LEGACY_KEY;
 use x509_parser::asn1_rs::Oid;
-use x509_parser::asn1_rs::SerializeError;
-use x509_parser::asn1_rs::ToDer;
 use x509_parser::nom::AsBytes;
 use x509_parser::oid_registry::OID_EC_P256;
 use x509_parser::oid_registry::OID_NIST_EC_P384;
@@ -62,15 +57,18 @@ pub mod crl;
 mod dn;
 mod key_identifier;
 #[cfg(any(test, feature = "generate"))]
+mod profile;
+#[cfg(any(test, feature = "generate"))]
 mod san;
 mod usage;
 
 #[cfg(any(test, feature = "generate"))]
 pub use config::CertificateConfiguration;
-pub use dn::CanonicalDistinguishedName;
 pub use dn::DistinguishedName;
 pub use dn::DistinguishedNameError;
 pub use key_identifier::KeyIdentifier;
+#[cfg(any(test, feature = "generate"))]
+pub use profile::CertificateProfile;
 #[cfg(any(test, feature = "generate"))]
 pub use san::SubjectAltNameUri;
 pub use usage::CertificateUsage;
@@ -85,6 +83,10 @@ pub enum CertificateVerifyError {
     #[error("certificate chain must not contain the trust anchor")]
     #[category(critical)]
     TrustAnchorInChain,
+
+    #[error("end-entity certificate must not be a trust anchor")]
+    #[category(critical)]
+    EndEntityIsTrustAnchor,
 }
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
@@ -132,13 +134,6 @@ pub enum CertificateParseError {
 pub enum CertificateNameError {
     #[error("X509 coding error: {0}")]
     X509Error(#[source] X509Error),
-}
-
-#[derive(thiserror::Error, Debug, ErrorCategory)]
-#[category(pd)]
-pub enum CanocalizationError {
-    #[error("could not serialize to DER: {0}")]
-    DerSerialization(#[source] SerializeError),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
@@ -216,10 +211,23 @@ impl BorrowingCertificate {
         Ok(BorrowingCertificate(yoke))
     }
 
+    /// Verifies the HAIP 1.0 requirement that a certificate chain does not contain any of the trust anchors.
+    pub fn ensure_trust_anchor_not_in_chain<'a>(
+        chain: impl IntoIterator<Item = &'a BorrowingCertificate>,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<(), CertificateVerifyError> {
+        if chain.into_iter().any(|cert| trust_anchors.contains(cert)) {
+            return Err(CertificateVerifyError::TrustAnchorInChain);
+        }
+
+        Ok(())
+    }
+
     /// Verify the certificate against the specified trust anchors.
     ///
-    /// Additionally, this method verifies that the trust anchors are not contained in the intermediate
-    /// certificates as mandated by HAIP 1.0.
+    /// The certificate itself must not be a trust anchor, as direct trust is not supported. Any trust anchors present
+    /// in `intermediate_certs` are ignored. Profiles that forbid the trust anchor in the certificate chain, such as
+    /// HAIP 1.0, should check for this before calling this method.
     pub fn verify(
         &self,
         usage: Option<CertificateUsage>,
@@ -249,15 +257,15 @@ impl BorrowingCertificate {
         trust_anchors: &TrustAnchors,
         crls: Option<&[&CertRevocationList<'_>]>,
     ) -> Result<(), CertificateVerifyError> {
-        let chain = once(self).chain(intermediate_certs).collect_vec();
-
-        // HAIP 1.0 requires that the x5c header does not contain the trust anchor.
-        if chain.iter().any(|cert| trust_anchors.contains(cert)) {
-            return Err(CertificateVerifyError::TrustAnchorInChain);
+        // Do not rely on webpki for this, as it accepts a self-signed end-entity certificate that is a trust anchor.
+        if trust_anchors.contains(self) {
+            return Err(CertificateVerifyError::EndEntityIsTrustAnchor);
         }
 
+        // Do not rely on webpki to handle trust anchors that are also passed as intermediates.
         let intermediate_certs = intermediate_certs
             .iter()
+            .filter(|cert| !trust_anchors.contains(cert))
             .map(BorrowingCertificate::as_der)
             .cloned()
             .collect_vec();
@@ -358,29 +366,6 @@ impl BorrowingCertificate {
     pub fn to_distinguished_name(&self) -> Result<DistinguishedName, DistinguishedNameError> {
         let subject = &self.0.get().x509_cert.subject;
         subject.try_into()
-    }
-
-    // Returns a human-readable string representation of the distinguished name attributes with the raw OID values and
-    // base64-encoded DER values. Can be used for persistence and comparison, since this representation is independent
-    // of an OID registry.
-    pub fn to_canonical_distinguished_name(&self) -> Result<CanonicalDistinguishedName, CanocalizationError> {
-        let encoded_attrs: Vec<_> = self
-            .x509_certificate()
-            .subject()
-            .iter_attributes()
-            .map(|attr| {
-                let r#type = attr.attr_type().to_id_string();
-                let value = BASE64_STANDARD_NO_PAD.encode(
-                    &attr
-                        .attr_value()
-                        .to_der_vec()
-                        .map_err(CanocalizationError::DerSerialization)?,
-                );
-                Ok::<_, CanocalizationError>(format!("{}={}", r#type, value))
-            })
-            .try_collect()?;
-
-        Ok(CanonicalDistinguishedName::new(encoded_attrs.join(",")))
     }
 
     /// From the AuthorityKeyIdentifier in the certificate, if present, return the key identifier field:
@@ -487,22 +472,32 @@ mod tests {
     use std::assert_matches;
     use std::slice::from_ref;
 
+    use base64::Engine;
     use base64::prelude::BASE64_STANDARD;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use der::Decode;
+    use der::Sequence;
+    use der::oid::ObjectIdentifier;
+    use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
+    use p256::pkcs8::EncodePublicKey;
     use rcgen::PKCS_ECDSA_P384_SHA384;
     use rcgen::RevocationReason;
     use rcgen::RevokedCertParams;
     use rcgen::SerialNumber;
+    use ring::digest;
     use rstest::rstest;
     use time::OffsetDateTime;
     use time::macros::datetime;
     use utils::generator::TimeGenerator;
     use x509_parser::certificate::X509Certificate;
+    use x509_parser::extensions::GeneralName;
 
     use super::*;
     use crate::server_keys::generate::Ca;
+    use crate::trust_anchor::BorrowingTrustAnchor;
     use crate::trust_anchor::TrustAnchors;
     use crate::x509::crl::parse_crl_der;
 
@@ -608,28 +603,25 @@ mod tests {
             .expect("self signed CA should contain a valid X.509 certificate");
 
         assert_eq!(dn, certificate.to_distinguished_name().unwrap());
-        assert_eq!(
-            "2.5.4.3=DARteWNh,2.5.4.6=EwJOTA",
-            certificate.to_canonical_distinguished_name().unwrap().as_ref()
-        );
 
         let x509_cert = certificate.x509_certificate();
         assert_certificate_validity(x509_cert, now, later);
     }
 
     #[rstest]
-    #[case::issuer(Some(CertificateUsage::Mdl), Some(0b0000_0001))]
-    #[case::status_list(Some(CertificateUsage::StatusListSigning), Some(0b0000_0001))]
-    #[case::wia(Some(CertificateUsage::Wia), Some(0b0000_0001))]
-    #[case::wia(Some(CertificateUsage::KeyAttestation), Some(0b0000_0001))]
+    #[case::pid_issuer(Some(CertificateProfile::PidIssuer), Some(0b0000_0001))]
+    #[case::issuer(Some(CertificateProfile::Issuer), Some(0b0000_0001))]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), Some(0b0000_0001))]
+    #[case::wia(Some(CertificateProfile::Wia), Some(0b0000_0001))]
+    #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some(0b0000_0001))]
     #[case::without_eku(None, None)]
-    fn generated_leaf_key_usage(#[case] usage: Option<CertificateUsage>, #[case] expected_flags: Option<u16>) {
+    fn generated_leaf_key_usage(#[case] profile: Option<CertificateProfile>, #[case] expected_flags: Option<u16>) {
         let ca = Ca::generate_mock();
         let key_pair = ca
             .generate_key_pair(
                 DistinguishedName::create_mock("signer"),
                 CertificateConfiguration {
-                    usage,
+                    profile,
                     ..Default::default()
                 },
             )
@@ -647,6 +639,288 @@ mod tests {
         }
     }
 
+    #[rstest]
+    fn generated_leaf_subject_key_identifier(
+        #[values(
+            Some(CertificateProfile::PidIssuer),
+            Some(CertificateProfile::Issuer),
+            Some(CertificateProfile::StatusListSigning),
+            Some(CertificateProfile::Wia),
+            Some(CertificateProfile::KeyAttestation),
+            None
+        )]
+        profile: Option<CertificateProfile>,
+        #[values(false, true)] from_public_key: bool,
+    ) {
+        let ca = Ca::generate_mock();
+        let distinguished_name = DistinguishedName::create_mock("signer");
+        let configuration = CertificateConfiguration {
+            profile,
+            ..Default::default()
+        };
+        let certificate = if from_public_key {
+            let public_key = SigningKey::generate().verifying_key().to_public_key_der().unwrap();
+            ca.generate_certificate(public_key.as_bytes(), distinguished_name, configuration)
+                .unwrap()
+        } else {
+            ca.generate_key_pair(distinguished_name, configuration)
+                .unwrap()
+                .certificate()
+                .clone()
+        };
+        let x509_cert = certificate.x509_certificate();
+
+        // ISO/IEC 18013-5, Tables B.3 and B.6: a non-critical subject key identifier, which is the SHA-1 hash of the
+        // subjectPublicKey BIT STRING value.
+        let (critical, key_id) = x509_cert
+            .extensions()
+            .iter()
+            .find_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::SubjectKeyIdentifier(key_id) => Some((ext.critical, key_id.0.to_vec())),
+                _ => None,
+            })
+            .expect("leaf must contain a subject key identifier");
+        assert!(!critical);
+        let expected_key_id = digest::digest(
+            &digest::SHA1_FOR_LEGACY_USE_ONLY,
+            &x509_cert.public_key().subject_public_key.data,
+        );
+        assert_eq!(key_id, expected_key_id.as_ref());
+
+        // ISO/IEC 18013-5, Tables B.3 and B.6 only allow further extensions if they are non-critical.
+        assert!(x509_cert.basic_constraints().unwrap().is_none());
+
+        certificate
+            .verify(
+                profile.map(CertificateProfile::usage),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
+            .expect("leaf must verify against the CA");
+    }
+
+    #[test]
+    fn generated_certificate_serial_number() {
+        let ca = Ca::generate_mock();
+        let public_key = SigningKey::generate().verifying_key().to_public_key_der().unwrap();
+        let generate_serial = || {
+            ca.generate_certificate(
+                public_key.as_bytes(),
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration::default(),
+            )
+            .unwrap()
+            .x509_certificate()
+            .raw_serial()
+            .to_vec()
+        };
+
+        let serial = generate_serial();
+
+        // RFC 5280, section 4.1.2.2: a positive serial number of at most 20 octets.
+        assert!(serial.len() <= 20);
+        assert_eq!(serial[0] & 0x80, 0);
+
+        // RFC 5280, section 4.1.2.2: unique per issuer, also when reissuing a certificate for the same public key.
+        assert_ne!(serial, generate_serial());
+    }
+
+    #[rstest]
+    #[case::pid_issuer(
+        Some(CertificateProfile::PidIssuer),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::issuer(
+        Some(CertificateProfile::Issuer),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), None)]
+    #[case::wia(Some(CertificateProfile::Wia), Some("2.25.150580842064059311066423755779195795505"))]
+    #[case::key_attestation(
+        Some(CertificateProfile::KeyAttestation),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::without_eku(None, None)]
+    fn generated_leaf_certificate_policies(
+        #[case] profile: Option<CertificateProfile>,
+        #[case] expected: Option<&str>,
+    ) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    profile,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        let certificate_policies = x509_cert
+            .extensions()
+            .iter()
+            .find_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::CertificatePolicies(policies) => Some((ext.critical, policies)),
+                _ => None,
+            });
+
+        match (certificate_policies, expected) {
+            (Some((critical, policies)), Some(expected)) => {
+                // ETSI EN 319 412-2, GEN-4.3.3-1 and ETSI TS 119 412-6, PID-4.1-02: a non-critical extension.
+                assert!(!critical);
+                let [policy] = policies.as_slice() else {
+                    panic!("expected exactly one certificate policy, got {}", policies.len());
+                };
+                assert_eq!(policy.policy_id.to_id_string(), expected);
+                assert!(policy.policy_qualifiers.is_none());
+            }
+            (None, None) => {}
+            (actual, expected) => panic!("expected certificate policy {expected:?}, got {actual:?}"),
+        }
+
+        key_pair
+            .certificate()
+            .verify(
+                profile.map(CertificateProfile::usage),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
+            .expect("leaf must verify against the CA");
+    }
+
+    /// A URL of more than 127 bytes, of which the DER encoding needs a length in the long form.
+    const LONG_CA_ISSUER: &str = concat!(
+        "http://ca.example.com/",
+        "0123456789012345678901234567890123456789012345678901234567890123456789",
+        "0123456789012345678901234567890123456789012345678901234567890123456789",
+        "/ca.crt.der",
+    );
+
+    #[rstest]
+    #[case::none(&[])]
+    #[case::one(&["http://localhost:3021/wptl.crt.der"])]
+    #[case::multiple(&["http://localhost:3021/wptl.crt.der", "https://ca.example.com/ca.crt.der"])]
+    #[case::long(&[LONG_CA_ISSUER])]
+    fn generated_leaf_authority_info_access(#[case] ca_issuers: &[&str]) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    ca_issuers: ca_issuers.iter().map(|url| url.parse().unwrap()).collect(),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        let authority_info_access = x509_cert
+            .extensions()
+            .iter()
+            .find_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::AuthorityInfoAccess(aia) => Some((ext.critical, aia)),
+                _ => None,
+            });
+
+        if ca_issuers.is_empty() {
+            assert!(authority_info_access.is_none());
+        } else {
+            let (critical, aia) = authority_info_access.expect("leaf must contain authority information access");
+            // RFC 5280, section 4.2.2.1: a non-critical extension.
+            assert!(!critical);
+            let access_descriptions = aia
+                .iter()
+                .map(|access_description| {
+                    let GeneralName::URI(uri) = access_description.access_location else {
+                        panic!(
+                            "expected a URI access location, got {:?}",
+                            access_description.access_location
+                        );
+                    };
+                    (access_description.access_method.to_id_string(), uri)
+                })
+                .collect_vec();
+            let expected = ca_issuers
+                .iter()
+                .map(|ca_issuer| ("1.3.6.1.5.5.7.48.2".to_string(), *ca_issuer))
+                .collect_vec();
+            assert_eq!(access_descriptions, expected);
+        }
+
+        key_pair
+            .certificate()
+            .verify(None, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .expect("leaf must verify against the CA");
+    }
+
+    /// RFC 3739, section 3.2.6: QCStatement, with the statementInfo of a QcType statement (ETSI EN 319 412-5,
+    /// section 4.2.3).
+    #[derive(derive_more::Debug, PartialEq, Eq, Sequence)]
+    struct QcTypeStatement {
+        statement_id: ObjectIdentifier,
+        statement_info: Vec<ObjectIdentifier>,
+    }
+
+    #[rstest]
+    #[case::pid_issuer(Some(CertificateProfile::PidIssuer), Some("0.4.0.194126.1.1"))]
+    #[case::issuer(Some(CertificateProfile::Issuer), None)]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), None)]
+    #[case::wia(Some(CertificateProfile::Wia), Some("0.4.0.194126.1.2"))]
+    #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some("0.4.0.194126.1.2"))]
+    #[case::without_eku(None, None)]
+    fn generated_leaf_qc_statements(
+        #[case] profile: Option<CertificateProfile>,
+        #[case] expected_qc_type: Option<&str>,
+    ) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    profile,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        // x509-parser does not parse the QCStatements extension, so look it up by its OID and decode it here.
+        let qc_statements = x509_cert
+            .extensions()
+            .iter()
+            .find(|ext| ext.oid.to_id_string() == "1.3.6.1.5.5.7.1.3");
+
+        match (qc_statements, expected_qc_type) {
+            (Some(qc_statements), Some(expected_qc_type)) => {
+                // ETSI EN 319 412-5, QCS-4.1-02: a non-critical extension.
+                assert!(!qc_statements.critical);
+                let statements = Vec::<QcTypeStatement>::from_der(qc_statements.value).unwrap();
+                assert_eq!(
+                    statements,
+                    vec![QcTypeStatement {
+                        statement_id: ObjectIdentifier::new_unwrap("0.4.0.1862.1.6"),
+                        statement_info: vec![ObjectIdentifier::new(expected_qc_type).unwrap()],
+                    }]
+                );
+            }
+            (None, None) => {}
+            (actual, expected) => panic!("expected QcType {expected:?}, got {actual:?}"),
+        }
+
+        key_pair
+            .certificate()
+            .verify(
+                profile.map(CertificateProfile::usage),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
+            .expect("leaf must verify against the CA");
+    }
+
     #[test]
     fn test_key_usage() {
         let ca = Ca::generate_mock();
@@ -654,7 +928,7 @@ mod tests {
         let key_pair = ca
             .generate_key_pair(
                 DistinguishedName::create_mock("mycert"),
-                CertificateConfiguration::with_usage(CertificateUsage::Wia),
+                CertificateConfiguration::with_profile(CertificateProfile::Wia),
             )
             .unwrap();
 
@@ -847,7 +1121,7 @@ mod tests {
             .expect("leaf should verify against old CA via cross-cert intermediate");
 
         // Phase 2: same verification but with the self-signed new CA cert added to the
-        // intermediates as well. It must not trigger TrustAnchorInChain because the trust anchor
+        // intermediates as well. It is not filtered out as a trust anchor because the trust anchor
         // here is old CA (different subject/SPKI from the new CA cert).
         leaf.certificate()
             .verify(
@@ -904,7 +1178,7 @@ mod tests {
             .expect("should verify");
 
         // Verify whole chain with intermediate both in intermediates and trust anchors
-        let error = leaf_key_pair
+        leaf_key_pair
             .certificate()
             .verify(
                 None,
@@ -912,14 +1186,41 @@ mod tests {
                 &time,
                 &TrustAnchors::try_from_trust_anchors([intermediate_ta, ca_ta.clone()]).unwrap(),
             )
-            .expect_err("should detect TrustAnchorInChain");
-        assert_matches!(error, CertificateVerifyError::TrustAnchorInChain);
+            .expect("should ignore trust anchor in intermediates");
 
         // Verify whole chain with ca in both intermediates and trust anchors
-        let error = leaf_key_pair
+        leaf_key_pair
             .certificate()
-            .verify(None, &[intermediate_cert, ca_cert], &time, &ca.to_trust_anchors())
-            .expect_err("should detect TrustAnchorInChain");
-        assert_matches!(error, CertificateVerifyError::TrustAnchorInChain);
+            .verify(
+                None,
+                &[intermediate_cert, ca_cert.clone()],
+                &time,
+                &ca.to_trust_anchors(),
+            )
+            .expect("should ignore trust anchor in intermediates");
+
+        // Verify the trust anchor itself
+        let error = ca_cert
+            .verify(None, &[], &time, &ca.to_trust_anchors())
+            .expect_err("should detect EndEntityIsTrustAnchor");
+        assert_matches!(error, CertificateVerifyError::EndEntityIsTrustAnchor);
+    }
+
+    #[test]
+    fn self_signed_end_entity_trust_anchor_is_rejected() {
+        let key_pair = rcgen::KeyPair::generate().unwrap();
+        let certificate = rcgen::CertificateParams::new(vec!["leaf.example.com".to_owned()])
+            .unwrap()
+            .self_signed(&key_pair)
+            .unwrap();
+        let leaf_cert = BorrowingCertificate::from_der(certificate.der().to_vec()).unwrap();
+        let trust_anchors =
+            TrustAnchors::try_from_trust_anchors([BorrowingTrustAnchor::from_der(certificate.der().to_vec()).unwrap()])
+                .unwrap();
+
+        let error = leaf_cert
+            .verify(None, &[], &TimeGenerator, &trust_anchors)
+            .expect_err("should detect EndEntityIsTrustAnchor");
+        assert_matches!(error, CertificateVerifyError::EndEntityIsTrustAnchor);
     }
 }

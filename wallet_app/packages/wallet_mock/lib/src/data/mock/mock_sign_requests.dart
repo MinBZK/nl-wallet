@@ -16,6 +16,8 @@ final kRentalRequest = SignRequest(
     serviceDescription: [ServiceDescription(translations: ''.untranslated)],
     identifier: 'NTRNL-98765411',
     countryCode: 'NL',
+    supportUri: 'https://example.org/support',
+    personType: PersonType.LegalPerson,
   ),
   document: const Document(
     title: 'Huurovereenkomst',

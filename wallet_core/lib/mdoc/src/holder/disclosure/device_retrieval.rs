@@ -99,6 +99,7 @@ impl From<ItemsRequest> for Vec<VecNonEmpty<ClaimPath>> {
 
 #[cfg(any(test, feature = "test"))]
 pub mod test {
+    use coset::CoseSign1;
     use crypto::server_keys::KeyPair;
 
     use super::*;
@@ -112,17 +113,24 @@ pub mod test {
         session_transcript: &SessionTranscript,
         key_pair: &KeyPair,
     ) -> DocRequest {
-        // Generate the reader authentication signature, without payload.
+        // Generate the reader authentication signature
         let items_request = items_request.into();
         let reader_auth_keyed = ReaderAuthenticationKeyed::new(session_transcript, &items_request);
 
         let cose = TypedCose::<_, ReaderAuthenticationBytes>::sign_with_certificate(
             &TaggedBytes(CborSeq(reader_auth_keyed)),
             key_pair,
-            false,
         )
         .await
         .unwrap();
+
+        // Remove the payload from the COSE sign1 message
+        let cose: TypedCose<_, ReaderAuthenticationBytes> = CoseSign1 {
+            payload: None,
+            ..cose.into_inner()
+        }
+        .into();
+
         let reader_auth = Some(cose.into_inner().into());
 
         // Create and encrypt the `DeviceRequest`.

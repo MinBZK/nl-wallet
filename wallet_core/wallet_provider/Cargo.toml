@@ -18,6 +18,11 @@ name = "settings"
 path = "tests/settings.rs"
 required-features = ["hsm_test"]
 
+[[test]]
+name = "admin_portal_tasks"
+path = "tests/admin_portal_tasks.rs"
+required-features = ["db_test", "web_test"]
+
 [features]
 default = []
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
@@ -39,6 +44,10 @@ skip_android_root_key_check = ["android_attest/skip_root_key_check"]
 android_emulator = ["allow_android_emulator_keys", "mock_android_integrity_verdict", "skip_android_root_key_check"]
 # Include and run test that depend on a configured HSM
 hsm_test = ["dep:rand_core", "dep:serial_test", "hsm/test"]
+# Include and run tests that depend on an external PostgreSQL database
+db_test = ["dep:db_test", "tokio/macros", "wallet_provider_persistence/db_test"]
+# Include web related features, like request serialization and response deserialization
+web_test = ["db_test"]
 
 [dependencies]
 axum.workspace = true
@@ -50,6 +59,7 @@ cookie.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "into", "from_str"] }
 futures = { workspace = true, features = ["async-await"] }
 http.workspace = true
+itertools.workspace = true
 log.workspace = true
 metrics.workspace = true
 metrics-exporter-prometheus.workspace = true
@@ -81,6 +91,7 @@ android_attest.path = "../lib/android_attest"
 apple_app_attest.path = "../lib/apple_app_attest"
 audit_log.path = "audit_log"
 crypto.path = "../lib/crypto"
+db_test = { path = "../lib/db_test", optional = true }
 health_checkers.path = "../lib/health_checkers"
 hsm.path = "../lib/hsm"
 http_utils = { path = "../lib/http_utils", features = ["server", "client"] }
@@ -96,7 +107,9 @@ wscd.path = "../lib/wscd"
 token_status_list = { path = "../lib/token_status_list", optional = true }
 
 [dev-dependencies]
+audit_log = { path = "audit_log", features = ["mock"] }
 rstest.workspace = true
 tempfile.workspace = true
+tower = { workspace = true, features = ["util"] }
 
 http_utils = { path = "../lib/http_utils", features = ["test"] }

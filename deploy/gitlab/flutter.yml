@@ -2,6 +2,8 @@
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-flutter:${BUILD_TAG}"
   tags:
     - linux
+  stage: test
+  needs: []
   before_script:
     - cd wallet_app
     - set -euxo pipefail
@@ -14,6 +16,7 @@ test-flutter:
     - flutter pub get --enforce-lockfile
     - flutter analyze .
     - flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
+    - flutter test --dart-define=ENABLE_WRPRC_STRICT_MODE_TOGGLE=true --exclude-tags=golden test/src/feature/developer_settings/developer_settings_screen_test.dart test/src/data/repository/close_proximity/impl/close_proximity_repository_impl_test.dart
   after_script:
     - tojunit -i wallet_app/build/reports/test-results.json -o wallet_app/build/reports/test-results.xml -b $PWD/wallet_app/test/src
     - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml

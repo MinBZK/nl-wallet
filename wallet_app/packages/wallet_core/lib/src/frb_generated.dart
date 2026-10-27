@@ -82,7 +82,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -360334618;
+  int get rustContentHash => -1988532183;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -179,8 +179,6 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<IdentifyUriResult> crateApiFullIdentifyUri({required String uri});
 
-  Future<Image> crateModelsImageImageTryJpegFromBytes({required List<int> value});
-
   Future<void> crateApiFullInit();
 
   Future<String> crateApiFullInitWalletTransfer();
@@ -228,6 +226,7 @@ abstract class WalletCoreApi extends BaseApi {
   Future<void> crateApiFullSkipWalletTransfer();
 
   Future<String> crateApiFullStartCloseProximityDisclosure({
+    required bool wrprcStrictMode,
     required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
   });
 
@@ -1207,30 +1206,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<Image> crateModelsImageImageTryJpegFromBytes({required List<int> value}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          var arg0 = cst_encode_list_prim_u_8_loose(value);
-          return wire.wire__crate__models__image__image_try_jpeg_from_bytes(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_image,
-          decodeErrorData: dco_decode_list_prim_u_8_strict,
-        ),
-        constMeta: kCrateModelsImageImageTryJpegFromBytesConstMeta,
-        argValues: [value],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateModelsImageImageTryJpegFromBytesConstMeta => const TaskConstMeta(
-    debugName: "image_try_jpeg_from_bytes",
-    argNames: ["value"],
-  );
-
-  @override
   Future<void> crateApiFullInit() {
     return handler.executeNormal(
       NormalTask(
@@ -1781,22 +1756,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @override
   Future<String> crateApiFullStartCloseProximityDisclosure({
+    required bool wrprcStrictMode,
     required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+          var arg0 = cst_encode_bool(wrprcStrictMode);
+          var arg1 = cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
             callback,
           );
-          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_, arg0);
+          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_, arg0, arg1);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_String,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullStartCloseProximityDisclosureConstMeta,
-        argValues: [callback],
+        argValues: [wrprcStrictMode, callback],
         apiImpl: this,
       ),
     );
@@ -1804,7 +1781,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullStartCloseProximityDisclosureConstMeta => const TaskConstMeta(
     debugName: "start_close_proximity_disclosure",
-    argNames: ["callback"],
+    argNames: ["wrprcStrictMode", "callback"],
   );
 
   @override
@@ -2298,12 +2275,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  PersonType dco_decode_box_autoadd_person_type(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_person_type(raw);
-  }
-
-  @protected
   (String, String) dco_decode_box_autoadd_record_string_string(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as (String, String);
@@ -2513,10 +2484,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           data: dco_decode_list_prim_u_8_strict(raw[1]),
         );
       case 2:
+        return Image_Bmp(
+          data: dco_decode_list_prim_u_8_strict(raw[1]),
+        );
+      case 3:
         return Image_Svg(
           svg: dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(raw[1]),
         );
-      case 3:
+      case 4:
         return Image_Asset(
           path: dco_decode_String(raw[1]),
         );
@@ -2659,12 +2634,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<int> dco_decode_list_prim_u_8_loose(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw as List<int>;
-  }
-
-  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
@@ -2762,12 +2731,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  PersonType? dco_decode_opt_box_autoadd_person_type(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_person_type(raw);
-  }
-
-  @protected
   (String, String)? dco_decode_opt_box_autoadd_record_string_string(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_record_string_string(raw);
@@ -2804,9 +2767,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       privacyPolicyUrl: dco_decode_opt_String(arr[4]),
       identifier: dco_decode_String(arr[5]),
       countryCode: dco_decode_String(arr[6]),
-      supportUri: dco_decode_opt_String(arr[7]),
+      supportUri: dco_decode_String(arr[7]),
       publicBody: dco_decode_opt_box_autoadd_bool(arr[8]),
-      personType: dco_decode_opt_box_autoadd_person_type(arr[9]),
+      personType: dco_decode_person_type(arr[9]),
     );
   }
 
@@ -3389,12 +3352,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  PersonType sse_decode_box_autoadd_person_type(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_person_type(deserializer));
-  }
-
-  @protected
   (String, String) sse_decode_box_autoadd_record_string_string(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_record_string_string(deserializer));
@@ -3617,11 +3574,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_data = sse_decode_list_prim_u_8_strict(deserializer);
         return Image_Png(data: var_data);
       case 2:
+        var var_data = sse_decode_list_prim_u_8_strict(deserializer);
+        return Image_Bmp(data: var_data);
+      case 3:
         var var_svg = sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
           deserializer,
         );
         return Image_Svg(svg: var_svg);
-      case 3:
+      case 4:
         var var_path = sse_decode_String(deserializer);
         return Image_Asset(path: var_path);
       default:
@@ -3827,13 +3787,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var len_ = sse_decode_i_32(deserializer);
-    return deserializer.buffer.getUint8List(len_);
-  }
-
-  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
@@ -3969,17 +3922,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  PersonType? sse_decode_opt_box_autoadd_person_type(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_person_type(deserializer));
-    } else {
-      return null;
-    }
-  }
-
-  @protected
   (String, String)? sse_decode_opt_box_autoadd_record_string_string(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -4033,9 +3975,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_privacyPolicyUrl = sse_decode_opt_String(deserializer);
     var var_identifier = sse_decode_String(deserializer);
     var var_countryCode = sse_decode_String(deserializer);
-    var var_supportUri = sse_decode_opt_String(deserializer);
+    var var_supportUri = sse_decode_String(deserializer);
     var var_publicBody = sse_decode_opt_box_autoadd_bool(deserializer);
-    var var_personType = sse_decode_opt_box_autoadd_person_type(deserializer);
+    var var_personType = sse_decode_person_type(deserializer);
     return Organization(
       legalName: var_legalName,
       displayName: var_displayName,
@@ -4872,12 +4814,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_box_autoadd_person_type(PersonType self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_person_type(self, serializer);
-  }
-
-  @protected
   void sse_encode_box_autoadd_record_string_string((String, String) self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_record_string_string(self, serializer);
@@ -5058,14 +4994,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case Image_Png(data: final data):
         sse_encode_i_32(1, serializer);
         sse_encode_list_prim_u_8_strict(data, serializer);
-      case Image_Svg(svg: final svg):
+      case Image_Bmp(data: final data):
         sse_encode_i_32(2, serializer);
+        sse_encode_list_prim_u_8_strict(data, serializer);
+      case Image_Svg(svg: final svg):
+        sse_encode_i_32(3, serializer);
         sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
           svg,
           serializer,
         );
       case Image_Asset(path: final path):
-        sse_encode_i_32(3, serializer);
+        sse_encode_i_32(4, serializer);
         sse_encode_String(path, serializer);
     }
   }
@@ -5226,13 +5165,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    serializer.buffer.putUint8List(self is Uint8List ? self : Uint8List.fromList(self));
-  }
-
-  @protected
   void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -5349,16 +5281,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_person_type(PersonType? self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_box_autoadd_person_type(self, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_opt_box_autoadd_record_string_string((String, String)? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -5408,9 +5330,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_opt_String(self.privacyPolicyUrl, serializer);
     sse_encode_String(self.identifier, serializer);
     sse_encode_String(self.countryCode, serializer);
-    sse_encode_opt_String(self.supportUri, serializer);
+    sse_encode_String(self.supportUri, serializer);
     sse_encode_opt_box_autoadd_bool(self.publicBody, serializer);
-    sse_encode_opt_box_autoadd_person_type(self.personType, serializer);
+    sse_encode_person_type(self.personType, serializer);
   }
 
   @protected

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -262,6 +264,50 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(appEventCoordinator.onDashboardShown()).called(2);
+    });
+
+    testWidgets('should notify the coordinator that the dashboard is hidden when the wallet locks', (tester) async {
+      await pumpDashboard(tester);
+
+      isLockedStream.add(true);
+      await tester.pumpAndSettle();
+
+      verify(appEventCoordinator.onDashboardHidden()).called(1);
+    });
+
+    testWidgets('should notify the coordinator that the dashboard is hidden when a route is pushed on top', (
+      tester,
+    ) async {
+      await pumpDashboard(tester);
+
+      unawaited(
+        Navigator.of(tester.element(find.byType(DashboardScreen))).push(
+          MaterialPageRoute(builder: (_) => const SizedBox()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      verify(appEventCoordinator.onDashboardHidden()).called(1);
+    });
+
+    testWidgets('should notify the coordinator that the dashboard is hidden when it is disposed', (tester) async {
+      await pumpDashboard(tester);
+
+      await tester.pumpWidget(const SizedBox());
+
+      verify(appEventCoordinator.onDashboardHidden()).called(1);
+    });
+
+    testWidgets('should not notify the coordinator on dispose when the dashboard was never reported visible', (
+      tester,
+    ) async {
+      isLockedStream.add(true);
+      await pumpDashboard(tester);
+      clearInteractions(appEventCoordinator);
+
+      await tester.pumpWidget(const SizedBox());
+
+      verifyNever(appEventCoordinator.onDashboardHidden());
     });
   });
 }

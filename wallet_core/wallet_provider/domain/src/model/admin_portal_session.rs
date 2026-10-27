@@ -12,6 +12,7 @@ pub struct AdminPortalLoginAttempt {
 /// A logged-in Admin Portal user's server-side session.
 #[derive(Debug, Clone)]
 pub struct AdminPortalUserSession {
+    pub user_id: String,
     pub display_name: String,
     pub roles: Vec<String>,
     pub id_token: String,

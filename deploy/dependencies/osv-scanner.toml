@@ -14,6 +14,16 @@ ignoreUntil = 2027-01-01
 reason = "`rkyv` is a transitive dependency that is only used by `lightningcss` through `parcel_sourcemap`. This last crate has not been updated recently. Additionally, `lightningcss` is only ever used as a build dependency."
 
 [[IgnoredVulns]]
+id = "RUSTSEC-2024-0436"
+ignoreUntil = 2027-01-01
+reason = "The unmaintained `paste` crate is only used by two transitive dependencies of the `image` crate, `ravif` and `exr`, the features for which are never enabled on the `image` crate."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0374"
+ignoreUntil = 2026-12-01
+reason = "`basic-toml` is only used by `askama`, which has removed this dependency upstream. However, a new version has not yet been released."
+
+[[IgnoredVulns]]
 id = "GHSA-vfj7-8cjw-p6xm"
 ignoreUntil = 2027-01-01
 reason = "Not vunlerable because `braces` is not used with user input."

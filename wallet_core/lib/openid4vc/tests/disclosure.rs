@@ -27,15 +27,11 @@ use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteEcdsaKey;
-use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
-use crypto::mock_remote::MockRemoteWscdError;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::wscd::DisclosureResult;
-use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use dcql::CredentialQueryIdentifier;
@@ -73,7 +69,6 @@ use openid4vc::errors::GetAuthRequestErrorCode;
 use openid4vc::errors::PostAuthResponseErrorCode;
 use openid4vc::errors::VpAuthorizationErrorCode;
 use openid4vc::mock::ExtendingVctRetrieverStub;
-use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::NormalizedVpAuthorizationRequest;
 use openid4vc::openid4vp::VerifiablePresentation;
@@ -104,7 +99,6 @@ use openid4vc::verifier::WalletAuthResponse;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::Generate;
 use ring::hmac;
 use ring::rand;
@@ -116,9 +110,6 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_nonempty;
-use wscd::mock_remote::MockRemoteWscd;
-use wscd::payload::poa::JwtPoaInput;
-use wscd::payload::poa::Poa;
 
 fn assert_disclosed_attestations_mdoc_pid(disclosed_attestations: &UniqueIdVec<DisclosedAttestations>) {
     assert_eq!(disclosed_attestations.len().get(), 1);
@@ -168,7 +159,7 @@ async fn disclosure_direct() {
     let registration_certificate =
         MockRegistrationCertificate::new_verifier(auth_keypair.certificate(), Query::from(credential_requests.clone()));
     let registration_certificate =
-        RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
         credential_requests,
         ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
@@ -199,7 +190,6 @@ async fn disclosure_direct() {
         &jwe,
         &encryption_secret_key,
         &iso_auth_request,
-        &[MOCK_WALLET_CLIENT_ID.to_string()],
         &MockTimeGenerator::default(),
         &issuer_ca.to_trust_anchors(),
         &ExtendingVctRetrieverStub,
@@ -236,16 +226,11 @@ async fn disclosure_jwe(
     let (auth_request, encryption_algorithm) = auth_request.normalize_request(&cert, None).unwrap();
 
     // Compute the disclosure.
-    let wscd = MockRemoteWscd::new_with_keys(vec![mdoc_key]);
-    let poa_input = JwtPoaInput::new(Some(auth_request.nonce.clone()), auth_request.client_id.to_string());
-    let (device_responses, poa) = DeviceResponse::sign_multiple_from_partial_mdocs(
-        partial_mdocs,
-        &auth_request.session_transcript(),
-        &wscd,
-        poa_input,
-    )
-    .await
-    .unwrap();
+    let wscd = DisclosureMockRemoteWscd::new(vec![mdoc_key]);
+    let device_responses =
+        DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &auth_request.session_transcript(), &wscd)
+            .await
+            .unwrap();
 
     // Put the disclosure in an Authorization Response and encrypt it.
     VpAuthorizationResponse::new_encrypted(
@@ -256,7 +241,6 @@ async fn disclosure_jwe(
         &auth_request,
         encryption_algorithm,
         &encryption_nonce,
-        poa,
     )
     .unwrap()
 }
@@ -279,7 +263,7 @@ async fn disclosure_using_message_client(
     let issuer_keypair = issuer_ca.generate_pid_issuer_mock().unwrap();
 
     // Initialize the "wallet"
-    let wscd = MockRemoteWscd::default();
+    let wscd = DisclosureMockRemoteWscd::default();
     let disclosable_attestations = match format {
         Format::MsoMdoc => DisclosableAttestations::MsoMdoc(test_credentials.to_partial_mdocs(&issuer_keypair, &wscd)),
         Format::SdJwt => {
@@ -372,7 +356,7 @@ impl DirectMockVpMessageClient {
             Query::from(credential_requests.clone()),
         );
         let registration_certificate_envelope =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             credential_requests,
             ClientId::x509_hash_from_certificate(auth_keypair.certificate()),
@@ -436,7 +420,6 @@ impl VpMessageClient for DirectMockVpMessageClient {
             &jwe,
             &self.encryption_secret_key,
             &self.auth_request,
-            &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
             &self.trust_anchors,
             &ExtendingVctRetrieverStub,
@@ -524,7 +507,7 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name()
 )]
-// attributes from different documents, so this case also tests the PoA
+// attributes from different documents
 #[case(
     SessionType::SameDevice,
     "https://example.com/return_url".parse().unwrap(),
@@ -573,7 +556,7 @@ async fn test_client_and_server(
     };
 
     // Start session in the wallet
-    let wscd = MockRemoteWscd::default();
+    let wscd = DisclosureMockRemoteWscd::default();
     let session = start_disclosure_session(Arc::clone(&verifier), uri_source, &request_uri, wallet_validation)
         .await
         .unwrap();
@@ -716,7 +699,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
 
     // Start session in the wallet
-    let wscd = MockRemoteWscd::default();
+    let wscd = DisclosureMockRemoteWscd::default();
     let session = start_disclosure_session(
         Arc::clone(&verifier),
         DisclosureUriSource::Link,
@@ -753,86 +736,6 @@ async fn test_client_and_server_cancel_after_wallet_start() {
 }
 
 #[tokio::test]
-async fn test_disclosure_invalid_poa() {
-    /// A mock WSCD that returns a wrong PoA.
-    #[derive(Default)]
-    struct WrongPoaWscd(MockRemoteWscd);
-
-    impl DisclosureWscd for WrongPoaWscd {
-        type Key = MockRemoteEcdsaKey;
-        type Error = MockRemoteWscdError;
-        type Poa = Poa;
-
-        fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
-            self.0.new_key(identifier, public_key)
-        }
-
-        async fn sign(
-            &self,
-            messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-            poa_input: <Self::Poa as WscdPoa>::Input,
-        ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
-            let mut result = self.0.sign(messages_and_keys, poa_input).await?;
-
-            result.poa.as_mut().unwrap().set_payload("wrong_payload".to_string());
-
-            Ok(result)
-        }
-    }
-
-    impl AsRef<DisclosureMockRemoteWscd> for WrongPoaWscd {
-        fn as_ref(&self) -> &DisclosureMockRemoteWscd {
-            let Self(inner) = self;
-
-            inner.as_ref()
-        }
-    }
-
-    let test_credentials = nl_pid_credentials_full_name() + nl_pid_address_minimal_address();
-    let dcql_query = test_credentials.to_dcql_query([Format::SdJwt, Format::SdJwt]);
-    let use_case = DEFAULT_RETURN_URL_USE_CASE;
-
-    let (verifier, issuer_keypair, wallet_validation) = setup_verifier(&dcql_query, None);
-
-    // Start the session
-    let session_token = verifier
-        .new_session(
-            use_case.to_string(),
-            Some(dcql_query),
-            Some("https://example.com/{session_token}".parse().unwrap()),
-        )
-        .await
-        .unwrap();
-
-    // frontend receives the UL to feed to the wallet when fetching the session status
-    let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
-
-    // Start session in the wallet
-    let wscd = WrongPoaWscd::default();
-    let session = start_disclosure_session(
-        Arc::clone(&verifier),
-        DisclosureUriSource::Link,
-        &request_uri,
-        wallet_validation,
-    )
-    .await
-    .unwrap();
-
-    // Finish the disclosure.
-    let presentations = test_credentials.to_unsigned_sd_jwt_presentations(&issuer_keypair, &wscd);
-    let disclosable_attestations = DisclosableAttestations::SdJwt(presentations).try_into().unwrap();
-    let (_session, error) = session
-        .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
-        .await
-        .expect_err("should not be able to disclose attributes");
-    assert_matches!(
-        error.error,
-        VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthPostResponse(error)))
-            if error.error_response.error == RemoteErrorCode::Known(PostAuthResponseErrorCode::InvalidRequest)
-    );
-}
-
-#[tokio::test]
 async fn test_wallet_initiated_usecase_verifier() {
     let (verifier, test_credentials, issuer_keypair, client_id, wallet_validation) =
         setup_wallet_initiated_usecase_verifier(Arc::new(MemorySessionStore::default()));
@@ -858,7 +761,7 @@ async fn test_wallet_initiated_usecase_verifier() {
     })
     .unwrap();
 
-    let wscd = MockRemoteWscd::default();
+    let wscd = DisclosureMockRemoteWscd::default();
 
     let session = start_disclosure_session(
         verifier,
@@ -1062,7 +965,7 @@ async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
     // (this also verifies that the status is Created)
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
 
-    let wscd = MockRemoteWscd::default();
+    let wscd = DisclosureMockRemoteWscd::default();
 
     // Start session in the wallet
     let session = start_disclosure_session(
@@ -1116,7 +1019,7 @@ where
     let registration_certificate =
         registration_certificate_authority.issue_jwt(access_key_pair.certificate(), dcql_query.clone());
     let registration_certificate =
-        RegistrationCertificateEnvelope::try_from(registration_certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(registration_certificate.as_slice()).unwrap();
     let use_case = WalletInitiatedUseCase::new(
         UseCaseData::new(
             access_key_pair,
@@ -1134,7 +1037,6 @@ where
         sessions,
         issuer_ca.to_trust_anchors(),
         Some(Box::new(MockDisclosureResultHandler::new(None))),
-        vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::default(),
         RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
             issuer_ca.generate_issuer_status_list_mock().unwrap(),
@@ -1170,12 +1072,12 @@ fn setup_verifier(
     let default_registration_certificate =
         registration_certificate_authority.issue_jwt(default_access_key_pair.certificate(), dcql_query.clone());
     let default_registration_certificate =
-        RegistrationCertificateEnvelope::try_from(default_registration_certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(default_registration_certificate.as_slice()).unwrap();
     let all_access_key_pair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let all_registration_certificate =
         registration_certificate_authority.issue_jwt(all_access_key_pair.certificate(), dcql_query.clone());
     let all_registration_certificate =
-        RegistrationCertificateEnvelope::try_from(all_registration_certificate.as_slice()).unwrap();
+        RegistrationCertificateEnvelope::from_slice(all_registration_certificate.as_slice()).unwrap();
 
     // Initialize the verifier
     let usecases = HashMap::from([
@@ -1222,7 +1124,6 @@ fn setup_verifier(
         sessions,
         issuer_ca.to_trust_anchors(),
         Some(Box::new(MockDisclosureResultHandler::new(session_result_query_param))),
-        vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::from([(
             String::from(ROOT_PID_ATTESTATION_TYPE),
             vec_nonempty![String::from(PID_ATTESTATION_TYPE)],

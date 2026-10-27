@@ -1,4 +1,6 @@
 automation-compile-check:
+  stage: test
+  needs: []
   rules: !reference [.merge-request, rules]
   script:
     - java -version
@@ -6,6 +8,7 @@ automation-compile-check:
     - ./gradlew --no-daemon compileTestKotlin
 
 scheduled-automation-tests-trigger:
+  stage: qa
   rules:
     - !reference [.default-branch-manual, rules]
   needs:
@@ -20,6 +23,7 @@ scheduled-automation-tests-trigger:
 
 .run-automation-tests-base:
   extends: .env-k8s
+  stage: qa
   before_script:
     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_USER
@@ -35,21 +39,25 @@ scheduled-automation-tests-trigger:
     ENABLE_BROWSERSTACK_A11Y_CHECKS: false
     ENABLE_A11Y_CAPTURES: "true"
 
-.extract-reader-ca-credentials:
+.extract-reader-wrpac-credentials:
   extends: .env-k8s
-  before_script: &extract-reader-ca-credentials-script
-    - AMSTERDAM_CA_KEY_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.private_key}' | base64 --decode)
-    - AMSTERDAM_CA_CRT_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.certificate}' | base64 --decode)
-    - echo "$AMSTERDAM_CA_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/amsterdam.wrpac.key.pem
-    - echo "$AMSTERDAM_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/amsterdam.wrpac.crt.pem
-    - export AMSTERDAM_CA_KEY_FILE=/tmp/amsterdam.wrpac.key.pem
-    - export AMSTERDAM_CA_CRT_FILE=/tmp/amsterdam.wrpac.crt.pem
-    - MONKEY_BIKE_CA_KEY_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.private_key}' | base64 --decode)
-    - MONKEY_BIKE_CA_CRT_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.certificate}' | base64 --decode)
-    - echo "$MONKEY_BIKE_CA_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/monkey_bike.wrpac.key.pem
-    - echo "$MONKEY_BIKE_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/monkey_bike.wrpac.crt.pem
-    - export MONKEY_BIKE_CA_KEY_FILE=/tmp/monkey_bike.wrpac.key.pem
-    - export MONKEY_BIKE_CA_CRT_FILE=/tmp/monkey_bike.wrpac.crt.pem
+  before_script: &extract-reader-wrpac-credentials-script
+    - AMSTERDAM_WRPAC_KEY_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.private_key}' | base64 --decode)
+    - AMSTERDAM_WRPAC_CRT_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.certificate}' | base64 --decode)
+    - echo "$AMSTERDAM_WRPAC_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/amsterdam.wrpac.key.pem
+    - echo "$AMSTERDAM_WRPAC_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/amsterdam.wrpac.crt.pem
+    - export AMSTERDAM_WRPAC_KEY_FILE=/tmp/amsterdam.wrpac.key.pem
+    - export AMSTERDAM_WRPAC_CRT_FILE=/tmp/amsterdam.wrpac.crt.pem
+    - kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-mijn-amsterdam -o jsonpath='{.data.registration_certificate_mdoc}' | base64 --decode > /tmp/amsterdam.wrprc
+    - export AMSTERDAM_WRPRC_FILE=/tmp/amsterdam.wrprc
+    - MONKEY_BIKE_WRPAC_KEY_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.private_key}' | base64 --decode)
+    - MONKEY_BIKE_WRPAC_CRT_DER=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.certificate}' | base64 --decode)
+    - echo "$MONKEY_BIKE_WRPAC_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/monkey_bike.wrpac.key.pem
+    - echo "$MONKEY_BIKE_WRPAC_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/monkey_bike.wrpac.crt.pem
+    - export MONKEY_BIKE_WRPAC_KEY_FILE=/tmp/monkey_bike.wrpac.key.pem
+    - export MONKEY_BIKE_WRPAC_CRT_FILE=/tmp/monkey_bike.wrpac.crt.pem
+    - kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.registration_certificate}' | base64 --decode > /tmp/monkey_bike.wrprc
+    - export MONKEY_BIKE_WRPRC_FILE=/tmp/monkey_bike.wrprc
 
 # Install the Apple development certificate and provisioning profiles that Appium needs to build
 # WebDriverAgent for real iOS devices, from the fastlane match repository (read-only). The job
@@ -57,12 +65,12 @@ scheduled-automation-tests-trigger:
 # because the runner executes outside a GUI session (the runner user's login password comes from
 # the nl-wallet-macmini secret); without this, codesign fails with errSecInternalComponent and
 # xcodebuild exits with code 65.
-# Also extracts the WRPAC CA credentials (composed via YAML anchor so both command lists are
+# Also extracts the WRPAC credentials and WRPRCs (composed via YAML anchor so both command lists are
 # defined only once); the iOS device jobs use this template via extends.
 .install-ios-signing:
   extends: .env-k8s
   before_script:
-    - *extract-reader-ca-credentials-script
+    - *extract-reader-wrpac-credentials-script
     - MACOS_KEYCHAIN_PASSWORD="$(kubectl get secret nl-wallet-macmini -o jsonpath='{.data.password}' | base64 --decode)"
     - security unlock-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" ~/Library/Keychains/login.keychain-db
     - security set-keychain-settings ~/Library/Keychains/login.keychain-db
@@ -72,8 +80,9 @@ scheduled-automation-tests-trigger:
     - export MATCH_GIT_BASIC_AUTHORIZATION
     - export PATH="$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
     - bundle install
-    # Scope to only the identifiers the e2e jobs need
-    - bundle exec fastlane match development --readonly --app_identifier "nl.ictu.edi.wallet.latest,nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner"
+    # Scope to only the identifiers the device jobs need.
+    - bundle exec fastlane match development --readonly --app_identifier
+      "nl.ictu.edi.wallet.latest,nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner,nl.ictu.edi.wallet.integration-tests"
     # Quoted because the unquoted 'codesign: ' colon would make YAML parse this line as a mapping.
     - 'security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${MACOS_KEYCHAIN_PASSWORD}" ~/Library/Keychains/login.keychain-db > /dev/null'
     # Point the WebDriverAgentRunner target at the match profile (per-target manual signing);
@@ -82,14 +91,17 @@ scheduled-automation-tests-trigger:
 
 automation-tests-load-device-config:
   extends: .env-k8s
+  stage: init
   rules:
     - !reference [.on-schedule-automation, rules]
+    - !reference [.merge-request, rules]
+    - !reference [.default-branch, rules]
   script:
     - |
       SECRET_JSON=$(kubectl get secret nl-wallet-macmini -o json)
       : > devices.env
       for key in \
-        android_device_1_udid \
+        android_1_udid \
         android_1_name \
         android_1_os_version \
         android_2_udid \
@@ -131,7 +143,7 @@ automation-tests-load-device-config:
     - mc cp "qt/quality-time/apps/Runner.app.zip" "wallet_app/build/ios/iphonesimulator/Runner.app.zip"
 
 .automation-tests-macos-devices:
-  resource_group: automation-tests
+  resource_group: real-device-automation-tests
   tags:
     - macos-devices
   variables:
@@ -148,6 +160,7 @@ automation-tests-load-device-config:
       - uiautomation/appium.log
     reports:
       junit: uiautomation/build/test-results/**/*.xml
+  stage: qa
   rules:
     - !reference [.on-schedule-automation, rules]
 
@@ -240,6 +253,7 @@ automation-tests-load-device-config:
     IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
 
 run-automation-tests-publish-results-android:
+  stage: publish
   rules: !reference [.run-automation-tests-default, rules]
   needs:
     - { job: run-automation-card-and-history-tests-android }
@@ -262,6 +276,7 @@ run-automation-tests-publish-results-android:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/a11y-captures/e2e-android.zip uiautomation/build/a11y-captures/*
 
 run-automation-tests-publish-results-ios:
+  stage: publish
   rules: !reference [.run-automation-tests-default, rules]
   needs:
     - { job: run-automation-card-and-history-tests-ios }
@@ -438,20 +453,22 @@ run-automation-english-tests-ios:
     ./gradlew --no-daemon --info --stacktrace testEnglish \
       -Dtest.config.app.path="../${APP}" \
       -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
-      -Dtest.config.device.udid="${IOS_1_UDID}" \
+      -Dtest.config.device.udid="${IOS_DEVICE_UDID}" \
       -Dtest.config.platform.name="IOS" \
-      -Dtest.config.platform.version="${IOS_1_OS_VERSION}" \
+      -Dtest.config.platform.version="${IOS_PLATFORM_VERSION}" \
       -Dtest.config.remote=false \
       -Dfile.encoding=UTF-8 \
       || true
     compgen -G "build/test-results/testEnglish/*.xml"
   variables:
     APP: "nl.ictu.edi.wallet.latest.ipa"
+    IOS_DEVICE_UDID: "${IOS_1_UDID}"
+    IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"
   rules:
     - !reference [.on-schedule-automation, rules]
 
 run-automation-close-proximity-tests-android:
-  extends: [.automation-tests-macos-android-devices, .extract-reader-ca-credentials]
+  extends: [.automation-tests-macos-android-devices, .extract-reader-wrpac-credentials]
   resource_group: real-device-automation-tests
   needs:
     - job: build-android-app-ont
@@ -460,7 +477,7 @@ run-automation-close-proximity-tests-android:
     - job: automation-tests-load-device-config
       artifacts: true
   before_script:
-    - !reference [.extract-reader-ca-credentials, before_script]
+    - !reference [.extract-reader-wrpac-credentials, before_script]
     - !reference [.fetch-android-app, before_script]
   script: |
     cd uiautomation
@@ -802,7 +819,7 @@ browserstack-a11y-merge:
     paths:
       - uiautomation/combined_summary.json
 
-run-automation-smoke-test-ont:
+run-automation-smoke-test-android-ont:
   extends: .run-automation-tests-common-setup
   rules: !reference [.default-branch, rules]
   needs:
@@ -815,14 +832,31 @@ run-automation-smoke-test-ont:
     - ./gradlew --no-daemon --info --stacktrace smokeTest -Dtest.config.remote=true -Dfile.encoding=UTF-8
 
 run-automation-smoke-test-ios-ont:
-  extends: .run-automation-tests-common-setup
+  extends: [.automation-tests-macos-devices, .install-ios-signing]
   rules: !reference [.default-branch, rules]
   needs:
-    - job: upload-browserstack-ios-app
-      artifacts: false
     - job: deploy-apps-ont
       artifacts: false
-  script:
-    - mv browserstack-config/browserstack-Iphone16Pro-18-NL.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS -Dtest.config.platform.name="IOS" -Dtest.config.remote=true
+    - job: build-ios-app-adhoc-ont
+      artifacts: false
+    - job: automation-tests-load-device-config
+      artifacts: true
+    - job: build-env-ont
+      artifacts: true
+  before_script:
+    - !reference [.install-ios-signing, before_script]
+    - !reference [.fetch-ios-app, before_script]
+  script: |
+    cd uiautomation
+    ./gradlew --no-daemon --info --stacktrace smokeTest \
+      -Dtest.config.app.path="../${APP}" \
+      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest" \
+      -Dtest.config.device.udid="${IOS_DEVICE_UDID}" \
+      -Dtest.config.platform.name="IOS" \
+      -Dtest.config.platform.version="${IOS_PLATFORM_VERSION}" \
+      -Dtest.config.remote=false \
       -Dfile.encoding=UTF-8
+  variables:
+    APP: "nl.ictu.edi.wallet.latest.ipa"
+    IOS_DEVICE_UDID: "${IOS_1_UDID}"
+    IOS_PLATFORM_VERSION: "${IOS_1_OS_VERSION}"

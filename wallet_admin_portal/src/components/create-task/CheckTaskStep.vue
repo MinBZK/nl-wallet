@@ -5,21 +5,21 @@
     title="Controleer en maak taak aan"
     description="Controleer de taak voordat je die aanmaakt."
   />
-  <TaskWizardCard>
+  <TaskCard>
     <h3>Taakdetails</h3>
     <TaskDetails :details="details" />
-  </TaskWizardCard>
-  <TaskWizardCard v-if="consequences.length > 0">
+  </TaskCard>
+  <TaskCard v-if="consequences.length > 0">
     <h3>{{ consequences.length > 1 ? 'Belangrijkste gevolgen' : 'Gevolg' }}</h3>
     <TaskItemList :value="consequences.length > 1 ? consequences : consequences[0]!" />
-  </TaskWizardCard>
+  </TaskCard>
 </template>
 
 <script setup lang="ts">
 import TaskStepHeader from './TaskStepHeader.vue'
-import TaskWizardCard from './TaskWizardCard.vue'
 import TaskDetails from './TaskDetails.vue'
 import TaskItemList from './TaskItemList.vue'
+import TaskCard from '@/components/tasks/TaskCard.vue'
 import type { TaskDetailRow } from '@/types/task-detail-row.ts'
 
 defineProps<{

@@ -1,97 +1,34 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
-import OpenTasksView from '@/views/OpenTasksView.vue'
-import HomeView from '@/views/HomeView.vue'
-import ErrorView from '@/views/ErrorView.vue'
-import LoginView from '@/views/LoginView.vue'
-import MyOpenTasksView from '@/views/MyOpenTasksView.vue'
-import TaskHistoryView from '@/views/TaskHistoryView.vue'
-import CreateTaskView from '@/views/CreateTaskView.vue'
 import { getAuthState, type UserProfile } from '@/composables/authentication.ts'
-import { taskActionInfo } from '@/types/task-action.ts'
-
-declare module 'vue-router' {
-  interface RouteMeta {
-    title: string
-    description: string
-    fullscreen?: boolean
-    hideCreateTaskButton?: boolean
-  }
-}
+import { TASK_ACTION_INFO } from '@/types/task-action.ts'
+import { canAccess, navItemsFor } from './access.ts'
+import { routes } from './routes.ts'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: HomeView,
-      meta: { title: 'Home', description: 'Deze pagina is nog in ontwikkeling.' },
-    },
-    {
-      path: '/error',
-      name: 'error',
-      component: ErrorView,
-      meta: { fullscreen: true, title: '', description: '' },
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: LoginView,
-      meta: { fullscreen: true, title: '', description: '' },
-    },
-    {
-      path: '/tasks',
-      name: 'open-tasks',
-      component: OpenTasksView,
-      meta: {
-        title: 'Openstaande taken',
-        description:
-          'Je ziet alleen taken die passen bij jouw rol en rechten. Dit zijn de taken waarvoor jij nu iets moet doen.',
-      },
-    },
-    {
-      path: '/my-tasks',
-      name: 'my-open-tasks',
-      component: MyOpenTasksView,
-      meta: {
-        title: 'Mijn open taken',
-        description:
-          'Dit zijn jouw open taken. Een andere gebruiker met rechten moet deze taak uitvoeren.',
-      },
-    },
-    {
-      path: '/history',
-      name: 'task-history',
-      component: TaskHistoryView,
-      meta: {
-        title: 'Taakgeschiedenis',
-        description: 'Bekijk gesloten taken en het oordeel.',
-        hideCreateTaskButton: true,
-      },
-    },
-    {
-      path: '/create-task/:type',
-      name: 'create-task',
-      component: CreateTaskView,
-      meta: {
-        title: 'Taak aanmaken',
-        description: 'Deze pagina is nog in ontwikkeling.',
-        hideCreateTaskButton: true,
-      },
-    },
-  ],
+  routes,
 })
 
 const PUBLIC_ROUTE_NAMES = new Set(['login', 'error'])
 
-/** Requires the `create-task` route's `:type` param to be a real, privileged {@link TaskActionType}. */
+/** Lands the root route on the first sidebar entry the user may open. */
+function landingRouteFor(user: UserProfile) {
+  const [first] = navItemsFor(user)
+  return { name: first?.name ?? 'error' }
+}
+
+/**
+ * Redirects away from the `create-task` route when the user lacks the privilege for the
+ * requested {@link TaskActionType}. An unknown `:type` is left to the view itself, which
+ * renders its own in-page error state instead of bouncing to the generic error route.
+ */
 function validateCreateTaskAccess(to: RouteLocationNormalized, user: UserProfile) {
   const type = to.params.type
-  if (typeof type !== 'string' || !(type in taskActionInfo)) {
-    return { name: 'error' }
+  if (typeof type !== 'string' || !(type in TASK_ACTION_INFO)) {
+    return
   }
   if (!user.privileges.includes(type)) {
-    return { name: 'error' }
+    return { name: 'forbidden' }
   }
 }
 
@@ -104,6 +41,8 @@ router.beforeEach(async (to) => {
   if (auth.status === 'unavailable') return { name: 'error' }
   if (auth.status === 'unauthenticated') return { name: 'login' }
 
+  if (to.name === 'home') return landingRouteFor(auth.user)
+  if (!canAccess(to.meta, auth.user)) return { name: 'forbidden' }
   if (to.name === 'create-task') return validateCreateTaskAccess(to, auth.user)
 })
 

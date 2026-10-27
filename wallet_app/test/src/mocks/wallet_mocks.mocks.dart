@@ -55,6 +55,7 @@ import 'package:wallet/src/data/service/navigation_service.dart' as _i64;
 import 'package:wallet/src/data/service/semantics_event_service.dart' as _i69;
 import 'package:wallet/src/data/source/wallet_datasource.dart' as _i44;
 import 'package:wallet/src/data/store/active_locale_provider.dart' as _i45;
+import 'package:wallet/src/data/store/close_proximity_settings_store.dart' as _i165;
 import 'package:wallet/src/data/store/notification_settings_store.dart' as _i67;
 import 'package:wallet/src/data/store/revocation_code_store.dart' as _i68;
 import 'package:wallet/src/domain/app_event/app_event_listener.dart' as _i50;
@@ -63,7 +64,7 @@ import 'package:wallet/src/domain/model/card/wallet_card.dart' as _i7;
 import 'package:wallet/src/domain/model/close_proximity/ble_connection_event.dart' as _i56;
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart' as _i19;
 import 'package:wallet/src/domain/model/configuration/maintenance_state.dart' as _i138;
-import 'package:wallet/src/domain/model/disclosure/start_disclosure_request.dart' as _i167;
+import 'package:wallet/src/domain/model/disclosure/start_disclosure_request.dart' as _i168;
 import 'package:wallet/src/domain/model/event/wallet_event.dart' as _i41;
 import 'package:wallet/src/domain/model/event/wallet_events_page.dart' as _i122;
 import 'package:wallet/src/domain/model/help/help_category.dart' as _i22;
@@ -75,7 +76,7 @@ import 'package:wallet/src/domain/model/notification/app_notification.dart' as _
 import 'package:wallet/src/domain/model/notification/os_notification.dart' as _i140;
 import 'package:wallet/src/domain/model/permission/permission_check_result.dart' as _i10;
 import 'package:wallet/src/domain/model/result/result.dart' as _i76;
-import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart' as _i171;
+import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart' as _i172;
 import 'package:wallet/src/domain/model/tour/tour_video.dart' as _i103;
 import 'package:wallet/src/domain/model/transfer/transfer_session_state.dart' as _i36;
 import 'package:wallet/src/domain/model/update/update_notification.dart' as _i66;
@@ -98,10 +99,10 @@ import 'package:wallet/src/domain/usecase/card/observe_wallet_card_detail_usecas
 import 'package:wallet/src/domain/usecase/card/observe_wallet_card_usecase.dart' as _i148;
 import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart' as _i149;
 import 'package:wallet/src/domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart' as _i133;
-import 'package:wallet/src/domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart' as _i165;
+import 'package:wallet/src/domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart' as _i166;
 import 'package:wallet/src/domain/usecase/configuration/observe_configuration_expired_usecase.dart' as _i134;
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart' as _i75;
-import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart' as _i166;
+import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart' as _i167;
 import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart' as _i108;
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart' as _i119;
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_page_usecase.dart' as _i121;
@@ -111,7 +112,7 @@ import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart'
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart' as _i107;
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart' as _i77;
 import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart' as _i92;
-import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart' as _i168;
+import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart' as _i169;
 import 'package:wallet/src/domain/usecase/maintenance/observe_maintenance_state_usecase.dart' as _i137;
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i86;
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i152;
@@ -135,7 +136,7 @@ import 'package:wallet/src/domain/usecase/pin/complete_pin_recovery_usecase.dart
 import 'package:wallet/src/domain/usecase/pin/continue_pin_recovery_usecase.dart' as _i94;
 import 'package:wallet/src/domain/usecase/pin/create_pin_recovery_url_usecase.dart' as _i95;
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart' as _i101;
-import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i174;
+import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i175;
 import 'package:wallet/src/domain/usecase/qr/decode_qr_usecase.dart' as _i97;
 import 'package:wallet/src/domain/usecase/revocation/get_registration_revocation_code_usecase.dart' as _i112;
 import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_saved_usecase.dart' as _i113;
@@ -144,10 +145,10 @@ import 'package:wallet/src/domain/usecase/revocation/set_revocation_code_saved_u
 import 'package:wallet/src/domain/usecase/session/cancel_session_usecase.dart' as _i80;
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart' as _i79;
 import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart' as _i154;
-import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart' as _i170;
+import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart' as _i171;
 import 'package:wallet/src/domain/usecase/tour/fetch_tour_videos_usecase.dart' as _i102;
 import 'package:wallet/src/domain/usecase/tour/observe_show_tour_banner_usecase.dart' as _i143;
-import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart' as _i173;
+import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart' as _i174;
 import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart' as _i82;
 import 'package:wallet/src/domain/usecase/transfer/confirm_wallet_transfer_usecase.dart' as _i91;
 import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart' as _i125;
@@ -155,7 +156,7 @@ import 'package:wallet/src/domain/usecase/transfer/observe_transfer_session_stat
 import 'package:wallet/src/domain/usecase/transfer/pair_wallet_transfer_usecase.dart' as _i151;
 import 'package:wallet/src/domain/usecase/transfer/receive_wallet_transfer_usecase.dart' as _i153;
 import 'package:wallet/src/domain/usecase/transfer/skip_wallet_transfer_usecase.dart' as _i164;
-import 'package:wallet/src/domain/usecase/transfer/start_wallet_transfer_usecase.dart' as _i172;
+import 'package:wallet/src/domain/usecase/transfer/start_wallet_transfer_usecase.dart' as _i173;
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart' as _i145;
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i99;
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart' as _i116;
@@ -169,7 +170,7 @@ import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.d
 import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart' as _i158;
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i163;
 import 'package:wallet/src/feature/banner/wallet_banner.dart' as _i136;
-import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart' as _i169;
+import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart' as _i170;
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart' as _i53;
 import 'package:wallet/src/util/mapper/context_mapper.dart' as _i15;
 import 'package:wallet/src/util/mapper/mapper.dart' as _i16;
@@ -2522,6 +2523,12 @@ class MockAppEventCoordinator extends _i1.Mock implements _i49.AppEventCoordinat
   );
 
   @override
+  void onDashboardHidden() => super.noSuchMethod(
+    Invocation.method(#onDashboardHidden, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void onWalletUnlocked() => super.noSuchMethod(
     Invocation.method(#onWalletUnlocked, []),
     returnValueForMissingStub: null,
@@ -2645,6 +2652,20 @@ class MockBluetooth extends _i1.Mock implements _i54.Bluetooth {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockCloseProximityRepository extends _i1.Mock implements _i55.CloseProximityRepository {
+  @override
+  _i9.Future<bool> getWrprcStrictMode() => (super.noSuchMethod(
+    Invocation.method(#getWrprcStrictMode, []),
+    returnValue: _i9.Future<bool>.value(false),
+    returnValueForMissingStub: _i9.Future<bool>.value(false),
+  ) as _i9.Future<bool>);
+
+  @override
+  _i9.Future<void> setWrprcStrictMode({required bool? enabled}) => (super.noSuchMethod(
+    Invocation.method(#setWrprcStrictMode, [], {#enabled: enabled}),
+    returnValue: _i9.Future<void>.value(),
+    returnValueForMissingStub: _i9.Future<void>.value(),
+  ) as _i9.Future<void>);
+
   @override
   _i9.Future<String> startCloseProximityDisclosure() => (super.noSuchMethod(
     Invocation.method(#startCloseProximityDisclosure, []),
@@ -3368,18 +3389,21 @@ class MockTypedWalletCore extends _i1.Mock implements _i70.TypedWalletCore {
 
   @override
   _i9.Future<String> startCloseProximityDisclosure({
+    required bool? wrprcStrictMode,
     required _i9.FutureOr<void> Function(
       _i14.CloseProximityDisclosureFlutterUpdate,
     )?
     callback,
   }) => (super.noSuchMethod(
     Invocation.method(#startCloseProximityDisclosure, [], {
+      #wrprcStrictMode: wrprcStrictMode,
       #callback: callback,
     }),
     returnValue: _i9.Future<String>.value(
       _i11.dummyValue<String>(
         this,
         Invocation.method(#startCloseProximityDisclosure, [], {
+          #wrprcStrictMode: wrprcStrictMode,
           #callback: callback,
         }),
       ),
@@ -3388,6 +3412,7 @@ class MockTypedWalletCore extends _i1.Mock implements _i70.TypedWalletCore {
       _i11.dummyValue<String>(
         this,
         Invocation.method(#startCloseProximityDisclosure, [], {
+          #wrprcStrictMode: wrprcStrictMode,
           #callback: callback,
         }),
       ),
@@ -4310,31 +4335,6 @@ class MockWalletCoreApi extends _i1.Mock implements _i14.WalletCoreApi {
   ) as _i9.Future<_i14.IdentifyUriResult>);
 
   @override
-  _i9.Future<_i14.Image> crateModelsImageImageTryJpegFromBytes({
-    required List<int>? value,
-  }) => (super.noSuchMethod(
-    Invocation.method(#crateModelsImageImageTryJpegFromBytes, [], {
-      #value: value,
-    }),
-    returnValue: _i9.Future<_i14.Image>.value(
-      _i11.dummyValue<_i14.Image>(
-        this,
-        Invocation.method(#crateModelsImageImageTryJpegFromBytes, [], {
-          #value: value,
-        }),
-      ),
-    ),
-    returnValueForMissingStub: _i9.Future<_i14.Image>.value(
-      _i11.dummyValue<_i14.Image>(
-        this,
-        Invocation.method(#crateModelsImageImageTryJpegFromBytes, [], {
-          #value: value,
-        }),
-      ),
-    ),
-  ) as _i9.Future<_i14.Image>);
-
-  @override
   _i9.Future<void> crateApiFullInit() => (super.noSuchMethod(
     Invocation.method(#crateApiFullInit, []),
     returnValue: _i9.Future<void>.value(),
@@ -4516,18 +4516,21 @@ class MockWalletCoreApi extends _i1.Mock implements _i14.WalletCoreApi {
 
   @override
   _i9.Future<String> crateApiFullStartCloseProximityDisclosure({
+    required bool? wrprcStrictMode,
     required _i9.FutureOr<void> Function(
       _i14.CloseProximityDisclosureFlutterUpdate,
     )?
     callback,
   }) => (super.noSuchMethod(
     Invocation.method(#crateApiFullStartCloseProximityDisclosure, [], {
+      #wrprcStrictMode: wrprcStrictMode,
       #callback: callback,
     }),
     returnValue: _i9.Future<String>.value(
       _i11.dummyValue<String>(
         this,
         Invocation.method(#crateApiFullStartCloseProximityDisclosure, [], {
+          #wrprcStrictMode: wrprcStrictMode,
           #callback: callback,
         }),
       ),
@@ -4536,6 +4539,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i14.WalletCoreApi {
       _i11.dummyValue<String>(
         this,
         Invocation.method(#crateApiFullStartCloseProximityDisclosure, [], {
+          #wrprcStrictMode: wrprcStrictMode,
           #callback: callback,
         }),
       ),
@@ -7750,10 +7754,29 @@ class MockSkipWalletTransferUseCase extends _i1.Mock implements _i164.SkipWallet
   ) as _i9.Future<_i76.Result<T>>);
 }
 
+/// A class which mocks [CloseProximitySettingsStore].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCloseProximitySettingsStore extends _i1.Mock implements _i165.CloseProximitySettingsStore {
+  @override
+  _i9.Future<bool> getWrprcStrictMode() => (super.noSuchMethod(
+    Invocation.method(#getWrprcStrictMode, []),
+    returnValue: _i9.Future<bool>.value(false),
+    returnValueForMissingStub: _i9.Future<bool>.value(false),
+  ) as _i9.Future<bool>);
+
+  @override
+  _i9.Future<void> setWrprcStrictMode({required bool? enabled}) => (super.noSuchMethod(
+    Invocation.method(#setWrprcStrictMode, [], {#enabled: enabled}),
+    returnValue: _i9.Future<void>.value(),
+    returnValueForMissingStub: _i9.Future<void>.value(),
+  ) as _i9.Future<void>);
+}
+
 /// A class which mocks [StartCloseProximityDisclosureUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStartCloseProximityDisclosureUseCase extends _i1.Mock implements _i165.StartCloseProximityDisclosureUseCase {
+class MockStartCloseProximityDisclosureUseCase extends _i1.Mock implements _i166.StartCloseProximityDisclosureUseCase {
   @override
   _i9.Future<_i76.Result<String>> invoke() => (super.noSuchMethod(
     Invocation.method(#invoke, []),
@@ -7795,10 +7818,10 @@ class MockStartCloseProximityDisclosureUseCase extends _i1.Mock implements _i165
 /// A class which mocks [StartDisclosureUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStartDisclosureUseCase extends _i1.Mock implements _i166.StartDisclosureUseCase {
+class MockStartDisclosureUseCase extends _i1.Mock implements _i167.StartDisclosureUseCase {
   @override
   _i9.Future<_i76.Result<_i20.StartDisclosureResult>> invoke(
-    _i167.StartDisclosureRequest? request,
+    _i168.StartDisclosureRequest? request,
   ) => (super.noSuchMethod(
     Invocation.method(#invoke, [request]),
     returnValue: _i9.Future<_i76.Result<_i20.StartDisclosureResult>>.value(
@@ -7839,12 +7862,12 @@ class MockStartDisclosureUseCase extends _i1.Mock implements _i166.StartDisclosu
 /// A class which mocks [StartIssuanceUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStartIssuanceUseCase extends _i1.Mock implements _i168.StartIssuanceUseCase {
+class MockStartIssuanceUseCase extends _i1.Mock implements _i169.StartIssuanceUseCase {
   @override
   _i9.Future<_i76.Result<_i25.StartIssuanceResult>> invoke(
     String? issuanceUri, {
     bool? isQrCode = false,
-    required _i169.IssuanceType? type,
+    required _i170.IssuanceType? type,
   }) => (super.noSuchMethod(
     Invocation.method(
       #invoke,
@@ -7897,23 +7920,23 @@ class MockStartIssuanceUseCase extends _i1.Mock implements _i168.StartIssuanceUs
 /// A class which mocks [StartSignUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStartSignUseCase extends _i1.Mock implements _i170.StartSignUseCase {
+class MockStartSignUseCase extends _i1.Mock implements _i171.StartSignUseCase {
   @override
-  _i9.Future<_i76.Result<_i171.StartSignResult>> invoke(String? signUri) => (super.noSuchMethod(
+  _i9.Future<_i76.Result<_i172.StartSignResult>> invoke(String? signUri) => (super.noSuchMethod(
     Invocation.method(#invoke, [signUri]),
-    returnValue: _i9.Future<_i76.Result<_i171.StartSignResult>>.value(
-      _i11.dummyValue<_i76.Result<_i171.StartSignResult>>(
+    returnValue: _i9.Future<_i76.Result<_i172.StartSignResult>>.value(
+      _i11.dummyValue<_i76.Result<_i172.StartSignResult>>(
         this,
         Invocation.method(#invoke, [signUri]),
       ),
     ),
-    returnValueForMissingStub: _i9.Future<_i76.Result<_i171.StartSignResult>>.value(
-      _i11.dummyValue<_i76.Result<_i171.StartSignResult>>(
+    returnValueForMissingStub: _i9.Future<_i76.Result<_i172.StartSignResult>>.value(
+      _i11.dummyValue<_i76.Result<_i172.StartSignResult>>(
         this,
         Invocation.method(#invoke, [signUri]),
       ),
     ),
-  ) as _i9.Future<_i76.Result<_i171.StartSignResult>>);
+  ) as _i9.Future<_i76.Result<_i172.StartSignResult>>);
 
   @override
   _i9.Future<_i76.Result<T>> tryCatch<T>(
@@ -7939,7 +7962,7 @@ class MockStartSignUseCase extends _i1.Mock implements _i170.StartSignUseCase {
 /// A class which mocks [StartWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStartWalletTransferUseCase extends _i1.Mock implements _i172.StartWalletTransferUseCase {
+class MockStartWalletTransferUseCase extends _i1.Mock implements _i173.StartWalletTransferUseCase {
   @override
   _i9.Future<_i76.Result<void>> invoke() => (super.noSuchMethod(
     Invocation.method(#invoke, []),
@@ -7975,7 +7998,7 @@ class MockStartWalletTransferUseCase extends _i1.Mock implements _i172.StartWall
 /// A class which mocks [TourOverviewViewedUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTourOverviewViewedUseCase extends _i1.Mock implements _i173.TourOverviewViewedUseCase {
+class MockTourOverviewViewedUseCase extends _i1.Mock implements _i174.TourOverviewViewedUseCase {
   @override
   _i9.Future<_i76.Result<void>> invoke() => (super.noSuchMethod(
     Invocation.method(#invoke, []),
@@ -8011,7 +8034,7 @@ class MockTourOverviewViewedUseCase extends _i1.Mock implements _i173.TourOvervi
 /// A class which mocks [UnlockWalletWithPinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockUnlockWalletWithPinUseCase extends _i1.Mock implements _i174.UnlockWalletWithPinUseCase {
+class MockUnlockWalletWithPinUseCase extends _i1.Mock implements _i175.UnlockWalletWithPinUseCase {
   @override
   _i9.Future<_i76.Result<String?>> invoke(String? pin) => (super.noSuchMethod(
     Invocation.method(#invoke, [pin]),

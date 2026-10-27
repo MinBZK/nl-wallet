@@ -2,6 +2,7 @@
 
 pub use super::admin_portal_login_attempt::Entity as AdminPortalLoginAttempt;
 pub use super::admin_portal_user_session::Entity as AdminPortalUserSession;
+pub use super::admin_task::Entity as AdminTask;
 pub use super::recovery_code::Entity as RecoveryCode;
 pub use super::wallet_flag::Entity as WalletFlag;
 pub use super::wallet_transfer::Entity as WalletTransfer;

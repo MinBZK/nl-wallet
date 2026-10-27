@@ -220,6 +220,12 @@ nav a::before {
   background: url("../images/insurance.svg") no-repeat center center / cover;
 }
 
+#car_insurance::before {
+  background: url("../images/car_insurance.svg") no-repeat center center / cover;
+  background-origin: border-box;
+  border: 1px solid #3a839a;
+}
+
 #housing::before {
   background: url("../images/housing.svg") no-repeat center center / cover;
 }
@@ -237,7 +243,9 @@ nav a::before {
 }
 
 #mvc::before {
-  background: url("../non-free/images/rdw.svg") no-repeat center center / cover;
+  background: url("../non-free/images/rdw_inverted.svg") no-repeat center center / cover;
+  background-origin: border-box;
+  border: 1px solid #cc3300;
 }
 
 #dezi::before {

@@ -151,6 +151,11 @@ mod tests {
 
 #[cfg(any(test, feature = "generate"))]
 pub mod generate {
+    use der::Encode;
+    use der::Sequence;
+    use der::asn1::Ia5StringRef;
+    use der::asn1::OctetStringRef;
+    use der::oid::ObjectIdentifier;
     use p256::ecdsa::SigningKey;
     use p256::pkcs8::DecodePrivateKey;
     use rcgen::BasicConstraints;
@@ -158,7 +163,7 @@ pub mod generate {
     use rcgen::CertificateRevocationList;
     use rcgen::CertificateRevocationListParams;
     use rcgen::CrlDistributionPoint;
-    use rcgen::DnType;
+    use rcgen::CustomExtension;
     use rcgen::IsCa;
     use rcgen::Issuer;
     use rcgen::KeyIdMethod;
@@ -166,13 +171,14 @@ pub mod generate {
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PublicKeyData;
     use rcgen::RevokedCertParams;
-    use rcgen::SanType;
     use rcgen::SerialNumber;
     use rcgen::SubjectPublicKeyInfo;
+    use ring::digest;
     use rustls_pki_types::CertificateDer;
     use rustls_pki_types::TrustAnchor;
     use time::Duration;
     use time::OffsetDateTime;
+    use url::Url;
     use x509_parser::error::X509Error;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
@@ -180,9 +186,11 @@ pub mod generate {
     use crate::server_keys::KeyPair;
     use crate::trust_anchor::BorrowingTrustAnchor;
     use crate::trust_anchor::TrustAnchors;
+    use crate::utils::random_bytes;
     use crate::x509::BorrowingCertificate;
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateParseError;
+    use crate::x509::CertificateProfile;
     use crate::x509::DistinguishedName;
 
     #[derive(thiserror::Error, Debug)]
@@ -207,6 +215,9 @@ pub mod generate {
 
         #[error("certificate parse: {0}")]
         CertificateParse(#[source] CertificateParseError),
+
+        #[error("certificate extension encoding failed: {0}")]
+        ExtensionEncoding(#[source] der::Error),
     }
 
     /// Key usages for CA certificates, which sign other certificates and CRLs.
@@ -214,6 +225,97 @@ pub mod generate {
     /// - RFC 5280, section 4.2.1.3: CAs must include the key usage extension.
     /// - ISO/IEC 18013-5:2021, Table B.1: only keyCertSign and cRLSign.
     const CA_KEY_USAGES: [KeyUsagePurpose; 2] = [KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+
+    /// RFC 5280, section 4.2.1.2: id-ce-subjectKeyIdentifier.
+    const OID_SUBJECT_KEY_IDENTIFIER: &[u64] = &[2, 5, 29, 14];
+
+    /// RFC 5280, section 4.2.1.4: id-ce-certificatePolicies.
+    const OID_CERTIFICATE_POLICIES: &[u64] = &[2, 5, 29, 32];
+
+    /// RFC 5280, section 4.2.2.1: id-pe-authorityInfoAccess, which is { id-pe 1 }.
+    const OID_AUTHORITY_INFO_ACCESS: &[u64] = &[1, 3, 6, 1, 5, 5, 7, 1, 1];
+
+    /// RFC 5280, section 4.2.2.1: id-ad-caIssuers, which is { id-ad 2 } with id-ad from RFC 5280, appendix A.1.
+    const ID_AD_CA_ISSUERS: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.48.2");
+
+    /// RFC 5280, section 4.2.2.1: AccessDescription, where the access location is a GeneralName of the
+    /// uniformResourceIdentifier choice.
+    #[derive(Sequence)]
+    struct AccessDescription<'a> {
+        access_method: ObjectIdentifier,
+        #[asn1(context_specific = "6", tag_mode = "IMPLICIT")]
+        access_location: Ia5StringRef<'a>,
+    }
+
+    /// RFC 3739, section 3.2.6: id-pe-qcStatements, which is { id-pe 3 } with id-pe from RFC 5280, appendix A.1.
+    const OID_QC_STATEMENTS: &[u64] = &[1, 3, 6, 1, 5, 5, 7, 1, 3];
+
+    /// ETSI EN 319 412-5, Annex B: id-etsi-qcs-QcType.
+    const ID_ETSI_QCS_QC_TYPE: ObjectIdentifier = ObjectIdentifier::new_unwrap("0.4.0.1862.1.6");
+
+    /// RFC 3739, section 3.2.6: QCStatement, with the statementInfo of a QcType statement (ETSI EN 319 412-5,
+    /// section 4.2.3).
+    #[derive(Sequence)]
+    struct QcTypeStatement {
+        statement_id: ObjectIdentifier,
+        statement_info: Vec<ObjectIdentifier>,
+    }
+
+    /// Subject key identifier extension for end-entity certificates, computed as the SHA-1 hash of the subjectPublicKey
+    /// BIT STRING value (RFC 5280, section 4.2.1.2, method 1).
+    ///
+    /// ISO/IEC 18013-5, Tables B.3 and B.6 require this exact method, and ETSI TS 119 412-6, PID-4.4.2-01 requires a
+    /// subject key identifier as defined in RFC 5280. We don't let rcgen write it for two reasons:
+    /// - rcgen only writes it for `IsCa::ExplicitNoCa`, which also writes a critical basic constraints extension, while
+    ///   ISO/IEC 18013-5 only allows additional non-critical extensions;
+    /// - rcgen computes it as a truncated SHA-256 hash of the whole SubjectPublicKeyInfo.
+    fn subject_key_identifier_extension(
+        pk: &impl PublicKeyData,
+    ) -> Result<CustomExtension, CertificateGenerationError> {
+        // `der_bytes()` is the subjectPublicKey BIT STRING value, excluding tag, length and number of unused bits.
+        let key_identifier = digest::digest(&digest::SHA1_FOR_LEGACY_USE_ONLY, pk.der_bytes());
+        let content = OctetStringRef::new(key_identifier.as_ref())
+            .and_then(|octet_string| octet_string.to_der())
+            .map_err(CertificateGenerationError::ExtensionEncoding)?;
+
+        Ok(CustomExtension::from_oid_content(OID_SUBJECT_KEY_IDENTIFIER, content))
+    }
+
+    /// QCStatements extension (RFC 3739, section 3.2.6) with a single QcType statement (ETSI EN 319 412-5, section
+    /// 4.2.3) of `qc_type`. It does not contain QcCompliance, as we don't issue EU qualified certificates.
+    ///
+    /// ETSI EN 319 412-5, QCS-4.1-02 requires this extension to be non-critical.
+    fn qc_statements_extension(qc_type: ObjectIdentifier) -> Result<CustomExtension, CertificateGenerationError> {
+        let content = vec![QcTypeStatement {
+            statement_id: ID_ETSI_QCS_QC_TYPE,
+            statement_info: vec![qc_type],
+        }]
+        .to_der()
+        .map_err(CertificateGenerationError::ExtensionEncoding)?;
+
+        Ok(CustomExtension::from_oid_content(OID_QC_STATEMENTS, content))
+    }
+
+    /// Authority information access extension (RFC 5280, section 4.2.2.1) with an id-ad-caIssuers access description
+    /// for each of `ca_issuers`.
+    ///
+    /// ETSI EN 319 412-2, GEN-4.4.1-2 and GEN-4.4.1-3 require it, which applies to wallet provider certificates through
+    /// ETSI TS 119 412-6, WAL-5.1-01 and PID-4.4.3. RFC 5280 requires it to be non-critical.
+    fn authority_info_access_extension(ca_issuers: &[Url]) -> Result<CustomExtension, CertificateGenerationError> {
+        let content = ca_issuers
+            .iter()
+            .map(|ca_issuer| {
+                Ia5StringRef::new(ca_issuer.as_str()).map(|access_location| AccessDescription {
+                    access_method: ID_AD_CA_ISSUERS,
+                    access_location,
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .and_then(|access_descriptions| access_descriptions.to_der())
+            .map_err(CertificateGenerationError::ExtensionEncoding)?;
+
+        Ok(CustomExtension::from_oid_content(OID_AUTHORITY_INFO_ACCESS, content))
+    }
 
     fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateGenerationError> {
         SigningKey::from_pkcs8_der(keypair.serialized_der())
@@ -406,8 +508,27 @@ pub mod generate {
             distinguished_name: DistinguishedName,
             configuration: CertificateConfiguration,
         ) -> Result<BorrowingCertificate, CertificateGenerationError> {
+            let certificate_policies = configuration.profile.and_then(CertificateProfile::certificate_policies);
+            let qc_type = configuration.profile.and_then(CertificateProfile::qc_type);
+            let authority_info_access = (!configuration.ca_issuers.is_empty())
+                .then(|| authority_info_access_extension(&configuration.ca_issuers))
+                .transpose()?;
+
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
+            params.custom_extensions.push(subject_key_identifier_extension(pk)?);
+            if let Some(certificate_policies) = certificate_policies {
+                // ETSI EN 319 412-2, GEN-4.3.3-1 recommends this extension to be non-critical, and ETSI TS 119 412-6,
+                // PID-4.1-02 requires it.
+                params.custom_extensions.push(CustomExtension::from_oid_content(
+                    OID_CERTIFICATE_POLICIES,
+                    certificate_policies.to_vec(),
+                ));
+            }
+            if let Some(qc_type) = qc_type {
+                params.custom_extensions.push(qc_statements_extension(qc_type)?);
+            }
+            params.custom_extensions.extend(authority_info_access);
             params.distinguished_name = distinguished_name
                 .try_into()
                 .map_err(CertificateGenerationError::GeneratingFailed)?;
@@ -498,10 +619,11 @@ pub mod generate {
             if let Some(not_after) = source.not_after.and_then(|ts| ts.timestamp_nanos_opt()) {
                 result.not_after = OffsetDateTime::from_unix_timestamp_nanos(i128::from(not_after)).unwrap();
             }
+            result.serial_number = Some(random_serial_number());
             result.use_authority_key_identifier_extension = !source.exclude_aki;
-            if let Some(usage) = source.usage {
-                result.key_usages = usage.key_usages();
-                result.extended_key_usages.push(usage.to_key_usage_purpose());
+            if let Some(profile) = source.profile {
+                result.key_usages = profile.key_usages();
+                result.extended_key_usages.push(profile.usage().to_key_usage_purpose());
             }
             result.crl_distribution_points = source
                 .crl_distribution_points
@@ -514,13 +636,26 @@ pub mod generate {
         }
     }
 
+    /// RFC 5280, section 4.1.2.2 requires a positive serial number of at most 20 octets that is unique per issuer.
+    /// rcgen derives the serial number from the public key by default, which repeats when a certificate is reissued
+    /// for the same key. A random serial number avoids that. It also makes the content to be signed unpredictable,
+    /// which protects against hash collision attacks.
+    fn random_serial_number() -> SerialNumber {
+        let mut serial_number = random_bytes(20);
+        // Clear the sign bit, so that the serial number is positive and fits in 20 octets.
+        serial_number[0] &= 0x7f;
+        SerialNumber::from(serial_number)
+    }
+
     #[cfg(any(test, feature = "mock"))]
     pub mod mock {
 
         use std::sync::LazyLock;
 
+        use rcgen::DnType;
+        use rcgen::SanType;
+
         use super::*;
-        use crate::x509::CertificateUsage;
         use crate::x509::crl::mock::MOCK_CRL_DISTRIBUTION_POINT;
 
         pub static ISSUER_CA_DN: LazyLock<DistinguishedName> =
@@ -567,7 +702,7 @@ pub mod generate {
             pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     ISSUER_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                    CertificateConfiguration::with_profile(CertificateProfile::Issuer),
                 )
             }
 
@@ -588,21 +723,21 @@ pub mod generate {
             pub fn generate_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     ISSUER_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
+                    CertificateConfiguration::with_profile(CertificateProfile::StatusListSigning),
                 )
             }
 
             pub fn generate_pid_issuer_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     PID_ISSUER_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+                    CertificateConfiguration::with_profile(CertificateProfile::PidIssuer),
                 )
             }
 
             pub fn generate_pid_issuer_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     PID_ISSUER_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::StatusListSigning),
+                    CertificateConfiguration::with_profile(CertificateProfile::StatusListSigning),
                 )
             }
 
@@ -613,14 +748,21 @@ pub mod generate {
             pub fn generate_wia_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     WIA_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::Wia),
+                    CertificateConfiguration::with_profile(CertificateProfile::Wia),
                 )
             }
 
             pub fn generate_key_attestation_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
                 self.generate_key_pair(
                     KEY_ATTESTATION_CERT_DN.clone(),
-                    CertificateConfiguration::with_usage(CertificateUsage::KeyAttestation),
+                    CertificateConfiguration::with_profile(CertificateProfile::KeyAttestation),
+                )
+            }
+
+            pub fn generate_key_storage_status_list_mock(&self) -> Result<KeyPair, CertificateGenerationError> {
+                self.generate_key_pair(
+                    KEY_ATTESTATION_CERT_DN.clone(),
+                    CertificateConfiguration::with_profile(CertificateProfile::StatusListSigning),
                 )
             }
 

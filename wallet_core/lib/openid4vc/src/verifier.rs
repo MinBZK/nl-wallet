@@ -853,7 +853,6 @@ pub struct Verifier<S, US, C> {
     trust_anchors: TrustAnchors,
     #[debug(skip)]
     result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
-    accepted_wallet_client_ids: Vec<String>,
     extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
     revocation_verifier: RevocationVerifier<C>,
 }
@@ -882,13 +881,11 @@ where
     ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these
     ///   CAs.
     /// - `ephemeral_id_secret` is used as a HMAC secret to create ephemeral session IDs.
-    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
         use_cases: US,
         sessions: Arc<S>,
         trust_anchors: TrustAnchors,
         result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
-        accepted_wallet_client_ids: Vec<String>,
         extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
         revocation_verifier: RevocationVerifier<C>,
     ) -> Self
@@ -912,7 +909,6 @@ where
             sessions,
             trust_anchors,
             result_handler,
-            accepted_wallet_client_ids,
             extending_vct_values_store,
             revocation_verifier,
         }
@@ -1003,7 +999,6 @@ where
         let (result, next) = session
             .process_authorization_response(
                 wallet_response,
-                &self.accepted_wallet_client_ids,
                 time,
                 &self.trust_anchors,
                 self.result_handler.as_deref(),
@@ -1421,7 +1416,6 @@ impl Session<WaitingForResponse> {
     async fn process_authorization_response<C>(
         self,
         wallet_response: WalletAuthResponse,
-        accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
         result_handler: Option<&(dyn DisclosureResultHandler + Send + Sync)>,
@@ -1468,7 +1462,6 @@ impl Session<WaitingForResponse> {
             &jwe,
             &self.state().encryption_secret_key,
             &self.state().auth_request,
-            accepted_wallet_client_ids,
             time,
             trust_anchors,
             extending_vct_values,
@@ -1626,7 +1619,6 @@ mod tests {
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
     use super::must_use_return_url;
-    use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::openid4vp::VerifierInfo;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
@@ -1648,7 +1640,7 @@ mod tests {
         let registration_certificate =
             MockRegistrationCertificate::new_verifier(key_pair.certificate(), Query::new_mock_mdoc_pid_example());
         let registration_certificate =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
 
         UseCaseData::new(key_pair, session_type_return_url, registration_certificate)
     }
@@ -1697,7 +1689,6 @@ mod tests {
             sessions,
             trust_anchors,
             None,
-            vec![MOCK_WALLET_CLIENT_ID.to_string()],
             HashMap::default(),
             RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()
@@ -2152,7 +2143,6 @@ mod tests {
             session_store,
             trust_anchors,
             None,
-            vec![MOCK_WALLET_CLIENT_ID.to_string()],
             HashMap::default(),
             RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 Ca::generate_issuer_mock_ca()

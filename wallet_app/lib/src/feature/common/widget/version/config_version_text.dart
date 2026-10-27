@@ -18,19 +18,22 @@ class ConfigVersionText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FlutterAppConfigurationProvider(
-      builder: (config) => Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: context.l10n.generalConfigVersionText,
-              style: prefixTextStyle ?? context.textTheme.bodyMedium,
-            ),
-            alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
-            TextSpan(
-              text: config.versionAndEnvironment,
-              style: valueTextStyle ?? context.textTheme.bodyMedium,
-            ),
-          ],
+      builder: (config) => Semantics(
+        container: true /* keeps sibling rows from merging into a single announcement */,
+        child: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: context.l10n.generalConfigVersionText,
+                style: prefixTextStyle ?? context.textTheme.bodyMedium,
+              ),
+              alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
+              TextSpan(
+                text: config.versionAndEnvironment,
+                style: valueTextStyle ?? context.textTheme.bodyMedium,
+              ),
+            ],
+          ),
         ),
       ),
     );

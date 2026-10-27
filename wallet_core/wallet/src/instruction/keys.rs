@@ -5,11 +5,11 @@ use std::num::NonZeroU8;
 use crypto::WithVerifyingKey;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::p256_der::DerSignature;
-use crypto::wscd::DisclosureResult;
+use crypto::utils::sha256;
 use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use derive_more::Constructor;
 use jwt::nonce::Nonce;
+use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
 use parking_lot::Mutex;
@@ -27,7 +27,6 @@ use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::registration::WalletCertificate;
 use wscd::issuance::IssuanceKeyResult;
 use wscd::issuance::IssuanceWscd;
-use wscd::payload::poa::Poa;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::wia::WiaClient;
 
@@ -82,7 +81,6 @@ where
 {
     type Key = RemoteEcdsaKey;
     type Error = RemoteEcdsaKeyError;
-    type Poa = Poa;
 
     fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         RemoteEcdsaKey {
@@ -94,8 +92,7 @@ where
     async fn sign(
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
-        poa_input: <Self::Poa as WscdPoa>::Input,
-    ) -> Result<DisclosureResult<Self::Poa>, Self::Error> {
+    ) -> Result<Vec<Vec<Signature>>, Self::Error> {
         let sign_result = self
             .instruction_client
             .send(Sign {
@@ -103,11 +100,9 @@ where
                     .into_iter()
                     .map(|(message, keys)| {
                         let identifiers = keys.into_iter().map(|key| key.identifier.clone()).collect();
-                        (message, identifiers)
+                        (sha256(&message), identifiers)
                     })
                     .collect(),
-                poa_aud: poa_input.aud,
-                poa_nonce: poa_input.nonce,
             })
             .await?;
 
@@ -117,7 +112,7 @@ where
             .map(|signatures| signatures.into_iter().map(DerSignature::into_inner).collect())
             .collect();
 
-        Ok(DisclosureResult::new(signatures, sign_result.poa))
+        Ok(signatures)
     }
 }
 

@@ -12,7 +12,7 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use cose::CoseAlgorithmIdentifier;
-use cose::KnownCoseAlgorithmIdentifier;
+use coset::iana;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -20,7 +20,6 @@ use derive_more::Into;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwk_simple::Algorithm;
-use jwk_simple::Key;
 use jwt::JwtTyp;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::issuer_identifier::IssuerUrl;
@@ -48,6 +47,7 @@ use wscd::payload::key_attestation::AttackPotentialResistance;
 
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
+use crate::jwks::Jwks;
 
 /// Represents a Credential Configuration Identifier as contained in the `credential_configurations_supported` section
 /// of the Issuer Metadata. This is a newtype around [`String`] that exists purely for semantic reasons.
@@ -229,7 +229,7 @@ pub struct CredentialRequestEncryption {
     /// ID) parameter that uniquely identifies the key.
     // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
     //                  request encryption. Additionally this should check for the presence of `kid` parameters.
-    pub jwks: VecNonEmpty<Key>,
+    pub jwks: Jwks,
 
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
     /// by the Credential Endpoint to decode the Credential Request from a JWT.
@@ -387,16 +387,11 @@ pub struct CredentialConfiguration {
 }
 
 impl CredentialConfiguration {
-    pub fn new_mdoc_ecdsa_p256_sha256(
-        doctype: String,
-        scope: Scope,
-        proof_types: HashSet<ProofType>,
-        credential_metadata: CredentialMetadata,
-    ) -> Self {
+    pub fn new_mdoc_ecdsa_p256_sha256(doctype: String, scope: Scope, credential_metadata: CredentialMetadata) -> Self {
         Self {
             format: CredentialFormat::new_mdoc_ecdsa_p256_sha256(doctype),
             scope: Some(scope),
-            cryptographic_binding: Some(CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types)),
+            cryptographic_binding: Some(CryptographicBinding::new_mdoc_ecdsa_p256_sha256()),
             credential_metadata: Some(credential_metadata),
         }
     }
@@ -404,14 +399,13 @@ impl CredentialConfiguration {
     pub fn new_sd_jwt_ecdsa_p256_sha256(
         vct: String,
         scope: Scope,
-        proof_types: HashSet<ProofType>,
         credential_metadata: CredentialMetadata,
         type_metadata_uri: Option<IssuerUrl>,
     ) -> Self {
         Self {
             format: CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct, type_metadata_uri),
             scope: Some(scope),
-            cryptographic_binding: Some(CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types)),
+            cryptographic_binding: Some(CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256()),
             credential_metadata: Some(credential_metadata),
         }
     }
@@ -491,7 +485,7 @@ impl CredentialFormat {
     fn new_mdoc_ecdsa_p256_sha256(doctype: String) -> Self {
         Self::MsoMdoc {
             doctype,
-            credential_signing_alg_values_supported: Some(vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()]),
+            credential_signing_alg_values_supported: Some(vec_nonempty![iana::Algorithm::ESP256.into()]),
         }
     }
 
@@ -522,28 +516,21 @@ pub struct CryptographicBinding {
 }
 
 impl CryptographicBinding {
-    fn new_mdoc_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
-        Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::CoseKey, proof_types)
+    fn new_mdoc_ecdsa_p256_sha256() -> Self {
+        Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::CoseKey)
     }
 
-    fn new_sd_jwt_ecdsa_p256_sha256(proof_types: HashSet<ProofType>) -> Self {
-        Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::Jwk, proof_types)
+    fn new_sd_jwt_ecdsa_p256_sha256() -> Self {
+        Self::new_ecdsa_p256_sha256(CryptographicBindingMethod::Jwk)
     }
 
-    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod, proof_types: HashSet<ProofType>) -> Self {
+    fn new_ecdsa_p256_sha256(binding_method: CryptographicBindingMethod) -> Self {
+        // Even though support for both the `attestation` and `jwt` proof types is mandatory, we decide to only
+        // implement the `attestation` proof type here, as this Issuer implementation need not be fully compliant.
+        // The `jwt` proof type does not add significant additional benefits over the `attestation` proof type.
         Self {
             cryptographic_binding_methods_supported: vec_nonempty![binding_method],
-            proof_types_supported: proof_types
-                .into_iter()
-                .map(|proof_type| {
-                    let requires_key_attestation = matches!(proof_type, ProofType::Attestation);
-
-                    (
-                        proof_type,
-                        ProofMetadata::new_ecdsa_p256_sha256(requires_key_attestation),
-                    )
-                })
-                .collect(),
+            proof_types_supported: HashMap::from([(ProofType::Attestation, ProofMetadata::new_ecdsa_p256_sha256())]),
         }
     }
 }
@@ -572,7 +559,6 @@ pub enum CryptographicBindingMethod {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProofType {
-    Jwt,
     Attestation,
 
     // Allow the issuer to announce types that the wallet doesn't support.
@@ -596,15 +582,13 @@ pub struct ProofMetadata {
 }
 
 impl ProofMetadata {
-    fn new_ecdsa_p256_sha256(requires_key_attestation: bool) -> Self {
-        let key_attestations_required = requires_key_attestation.then(|| KeyAttestationsRequired {
-            key_storage: HashSet::from([AttackPotentialResistance::Iso18045High]),
-            user_authentication: HashSet::from([AttackPotentialResistance::Iso18045High]),
-        });
-
+    fn new_ecdsa_p256_sha256() -> Self {
         Self {
             proof_signing_alg_values_supported: vec_nonempty![JwsAlgorithm::ES256],
-            key_attestations_required,
+            key_attestations_required: Some(KeyAttestationsRequired {
+                key_storage: HashSet::from([AttackPotentialResistance::Iso18045High]),
+                user_authentication: HashSet::from([AttackPotentialResistance::Iso18045High]),
+            }),
         }
     }
 }
@@ -929,6 +913,7 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use base64::prelude::*;
     use chrono::DateTime;
+    use coset::iana;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
     use jwe::algorithm::EncryptionAlgorithm;
@@ -956,7 +941,6 @@ mod tests {
     use super::IssuerMetadata;
     use super::JoinCredentialConfigurationId;
     use super::JwsAlgorithm;
-    use super::KnownCoseAlgorithmIdentifier;
     use super::Logo;
     use super::NameLocale;
     use super::SignedIssuerMetadataPayload;
@@ -1082,6 +1066,10 @@ mod tests {
     #[test]
     fn test_sd_jwt_issuer_metadata_deserialization() {
         // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-I.1-4
+        // Note: the `credential_request_encryption` format in the (non-normative) example from the spec doesn't match
+        // the normative text from the spec
+        // (https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4-2.7.1). For that
+        // reason, the example below has been changed to adhere to [RFC7591].
         let example_json = json!({
             "credential_issuer": "https://credential-issuer.example.com",
             "authorization_servers": [
@@ -1092,13 +1080,15 @@ mod tests {
             "deferred_credential_endpoint": "https://credential-issuer.example.com/deferred_credential",
             "notification_endpoint": "https://credential-issuer.example.com/notification",
             "credential_request_encryption": {
-                "jwks": [
-                    {
-                        "kty":"EC", "kid":"ac", "use":"enc", "crv":"P-256", "alg":"ECDH-ES",
-                        "x":"YO4epjifD-KWeq1sL2tNmm36BhXnkJ0He-WqMYrp9Fk",
-                        "y":"Hekpm0zfK7C-YccH5iBjcIXgf6YdUvNUac_0At55Okk"
-                    }
-                ],
+                "jwks": {
+                    "keys": [
+                        {
+                            "kty":"EC", "kid":"ac", "use":"enc", "crv":"P-256", "alg":"ECDH-ES",
+                            "x":"YO4epjifD-KWeq1sL2tNmm36BhXnkJ0He-WqMYrp9Fk",
+                            "y":"Hekpm0zfK7C-YccH5iBjcIXgf6YdUvNUac_0At55Okk"
+                        }
+                    ]
+                },
                 "enc_values_supported": ["A128GCM"],
                 "zip_values_supported": ["DEF"],
                 "encryption_required": true
@@ -1256,8 +1246,8 @@ mod tests {
                 .credential_request_encryption
                 .as_ref()
                 .expect("IssuerMetadata should contain CredentialRequestEncryption");
-            assert_eq!(request_encryption.jwks.len().get(), 1);
-            assert_matches!(request_encryption.jwks.first().params(), KeyParams::Ec(_));
+            assert_eq!(request_encryption.jwks.keys.len().get(), 1);
+            assert_matches!(request_encryption.jwks.keys.first().params(), KeyParams::Ec(_));
             assert!(
                 request_encryption
                     .enc_values_supported
@@ -1572,8 +1562,8 @@ mod tests {
                     .map(|values| values.iter())
                     .unwrap_or_default()
                     .eq(&[
-                        CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Es256),
-                        CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Esp256)
+                        CoseAlgorithmIdentifier::Known(iana::Algorithm::ES256),
+                        CoseAlgorithmIdentifier::Known(iana::Algorithm::ESP256)
                     ])
         );
 

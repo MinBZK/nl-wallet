@@ -1,12 +1,8 @@
-use std::hash::Hash;
-use std::hash::Hasher;
 use std::num::NonZeroUsize;
 
-use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
-use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::p256_der::DerSignature;
 use futures::future;
@@ -15,17 +11,15 @@ use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use itertools::Itertools;
-use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
-use serde::Deserialize;
 use serde::Serialize;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
-use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 use wallet_account::NL_WALLET_CLIENT_ID;
@@ -69,10 +63,8 @@ use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
-use wscd::payload::jwt_proof::JwtProofClaims;
 use wscd::payload::key_attestation::KeyAttestation;
-use wscd::payload::poa::POA_JWT_TYP;
-use wscd::payload::poa::Poa;
+use wscd::payload::status_claim::TimeBoundedStatusClaim;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::payload::wia::WiaPopClaims;
 
@@ -168,6 +160,7 @@ impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for DiscloseRecoveryCode {}
 impl ValidateInstruction for DeleteKeys {}
+impl ValidateInstruction for Sign {}
 
 impl ValidateInstruction for IssueWia {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -176,24 +169,6 @@ impl ValidateInstruction for IssueWia {
         validate_wallet_user_not_transferred(wallet_user)?;
         validate_no_pin_change_in_progress(wallet_user)?;
         validate_no_transfer_in_progress(wallet_user)
-    }
-}
-
-impl ValidateInstruction for Sign {
-    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        default_validation(wallet_user)?;
-
-        if self
-            .messages_with_identifiers
-            .iter()
-            .any(|(msg, _)| is_poa_message(msg))
-        {
-            let user = &wallet_user.id;
-            warn!("user {user} attempted to sign a PoA via the Sign instruction instead of ConstructPoa");
-            return Err(InstructionValidationError::PoaMessage);
-        }
-
-        Ok(())
     }
 }
 
@@ -465,6 +440,9 @@ where
         ));
     }
 
+    let key_storage_maintenance_period =
+        DateTimeSeconds::new(time.generate() + user_state.key_storage_status_tracking_validity);
+
     let (set_results, wrapped_keys): (Vec<_>, Vec<_>) = future::try_join_all(instruction.key_requests.into_iter().map(
         async |request| -> Result<_, InstructionError> {
             let (identifiers, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
@@ -482,10 +460,16 @@ where
                 .map(|wrapped_key| PublicKey::from(*wrapped_key.public_key()))
                 .collect::<VecNonEmpty<_>>();
 
+            let key_storage_status = TimeBoundedStatusClaim::new(
+                user_state.key_storage_status_list.status_claim.clone(),
+                key_storage_maintenance_period,
+            );
+
             let attestation = KeyAttestation::sign(
                 &public_keys,
                 user_state.key_attestation_certification.clone(),
                 request.proof_nonce,
+                key_storage_status,
                 &user_state.key_attestation_key_pair,
                 time,
             )
@@ -578,7 +562,7 @@ where
     let now: DateTime<Utc> = generators.generate();
     let exp = now + user_state.wia_status_tracking_validity;
     let status_claim = user_state
-        .status_list_service
+        .wia_status_list
         .obtain_status_claims(
             wia_id,
             Some(exp.into()),
@@ -606,23 +590,6 @@ where
         .map_err(|e| InstructionError::WiaIssuance(Box::new(e)))?;
 
     Ok(wia_disclosure)
-}
-
-fn attestation_key<'a, T, R, H>(
-    wrapped_key: &'a WrappedKey,
-    kid: &Kid,
-    user_state: &'a UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
-) -> HsmCredentialSigningKey<'a, H>
-where
-    T: Committable,
-    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
-{
-    HsmCredentialSigningKey {
-        hsm: &user_state.wallet_user_hsm,
-        wrapped_key,
-        wrapping_key_identifier: attestation_wrapping_key_identifier(kid),
-    }
 }
 
 impl HandleInstruction for PerformIssuance {
@@ -711,7 +678,7 @@ impl HandleInstruction for Sign {
     async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        generators: &G,
+        _generators: &G,
         user_state: &UserState<R, impl WalletFlags, H, impl SecureEcdsaKey, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<SignResult, InstructionError>
@@ -748,7 +715,7 @@ impl HandleInstruction for Sign {
                     .sign_wrapped(
                         &attestation_wrapping_key_identifier(&wrapped_key.kid),
                         wrapped_key.value,
-                        data,
+                        *data,
                     )
                     .await
                     .map(DerSignature::from)
@@ -758,32 +725,7 @@ impl HandleInstruction for Sign {
         }))
         .await?;
 
-        // A PoA should be generated only if the unique keys, i.e. the keys referenced in the instruction
-        // after deduplication, count two or more.
-        if VecAtLeastTwoUnique::try_from(found_keys.values().map(|wrapped_key| &wrapped_key.value).collect_vec())
-            .is_ok()
-        {
-            // We have to feed a Vec of references to `Poa::new()`, so we need to iterate twice to construct that.
-            let keys = found_keys
-                .values()
-                .map(|wrapped_key| attestation_key(&wrapped_key.value, &wrapped_key.kid, user_state))
-                .collect_vec();
-            let keys = keys.iter().collect_vec().try_into().unwrap_or_else(|_| unreachable!()); // We know there are at least two keys
-            let claims = JwtProofClaims::new(
-                NL_WALLET_CLIENT_ID.to_string(),
-                self.poa_aud,
-                self.poa_nonce,
-                generators,
-            );
-            let poa = Poa::new(keys, claims).await?;
-
-            Ok(SignResult {
-                signatures,
-                poa: Some(poa),
-            })
-        } else {
-            Ok(SignResult { signatures, poa: None })
-        }
+        Ok(SignResult { signatures })
     }
 }
 
@@ -1403,86 +1345,6 @@ where
     Ok(transfer_session)
 }
 
-struct HsmCredentialSigningKey<'a, H> {
-    hsm: &'a H,
-    wrapped_key: &'a WrappedKey,
-    wrapping_key_identifier: String,
-}
-
-impl<H> PartialEq for HsmCredentialSigningKey<'_, H> {
-    fn eq(&self, other: &Self) -> bool {
-        self.wrapped_key == other.wrapped_key
-    }
-}
-
-impl<H> Eq for HsmCredentialSigningKey<'_, H> {}
-
-impl<H> Hash for HsmCredentialSigningKey<'_, H> {
-    fn hash<HASH: Hasher>(&self, state: &mut HASH) {
-        self.wrapped_key.hash(state);
-    }
-}
-
-impl<H> EcdsaKey for HsmCredentialSigningKey<'_, H>
-where
-    H: Pkcs11Client,
-{
-    type Error = HsmError;
-
-    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        Ok(*self.wrapped_key.public_key())
-    }
-
-    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        self.hsm
-            .sign_wrapped(&self.wrapping_key_identifier, self.wrapped_key.clone(), msg)
-            .await
-    }
-}
-
-/// Test if the `message` is the payload of a PoA JWT, i.e. `header.body` where `header` is the base64url encoding
-/// of a JSON object containing `"typ":"poa+jwt"`.
-///
-/// This function must be used by the signing instructions to prevent a user from signing a PoA without
-/// using the intended `ConstructPoa` instruction for that. It should therefore be resistant to "tricks"
-/// such as include whitespace in the JSON or mess with the casing of the casing of the value of the `typ` field.
-///
-/// Since this function is executed for every single message that the WP signs for a wallet, before JSON deserialization
-/// of the header we do a number of cheaper checks to return early if the passed message is clearly not a PoA JWT
-/// payload.
-fn is_poa_message(message: &[u8]) -> bool {
-    // A JWT payload contains a single dot which is not located at the beginning of the string.
-    let predicate = |&x| x == b'.';
-    let dot_pos = match message.iter().position(predicate) {
-        None | Some(0) => return false, // a string without dot, or whose first character is a dot is not a JWT payload
-        Some(dot_pos) => {
-            if message.iter().skip(dot_pos + 1).any(predicate) {
-                return false; // a string with more than one dot is not a JWT payload
-            }
-
-            dot_pos
-        }
-    };
-
-    let first_part = &message[0..dot_pos];
-    let Ok(decoded) = BASE64_URL_SAFE_NO_PAD.decode(first_part) else {
-        return false; // not a PoA in case of Base64url decoding errors
-    };
-
-    // We use a custom `Header` struct here as opposed to `jsonwebtoken::Header` so as to only deserialize
-    // the `typ` field and not any of the other ones in `jsonwebtoken::Header`.
-    #[derive(Deserialize)]
-    struct Header {
-        typ: String,
-    }
-
-    let Ok(header) = serde_json::from_slice::<Header>(&decoded) else {
-        return false; // not a PoA in case of JSON deserialization errors
-    };
-
-    header.typ.to_ascii_lowercase() == POA_JWT_TYP
-}
-
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -1493,13 +1355,12 @@ mod tests {
     use std::sync::LazyLock;
     use std::sync::Mutex;
 
-    use base64::prelude::*;
     use chrono::Utc;
-    use crypto::PublicKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
+    use crypto::utils::sha256;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::model::wrapped_key::WrappedKey;
     use hsm::service::HsmError;
@@ -1567,7 +1428,6 @@ mod tests {
     use crate::instructions::HandleInstruction;
     use crate::instructions::InstructionError;
     use crate::instructions::ValidateInstruction;
-    use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
 
     pub async fn user_state<R>(
@@ -1652,18 +1512,16 @@ mod tests {
     async fn should_handle_sign() {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_kid = Kid::try_from("0").unwrap();
-        let poa_nonce = Some(Nonce::from("nonce".to_string()));
-        let poa_aud = "aud".to_string();
 
+        // The instruction contains SHA-256 digests, so that the signatures verify as normal ECDSA signatures
+        // over the messages themselves.
         let random_msg_1 = random_bytes(32);
         let random_msg_2 = random_bytes(32);
         let instruction = Sign {
             messages_with_identifiers: vec![
-                (random_msg_1.clone(), vec!["key1".to_string(), "key2".to_string()]),
-                (random_msg_2.clone(), vec!["key2".to_string()]),
+                (sha256(&random_msg_1), vec!["key1".to_string(), "key2".to_string()]),
+                (sha256(&random_msg_2), vec!["key2".to_string()]),
             ],
-            poa_nonce: poa_nonce.clone(),
-            poa_aud: poa_aud.clone(),
         };
         let signing_key_1 = SigningKey::generate();
         let signing_key_2 = SigningKey::generate();
@@ -1725,20 +1583,6 @@ mod tests {
             .verifying_key()
             .verify(&random_msg_2, result.signatures[1][0].as_inner())
             .unwrap();
-
-        result
-            .poa
-            .unwrap()
-            .verify(
-                &[
-                    PublicKey::from(signing_key_1_public),
-                    PublicKey::from(signing_key_2_public),
-                ],
-                &poa_aud,
-                &[NL_WALLET_CLIENT_ID.to_string()],
-                poa_nonce.as_ref().unwrap(),
-            )
-            .unwrap();
     }
 
     #[tokio::test]
@@ -1748,9 +1592,7 @@ mod tests {
         let stored_wrapping_kid = Kid::try_from("1").unwrap();
 
         let instruction = Sign {
-            messages_with_identifiers: vec![(random_bytes(32), vec!["key1".to_owned()])],
-            poa_nonce: None,
-            poa_aud: "aud".to_owned(),
+            messages_with_identifiers: vec![(random_bytes(32).try_into().unwrap(), vec!["key1".to_owned()])],
         };
         let signing_key = SigningKey::generate();
 
@@ -2170,7 +2012,7 @@ mod tests {
 
         let mut user_state = user_state_with_ca(wallet_user_repo, wrapping_kid, &issuer_ca).await;
         user_state
-            .status_list_service
+            .wia_status_list
             .expect_revoke_attestation_batches()
             .times(2)
             .returning(|_| Ok(()));
@@ -2240,61 +2082,6 @@ mod tests {
             .expect_err("PIN recovery should have failed");
 
         assert_matches!(err, InstructionError::PinRecoveryAccountMismatch);
-    }
-
-    fn mock_jwt_payload(header: &str) -> Vec<u8> {
-        (BASE64_URL_SAFE_NO_PAD.encode(header) + "." + &BASE64_URL_SAFE_NO_PAD.encode("{}")).into_bytes()
-    }
-
-    #[rstest]
-    #[case(mock_jwt_payload(r#"{"typ":"poa+jwt"}"#), true)]
-    #[case(mock_jwt_payload(r#"{"typ":"poa+JWT"}"#), true)] // accept any casing of the field value
-    #[case(mock_jwt_payload(r#"{"typ":"PoA+jWt"}"#), true)]
-    #[case(mock_jwt_payload(r#"{"typ": "poa+jwt"}"#), true)] // whitespace in the JSON doesn't matter
-    #[case(mock_jwt_payload(r#"{ "typ":"poa+jwt"}"#), true)]
-    #[case(mock_jwt_payload(r#" {"typ": "poa+jwt"}"#), true)]
-    #[case(mock_jwt_payload(r#"{ "typ": "poa+jwt"}"#), true)]
-    #[case(mock_jwt_payload(r#"{	"typ":"poa+jwt"}"#), true)]
-    #[case(
-        mock_jwt_payload(
-            r#"{"typ"
-:"poa+jwt"}"#
-        ),
-        true
-    )]
-    #[case(
-        mock_jwt_payload(
-            r#" {	"typ":
-"poa+jwt"}"#
-        ),
-        true
-    )]
-    #[case(mock_jwt_payload(r#"{"Typ":"poa+jwt"}"#), false)] // a differently cased field name is a different field
-    #[case(mock_jwt_payload(r#"{" typ":"poa+jwt"}"#), false)] // whitespace in the field name is a different field
-    #[case(mock_jwt_payload(r#"{"typ":" poa+jwt"}"#), false)] // or in the field value
-    #[case(mock_jwt_payload(r#"{"typ":"jwt"}"#), false)] // an ordinary JWT is not a PoA
-    #[case(mock_jwt_payload(r#"{"typ":42}"#), false)] // Invalid JSON is not a PoA
-    #[case(mock_jwt_payload(r#"{"typ"}"#), false)]
-    #[case(".blah".to_string().into_bytes(), false)]
-    #[case([".".to_string().into_bytes(), mock_jwt_payload(r#"{"typ":"jwt"}"#)].concat(), false)]
-    #[case([mock_jwt_payload(r#"{"typ":"poa+jwt"}"#), ".blah".to_string().into_bytes()].concat(), false)]
-    #[test]
-    fn test_is_poa_message(#[case] msg: Vec<u8>, #[case] is_poa: bool) {
-        assert_eq!(is_poa_message(&msg), is_poa);
-    }
-
-    #[tokio::test]
-    async fn test_cannot_sign_poa_via_sign_instruction() {
-        let wallet_user = wallet_user::mock::wallet_user_1();
-
-        let instruction = Sign {
-            messages_with_identifiers: vec![(mock_jwt_payload(r#"{"typ":"poa+jwt"}"#), vec!["key".to_string()])],
-            poa_nonce: Some(Nonce::from("nonce".to_string())),
-            poa_aud: "aud".to_string(),
-        };
-
-        let err = instruction.validate_instruction(&wallet_user).unwrap_err();
-        assert_matches!(err, InstructionValidationError::PoaMessage);
     }
 
     async fn handle_issuance_instruction<R, I: HandleInstruction<Result = R>>(
@@ -2446,8 +2233,6 @@ mod tests {
     fn mock_sign_instruction() -> Sign {
         Sign {
             messages_with_identifiers: vec![],
-            poa_nonce: None,
-            poa_aud: "aud".to_string(),
         }
     }
 

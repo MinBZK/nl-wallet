@@ -42,6 +42,8 @@ void main() {
           serviceDescription: [],
           identifier: '',
           countryCode: '',
+          supportUri: 'https://example.org/support',
+          personType: PersonType.LegalPerson,
         ),
         sharedDataWithRelyingPartyBefore: false,
         sessionType: DisclosureSessionType.CrossDevice,

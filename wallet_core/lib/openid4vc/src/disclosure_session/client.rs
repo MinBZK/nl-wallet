@@ -313,6 +313,7 @@ mod tests {
     use base64::prelude::*;
     use cose::wrprc_cwt::SignedWrprcCwt;
     use crypto::PublicKey;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -334,6 +335,7 @@ mod tests {
     use sd_jwt::builder::SignedSdJwt;
     use serde::Serialize;
     use serde::de::Error;
+    use serde_json::json;
     use token_status_list::verification::client::StatusListClient;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
@@ -341,8 +343,6 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock::MOCK_WALLET_CLIENT_ID;
-    use wscd::mock_remote::MockRemoteWscd;
 
     use super::super::DisclosableAttestations;
     use super::super::DisclosureClient;
@@ -566,7 +566,7 @@ mod tests {
         // Create an attestation and disclose it.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let attestation_key = MockRemoteEcdsaKey::new_random("attestation_key".to_string());
-        let wscd = MockRemoteWscd::new_with_keys(vec![attestation_key.clone()]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![attestation_key.clone()]);
 
         let attestations = match credential_format {
             Format::MsoMdoc => {
@@ -627,7 +627,6 @@ mod tests {
             jwe,
             &verifier_session.encryption_secret_key,
             &verifier_session.normalized_auth_request(wallet_nonce),
-            &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
             &ca.to_trust_anchors(),
             &ExtendingVctRetrieverStub,
@@ -723,8 +722,6 @@ mod tests {
 
     #[rstest]
     #[case::not_an_envelope(b"not a registration certificate")]
-    #[case::missing_jwt_part(b"header.payload")]
-    #[case::extra_jwt_part(b"header.payload.signature.extra")]
     #[case::invalid_utf8(b"\xff")]
     fn test_vp_disclosure_client_does_not_report_malformed_registration_certificate(
         #[case] malformed_certificate: &[u8],
@@ -780,6 +777,39 @@ mod tests {
         );
     }
 
+    #[rstest]
+    #[case::missing_jwt_part(|jwt: &str| jwt.rsplit_once('.').unwrap().0.to_string())]
+    #[case::extra_jwt_part(|jwt: &str| format!("{jwt}.extra"))]
+    fn test_vp_disclosure_client_reports_malformed_registration_certificate_jwt(
+        #[case] malformed_jwt: fn(&str) -> String,
+    ) {
+        let (error, verifier_session) = start_disclosure_session_format(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            VpRequestUriMethod::GET,
+            None,
+            Format::MsoMdoc,
+            |mut verifier_session| {
+                let registration_certificate = verifier_session.registration_certificate.as_mut().unwrap();
+                let jwt = std::str::from_utf8(&registration_certificate.certificate).unwrap();
+                registration_certificate.certificate = malformed_jwt(jwt).into_bytes();
+                verifier_session
+            },
+        )
+        .expect_err("a malformed registration certificate JWT should be rejected during verification");
+
+        assert_matches!(
+            *error,
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
+                AuthRequestValidationError::RegistrationCertificate(ref registration_error)
+            )) if matches!(registration_error.as_ref(), RegistrationCertificateError::Envelope(_))
+        );
+        assert_matches!(
+            verifier_session.wallet_messages.lock().last(),
+            Some(WalletMessage::Error(response)) if response.error_response.error == VpAuthorizationErrorCode::InvalidRequest
+        );
+    }
+
     #[test]
     fn test_vp_disclosure_client_rejects_query_not_authorized_by_registration_certificate() {
         let (error, verifier_session) = start_disclosure_session_format(
@@ -830,7 +860,7 @@ mod tests {
             verifier_session.key_pair.certificate(),
             verifier_session.credential_requests.clone().into(),
         );
-        payload.0.as_object_mut().unwrap().remove("id");
+        payload.0["country"] = json!("N");
         let ca = Ca::generate_mock();
         let signer = ca.generate_issuer_mock().unwrap();
         let certificate = match format {
@@ -877,7 +907,7 @@ mod tests {
             VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
                 AuthRequestValidationError::RegistrationCertificate(ref registration_error)
             )) if matches!(registration_error.as_ref(), RegistrationCertificateError::Envelope(_))
-                && registration_error.to_string().contains(&RegistrationCertificateValidationError::MissingId.to_string())
+                && registration_error.to_string().contains(&RegistrationCertificateValidationError::InvalidCountry.to_string())
         );
         assert_matches!(
             verifier_session.wallet_messages.lock().last(),

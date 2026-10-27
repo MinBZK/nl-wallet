@@ -230,7 +230,7 @@ workspace "Name" "NL-Wallet" {
         //issuerPid.authServer -> digid "Retrieve authentication result"
 
         //issuerPid.pidIssuer -> issuerPid.mockUserStorage "Fetch PID-Attributes"
-        ws.walletApp.appCore -> issuerPid.vvPid  "Retrieve PID / Disclose WIA + PoA"
+        ws.walletApp.appCore -> issuerPid.vvPid  "Retrieve PID / Disclose WIA"
         //issuerPid.vvPid.issuing  -> issuerPid.pidIssuer "Retrieve attestation data"
         issuerPid.vvPid.issuing  -> issuerPid.mockUserStorage "Retrieve attestation data"
         //issuerPid.mockUserStorage -> haalCentraal "Call BRP V"

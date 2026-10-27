@@ -40,6 +40,12 @@ impl StatusListToken {
             status_list,
         }
     }
+
+    pub fn into_inner(self) -> UnverifiedJwt<StatusListClaims, HeaderWithX5c> {
+        let Self(inner) = self;
+
+        inner
+    }
 }
 
 pub struct StatusListTokenBuilder {
@@ -111,9 +117,6 @@ pub mod verification {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::trust_anchor::TrustAnchors;
-    use crypto::x509::CanocalizationError;
-    use crypto::x509::CanonicalDistinguishedName;
-    use crypto::x509::CertificateUsage;
     use jwt::DEFAULT_VALIDATION;
     use jwt::error::JwtX5cVerifyError;
     use url::Url;
@@ -134,43 +137,23 @@ pub mod verification {
 
         #[error("JWT subject claim ('{sub}') does not match url claim of Reference Token ('{url}')")]
         UnexpectedSubject { sub: Box<Url>, url: Box<Url> },
-
-        #[error("DN is missing in certificate")]
-        MissingDN(#[source] CanocalizationError),
-
-        #[error("DN from SLT ('{slt}') is different from attestation ('{attestation}')")]
-        DifferentDN {
-            slt: CanonicalDistinguishedName,
-            attestation: CanonicalDistinguishedName,
-        },
     }
 
     impl StatusListToken {
         pub fn parse_and_verify(
             &self,
-            issuer_trust_anchors: &TrustAnchors,
-            attestation_signing_certificate_dn: CanonicalDistinguishedName,
+            trust_anchors: &TrustAnchors,
             url: Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<StatusListClaims, StatusListTokenVerificationError> {
-            let (header, claims) = self.0.parse_and_verify_against_trust_anchors(
-                issuer_trust_anchors,
+            // No extended key usage is required of the signer: neither the Token Status List draft nor ETSI TS 119 475
+            // requires one, and the OID in the draft is not yet assigned.
+            let (_, claims) = self.0.parse_and_verify_against_trust_anchors(
+                trust_anchors,
                 time,
-                Some(CertificateUsage::StatusListSigning),
+                None,
                 DEFAULT_VALIDATION.to_owned(),
             )?;
-
-            let slt_dn = header
-                .x5c
-                .first()
-                .to_canonical_distinguished_name()
-                .map_err(StatusListTokenVerificationError::MissingDN)?;
-            if slt_dn != attestation_signing_certificate_dn {
-                return Err(StatusListTokenVerificationError::DifferentDN {
-                    slt: slt_dn,
-                    attestation: attestation_signing_certificate_dn,
-                });
-            }
 
             if url != claims.sub {
                 return Err(StatusListTokenVerificationError::UnexpectedSubject {
@@ -291,14 +274,12 @@ mod test {
     async fn test_status_list_token_verification() {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
-        let iss_keypair = ca.generate_issuer_mock().unwrap();
 
         let (_, expected_claims, signed) = create_status_list_token(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
 
         let err = signed
             .parse_and_verify(
                 &TrustAnchors::empty(),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 expected_claims.sub.clone(),
                 &MockTimeGenerator::default(),
             )
@@ -311,31 +292,15 @@ mod test {
         let err = signed
             .parse_and_verify(
                 &ca.to_trust_anchors(),
-                ca.generate_pid_issuer_mock()
-                    .unwrap()
-                    .certificate()
-                    .to_canonical_distinguished_name()
-                    .unwrap(),
-                expected_claims.sub.clone(),
-                &MockTimeGenerator::default(),
-            )
-            .expect_err("should not verify for attestation signing certificate with different DN");
-        assert_matches!(err, StatusListTokenVerificationError::DifferentDN { .. });
-
-        let err = signed
-            .parse_and_verify(
-                &ca.to_trust_anchors(),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 "http://example.com/sub".parse().unwrap(),
                 &MockTimeGenerator::default(),
             )
-            .expect_err("should not verify for attestation signing certificate with different sub claim");
+            .expect_err("should not verify for different sub claim");
         assert_matches!(err, StatusListTokenVerificationError::UnexpectedSubject { .. });
 
         let err = signed
             .parse_and_verify(
                 &ca.to_trust_anchors(),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
                 expected_claims.sub.clone(),
                 &MockTimeGenerator::new(DateTime::from_timestamp(SLT_EXP, 0).unwrap().add(Days::new(1))),
             )
@@ -345,7 +310,22 @@ mod test {
         signed
             .parse_and_verify(
                 &ca.to_trust_anchors(),
-                iss_keypair.certificate().to_canonical_distinguished_name().unwrap(),
+                expected_claims.sub,
+                &MockTimeGenerator::default(),
+            )
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_status_list_token_verification_without_status_list_usage() {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_mock().unwrap();
+
+        let (_, expected_claims, signed) = create_status_list_token(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
+
+        signed
+            .parse_and_verify(
+                &ca.to_trust_anchors(),
                 expected_claims.sub,
                 &MockTimeGenerator::default(),
             )

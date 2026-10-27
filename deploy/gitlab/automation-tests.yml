@@ -1,5 +1,7 @@
 browsertests-format-lint:
+  stage: build
   rules: !reference [.default-or-merge-request, rules]
+  needs: []
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   script:
     - cd browsertests
@@ -10,6 +12,7 @@ browsertests-format-lint:
 .run-browsertest-common:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
   extends: .env-k8s
+  stage: qa
   rules:
     - !reference [.default-branch, rules]
   needs:
@@ -106,6 +109,7 @@ run-digid-bridge-test-ont:
   extends:
     - .test-rust
     - .env-k8s
+  stage: qa
   rules: !reference [.default-or-merge-request-manual, rules]
   needs:
     - job: build-env-ont
@@ -162,6 +166,7 @@ run-digid-bridge-test-ont:
 
 .run-performance-test-ont-base:
   extends: .env-k8s
+  stage: qa
   script:
     - START_TIME=$(date -u -d "-1 minute" "+%Y-%m-%d %H:%M:%S")
     - echo "Performance test starting, query range begins at $START_TIME"
@@ -199,6 +204,7 @@ run-performance-test-ont-existing-deploy:
 
 retrieve-performance-test-results-ont:
   extends: .env-k8s
+  stage: qa
   rules:
     - !reference [.on-schedule-nightly-performance-test, rules]
   needs:
@@ -208,6 +214,7 @@ retrieve-performance-test-results-ont:
     - python3 -m venv venv
     - source venv/bin/activate
     - pip3 install --no-cache-dir --upgrade pip
+    - pip3 install --uploaded-prior-to P3D certifi==2026.10.19 # Exception to the standard 7D rule
     - pip3 install --no-cache-dir -r deploy/qa-util/requirements.txt
   script:
     - START_TIME=$(grep START_TIME perf-test-timeframe.txt | cut -d'=' -f2-)
@@ -230,35 +237,13 @@ retrieve-performance-test-results-ont:
     TESTS:
 
 extract-manual-test-set:
+  stage: qa
   rules: !reference [.default-branch-manual, rules]
+  needs: []
   script:
-    - ./deploy/qa-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
+    - ./deploy/qa-util/extract-manual-test-set.py wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
   artifacts:
     name: manual-test-set
     when: always
     paths:
       - manual-test-set.md
-
-test-android-platform-support-browserstack:
-  extends: [.upload-browserstack-base]
-  resource_group: automation-tests
-  rules:
-    - !reference [.on-schedule-automation, rules]
-    - !reference [.merge-request-manual, rules]
-  needs:
-    - job: build-android-platform-support-browserstack
-      artifacts: true
-  script:
-    - bundle exec fastlane android ci_test_platform_support_browserstack
-
-test-ios-platform-support-browserstack:
-  extends: [.upload-browserstack-base]
-  resource_group: automation-tests
-  rules:
-    - !reference [.on-schedule-automation, rules]
-    - !reference [.merge-request-manual, rules]
-  needs:
-    - job: build-ios-platform-support-browserstack
-      artifacts: true
-  script:
-    - bundle exec fastlane ios ci_test_platform_support_browserstack

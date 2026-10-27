@@ -91,7 +91,7 @@ fn registration_certificate(
 
 fn to_use_case(key_pair: KeyPair, registration_certificate: &[u8]) -> UseCaseSettings {
     let registration_certificate =
-        RegistrationCertificateEnvelope::try_from(registration_certificate).expect("valid registration certificate");
+        RegistrationCertificateEnvelope::from_slice(registration_certificate).expect("valid registration certificate");
 
     UseCaseSettings {
         session_type_return_url: SessionTypeReturnUrl::Both,
@@ -146,7 +146,6 @@ fn default_settings() -> VerifierSettings {
         allow_origins: None,
         public_url: "https://verification.example.com/".parse().unwrap(),
         universal_link_base_url: "walletdebuginteraction://wallet.example.com/".parse().unwrap(),
-        wallet_client_ids: vec!["https://wallet.example.com".to_string()],
         extending_vct_values: None,
         status_list_token_cache_settings: StatusListTokenCacheSettings::default(),
         server_settings,

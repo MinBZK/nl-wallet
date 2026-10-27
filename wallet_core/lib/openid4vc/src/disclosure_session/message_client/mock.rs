@@ -3,7 +3,7 @@ use std::sync::Arc;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
 use chrono::Utc;
-use cose::KnownCoseAlgorithmIdentifier;
+use coset::iana;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -211,8 +211,8 @@ impl MockVerifierSession {
             wallet_messages: Mutex::new(Vec::new()),
             vp_formats_supported: VpFormatsSupported {
                 mso_mdoc: Some(MsoMdocAlgValues {
-                    issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
-                    deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                    issuerauth_alg_values: vec_nonempty![iana::Algorithm::ESP256.into()].into(),
+                    deviceauth_alg_values: vec_nonempty![iana::Algorithm::ESP256.into()].into(),
                 }),
                 sd_jwt: Some(SdJwtAlgValues {
                     sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
@@ -241,7 +241,7 @@ impl MockVerifierSession {
             )
         });
         let registration_certificate =
-            RegistrationCertificateEnvelope::try_from(registration_certificate.certificate.as_slice()).unwrap();
+            RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
         let mut auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             self.credential_requests.clone(),
             ClientId::x509_hash_from_certificate(self.key_pair.certificate()),

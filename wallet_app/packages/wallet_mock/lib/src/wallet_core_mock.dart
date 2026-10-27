@@ -458,14 +458,12 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<String> crateApiFullStartCloseProximityDisclosure({
+    required bool wrprcStrictMode,
     required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
   }) async => 'mdoc:example.org';
 
   @override
   String crateModelsImageSanitizedSvgXml({required SanitizedSvg that}) => '<svg></svg>';
-
-  @override
-  Future<Image> crateModelsImageImageTryJpegFromBytes({required List<int> value}) async => throw UnimplementedError();
 
   @override
   // ignore: non_constant_identifier_names

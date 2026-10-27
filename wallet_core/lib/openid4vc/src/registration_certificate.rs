@@ -28,8 +28,8 @@ pub enum RegistrationCertificateError {
     AccessCertificateSubject(#[source] DistinguishedNameError),
     #[error("access certificate does not contain a relying-party subject: {0}")]
     RelyingParty(#[source] RelyingPartyError),
-    #[error("registration certificate has invalid WRPAC binding or validity: {0}")]
-    BindingAndTime(#[source] RegistrationCertificateValidationError),
+    #[error("registration certificate has invalid WRPAC binding: {0}")]
+    Binding(#[source] RegistrationCertificateValidationError),
     #[error("registration certificate has invalid status: {0}")]
     Status(#[source] RegistrationCertificateStatusValidationError),
     #[error("registration certificate does not authorize the request: {0}")]
@@ -55,7 +55,7 @@ where
         time,
     )
     .map_err(RegistrationCertificateError::Envelope)?;
-    let (payload, signing_certificate_dn) = envelope.into_parts();
+    let payload = envelope.into_payload();
     let access_certificate_subject = access_certificate
         .to_distinguished_name()
         .map_err(RegistrationCertificateError::AccessCertificateSubject)?;
@@ -63,15 +63,10 @@ where
         RelyingParty::try_from(access_certificate_subject).map_err(RegistrationCertificateError::RelyingParty)?;
 
     let certificate = payload
-        .validate_binding_and_time(&access_subject, time.generate())
-        .map_err(RegistrationCertificateError::BindingAndTime)?;
+        .validate_binding(&access_subject)
+        .map_err(RegistrationCertificateError::Binding)?;
     certificate
-        .validate_status(
-            revocation_verifier,
-            registration_certificate_trust_anchors,
-            signing_certificate_dn,
-            time,
-        )
+        .validate_status(revocation_verifier, registration_certificate_trust_anchors, time)
         .await
         .map_err(RegistrationCertificateError::Status)
 }
@@ -98,7 +93,7 @@ where
     .await?;
 
     certificate
-        .validate_query_authorization(query)
+        .validate_dcql_authorization(query)
         .map_err(RegistrationCertificateError::Authorization)?;
 
     Ok(certificate)
@@ -178,7 +173,7 @@ mod tests {
     }
 
     fn registration_certificate_envelope(certificate: &[u8]) -> RegistrationCertificateEnvelope {
-        RegistrationCertificateEnvelope::try_from(certificate).unwrap()
+        RegistrationCertificateEnvelope::from_slice(certificate).unwrap()
     }
 
     async fn validate(
@@ -226,10 +221,7 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(
-            validated_certificate.payload().id.as_deref(),
-            Some("mock-registration-certificate")
-        );
+        assert_eq!(validated_certificate.payload().support_uri, "support@example.com");
 
         validate(
             &envelope,
@@ -300,7 +292,7 @@ mod tests {
         )
         .await;
 
-        let result = result.map(|validated| validated.payload().id.clone());
+        let result = result.map(|validated| validated.payload().support_uri.clone());
         if provides_attestations.as_ref().is_none_or(Value::is_null) {
             assert_matches!(
                 result,
@@ -316,7 +308,7 @@ mod tests {
                 )) if kind == CredentialKind::new(format, "urn:example:pid".to_string())
             );
         } else {
-            assert_eq!(result.unwrap().as_deref(), Some("mock-registration-certificate"));
+            assert_eq!(result.unwrap(), "support@example.com");
         }
     }
 
@@ -370,11 +362,9 @@ mod tests {
 
         assert_matches!(
             error,
-            RegistrationCertificateError::BindingAndTime(
-                RegistrationCertificateValidationError::SubjectIdentifierMismatch {
-                    field: "organizationIdentifier"
-                }
-            )
+            RegistrationCertificateError::Binding(RegistrationCertificateValidationError::SubjectIdentifierMismatch {
+                field: "organizationIdentifier"
+            })
         );
     }
 

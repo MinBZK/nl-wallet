@@ -23,8 +23,6 @@ use crypto::x509::crl::CrlFetcher;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
-use utils::vec_at_least::IntoNonEmptyIterator;
-use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -86,19 +84,12 @@ pub(crate) fn x5chain_from_header(header: &Header) -> Result<VecNonEmpty<Borrowi
 }
 
 impl<T> TypedCose<CoseSign1, T> {
-    pub async fn sign(
-        payload: &T,
-        unprotected_header: Header,
-        private_key: &impl EcdsaKey,
-        include_payload: bool,
-    ) -> Result<Self, CoseError>
+    pub async fn sign(payload: &T, unprotected_header: Header, private_key: &impl EcdsaKey) -> Result<Self, CoseError>
     where
         T: Serialize,
     {
         let payload = cbor_serialize(payload).map_err(CoseError::Cbor)?;
-        Ok(sign_cose(&payload, unprotected_header, private_key, include_payload)
-            .await?
-            .into())
+        Ok(sign_cose(payload, unprotected_header, private_key).await?.into())
     }
 
     pub(crate) async fn sign_with_protected_header(
@@ -106,34 +97,25 @@ impl<T> TypedCose<CoseSign1, T> {
         protected_header: Header,
         unprotected_header: Header,
         private_key: &impl EcdsaKey,
-        include_payload: bool,
     ) -> Result<Self, CoseError>
     where
         T: Serialize,
     {
         let payload = cbor_serialize(payload).map_err(CoseError::Cbor)?;
-        Ok(sign_cose_with_headers(
-            &payload,
-            protected_header,
-            unprotected_header,
-            private_key,
-            include_payload,
+        Ok(
+            sign_cose_with_headers(payload, protected_header, unprotected_header, private_key)
+                .await?
+                .into(),
         )
-        .await?
-        .into())
     }
 
     /// Sign a COSE payload and include the key pair's certificate in the unprotected `x5chain` header.
-    pub async fn sign_with_certificate<K: EcdsaKey>(
-        payload: &T,
-        key_pair: &KeyPair<K>,
-        include_payload: bool,
-    ) -> Result<Self, CoseError>
+    pub async fn sign_with_certificate<K: EcdsaKey>(payload: &T, key_pair: &KeyPair<K>) -> Result<Self, CoseError>
     where
         T: Serialize,
     {
         let header = header_with_x5chain(&vec_nonempty![key_pair.certificate()]);
-        Self::sign(payload, header, key_pair, include_payload).await
+        Self::sign(payload, header, key_pair).await
     }
 
     /// Get the certificate chain from the unprotected `x5chain` header parameter.
@@ -141,10 +123,26 @@ impl<T> TypedCose<CoseSign1, T> {
         x5chain_from_header(&self.as_ref().unprotected)
     }
 
+    /// Get the certificate chain from the unprotected `x5chain` header parameter, rejecting it if it contains the trust
+    /// anchor, as mandated by HAIP 1.0.
+    fn x5chain_without_trust_anchor(
+        &self,
+        trust_anchors: &TrustAnchors,
+    ) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
+        let x5chain = self.x5chain()?;
+
+        BorrowingCertificate::ensure_trust_anchor_not_in_chain(&x5chain, trust_anchors)
+            .map_err(CoseError::CertificateVerify)?;
+
+        Ok(x5chain)
+    }
+
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.
     ///
     /// A `None` certificate usage still validates the certificate path, but does not require a profile-specific
     /// extended key usage.
+    ///
+    /// As mandated by HAIP 1.0, the `x5chain` header must not contain the trust anchor.
     pub fn verify_against_trust_anchors(
         &self,
         trust_anchors: &TrustAnchors,
@@ -154,11 +152,15 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
-        self.verify_against_trust_anchors_with_chain(self.x5chain()?, trust_anchors, time, certificate_usage)
+        let x5chain = self.x5chain_without_trust_anchor(trust_anchors)?;
+
+        self.verify_with_x5chain(&x5chain, trust_anchors, time, certificate_usage)
     }
 
     /// Verify the certificate path with fail-closed CRL checking and the COSE signature, then deserialize the
     /// authenticated payload.
+    ///
+    /// As mandated by HAIP 1.0, the `x5chain` header must not contain the trust anchor.
     pub async fn verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
@@ -169,8 +171,10 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
+        let x5chain = self.x5chain_without_trust_anchor(trust_anchors)?;
+
         self.verify_against_trust_anchors_with_chain_and_crl(
-            self.x5chain()?,
+            x5chain,
             trust_anchors,
             crl_verifier,
             time,
@@ -179,9 +183,13 @@ impl<T> TypedCose<CoseSign1, T> {
         .await
     }
 
-    pub(crate) fn verify_against_trust_anchors_with_chain(
+    /// Verify the certificate path of `x5chain` and the COSE signature, then deserialize the authenticated payload.
+    ///
+    /// This does not apply any profile-specific rules to the contents of `x5chain`, such as checking that it does not
+    /// contain the trust anchor.
+    pub(crate) fn verify_with_x5chain(
         &self,
-        x5chain: VecNonEmpty<BorrowingCertificate>,
+        x5chain: &VecNonEmpty<BorrowingCertificate>,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
@@ -189,14 +197,9 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
-        let (certificate, chain) = x5chain.into_nonempty_iter().next();
+        let (certificate, intermediate_certs) = x5chain.split_first();
         certificate
-            .verify(
-                certificate_usage,
-                &chain.into_iter().collect::<Vec<_>>(),
-                time,
-                trust_anchors,
-            )
+            .verify(certificate_usage, intermediate_certs, time, trust_anchors)
             .map_err(CoseError::CertificateVerify)?;
 
         let PublicKey::ESP256(verifying_key) = certificate.public_key() else {
@@ -248,30 +251,27 @@ fn signature_data_with_header(payload: &[u8], header: Header) -> (Vec<u8>, Prote
     (signature_data, protected_header)
 }
 
-pub async fn sign_cose(
-    payload: &[u8],
+async fn sign_cose(
+    payload: Vec<u8>,
     unprotected_header: Header,
     private_key: &impl EcdsaKey,
-    include_payload: bool,
 ) -> Result<CoseSign1, CoseError> {
     sign_cose_with_headers(
         payload,
         HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
         unprotected_header,
         private_key,
-        include_payload,
     )
     .await
 }
 
 async fn sign_cose_with_headers(
-    payload: &[u8],
+    payload: Vec<u8>,
     protected_header: Header,
     unprotected_header: Header,
     private_key: &impl EcdsaKey,
-    include_payload: bool,
 ) -> Result<CoseSign1, CoseError> {
-    let (signature_data, protected_header) = signature_data_with_header(payload, protected_header);
+    let (signature_data, protected_header) = signature_data_with_header(&payload, protected_header);
     let signature = private_key
         .try_sign(&signature_data)
         .await
@@ -280,7 +280,7 @@ async fn sign_cose_with_headers(
 
     Ok(CoseSign1 {
         signature,
-        payload: include_payload.then(|| payload.to_vec()),
+        payload: Some(payload),
         protected: protected_header,
         unprotected: unprotected_header,
     })

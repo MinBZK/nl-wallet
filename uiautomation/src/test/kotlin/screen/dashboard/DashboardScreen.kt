@@ -77,10 +77,8 @@ class DashboardScreen : MobileActions() {
         clickTallestElementContainingText(bannerTitle)
     }
 
-    // TODO: Remove conditions for click after PVW-6367
-    fun dismissNotificationsDrawer() {
-        if (elementWithTextVisible(requestNotificationPermissionSheetNegativeCta, 5)) {
-            clickElementContainingText(requestNotificationPermissionSheetNegativeCta)
-        }
-    }
+    fun notificationsDrawerVisible(timeoutInSeconds: Long = 5) =
+        elementWithTextVisible(requestNotificationPermissionSheetNegativeCta, timeoutInSeconds)
+
+    fun dismissNotificationsDrawer() = clickElementContainingText(requestNotificationPermissionSheetNegativeCta)
 }

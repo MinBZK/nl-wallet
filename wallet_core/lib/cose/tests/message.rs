@@ -8,7 +8,9 @@ use coset::HeaderBuilder;
 use coset::Label;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateProfile;
 use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateVerifyError;
 use crypto::x509::DistinguishedName;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
@@ -52,7 +54,7 @@ fn typed_cose_clone_and_serde_do_not_require_payload_traits() {
 async fn typed_cose_signs_verifies_and_parses() {
     let key = SigningKey::generate();
     let payload = ToyMessage::default();
-    let cose = TypedCose::sign(&payload, Header::default(), &key, true).await.unwrap();
+    let cose = TypedCose::sign(&payload, Header::default(), &key).await.unwrap();
 
     cose.verify(key.verifying_key()).unwrap();
     assert_eq!(cose.verify_and_parse(key.verifying_key()).unwrap(), payload);
@@ -62,7 +64,7 @@ async fn typed_cose_signs_verifies_and_parses() {
 #[tokio::test]
 async fn invalid_signature_is_rejected() {
     let key = SigningKey::generate();
-    let mut cose = TypedCose::sign(&ToyMessage::default(), Header::default(), &key, true)
+    let mut cose = TypedCose::sign(&ToyMessage::default(), Header::default(), &key)
         .await
         .unwrap();
 
@@ -83,7 +85,7 @@ async fn invalid_signature_is_rejected() {
 async fn missing_or_unsupported_algorithm_is_rejected() {
     let key = SigningKey::generate();
 
-    let mut missing = TypedCose::sign(&ToyMessage::default(), Header::default(), &key, true)
+    let mut missing = TypedCose::sign(&ToyMessage::default(), Header::default(), &key)
         .await
         .unwrap();
     missing.as_mut().protected.header.alg = None;
@@ -92,7 +94,7 @@ async fn missing_or_unsupported_algorithm_is_rejected() {
         Err(CoseError::MissingAlgorithm)
     ));
 
-    let mut unsupported = TypedCose::sign(&ToyMessage::default(), Header::default(), &key, true)
+    let mut unsupported = TypedCose::sign(&ToyMessage::default(), Header::default(), &key)
         .await
         .unwrap();
     unsupported.as_mut().protected.header.alg = Some(coset::Algorithm::Assigned(coset::iana::Algorithm::ES384));
@@ -109,9 +111,7 @@ async fn reads_unprotected_header_parameters() {
         .value(42, 0.into())
         .text_value("Hello".to_owned(), "World".into())
         .build();
-    let cose = TypedCose::sign(&ToyMessage::default(), header, &key, true)
-        .await
-        .unwrap();
+    let cose = TypedCose::sign(&ToyMessage::default(), header, &key).await.unwrap();
 
     assert_eq!(
         cose.unprotected_header_item(&Label::Int(42))
@@ -132,7 +132,7 @@ async fn reads_unprotected_header_parameters() {
 async fn signs_and_verifies_with_certificate() {
     let ca = Ca::generate_mock();
     let key_pair = ca.generate_issuer_mock().unwrap();
-    let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair, true)
+    let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair)
         .await
         .unwrap();
 
@@ -149,7 +149,7 @@ async fn verifies_certificate_and_crl() {
     let ca = Ca::generate_mock();
     let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
-    let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair, true)
+    let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair)
         .await
         .unwrap();
 
@@ -166,7 +166,7 @@ async fn crl_verification_requires_distribution_point() {
     let ca = Ca::generate_mock();
     let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
     let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
-    let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair, true)
+    let cose = TypedCose::sign_with_certificate(&ToyMessage::default(), &key_pair)
         .await
         .unwrap();
 
@@ -182,27 +182,60 @@ async fn crl_verification_requires_distribution_point() {
 }
 
 #[tokio::test]
+async fn rejects_trust_anchor_in_x5chain() {
+    let ca = Ca::generate_mock();
+    let key_pair = ca.generate_issuer_mock().unwrap();
+    let ca_certificate = ca.as_borrowing_certificate().unwrap();
+    let header = header_with_x5chain(&vec_nonempty![key_pair.certificate(), &ca_certificate]);
+    let cose: TypedCose<_, ToyMessage> = TypedCose::sign(&ToyMessage::default(), header, key_pair.private_key())
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        cose.verify_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl)),
+        Err(CoseError::CertificateVerify(CertificateVerifyError::TrustAnchorInChain))
+    ));
+}
+
+#[tokio::test]
+async fn crl_verification_rejects_trust_anchor_in_x5chain() {
+    let ca = Ca::generate_mock();
+    let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+    let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
+    let ca_certificate = ca.as_borrowing_certificate().unwrap();
+    let header = header_with_x5chain(&vec_nonempty![key_pair.certificate(), &ca_certificate]);
+    let cose: TypedCose<_, ToyMessage> = TypedCose::sign(&ToyMessage::default(), header, key_pair.private_key())
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        cose.verify_against_trust_anchors_with_crl(&ca.to_trust_anchors(), &crl_verifier, &TimeGenerator, None)
+            .await,
+        Err(CoseError::CertificateVerify(CertificateVerifyError::TrustAnchorInChain))
+    ));
+}
+
+#[tokio::test]
 async fn verifies_certificate_chain_with_intermediate() {
     let root_ca =
         Ca::generate_with_intermediate_count(DistinguishedName::create_mock("root-ca"), Default::default(), 1).unwrap();
     let intermediate_ca = root_ca
         .generate_intermediate(
             DistinguishedName::create_mock("intermediate-ca"),
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            CertificateConfiguration::with_profile(CertificateProfile::Issuer),
         )
         .unwrap();
     let intermediate_certificate = intermediate_ca.as_borrowing_certificate().unwrap();
     let leaf_key_pair = intermediate_ca
         .generate_key_pair(
             DistinguishedName::create_mock("leaf"),
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            CertificateConfiguration::with_profile(CertificateProfile::Issuer),
         )
         .unwrap();
     let header = header_with_x5chain(&vec_nonempty![leaf_key_pair.certificate(), &intermediate_certificate]);
-    let cose: TypedCose<_, ToyMessage> =
-        TypedCose::sign(&ToyMessage::default(), header, leaf_key_pair.private_key(), true)
-            .await
-            .unwrap();
+    let cose: TypedCose<_, ToyMessage> = TypedCose::sign(&ToyMessage::default(), header, leaf_key_pair.private_key())
+        .await
+        .unwrap();
 
     assert_eq!(
         cose.verify_against_trust_anchors(&root_ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),)
@@ -218,20 +251,19 @@ async fn rejects_missing_intermediate_certificate() {
     let intermediate_ca = root_ca
         .generate_intermediate(
             DistinguishedName::create_mock("intermediate-ca"),
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            CertificateConfiguration::with_profile(CertificateProfile::Issuer),
         )
         .unwrap();
     let leaf_key_pair = intermediate_ca
         .generate_key_pair(
             DistinguishedName::create_mock("leaf"),
-            CertificateConfiguration::with_usage(CertificateUsage::Mdl),
+            CertificateConfiguration::with_profile(CertificateProfile::Issuer),
         )
         .unwrap();
     let header = header_with_x5chain(&vec_nonempty![leaf_key_pair.certificate()]);
-    let cose: TypedCose<_, ToyMessage> =
-        TypedCose::sign(&ToyMessage::default(), header, leaf_key_pair.private_key(), true)
-            .await
-            .unwrap();
+    let cose: TypedCose<_, ToyMessage> = TypedCose::sign(&ToyMessage::default(), header, leaf_key_pair.private_key())
+        .await
+        .unwrap();
 
     assert!(matches!(
         cose.verify_against_trust_anchors(&root_ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),),

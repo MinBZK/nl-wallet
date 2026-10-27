@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="../static/css/xyz_bank-return.css" />
 {% when "job_finder" %}
   <link rel="stylesheet" href="../static/css/job_finder-return.css" />
+{% when "car_insurance" %}
+  <link rel="stylesheet" href="../static/css/car_insurance-return.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}
@@ -38,6 +40,8 @@
   {% include "xyz_bank.askama" %}
 {% when "job_finder" %}
   {% include "job_finder.askama" %}
+{% when "car_insurance" %}
+  {% include "car_insurance.askama" %}
 {% else %}
   {% call attributes::attributes(attributes) %}
 {% endmatch %}

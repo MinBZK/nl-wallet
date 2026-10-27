@@ -16,7 +16,6 @@ import org.junit.jupiter.api.assertAll
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.issuance.CardIssuanceScreen
-import screen.issuance.DisclosureIssuanceScreen
 import screen.menu.MenuScreen
 import screen.security.PinScreen
 import screen.settings.NotificationsDebugScreen
@@ -38,7 +37,6 @@ class CardNotificationsTests : TestBase() {
 
     private lateinit var indexWebPage: DemoIndexWebPage
     private lateinit var issuerWebPage: IssuerWebPage
-    private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
     private lateinit var cardIssuanceScreen: CardIssuanceScreen
     private lateinit var pinScreen: PinScreen
     private lateinit var l10n: LocalizationHelper
@@ -53,7 +51,6 @@ class CardNotificationsTests : TestBase() {
         startDriver(testInfo)
         pinScreen = PinScreen()
         l10n = LocalizationHelper()
-        disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         cardIssuanceScreen = CardIssuanceScreen()
         dashboardScreen = DashboardScreen()
         menuScreen = MenuScreen()
@@ -76,12 +73,11 @@ class CardNotificationsTests : TestBase() {
         issuerWebPage.openSameDeviceWalletFlow()
         issuerWebPage.acceptOpenWalletDialog()
 
-        disclosureForIssuanceScreen.switchToNativeContext()
-        cardIssuanceScreen.clickAddCardButton()
+        cardIssuanceScreen.switchToNativeContext()
+        cardIssuanceScreen.continueIssuance()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
 
-        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.clickMenuButton()
         menuScreen.clickSettingsButton()
         settingsScreen.clickNotificationsButton()

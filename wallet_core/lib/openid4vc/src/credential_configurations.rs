@@ -23,7 +23,6 @@ use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
-use crate::metadata::issuer_metadata::ProofType;
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsError {
     #[error("no credential configurations provided")]
@@ -311,12 +310,6 @@ impl<K, L> CredentialConfigurations<K, L> {
             .map(|(config_id, config)| {
                 let scope = config.scope.clone();
 
-                // Even though support for both the `attestation` and `jwt` proof types is mandatory, we decide to only
-                // implement the `attestation` proof type here, as this Issuer implementation need not be fully
-                // compliant. The `jwt` proof type does not add significant additional benefits over the `attestation`
-                // proof type.
-                let proof_types = HashSet::from([ProofType::Attestation]);
-
                 let credential_configuration = match &config.format {
                     CredentialConfigurationFormat::MsoMdoc {
                         doc_type,
@@ -324,7 +317,6 @@ impl<K, L> CredentialConfigurations<K, L> {
                     } => issuer_metadata::CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
                         doc_type.clone(),
                         scope,
-                        proof_types,
                         credential_metadata.clone(),
                     ),
                     // As the Type Metadata URI is not part of the OpenID4VCI specification, Credential Metadata derived
@@ -333,7 +325,6 @@ impl<K, L> CredentialConfigurations<K, L> {
                         issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                             type_metadata.vct().to_string(),
                             scope,
-                            proof_types,
                             CredentialMetadata::from(type_metadata.normalized()),
                             Some(type_metadata_base_url.join_config_id(config_id)),
                         )
@@ -344,7 +335,6 @@ impl<K, L> CredentialConfigurations<K, L> {
                     }) => issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                         vct.clone(),
                         scope,
-                        proof_types,
                         credential_metadata.clone(),
                         None,
                     ),

@@ -10,6 +10,7 @@ mod m20251107_154522_create_wallet_user_wua_table;
 mod m20260202_105409_create_recovery_code_table;
 mod m20260202_120929_create_wallet_flag_table;
 mod m20260804_120000_create_admin_portal_login_attempt_and_user_session_tables;
+mod m20260925_000001_create_admin_task_table;
 
 pub struct Migrator;
 
@@ -28,6 +29,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260202_105409_create_recovery_code_table::Migration),
             Box::new(m20260202_120929_create_wallet_flag_table::Migration),
             Box::new(m20260804_120000_create_admin_portal_login_attempt_and_user_session_tables::Migration),
+            Box::new(m20260925_000001_create_admin_task_table::Migration),
         ];
         migrations.extend(wallet_provider_migrations);
 

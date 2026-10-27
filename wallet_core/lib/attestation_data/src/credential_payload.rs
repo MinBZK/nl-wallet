@@ -403,7 +403,7 @@ impl CredentialPayload {
 
         let mso = TaggedBytes(mso);
         let issuer_auth: TypedCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            TypedCose::sign_with_certificate(&mso, issuer_keypair, true)
+            TypedCose::sign_with_certificate(&mso, issuer_keypair)
                 .await
                 .map_err(CredentialPayloadIntoSignedMdocError::SigningError)?;
         let TaggedBytes(mso) = mso;
@@ -733,8 +733,8 @@ mod test {
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::PublicKey;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use indexmap::IndexMap;
@@ -1286,7 +1286,7 @@ mod test {
         let time_generator = MockTimeGenerator::default();
 
         let holder_key = MockRemoteEcdsaKey::new_random("holder_key".to_string());
-        let wscd = MockRemoteWscd::new(vec![holder_key.clone()]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![holder_key.clone()]);
 
         let ca = Ca::generate_mock();
         let issuer_key_pair = ca.generate_issuer_mock().unwrap();
@@ -1309,7 +1309,7 @@ mod test {
             .unwrap()
             .unwrap();
 
-        let (presented_sd_jwts, _poa) = UnsignedSdJwtPresentation::sign_multiple(
+        let presented_sd_jwts = UnsignedSdJwtPresentation::sign_multiple(
             vec_nonempty![(
                 sd_jwt.into_verified().into_presentation_builder().finish(),
                 "holder_key"
@@ -1319,7 +1319,6 @@ mod test {
                 Nonce::from(String::from("nonce123")),
             ),
             &wscd,
-            (),
             &MockTimeGenerator::default(),
         )
         .now_or_never()

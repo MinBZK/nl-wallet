@@ -22,6 +22,7 @@ use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate;
 use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateProfile;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use http_utils::urls::HttpsUri;
@@ -70,8 +71,10 @@ struct Cli {
 
 #[derive(Clone, Copy, ValueEnum)]
 enum CertType {
-    /// Mdoc/mdl issuer certificate
+    /// Mdoc/SD-JWT issuer certificate for attestations other than PID
     Issuer,
+    /// Mdoc/SD-JWT PID issuer certificate
+    PidIssuer,
     /// Token Status List signing certificate
     Tsl,
     /// Wallet Issuer Authentication certificate
@@ -159,6 +162,11 @@ enum Command {
         /// certificate carries no CDP extension, so consumers that enforce revocation checking will reject it.
         #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
         crl_distribution_points: Vec<Url>,
+        /// Location URL(s) of the given CA certificate to embed in this certificate, as id-ad-caIssuers access
+        /// descriptions in the authority information access extension. Each URL should serve the CA certificate in DER
+        /// format. If omitted, the certificate carries no authority information access extension.
+        #[arg(long = "ca-issuer", num_args(0..))]
+        ca_issuers: Vec<Url>,
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
@@ -212,6 +220,11 @@ enum Command {
         /// certificate carries no CDP extension, so consumers that enforce revocation checking will reject it.
         #[arg(short = 'C', long = "crl-distribution-point", num_args(0..))]
         crl_distribution_points: Vec<Url>,
+        /// Location URL(s) of the given CA certificate to embed in this certificate, as id-ad-caIssuers access
+        /// descriptions in the authority information access extension. Each URL should serve the CA certificate in DER
+        /// format. If omitted, the certificate carries no authority information access extension.
+        #[arg(long = "ca-issuer", num_args(0..))]
+        ca_issuers: Vec<Url>,
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
@@ -407,20 +420,23 @@ impl Command {
         cert_type: CertType,
         days: u32,
         crl_distribution_points: Vec<Url>,
+        ca_issuers: Vec<Url>,
         san_uris: Vec<HttpsUri>,
     ) -> CertificateConfiguration {
-        let usage = match cert_type {
-            CertType::Issuer => Some(CertificateUsage::Mdl),
-            CertType::Tsl => Some(CertificateUsage::StatusListSigning),
-            CertType::Wia => Some(CertificateUsage::Wia),
-            CertType::KeyAttestation => Some(CertificateUsage::KeyAttestation),
+        let profile = match cert_type {
+            CertType::Issuer => Some(CertificateProfile::Issuer),
+            CertType::PidIssuer => Some(CertificateProfile::PidIssuer),
+            CertType::Tsl => Some(CertificateProfile::StatusListSigning),
+            CertType::Wia => Some(CertificateProfile::Wia),
+            CertType::KeyAttestation => Some(CertificateProfile::KeyAttestation),
             CertType::Wrpac | CertType::Wrprc => None,
         };
         let subject_alt_names = san_uris.into_iter().map(Into::into).collect();
 
         CertificateConfiguration {
-            usage,
+            profile,
             crl_distribution_points,
+            ca_issuers,
             subject_alt_names,
             ..Self::get_ca_configuration(days)
         }
@@ -460,6 +476,7 @@ impl Command {
                 ca_key_file,
                 ca_crt_file,
                 crl_distribution_points,
+                ca_issuers,
                 common_name,
                 country_name,
                 organization_name,
@@ -484,7 +501,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points, san_uris);
+                let config =
+                    Self::get_certificate_configuration(cert_type, days, crl_distribution_points, ca_issuers, san_uris);
                 let key_pair = ca.generate_key_pair(distinguished_name, config)?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
                 Ok(())
@@ -494,6 +512,7 @@ impl Command {
                 ca_key_file,
                 ca_crt_file,
                 crl_distribution_points,
+                ca_issuers,
                 common_name,
                 country_name,
                 organization_name,
@@ -519,7 +538,8 @@ impl Command {
                     surname,
                     given_name,
                 )?;
-                let config = Self::get_certificate_configuration(cert_type, days, crl_distribution_points, san_uris);
+                let config =
+                    Self::get_certificate_configuration(cert_type, days, crl_distribution_points, ca_issuers, san_uris);
                 let certificate = ca.generate_certificate(public_key.contents(), distinguished_name, config)?;
                 write_certificate(&certificate, &file_prefix, force)?;
                 Ok(())
@@ -539,8 +559,13 @@ impl Command {
                 let access_certificate = read_certificate(&wrpac_crt_file)?;
                 let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
                 let payload: Value = serde_json::from_reader(payload_file)?;
-                serde_json::from_value::<ParsedRegistrationCertificate>(payload.clone())?
-                    .validate_binding_and_time(&access_subject, Utc::now())?;
+                let parsed_payload = serde_json::from_value::<ParsedRegistrationCertificate>(payload.clone())?;
+                if let Some(expiration) = parsed_payload.payload().exp
+                    && Utc::now() >= expiration
+                {
+                    anyhow::bail!("registration certificate expired at {expiration}");
+                }
+                parsed_payload.validate_binding(&access_subject)?;
 
                 let runtime = tokio::runtime::Builder::new_current_thread().build()?;
                 let serialized = runtime.block_on(sign_registration_certificate(

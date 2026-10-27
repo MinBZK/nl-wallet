@@ -16,12 +16,15 @@ use axum::routing::post;
 use health_checkers::hsm::HsmChecker;
 use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
+use http::HeaderMap;
 use http_utils::health::create_health_router;
 use metrics::counter;
 use metrics_exporter_prometheus::PrometheusBuilder;
 use metrics_exporter_prometheus::PrometheusHandle;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use status_lists::serve::add_status_list_middleware;
+use status_lists::serve::http_response_for_status_list_body;
 use tokio::sync::Semaphore;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -75,6 +78,8 @@ use crate::internal;
 use crate::router_state::RouterState;
 use crate::settings::AdminPortalSettings;
 
+pub(crate) const KEY_STORAGE_TSL_PATH: &str = "/key_storage_status";
+
 /// All handlers should return this result. The [`WalletProviderError`] wraps
 /// a [`StatusCode`] and JSON body, all top-level errors should be convertible
 /// to this type.
@@ -105,11 +110,17 @@ where
     let admin_portal_state = Arc::new(AdminPortalState::try_new(
         admin_portal,
         state.user_state.repositories.clone(),
+        state.audit_log.clone(),
     )?);
     let wallet_transfer_permits = Arc::new(Semaphore::new(state.wallet_transfer_concurrency_limit));
     let router = Router::new()
         .merge(health_router(&state.user_state))
         .merge(metrics_router())
+        .merge(add_status_list_middleware(
+            Router::new()
+                .route(KEY_STORAGE_TSL_PATH, get(key_storage_tsl))
+                .with_state(Arc::clone(&state)),
+        ))
         .nest("/admin-portal", admin_portal::router(admin_portal_state))
         .nest(
             "/api/v1",
@@ -272,6 +283,27 @@ async fn log_headers(req: Request, next: Next) -> Response {
 async fn wallet_transfer_concurrency_gate(State(permits): State<Arc<Semaphore>>, req: Request, next: Next) -> Response {
     let _permit = permits.acquire().await.expect("semaphore is never closed");
     next.run(req).await
+}
+
+async fn key_storage_tsl<GRC, PIC>(
+    headers: HeaderMap,
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+) -> StdResult<Response, StatusCode> {
+    let token = state
+        .user_state
+        .key_storage_status_list
+        .status_list_token(&TimeGenerator)
+        .await
+        .map_err(|error| {
+            warn!("generating key storage status list failed: {}", error);
+
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .into_inner()
+        .into_serialization();
+
+    let ttl = state.user_state.key_storage_status_list.token_ttl;
+    http_response_for_status_list_body(&headers, token.into_bytes(), Some(ttl))
 }
 
 async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {

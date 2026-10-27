@@ -84,7 +84,6 @@ class DisclosureBasedIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last())
         assertAll(
-            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("graduation_date")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("grade")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "university").last()), "data is not visible") },
@@ -98,7 +97,6 @@ class DisclosureBasedIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
 
         cardIssuanceScreen.clickToDashboardButton()
-        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
         dashboardScreen.captureA11ySnapshot("DashboardWithDiplomaCard")
@@ -125,7 +123,6 @@ class DisclosureBasedIssuanceTests : TestBase() {
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.viewDetailsOfCard(issuanceData.getAttributeValues("university", DEFAULT_BSN, "education").last())
         assertAll(
-            { assertTrue(cardIssuanceScreen.organizationInSubtitleVisible(organizationAuthMetadata.getDisplayNameOfOrganization(UNIVERSITY)), "Subtitle is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("graduation_date")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.labelVisible(tasData.getDiplomaClaimLabel("grade")), "Label is not visible") },
             { assertTrue(cardIssuanceScreen.dataVisible(issuanceData.getAttributeValues("university", DEFAULT_BSN, "grade").last()), "data is not visible") },
@@ -136,7 +133,6 @@ class DisclosureBasedIssuanceTests : TestBase() {
         cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
-        dashboardScreen.dismissNotificationsDrawer()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getDiplomaDisplayName()), "Diploma card not visible on dashboard")
     }

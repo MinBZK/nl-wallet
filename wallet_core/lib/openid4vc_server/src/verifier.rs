@@ -67,7 +67,6 @@ pub struct VerifierFactory<US> {
     disclosure_base_deep_link: BaseUrl,
     use_cases: US,
     issuer_trust_anchors: TrustAnchors,
-    accepted_wallet_client_ids: Vec<String>,
     extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
 }
 
@@ -87,7 +86,6 @@ where
         disclosure_base_deep_link: BaseUrl,
         use_cases: US,
         issuer_trust_anchors: TrustAnchors,
-        accepted_wallet_client_ids: Vec<String>,
         extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
     ) -> Self {
         Self {
@@ -95,7 +93,6 @@ where
             disclosure_base_deep_link,
             use_cases,
             issuer_trust_anchors,
-            accepted_wallet_client_ids,
             extending_vct_values_store,
         }
     }
@@ -116,7 +113,6 @@ where
                 sessions,
                 self.issuer_trust_anchors,
                 result_handler,
-                self.accepted_wallet_client_ids,
                 self.extending_vct_values_store,
                 revocation_verifier,
             ),

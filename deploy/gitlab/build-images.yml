@@ -1,5 +1,7 @@
 .build-image:
   rules: !reference [.default-or-merge-request, rules]
+  stage: build
+  needs: []
 
 build-images-tag:
   extends: .build-image

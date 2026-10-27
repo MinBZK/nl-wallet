@@ -8,9 +8,9 @@
           :title="action.header"
           :description="action.description"
         />
-        <TaskWizardCard>
+        <TaskCard>
           <p class="placeholder-message">Deze stap is nog in ontwikkeling.</p>
-        </TaskWizardCard>
+        </TaskCard>
       </template>
 
       <AddReasonStep
@@ -19,6 +19,8 @@
         :step-number="stepNumber"
         :total-steps="totalSteps"
       />
+
+      <ErrorState v-else-if="step === 'check' && taskCreationFailed" @retry="retryTaskCreation" />
 
       <CheckTaskStep
         v-else-if="step === 'check'"
@@ -31,7 +33,7 @@
       <TaskCreatedStep v-else :details="createdDetails" />
     </div>
 
-    <Teleport defer to="#page-footer-target">
+    <Teleport v-if="!(step === 'check' && taskCreationFailed)" defer to="#page-footer-target">
       <TaskWizardFooter
         :show-cancel="step !== 'done'"
         :show-back="step === 'reason' || step === 'check'"
@@ -43,20 +45,25 @@
       />
     </Teleport>
   </template>
+  <div v-else class="wizard-content">
+    <ErrorState @retry="goHome" />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watchEffect } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { usePageTitle } from '@/composables/pageTitle.ts'
 import { useAuth } from '@/composables/authentication.ts'
+import { useNavigation } from '@/composables/navigation.ts'
 import TaskStepHeader from '@/components/create-task/TaskStepHeader.vue'
-import TaskWizardCard from '@/components/create-task/TaskWizardCard.vue'
 import TaskWizardFooter from '@/components/create-task/TaskWizardFooter.vue'
 import AddReasonStep from '@/components/create-task/AddReasonStep.vue'
 import CheckTaskStep from '@/components/create-task/CheckTaskStep.vue'
 import TaskCreatedStep from '@/components/create-task/TaskCreatedStep.vue'
-import { taskActionInfo, type TaskActionType } from '@/types/task-action.ts'
+import ErrorState from '@/components/ui/ErrorState.vue'
+import TaskCard from '@/components/tasks/TaskCard.vue'
+import { TASK_ACTION_INFO, type TaskActionType } from '@/types/task-action.ts'
 import type { TaskDetailRow } from '@/types/task-detail-row.ts'
 import { createTask } from '@/api/tasks.ts'
 
@@ -68,20 +75,21 @@ const STEP_ORDER: WizardStep[] = ['intro', 'reason', 'check', 'done']
 const NUMBERED_STEPS: WizardStep[] = ['intro', 'reason', 'check']
 
 const route = useRoute()
-const router = useRouter()
 const { setPageTitle, resetPageTitle } = usePageTitle()
 const { loggedInUser } = useAuth()
+const { goBackOrHome, goHome } = useNavigation()
 
 const step = ref<WizardStep>('intro')
 const reason = ref('')
 const taskId = ref<string | null>(null)
 const isCreatingTask = ref(false)
+const taskCreationFailed = ref(false)
 
 const stepNumber = computed(() => NUMBERED_STEPS.indexOf(step.value) + 1)
 const totalSteps = NUMBERED_STEPS.length
 
 const type = computed(() => route.params.type as TaskActionType)
-const action = computed(() => taskActionInfo[type.value] ?? null)
+const action = computed(() => TASK_ACTION_INFO[type.value] ?? null)
 const pageTitle = computed(() => (action.value ? `Maak taak aan: ${action.value.title}` : ''))
 
 const taskDetails = computed<TaskDetailRow[]>(() => [
@@ -101,19 +109,13 @@ const nextLabel = computed(() => {
 })
 
 watchEffect(() => {
+  if (!action.value) return
   setPageTitle(pageTitle.value)
 })
 onBeforeUnmount(resetPageTitle)
 
-function goBackOrHome() {
-  if (window.history.state?.back != null) {
-    router.back()
-  } else {
-    router.push({ name: 'home' })
-  }
-}
-
 function goToPreviousStep() {
+  taskCreationFailed.value = false
   step.value = STEP_ORDER[STEP_ORDER.indexOf(step.value) - 1]!
 }
 
@@ -123,15 +125,15 @@ async function handleNext() {
     isCreatingTask.value = true
     try {
       const task = await createTask(
-        action.value.title,
+        type.value,
         loggedInUser.value?.displayName ?? 'Onbekend',
+        reason.value,
       )
       taskId.value = task.id
+      taskCreationFailed.value = false
       step.value = 'done'
     } catch {
-      // TODO: show the error inline on this step instead of redirecting, once the
-      // in-page error state lands together with [PVW-6183].
-      router.push({ name: 'error' })
+      taskCreationFailed.value = true
     } finally {
       isCreatingTask.value = false
     }
@@ -143,6 +145,11 @@ async function handleNext() {
   }
   step.value = STEP_ORDER[STEP_ORDER.indexOf(step.value) + 1]!
 }
+
+function retryTaskCreation() {
+  taskCreationFailed.value = false
+  return handleNext()
+}
 </script>
 
 <style scoped>
@@ -150,7 +157,7 @@ async function handleNext() {
   display: flex;
   flex: 1;
   flex-direction: column;
-  align-items: center;
+  align-items: safe center;
   gap: 1.5rem;
   min-height: 0;
   padding: 1.5rem 1.5rem 0;

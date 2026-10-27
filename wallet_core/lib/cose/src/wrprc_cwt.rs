@@ -12,7 +12,7 @@ use coset::CoseSign1;
 use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
-use coset::RegisteredLabel;
+use coset::RegisteredLabelWithPrivate;
 use coset::cwt::ClaimsSet;
 use coset::cwt::Timestamp;
 use coset::iana;
@@ -23,6 +23,8 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
+use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
@@ -31,6 +33,7 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::COSE_X5CHAIN_HEADER_LABEL;
 use crate::CoseError;
 use crate::TypedCose;
+use crate::serialization::cbor_deserialize;
 use crate::x5chain_from_header;
 
 /// ETSI TS 119 475 type for a Wallet Relying Party Registration Certificate encoded as a CWT.
@@ -43,6 +46,9 @@ const COSE_ALGORITHM_HEADER_LABEL: i64 = 1;
 const COSE_CRITICAL_HEADER_LABEL: i64 = 2;
 /// COSE `typ` header parameter, registered by RFC 9596.
 const COSE_TYPE_HEADER_LABEL: i64 = 16;
+
+// Match jsonwebtoken's default tolerance for clock skew.
+const EXPIRATION_LEEWAY_SECONDS: i64 = 60;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WrprcCwtHeader {
@@ -81,10 +87,24 @@ pub enum WrprcCwtError {
     UnprotectedHeaderParameter(Label),
     #[error("unsupported critical COSE header parameter: {0:?}")]
     #[category(pd)]
-    UnsupportedCriticalHeader(RegisteredLabel<iana::HeaderParameter>),
+    UnsupportedCriticalHeader(RegisteredLabelWithPrivate<iana::HeaderParameter>),
     #[error("WRPRC CWT iat claim is not a finite NumericDate")]
     #[category(critical)]
     InvalidIssuedAt,
+    #[error("WRPRC CWT has expired")]
+    #[category(critical)]
+    Expired,
+}
+
+#[derive(Deserialize)]
+struct ExpirationClaims {
+    // An omitted expiry is allowed, but an explicit null is not.
+    #[serde(default, deserialize_with = "deserialize_expiration")]
+    exp: Option<i64>,
+}
+
+fn deserialize_expiration<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<i64>, D::Error> {
+    i64::deserialize(deserializer).map(Some)
 }
 
 /// A parsed, but not yet authenticated, WRPRC encoded as a CWT.
@@ -132,9 +152,13 @@ where
     }
 
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.
+    /// If payload `exp` is present, it must be an integer timestamp; expiry allows 60 seconds for clock skew.
     ///
     /// A `None` certificate usage still validates the certificate path, but does not require a profile-specific
     /// extended key usage.
+    ///
+    /// The trust anchor is allowed to be present in the `x5chain` header, as HAIP does not profile registration
+    /// certificates.
     pub fn into_verified_against_trust_anchors(
         self,
         trust_anchors: &TrustAnchors,
@@ -143,13 +167,24 @@ where
     ) -> Result<VerifiedWrprcCwt<T>, WrprcCwtError> {
         let payload = self
             .cose
-            .verify_against_trust_anchors_with_chain(
-                self.unverified_header.x5chain.clone(),
-                trust_anchors,
-                time,
-                certificate_usage,
-            )
+            .verify_with_x5chain(&self.unverified_header.x5chain, trust_anchors, time, certificate_usage)
             .map_err(WrprcCwtError::Cose)?;
+
+        // Inspect the authenticated payload independently of T, as JWT verification does for registered claims.
+        let claims: ExpirationClaims = cbor_deserialize(
+            self.cose
+                .as_ref()
+                .payload
+                .as_deref()
+                .ok_or(WrprcCwtError::Cose(CoseError::MissingPayload))?,
+        )
+        .map_err(|error| WrprcCwtError::Cose(CoseError::Cbor(error)))?;
+        if claims
+            .exp
+            .is_some_and(|expiration| expiration < time.generate().timestamp() - EXPIRATION_LEEWAY_SECONDS)
+        {
+            return Err(WrprcCwtError::Expired);
+        }
 
         Ok(VerifiedWrprcCwt {
             unverified: self,
@@ -252,7 +287,7 @@ where
             )
             .build();
 
-        let cose = TypedCose::sign_with_protected_header(payload, protected_header, Header::default(), key_pair, true)
+        let cose = TypedCose::sign_with_protected_header(payload, protected_header, Header::default(), key_pair)
             .await
             .map_err(WrprcCwtError::Cose)?;
 
@@ -301,7 +336,7 @@ fn validate_wrprc_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<WrprcCwtHe
     }
 
     for critical_header in &protected.crit {
-        if critical_header != &RegisteredLabel::Assigned(iana::HeaderParameter::Alg) {
+        if critical_header != &RegisteredLabelWithPrivate::Assigned(iana::HeaderParameter::Alg) {
             return Err(WrprcCwtError::UnsupportedCriticalHeader(critical_header.clone()));
         }
     }
@@ -370,7 +405,9 @@ fn parse_cose_sign1(bytes: &[u8]) -> Result<CoseSign1, WrprcCwtError> {
 mod tests {
     use chrono::TimeZone;
     use crypto::server_keys::generate::Ca;
+    use crypto::x509::CertificateVerifyError;
     use error_category::Category;
+    use rstest::rstest;
     use serde::Deserialize;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
@@ -405,7 +442,7 @@ mod tests {
     }
 
     async fn sign_with_header(header: Header, key_pair: &KeyPair) -> TypedCose<CoseSign1, ToyMessage> {
-        TypedCose::sign_with_protected_header(&ToyMessage::default(), header, Header::default(), key_pair, true)
+        TypedCose::sign_with_protected_header(&ToyMessage::default(), header, Header::default(), key_pair)
             .await
             .unwrap()
     }
@@ -446,6 +483,113 @@ mod tests {
             Some(&Timestamp::WholeSeconds(issued_at.timestamp()))
         );
         assert_eq!(verified.header().x5chain.first(), key_pair.certificate());
+    }
+
+    #[rstest]
+    #[case::without_expiry(None, false)]
+    #[case::before_expiry(Some(1), false)]
+    #[case::at_expiry(Some(0), false)]
+    #[case::one_second_after_expiry(Some(-1), false)]
+    #[case::just_inside_leeway(Some(-59), false)]
+    #[case::at_leeway_boundary(Some(-60), false)]
+    #[case::just_outside_leeway(Some(-61), true)]
+    #[case::well_outside_leeway(Some(-120), true)]
+    #[tokio::test]
+    async fn verify_wrprc_cwt_checks_payload_expiry(#[case] seconds: Option<i64>, #[case] expired: bool) {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+        let now = Utc.timestamp_opt(1_700_000_000, 0).unwrap();
+        let time = MockTimeGenerator::new(now);
+
+        let payload = Value::Map(
+            seconds
+                .map(|seconds| (Value::Text("exp".to_owned()), Value::from(now.timestamp() + seconds)))
+                .into_iter()
+                .collect(),
+        );
+        let signed = SignedWrprcCwt::sign_with_certificate(&payload, &key_pair, &time)
+            .await
+            .unwrap();
+
+        let result = signed
+            .into_unverified()
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &time, None);
+
+        if expired {
+            assert!(matches!(result, Err(WrprcCwtError::Expired)));
+        } else {
+            assert_eq!(result.unwrap().into_payload(), payload);
+        }
+    }
+
+    #[tokio::test]
+    async fn verify_wrprc_cwt_rejects_malformed_payload_expiry() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+
+        for exp in [Value::Null, Value::Text("1700000000".to_owned()), Value::Float(1.5)] {
+            let payload = Value::Map(vec![(Value::Text("exp".to_owned()), exp)]);
+            let signed = SignedWrprcCwt::sign_with_certificate(&payload, &key_pair, &TimeGenerator)
+                .await
+                .unwrap();
+
+            let result = signed.into_unverified().into_verified_against_trust_anchors(
+                &ca.to_trust_anchors(),
+                &TimeGenerator,
+                None,
+            );
+
+            assert!(matches!(result, Err(WrprcCwtError::Cose(CoseError::Cbor(_)))));
+        }
+    }
+
+    #[tokio::test]
+    async fn verify_wrprc_cwt_with_trust_anchor_in_x5chain() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca.generate_wrpac_verifier_mock().unwrap();
+
+        let header = HeaderBuilder::new()
+            .algorithm(iana::Algorithm::ES256)
+            .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
+            .value(
+                COSE_X5CHAIN_HEADER_LABEL,
+                Value::Array(vec![
+                    Value::Bytes(key_pair.certificate().to_vec()),
+                    Value::Bytes(ca.certificate().to_vec()),
+                ]),
+            )
+            .build();
+        let parsed = UnverifiedWrprcCwt::<ToyMessage>::try_from(sign_with_header(header, &key_pair).await).unwrap();
+
+        let verified = parsed
+            .into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None)
+            .unwrap();
+
+        assert_eq!(verified.payload(), &ToyMessage::default());
+        assert_eq!(verified.header().x5chain.len().get(), 2);
+    }
+
+    #[tokio::test]
+    async fn verify_wrprc_cwt_rejects_trust_anchor_as_leaf() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+
+        // Sign with the trust anchor itself, so that it is the leaf certificate.
+        let key_pair = KeyPair::new_from_signing_key(
+            ca.to_signing_key().unwrap(),
+            BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap(),
+        )
+        .unwrap();
+        let header = valid_wrprc_protected_header(&key_pair, None);
+        let parsed = UnverifiedWrprcCwt::<ToyMessage>::try_from(sign_with_header(header, &key_pair).await).unwrap();
+
+        let result = parsed.into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None);
+
+        assert!(matches!(
+            result,
+            Err(WrprcCwtError::Cose(CoseError::CertificateVerify(
+                CertificateVerifyError::EndEntityIsTrustAnchor
+            )))
+        ));
     }
 
     #[tokio::test]
@@ -552,10 +696,9 @@ mod tests {
         let unprotected = HeaderBuilder::new()
             .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .build();
-        let cose =
-            TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair, true)
-                .await
-                .unwrap();
+        let cose = TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair)
+            .await
+            .unwrap();
         assert!(matches!(
             UnverifiedWrprcCwt::try_from(cose),
             Err(WrprcCwtError::UnprotectedHeaderParameter(Label::Int(
@@ -572,27 +715,26 @@ mod tests {
         let mut supported = valid_wrprc_protected_header(&key_pair, None);
         supported
             .crit
-            .push(RegisteredLabel::Assigned(iana::HeaderParameter::Alg));
+            .push(RegisteredLabelWithPrivate::Assigned(iana::HeaderParameter::Alg));
         UnverifiedWrprcCwt::try_from(sign_with_header(supported, &key_pair).await).unwrap();
 
         let mut unsupported = valid_wrprc_protected_header(&key_pair, None);
         unsupported.key_id = vec![1];
         unsupported
             .crit
-            .push(RegisteredLabel::Assigned(iana::HeaderParameter::Kid));
+            .push(RegisteredLabelWithPrivate::Assigned(iana::HeaderParameter::Kid));
         assert!(matches!(
             UnverifiedWrprcCwt::try_from(sign_with_header(unsupported, &key_pair).await),
-            Err(WrprcCwtError::UnsupportedCriticalHeader(RegisteredLabel::Assigned(
-                iana::HeaderParameter::Kid
-            )))
+            Err(WrprcCwtError::UnsupportedCriticalHeader(
+                RegisteredLabelWithPrivate::Assigned(iana::HeaderParameter::Kid)
+            ))
         ));
 
         let protected = valid_wrprc_protected_header(&key_pair, None);
         let unprotected = HeaderBuilder::new().add_critical(iana::HeaderParameter::Alg).build();
-        let cose =
-            TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair, true)
-                .await
-                .unwrap();
+        let cose = TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair)
+            .await
+            .unwrap();
         assert!(matches!(
             UnverifiedWrprcCwt::try_from(cose),
             Err(WrprcCwtError::UnprotectedHeaderParameter(Label::Int(
@@ -731,7 +873,7 @@ mod tests {
         for error in [
             WrprcCwtError::UnexpectedType(Value::Text("personal data".to_owned())),
             WrprcCwtError::UnprotectedHeaderParameter(Label::Text("personal data".to_owned())),
-            WrprcCwtError::UnsupportedCriticalHeader(RegisteredLabel::Text("personal data".to_owned())),
+            WrprcCwtError::UnsupportedCriticalHeader(RegisteredLabelWithPrivate::Text("personal data".to_owned())),
             WrprcCwtError::Cose(CoseError::UnsupportedAlgorithm(coset::Algorithm::Text(
                 "personal data".to_owned(),
             ))),

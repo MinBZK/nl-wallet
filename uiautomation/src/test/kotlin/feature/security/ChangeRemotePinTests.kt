@@ -71,7 +71,6 @@ class ChangeRemotePinTests : TestBase() {
         pinScreen.closePinIncorrectAlertDialog()
         pinScreen.enterPin("222221")
 
-        dashboardScreen.dismissNotificationsDrawer()
         assertTrue(dashboardScreen.visible(), "Dashboard is not visible")
     }
 }

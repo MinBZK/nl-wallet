@@ -242,28 +242,47 @@ To exercise the `SessionEstablished` path manually, use the QR code logged by th
 swift scripts/close_proximity/disclosure_mac_reader.swift --qr-code "<logged-qr-code>"
 ```
 
-To exercise a real signed reader `DeviceRequest`, point the helper at the repo's WRPAC CA material. The helper will generate a valid signed mdoc `DeviceRequest` for the session transcript and can print the decrypted plaintext `DeviceResponse` for reuse in assertions:
+To exercise a signed reader `DeviceRequest` with a registration certificate, supply the reader's WRPAC leaf certificate, its private key, and a matching WRPRC. The helper signs the mdoc `DeviceRequest` for the session transcript and can print the decrypted plaintext `DeviceResponse` for reuse in assertions:
 
 ```bash
 swift scripts/close_proximity/disclosure_mac_reader.swift \
   --qr-code "<logged-qr-code>" \
-  --wrpac-ca-crt-file <path-to-ca.wrpac.crt.pem> \
-  --wrpac-ca-key-file <path-to-ca.wrpac.key.pem> \
+  --wrpac-crt-file <path-to-reader.wrpac.crt.pem> \
+  --wrpac-key-file <path-to-reader.wrpac.key.pem> \
+  --wrprc-file <path-to-reader.wrprc> \
+  --request-doc-type urn:eudi:pid:nl:1 \
+  --request-attribute urn:eudi:pid:nl:1/bsn \
   --print-device-response-hex
 ```
+
+The WRPRC file contains the base64url-encoded output of `wallet_ca registration-certificate --format jwt` or `--format cwt`; see [registration certificate generation](../../wallet_ca/README.md#registration-certificates). Its subject must match the WRPAC subject identifier, and its `credentials` must cover the requested document type and attributes. Its status-list endpoint must also be available to the wallet.
+
+The helper removes the base64url wrapper and places the original JWT or CWT bytes in the CBOR byte string `requestInfo.euWrprc` before generating `readerAuth`, so the reader signature covers the registration certificate. The proximity request carries the serialized certificate directly, as specified by ETSI TS 119 472-2, ISO/IEC 18013-REQ-07/08; the JWT and CWT formats are defined by ETSI TS 119 475, GEN-5.2.1-01. Certificate trust, binding, and authorization remain the wallet's responsibility. The flag can be omitted to construct requests without a WRPRC for testing, and cannot be combined with `--device-request-hex`.
 
 The auto-launch wrappers also accept these payload fields in the `CLOSE_PROXIMITY_MAC_READER=` JSON emitted by tests:
 
 ```json
 {
   "qr": "<base64url-device-engagement>",
-  "wrpac_ca_crt_file": "<path-to-ca.wrpac.crt.pem>",
-  "wrpac_ca_key_file": "<path-to-ca.wrpac.key.pem>",
+  "wrpac_crt_file": "<path-to-reader.wrpac.crt.pem>",
+  "wrpac_key_file": "<path-to-reader.wrpac.key.pem>",
+  "wrprc_file": "<path-to-reader.wrprc>",
+  "request_doc_type": "urn:eudi:pid:nl:1",
+  "request_attributes": ["urn:eudi:pid:nl:1/bsn"],
   "print_device_response_hex": true
 }
 ```
 
-If you already have a plaintext `DeviceRequest`, you can inject it directly with `device_request_hex` instead of the WRPAC CA fields.
+If you already have a plaintext `DeviceRequest`, you can inject it directly with `device_request_hex` instead of the WRPAC and WRPRC fields.
+
+Run the reader's encoding, signature-binding, and argument-validation tests on macOS without a BLE device:
+
+```bash
+reader_test_sdk="$(xcrun --sdk macosx --show-sdk-platform-path)/Developer"
+swift -F "$reader_test_sdk/Library/Frameworks" \
+  -I "$reader_test_sdk/usr/lib" -L "$reader_test_sdk/usr/lib" \
+  -lXCTestSwiftSupport -D READER_TESTS scripts/close_proximity/disclosure_mac_reader.swift
+```
 
 There are also host-side wrapper scripts that watch for the QR marker and launch the Mac helper automatically.
 
@@ -274,8 +293,12 @@ scripts/close_proximity/run_disclosure_ios_test.py -- \
   xcodebuild test \
     -project wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj \
     -scheme PlatformSupport \
+    -testPlan LocalRealDevice \
     -only-testing:'Integration Tests/CloseProximityDisclosureTests/testCloseProximityDisclosureFullFlowWithMacReader'
 ```
+
+`-testPlan LocalRealDevice` is required: the default `Simulator` test plan skips the whole
+`CloseProximityDisclosureTests` class, so without it `-only-testing` selects nothing.
 
 For Android, run from the repository root:
 
@@ -287,6 +310,25 @@ scripts/close_proximity/run_disclosure_android_test.py -- \
 
 Before running these tests:
 
-* Connect a physical device
-* Enable the corresponding opt-in close proximity test constant in the iOS or Android test file.
+* Connect a physical device and unlock it.
+* Enable Bluetooth on the device. The tests assert on Bluetooth rather than skipping, so running
+  them with Bluetooth off fails them.
 * Grant Bluetooth access to the terminal app that runs the Mac helper.
+
+## Running the suites in CI
+
+The full suites run on the Mac mini that has the devices attached, on the `automation` schedule and
+manually on a merge request. See `deploy/gitlab/platform-support-tests.yml`.
+
+| job                                    | runs                                                 |
+| -------------------------------------- | ---------------------------------------------------- |
+| `test-ios-platform-support-device`     | the whole `LocalRealDevice` test plan                |
+| `test-android-platform-support-device` | `connectedDebugAndroidTest`, every instrumented test |
+
+Both go through the wrapper scripts above without a test filter, so one run covers the whole suite
+and the Mac mini acts as the BLE verifier for the close proximity tests.
+
+The per-merge-request jobs `test-ios` (Simulator test plan) and `test-android` (emulator) stay as
+the fast gate. They skip what needs real hardware: the attested key tests, and — because
+`CloseProximityDisclosureBridgeInstrumentedTest` is annotated `@RequiresDevice` — the whole Android
+close proximity class.

@@ -21,7 +21,6 @@ use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 use wscd::payload::key_attestation::KeyAttestation;
-use wscd::payload::poa::Poa;
 use wscd::payload::wia::WiaDisclosure;
 
 use super::registration::WalletCertificate;
@@ -227,9 +226,7 @@ impl InstructionAndResult for IssueWia {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Sign {
     #[serde_as(as = "Vec<(Base64, _)>")]
-    pub messages_with_identifiers: Vec<(Vec<u8>, Vec<String>)>,
-    pub poa_nonce: Option<Nonce>,
-    pub poa_aud: String,
+    pub messages_with_identifiers: Vec<([u8; 32], Vec<String>)>,
 }
 
 #[serde_as]
@@ -237,7 +234,6 @@ pub struct Sign {
 pub struct SignResult {
     #[serde_as(as = "Vec<Vec<Base64>>")]
     pub signatures: Vec<Vec<DerSignature>>,
-    pub poa: Option<Poa>,
 }
 
 impl InstructionAndResult for Sign {

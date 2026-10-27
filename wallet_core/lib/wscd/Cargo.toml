@@ -12,16 +12,12 @@ doctest = false
 
 [features]
 mock = [
-    "dep:rand_core",
     "chrono/now",
-    "derive_more/as_ref",
     "attestation_types/mock",
     "crypto/mock",
     "crypto/generate",
     "utils/mock_time",
-] # Include the MockRemoteWscd and MockWiaClient types and adds a mock method on Poa.
-# Include key examples from the ISO specification for MockRemoteWscd.
-examples = ["mock", "crypto/examples"]
+] # Include the IssuanceMockRemoteWscd and MockWiaClient types.
 
 [dependencies]
 chrono.workspace = true
@@ -42,12 +38,9 @@ error_category.path = "../error_category"
 jwt.path = "../jwt"
 utils.path = "../utils"
 
-rand_core = { workspace = true, optional = true }
-
 [dev-dependencies]
 chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = ["as_ref"] }
-rand_core.workspace = true
 rstest.workspace = true
 serde_json.workspace = true
 

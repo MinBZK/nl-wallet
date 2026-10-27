@@ -17,11 +17,13 @@ void main() {
               .toList(),
           identifier: 'issuer',
           countryCode: 'NL',
+          supportUri: 'https://example.com/support',
+          personType: core.PersonType.LegalPerson,
         ),
       )
       .description;
 
-  String? mapSupportUri(String? supportUri) => mapper
+  String mapSupportUri(String supportUri) => mapper
       .map(
         core.Organization(
           legalName: 'Issuer',
@@ -30,6 +32,7 @@ void main() {
           identifier: 'issuer',
           countryCode: 'NL',
           supportUri: supportUri,
+          personType: core.PersonType.LegalPerson,
         ),
       )
       .supportUri;
@@ -44,6 +47,8 @@ void main() {
           identifier: 'issuer',
           countryCode: 'NL',
           publicBody: publicBody,
+          supportUri: 'https://example.com/support',
+          personType: core.PersonType.LegalPerson,
         ),
       );
       expect(organization.publicBody, publicBody);
@@ -51,7 +56,6 @@ void main() {
   }
 
   for (final (personType, expected) in [
-    (null, null),
     (core.PersonType.LegalPerson, PersonType.legalPerson),
     (core.PersonType.NaturalPerson, PersonType.naturalPerson),
   ]) {
@@ -64,15 +68,12 @@ void main() {
           identifier: 'issuer',
           countryCode: 'NL',
           personType: personType,
+          supportUri: 'https://example.com/support',
         ),
       );
       expect(organization.personType, expected);
     });
   }
-
-  test('should return null when no support uri is available', () {
-    expect(mapSupportUri(null), isNull);
-  });
 
   test('should keep a support uri that has a scheme', () {
     expect(mapSupportUri('https://example.com/support'), 'https://example.com/support');
@@ -91,10 +92,10 @@ void main() {
     expect(mapSupportUri('"help:desk"@example.com'), 'mailto:%22help:desk%22@example.com');
   });
 
-  test('should return null when the support uri is neither a uri nor an email address', () {
-    expect(mapSupportUri('support.example.com'), isNull);
-    expect(mapSupportUri(''), isNull);
-    expect(mapSupportUri('   '), isNull);
+  test('should reject a support uri that is neither a uri nor an email address', () {
+    expect(() => mapSupportUri('support.example.com'), throwsFormatException);
+    expect(() => mapSupportUri(''), throwsFormatException);
+    expect(() => mapSupportUri('   '), throwsFormatException);
   });
 
   test('should return null when no descriptions are available', () {

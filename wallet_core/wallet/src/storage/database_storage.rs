@@ -1192,7 +1192,6 @@ where
             .column_as(attestation::Column::Id, "attestation_id")
             .column(attestation_copy::Column::StatusListUrl)
             .column(attestation_copy::Column::StatusListIndex)
-            .column(attestation_copy::Column::IssuerCertificateDn)
             .filter(
                 attestation_copy::Column::StatusListUrl
                     .is_not_null()
@@ -1333,12 +1332,6 @@ fn create_attestation_copy_models(
         IssuedCredentialCopies::Mdoc(mdocs) => mdocs
             .into_nonempty_iter()
             .map(|MdocCopy { key_identifier, mdoc }| {
-                let issuer_certificate_dn = mdoc
-                    .issuer_leaf_certificate()
-                    .expect("an mdoc attestation should always contain a valid issuer certificate at this point")
-                    .to_canonical_distinguished_name()
-                    .expect("the issuer certificate should contain a valid DN at this point");
-
                 let (mso, issuer_signed) = mdoc.into_components();
 
                 let attestation_bytes: Vec<u8> = cbor_serialize(&issuer_signed)?;
@@ -1349,24 +1342,12 @@ fn create_attestation_copy_models(
                     Some(MdocStatus::IdentifierList(_)) | None => (None, None),
                 };
 
-                Ok((
-                    status_uri,
-                    status_index,
-                    key_identifier,
-                    issuer_certificate_dn,
-                    attestation_bytes,
-                ))
+                Ok((status_uri, status_index, key_identifier, attestation_bytes))
             })
             .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
         IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts
             .into_nonempty_iter()
             .map(|SdJwtCopy { key_identifier, sd_jwt }| {
-                let issuer_certificate_dn = sd_jwt
-                    .sd_jwt()
-                    .issuer_leaf_certificate()
-                    .to_canonical_distinguished_name()
-                    .expect("the issuer certificate should contain a valid DN at this point");
-
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
 
                 let (status_uri, status_index) = match sd_jwt.into_sd_jwt().into_claims().status {
@@ -1374,34 +1355,25 @@ fn create_attestation_copy_models(
                     None => (None, None),
                 };
 
-                Ok((
-                    status_uri,
-                    status_index,
-                    key_identifier,
-                    issuer_certificate_dn,
-                    attestation_bytes,
-                ))
+                Ok((status_uri, status_index, key_identifier, attestation_bytes))
             })
             .collect::<Result<VecNonEmpty<_>, StorageError>>()?,
     }
     .into_nonempty_iter()
-    .map(
-        |(status_uri, status_index, key_identifier, issuer_certificate_dn, attestation_bytes)| {
-            let model = attestation_copy::ActiveModel {
-                id: Set(Uuid::now_v7()),
-                disclosure_count: Set(0),
-                attestation_id: Set(attestation_id),
-                key_identifier: Set(key_identifier),
-                status_list_url: Set(status_uri),
-                status_list_index: Set(status_index),
-                issuer_certificate_dn: Set(issuer_certificate_dn),
-                revocation_status: Set(None),
-                attestation: Set(CompressedBlob::new(&attestation_bytes)?),
-            };
+    .map(|(status_uri, status_index, key_identifier, attestation_bytes)| {
+        let model = attestation_copy::ActiveModel {
+            id: Set(Uuid::now_v7()),
+            disclosure_count: Set(0),
+            attestation_id: Set(attestation_id),
+            key_identifier: Set(key_identifier),
+            status_list_url: Set(status_uri),
+            status_list_index: Set(status_index),
+            revocation_status: Set(None),
+            attestation: Set(CompressedBlob::new(&attestation_bytes)?),
+        };
 
-            Ok(model)
-        },
-    )
+        Ok(model)
+    })
     .collect::<Result<_, _>>()
 }
 
@@ -3379,10 +3351,6 @@ pub(crate) mod tests {
 
         let revocation_info = revocation_info.first().unwrap();
         assert_eq!(StatusClaim::new_mock(), revocation_info.status_claim);
-        assert_eq!(
-            ISSUER_KEY.certificate().to_canonical_distinguished_name().unwrap(),
-            revocation_info.issuer_cert_distinguished_name
-        );
 
         assert_eq!(
             None,

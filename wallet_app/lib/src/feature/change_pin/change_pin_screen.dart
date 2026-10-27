@@ -22,11 +22,11 @@ import '../common/widget/utility/scroll_offset_provider.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
 import '../error/error_screen.dart';
+import '../pin/pin_setup_page.dart';
 import '../pin_dialog/pin_confirmation_error_dialog.dart';
 import '../pin_dialog/pin_validation_error_dialog.dart';
 import 'bloc/change_pin_bloc.dart';
 import 'page/enter_current_pin_page.dart';
-import 'page/select_new_pin_page.dart';
 
 const kTotalNrOfPages = 4;
 const _kSelectNewPinPageKey = ValueKey('select_new_pin_page');
@@ -138,7 +138,7 @@ class ChangePinScreen extends StatelessWidget {
   }
 
   Widget _buildSelectNewPinPage(BuildContext context, {required int enteredDigits}) {
-    return SelectNewPinPage(
+    return PinSetupPage(
       key: _kSelectNewPinPageKey,
       title: context.l10n.changePinScreenSelectNewPinTitle,
       enteredDigits: enteredDigits,
@@ -149,7 +149,7 @@ class ChangePinScreen extends StatelessWidget {
   }
 
   Widget _buildConfirmNewPinPage(BuildContext context, {required int enteredDigits}) {
-    return SelectNewPinPage(
+    return PinSetupPage(
       key: _kConfirmNewPinPageKey,
       title: context.l10n.changePinScreenConfirmNewPinTitle,
       enteredDigits: enteredDigits,

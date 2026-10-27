@@ -5,8 +5,11 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@vitest/mocker@>=2.1.0-beta.7 <4.1.12': 4.1.12
+  '@vitest/mocker@>=4.1.11 <4.1.12': 4.1.12
   nanoid@<3.3.18: ^3.3.18
   postcss@<=8.5.22: ^8.5.23
+  vite@>=8.3.0 <=8.3.2: 8.3.3
 
 importers:
 
@@ -20,7 +23,7 @@ importers:
         version: 3.13.0(@vitest/runner@4.1.11)(vitest@4.1.11)
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@vitest/coverage-v8@4.1.11)(vite@8.3.1)
+        version: 4.1.11(@vitest/coverage-v8@4.1.11)(vite@8.3.3)
 
 packages:
 
@@ -181,11 +184,11 @@ packages:
   '@vitest/expect@4.1.11':
     resolution: {integrity: sha512-VX2x5vNJXET47KAFzwERI+KRMtTTCSWTfSMKsW7JsUsXV4psq++e3DvZpuTDOpHcxytiDs6p2nhVb2tVDiiUYw==}
 
-  '@vitest/mocker@4.1.11':
-    resolution: {integrity: sha512-2XJVD55d1o5AZous5CCGKS74g/riOj9odEt2bQpCVZeblHyHdnMeFl4jl0XjU21stf4mbjUkew2eXQZt65g5CQ==}
+  '@vitest/mocker@4.1.12':
+    resolution: {integrity: sha512-fKShNpKZzupWZuY0z7egydvL0sqW4INEZBEExMBMAa6izlENEVHwoXgdaTCaBZ5fwlr4xf2o1wXC83n9RpO+NA==}
     peerDependencies:
       msw: ^2.4.9
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: 8.3.3
     peerDependenciesMeta:
       msw:
         optional: true
@@ -203,6 +206,9 @@ packages:
 
   '@vitest/spy@4.1.11':
     resolution: {integrity: sha512-apNa/prQy2qCeywhnixOHPRCgGNhvg7T4Dapfl1GahLp/R+uhBm5cPyFoNVyqsNd2h1nJxL6BqqdIjiABL60YA==}
+
+  '@vitest/spy@4.1.12':
+    resolution: {integrity: sha512-RGq9x4JNGNTZHEJxvN0oSiJjeSCExm0n2gZKKJZHY9cX5AVA6M7VJILBT3ZJ/tJ/0J9uWT7fETV9/btoi//vSg==}
 
   '@vitest/utils@4.1.11':
     resolution: {integrity: sha512-zTCVGpyFsGWBhllOyKlTw/vnr6D9qxsfSDyfbyZmTyjHw5N/VuvzHpHoQjm2ZJzn4RJgx5w4r7V0er69CmLgPQ==}
@@ -446,8 +452,8 @@ packages:
     resolution: {integrity: sha512-yau8yJdTt989Mm0Bd/236QnzEiPf2xLLTqUZRUJOo/3CB078LSwzei343DgtJVmfJKJE3TMINY1u42SQsP6mXw==}
     engines: {node: '>=14.0.0'}
 
-  vite@8.3.1:
-    resolution: {integrity: sha512-/bvH9E9tmCXRGp2uXY3WbOldqpTwFkbha/8ANaEQ6VkxhH60KyqLwgZq6lG2y+4uT55x9+9eUHMpQ7uGnOCKjA==}
+  vite@8.3.3:
+    resolution: {integrity: sha512-cTAldKPImjg6c+gk48U19POPn3GCBzZwpdsN8ZMEEcbpes+6/wvfqUd0C2y3qYY4wsj8PwgFwrZ/1jBPVttMSg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -505,7 +511,7 @@ packages:
       '@vitest/ui': 4.1.11
       happy-dom: '*'
       jsdom: '*'
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: 8.3.3
     peerDependenciesMeta:
       '@edge-runtime/vm':
         optional: true
@@ -633,7 +639,7 @@ snapshots:
       obug: 2.2.1
       std-env: 4.3.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.11(@vitest/coverage-v8@4.1.11)(vite@8.3.1)
+      vitest: 4.1.11(@vitest/coverage-v8@4.1.11)(vite@8.3.3)
 
   '@vitest/expect@4.1.11':
     dependencies:
@@ -644,13 +650,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.1
 
-  '@vitest/mocker@4.1.11(vite@8.3.1)':
+  '@vitest/mocker@4.1.12(vite@8.3.3)':
     dependencies:
-      '@vitest/spy': 4.1.11
+      '@vitest/spy': 4.1.12
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.3.1
+      vite: 8.3.3
 
   '@vitest/pretty-format@4.1.11':
     dependencies:
@@ -670,6 +676,8 @@ snapshots:
 
   '@vitest/spy@4.1.11': {}
 
+  '@vitest/spy@4.1.12': {}
+
   '@vitest/utils@4.1.11':
     dependencies:
       '@vitest/pretty-format': 4.1.11
@@ -684,7 +692,7 @@ snapshots:
     dependencies:
       '@vitest/runner': 4.1.11
       allure-js-commons: 3.13.0
-      vitest: 4.1.11(@vitest/coverage-v8@4.1.11)(vite@8.3.1)
+      vitest: 4.1.11(@vitest/coverage-v8@4.1.11)(vite@8.3.3)
     transitivePeerDependencies:
       - allure-playwright
 
@@ -873,7 +881,7 @@ snapshots:
 
   tinyrainbow@3.1.1: {}
 
-  vite@8.3.1:
+  vite@8.3.3:
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -883,10 +891,10 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.3
 
-  vitest@4.1.11(@vitest/coverage-v8@4.1.11)(vite@8.3.1):
+  vitest@4.1.11(@vitest/coverage-v8@4.1.11)(vite@8.3.3):
     dependencies:
       '@vitest/expect': 4.1.11
-      '@vitest/mocker': 4.1.11(vite@8.3.1)
+      '@vitest/mocker': 4.1.12(vite@8.3.3)
       '@vitest/pretty-format': 4.1.11
       '@vitest/runner': 4.1.11
       '@vitest/snapshot': 4.1.11
@@ -903,7 +911,7 @@ snapshots:
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.1
-      vite: 8.3.1
+      vite: 8.3.3
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@vitest/coverage-v8': 4.1.11(vitest@4.1.11)

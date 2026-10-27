@@ -36,6 +36,13 @@ void main() {
     verify(mockListener2.onDashboardShown()).called(1);
   });
 
+  test('should broadcast onDashboardHidden to all listeners', () {
+    coordinator.addListener(mockListener2);
+    coordinator.onDashboardHidden();
+    verify(mockListener1.onDashboardHidden()).called(1);
+    verify(mockListener2.onDashboardHidden()).called(1);
+  });
+
   test('should broadcast onWalletUnlocked to all listeners', () {
     coordinator.addListener(mockListener2);
     coordinator.onWalletUnlocked();

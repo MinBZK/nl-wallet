@@ -13,6 +13,8 @@ class CardIssuanceScreen : MobileActions() {
     private val viewDetailsButton = l10n.getString("issuanceReviewCardsPageShowDetailsCta")
     private val dashboardButton = l10n.getString("issuanceSuccessPageCloseCta")
     private val renewCardsSectionTitle = l10n.getPluralString("issuanceReviewCardsPageRenewSectionTitle", 2, mapOf("cards" to "2"))
+    private val continueButton = l10n.getString("issuanceConfirmIssuerPageAcceptCta")
+
 
     fun portraitImageElement(): WebElement = findWebElement(portraitImageLocator)
 
@@ -42,13 +44,9 @@ class CardIssuanceScreen : MobileActions() {
 
     fun dataVisible(data: String) = elementContainingTextVisible(data)
 
-    fun organizationInSubtitleVisible(organization: String): Boolean {
-        return elementWithTextVisible(l10n.getString("checkAttributesScreenSubtitle").replace("{issuer}",
-            "$organization."
-        ))
-    }
-
     fun renewCardsSectionTitleVisible() = elementWithTextVisible(renewCardsSectionTitle)
 
     fun clickToDashboardButton() = clickElementWithText(dashboardButton)
+
+    fun continueIssuance() = clickElementWithText(continueButton)
 }

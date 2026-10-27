@@ -45,8 +45,10 @@ use token_status_list::status_list_token::StatusListToken;
 use url::Url;
 use utils::generator::TimeGenerator;
 use x509_parser::extensions::GeneralName;
+use x509_parser::extensions::ParsedExtension;
 use x509_parser::num_bigint::BigUint;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
+use x509_parser::oid_registry::OID_PKIX_ACCESS_DESCRIPTOR_CA_ISSUERS;
 use x509_parser::parse_x509_crl;
 
 trait RangeCompare<Offset> {
@@ -199,6 +201,52 @@ fn assert_generated_certificate_crl_distribution_points(crt_file: &ChildPath, ex
 
     let uris = extract_crl_distribution_points(&cert)?;
     assert_eq!(uris.as_slice(), expected);
+
+    Ok(())
+}
+
+/// Verify the id-ad-caIssuers URIs from a generated certificate's authority information access extension against the
+/// expected URIs.
+fn assert_generated_certificate_ca_issuers(crt_file: &ChildPath, expected: &[Url]) -> Result<()> {
+    let crt_pem_bytes = std::fs::read(crt_file)?;
+    let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
+    let cert = BorrowingCertificate::from_der(crt_pem.contents)?;
+
+    let uris = cert
+        .x509_certificate()
+        .extensions()
+        .iter()
+        .filter_map(|ext| match ext.parsed_extension() {
+            ParsedExtension::AuthorityInfoAccess(aia) => Some(aia),
+            _ => None,
+        })
+        .flat_map(|aia| aia.iter())
+        .filter(|access_description| access_description.access_method == OID_PKIX_ACCESS_DESCRIPTOR_CA_ISSUERS)
+        .map(|access_description| match access_description.access_location {
+            GeneralName::URI(uri) => Ok(uri.parse::<Url>()?),
+            ref access_location => Err(anyhow::anyhow!("unexpected access location: {access_location:?}")),
+        })
+        .collect::<Result<Vec<_>>>()?;
+    assert_eq!(uris.as_slice(), expected);
+
+    Ok(())
+}
+
+/// Verify the DER encoded content of a generated certificate's QCStatements extension (RFC 3739, section 3.2.6), if
+/// any, against the expected content.
+fn assert_generated_certificate_qc_statements(crt_file: &ChildPath, expected: Option<&[u8]>) -> Result<()> {
+    let crt_pem_bytes = std::fs::read(crt_file)?;
+    let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
+    let cert = BorrowingCertificate::from_der(crt_pem.contents)?;
+
+    // x509-parser does not parse the QCStatements extension, so look it up by its OID.
+    let qc_statements = cert
+        .x509_certificate()
+        .extensions()
+        .iter()
+        .find(|ext| ext.oid.to_id_string() == "1.3.6.1.5.5.7.1.3")
+        .map(|ext| ext.value);
+    assert_eq!(qc_statements, expected);
 
     Ok(())
 }
@@ -576,6 +624,19 @@ fn generate_and_validate_registration_certificate() -> Result<()> {
         .into_payload();
     assert_eq!(cwt_payload.sub, "NTRNL-00000002");
 
+    let mut expired_payload = payload.clone();
+    let now = Utc::now().timestamp();
+    expired_payload["iat"] = json!(now - 120);
+    expired_payload["exp"] = json!(now - 60);
+    payload_file.write_str(&serde_json::to_string_pretty(&expired_payload)?)?;
+    for format in ["jwt", "cwt"] {
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_registration_certificate(&wrprc_crt, &wrprc_key, &wrpac_crt, &payload_file, format)
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("registration certificate expired at"));
+    }
+
     payload["sub"] = json!("NTRNL-DIFFERENT");
     payload_file.write_str(&serde_json::to_string_pretty(&payload)?)?;
 
@@ -625,8 +686,7 @@ fn generate_and_validate_status_list_token() -> Result<()> {
 
     let token: StatusListToken = std::str::from_utf8(&output)?.trim().parse()?;
     let trust_anchors = trust_anchors_from_pem(&ca_crt)?;
-    let signing_certificate_dn = certificate_from_pem(&tsl_crt)?.to_canonical_distinguished_name()?;
-    let claims = token.parse_and_verify(&trust_anchors, signing_certificate_dn, uri.clone(), &TimeGenerator)?;
+    let claims = token.parse_and_verify(&trust_anchors, uri.clone(), &TimeGenerator)?;
 
     assert!(claims.iat.timestamp() >= before.timestamp() && claims.iat.timestamp() <= after.timestamp());
     let expiration = claims.exp.expect("token should have an expiration");
@@ -1160,6 +1220,148 @@ fn happy_flow_with_crl_distribution_points() -> Result<()> {
             .stderr(predicate_successfully_generated_certificate(&rp_auth_crt)?);
 
         assert_generated_certificate_crl_distribution_points(&rp_auth_crt, &[])?;
+    }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_with_ca_issuers() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    let ca_issuers: Vec<Url> = vec![
+        "http://ca1.example.com/ca.crt.der".parse().unwrap(),
+        "http://ca2.example.com/ca.crt.der".parse().unwrap(),
+    ];
+
+    // Generate TSL key pair with multiple CA issuers
+    {
+        let (tsl_prefix, tsl_crt, tsl_key) = keypair_paths(&temp, "test-tsl-aia-kp");
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_kp(&ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .arg("--ca-issuer")
+            .args(ca_issuers.iter().map(Url::as_str))
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_key_pair(&tsl_crt, &tsl_key)?);
+
+        assert_generated_key(&tsl_key)?;
+        assert_generated_certificate_ca_issuers(&tsl_crt, &ca_issuers)?;
+    }
+
+    // Generate TSL certificate with multiple CA issuers
+    {
+        let (tsl_prefix, tsl_crt, _) = keypair_paths(&temp, "test-tsl-aia-crt");
+
+        let public_key_path = public_key_path(&temp, "test-tsl-aia-crt");
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .arg("--ca-issuer")
+            .args(ca_issuers.iter().map(Url::as_str))
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
+
+        assert_generated_certificate_ca_issuers(&tsl_crt, &ca_issuers)?;
+    }
+
+    // Generate a TSL certificate without the flag: no authority information access extension should be present
+    {
+        let (tsl_prefix, tsl_crt, _) = keypair_paths(&temp, "test-tsl-no-aia-crt");
+
+        let public_key_path = public_key_path(&temp, "test-tsl-no-aia-crt");
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .generate_tsl_cert(&public_key_path, &ca_crt, &ca_key, &tsl_prefix)
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&tsl_crt)?);
+
+        assert_generated_certificate_ca_issuers(&tsl_crt, &[])?;
+    }
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn happy_flow_pid_issuer() -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+
+    // Generate ca and assert success
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success()
+        .stderr(predicate_successfully_generated_key_pair(&ca_crt, &ca_key)?);
+
+    // SEQUENCE {                    -- QCStatements
+    //   SEQUENCE {                  -- QCStatement
+    //     OBJECT IDENTIFIER 0.4.0.1862.1.6       -- id-etsi-qcs-QcType
+    //     SEQUENCE {
+    //       OBJECT IDENTIFIER 0.4.0.194126.1.1   -- id-etsi-qct-pid
+    //     }
+    //   }
+    // }
+    let pid_qc_statements: &[u8] = &[
+        0x30, 0x15, 0x30, 0x13, 0x06, 0x06, 0x04, 0x00, 0x8e, 0x46, 0x01, 0x06, 0x30, 0x09, 0x06, 0x07, 0x04, 0x00,
+        0x8b, 0xec, 0x4e, 0x01, 0x01,
+    ];
+
+    // Only a PID issuer certificate contains the id-etsi-qct-pid QcType, while both use the mdoc issuer EKU
+    for (cert_type, expected_qc_statements) in [("pid-issuer", Some(pid_qc_statements)), ("issuer", None)] {
+        let (issuer_prefix, issuer_crt, _) = keypair_paths(&temp, &format!("test-{cert_type}"));
+
+        let public_key_path = public_key_path(&temp, &format!("test-{cert_type}"));
+        generate_public_key(&public_key_path);
+
+        Command::new(assert_cmd::cargo::cargo_bin!())
+            .arg("cert-pub")
+            .arg("--type")
+            .arg(cert_type)
+            .arg("--public-key-file")
+            .arg(public_key_path.path())
+            .arg("--ca-key-file")
+            .arg(ca_key.path())
+            .arg("--ca-crt-file")
+            .arg(ca_crt.path())
+            .arg("--common-name")
+            .arg("Test Issuer")
+            .arg("--file-prefix")
+            .arg(issuer_prefix.path())
+            .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+            .assert()
+            .success()
+            .stderr(predicate_successfully_generated_certificate(&issuer_crt)?);
+
+        let crt_pem_bytes = std::fs::read(&issuer_crt)?;
+        let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
+        assert_eq!(
+            CertificateUsage::from_certificate(&crt_pem.parse_x509()?)?,
+            CertificateUsage::Mdl
+        );
+        assert_generated_certificate_qc_statements(&issuer_crt, expected_qc_statements)?;
     }
 
     // Explicitly close the temp folder, for better error reporting

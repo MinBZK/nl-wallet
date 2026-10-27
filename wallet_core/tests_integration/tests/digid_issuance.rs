@@ -225,5 +225,5 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let country = address_fields
         .get(PID_SD_JWT_COUNTRY)
         .unwrap_or_else(|| panic!("address is missing {PID_SD_JWT_COUNTRY}"));
-    assert_eq!(country, &Attribute::Text("Nederland".to_string()));
+    assert_eq!(country, &Attribute::Text("NL".to_string()));
 }

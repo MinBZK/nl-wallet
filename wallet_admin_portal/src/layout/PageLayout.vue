@@ -3,6 +3,7 @@
     <AppSidebar class="area-sidebar" />
     <main class="area-main">
       <TopHeader
+        v-if="!route.meta.hideHeader"
         :show-create-task-button="!!loggedInUser?.canCreateTask && !route.meta.hideCreateTaskButton"
       />
       <div class="area-content">
@@ -26,7 +27,7 @@ const { loggedInUser } = useAuth()
 <style scoped>
 .shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-columns: var(--width-sidebar) 1fr;
   grid-template-rows: auto 1fr auto;
   height: 100dvh;
   overflow: hidden;

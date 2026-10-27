@@ -8,12 +8,12 @@ import '../../../domain/model/organization.dart';
 import '../../../domain/model/person_type.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/extension/list_extension.dart';
 import '../../../util/extension/object_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/formatter/country_code_formatter.dart';
 import '../../../util/formatter/uri_display_formatter.dart';
 import '../../../util/launch_util.dart';
+import '../../../wallet_constants.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -70,6 +70,8 @@ class OrganizationDetailScreen extends StatelessWidget {
         final content = switch (state) {
           OrganizationDetailInitial() => _buildLoadingSliver(),
           OrganizationDetailFailure() => _buildOrganizationDetailFailure(context, state),
+          OrganizationDetailSuccess() when state.organization.supportUri == kWrprcSupportUnavailableUri =>
+            _buildOrganizationDetailUnavailable(context, state),
           OrganizationDetailSuccess() => _buildOrganizationDetailLoaded(context, state),
         };
         return WalletScrollbar(
@@ -109,17 +111,57 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildOrganizationDetailLoaded(BuildContext context, OrganizationDetailSuccess state) {
-    final items = _buildInfoSectionItems(context, state.organization);
+    return _buildOrganizationDetail(
+      context,
+      state,
+      header: _buildHeaderSection(context, state.organization).takeIf((_) => state.organization.description != null),
+      items: _buildInfoSectionItems(context, state.organization),
+    );
+  }
+
+  Widget _buildOrganizationDetailUnavailable(BuildContext context, OrganizationDetailSuccess state) {
+    final organization = state.organization;
+    final country = CountryCodeFormatter.format(organization.countryCode);
+    return _buildOrganizationDetail(
+      context,
+      state,
+      header: Text.rich(
+        context.l10n.organizationDetailScreenNotAvailable.toTextSpan(context),
+        textAlign: TextAlign.start,
+        style: context.textTheme.bodyLarge,
+      ),
+      items: [
+        _buildLegalNameRow(context, organization),
+        _buildUnavailableRow(context, Icons.apartment_outlined, context.l10n.organizationDetailScreenCategoryInfo),
+        if (country != null)
+          _buildLocationRow(context, country)
+        else
+          _buildUnavailableRow(context, Icons.location_on_outlined, context.l10n.organizationDetailScreenLocationInfo),
+        _buildUnavailableRow(context, Icons.language_outlined, context.l10n.organizationDetailScreenWebsiteInfo),
+        _buildUnavailableRow(context, Icons.headset_mic_outlined, context.l10n.organizationDetailScreenSupportInfo),
+        _buildUnavailableRow(context, Icons.policy_outlined, context.l10n.organizationDetailScreenPrivacyInfo),
+        _buildOrganizationIdRow(context, organization),
+      ],
+    );
+  }
+
+  Widget _buildOrganizationDetail(
+    BuildContext context,
+    OrganizationDetailSuccess state, {
+    required Widget? header,
+    required List<Widget> items,
+  }) {
     return SliverList.list(
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 24),
           child: TitleText(_resolveTitle(context)),
         ),
-        Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
-          child: _buildHeaderSection(context, state.organization),
-        ).takeIf((_) => state.organization.description != null),
+        if (header != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+            child: header,
+          ),
         if (state.sharedDataWithOrganizationBefore) ...[
           const Divider(),
           _buildInteractionRow(context, state),
@@ -143,7 +185,7 @@ class OrganizationDetailScreen extends StatelessWidget {
                 },
               ),
         const SizedBox(height: 24),
-      ].nonNullsList,
+      ],
     );
   }
 
@@ -162,10 +204,18 @@ class OrganizationDetailScreen extends StatelessWidget {
       if (organization.publicBody != null) _buildTypeRow(context, publicBody: organization.publicBody!),
       if (country != null) _buildLocationRow(context, country),
       if (organization.webUri != null) _buildWebUrlRow(context, organization.webUri!),
-      if (organization.supportUri != null) _buildSupportRow(context, organization.supportUri!),
+      _buildSupportRow(context, organization.supportUri),
       if (organization.privacyPolicyUri != null) _buildPrivacyRow(context, organization.privacyPolicyUri!),
       _buildOrganizationIdRow(context, organization),
     ];
+  }
+
+  Widget _buildUnavailableRow(BuildContext context, IconData icon, String label) {
+    return ListItem(
+      icon: Icon(icon),
+      label: Text.rich(label.toTextSpan(context)),
+      subtitle: Text(context.l10n.organizationDetailScreenNotAvailable),
+    );
   }
 
   Widget _buildLegalNameRow(BuildContext context, Organization organization) {

@@ -17,6 +17,10 @@ use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+use wallet_provider_domain::model::admin_task::AdminTask;
+use wallet_provider_domain::model::admin_task::AdminTaskCreate;
+use wallet_provider_domain::model::admin_task::AdminTaskReview;
+use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
@@ -29,12 +33,14 @@ use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::AdminPortalSessionRepository;
+use wallet_provider_domain::repository::AdminTaskRepository;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletFlagRepository;
 use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::admin_portal_session;
+use crate::admin_task;
 use crate::database::Db;
 use crate::recovery_code;
 use crate::transaction;
@@ -616,6 +622,51 @@ impl WalletUserRepository for Repositories {
     }
 }
 
+impl AdminTaskRepository for Repositories {
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError> {
+        admin_task::insert_task(&self.0, task).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_task_by_id(&self, task_id: Uuid) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::find_task_by_id(&self.0, task_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_task_by_id_for_update(
+        &self,
+        transaction: &Self::TransactionType,
+        task_id: Uuid,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::find_task_by_id_for_update(transaction, task_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn withdraw_task(
+        &self,
+        transaction: &Self::TransactionType,
+        task_id: Uuid,
+        now: DateTime<Utc>,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::withdraw_task(transaction, task_id, now).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn review_task(
+        &self,
+        transaction: &Self::TransactionType,
+        review: AdminTaskReview,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::review_task(transaction, review).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError> {
+        admin_task::list_tasks(&self.0, view).await
+    }
+}
+
 #[cfg(feature = "mock")]
 pub mod mock {
     use std::collections::HashMap;
@@ -640,6 +691,10 @@ pub mod mock {
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_task::AdminTask;
+    use wallet_provider_domain::model::admin_task::AdminTaskCreate;
+    use wallet_provider_domain::model::admin_task::AdminTaskReview;
+    use wallet_provider_domain::model::admin_task::TaskListView;
     use wallet_provider_domain::model::wallet_flag::WalletFlag;
     use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
@@ -658,11 +713,49 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_1;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_with_id;
     use wallet_provider_domain::repository::AdminPortalSessionRepository;
+    use wallet_provider_domain::repository::AdminTaskRepository;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;
     use wallet_provider_domain::repository::TransactionStarter;
     use wallet_provider_domain::repository::WalletUserRepository;
+
+    mockall::mock! {
+        pub AdminTaskRepository {}
+
+        impl TransactionStarter for AdminTaskRepository {
+            type TransactionType = MockTransaction;
+
+            async fn begin_transaction(&self) -> Result<MockTransaction, PersistenceError>;
+        }
+
+        impl AdminTaskRepository for AdminTaskRepository {
+            async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError>;
+
+            async fn find_task_by_id(&self, id: Uuid) -> Result<Option<AdminTask>, PersistenceError>;
+
+            async fn find_task_by_id_for_update(
+                &self,
+                transaction: &MockTransaction,
+                id: Uuid,
+            ) -> Result<Option<AdminTask>, PersistenceError>;
+
+            async fn withdraw_task(
+                &self,
+                transaction: &MockTransaction,
+                id: Uuid,
+                now: DateTime<Utc>,
+            ) -> Result<Option<AdminTask>, PersistenceError>;
+
+            async fn review_task(
+                &self,
+                transaction: &MockTransaction,
+                review: AdminTaskReview,
+            ) -> Result<Option<AdminTask>, PersistenceError>;
+
+            async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError>;
+        }
+    }
 
     mockall::mock! {
         pub AdminPortalSessionRepository {}

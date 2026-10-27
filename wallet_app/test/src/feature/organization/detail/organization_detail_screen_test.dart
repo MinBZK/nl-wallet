@@ -2,9 +2,12 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/organization.dart';
+import 'package:wallet/src/domain/model/person_type.dart';
 import 'package:wallet/src/feature/organization/detail/bloc/organization_detail_bloc.dart';
 import 'package:wallet/src/feature/organization/detail/organization_detail_screen.dart';
 import 'package:wallet/src/util/formatter/country_code_formatter.dart';
+import 'package:wallet/src/wallet_constants.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -15,6 +18,16 @@ class MockOrganizationDetailBloc extends MockBloc<OrganizationDetailEvent, Organ
     implements OrganizationDetailBloc {}
 
 void main() {
+  const organizationWithoutWrprc = Organization(
+    id: 'reader-certificate',
+    displayName: 'Example reader',
+    legalName: 'Example B.V.',
+    personType: PersonType.legalPerson,
+    countryCode: 'NL',
+    organizationId: 'NTRNL-12345678',
+    supportUri: kWrprcSupportUnavailableUri,
+  );
+
   group('goldens', () {
     testGoldens('OrganizationDetailSuccess light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
@@ -124,7 +137,7 @@ void main() {
       expect(find.text(l10n.organizationDetailScreenOrganizationTypeNonGovernment), findsOneWidget);
       expect(find.text(l10n.organizationDetailScreenLegalNameInfo), findsOneWidget);
       expect(find.text(l10n.organizationDetailScreenOrganizationIdInfo), findsOneWidget);
-      expect(find.text(WalletMockData.organization.supportUri!.replaceAll('https://', '')), findsOneWidget);
+      expect(find.text(WalletMockData.organization.supportUri.replaceAll('https://', '')), findsOneWidget);
       expect(find.text(WalletMockData.organization.privacyPolicyUri!.replaceAll('https://', '')), findsOneWidget);
       expect(find.text(WalletMockData.organization.organizationId), findsOneWidget);
       final location = CountryCodeFormatter.format(WalletMockData.organization.countryCode);
@@ -180,6 +193,28 @@ void main() {
       );
 
       expect(find.text('support@example.org'), findsOneWidget);
+    });
+
+    testWidgets('missing WRPRC details show unavailable content without links', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const OrganizationDetailScreen().withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          const OrganizationDetailSuccess(
+            organization: organizationWithoutWrprc,
+            sharedDataWithOrganizationBefore: false,
+          ),
+        ),
+        surfaceSize: const Size(375, 1100),
+      );
+      final l10n = await TestUtils.englishLocalizations;
+      final unavailable = find.text(l10n.organizationDetailScreenNotAvailable, findRichText: true);
+      expect(unavailable, findsNWidgets(5));
+      expect(find.byWidgetPredicate((widget) => widget is Semantics && widget.properties.link == true), findsNothing);
+      expect(find.text(kWrprcSupportUnavailableUri), findsNothing);
+      expect(find.text(l10n.organizationDetailScreenTitle(organizationWithoutWrprc.displayName)), findsOneWidget);
+      expect(find.text(organizationWithoutWrprc.legalName), findsOneWidget);
+      expect(find.text(organizationWithoutWrprc.organizationId), findsOneWidget);
+      expect(find.text('Netherlands'), findsOneWidget);
     });
 
     testWidgets('organization type is hidden when it is unknown', (tester) async {
