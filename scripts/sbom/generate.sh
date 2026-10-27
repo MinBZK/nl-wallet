@@ -78,7 +78,7 @@ prod+=("$work/dart.json")
 # Match the existing CI setup for CocoaPods, restoring Flutter's generated setting on exit.
 cp wallet_app/.flutter-plugins-dependencies "$work/flutter-plugins-dependencies"
 jq '.swift_package_manager_enabled.ios = true' "$work/flutter-plugins-dependencies" > wallet_app/.flutter-plugins-dependencies
-(cd wallet_app/ios && pod install --allow-root --deployment)
+(cd wallet_app/ios && bundle exec pod install --allow-root --deployment)
 for variant in full prod; do
     flags=()
     if [[ "$variant" == prod ]]; then flags+=(--exclude-test-targets); fi

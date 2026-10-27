@@ -2,57 +2,15 @@ build-sbom:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .ruby-cache
   stage: build
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-merge-request-manual, rules]
   needs: []
   script:
-    ## Rust
-    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
-    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
-
-    ## Pnpm
-    - cd wallet_web
-    - pnpm sbom --sbom-format cyclonedx --sbom-spec-version 1.5 --lockfile-only > bom.json
-    - cd ..
-
-    - cd wallet_admin_portal
-    - pnpm sbom --sbom-format cyclonedx --sbom-spec-version 1.5 --lockfile-only > bom.json
-    - cd ..
-
-    ## Flutter
-    - (cd wallet_app && cdxgen --fail-on-error --spec-version 1.5 --type dart --output bom.json)
-
-    ## iOS
     - bundle install
-    - cd wallet_app
-    - flutter pub get --enforce-lockfile
-
-      # force swift_package_manager_enabled for cocoapods
-    - dep_file=$(mktemp)
-    - jq '.swift_package_manager_enabled.ios = true' < .flutter-plugins-dependencies > $dep_file
-    - mv $dep_file .flutter-plugins-dependencies
-
-    - cd ios
-    - bundle exec pod install --allow-root --deployment
-    - cyclonedx-cocoapods # only supports single spec version (currently 1.6)
-      # Stripping Flutter 1.0.0 because 1.0.0 doesn't present any particular Flutter release
-      # https://github.com/flutter/flutter/issues/154023#issuecomment-2310710611
-      # https://github.com/flutter/flutter/issues/85820#issuecomment-874103549
-    - >
-      cyclonedx convert --output-version v1_5 --input-file bom.xml --output-format json
-      | jq 'del(.components[] | select(."bom-ref" == "pkg:cocoapods/Flutter@1.0.0?file_name=Flutter")) | del(.dependencies[].dependsOn[]? | select(. == "pkg:cocoapods/Flutter@1.0.0?file_name=Flutter"))'
-      > bom.json
-    - cd ../..
-
-    ## Android
-    - (cd wallet_app/android/app && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)
-    - (cd wallet_core/wallet/platform_support/android && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)
-
-    # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
-    - cyclonedx merge --output-version v1_5 --input-files $(find . -name bom.json) --output-file bom.json
-
-    # converting it to xml does work
-    - cyclonedx convert --output-version v1_5 --input-file bom.json --output-file bom.xml
-    - deploy/bin/store-artifact.sh bom.* qt/quality-time/sbom/
+    - sbom_output=$(mktemp -d)
+    - bash scripts/sbom/generate.sh "$sbom_output"
+    - cp "$sbom_output"/bom*.json "$sbom_output"/bom*.xml .
+    - deploy/bin/store-artifact.sh bom.json bom.xml qt/quality-time/sbom/
+    - deploy/bin/store-artifact.sh bom-prod.json bom-prod.xml qt/quality-time/sbom-prod/
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -60,13 +18,17 @@ build-sbom:
     name: sbom
     when: always
     reports:
-      cyclonedx: bom.json
+      cyclonedx:
+        - bom.json
+        - bom-prod.json
     paths:
       - bom.xml
       - bom.json
+      - bom-prod.xml
+      - bom-prod.json
   allow_failure: true
 
-upload-sbom-to-dependency-track:
+.upload-sbom-to-dependency-track:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .env-k8s
   stage: qa
@@ -77,23 +39,32 @@ upload-sbom-to-dependency-track:
     - job: build-sbom
       artifacts: true
   script: |
-    # Define variables
-    BOM_FILENAME="bom.json"
+    set -euo pipefail
+    test -s "$BOM_FILENAME"
+    if [[ -n "${DEPENDENCY_TRACK_PROJECT_ID+x}" ]]; then
+      PROJECT_ID="$DEPENDENCY_TRACK_PROJECT_ID"
+    else
+      PROJECT_ID=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.project_id}' | base64 --decode)
+    fi
+    : "${PROJECT_ID:?Missing Dependency-Track project ID}"
     API_KEY=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.api_key}' | base64 --decode)
-    PROJECT_ID=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.project_id}' | base64 --decode)
     URL=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.url}' | base64 --decode)
-    # Read and encode the BOM file
-    BOM_CONTENTS=$(cat "$BOM_FILENAME" | base64 -w 0)
-    # Remove UTF-8 BOM if present
-    case $BOM_CONTENTS in
-      77u/*) BOM_CONTENTS=${BOM_CONTENTS:4};;
-    esac
-    # Create JSON payload
-    BOM_PAYLOAD="{\"project\": \"$PROJECT_ID\", \"bom\": \"$BOM_CONTENTS\"}"
-    echo "$BOM_PAYLOAD" > /tmp/bomPayload.json
-    # Send to Dependency-Track
-    curl -f -X PUT "$URL" \
+    : "${API_KEY:?Missing Dependency-Track API key}"
+    : "${URL:?Missing Dependency-Track upload URL}"
+    # Stream the file as multipart data, avoiding a large base64 shell variable.
+    curl -f -X POST "$URL" \
       -H "X-API-Key: $API_KEY" \
-      -H "Content-Type: application/json" \
-      --data-binary @/tmp/bomPayload.json
+      --form-string "project=$PROJECT_ID" \
+      --form "bom=@$BOM_FILENAME;type=application/json"
   allow_failure: true
+
+upload-sbom-to-dependency-track:
+  extends: .upload-sbom-to-dependency-track
+  variables:
+    BOM_FILENAME: bom.json
+
+upload-prod-sbom-to-dependency-track:
+  extends: .upload-sbom-to-dependency-track
+  variables:
+    BOM_FILENAME: bom-prod.json
+    DEPENDENCY_TRACK_PROJECT_ID: "bf56a989-fdcc-4316-a512-533fee3ad8c0"

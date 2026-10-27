@@ -24,11 +24,12 @@ Use the CI quality image, or install the versions pinned in
 `deploy/docker-images/ci/cyclonedx.sh`: cargo-cyclonedx 0.5.9, cdxgen 11.1.2,
 cyclonedx-cocoapods 2.0.1 and cyclonedx-cli 0.30.0. The normal Cargo, pnpm,
 Flutter, CocoaPods, Java and Android SDK setup is also required, along with jq.
-The CocoaPods generator and `pod` must be available on PATH in the same Ruby
-environment. Configure `ANDROID_HOME` or `sdk.dir` as for an Android build.
+Run `bundle install` for the repository's pinned CocoaPods version. The CocoaPods
+generator must be available on PATH outside Bundler; it is installed in the CI
+quality image. Configure `ANDROID_HOME` or `sdk.dir` as for an Android build.
 
 Dependencies are resolved from the existing manifests/lockfiles. The script runs
-`flutter pub get --enforce-lockfile` and `pod install --deployment`, without
+`flutter pub get --enforce-lockfile` and `bundle exec pod install --deployment`, without
 building or signing an app. Temporary Cargo SBOM files are removed on exit.
 
 ## Scope
@@ -60,6 +61,28 @@ generated setting is restored on exit. Swift Package Manager dependencies
 remain outside this collector's coverage. The existing removal of the placeholder
 Flutter pod version `1.0.0` is retained.
 
-The script only generates and validates local files. CI artifact storage,
-Dependency-Track uploads and release packaging remain subsequent integration
-steps. The earlier `sbom-comparison/` prototype files are not inputs to this script.
+## CI integration
+
+`build-sbom` in `deploy/gitlab/sbom.yml` runs this generator automatically on the
+default branch and is available as a manual job in merge-request pipelines.
+Both JSON files are CycloneDX reports, and all four files are downloadable job
+artifacts. On the default branch, the full files are stored at
+`qt/quality-time/sbom/` and the production files at `qt/quality-time/sbom-prod/`.
+
+Two default-branch jobs upload the JSON files to Dependency-Track:
+
+| Job | File | Project |
+| --- | --- | --- |
+| `upload-sbom-to-dependency-track` | `bom.json` | Existing `project_id` from `nl-wallet-dependency-track-secret`. |
+| `upload-prod-sbom-to-dependency-track` | `bom-prod.json` | `bf56a989-fdcc-4316-a512-533fee3ad8c0`, configured as `DEPENDENCY_TRACK_PROJECT_ID`. |
+
+Both jobs reuse the existing secret's API key and upload URL. The API key must
+have upload access to both projects. No project is created by the pipeline.
+The build and upload jobs retain the existing `allow_failure: true` behavior.
+
+The release job downloads both variants and creates `wallet-sbom_<version>_generic.zip`
+and `wallet-sbom-prod_<version>_generic.zip`, each containing its JSON and XML files.
+Both archives are included in `SHA256SUMS`.
+
+The generator itself only creates local files. The earlier `sbom-comparison/`
+prototype files are not inputs to this script or the CI job.
