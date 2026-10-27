@@ -403,7 +403,7 @@ impl CredentialPayload {
 
         let mso = TaggedBytes(mso);
         let issuer_auth: TypedCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            TypedCose::sign_with_certificate(&mso, issuer_keypair, true)
+            TypedCose::sign_with_certificate(&mso, issuer_keypair)
                 .await
                 .map_err(CredentialPayloadIntoSignedMdocError::SigningError)?;
         let TaggedBytes(mso) = mso;

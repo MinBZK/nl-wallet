@@ -12,7 +12,7 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use cose::CoseAlgorithmIdentifier;
-use cose::KnownCoseAlgorithmIdentifier;
+use coset::iana;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
@@ -485,7 +485,7 @@ impl CredentialFormat {
     fn new_mdoc_ecdsa_p256_sha256(doctype: String) -> Self {
         Self::MsoMdoc {
             doctype,
-            credential_signing_alg_values_supported: Some(vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()]),
+            credential_signing_alg_values_supported: Some(vec_nonempty![iana::Algorithm::ESP256.into()]),
         }
     }
 
@@ -913,6 +913,7 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use base64::prelude::*;
     use chrono::DateTime;
+    use coset::iana;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
     use jwe::algorithm::EncryptionAlgorithm;
@@ -940,7 +941,6 @@ mod tests {
     use super::IssuerMetadata;
     use super::JoinCredentialConfigurationId;
     use super::JwsAlgorithm;
-    use super::KnownCoseAlgorithmIdentifier;
     use super::Logo;
     use super::NameLocale;
     use super::SignedIssuerMetadataPayload;
@@ -1562,8 +1562,8 @@ mod tests {
                     .map(|values| values.iter())
                     .unwrap_or_default()
                     .eq(&[
-                        CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Es256),
-                        CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Esp256)
+                        CoseAlgorithmIdentifier::Known(iana::Algorithm::ES256),
+                        CoseAlgorithmIdentifier::Known(iana::Algorithm::ESP256)
                     ])
         );
 

@@ -12,7 +12,7 @@ use coset::CoseSign1;
 use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
-use coset::RegisteredLabel;
+use coset::RegisteredLabelWithPrivate;
 use coset::cwt::ClaimsSet;
 use coset::cwt::Timestamp;
 use coset::iana;
@@ -87,7 +87,7 @@ pub enum WrprcCwtError {
     UnprotectedHeaderParameter(Label),
     #[error("unsupported critical COSE header parameter: {0:?}")]
     #[category(pd)]
-    UnsupportedCriticalHeader(RegisteredLabel<iana::HeaderParameter>),
+    UnsupportedCriticalHeader(RegisteredLabelWithPrivate<iana::HeaderParameter>),
     #[error("WRPRC CWT iat claim is not a finite NumericDate")]
     #[category(critical)]
     InvalidIssuedAt,
@@ -287,7 +287,7 @@ where
             )
             .build();
 
-        let cose = TypedCose::sign_with_protected_header(payload, protected_header, Header::default(), key_pair, true)
+        let cose = TypedCose::sign_with_protected_header(payload, protected_header, Header::default(), key_pair)
             .await
             .map_err(WrprcCwtError::Cose)?;
 
@@ -336,7 +336,7 @@ fn validate_wrprc_header<T>(cose: &TypedCose<CoseSign1, T>) -> Result<WrprcCwtHe
     }
 
     for critical_header in &protected.crit {
-        if critical_header != &RegisteredLabel::Assigned(iana::HeaderParameter::Alg) {
+        if critical_header != &RegisteredLabelWithPrivate::Assigned(iana::HeaderParameter::Alg) {
             return Err(WrprcCwtError::UnsupportedCriticalHeader(critical_header.clone()));
         }
     }
@@ -442,7 +442,7 @@ mod tests {
     }
 
     async fn sign_with_header(header: Header, key_pair: &KeyPair) -> TypedCose<CoseSign1, ToyMessage> {
-        TypedCose::sign_with_protected_header(&ToyMessage::default(), header, Header::default(), key_pair, true)
+        TypedCose::sign_with_protected_header(&ToyMessage::default(), header, Header::default(), key_pair)
             .await
             .unwrap()
     }
@@ -696,10 +696,9 @@ mod tests {
         let unprotected = HeaderBuilder::new()
             .value(COSE_TYPE_HEADER_LABEL, Value::Text(WRPRC_CWT_TYPE.to_owned()))
             .build();
-        let cose =
-            TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair, true)
-                .await
-                .unwrap();
+        let cose = TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair)
+            .await
+            .unwrap();
         assert!(matches!(
             UnverifiedWrprcCwt::try_from(cose),
             Err(WrprcCwtError::UnprotectedHeaderParameter(Label::Int(
@@ -716,27 +715,26 @@ mod tests {
         let mut supported = valid_wrprc_protected_header(&key_pair, None);
         supported
             .crit
-            .push(RegisteredLabel::Assigned(iana::HeaderParameter::Alg));
+            .push(RegisteredLabelWithPrivate::Assigned(iana::HeaderParameter::Alg));
         UnverifiedWrprcCwt::try_from(sign_with_header(supported, &key_pair).await).unwrap();
 
         let mut unsupported = valid_wrprc_protected_header(&key_pair, None);
         unsupported.key_id = vec![1];
         unsupported
             .crit
-            .push(RegisteredLabel::Assigned(iana::HeaderParameter::Kid));
+            .push(RegisteredLabelWithPrivate::Assigned(iana::HeaderParameter::Kid));
         assert!(matches!(
             UnverifiedWrprcCwt::try_from(sign_with_header(unsupported, &key_pair).await),
-            Err(WrprcCwtError::UnsupportedCriticalHeader(RegisteredLabel::Assigned(
-                iana::HeaderParameter::Kid
-            )))
+            Err(WrprcCwtError::UnsupportedCriticalHeader(
+                RegisteredLabelWithPrivate::Assigned(iana::HeaderParameter::Kid)
+            ))
         ));
 
         let protected = valid_wrprc_protected_header(&key_pair, None);
         let unprotected = HeaderBuilder::new().add_critical(iana::HeaderParameter::Alg).build();
-        let cose =
-            TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair, true)
-                .await
-                .unwrap();
+        let cose = TypedCose::sign_with_protected_header(&ToyMessage::default(), protected, unprotected, &key_pair)
+            .await
+            .unwrap();
         assert!(matches!(
             UnverifiedWrprcCwt::try_from(cose),
             Err(WrprcCwtError::UnprotectedHeaderParameter(Label::Int(
@@ -875,7 +873,7 @@ mod tests {
         for error in [
             WrprcCwtError::UnexpectedType(Value::Text("personal data".to_owned())),
             WrprcCwtError::UnprotectedHeaderParameter(Label::Text("personal data".to_owned())),
-            WrprcCwtError::UnsupportedCriticalHeader(RegisteredLabel::Text("personal data".to_owned())),
+            WrprcCwtError::UnsupportedCriticalHeader(RegisteredLabelWithPrivate::Text("personal data".to_owned())),
             WrprcCwtError::Cose(CoseError::UnsupportedAlgorithm(coset::Algorithm::Text(
                 "personal data".to_owned(),
             ))),
