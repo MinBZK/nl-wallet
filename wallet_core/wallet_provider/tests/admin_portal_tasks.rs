@@ -21,6 +21,7 @@ use tower::ServiceExt;
 use utils::vec_nonempty;
 use uuid::Uuid;
 use wallet_provider::admin_portal;
+use wallet_provider::admin_portal::CheckWalletResponse;
 use wallet_provider::admin_portal::CreateTaskRequest;
 use wallet_provider::admin_portal::ReviewTaskRequest;
 use wallet_provider::admin_portal::TaskResponse;
@@ -36,6 +37,7 @@ use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::model::wallet_user::WalletId;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -58,7 +60,7 @@ impl TestUser {
     }
 }
 
-async fn test_app() -> (Router, Repositories, TestState) {
+async fn test_admin_portal_app() -> (Router, Repositories, TestState) {
     let setup = setup_state().await;
     (
         admin_portal::router(Arc::clone(&setup)),
@@ -140,7 +142,7 @@ async fn test_concurrent_task_mutations(
     #[case] first_verdict: Option<ReviewVerdict>,
     #[case] second_verdict: Option<ReviewVerdict>,
 ) {
-    let (app, repositories, _db_setup) = test_app().await;
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let creator_cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
@@ -225,8 +227,30 @@ async fn test_concurrent_task_mutations(
 
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_check_wallet_succeeds() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+    let wallet_id = seed_wallet(&repositories).await;
+
+    let request = Request::builder()
+        .method("GET")
+        .uri(format!("/wallets/{wallet_id}"))
+        .header(header::COOKIE, cookie)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: CheckWalletResponse = json_body(response).await;
+    assert_eq!(body.status, WalletUserState::Active);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_task_succeeds() {
-    let (app, repositories, _db_setup) = test_app().await;
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
 
@@ -256,7 +280,7 @@ async fn test_create_task_succeeds() {
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_withdraw_task_succeeds() {
-    let (app, repositories, _db_setup) = test_app().await;
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
     let task_id = seed_task(&repositories, &alice).await;
@@ -286,7 +310,7 @@ async fn test_withdraw_task_succeeds() {
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_review_task_approve_succeeds() {
-    let (app, repositories, _db_setup) = test_app().await;
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
@@ -315,7 +339,7 @@ async fn test_review_task_approve_succeeds() {
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_review_task_approve_stores_failed_execution_for_unknown_wallet() {
-    let (app, repositories, _db_setup) = test_app().await;
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
@@ -357,7 +381,7 @@ fn review_request(task_id: Uuid, cookie: &str, verdict: ReviewVerdict) -> Reques
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_list_tasks_open_succeeds() {
-    let (app, repositories, _db_setup) = test_app().await;
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
     let task_id = seed_task(&repositories, &alice).await;
@@ -379,7 +403,7 @@ async fn test_list_tasks_open_succeeds() {
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_list_tasks_history_succeeds() {
-    let (app, repositories, _db_setup) = test_app().await;
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
     let task_id = seed_task(&repositories, &alice).await;
@@ -415,7 +439,7 @@ async fn test_list_tasks_history_succeeds() {
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_list_tasks_reviewable_succeeds() {
-    let (app, repositories, _db_setup) = test_app().await;
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;

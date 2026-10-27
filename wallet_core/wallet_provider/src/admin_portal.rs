@@ -35,6 +35,8 @@ use wallet_provider_domain::model::admin_task::AdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
+use wallet_provider_domain::model::wallet_user::WalletId;
+use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::admin_portal::AdminPortalConfig;
 use wallet_provider_service::admin_portal::AdminPortalService;
@@ -46,6 +48,7 @@ use wallet_provider_service::admin_portal::task::ListTasksError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
+use wallet_provider_service::admin_portal::wallet_lookup::CheckWalletError;
 
 use crate::router_state::ProductionUserState;
 use crate::settings::AdminPortalSettings;
@@ -83,6 +86,24 @@ impl IntoResponse for TaskApiError {
             | Self::Review(ReviewTaskError::Storage(_) | ReviewTaskError::AuditLog(_))
             | Self::List(ListTasksError::Storage(_) | ListTasksError::AuditLog(_))
             | Self::Execution(ExecuteTaskError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        status.into_response()
+    }
+}
+
+/// Failure of a `/wallets` endpoint, mapped to the matching HTTP status code.
+#[derive(Debug)]
+enum WalletApiError {
+    Check(CheckWalletError),
+}
+
+impl IntoResponse for WalletApiError {
+    fn into_response(self) -> Response {
+        warn!("wallet endpoint failed: {self:?}");
+        let status = match self {
+            Self::Check(CheckWalletError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
+            Self::Check(CheckWalletError::NotFound(_)) => StatusCode::NOT_FOUND,
+            Self::Check(CheckWalletError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         status.into_response()
     }
@@ -150,6 +171,7 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
                 .route("/{task_id}/withdraw", post(withdraw_task))
                 .route("/{task_id}/review", post(review_task)),
         )
+        .route("/wallets/{wallet_id}", get(check_wallet))
         .with_state(state)
 }
 
@@ -441,6 +463,27 @@ async fn list_tasks(
     Ok(Json(tasks.into_iter().map(TaskResponse::from).collect_vec()))
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "web_test", derive(Deserialize))]
+#[serde(rename_all = "camelCase")]
+pub struct CheckWalletResponse {
+    pub status: WalletUserState,
+}
+
+async fn check_wallet(
+    State(state): State<Arc<AdminPortalState>>,
+    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    Path(wallet_id): Path<WalletId>,
+) -> Result<Json<CheckWalletResponse>, WalletApiError> {
+    let status = state
+        .service
+        .check_wallet(&wallet_id, &user, &state.user_state)
+        .await
+        .map_err(WalletApiError::Check)?;
+
+    Ok(Json(CheckWalletResponse { status }))
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -571,6 +614,23 @@ mod tests {
         StatusCode::INTERNAL_SERVER_ERROR
     )]
     fn task_api_error_status_codes(#[case] error: TaskApiError, #[case] status: StatusCode) {
+        assert_eq!(error.into_response().status(), status);
+    }
+
+    #[rstest]
+    #[case::missing_privilege(
+        WalletApiError::Check(CheckWalletError::MissingPrivilege(TaskType::RevokeWallet)),
+        StatusCode::FORBIDDEN
+    )]
+    #[case::not_found(
+        WalletApiError::Check(CheckWalletError::NotFound(WalletId::from("wallet-1".to_string()))),
+        StatusCode::NOT_FOUND
+    )]
+    #[case::storage(
+        WalletApiError::Check(CheckWalletError::Storage(storage_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    fn wallet_api_error_status_codes(#[case] error: WalletApiError, #[case] status: StatusCode) {
         assert_eq!(error.into_response().status(), status);
     }
 }
@@ -806,9 +866,10 @@ mod http_tests {
     #[case::list("GET", "/tasks?view=open")]
     #[case::withdraw("POST", "/tasks/00000000-0000-0000-0000-000000000000/withdraw")]
     #[case::review("POST", "/tasks/00000000-0000-0000-0000-000000000000/review")]
+    #[case::check_wallet("GET", "/wallets/wallet-1")]
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn task_routes_require_authentication(#[case] method: &str, #[case] uri: &str) {
+    async fn admin_portal_routes_require_authentication(#[case] method: &str, #[case] uri: &str) {
         let state = setup_state().await;
         let request = Request::builder().method(method).uri(uri).body(Body::empty()).unwrap();
 
@@ -841,5 +902,36 @@ mod http_tests {
         let response = create_task_from_body(body).await;
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    async fn check_wallet_with(wallet_id: &str, privileges: Vec<String>) -> Response {
+        let state = setup_state().await;
+        check_wallet(
+            State(Arc::clone(&state)),
+            AuthenticatedAdminUser(LoggedInUser {
+                user_id: "alice".to_owned(),
+                display_name: "Alice".to_owned(),
+                privileges,
+            }),
+            Path(WalletId::from(wallet_id.to_string())),
+        )
+        .await
+        .into_response()
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn check_wallet_rejects_missing_privilege_with_forbidden() {
+        let response = check_wallet_with("wallet-1", vec![]).await;
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn check_wallet_reports_unknown_wallet_with_not_found() {
+        let response = check_wallet_with("wallet-1", vec![TaskType::RevokeWallet.to_string()]).await;
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 }

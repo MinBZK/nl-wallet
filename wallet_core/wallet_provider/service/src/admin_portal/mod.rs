@@ -49,6 +49,7 @@ use crate::admin_portal::oidc_client::OidcHttpClient;
 pub mod execution;
 pub mod oidc_client;
 pub mod task;
+pub mod wallet_lookup;
 
 const PRIVILEGE_ROLE_PREFIX: &str = "privilege_";
 
@@ -529,6 +530,23 @@ struct AccessTokenClaims {
 struct RealmAccess {
     #[serde(default)]
     roles: Vec<String>,
+}
+
+/// Test helpers shared across the `admin_portal` service submodules.
+#[cfg(test)]
+pub(crate) mod test_support {
+    use wallet_provider_domain::model::admin_task::TaskType;
+
+    use super::LoggedInUser;
+
+    /// Builds a [`LoggedInUser`] with a display name derived from `user_id`, authorized for `task_types`.
+    pub(crate) fn user(user_id: &str, task_types: &[TaskType]) -> LoggedInUser {
+        LoggedInUser {
+            user_id: user_id.to_string(),
+            display_name: user_id.replace("user-", "User "),
+            privileges: task_types.iter().map(TaskType::to_string).collect(),
+        }
+    }
 }
 
 #[cfg(test)]

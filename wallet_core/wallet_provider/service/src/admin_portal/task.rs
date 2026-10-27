@@ -376,6 +376,7 @@ mod tests {
     use super::*;
     use crate::account_server::mock::mock_status_list_service;
     use crate::account_server::mock::user_state;
+    use crate::admin_portal::test_support::user;
     use crate::flags::mock::StubWalletFlags;
     use crate::wallet_certificate::mock::setup_hsm;
 
@@ -396,14 +397,6 @@ mod tests {
     impl Generator<Uuid> for FixedUuid {
         fn generate(&self) -> Uuid {
             self.0
-        }
-    }
-
-    fn user(user_id: &str, task_types: &[TaskType]) -> LoggedInUser {
-        LoggedInUser {
-            user_id: user_id.to_string(),
-            display_name: user_id.replace("user-", "User "),
-            privileges: task_types.iter().map(TaskType::to_string).collect(),
         }
     }
 

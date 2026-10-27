@@ -128,6 +128,7 @@ pub struct WalletUserCreate {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum WalletUserState {
     Active,
