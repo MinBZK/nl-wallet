@@ -365,12 +365,12 @@ impl Document {
         let device_authentication_bts = DeviceAuthenticationKeyed::challenge(&self.doc_type, session_transcript)?;
 
         debug!("extracting device_key");
-        let device_key = (&mso.device_key_info.device_key).try_into()?;
+        let device_key = VerifyingKey::try_from(&mso.device_key_info.device_key)?;
         match &self.device_signed.device_auth {
             DeviceAuth::DeviceSignature(sig) => {
                 debug!("verifying DeviceSignature");
                 sig.clone_with_payload(device_authentication_bts.to_vec())
-                    .verify(&PublicKey::ESP256(device_key))?;
+                    .verify(&PublicKey::from(device_key))?;
             }
             DeviceAuth::DeviceMac(mac) => {
                 debug!("verifying DeviceMac");

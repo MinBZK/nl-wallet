@@ -173,7 +173,7 @@ mod tests {
         assert!(without_payload.as_ref().payload.is_none());
 
         let with_payload = without_payload.clone_with_payload(payload_bytes);
-        let public_key = PublicKey::ESP256(*key.verifying_key());
+        let public_key = PublicKey::from(*key.verifying_key());
         assert_eq!(with_payload.verify_and_parse(&public_key).unwrap(), payload);
     }
 }

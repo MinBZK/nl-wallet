@@ -66,7 +66,7 @@ struct NonSerdePayload;
 
 fn create_signed_message(_message: &ToyMessage) -> (TypedCose<CoseSign1, ToyMessage>, PublicKey) {
     let key = SigningKey::generate();
-    let public_key = PublicKey::ESP256(*key.verifying_key());
+    let public_key = PublicKey::from(*key.verifying_key());
 
     let cose = TypedCose::sign(&ToyMessage::default(), Header::default(), &key)
         .now_or_never()
