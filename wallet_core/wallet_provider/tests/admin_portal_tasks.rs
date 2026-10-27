@@ -253,6 +253,10 @@ async fn test_create_task_succeeds() {
     let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+    let wallet_id = seed_wallet(&repositories).await;
+    let payload = TaskPayload::RevokeWallet(RevokeWalletParameters {
+        wallet_ids: vec_nonempty![wallet_id].into(),
+    });
 
     let request = Request::builder()
         .method("POST")
@@ -261,7 +265,7 @@ async fn test_create_task_succeeds() {
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(
             serde_json::to_string(&CreateTaskRequest {
-                payload: revoke_wallet_payload(),
+                payload: payload.clone(),
                 task_reason: "integration test".to_string(),
             })
             .unwrap(),
@@ -273,7 +277,7 @@ async fn test_create_task_succeeds() {
 
     let task: TaskResponse = json_body(response).await;
     assert_eq!(task.status, TaskStatus::Created);
-    assert_eq!(task.payload, revoke_wallet_payload());
+    assert_eq!(task.payload, payload);
     assert_eq!(task.created_by, alice.display_name);
 }
 

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::error::Error;
 
 use audit_log::audited;
@@ -14,11 +15,13 @@ use wallet_provider_domain::model::admin_task::CreateAdminTask;
 use wallet_provider_domain::model::admin_task::ExecuteAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
+use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
 use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
@@ -34,6 +37,8 @@ use crate::admin_portal::execution::revoke_wallets;
 pub enum CreateTaskError {
     #[error("missing privilege for task type {0}")]
     MissingPrivilege(TaskType),
+    #[error("wallet IDs not found: {0:?}")]
+    WalletIdsNotFound(HashSet<WalletId>),
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
     #[error("error while auditing: {0}")]
@@ -126,16 +131,32 @@ where
     U: Generator<Uuid>,
 {
     #[audited]
-    pub async fn create_task(
+    pub async fn create_task<TX, UR, F, H>(
         &self,
         #[audit(flatten)] payload: &TaskPayload,
         #[audit] task_reason: &str,
         #[audit_user] user: &LoggedInUser,
+        user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
         #[auditor] audit_log: &impl AuditLog,
-    ) -> Result<AdminTask, CreateTaskError> {
+    ) -> Result<AdminTask, CreateTaskError>
+    where
+        TX: Committable,
+        UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
+    {
         let task_type = payload.task_type();
         if !user.authorized_task_types().contains(&task_type) {
             return Err(CreateTaskError::MissingPrivilege(task_type));
+        }
+
+        // Verify payload
+        match &payload {
+            TaskPayload::RevokeWallet(revoke_wallet_parameters) => {
+                self.verify_revoke_wallet_parameters(revoke_wallet_parameters, user_state)
+                    .await?;
+            }
+            TaskPayload::BlockUser {} => todo!("PVW-6176"),
+            TaskPayload::UnblockUser {} => todo!("PVW-6177"),
+            TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         }
 
         let task = self
@@ -152,6 +173,40 @@ where
             .map_err(CreateTaskError::Storage)?;
 
         Ok(task)
+    }
+
+    async fn verify_revoke_wallet_parameters<TX, UR, F, H>(
+        &self,
+        revoke_wallet_parameters: &RevokeWalletParameters,
+        user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
+    ) -> Result<(), CreateTaskError>
+    where
+        TX: Committable,
+        UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
+    {
+        let transaction = user_state
+            .repositories
+            .begin_transaction()
+            .await
+            .map_err(CreateTaskError::Storage)?;
+
+        let wallet_ids: HashSet<WalletId> = revoke_wallet_parameters.wallet_ids.iter().cloned().collect();
+        let found_wallet_ids = user_state
+            .repositories
+            .find_wallet_user_id_by_wallet_ids(&transaction, &wallet_ids)
+            .await
+            .map_err(CreateTaskError::Storage)?;
+
+        transaction.commit().await.map_err(CreateTaskError::Storage)?;
+
+        if found_wallet_ids.len() != wallet_ids.len() {
+            let not_found_ids: HashSet<WalletId> = wallet_ids
+                .difference(&found_wallet_ids.into_keys().collect())
+                .cloned()
+                .collect();
+            return Err(CreateTaskError::WalletIdsNotFound(not_found_ids));
+        }
+        Ok(())
     }
 
     /// Withdraws a task created by the caller that is still in `Created` status.
@@ -331,7 +386,9 @@ where
                     Err(error) => (false, error.to_string()),
                 }
             }
-            TaskPayload::BlockUser {} | TaskPayload::UnblockUser {} | TaskPayload::RevokeSolution {} => todo!(),
+            TaskPayload::BlockUser {} => todo!("PVW-6176"),
+            TaskPayload::UnblockUser {} => todo!("PVW-6177"),
+            TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         };
 
         let execution = ExecuteAdminTask {
@@ -360,8 +417,12 @@ mod tests {
     use chrono::DateTime;
     use chrono::Utc;
     use crypto::trust_anchor::TrustAnchors;
+    use hsm::model::mock::MockPkcs11Client;
+    use hsm::service::HsmError;
+    use p256::ecdsa::SigningKey;
     use rstest::fixture;
     use rstest::rstest;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::vec_nonempty;
     use uuid::Uuid;
     use wallet_provider_domain::keys::Kid;
@@ -563,6 +624,26 @@ mod tests {
         wallet_user_repo
     }
 
+    /// Builds a [`UserState`] around `wallet_user_repo`, with every other parameter fixed to a test default.
+    async fn setup_user_state(
+        wallet_user_repo: MockTransactionalWalletUserRepository,
+    ) -> UserState<
+        MockTransactionalWalletUserRepository,
+        StubWalletFlags,
+        MockPkcs11Client<HsmError>,
+        SigningKey,
+        MockStatusListService,
+    > {
+        user_state(
+            wallet_user_repo,
+            StubWalletFlags::default(),
+            setup_hsm().await,
+            Kid::try_from("0").unwrap(),
+            TrustAnchors::empty(),
+            mock_status_list_service(),
+        )
+    }
+
     /// Executes task `task_id` as [`REVIEWER`], with `wallet_user_repo` handling the revocation.
     async fn execute(
         repository: MockAdminPortalRepository,
@@ -570,14 +651,7 @@ mod tests {
         now: DateTime<Utc>,
         task_id: Uuid,
     ) -> Result<AdminTask, ExecuteTaskError> {
-        let mut user_state = user_state(
-            wallet_user_repo,
-            StubWalletFlags::default(),
-            setup_hsm().await,
-            Kid::try_from("0").unwrap(),
-            TrustAnchors::empty(),
-            mock_status_list_service(),
-        );
+        let mut user_state = setup_user_state(wallet_user_repo).await;
         user_state
             .wia_status_list
             .expect_revoke_attestation_batches()
@@ -595,8 +669,10 @@ mod tests {
         task_id: Uuid,
         #[from(unprivileged_reviewer)] user: LoggedInUser,
     ) {
+        let user_state = setup_user_state(wallet_user_repository(&[])).await;
+
         let result = service(MockAdminPortalRepository::new(), now, task_id)
-            .create_task(&revoke_wallet_payload(), TASK_REASON, &user, &MockAuditLog)
+            .create_task(&revoke_wallet_payload(), TASK_REASON, &user, &user_state, &MockAuditLog)
             .await;
 
         assert_matches!(result, Err(CreateTaskError::MissingPrivilege(TaskType::RevokeWallet)));
@@ -619,14 +695,42 @@ mod tests {
             assert_eq!(create.task_reason, TASK_REASON);
             Ok(AdminTask::from(create))
         });
+        let user_state = setup_user_state(wallet_user_repository(&["wallet-1"])).await;
 
         let task = service(repository, now, task_id)
-            .create_task(&revoke_wallet_payload(), TASK_REASON, &creator, &MockAuditLog)
+            .create_task(
+                &revoke_wallet_payload(),
+                TASK_REASON,
+                &creator,
+                &user_state,
+                &MockAuditLog,
+            )
             .await
             .expect("task should be created");
 
         assert_eq!(task.id, task_id);
         assert_eq!(task.status, TaskStatus::Created);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn create_task_rejects_unknown_wallet_ids(now: DateTime<Utc>, task_id: Uuid, creator: LoggedInUser) {
+        let user_state = setup_user_state(wallet_user_repository(&[])).await;
+
+        let result = service(MockAdminPortalRepository::new(), now, task_id)
+            .create_task(
+                &revoke_wallet_payload(),
+                TASK_REASON,
+                &creator,
+                &user_state,
+                &MockAuditLog,
+            )
+            .await;
+
+        assert_matches!(
+            result,
+            Err(CreateTaskError::WalletIdsNotFound(ids)) if ids == HashSet::from([WalletId::from("wallet-1".to_string())])
+        );
     }
 
     #[rstest]

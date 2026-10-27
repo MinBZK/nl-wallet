@@ -75,6 +75,8 @@ impl IntoResponse for TaskApiError {
             Self::Create(CreateTaskError::MissingPrivilege(_)) | Self::Review(ReviewTaskError::MissingPrivilege(_)) => {
                 StatusCode::FORBIDDEN
             }
+            // The request references wallet IDs that do not exist; this is a client error, not a missing resource.
+            Self::Create(CreateTaskError::WalletIdsNotFound(_)) => StatusCode::BAD_REQUEST,
             Self::Withdraw(WithdrawTaskError::NotFound(_))
             | Self::Review(ReviewTaskError::NotFound(_))
             | Self::Execution(ExecuteTaskError::NotFound(_)) => StatusCode::NOT_FOUND,
@@ -395,7 +397,13 @@ async fn create_task(
     let Json(request) = request.map_err(TaskApiError::InvalidRequest)?;
     let task = state
         .service
-        .create_task(&request.payload, &request.task_reason, &user, &state.audit_log)
+        .create_task(
+            &request.payload,
+            &request.task_reason,
+            &user,
+            &state.user_state,
+            &state.audit_log,
+        )
         .await
         .map_err(TaskApiError::Create)?;
 
@@ -486,6 +494,7 @@ async fn check_wallet(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
 
     use axum::extract::rejection::MissingJsonContentType;
     use rstest::rstest;
@@ -557,6 +566,12 @@ mod tests {
     #[case::create_missing_privilege(
         TaskApiError::Create(CreateTaskError::MissingPrivilege(TaskType::RevokeWallet)),
         StatusCode::FORBIDDEN
+    )]
+    #[case::create_wallet_ids_not_found(
+        TaskApiError::Create(CreateTaskError::WalletIdsNotFound(HashSet::from([WalletId::from(
+            "wallet-1".to_string()
+        )]))),
+        StatusCode::BAD_REQUEST
     )]
     #[case::create_storage(
         TaskApiError::Create(CreateTaskError::Storage(storage_error())),
@@ -900,6 +915,19 @@ mod http_tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn create_task_rejects_invalid_request_with_bad_request(#[case] body: Value) {
         let response = create_task_from_body(body).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn create_task_rejects_unknown_wallet_ids_with_bad_request() {
+        let response = create_task_from_body(json!({
+            "taskType": "revoke_wallet",
+            "taskParameters": {"walletIds": ["wallet-1"]},
+            "taskReason": "because",
+        }))
+        .await;
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
