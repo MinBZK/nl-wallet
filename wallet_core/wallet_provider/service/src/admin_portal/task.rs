@@ -154,9 +154,9 @@ where
                 self.verify_revoke_wallet_parameters(revoke_wallet_parameters, user_state)
                     .await?;
             }
-            TaskPayload::BlockUser => todo!("PVW-6176"),
-            TaskPayload::UnblockUser => todo!("PVW-6177"),
-            TaskPayload::RevokeSolution => todo!("PVW-6178"),
+            TaskPayload::BlockUser {} => todo!("PVW-6176"),
+            TaskPayload::UnblockUser {} => todo!("PVW-6177"),
+            TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         }
 
         let task = self
@@ -386,9 +386,9 @@ where
                     Err(error) => (false, error.to_string()),
                 }
             }
-            TaskPayload::BlockUser => todo!("PVW-6176"),
-            TaskPayload::UnblockUser => todo!("PVW-6177"),
-            TaskPayload::RevokeSolution => todo!("PVW-6178"),
+            TaskPayload::BlockUser {} => todo!("PVW-6176"),
+            TaskPayload::UnblockUser {} => todo!("PVW-6177"),
+            TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         };
 
         let execution = ExecuteAdminTask {

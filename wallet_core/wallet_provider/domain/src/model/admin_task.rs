@@ -24,9 +24,9 @@ use super::wallet_user::WalletId;
 )]
 pub enum TaskPayload {
     RevokeWallet(RevokeWalletParameters),
-    BlockUser,      // TODO PVW-6176
-    UnblockUser,    // TODO PVW-6177
-    RevokeSolution, // TODO PVW-6178
+    BlockUser {},      // TODO PVW-6176
+    UnblockUser {},    // TODO PVW-6177
+    RevokeSolution {}, // TODO PVW-6178
 }
 
 impl TaskPayload {
@@ -37,7 +37,7 @@ impl TaskPayload {
     pub fn parameters_json(&self) -> Result<JsonValue, serde_json::Error> {
         match self {
             Self::RevokeWallet(parameters) => serde_json::to_value(parameters),
-            Self::BlockUser | Self::UnblockUser | Self::RevokeSolution => Ok(JsonValue::Object(Map::new())),
+            Self::BlockUser {} | Self::UnblockUser {} | Self::RevokeSolution {} => Ok(JsonValue::Object(Map::new())),
         }
     }
 
