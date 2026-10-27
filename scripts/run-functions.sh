@@ -25,13 +25,14 @@ function requested_device_id() {
 
 function gitlab_api() {
     local endpoint="$1"
+    shift
     local output
     local stderr_file
     local stderr_output
 
     stderr_file="$(mktemp "${TMPDIR:-/tmp}/nl-wallet-glab-api.XXXXXX")"
 
-    if output="$(glab api "${endpoint}" 2>"${stderr_file}")"; then
+    if output="$(glab api "${endpoint}" "$@" 2>"${stderr_file}")"; then
         rm -f "${stderr_file}"
         echo "${output}"
         return 0
@@ -75,7 +76,9 @@ function resolve_jobs_json() {
     local project_id="$1"
     local pipeline_id="$2"
 
-    gitlab_api "projects/${project_id}/pipelines/${pipeline_id}/jobs?scope[]=success&per_page=200"
+    # GitLab caps per_page at 100 and pipelines can have more jobs; --paginate prints one array per page
+    gitlab_api "projects/${project_id}/pipelines/${pipeline_id}/jobs?scope[]=success&per_page=100" --paginate \
+        | jq --slurp 'add // []'
 }
 
 function jobs_contain_name() {
@@ -185,6 +188,25 @@ function fetch_wallet_config() {
         | jq -e '.' > "${wallet_config_path}"
     fetch_job_artifact "${project_id}" "${job_id}" "wallet_core/wallet/config-server-config.json" \
         | jq -e '.' > "${config_server_config_path}"
+}
+
+function job_has_artifacts() {
+    local jobs_json="$1"
+    local job_name="$2"
+
+    # Expired artifacts are deleted, leaving only the job trace and no artifacts_file.
+    echo "${jobs_json}" | jq -e --arg name "${job_name}" '
+        map(select(.name == $name)) | first | .artifacts_file != null
+    ' >/dev/null
+}
+
+function fetch_demo_index_url() {
+    local project_id="$1"
+    local job_id="$2"
+    local env_slug="$3"
+
+    fetch_job_artifact "${project_id}" "${job_id}" "build-${env_slug}.env" \
+        | sed -n 's/^DEMO_INDEX_URL=//p'
 }
 
 function require_env_vars() {
