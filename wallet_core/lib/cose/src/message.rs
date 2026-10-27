@@ -16,7 +16,6 @@ use rsa::RsaPublicKey;
 use rsa::signature::Verifier as _;
 use serde::de::DeserializeOwned;
 
-use crate::CoseAlgorithmIdentifier;
 use crate::error::CoseError;
 use crate::serialization::cbor_deserialize;
 
@@ -32,16 +31,9 @@ pub trait Cose {
 
     fn validate_algorithm(&self) -> Result<iana::Algorithm, CoseError> {
         match self.protected().header.alg.as_ref() {
-            Some(algorithm @ coset::Algorithm::Assigned(assigned)) => {
-                match CoseAlgorithmIdentifier::from(*assigned as i64) {
-                    CoseAlgorithmIdentifier::Known(identifier) if Self::ALGORITHMS.contains(&identifier) => {
-                        Ok(identifier)
-                    }
-                    _ => Err(CoseError::UnsupportedAlgorithm(algorithm.clone())),
-                }
-            }
-            Some(algorithm) => Err(CoseError::UnsupportedAlgorithm(algorithm.clone()))?,
-            None => Err(CoseError::MissingAlgorithm)?,
+            Some(coset::Algorithm::Assigned(algorithm)) if Self::ALGORITHMS.contains(algorithm) => Ok(*algorithm),
+            Some(algorithm) => Err(CoseError::UnsupportedAlgorithm(algorithm.clone())),
+            None => Err(CoseError::MissingAlgorithm),
         }
     }
 }
