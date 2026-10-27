@@ -21,8 +21,8 @@ use syn::parse_macro_input;
 ///
 /// A parameter annotated with `#[audit(flatten)]` gets `#[serde(flatten)]` on its
 /// field, so its fields are included directly in the JSON parameters instead of
-/// nested under the parameter name. Its type must serialize as a map or struct;
-/// otherwise serialization fails at runtime, which is reported as an audit error.
+/// nested under the parameter name; see the `serde(flatten)` limitations at
+/// <https://serde.rs/attr-flatten.html>. A violation is reported as an audit error.
 ///
 /// # Example
 ///
