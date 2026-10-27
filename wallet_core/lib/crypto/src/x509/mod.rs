@@ -57,6 +57,8 @@ pub mod crl;
 mod dn;
 mod key_identifier;
 #[cfg(any(test, feature = "generate"))]
+mod profile;
+#[cfg(any(test, feature = "generate"))]
 mod san;
 mod usage;
 
@@ -65,6 +67,8 @@ pub use config::CertificateConfiguration;
 pub use dn::DistinguishedName;
 pub use dn::DistinguishedNameError;
 pub use key_identifier::KeyIdentifier;
+#[cfg(any(test, feature = "generate"))]
+pub use profile::CertificateProfile;
 #[cfg(any(test, feature = "generate"))]
 pub use san::SubjectAltNameUri;
 pub use usage::CertificateUsage;
@@ -473,15 +477,23 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use der::Decode;
+    use der::Sequence;
+    use der::oid::ObjectIdentifier;
+    use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
+    use p256::pkcs8::EncodePublicKey;
     use rcgen::PKCS_ECDSA_P384_SHA384;
     use rcgen::RevocationReason;
     use rcgen::RevokedCertParams;
     use rcgen::SerialNumber;
+    use ring::digest;
     use rstest::rstest;
     use time::OffsetDateTime;
     use time::macros::datetime;
     use utils::generator::TimeGenerator;
     use x509_parser::certificate::X509Certificate;
+    use x509_parser::extensions::GeneralName;
 
     use super::*;
     use crate::server_keys::generate::Ca;
@@ -597,18 +609,19 @@ mod tests {
     }
 
     #[rstest]
-    #[case::issuer(Some(CertificateUsage::Mdl), Some(0b0000_0001))]
-    #[case::status_list(Some(CertificateUsage::StatusListSigning), Some(0b0000_0001))]
-    #[case::wia(Some(CertificateUsage::Wia), Some(0b0000_0001))]
-    #[case::wia(Some(CertificateUsage::KeyAttestation), Some(0b0000_0001))]
+    #[case::pid_issuer(Some(CertificateProfile::PidIssuer), Some(0b0000_0001))]
+    #[case::issuer(Some(CertificateProfile::Issuer), Some(0b0000_0001))]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), Some(0b0000_0001))]
+    #[case::wia(Some(CertificateProfile::Wia), Some(0b0000_0001))]
+    #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some(0b0000_0001))]
     #[case::without_eku(None, None)]
-    fn generated_leaf_key_usage(#[case] usage: Option<CertificateUsage>, #[case] expected_flags: Option<u16>) {
+    fn generated_leaf_key_usage(#[case] profile: Option<CertificateProfile>, #[case] expected_flags: Option<u16>) {
         let ca = Ca::generate_mock();
         let key_pair = ca
             .generate_key_pair(
                 DistinguishedName::create_mock("signer"),
                 CertificateConfiguration {
-                    usage,
+                    profile,
                     ..Default::default()
                 },
             )
@@ -626,6 +639,288 @@ mod tests {
         }
     }
 
+    #[rstest]
+    fn generated_leaf_subject_key_identifier(
+        #[values(
+            Some(CertificateProfile::PidIssuer),
+            Some(CertificateProfile::Issuer),
+            Some(CertificateProfile::StatusListSigning),
+            Some(CertificateProfile::Wia),
+            Some(CertificateProfile::KeyAttestation),
+            None
+        )]
+        profile: Option<CertificateProfile>,
+        #[values(false, true)] from_public_key: bool,
+    ) {
+        let ca = Ca::generate_mock();
+        let distinguished_name = DistinguishedName::create_mock("signer");
+        let configuration = CertificateConfiguration {
+            profile,
+            ..Default::default()
+        };
+        let certificate = if from_public_key {
+            let public_key = SigningKey::generate().verifying_key().to_public_key_der().unwrap();
+            ca.generate_certificate(public_key.as_bytes(), distinguished_name, configuration)
+                .unwrap()
+        } else {
+            ca.generate_key_pair(distinguished_name, configuration)
+                .unwrap()
+                .certificate()
+                .clone()
+        };
+        let x509_cert = certificate.x509_certificate();
+
+        // ISO/IEC 18013-5, Tables B.3 and B.6: a non-critical subject key identifier, which is the SHA-1 hash of the
+        // subjectPublicKey BIT STRING value.
+        let (critical, key_id) = x509_cert
+            .extensions()
+            .iter()
+            .find_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::SubjectKeyIdentifier(key_id) => Some((ext.critical, key_id.0.to_vec())),
+                _ => None,
+            })
+            .expect("leaf must contain a subject key identifier");
+        assert!(!critical);
+        let expected_key_id = digest::digest(
+            &digest::SHA1_FOR_LEGACY_USE_ONLY,
+            &x509_cert.public_key().subject_public_key.data,
+        );
+        assert_eq!(key_id, expected_key_id.as_ref());
+
+        // ISO/IEC 18013-5, Tables B.3 and B.6 only allow further extensions if they are non-critical.
+        assert!(x509_cert.basic_constraints().unwrap().is_none());
+
+        certificate
+            .verify(
+                profile.map(CertificateProfile::usage),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
+            .expect("leaf must verify against the CA");
+    }
+
+    #[test]
+    fn generated_certificate_serial_number() {
+        let ca = Ca::generate_mock();
+        let public_key = SigningKey::generate().verifying_key().to_public_key_der().unwrap();
+        let generate_serial = || {
+            ca.generate_certificate(
+                public_key.as_bytes(),
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration::default(),
+            )
+            .unwrap()
+            .x509_certificate()
+            .raw_serial()
+            .to_vec()
+        };
+
+        let serial = generate_serial();
+
+        // RFC 5280, section 4.1.2.2: a positive serial number of at most 20 octets.
+        assert!(serial.len() <= 20);
+        assert_eq!(serial[0] & 0x80, 0);
+
+        // RFC 5280, section 4.1.2.2: unique per issuer, also when reissuing a certificate for the same public key.
+        assert_ne!(serial, generate_serial());
+    }
+
+    #[rstest]
+    #[case::pid_issuer(
+        Some(CertificateProfile::PidIssuer),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::issuer(
+        Some(CertificateProfile::Issuer),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), None)]
+    #[case::wia(Some(CertificateProfile::Wia), Some("2.25.150580842064059311066423755779195795505"))]
+    #[case::key_attestation(
+        Some(CertificateProfile::KeyAttestation),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::without_eku(None, None)]
+    fn generated_leaf_certificate_policies(
+        #[case] profile: Option<CertificateProfile>,
+        #[case] expected: Option<&str>,
+    ) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    profile,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        let certificate_policies = x509_cert
+            .extensions()
+            .iter()
+            .find_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::CertificatePolicies(policies) => Some((ext.critical, policies)),
+                _ => None,
+            });
+
+        match (certificate_policies, expected) {
+            (Some((critical, policies)), Some(expected)) => {
+                // ETSI EN 319 412-2, GEN-4.3.3-1 and ETSI TS 119 412-6, PID-4.1-02: a non-critical extension.
+                assert!(!critical);
+                let [policy] = policies.as_slice() else {
+                    panic!("expected exactly one certificate policy, got {}", policies.len());
+                };
+                assert_eq!(policy.policy_id.to_id_string(), expected);
+                assert!(policy.policy_qualifiers.is_none());
+            }
+            (None, None) => {}
+            (actual, expected) => panic!("expected certificate policy {expected:?}, got {actual:?}"),
+        }
+
+        key_pair
+            .certificate()
+            .verify(
+                profile.map(CertificateProfile::usage),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
+            .expect("leaf must verify against the CA");
+    }
+
+    /// A URL of more than 127 bytes, of which the DER encoding needs a length in the long form.
+    const LONG_CA_ISSUER: &str = concat!(
+        "http://ca.example.com/",
+        "0123456789012345678901234567890123456789012345678901234567890123456789",
+        "0123456789012345678901234567890123456789012345678901234567890123456789",
+        "/ca.crt.der",
+    );
+
+    #[rstest]
+    #[case::none(&[])]
+    #[case::one(&["http://localhost:3021/wptl.crt.der"])]
+    #[case::multiple(&["http://localhost:3021/wptl.crt.der", "https://ca.example.com/ca.crt.der"])]
+    #[case::long(&[LONG_CA_ISSUER])]
+    fn generated_leaf_authority_info_access(#[case] ca_issuers: &[&str]) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    ca_issuers: ca_issuers.iter().map(|url| url.parse().unwrap()).collect(),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        let authority_info_access = x509_cert
+            .extensions()
+            .iter()
+            .find_map(|ext| match ext.parsed_extension() {
+                ParsedExtension::AuthorityInfoAccess(aia) => Some((ext.critical, aia)),
+                _ => None,
+            });
+
+        if ca_issuers.is_empty() {
+            assert!(authority_info_access.is_none());
+        } else {
+            let (critical, aia) = authority_info_access.expect("leaf must contain authority information access");
+            // RFC 5280, section 4.2.2.1: a non-critical extension.
+            assert!(!critical);
+            let access_descriptions = aia
+                .iter()
+                .map(|access_description| {
+                    let GeneralName::URI(uri) = access_description.access_location else {
+                        panic!(
+                            "expected a URI access location, got {:?}",
+                            access_description.access_location
+                        );
+                    };
+                    (access_description.access_method.to_id_string(), uri)
+                })
+                .collect_vec();
+            let expected = ca_issuers
+                .iter()
+                .map(|ca_issuer| ("1.3.6.1.5.5.7.48.2".to_string(), *ca_issuer))
+                .collect_vec();
+            assert_eq!(access_descriptions, expected);
+        }
+
+        key_pair
+            .certificate()
+            .verify(None, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .expect("leaf must verify against the CA");
+    }
+
+    /// RFC 3739, section 3.2.6: QCStatement, with the statementInfo of a QcType statement (ETSI EN 319 412-5,
+    /// section 4.2.3).
+    #[derive(derive_more::Debug, PartialEq, Eq, Sequence)]
+    struct QcTypeStatement {
+        statement_id: ObjectIdentifier,
+        statement_info: Vec<ObjectIdentifier>,
+    }
+
+    #[rstest]
+    #[case::pid_issuer(Some(CertificateProfile::PidIssuer), Some("0.4.0.194126.1.1"))]
+    #[case::issuer(Some(CertificateProfile::Issuer), None)]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), None)]
+    #[case::wia(Some(CertificateProfile::Wia), Some("0.4.0.194126.1.2"))]
+    #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some("0.4.0.194126.1.2"))]
+    #[case::without_eku(None, None)]
+    fn generated_leaf_qc_statements(
+        #[case] profile: Option<CertificateProfile>,
+        #[case] expected_qc_type: Option<&str>,
+    ) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    profile,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let x509_cert = key_pair.certificate().x509_certificate();
+
+        // x509-parser does not parse the QCStatements extension, so look it up by its OID and decode it here.
+        let qc_statements = x509_cert
+            .extensions()
+            .iter()
+            .find(|ext| ext.oid.to_id_string() == "1.3.6.1.5.5.7.1.3");
+
+        match (qc_statements, expected_qc_type) {
+            (Some(qc_statements), Some(expected_qc_type)) => {
+                // ETSI EN 319 412-5, QCS-4.1-02: a non-critical extension.
+                assert!(!qc_statements.critical);
+                let statements = Vec::<QcTypeStatement>::from_der(qc_statements.value).unwrap();
+                assert_eq!(
+                    statements,
+                    vec![QcTypeStatement {
+                        statement_id: ObjectIdentifier::new_unwrap("0.4.0.1862.1.6"),
+                        statement_info: vec![ObjectIdentifier::new(expected_qc_type).unwrap()],
+                    }]
+                );
+            }
+            (None, None) => {}
+            (actual, expected) => panic!("expected QcType {expected:?}, got {actual:?}"),
+        }
+
+        key_pair
+            .certificate()
+            .verify(
+                profile.map(CertificateProfile::usage),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
+            .expect("leaf must verify against the CA");
+    }
+
     #[test]
     fn test_key_usage() {
         let ca = Ca::generate_mock();
@@ -633,7 +928,7 @@ mod tests {
         let key_pair = ca
             .generate_key_pair(
                 DistinguishedName::create_mock("mycert"),
-                CertificateConfiguration::with_usage(CertificateUsage::Wia),
+                CertificateConfiguration::with_profile(CertificateProfile::Wia),
             )
             .unwrap();
 

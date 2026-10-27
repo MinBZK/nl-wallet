@@ -8,9 +8,14 @@ export function useNavigation() {
     if (window.history.state?.back != null) {
       router.back()
     } else {
-      router.push({ name: 'home' })
+      goHome()
     }
   }
 
-  return { goBackOrHome }
+  /** Navigates to the home page. */
+  function goHome() {
+    router.push({ name: 'home' })
+  }
+
+  return { goBackOrHome, goHome }
 }

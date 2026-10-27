@@ -1,12 +1,12 @@
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use itertools::Itertools;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use super::mdoc::PartialMdoc;
-use crate::DeviceResponseWithPoa;
 use crate::errors::Error;
 use crate::errors::Result;
 use crate::iso::disclosure::DeviceResponse;
@@ -36,16 +36,14 @@ impl DeviceResponse {
         }
     }
 
-    async fn sign_from_partial_mdocs_inner<K, W, P>(
-        partial_mdocs_and_key_ids: &VecNonEmpty<(PartialMdoc, String)>,
+    async fn sign_documents<K, W>(
+        partial_mdocs_and_key_ids: VecNonEmpty<(PartialMdoc, String)>,
         session_transcript: &SessionTranscript,
         wscd: &W,
-        poa_input: P::Input,
-    ) -> Result<(Vec<DeviceSigned>, Option<P>)>
+    ) -> Result<VecNonEmpty<Document>>
     where
         K: CredentialEcdsaKey,
-        W: DisclosureWscd<Key = K, Poa = P>,
-        P: WscdPoa,
+        W: DisclosureWscd<Key = K>,
     {
         // Prepare the credential keys and device auth challenges per mdoc.
         let (keys, challenges) = partial_mdocs_and_key_ids
@@ -67,61 +65,9 @@ impl DeviceResponse {
 
         // Create all of the DeviceSigned values in bulk using the keys
         // and challenges, then use these to create the Document values.
-        DeviceSigned::new_signatures(keys_and_challenges, wscd, poa_input).await
-    }
+        let device_signeds = DeviceSigned::new_signatures(keys_and_challenges, wscd).await?;
 
-    pub async fn sign_multiple_from_partial_mdocs<K, W, P>(
-        partial_mdocs: VecNonEmpty<(PartialMdoc, String)>,
-        session_transcript: &SessionTranscript,
-        wscd: &W,
-        poa_input: P::Input,
-    ) -> Result<(VecNonEmpty<Self>, Option<P>)>
-    where
-        K: CredentialEcdsaKey,
-        W: DisclosureWscd<Key = K, Poa = P>,
-        P: WscdPoa,
-    {
-        let (device_signeds, poa) =
-            Self::sign_from_partial_mdocs_inner(&partial_mdocs, session_transcript, wscd, poa_input).await?;
-
-        let device_responses = partial_mdocs
-            .into_iter()
-            .zip_eq(device_signeds)
-            .map(|((partial_mdoc, _), device_signed)| {
-                Self::new(vec_nonempty![Document::new(partial_mdoc, device_signed)])
-            })
-            .collect_vec()
-            .try_into()
-            // This is safe, as the source iterator is non-empty.
-            .unwrap_or_else(|_| unreachable!());
-
-        Ok((device_responses, poa))
-    }
-}
-
-impl<P> DeviceResponseWithPoa<P> {
-    pub fn new(documents: VecNonEmpty<Document>, poa: Option<P>) -> Self {
-        DeviceResponseWithPoa {
-            device_response: DeviceResponse::new(documents),
-            poa,
-        }
-    }
-
-    pub async fn sign_from_partial_mdocs<K, W>(
-        partial_mdocs: VecNonEmpty<(PartialMdoc, String)>,
-        session_transcript: &SessionTranscript,
-        wscd: &W,
-        poa_input: P::Input,
-    ) -> Result<Self>
-    where
-        K: CredentialEcdsaKey,
-        W: DisclosureWscd<Key = K, Poa = P>,
-        P: WscdPoa,
-    {
-        let (device_signeds, poa) =
-            DeviceResponse::sign_from_partial_mdocs_inner(&partial_mdocs, session_transcript, wscd, poa_input).await?;
-
-        let documents = partial_mdocs
+        let documents = partial_mdocs_and_key_ids
             .into_iter()
             .zip_eq(device_signeds)
             .map(|((partial_mdoc, _), device_signed)| Document::new(partial_mdoc, device_signed))
@@ -130,31 +76,58 @@ impl<P> DeviceResponseWithPoa<P> {
             // This is safe, as the source iterator is non-empty.
             .unwrap();
 
-        Ok(DeviceResponseWithPoa::new(documents, poa))
+        Ok(documents)
+    }
+
+    pub async fn sign_multiple_from_partial_mdocs<K, W>(
+        partial_mdocs: VecNonEmpty<(PartialMdoc, String)>,
+        session_transcript: &SessionTranscript,
+        wscd: &W,
+    ) -> Result<VecNonEmpty<Self>>
+    where
+        K: CredentialEcdsaKey,
+        W: DisclosureWscd<Key = K>,
+    {
+        let device_responses = Self::sign_documents(partial_mdocs, session_transcript, wscd)
+            .await?
+            .into_nonempty_iter()
+            .map(|document| Self::new(vec_nonempty![document]))
+            .collect();
+
+        Ok(device_responses)
+    }
+
+    pub async fn sign_from_partial_mdocs<K, W>(
+        partial_mdocs: VecNonEmpty<(PartialMdoc, String)>,
+        session_transcript: &SessionTranscript,
+        wscd: &W,
+    ) -> Result<Self>
+    where
+        K: CredentialEcdsaKey,
+        W: DisclosureWscd<Key = K>,
+    {
+        let device_response = Self::new(Self::sign_documents(partial_mdocs, session_transcript, wscd).await?);
+
+        Ok(device_response)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
-    use rstest::rstest;
 
     use super::super::mdoc::PartialMdoc;
-    use crate::DeviceResponseWithPoa;
-    use crate::examples::Example;
     use crate::iso::disclosure::DeviceAuth;
     use crate::iso::disclosure::DeviceResponse;
     use crate::iso::disclosure::DeviceResponseStatus;
     use crate::iso::engagement::DeviceAuthenticationKeyed;
     use crate::iso::engagement::SessionTranscript;
     use crate::utils::cose::ClonePayload;
-    use crate::utils::serialization::cbor_deserialize;
-    use crate::utils::serialization::cbor_serialize;
 
     #[test]
     fn test_error_device_response_constructor() {
@@ -177,17 +150,16 @@ mod tests {
                 ((mdoc, key.identifier.clone()), key)
             })
             .unzip();
-        let wscd = MockRemoteWscd::new(keys);
+        let wscd = DisclosureMockRemoteWscd::new(keys);
 
         // Create a `SessionTranscript`, its contents do not matter.
         let session_transcript = SessionTranscript::new_mock();
 
         // Sign multiple `DeviceResponse`s that contain all of the attributes from the generated mdocs.
-        let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
+        let device_responses = DeviceResponse::sign_multiple_from_partial_mdocs(
             partial_mdocs_and_key_ids.clone().try_into().unwrap(),
             &session_transcript,
             &wscd,
-            (),
         )
         .now_or_never()
         .unwrap()
@@ -217,20 +189,5 @@ mod tests {
                 panic!("device authentication in DeviceResponse should be of signature type");
             }
         }
-    }
-
-    #[rstest]
-    #[case(None)]
-    #[case(Some("this.isa.poa".to_string()))]
-    fn test_device_response_with_poa(#[case] poa: Option<String>) {
-        let device_response = DeviceResponse::example();
-        let device_response_with_poa = DeviceResponseWithPoa {
-            device_response: device_response.clone(),
-            poa,
-        };
-
-        let serialized = cbor_serialize(&device_response_with_poa).unwrap();
-        let deserialized: DeviceResponse = cbor_deserialize(serialized.as_slice()).unwrap();
-        assert_eq!(device_response, deserialized);
     }
 }

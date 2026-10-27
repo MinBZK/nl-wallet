@@ -448,11 +448,12 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
 
 #[flutter_api_error]
 pub async fn start_close_proximity_disclosure(
+    wrprc_strict_mode: bool,
     callback: impl Fn(CloseProximityDisclosureFlutterUpdate) -> DartFnFuture<()> + Send + Sync + 'static,
 ) -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
     let result = wallet
-        .start_close_proximity_disclosure(Box::new(move |update| callback(update.into())))
+        .start_close_proximity_disclosure(wrprc_strict_mode, Box::new(move |update| callback(update.into())))
         .await?;
 
     Ok(result.into())

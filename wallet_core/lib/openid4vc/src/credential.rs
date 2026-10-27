@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
 use attestation_types::credential_format::Format;
@@ -9,6 +10,7 @@ use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
+use serde::de::IgnoredAny;
 use serde::de::value::StringDeserializer;
 use serde_with::DeserializeAs;
 use serde_with::DurationSeconds;
@@ -17,7 +19,6 @@ use serde_with::skip_serializing_none;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::payload::jwt_proof::JwtProof;
 use wscd::payload::key_attestation::KeyAttestation;
 
 use crate::authorization_details::CredentialId;
@@ -78,7 +79,10 @@ pub enum CredentialRequestIdentifier {
 #[serde(rename_all = "snake_case")]
 pub enum CredentialRequestProofs {
     Attestation([KeyAttestation; 1]),
-    Jwt(VecNonEmpty<JwtProof>),
+
+    // Allow parsing of proof types not supported by this implementation, such as `jwt` and `di_vp`.
+    #[serde(untagged, skip_serializing)]
+    Other(HashMap<String, IgnoredAny>),
 }
 
 /// Object containing information for encrypting the Credential Response.
@@ -226,24 +230,31 @@ mod tests {
     use super::CredentialResponse;
     use super::Credentials;
 
+    // Key Attestation in JWT format, containing the example claims from
+    // <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-D.1-6> and a dummy signature.
+    const KEY_ATTESTATION_JWT: &str = "eyJ0eXAiOiJrZXktYXR0ZXN0YXRpb24rand0IiwiYWxnIjoiRVMyNTYiLCJ4NWMiOlsiTUlJQiJdfQ.\
+        eyJpc3MiOiJodHRwczovL3dhbGxldC1wcm92aWRlci5leGFtcGxlLmNvbSIsImlhdCI6MTUxNjI0NzAyMiwiZXhwIjoxNTQxNDkzNzI0LCJrZX\
+        lfc3RvcmFnZSI6WyJpc29fMTgwNDVfbW9kZXJhdGUiXSwidXNlcl9hdXRoZW50aWNhdGlvbiI6WyJpc29fMTgwNDVfbW9kZXJhdGUiXSwiYXR0\
+        ZXN0ZWRfa2V5cyI6W3sia3R5IjoiRUMiLCJjcnYiOiJQLTI1NiIsIngiOiJUQ0FFUjE5WnZ1M09IRjRqNFc0dmZTVm9ISVAxSUxpbERsczd2Q2\
+        VHZW1jIiwieSI6Ilp4amlXV2JaTVFHSFZXS1ZRNGhiU0lpcnNWZnVlY0NFNnQ0alQ5RjJIWlEifV0sIm5vbmNlIjoiTGFyUkdTYm1VUFl0UllP\
+        NkJRNHluOCJ9.c2lnbmF0dXJl";
+
+    fn assert_key_attestation_proof(credential_request: &CredentialRequest) {
+        let Some(CredentialRequestProofs::Attestation([key_attestation])) = &credential_request.proofs else {
+            panic!("proofs in CredentialRequest should be of the \"attestation\" type");
+        };
+        assert_eq!(key_attestation.as_ref().serialization(), KEY_ATTESTATION_JWT);
+    }
+
     #[test]
     fn test_credential_request_serialization_config_id_example() {
         // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.2-12>,
-        // modified using: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-F.1-6>
+        // modified using: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-F.3-5>
         let example_json = json!({
             "credential_configuration_id": "org.iso.18013.5.1.mDL",
             "proofs": {
-                "jwt": [
-                        "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2Iiwiand
-                         rIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiblVXQW9BdjNYWml0aDh
-                         FN2kxOU9kYXhPTFlGT3dNLVoyRXVNMDJUaXJUNCIsInkiOiJIc2tIVThCalVpMVU
-                         5WHFpN1N3bWo4Z3dBS18weGtjRGpFV183MVNvc0VZIn19.eyJhdWQiOiJodHRwcz
-                         ovL2NyZWRlbnRpYWwtaXNzdWVyLmV4YW1wbGUuY29tIiwiaWF0IjoxNzAxOTYwND
-                         Q0LCJub25jZSI6IkxhclJHU2JtVVBZdFJZTzZCUTR5bjgifQ.-a3EDsxClUB4O3L
-                         eDD5DVGEnNMT01FCQW4P6-2-BNBqc_Zxf0Qw4CWayLEpqkAomlkLb9zioZoipdP-
-                         jvh1WlA"
-                    ]
-                }
+                "attestation": [KEY_ATTESTATION_JWT]
+            }
         });
 
         let credential_request = serde_json::from_value::<CredentialRequest>(example_json.clone())
@@ -254,15 +265,7 @@ mod tests {
         };
         assert_eq!(config_id.as_ref(), "org.iso.18013.5.1.mDL");
 
-        let jwt_proof_count = credential_request
-            .proofs
-            .as_ref()
-            .and_then(|proofs| match proofs {
-                CredentialRequestProofs::Attestation(_) => None,
-                CredentialRequestProofs::Jwt(jwts) => Some(jwts.len().get()),
-            })
-            .unwrap_or_default();
-        assert_eq!(jwt_proof_count, 1);
+        assert_key_attestation_proof(&credential_request);
 
         let json = serde_json::to_value(credential_request).expect("serializing CredentialRequest should succeed");
 
@@ -272,28 +275,11 @@ mod tests {
     #[test]
     fn test_credential_request_serialization_credential_id_example() {
         // Source: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.2-14>,
-        // modified using: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-F.1-6>
+        // modified using: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#appendix-F.3-5>
         let example_json = json!({
             "credential_identifier": "CivilEngineeringDegree-2023",
             "proofs": {
-                "jwt": [
-                    "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2Iiwiand
-                    rIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiblVXQW9BdjNYWml0aDh
-                    FN2kxOU9kYXhPTFlGT3dNLVoyRXVNMDJUaXJUNCIsInkiOiJIc2tIVThCalVpMVU
-                    5WHFpN1N3bWo4Z3dBS18weGtjRGpFV183MVNvc0VZIn19.eyJhdWQiOiJodHRwcz
-                    ovL2NyZWRlbnRpYWwtaXNzdWVyLmV4YW1wbGUuY29tIiwiaWF0IjoxNzAxOTYwND
-                    Q0LCJub25jZSI6IkxhclJHU2JtVVBZdFJZTzZCUTR5bjgifQ.-a3EDsxClUB4O3L
-                    eDD5DVGEnNMT01FCQW4P6-2-BNBqc_Zxf0Qw4CWayLEpqkAomlkLb9zioZoipdP-
-                    jvh1WlA",
-                    "eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCIsImFsZyI6IkVTMjU2Iiwiand
-                    rIjp7Imt0eSI6IkVDIiwiY3J2IjoiUC0yNTYiLCJ4IjoiblVXQW9BdjNYWml0aDh
-                    FN2kxOU9kYXhPTFlGT3dNLVoyRXVNMDJUaXJUNCIsInkiOiJIc2tIVThCalVpMVU
-                    5WHFpN1N3bWo4Z3dBS18weGtjRGpFV183MVNvc0VZIn19.eyJhdWQiOiJodHRwcz
-                    ovL2NyZWRlbnRpYWwtaXNzdWVyLmV4YW1wbGUuY29tIiwiaWF0IjoxNzAxOTYwND
-                    Q0LCJub25jZSI6IkxhclJHU2JtVVBZdFJZTzZCUTR5bjgifQ.-a3EDsxClUB4O3L
-                    eDD5DVGEnNMT01FCQW4P6-2-BNBqc_Zxf0Qw4CWayLEpqkAomlkLb9zioZoipdP-
-                    jvh1WlA"
-                ]
+                "attestation": [KEY_ATTESTATION_JWT]
             }
         });
 
@@ -305,15 +291,7 @@ mod tests {
         };
         assert_eq!(credential_id.as_ref(), "CivilEngineeringDegree-2023");
 
-        let jwt_proof_count = credential_request
-            .proofs
-            .as_ref()
-            .and_then(|proofs| match proofs {
-                CredentialRequestProofs::Attestation(_) => None,
-                CredentialRequestProofs::Jwt(jwts) => Some(jwts.len().get()),
-            })
-            .unwrap_or_default();
-        assert_eq!(jwt_proof_count, 2);
+        assert_key_attestation_proof(&credential_request);
 
         let json = serde_json::to_value(credential_request).expect("serializing CredentialRequest should succeed");
 

@@ -3,12 +3,12 @@
 ## Overview
 
 | Aspect                       | Description                                                                                                                                                                                        |
-| ---------------------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Summary**                  | The user views their card activity history by selecting an activity from a list, then explores related information such as data shared,<br>agreements or organizational details.                   |
+|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Summary**                  | The user views their card activity history by selecting an activity from a list, then explores related information such as data shared,<br>the privacy policy or organizational details.           |
 | **Goal**                     | Reviewing usage and management events of the App.                                                                                                                                                  |
 | **Preconditions**            | *None*                                                                                                                                                                                             |
 | **Postconditions**           | *None*                                                                                                                                                                                             |
-| **Triggered by**             | <ul><li>User selects 'Activities' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md).</li><li>User selects 'Activities' in [UC7.1 Show all available cards](UC7.1_ShowAllAvailableCards.md).</li></ul> |
+| **Triggered by**             | <ul><li>User selects 'Activities' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md).</li><li>User selects 'Activities' in [UC7.1 App overview](UC7.1_AppOverview.md).</li></ul>                       |
 | **Additional Documentation** | *None*                                                                                                                                                                                             |
 | **Possible errors**          | *None*                                                                                                                                                                                             |
 | **Logical test cases**       | <ul><li>[LTC22 View complete history](../logical-test-cases.md#ltc22)</li></ul>                                                                                                                    |

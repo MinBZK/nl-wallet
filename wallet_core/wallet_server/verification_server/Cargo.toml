@@ -31,6 +31,8 @@ test = [
     "attestation_data/mock",
     "attestation_types/test_pid_constants",
     "chrono/now",
+    "crypto/examples",
+    "crypto/mock",
     "dcql/mock",
     "dep:http",
     "dep:itertools",
@@ -50,8 +52,6 @@ test = [
     "token_status_list/mock",
     "tokio/macros",
     "utils/mock_time",
-    "wscd/examples",
-    "wscd/mock",
 ]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["dep:db_test"]
@@ -102,4 +102,3 @@ mdoc = { path = "../../lib/mdoc", optional = true }
 sd_jwt = { path = "../../lib/sd_jwt", optional = true }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", optional = true }
 token_status_list = { path = "../../lib/token_status_list", features = ["verification"] }
-wscd = { path = "../../lib/wscd", optional = true }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../environment.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
 import '../domain/model/disclosure/start_disclosure_request.dart';
@@ -33,6 +34,8 @@ import '../feature/dashboard/argument/dashboard_screen_argument.dart';
 import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/dashboard/dashboard_screen.dart';
 import '../feature/demo/demo_screen.dart';
+import '../feature/developer_settings/bloc/developer_settings_bloc.dart';
+import '../feature/developer_settings/developer_settings_screen.dart';
 import '../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
@@ -174,6 +177,7 @@ class WalletRoutes {
   static const revocationCodeRoute = '/revocation_code';
   static const reviewRevocationCodeRoute = '/review_revocation_code';
   static const settingsRoute = '/menu/settings';
+  static const developerSettingsRoute = '/settings/developer';
   static const setupSecurityRoute = '/security/setup';
   static const signRoute = '/sign';
   static const splashRoute = '/';
@@ -220,6 +224,8 @@ class WalletRoutes {
     WalletRoutes.pinBlockedRoute: _createPinBlockedScreenBuilder,
     WalletRoutes.loginDetailRoute: _createLoginDetailScreenBuilder,
     WalletRoutes.settingsRoute: (_) => _createSettingsScreenBuilder,
+    if (Environment.enableWrprcStrictModeToggle)
+      WalletRoutes.developerSettingsRoute: (_) => _createDeveloperSettingsScreenBuilder,
     WalletRoutes.helpOverviewRoute: (_) => _createHelpOverviewScreenBuilder,
     WalletRoutes.helpCategoryRoute: _createHelpCategoryScreenBuilder,
     WalletRoutes.helpSubcategoryRoute: _createHelpSubcategoryScreenBuilder,
@@ -540,6 +546,11 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
 }
 
 Widget _createSettingsScreenBuilder(BuildContext context) => const SettingsScreen();
+
+Widget _createDeveloperSettingsScreenBuilder(BuildContext context) => BlocProvider<DeveloperSettingsBloc>(
+  create: (BuildContext context) => DeveloperSettingsBloc(context.read())..add(const DeveloperSettingsLoadTriggered()),
+  child: const DeveloperSettingsScreen(),
+);
 
 Widget _createHelpOverviewScreenBuilder(BuildContext context) {
   return BlocProvider<HelpOverviewBloc>(

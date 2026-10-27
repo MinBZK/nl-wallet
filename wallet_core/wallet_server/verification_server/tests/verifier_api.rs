@@ -23,6 +23,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::PublicKey;
 use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
+use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
@@ -46,7 +47,6 @@ use openid4vc::disclosure_session::DisclosureTrustAnchors;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
@@ -81,7 +81,6 @@ use utils::vec_nonempty;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
-use wscd::mock_remote::MockRemoteWscd;
 
 const USECASE_NAME: &str = "usecase";
 
@@ -198,8 +197,6 @@ async fn wallet_server_settings_and_listener(
         universal_link_base_url: "http://universal.link/".parse().unwrap(),
 
         server_settings: settings,
-
-        wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
 
         extending_vct_values: None,
 
@@ -826,7 +823,7 @@ fn pid_start_disclosure_request(format: Format) -> StartDisclosureRequest {
 fn prepare_example_credential_payload(
     format: Format,
     issuer_ca: &Ca,
-    wscd: &MockRemoteWscd,
+    wscd: &DisclosureMockRemoteWscd,
 ) -> (CredentialPayload, KeyPair, String, NormalizedTypeMetadata) {
     let payload_preview = match format {
         Format::MsoMdoc => PreviewableCredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default()),
@@ -837,7 +834,7 @@ fn prepare_example_credential_payload(
     let issuer_keypair = issuer_ca.generate_pid_issuer_mock().unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
-    let holder_privkey = wscd.disclosure.create_random_key();
+    let holder_privkey = wscd.create_random_key();
     let payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
         payload_preview,
         Utc::now(),
@@ -850,7 +847,7 @@ fn prepare_example_credential_payload(
     (payload, issuer_keypair, holder_privkey.identifier, metadata)
 }
 
-fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Mdoc, String) {
+fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &DisclosureMockRemoteWscd) -> (Mdoc, String) {
     let (credential_payload, issuer_keypair, holder_privkey_identifier, _) =
         prepare_example_credential_payload(Format::MsoMdoc, issuer_ca, wscd);
     let (issuer_signed, mso) = credential_payload
@@ -862,7 +859,7 @@ fn prepare_example_mdoc_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Mdoc, St
     (Mdoc::new_unverified(mso, issuer_signed), holder_privkey_identifier)
 }
 
-fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (SignedSdJwt, String) {
+fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &DisclosureMockRemoteWscd) -> (SignedSdJwt, String) {
     let (credential_payload, issuer_keypair, holder_privkey_identifier, metadata) =
         prepare_example_credential_payload(Format::SdJwt, issuer_ca, wscd);
     let sd_jwt = credential_payload
@@ -934,7 +931,7 @@ async fn perform_full_disclosure(
 
     // Have the holder actually disclosure the example attributes to the verification_server,
     // after which the status endpoint should report that the session is Done.
-    let wscd = MockRemoteWscd::default();
+    let wscd = DisclosureMockRemoteWscd::default();
 
     let attestations = match format {
         Format::MsoMdoc => {
@@ -1158,7 +1155,7 @@ async fn test_disclosed_attributes_failed_session() {
             )]))
             .try_into()
             .unwrap(),
-            &MockRemoteWscd::new_example(),
+            &DisclosureMockRemoteWscd::new_example(),
             &MockTimeGenerator::default(),
         )
         .await

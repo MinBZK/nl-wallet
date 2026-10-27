@@ -25,10 +25,11 @@ import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/person_type.dart';
 import 'package:wallet/src/domain/model/pid/pid_attestation.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
-import 'package:wallet/src/theme/dark_wallet_theme.dart';
-import 'package:wallet/src/theme/light_wallet_theme.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_assets.dart';
+
+const _kWhiteTextColor = Color(0xFFFFFFFF);
+const _kDarkTextColor = Color(0xFF152A62);
 
 class MockWalletCard extends Mock implements WalletCard {}
 
@@ -103,7 +104,7 @@ abstract class WalletMockData {
         rawSummary: 'Subtitle',
         rendering: const SimpleCardRendering(
           logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid),
-          textColor: DarkWalletTheme.textColor,
+          textColor: _kWhiteTextColor,
           bgColor: Color(0xFF35426E),
         ),
       ),
@@ -153,7 +154,7 @@ abstract class WalletMockData {
         name: 'Sample Card #2',
         rawSummary: 'Alt Subtitle',
         rendering: const SimpleCardRendering(
-          textColor: LightWalletTheme.textColor,
+          textColor: _kDarkTextColor,
           logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid),
           bgColor: Color(0xFFCCEFF0),
         ),

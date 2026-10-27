@@ -128,7 +128,7 @@ export NL_WALLET_CLIENT_ID="https://wallet.edi.rijksoverheid.nl"
 # from the default UL base (walletdebuginteraction://wallet.edi.rijksoverheid.nl/ + iss).
 # Override when running the app against local devenv with a custom UNIVERSAL_LINK_BASE.
 export WALLET_REDIRECT_URI="${WALLET_REDIRECT_URI:-walletdebuginteraction://wallet.edi.rijksoverheid.nl/iss}"
-# Wallet client ID used by MockRemoteWscd in integration tests (matches Rust constant MOCK_WALLET_CLIENT_ID)
+# Wallet client ID used by MockWiaClient in integration tests (matches Rust constant MOCK_WALLET_CLIENT_ID)
 export MOCK_WALLET_CLIENT_ID="mock_wallet_client_id"
 
 export SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-local}

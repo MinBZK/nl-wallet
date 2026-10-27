@@ -18,6 +18,13 @@ class Environment {
   /// Set using: `flutter build --dart-define=SHOW_DEBUG_OPTIONS=true`
   static bool get showDebugOptions => const bool.fromEnvironment('SHOW_DEBUG_OPTIONS', defaultValue: false);
 
+  /// Includes the temporary Close Proximity WRPRC strict mode switch. Defaults to false.
+  ///
+  /// Without this flag, Close Proximity always requires a WRPRC, including when a previous build saved otherwise.
+  /// Set using: `flutter build --dart-define=ENABLE_WRPRC_STRICT_MODE_TOGGLE=true`
+  static bool get enableWrprcStrictModeToggle =>
+      const bool.fromEnvironment('ENABLE_WRPRC_STRICT_MODE_TOGGLE', defaultValue: false);
+
   /// Indicates whether the application is currently running in a test environment.
   static bool get isTest => Platform.environment.containsKey('FLUTTER_TEST');
 

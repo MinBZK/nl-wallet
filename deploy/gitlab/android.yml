@@ -80,6 +80,7 @@ test-android:
         demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         show_debug_options:true \
+        enable_wrprc_strict_mode_toggle:"${ENABLE_WRPRC_STRICT_MODE_TOGGLE:-false}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
     # Check for unsigned build, the build.gradle supports it, but we always want signed build from the CI
     - |
@@ -112,6 +113,7 @@ build-android-app-ont:
     - job: wallet-config-ont
       artifacts: true
   variables:
+    ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
   after_script:
@@ -123,6 +125,7 @@ build-android-app-mock:
   rules: !reference [.on-mock-build, rules]
   needs: []
   variables:
+    ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_MOCK: "true" # override .build-android-app
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
@@ -138,6 +141,7 @@ build-android-app-demo:
     - job: wallet-config-demo
       artifacts: true
   variables:
+    ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
 
@@ -150,6 +154,7 @@ build-android-app-pub:
     - job: wallet-config-pub
       artifacts: true
   variables:
+    ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "pub"
     APP_NAME: "NL Wallet (pub)"
 

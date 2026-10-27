@@ -284,7 +284,6 @@ class DisclosureTests : TestBase() {
         cardIssuanceScreen.clickAdd2CardsButton()
         pinScreen.enterPin(DEFAULT_PIN)
         cardIssuanceScreen.clickToDashboardButton()
-        dashboardScreen.dismissNotificationsDrawer()
 
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
@@ -335,7 +334,6 @@ class DisclosureTests : TestBase() {
         disclosureScreen.bottomSheetConfirmStop()
         sharingStoppedScreen.captureA11ySnapshot("SharingStopped")
         sharingStoppedScreen.close()
-        dashboardScreen.dismissNotificationsDrawer()
         assertTrue(dashboardScreen.visible(), "Dashboard not visible")
     }
 }

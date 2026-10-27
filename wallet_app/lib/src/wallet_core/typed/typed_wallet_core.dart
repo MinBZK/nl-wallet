@@ -194,11 +194,12 @@ class TypedWalletCore {
   );
 
   Future<String> startCloseProximityDisclosure({
+    required bool wrprcStrictMode,
     required FutureOr<void> Function(core.CloseProximityDisclosureFlutterUpdate) callback,
   }) => _callWithFlowBreadcrumb(
     'disclosure.close_proximity.start',
     failureCode: 'disclosure.close_proximity.fail.start',
-    runnable: () => core.startCloseProximityDisclosure(callback: callback),
+    runnable: () => core.startCloseProximityDisclosure(wrprcStrictMode: wrprcStrictMode, callback: callback),
   );
 
   Future<core.StartDisclosureResult> continueCloseProximityDisclosure() => _callWithFlowBreadcrumb(

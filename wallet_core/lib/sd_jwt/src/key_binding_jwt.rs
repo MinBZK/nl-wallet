@@ -7,7 +7,6 @@ use chrono::serde::ts_seconds;
 use crypto::CredentialEcdsaKey;
 use crypto::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use derive_more::Display;
 use derive_more::FromStr;
 use jwt::Algorithm;
@@ -162,18 +161,16 @@ impl KeyBindingJwtBuilder {
     }
 
     /// Builds several [`KeyBindingJwt`]s from the data provided by one builder, using the WSCD.
-    pub(crate) async fn finish_multiple<C, H, K, W, P>(
+    pub(crate) async fn finish_multiple<C, H, K, W>(
         self,
         sd_jwts_and_keys: &VecNonEmpty<(VerifiedSdJwt<C, H>, K)>,
         wscd: &W,
-        poa_input: P::Input,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<(VecNonEmpty<SignedKeyBindingJwt>, Option<P>), SigningError>
+    ) -> Result<VecNonEmpty<SignedKeyBindingJwt>, SigningError>
     where
         C: SdJwtClaims,
-        W: DisclosureWscd<Key = K, Poa = P>,
+        W: DisclosureWscd<Key = K>,
         K: CredentialEcdsaKey,
-        P: WscdPoa,
     {
         // Create a `KeyBindingJwtClaims` for each `SdJwt`, based on the contents of the builder and combine it with the
         // provided key.
@@ -199,14 +196,13 @@ impl KeyBindingJwtBuilder {
             .collect::<Result<VecNonEmpty<_>, KeyBindingError>>()?;
 
         // Create JWTs from all of these by having the WSCD sign the `KeyBindingJwtClaims` values.
-        let (signed_jwts, poa) = SignedJwt::sign_multiple(
+        let signed_jwts = SignedJwt::sign_multiple(
             payloads_and_keys.nonempty_iter().map(|(payload, key)| (payload, *key)),
             wscd,
-            poa_input,
         )
         .await?;
 
-        Ok((signed_jwts, poa))
+        Ok(signed_jwts)
     }
 }
 
@@ -229,8 +225,8 @@ mod test {
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::PublicKey;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::Itertools;
@@ -329,7 +325,7 @@ mod test {
         let issuer_keypair = ca.generate_issuer_mock().unwrap();
         let key1 = MockRemoteEcdsaKey::new_random("key1".to_string());
         let key2 = MockRemoteEcdsaKey::new_random("key2".to_string());
-        let wscd = MockRemoteWscd::new(vec![key1.clone(), key2.clone()]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![key1.clone(), key2.clone()]);
 
         let iat = Utc::now();
         let mock_time = MockTimeGenerator::new(iat);
@@ -353,13 +349,11 @@ mod test {
             })
             .collect();
 
-        let (kb_jwts, poa) = KeyBindingJwtBuilder::new(String::from("receiver"), Nonce::from(String::from("abc123")))
-            .finish_multiple(&sd_jwts_and_keys, &wscd, (), &mock_time)
+        let kb_jwts = KeyBindingJwtBuilder::new(String::from("receiver"), Nonce::from(String::from("abc123")))
+            .finish_multiple(&sd_jwts_and_keys, &wscd, &mock_time)
             .now_or_never()
             .unwrap()
             .expect("signing multiple KeyBindingJwt values using WSCD should succeed");
-
-        assert!(poa.is_some());
 
         let hasher = Sha256Hasher;
 

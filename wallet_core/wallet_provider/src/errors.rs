@@ -141,7 +141,6 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::WalletCertificate(_)
                 | InstructionError::WiaIssuance(_)
                 | InstructionError::HsmError(_)
-                | InstructionError::Poa(_)
                 | InstructionError::KeyAttestationSigning(_)
                 | InstructionError::JwkConversion(_)
                 | InstructionError::StatusClaimBatchIdExists(_)

@@ -255,9 +255,9 @@ swift scripts/close_proximity/disclosure_mac_reader.swift \
   --print-device-response-hex
 ```
 
-The WRPRC file contains the base64url-encoded output of `wallet_ca registration-certificate --format cwt`; see [registration certificate generation](../../wallet_ca/README.md#registration-certificates). Its subject must match the WRPAC subject identifier, and its `credentials` must cover the requested document type and attributes. Its status-list endpoint must also be available to the wallet.
+The WRPRC file contains the base64url-encoded output of `wallet_ca registration-certificate --format jwt` or `--format cwt`; see [registration certificate generation](../../wallet_ca/README.md#registration-certificates). Its subject must match the WRPAC subject identifier, and its `credentials` must cover the requested document type and attributes. Its status-list endpoint must also be available to the wallet.
 
-The helper decodes the file and places the original CWT bytes in the CBOR byte string `requestInfo.euWrprc` before generating `readerAuth`, so the reader signature covers the registration certificate. Certificate trust, binding, and authorization remain the wallet's responsibility. The flag can be omitted to construct requests without a WRPRC for testing, and cannot be combined with `--device-request-hex`.
+The helper removes the base64url wrapper and places the original JWT or CWT bytes in the CBOR byte string `requestInfo.euWrprc` before generating `readerAuth`, so the reader signature covers the registration certificate. The proximity request carries the serialized certificate directly, as specified by ETSI TS 119 472-2, ISO/IEC 18013-REQ-07/08; the JWT and CWT formats are defined by ETSI TS 119 475, GEN-5.2.1-01. Certificate trust, binding, and authorization remain the wallet's responsibility. The flag can be omitted to construct requests without a WRPRC for testing, and cannot be combined with `--device-request-hex`.
 
 The auto-launch wrappers also accept these payload fields in the `CLOSE_PROXIMITY_MAC_READER=` JSON emitted by tests:
 

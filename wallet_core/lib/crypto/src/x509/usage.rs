@@ -84,19 +84,6 @@ impl CertificateUsage {
     }
 
     #[cfg(any(test, feature = "generate"))]
-    pub fn key_usages(&self) -> Vec<rcgen::KeyUsagePurpose> {
-        match self {
-            // ISO/IEC 18013-5:2021, Table B.3 requires digitalSignature only for mdoc signers.
-            // This issuer profile is also used for SD-JWT signing.
-            Self::Mdl => vec![rcgen::KeyUsagePurpose::DigitalSignature],
-            // ETSI EN 319 412-2, section 4.3.2 requires a key usage; type C is digitalSignature only.
-            Self::StatusListSigning | Self::Wia | Self::KeyAttestation => {
-                vec![rcgen::KeyUsagePurpose::DigitalSignature]
-            }
-        }
-    }
-
-    #[cfg(any(test, feature = "generate"))]
     pub fn to_key_usage_purpose(&self) -> rcgen::ExtendedKeyUsagePurpose {
         rcgen::ExtendedKeyUsagePurpose::Other(
             self.as_oid()

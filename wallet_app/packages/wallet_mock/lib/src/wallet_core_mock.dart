@@ -458,6 +458,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<String> crateApiFullStartCloseProximityDisclosure({
+    required bool wrprcStrictMode,
     required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
   }) async => 'mdoc:example.org';
 

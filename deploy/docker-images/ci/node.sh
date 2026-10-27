@@ -9,11 +9,11 @@ chmod +x ./setup.sh
 rm ./setup.sh
 
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    nodejs
+    nodejs=24.22.1-1nodesource1
 
 npm --version
 node --version
 
-npm install --global pnpm@12.6.0
+npm install --global pnpm@12.12.1
 
 pnpm --version

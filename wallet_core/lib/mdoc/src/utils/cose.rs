@@ -6,10 +6,7 @@ pub use ::cose::COSE_X5CHAIN_HEADER_LABEL;
 pub use ::cose::Cose;
 pub use ::cose::CoseError;
 pub use ::cose::CoseKey;
-pub use ::cose::CoseKeyConversionError;
 pub use ::cose::TypedCose;
-pub use ::cose::header_with_x5chain;
-pub use ::cose::sign_cose;
 use coset::CoseMac0;
 use coset::CoseMac0Builder;
 use coset::CoseSign1;
@@ -22,7 +19,6 @@ use coset::iana;
 use coset::sig_structure_data;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
-use crypto::wscd::WscdPoa;
 use error_category::ErrorCategory;
 
 fn signatures_data_and_header(payloads: &[&[u8]]) -> (Vec<Vec<u8>>, ProtectedHeader) {
@@ -47,13 +43,11 @@ fn signatures_data_and_header(payloads: &[&[u8]]) -> (Vec<Vec<u8>>, ProtectedHea
     (signatures_data, protected_header)
 }
 
-pub async fn sign_coses<K: CredentialEcdsaKey, P: WscdPoa>(
+pub async fn sign_coses_without_payload<K: CredentialEcdsaKey>(
     keys_and_challenges: Vec<(K, &[u8])>,
-    wscd: &impl DisclosureWscd<Key = K, Poa = P>,
+    wscd: &impl DisclosureWscd<Key = K>,
     unprotected_header: Header,
-    poa_input: P::Input,
-    include_payload: bool,
-) -> Result<(Vec<CoseSign1>, Option<P>), CoseError> {
+) -> Result<Vec<CoseSign1>, CoseError> {
     let (keys, challenges): (Vec<_>, Vec<_>) = keys_and_challenges.into_iter().unzip();
     let (signatures_data, protected_header) = signatures_data_and_header(&challenges);
 
@@ -64,25 +58,23 @@ pub async fn sign_coses<K: CredentialEcdsaKey, P: WscdPoa>(
         .collect::<Vec<_>>();
 
     let result = wscd
-        .sign(keys_and_signature_data, poa_input)
+        .sign(keys_and_signature_data)
         .await
         .map_err(|error| CoseError::Signing(error.into()))?;
 
     let signed = result
-        .signatures
         .into_iter()
-        .zip(challenges)
-        .map(|(signature, payload)| {
+        .map(|signature| {
             Ok(CoseSign1 {
                 signature: signature.first().ok_or(CoseError::SignatureMissing)?.to_vec(),
-                payload: include_payload.then(|| payload.to_vec()),
+                payload: None,
                 protected: protected_header.clone(),
                 unprotected: unprotected_header.clone(),
             })
         })
         .collect::<Result<Vec<_>, CoseError>>()?;
 
-    Ok((signed, result.poa))
+    Ok(signed)
 }
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
@@ -173,7 +165,7 @@ mod tests {
             string: "Hello, world!".to_owned(),
         };
 
-        let cose = TypedCose::sign(&payload, Header::default(), &key, true).await.unwrap();
+        let cose = TypedCose::sign(&payload, Header::default(), &key).await.unwrap();
         let payload_bytes = cose.as_ref().payload.clone().unwrap();
 
         let without_payload = cose.clone_without_payload();

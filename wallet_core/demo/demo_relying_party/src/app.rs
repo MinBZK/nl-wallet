@@ -78,6 +78,8 @@ pub const XYZ_BANK_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz
 pub const XYZ_BANK_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/xyz_bank-return.css"));
 pub const JOB_FINDER_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder-index.css"));
 pub const JOB_FINDER_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/job_finder-return.css"));
+pub const CAR_INSURANCE_INDEX_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/car_insurance-index.css"));
+pub const CAR_INSURANCE_RETURN_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/car_insurance-return.css"));
 
 static CSP_HEADER: OnceLock<String> = OnceLock::new();
 
@@ -149,6 +151,14 @@ pub fn create_router(settings: Settings) -> Router {
         .route(
             "/static/css/job_finder-return.css",
             get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, JOB_FINDER_RETURN_CSS) }),
+        )
+        .route(
+            "/static/css/car_insurance-index.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, CAR_INSURANCE_INDEX_CSS) }),
+        )
+        .route(
+            "/static/css/car_insurance-return.css",
+            get(|h: axum::http::HeaderMap| async move { web_utils::css::serve_bundled_css(&h, CAR_INSURANCE_RETURN_CSS) }),
         );
 
     let mut app = app
@@ -386,6 +396,6 @@ mod filters {
             }
         }
 
-        Err(askama::Error::custom("attribute '{name}' cannot be found"))
+        Err(askama::Error::custom(format!("attribute '{name}' cannot be found")))
     }
 }

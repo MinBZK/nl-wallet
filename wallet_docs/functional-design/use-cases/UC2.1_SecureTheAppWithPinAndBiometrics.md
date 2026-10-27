@@ -1,4 +1,4 @@
-# Use Case 2.1 Setup a remote PIN and biometric unlock
+# Use Case 2.1 Secure the app with PIN and biometrics
 
 ## Overview
 

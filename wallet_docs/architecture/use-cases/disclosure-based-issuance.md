@@ -128,16 +128,6 @@ indexed by BSNs.
 Finally, the issuer issues the attestations using OpenID4VCI in a pre-authorized
 code flow.
 
-During OpenID4VCI, the issuer requires the wallet to include the keys of the
-attestations that it disclosed earlier in its Proof of Association (PoA) when
-it sends its Proofs of Possession (PoPs) for the keys of the attestation
-(copies).
-
-This enforces that the newly issued attestations are bound to the same Wallet
-Secure Cryptographic Device (WSCD, see [section 4.3.2, Components of a Wallet
-Unit][3]) as the one that disclosed the attestations in the first part of the
-protocol.
-
 ```{mermaid}
 sequenceDiagram
     autonumber
@@ -154,7 +144,7 @@ sequenceDiagram
     App ->>-User: Request approval for disclosure
     User->>+ App: Approve disclosure with PIN
 
-    App->>+Issuer: Authorization Response [OpenID4VP] (including PoA) *
+    App->>+Issuer: Authorization Response [OpenID4VP]
     Issuer->>Issuer: Verify disclosed attributes
     Issuer->>+IssuerDataProvider: Disclosed attributes
     IssuerDataProvider->>-Issuer: Respond with attestations to issue
@@ -170,7 +160,6 @@ sequenceDiagram
     User->>+App: Approve attestation issuance with PIN
 
     App->>+Issuer: Access token [OpenID4VCI]
-    Issuer->>Issuer: Enforce disclosed attestation keys in PoA (from Step 7 *)
     Issuer->>-App: Attestations [OpenID4VCI]
     deactivate App
 ```
@@ -179,4 +168,3 @@ sequenceDiagram
 
 [1]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow
 [2]: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-offer
-[3]: https://eudi.dev/latest/main/04-high-level-architecture/#43-reference-architecture

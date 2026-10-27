@@ -15,7 +15,12 @@
   --hover-color: #0A6E48;
   --title-color: #182A20;
   --text-color: #0B5C3E;
-  --logo-url: url("../non-free/images/rdw.svg");
+  --logo-url: url("../non-free/images/rdw_inverted.svg");
+}
+
+header h1::before {
+  background-origin: border-box;
+  border: 1px solid #cc3300;
 }
 
 main a {

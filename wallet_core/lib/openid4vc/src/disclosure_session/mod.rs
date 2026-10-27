@@ -15,7 +15,6 @@ use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use url::Url;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::payload::poa::Poa;
 
 pub use self::client::VpDisclosureClient;
 pub use self::error::DataDisclosed;
@@ -89,6 +88,6 @@ pub trait DisclosureSession {
     ) -> Result<Option<Url>, (Box<Self>, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        W: DisclosureWscd<Key = K, Poa = Poa>,
+        W: DisclosureWscd<Key = K>,
         Self: Sized;
 }

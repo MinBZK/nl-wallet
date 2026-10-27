@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="../static/css/xyz_bank-index.css" />
 {% when "job_finder" %}
   <link rel="stylesheet" href="../static/css/job_finder-index.css" />
+{% when "car_insurance" %}
+  <link rel="stylesheet" href="../static/css/car_insurance-index.css" />
 {% else %}
 {% endmatch %}
 {% endblock %}
@@ -37,6 +39,8 @@
   {% include "xyz_bank.askama" %}
 {% when "job_finder" %}
   {% include "job_finder.askama" %}
+{% when "car_insurance" %}
+  {% include "car_insurance.askama" %}
 {% else %}
 <main>
   <section class="buttons">

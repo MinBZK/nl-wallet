@@ -762,6 +762,7 @@ then
         ANDROID_NDK_TARGETS="$(uname -m|sed s/arm64/arm64-v8a/)" \
         flutter run \
             --dart-define MOCK_REPOSITORIES=false \
+            --dart-define ENABLE_WRPRC_STRICT_MODE_TOGGLE="${ENABLE_WRPRC_STRICT_MODE_TOGGLE:-true}" \
             --dart-define SHOW_DEBUG_OPTIONS=true \
             --dart-define ALLOW_INSECURE_URL=true \
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \

@@ -108,3 +108,23 @@ id = "my_degree"
 format = "dc+sd-jwt"
 meta = { vct_values = ["com.example.degree"] }
 claims = [{ path = ["education"] }, { path = ["university"] }, { path = ["cum_laude"] }]
+
+[[usecases.car_insurance.dcql_query.credentials]]
+id = "my_mdl"
+format = "mso_mdoc"
+meta = { doctype_value = "org.iso.18013.5.1.mDL" }
+claims = [
+    { path = ["org.iso.18013.5.1", "given_name"], intent_to_retain = true },
+    { path = ["org.iso.18013.5.1", "family_name"], intent_to_retain = true },
+    { path = ["org.iso.18013.5.1", "birth_date"], intent_to_retain = true },
+    { path = ["org.iso.18013.5.1", "driving_privileges"], intent_to_retain = true }
+]
+
+[[usecases.car_insurance.dcql_query.credentials]]
+id = "my_mvc"
+format = "mso_mdoc"
+meta = { doctype_value = "org.iso.7367.2.1.mVC" }
+claims = [
+    { path = ["org.iso.7367.2.1", "registration_number"], intent_to_retain = true },
+    { path = ["org.iso.7367.2.1", "basic_vehicle_info"], intent_to_retain = true }
+]

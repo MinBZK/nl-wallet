@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+import 'package:wallet/environment.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/common/dialog/reset_wallet_dialog.dart';
@@ -25,7 +26,7 @@ void main() {
         ],
       );
       await screenMatchesGolden('light');
-    });
+    }, skip: Environment.enableWrprcStrictModeToggle);
 
     testGoldens('ltc27 SettingsScreen dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
@@ -38,7 +39,7 @@ void main() {
         ],
       );
       await screenMatchesGolden('dark.landscape');
-    });
+    }, skip: Environment.enableWrprcStrictModeToggle);
   });
 
   group('widgets', () {

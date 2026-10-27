@@ -226,6 +226,7 @@ abstract class WalletCoreApi extends BaseApi {
   Future<void> crateApiFullSkipWalletTransfer();
 
   Future<String> crateApiFullStartCloseProximityDisclosure({
+    required bool wrprcStrictMode,
     required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
   });
 
@@ -1755,22 +1756,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @override
   Future<String> crateApiFullStartCloseProximityDisclosure({
+    required bool wrprcStrictMode,
     required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          var arg0 = cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+          var arg0 = cst_encode_bool(wrprcStrictMode);
+          var arg1 = cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
             callback,
           );
-          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_, arg0);
+          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_, arg0, arg1);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_String,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullStartCloseProximityDisclosureConstMeta,
-        argValues: [callback],
+        argValues: [wrprcStrictMode, callback],
         apiImpl: this,
       ),
     );
@@ -1778,7 +1781,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullStartCloseProximityDisclosureConstMeta => const TaskConstMeta(
     debugName: "start_close_proximity_disclosure",
-    argNames: ["callback"],
+    argNames: ["wrprcStrictMode", "callback"],
   );
 
   @override

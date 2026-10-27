@@ -162,7 +162,7 @@ class WalletRepositoryProvider extends StatelessWidget {
           },
         ),
         RepositoryProvider<CloseProximityRepository>(
-          create: (context) => CloseProximityRepositoryImpl(context.read(), context.read()),
+          create: (context) => CloseProximityRepositoryImpl(context.read(), context.read(), context.read()),
         ),
       ],
       child: child,

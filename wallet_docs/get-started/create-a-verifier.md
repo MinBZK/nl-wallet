@@ -536,10 +536,8 @@ On Google Android this is configured using [app links][25].
 #### Access restriction settings (optional)
 
 There are various settings related to access restriction available. You can set
-an `api_key` to authenticate access to the requester API, you can configure
-cross-origin-resource-sharing (CORS) settings using the `allow_origins` option,
-and you can restrict which wallets are allowed to talk to you by configuring
-`wallet_client_ids`.
+an `api_key` to authenticate access to the requester API, and you can configure
+cross-origin-resource-sharing (CORS) settings using the `allow_origins` option.
 
 <div class="admonition note">
 <p class="title">Not mandatory, but nonetheless wise to configure</p>
@@ -551,25 +549,6 @@ section for more information about configuring listeners.
 
 In the following sections, we document each of these access restriction
 settings.
-
-##### Configuring allowed client IDs
-
-You can restrict which NL Wallet apps are accepted by the `verification_server`
-by configuring a `wallet_client_ids` array. The entries of this array would
-contain the `client_id` value of a wallet implementation. This allows you to
-allow-list groups of wallet apps based on their `client_id` value. For example,
-for allowing apps that have `https://wallet.edi.rijksoverheid.nl` configured as
-`client_id`:
-
-```shell
-cd nl-wallet
-export VS_WALLET_CLIENT_IDS=("https://wallet.edi.rijksoverheid.nl")
-export TARGET_DIR=target/vs-config && mkdir -p "$TARGET_DIR/parts"
-cat <<EOF > "$TARGET_DIR/parts/06-wallet-client-ids.toml"
-wallet_client_ids = [$(printf '"%s",' "${VS_WALLET_CLIENT_IDS[@]}" | sed 's/,$//')]
-EOF
-unset VS_WALLET_CLIENT_IDS
-```
 
 ##### Configuring cross-origin resource sharing
 

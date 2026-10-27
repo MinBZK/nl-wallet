@@ -313,6 +313,7 @@ mod tests {
     use base64::prelude::*;
     use cose::wrprc_cwt::SignedWrprcCwt;
     use crypto::PublicKey;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -342,8 +343,6 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock::MOCK_WALLET_CLIENT_ID;
-    use wscd::mock_remote::MockRemoteWscd;
 
     use super::super::DisclosableAttestations;
     use super::super::DisclosureClient;
@@ -567,7 +566,7 @@ mod tests {
         // Create an attestation and disclose it.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let attestation_key = MockRemoteEcdsaKey::new_random("attestation_key".to_string());
-        let wscd = MockRemoteWscd::new_with_keys(vec![attestation_key.clone()]);
+        let wscd = DisclosureMockRemoteWscd::new(vec![attestation_key.clone()]);
 
         let attestations = match credential_format {
             Format::MsoMdoc => {
@@ -628,7 +627,6 @@ mod tests {
             jwe,
             &verifier_session.encryption_secret_key,
             &verifier_session.normalized_auth_request(wallet_nonce),
-            &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
             &ca.to_trust_anchors(),
             &ExtendingVctRetrieverStub,

@@ -100,7 +100,7 @@ use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
-use wscd::mock_remote::MockRemoteWscd;
+use wscd::mock_remote::IssuanceMockRemoteWscd;
 use wscd::payload::wia::WIA_HEADER_NAME;
 use wscd::payload::wia::WIA_POP_HEADER_NAME;
 use wscd::wia::WiaClient;
@@ -364,7 +364,7 @@ async fn authorization_code_flow(
 
     assert_eq!(session.credential_previews().unwrap().count(), attestation_count);
 
-    let wscd = MockRemoteWscd::new_with_wptl_ca(&server.wptl_ca);
+    let wscd = IssuanceMockRemoteWscd::new(&server.wptl_ca);
     let issued_creds = session
         .accept_issuance(
             NonZeroU8::MAX,
@@ -409,7 +409,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());
 
-    let wscd = MockRemoteWscd::new_with_wptl_ca(&server.wptl_ca);
+    let wscd = IssuanceMockRemoteWscd::new(&server.wptl_ca);
     let issued_creds = session
         .accept_issuance(
             NonZeroU8::MAX,
@@ -471,7 +471,7 @@ async fn pre_authorized_code_flow(
     };
 
     let copy_count = 4;
-    let wscd = MockRemoteWscd::new_with_wptl_ca(&wptl_ca);
+    let wscd = IssuanceMockRemoteWscd::new(&wptl_ca);
     let issued_creds = session
         .accept_issuance(
             NonZeroU8::MAX,
@@ -1682,7 +1682,7 @@ async fn pre_authorized_code_flow_credential_request() {
         .into_iter()
         .next()
         .unwrap();
-    let wscd = MockRemoteWscd::new_with_wptl_ca(&wptl_ca);
+    let wscd = IssuanceMockRemoteWscd::new(&wptl_ca);
     let time = MockTimeGenerator::default();
     let key_attestation = wscd.sign_key_attestation(
         vec_nonempty![*SigningKey::generate().verifying_key()],

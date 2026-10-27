@@ -33,6 +33,7 @@ import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/data/service/semantics_event_service.dart';
 import 'package:wallet/src/data/source/wallet_datasource.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
+import 'package:wallet/src/data/store/close_proximity_settings_store.dart';
 import 'package:wallet/src/data/store/notification_settings_store.dart';
 import 'package:wallet/src/data/store/revocation_code_store.dart';
 import 'package:wallet/src/domain/app_event/app_event_listener.dart';
@@ -266,6 +267,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<SetRevocationCodeSavedUseCase>()])
 @GenerateNiceMocks([MockSpec<SetupMockedWalletUseCase>()])
 @GenerateNiceMocks([MockSpec<SkipWalletTransferUseCase>()])
+@GenerateNiceMocks([MockSpec<CloseProximitySettingsStore>()])
 @GenerateNiceMocks([MockSpec<StartCloseProximityDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<StartDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<StartIssuanceUseCase>()])

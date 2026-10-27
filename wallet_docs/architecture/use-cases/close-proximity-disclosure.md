@@ -42,9 +42,9 @@ sequenceDiagram
 
     user->>wallet: Approve with pin
 
-    wallet->>wallet: Sign DeviceAuthenticationBytes using WSCA, construct DeviceResponse and PoA
+    wallet->>wallet: Sign DeviceAuthenticationBytes using WSCA, construct DeviceResponse
 
-    wallet->>reader: Encrypted DeviceResponse with PoA
+    wallet->>reader: Encrypted DeviceResponse
     wallet-->>-user: Render "attributes disclosed"
 
     reader-->>reader: verify DeviceResponse
@@ -67,9 +67,9 @@ sequenceDiagram
 
 9. The user reviews the request and approves disclosure with a PIN. The approval step is the user-authorisation gate before the wallet is allowed to release the requested attributes.
 
-10. The wallet signs the `DeviceAuthenticationBytes` using the `WSCA`, constructs the `DeviceResponse`, and prepares a `PoA` where the requested presentation requires proof that multiple attestations are associated with the same secure cryptographic environment. `DeviceAuthenticationBytes` cryptographically binds the disclosed device-signed data to the `SessionTranscript` and document type, which is what the reader will later verify.
+10. The wallet signs the `DeviceAuthenticationBytes` using the `WSCA` and constructs the `DeviceResponse`. `DeviceAuthenticationBytes` cryptographically binds the disclosed device-signed data to the `SessionTranscript` and document type, which is what the reader will later verify.
 
-11. The wallet sends the encrypted `DeviceResponse` with `PoA` back to the reader and updates the UI to show that the attributes have been disclosed. The reader then verifies the response, including the authenticated device-signed data and any accompanying proof material.
+11. The wallet sends the encrypted `DeviceResponse` back to the reader and updates the UI to show that the attributes have been disclosed. The reader then verifies the response, including the authenticated device-signed data.
 
 
 ## Detailed sequence diagram
@@ -169,7 +169,7 @@ sequenceDiagram
 
     wallet_app->>wallet_core: acceptDisclosure(pin, selected)
 
-    wallet_core->>wallet_core: Sign DeviceAuthenticationBytes and PoA using WSCA
+    wallet_core->>wallet_core: Sign DeviceAuthenticationBytes using WSCA
 
     wallet_core->>wallet_core: Construct DeviceResponse
     wallet_core->>platform_support: sendDeviceResponse(DeviceResponse)
@@ -208,7 +208,7 @@ wallet_app-->>-user: Render "attributes disclosed"
 
 11. If the user rejects attribute sharing, the implementation follows the same cancellation path as reader rejection: cancel, terminate the session, and stop BLE.
 
-12. If the user accepts the disclosure of the requested attributes, the user can also select which attestation to share the attributes from (in the case that there are multiple). After this, the app asks for the PIN and calls `acceptDisclosure(pin, selected)`. At that point, `wallet_core` performs the critical cryptographic step: it signs `DeviceAuthenticationBytes` and, where applicable, `PoA` using the `WSCA`, and then constructs the `DeviceResponse`.
+12. If the user accepts the disclosure of the requested attributes, the user can also select which attestation to share the attributes from (in the case that there are multiple). After this, the app asks for the PIN and calls `acceptDisclosure(pin, selected)`. At that point, `wallet_core` performs the critical cryptographic step: it signs `DeviceAuthenticationBytes` using the `WSCA`, and then constructs the `DeviceResponse`.
 
 13. `wallet_core` hands the completed response to `platform_support`, which sends the encrypted `DeviceResponse` to the reader application and then stops the BLE server. The reader verifies the response, `wallet_core` logs the successful session, and `wallet_app` renders the final "attributes disclosed" screen.
 

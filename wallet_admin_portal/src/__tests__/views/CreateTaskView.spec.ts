@@ -55,19 +55,19 @@ describe('CreateTaskView', () => {
     expect(router.currentRoute.value.name).toBe('create-task')
   })
 
-  it('redirects to the error page when the user lacks the privilege for a known type', async () => {
+  it('redirects to the forbidden page when the user lacks the privilege for a known type', async () => {
     mockLoggedInUser([])
 
     await mountAt('/create-task/revoke_wallet')
 
-    expect(router.currentRoute.value.name).toBe('error')
+    expect(router.currentRoute.value.name).toBe('forbidden')
   })
 
-  it('routes home when the error state retry button is clicked', async () => {
+  it('routes to the open tasks when the error state retry button is clicked', async () => {
     const wrapper = await mountAt('/create-task/not-a-real-type')
     await wrapper.get('button').trigger('click')
 
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('home'))
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('open-tasks'))
   })
 
   it('disables the next button on the reason step until a reason is entered', async () => {

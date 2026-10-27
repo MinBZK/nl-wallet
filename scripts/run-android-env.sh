@@ -20,6 +20,7 @@ WALLET_CONFIG_DIR="${WALLET_CONFIG_DIR:-${BASE_DIR}/wallet_core/wallet}"
 UL_HOSTNAME="${UL_HOSTNAME:-}"
 UNIVERSAL_LINK_PATH="${UNIVERSAL_LINK_PATH:-/deeplink/}"
 SHOW_DEBUG_OPTIONS="${SHOW_DEBUG_OPTIONS:-true}"
+ENABLE_WRPRC_STRICT_MODE_TOGGLE="${ENABLE_WRPRC_STRICT_MODE_TOGGLE:-true}"
 ALLOW_RELEASE_LOGS="${ALLOW_RELEASE_LOGS:-false}"
 MOCK_REPOSITORIES="${MOCK_REPOSITORIES:-false}"
 DEMO_INDEX_URL="${DEMO_INDEX_URL:-}"
@@ -53,6 +54,7 @@ require_env_vars \
 
 CONFIG_ENV="${ANDROID_ENV_SLUG}"
 WALLET_CONFIG_JOB_NAME="wallet-config-${ANDROID_ENV_SLUG}"
+BUILD_ENV_JOB_NAME="build-env-${ANDROID_ENV_SLUG}"
 
 have flutter glab jq adb
 
@@ -151,6 +153,17 @@ WALLET_CONFIG_JOB_ID="$(resolve_job_id "${JOBS_JSON}" "${WALLET_CONFIG_JOB_NAME}
 echo -e "${INFO}Fetching ${CYAN}${WALLET_CONFIG_JOB_NAME}${NC} from job ${CYAN}${WALLET_CONFIG_JOB_ID}${NC}"
 fetch_wallet_config "${PROJECT_ID}" "${WALLET_CONFIG_JOB_ID}" "${WALLET_CONFIG_DIR}"
 
+if [[ -z "${DEMO_INDEX_URL}" ]]; then
+    if job_has_artifacts "${JOBS_JSON}" "${BUILD_ENV_JOB_NAME}"; then
+        BUILD_ENV_JOB_ID="$(resolve_job_id "${JOBS_JSON}" "${BUILD_ENV_JOB_NAME}")"
+        echo -e "${INFO}Fetching ${CYAN}DEMO_INDEX_URL${NC} from ${CYAN}${BUILD_ENV_JOB_NAME}${NC} job ${CYAN}${BUILD_ENV_JOB_ID}${NC}"
+        DEMO_INDEX_URL="$(fetch_demo_index_url "${PROJECT_ID}" "${BUILD_ENV_JOB_ID}" "${ANDROID_ENV_SLUG}")"
+    else
+        warn "No ${BUILD_ENV_JOB_NAME} artifacts found in pipeline ${PIPELINE_ID} (expired?), the demo index menu item will be hidden."
+        warn "Set DEMO_INDEX_URL=<url> to provide it manually."
+    fi
+fi
+
 UNIVERSAL_LINK_BASE="${UNIVERSAL_LINK_BASE:-https://${UL_HOSTNAME}${UNIVERSAL_LINK_PATH}}"
 export CONFIG_ENV
 export UL_HOSTNAME
@@ -169,6 +182,7 @@ echo -e "  UNIVERSAL_LINK_BASE=${CYAN}${UNIVERSAL_LINK_BASE}${NC}"
 echo -e "  APPLICATION_ID=${CYAN}${APPLICATION_ID}${NC}"
 echo -e "  APP_NAME=${CYAN}${APP_NAME}${NC}"
 echo -e "  ALLOW_RELEASE_LOGS=${CYAN}${ALLOW_RELEASE_LOGS}${NC}"
+echo -e "  DEMO_INDEX_URL=${CYAN}${DEMO_INDEX_URL}${NC}"
 echo -e "${WARN}Use a physical Android device. Emulators will not pass attestation against ${ANDROID_ENV_NAME}.${NC}"
 
 check_android_signing_configuration
@@ -182,6 +196,7 @@ exec flutter run \
     --release \
     --dart-define=MOCK_REPOSITORIES="${MOCK_REPOSITORIES}" \
     --dart-define=SHOW_DEBUG_OPTIONS="${SHOW_DEBUG_OPTIONS}" \
+    --dart-define=ENABLE_WRPRC_STRICT_MODE_TOGGLE="${ENABLE_WRPRC_STRICT_MODE_TOGGLE}" \
     --dart-define=ALLOW_RELEASE_LOGS="${ALLOW_RELEASE_LOGS}" \
     --dart-define=UL_HOSTNAME="${UL_HOSTNAME}" \
     --dart-define=DEMO_INDEX_URL="${DEMO_INDEX_URL}" \

@@ -24,6 +24,7 @@ utils.path = "../utils"
 
 [dev-dependencies]
 rand_core.workspace = true
+rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }

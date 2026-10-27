@@ -84,19 +84,12 @@ pub(crate) fn x5chain_from_header(header: &Header) -> Result<VecNonEmpty<Borrowi
 }
 
 impl<T> TypedCose<CoseSign1, T> {
-    pub async fn sign(
-        payload: &T,
-        unprotected_header: Header,
-        private_key: &impl EcdsaKey,
-        include_payload: bool,
-    ) -> Result<Self, CoseError>
+    pub async fn sign(payload: &T, unprotected_header: Header, private_key: &impl EcdsaKey) -> Result<Self, CoseError>
     where
         T: Serialize,
     {
         let payload = cbor_serialize(payload).map_err(CoseError::Cbor)?;
-        Ok(sign_cose(&payload, unprotected_header, private_key, include_payload)
-            .await?
-            .into())
+        Ok(sign_cose(payload, unprotected_header, private_key).await?.into())
     }
 
     pub(crate) async fn sign_with_protected_header(
@@ -104,34 +97,25 @@ impl<T> TypedCose<CoseSign1, T> {
         protected_header: Header,
         unprotected_header: Header,
         private_key: &impl EcdsaKey,
-        include_payload: bool,
     ) -> Result<Self, CoseError>
     where
         T: Serialize,
     {
         let payload = cbor_serialize(payload).map_err(CoseError::Cbor)?;
-        Ok(sign_cose_with_headers(
-            &payload,
-            protected_header,
-            unprotected_header,
-            private_key,
-            include_payload,
+        Ok(
+            sign_cose_with_headers(payload, protected_header, unprotected_header, private_key)
+                .await?
+                .into(),
         )
-        .await?
-        .into())
     }
 
     /// Sign a COSE payload and include the key pair's certificate in the unprotected `x5chain` header.
-    pub async fn sign_with_certificate<K: EcdsaKey>(
-        payload: &T,
-        key_pair: &KeyPair<K>,
-        include_payload: bool,
-    ) -> Result<Self, CoseError>
+    pub async fn sign_with_certificate<K: EcdsaKey>(payload: &T, key_pair: &KeyPair<K>) -> Result<Self, CoseError>
     where
         T: Serialize,
     {
         let header = header_with_x5chain(&vec_nonempty![key_pair.certificate()]);
-        Self::sign(payload, header, key_pair, include_payload).await
+        Self::sign(payload, header, key_pair).await
     }
 
     /// Get the certificate chain from the unprotected `x5chain` header parameter.
@@ -267,30 +251,27 @@ fn signature_data_with_header(payload: &[u8], header: Header) -> (Vec<u8>, Prote
     (signature_data, protected_header)
 }
 
-pub async fn sign_cose(
-    payload: &[u8],
+async fn sign_cose(
+    payload: Vec<u8>,
     unprotected_header: Header,
     private_key: &impl EcdsaKey,
-    include_payload: bool,
 ) -> Result<CoseSign1, CoseError> {
     sign_cose_with_headers(
         payload,
         HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
         unprotected_header,
         private_key,
-        include_payload,
     )
     .await
 }
 
 async fn sign_cose_with_headers(
-    payload: &[u8],
+    payload: Vec<u8>,
     protected_header: Header,
     unprotected_header: Header,
     private_key: &impl EcdsaKey,
-    include_payload: bool,
 ) -> Result<CoseSign1, CoseError> {
-    let (signature_data, protected_header) = signature_data_with_header(payload, protected_header);
+    let (signature_data, protected_header) = signature_data_with_header(&payload, protected_header);
     let signature = private_key
         .try_sign(&signature_data)
         .await
@@ -299,7 +280,7 @@ async fn sign_cose_with_headers(
 
     Ok(CoseSign1 {
         signature,
-        payload: include_payload.then(|| payload.to_vec()),
+        payload: Some(payload),
         protected: protected_header,
         unprotected: unprotected_header,
     })

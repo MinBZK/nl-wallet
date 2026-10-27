@@ -129,7 +129,6 @@ use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA512;
 use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
 use wscd::payload::key_attestation::KeyAttestationSigningError;
-use wscd::payload::poa::PoaSigning;
 
 use crate::flags::WalletFlags;
 use crate::instructions::HandleInstruction;
@@ -307,9 +306,6 @@ pub enum InstructionError {
 
     #[error("instruction referenced nonexisting key: {0}")]
     NonExistingKey(String),
-
-    #[error("PoA construction error: {0}")]
-    Poa(#[from] PoaSigning),
 
     #[error("public key conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
@@ -3962,8 +3958,6 @@ mod tests {
             .sign_instruction(
                 Sign {
                     messages_with_identifiers: vec![(random_bytes(32).try_into().unwrap(), vec!["key2".to_string()])],
-                    poa_nonce: Some(Nonce::from("nonce".to_string())),
-                    poa_aud: "aud".to_string(),
                 },
                 challenge,
                 46,

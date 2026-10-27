@@ -340,7 +340,7 @@ function generate_pid_issuer_hsm_key_pair {
 
     # Generate a certificate for the public key
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert-pub --type issuer \
+        --bin wallet_ca cert-pub --type pid-issuer \
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
@@ -400,6 +400,7 @@ function generate_wia_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --ca-issuer "${WPTL_CA_ISSUER}" \
         --common-name "${access_certificates[(wptl,name)]}" \
         --organization-name "${access_certificates[(wptl,legal_name)]}" \
         --organization-id "${access_certificates[(wptl,oid)]}" \
@@ -446,6 +447,7 @@ function generate_key_attestation_signing_key_pair {
         --public-key-file "${TARGET_DIR}/wallet_provider/key_attestation_signing_key.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.wptl.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.wptl.crt.pem" \
+        --ca-issuer "${WPTL_CA_ISSUER}" \
         --common-name "${access_certificates[(wptl,name)]}" \
         --organization-name "${access_certificates[(wptl,legal_name)]}" \
         --organization-id "${access_certificates[(wptl,oid)]}" \

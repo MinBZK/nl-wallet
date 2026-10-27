@@ -6,6 +6,20 @@ This page describes the logical test cases (LTCs) that are used to verify the co
 Test are written in Gherkin syntax with a Given When Then structure. Each LTC is implemented with at least one manual
 or automated tests.
 
+An LTC that has to be executed by hand is marked with a comment directly below its heading. The marker is picked up by
+the `extract-manual-test-set` pipeline job, which generates the manual test set from this page. A marker can be scoped
+to the platforms on which the manual execution is needed, which is how an LTC that can only be automated on one
+platform is kept in the manual test set for the other one:
+
+```text
+% manual                    manual on every platform
+% manual: ios               automated on Android, manual on iOS
+% manual: android           automated on iOS, manual on Android
+% manual: ios - <reason>    with a note for the tester
+```
+
+Use one marker per platform when the reason differs per platform.
+
 ---
 
 ### LTC1
@@ -23,6 +37,8 @@ or automated tests.
 ---
 
 ### LTC2
+
+% manual: ios - Failing the issuance needs network toggling, which is Android only (adb)
 
 #### Issuance fails
 
@@ -434,9 +450,15 @@ obtain card)<br>
 
 #### Get help
 
-**Given** system displays a PIN screen<br>
-**When** user selects 'help'<br>
-**Then** system displays get help screen<br>
+**Given** system displays the app menu<br>
+**When** user selects 'Help and information'<br>
+**Then** system displays the help overview with the help categories<br>
+**When** user selects a help category<br>
+**Then** system displays the subcategories of that category<br>
+**When** user selects a subcategory<br>
+**Then** system displays the topics of that subcategory<br>
+**When** user selects a topic<br>
+**Then** system displays the content of that topic<br>
 
 ---
 
@@ -497,6 +519,8 @@ obtain card)<br>
 
 ### LTC37
 
+% manual: ios
+
 #### Unlock app with correct PIN
 
 **Given** user has completed setup of remote PIN and biometrics<br>
@@ -508,6 +532,8 @@ obtain card)<br>
 ---
 
 ### LTC38
+
+% manual: android
 
 #### Unlock app with biometric
 
@@ -771,6 +797,8 @@ instructs user to choose a new PIN<br>
 
 ### LTC60
 
+% manual: android
+
 #### Disable biometrics
 
 **Given** user has enabled biometrics<br>
@@ -781,6 +809,8 @@ instructs user to choose a new PIN<br>
 ---
 
 ### LTC61
+
+% manual: android
 
 #### Setup biometrics in settings
 
@@ -1077,3 +1107,57 @@ Cases:
 **When** user approves with PIN<br>
 **Then** system issues card and displays it to user<br>
 **And** provides a link to the dashboard<br>
+
+---
+
+### LTC85
+
+% manual: ios
+
+#### Camera permission granted one time only is re-requested
+
+**Given** user has completed PID setup and opened the app<br>
+**When** user opens the in-app QR scanner<br>
+**And** user grants the camera permission one time only<br>
+**Then** system displays the QR scanner<br>
+**When** user restarts the app<br>
+**And** user opens the in-app QR scanner<br>
+**Then** system asks permission to use the device camera again<br>
+
+---
+
+### LTC86
+
+#### Camera permission is not granted
+
+**Given** user has completed PID setup and opened the app<br>
+**When** user opens the in-app QR scanner<br>
+**And** user rejects the camera permission<br>
+**Then** system displays an in-app permission screen<br>
+**And** provides a button to grant the camera permission<br>
+
+---
+
+### LTC87
+
+% manual: ios
+
+#### Bluetooth permission is not granted
+
+**Given** user has completed PID setup and opened the app<br>
+**When** user shows their QR code to a third party verifier<br>
+**And** user rejects the Bluetooth permission<br>
+**Then** system displays an in-app permission screen<br>
+**And** the screen explains why the permission is needed<br>
+**And** provides a button to open the device settings<br>
+
+---
+
+### LTC88
+
+#### Notification permission is not granted
+
+**Given** notifications are turned off<br>
+**When** user enables notifications<br>
+**And** user rejects the notification permission<br>
+**Then** notifications remain turned off<br>

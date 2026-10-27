@@ -3,7 +3,7 @@ use std::sync::Arc;
 use attestation_types::claim_path::ClaimPath;
 use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
 use crypto::examples::Examples;
-use crypto::mock_remote::MockRemoteWscd;
+use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::server_keys::generate::Ca;
 use futures::FutureExt;
 use indexmap::IndexMap;
@@ -49,11 +49,10 @@ fn create_example_device_response(
     let claim_paths = Vec::<VecNonEmpty<ClaimPath>>::from(first_request);
     let partial_mdoc = PartialMdoc::try_new(mdoc, &claim_paths).unwrap();
 
-    let (device_responses, _) = DeviceResponse::sign_multiple_from_partial_mdocs(
+    let device_responses = DeviceResponse::sign_multiple_from_partial_mdocs(
         vec_nonempty![(partial_mdoc, EXAMPLE_KEY_IDENTIFIER.to_string())],
         session_transcript,
-        &MockRemoteWscd::new_example(),
-        (),
+        &DisclosureMockRemoteWscd::new_example(),
     )
     .now_or_never()
     .unwrap()

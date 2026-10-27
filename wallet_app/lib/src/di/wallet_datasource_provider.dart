@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/source/impl/wallet_datasource_impl.dart';
 import '../data/source/wallet_datasource.dart';
 import '../data/store/active_locale_provider.dart';
+import '../data/store/close_proximity_settings_store.dart';
 import '../data/store/impl/active_localization_delegate.dart';
 import '../data/store/impl/language_store_impl.dart';
 import '../data/store/impl/notification_settings_store_impl.dart';
@@ -41,6 +42,9 @@ class WalletDataSourceProvider extends StatelessWidget {
         ),
         RepositoryProvider<RevocationCodeStore>(
           create: (context) => RevocationCodeStoreImpl(SharedPreferences.getInstance),
+        ),
+        RepositoryProvider<CloseProximitySettingsStore>(
+          create: (context) => CloseProximitySettingsStore(SharedPreferences.getInstance),
         ),
         RepositoryProvider<NotificationSettingsStore>(
           create: (context) => NotificationSettingsStoreImpl(SharedPreferences.getInstance),

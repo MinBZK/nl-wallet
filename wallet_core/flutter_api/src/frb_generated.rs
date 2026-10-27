@@ -1469,6 +1469,7 @@ fn wire__crate__api__full__skip_wallet_transfer_impl(port_: flutter_rust_bridge:
 }
 fn wire__crate__api__full__start_close_proximity_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
+    wrprc_strict_mode: impl CstDecode<bool>,
     callback: impl CstDecode<flutter_rust_bridge::DartOpaque>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
@@ -1478,6 +1479,7 @@ fn wire__crate__api__full__start_close_proximity_disclosure_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
+            let api_wrprc_strict_mode = wrprc_strict_mode.cst_decode();
             let api_callback =
                 decode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
                     callback.cst_decode(),
@@ -1485,7 +1487,9 @@ fn wire__crate__api__full__start_close_proximity_disclosure_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::start_close_proximity_disclosure(api_callback).await?;
+                        let output_ok =
+                            crate::api::full::start_close_proximity_disclosure(api_wrprc_strict_mode, api_callback)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -7752,9 +7756,10 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure(
         port_: i64,
+        wrprc_strict_mode: bool,
         callback: *const std::ffi::c_void,
     ) {
-        wire__crate__api__full__start_close_proximity_disclosure_impl(port_, callback)
+        wire__crate__api__full__start_close_proximity_disclosure_impl(port_, wrprc_strict_mode, callback)
     }
 
     #[unsafe(no_mangle)]

@@ -19,7 +19,7 @@ use attestation_types::pid_constants::PID_RESIDENT_STREET;
 use attestation_types::status_claim::StatusClaim;
 use chrono::Utc;
 use crypto::PublicKey;
-use crypto::mock_remote::MockRemoteWscd;
+use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
@@ -120,7 +120,7 @@ impl TestCredentials {
     pub fn to_partial_mdocs(
         &self,
         issuer_keypair: &KeyPair,
-        wscd: &impl AsRef<MockRemoteWscd>,
+        wscd: &DisclosureMockRemoteWscd,
     ) -> HashMap<CredentialQueryIdentifier, VecNonEmpty<(PartialMdoc, String)>> {
         self.as_ref()
             .iter()
@@ -135,7 +135,7 @@ impl TestCredentials {
     pub fn to_unsigned_sd_jwt_presentations(
         &self,
         issuer_keypair: &KeyPair,
-        wscd: &impl AsRef<MockRemoteWscd>,
+        wscd: &DisclosureMockRemoteWscd,
     ) -> HashMap<CredentialQueryIdentifier, VecNonEmpty<(UnsignedSdJwtPresentation, String)>> {
         self.as_ref()
             .iter()
@@ -310,12 +310,12 @@ impl TestCredential {
 
     fn to_credential_payload(
         &self,
-        wscd: &impl AsRef<MockRemoteWscd>,
+        wscd: &DisclosureMockRemoteWscd,
         attestation_type: String,
         attributes: Attributes,
         vct_integrity: Option<Integrity>,
     ) -> (CredentialPayload, String) {
-        let holder_key = wscd.as_ref().create_random_key();
+        let holder_key = wscd.create_random_key();
 
         let StatusClaim::StatusList(status) = &self.status;
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
@@ -334,7 +334,7 @@ impl TestCredential {
         (credential_payload, holder_key.identifier)
     }
 
-    pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (Mdoc, String) {
+    pub fn to_mdoc(&self, issuer_keypair: &KeyPair, wscd: &DisclosureMockRemoteWscd) -> (Mdoc, String) {
         let (credential_payload, holder_key_identifier) =
             self.to_credential_payload(wscd, self.mdoc_doctype.clone(), self.mdoc_attributes.clone(), None);
 
@@ -347,7 +347,7 @@ impl TestCredential {
         (Mdoc::new_unverified(mso, issuer_signed), holder_key_identifier)
     }
 
-    pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &impl AsRef<MockRemoteWscd>) -> (SignedSdJwt, String) {
+    pub fn to_sd_jwt(&self, issuer_keypair: &KeyPair, wscd: &DisclosureMockRemoteWscd) -> (SignedSdJwt, String) {
         let type_metadata_documents = self
             .type_metadata_documents
             .clone()
@@ -374,11 +374,7 @@ impl TestCredential {
         (sd_jwt, holder_key_identifier)
     }
 
-    pub fn to_partial_mdoc(
-        &self,
-        issuer_keypair: &KeyPair,
-        wscd: &impl AsRef<MockRemoteWscd>,
-    ) -> (PartialMdoc, String) {
+    pub fn to_partial_mdoc(&self, issuer_keypair: &KeyPair, wscd: &DisclosureMockRemoteWscd) -> (PartialMdoc, String) {
         let (mdoc, holder_key_identifier) = self.to_mdoc(issuer_keypair, wscd);
         let claim_paths = self.to_mdoc_claim_paths().collect_vec();
 
@@ -391,7 +387,7 @@ impl TestCredential {
     pub fn to_unsigned_sd_jwt_presentation(
         &self,
         issuer_keypair: &KeyPair,
-        wscd: &impl AsRef<MockRemoteWscd>,
+        wscd: &DisclosureMockRemoteWscd,
     ) -> (UnsignedSdJwtPresentation, String) {
         let (signed_sd_jwt, identifier) = self.to_sd_jwt(issuer_keypair, wscd);
 

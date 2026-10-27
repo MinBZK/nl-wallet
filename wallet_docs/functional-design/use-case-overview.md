@@ -15,14 +15,14 @@ flowchart LR
 INTRODUCE["<a href='use-cases/UC1.1_IntroduceTheApp.html'>1.1 Introduce the app</a>"]
 OPEN["<a href='use-cases/UC1.2_OpenTheApp.html'>1.2 Open the app</a>"]
 
-SETUP_PIN["<a href='use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html'>2.1 Setup PIN & biometrics</a>"]
+SETUP_PIN["<a href='use-cases/UC2.1_SecureTheAppWithPinAndBiometrics.html'>2.1 Secure the app</a>"]
 UNLOCK["<a href='use-cases/UC2.3_UnlockTheApp.html'>2.3 Unlock the app</a>"]
 RECOVER_PIN["<a href='use-cases/UC2.3.2_RecoverPIN.html'>2.3.2 Recover PIN</a>"]
 
 OBTAIN_PID["<a href='use-cases/UC3.1_ObtainPidFromProvider.html'>3.1 Obtain PID</a>"]
 WIPE["<a href='use-cases/UC9.4_WipeAllAppData.html'>9.4 Wipe app data</a>"]
 
-ALL_CARDS["<a href='use-cases/UC7.1_ShowAllAvailableCards.html'>7.1 Show all cards</a>"]
+ALL_CARDS["<a href='use-cases/UC7.1_AppOverview.html'>7.1 App overview</a>"]
 TRANSFER["<a href='use-cases/UC9.10_TransferWallet.html'>9.10 Transfer wallet</a>"]
 END((" "))
 
@@ -73,7 +73,7 @@ ALL_HISTORY["<a href='use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html
 CARD_HISTORY["<a href='use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html'>6.2 Browse card activity</a>"]
 HISTORY_EVENT["<a href='use-cases/UC6.3_ShowHistoryEvent.html'>6.3 View activity details</a>"]
 
-ALL_CARDS["<a href='use-cases/UC7.1_ShowAllAvailableCards.html'>7.1 Show all cards</a>"]
+ALL_CARDS["<a href='use-cases/UC7.1_AppOverview.html'>7.1 App overview</a>"]
 CARD["<a href='use-cases/UC7.2_ShowCardDetails.html'>7.2 View card Details</a>"]
 
 MENU["<a href='use-cases/UC9.1_ShowAppMenu.html'>9.1 View app menu</a>"]

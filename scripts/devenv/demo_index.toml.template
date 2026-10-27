@@ -10,4 +10,12 @@ usecases = ['mijn_amsterdam_mdoc', 'mijn_amsterdam_sd_jwt', 'online_marketplace'
 
 [[demo_services]]
 service_url = 'http://${SERVICES_HOST}:${DEMO_ISSUER_PORT}/'
-usecases = ['university_mdoc', 'university_sd_jwt', 'insurance', 'housing', 'loyalty', 'museum_maandkaart', 'mdl', 'mvc', 'dezi']
+usecases = ['university_mdoc', 'university_sd_jwt', 'insurance', 'housing', 'loyalty', 'museum_maandkaart', 'mdl', 'mvc']
+
+[[demo_services]]
+service_url = 'http://${SERVICES_HOST}:${DEMO_RP_PORT}/'
+usecases = ['car_insurance']
+
+[[demo_services]]
+service_url = 'http://${SERVICES_HOST}:${DEMO_ISSUER_PORT}/'
+usecases = ['dezi']

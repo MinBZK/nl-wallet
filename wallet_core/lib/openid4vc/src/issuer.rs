@@ -245,8 +245,8 @@ pub enum CredentialRequestError {
     #[error("missing credential request proof")]
     MissingCredentialRequestProof,
 
-    #[error("verification of the \"jwt\" proof type is not supported")]
-    JwtProofTypeUnsupported,
+    #[error("unsupported proof type(s): {}", .0.iter().join(", "))]
+    ProofTypeUnsupported(HashSet<String>),
 
     #[error("too many copies of a credential were requested: {0}")]
     TooManyCopiesRequested(NonZeroUsize),
@@ -1544,8 +1544,10 @@ impl CredentialRequest {
         // The issuer requires key binding proofs, as is indicated in the Issuer Metadata.
         let key_attestation = match self.proofs.as_ref() {
             Some(CredentialRequestProofs::Attestation([key_attestation])) => key_attestation,
-            Some(CredentialRequestProofs::Jwt(_)) => {
-                return Err(CredentialRequestError::JwtProofTypeUnsupported);
+            Some(CredentialRequestProofs::Other(proofs)) => {
+                return Err(CredentialRequestError::ProofTypeUnsupported(
+                    proofs.keys().cloned().collect(),
+                ));
             }
             None => {
                 return Err(CredentialRequestError::MissingCredentialRequestProof);
@@ -1751,12 +1753,13 @@ mod tests {
     use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use serde_json::json;
     use thiserror::Error;
     use tracing_test::traced_test;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
-    use wscd::mock_remote::MockRemoteWscd;
+    use wscd::mock_remote::IssuanceMockRemoteWscd;
     use wscd::wia::WiaClient;
     use wscd::wia::mock::MockWiaClient;
 
@@ -2008,7 +2011,6 @@ mod tests {
 
         wrong_access_token: bool,
         invalidate_dpop: bool,
-        invalidate_pop: bool,
         wia_override: Option<WiaDisclosure>,
     }
 
@@ -2018,7 +2020,6 @@ mod tests {
                 issuer,
                 wrong_access_token: false,
                 invalidate_dpop: false,
-                invalidate_pop: false,
                 wia_override: None,
             }
         }
@@ -2038,24 +2039,6 @@ mod tests {
             } else {
                 dpop_header.clone()
             }
-        }
-
-        fn tamper_credential_request(&self, mut credential_request: CredentialRequest) -> CredentialRequest {
-            if self.invalidate_pop {
-                credential_request.proofs = match credential_request.proofs {
-                    Some(CredentialRequestProofs::Jwt(jwts)) => {
-                        let jwts = jwts
-                            .into_nonempty_iter()
-                            .map(|jwt| invalidate_jwt_str(jwt.serialization()).parse().unwrap())
-                            .collect();
-
-                        Some(CredentialRequestProofs::Jwt(jwts))
-                    }
-                    _ => None,
-                };
-            }
-
-            credential_request
         }
     }
 
@@ -2125,7 +2108,7 @@ mod tests {
                 .process_credential_request(
                     &self.access_token(access_token),
                     self.dpop_header(dpop_header),
-                    self.tamper_credential_request(credential_request.clone()),
+                    credential_request.clone(),
                     &MockTimeGenerator::default(),
                 )
                 .await
@@ -2201,7 +2184,7 @@ mod tests {
             .accept_issuance(
                 NonZeroU8::MIN,
                 AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
-                &MockRemoteWscd::new_with_wptl_ca(&wptl_ca),
+                &IssuanceMockRemoteWscd::new(&wptl_ca),
                 &MockTimeGenerator::default(),
             )
             .await
@@ -2471,22 +2454,6 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn invalid_pop() {
-        let (issuer, trust_anchor, issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
-        let message_client = VcMessageClientStub {
-            invalidate_pop: true,
-            ..VcMessageClientStub::new(issuer)
-        };
-
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, &wptl_ca).await;
-        assert_matches!(
-            result,
-            WalletIssuanceError::CredentialRequest(err)
-                if matches!(err.error, RemoteErrorCode::Known(CredentialErrorCode::InvalidProof))
-        );
-    }
-
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum CredentialRequestFailure {
         None,
@@ -2561,7 +2528,7 @@ mod tests {
             })
             .collect::<VecNonEmpty<_>>();
 
-        let key_attestation = MockRemoteWscd::new_with_wptl_ca(&wptl_ca).sign_key_attestation(
+        let key_attestation = IssuanceMockRemoteWscd::new(&wptl_ca).sign_key_attestation(
             verifying_keys,
             nonce,
             &MockTimeGenerator::default(),
@@ -2817,6 +2784,29 @@ mod tests {
             .expect_err("processing CredentialRequest should fail");
 
         assert_matches!(error, CredentialRequestError::InvalidAttestationProof(_));
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_process_credential_request_error_proof_type_unsupported() {
+        let (issuer, _trust_anchors, access_token, dpop, mut credential_request) =
+            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
+
+        // Replace the proofs with ones of the "jwt" proof type, which the issuer does not support.
+        credential_request.proofs = Some(
+            serde_json::from_value(json!({ "jwt": ["eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.e30.c2ln"] }))
+                .expect("deserializing CredentialRequestProofs should succeed"),
+        );
+
+        let error = issuer
+            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .await
+            .expect_err("processing CredentialRequest should fail");
+
+        assert_matches!(
+            error,
+            CredentialRequestError::ProofTypeUnsupported(typ) if typ == HashSet::from_iter(["jwt".to_string()])
+        );
     }
 
     #[rstest]

@@ -32,7 +32,6 @@ use serde_with::hex::Hex;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::KeyPair;
-use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::VerifierUseCase;
@@ -57,13 +56,6 @@ pub struct VerifierSettings {
     pub public_url: BaseUrl,
 
     pub universal_link_base_url: BaseUrl,
-
-    /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
-    /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
-    /// implementation).
-    /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession
-    /// JWTs.
-    pub wallet_client_ids: Vec<String>,
 
     /// Indicate per vct what extending vcts are accepted during disclosure.
     pub extending_vct_values: Option<HashMap<String, VecNonEmpty<String>>>,
@@ -178,8 +170,7 @@ impl ServerSettings for VerifierSettings {
             )?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("internal_server.ip", "127.0.0.1")?
-            .set_default("internal_server.port", 8002)?
-            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?;
+            .set_default("internal_server.port", 8002)?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.

@@ -87,8 +87,9 @@ For ont, run:
 For demo, run:
 `./scripts/run-android-demo.sh`
 
-These scripts fetch the latest wallet config artifacts from CI and then start
-`flutter run --release` with the correct Android application id.
+These scripts fetch the latest wallet config artifacts and demo index URL from
+CI and then start `flutter run --release` with the correct Android application
+id.
 
 Only pass `-- -d <device-id>` when Flutter sees more than one Android device.
 
@@ -103,9 +104,9 @@ For ont, run:
 For demo, run:
 `./scripts/run-ios-demo.sh`
 
-These scripts fetch the latest wallet config artifacts from CI and then start
-`flutter run --release` with the correct iOS bundle identifier, app name and
-attestation settings.
+These scripts fetch the latest wallet config artifacts and demo index URL from
+CI and then start `flutter run --release` with the correct iOS bundle
+identifier, app name and attestation settings.
 
 Only pass `-- -d <device-id>` when Flutter sees more than one iPhone target.
 
