@@ -29,7 +29,7 @@ impl MigrationTrait for Migration {
                     .col(string_null(AdminTask::ReviewComment))
                     .col(timestamp_with_time_zone_null(AdminTask::ExecutedAt))
                     .col(boolean_null(AdminTask::ExecutionSuccessful))
-                    .col(text_null(AdminTask::ExecutionDetails))
+                    .col(string_null(AdminTask::ExecutionDetails))
                     .to_owned(),
             )
             .await?;
