@@ -11,7 +11,9 @@ use nutype::nutype;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Map;
 use serde_json::Number;
+use serde_json::Value;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use thiserror::Error;
@@ -70,6 +72,14 @@ impl ObjectClaims {
 
     pub fn get(&self, key: &ClaimName) -> Option<&ClaimValue> {
         self.claims.get(key)
+    }
+
+    /// Converts to a plain JSON object, discarding any digests (`_sd` and `...` array elements).
+    pub fn into_bare_json(self) -> Map<String, Value> {
+        self.claims
+            .into_iter()
+            .map(|(name, value)| (name.into_inner(), value.into_bare_json()))
+            .collect()
     }
 
     fn remove(&mut self, key: &ClaimName) -> Option<ClaimValue> {
@@ -299,6 +309,22 @@ pub enum ClaimValue {
 }
 
 impl ClaimValue {
+    /// Converts to a plain JSON value, discarding any digests (`_sd` and `...` array elements).
+    ///
+    /// Note that discarding `...` array elements shifts the indices of the remaining elements.
+    pub fn into_bare_json(self) -> Value {
+        match self {
+            Self::Array(elements) => {
+                Value::Array(elements.into_iter().filter_map(ArrayClaim::into_bare_json).collect())
+            }
+            Self::Object(object) => Value::Object(object.into_bare_json()),
+            Self::Null => Value::Null,
+            Self::Bool(bool) => Value::Bool(bool),
+            Self::Number(number) => Value::Number(number),
+            Self::String(string) => Value::String(string),
+        }
+    }
+
     pub(crate) fn traverse_by_claim_paths<'a, 'b>(
         &'a mut self,
         mut claim_paths: impl Iterator<Item = &'b ClaimPath>,
@@ -574,6 +600,13 @@ pub enum ArrayClaim {
 }
 
 impl ArrayClaim {
+    fn into_bare_json(self) -> Option<Value> {
+        match self {
+            Self::Hash { .. } => None,
+            Self::Value(value) => Some(value.into_bare_json()),
+        }
+    }
+
     pub fn digests(&self) -> Vec<(String, ClaimType)> {
         match &self {
             ArrayClaim::Hash { digest } => vec![(digest.to_string(), ClaimType::Array)],
@@ -710,6 +743,35 @@ mod tests {
 
     use super::*;
     use crate::hasher::Sha256Hasher;
+
+    #[test]
+    fn test_claim_value_into_bare_json() {
+        let claim_value: ClaimValue = serde_json::from_value(json!({
+            "_sd": ["digest_1"],
+            "string": "value",
+            "number": 42,
+            "bool": true,
+            "null": null,
+            "array": [{"...": "digest_2"}, "element"],
+            "object": {
+                "_sd": ["digest_3"],
+                "nested": "value",
+            },
+        }))
+        .unwrap();
+
+        let expected = json!({
+            "string": "value",
+            "number": 42,
+            "bool": true,
+            "null": null,
+            "array": ["element"],
+            "object": {
+                "nested": "value",
+            },
+        });
+        assert_eq!(claim_value.into_bare_json(), expected);
+    }
 
     #[test]
     fn test_object_claims_conceal() {
