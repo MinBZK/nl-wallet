@@ -78,3 +78,7 @@
 - The wallet now only stores the `ETag` of a wallet configuration after
   accepting it. Previously, a rejected configuration was considered unmodified
   on every subsequent fetch, so it was never evaluated again.
+
+## Wallet app improvements
+
+- Update to Flutter 3.47.8.
