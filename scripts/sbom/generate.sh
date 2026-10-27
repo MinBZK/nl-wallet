@@ -26,12 +26,9 @@ cleanup() {
 trap cleanup EXIT
 cd "$repo"
 
-# cdxgen 11.1.2 can repeat metadata.component in components. Keep it in metadata;
-# removing that duplicate preserves every package and dependency reference.
-deduplicate_root() {
-    jq '.metadata.component."bom-ref" as $root |
-        .components |= map(select(."bom-ref" != $root))' "$1" > "$work/deduplicated.json"
-    mv "$work/deduplicated.json" "$1"
+normalize_bom() {
+    jq -L "$repo/scripts/sbom" 'include "normalize"; normalize' "$1" > "$work/normalized.json"
+    mv "$work/normalized.json" "$1"
 }
 
 # cargo-cyclonedx writes one file next to each workspace member's manifest.
@@ -71,7 +68,6 @@ done
 (cd wallet_app && flutter pub get --enforce-lockfile)
 # The Dart workspace lockfile lives at the repository root. Include all Dart deps in BOTH variants.
 cdxgen --fail-on-error --spec-version 1.5 --type dart --output "$work/dart.json"
-deduplicate_root "$work/dart.json"
 full+=("$work/dart.json")
 prod+=("$work/dart.json")
 
@@ -98,23 +94,30 @@ for project in wallet_app/android/app wallet_core/wallet/platform_support/androi
     (cd "$project" && GRADLE_CMD=../gradlew cdxgen --fail-on-error --spec-version 1.5 --type gradle --output "$work/$name.json")
     (cd "$project" && GRADLE_CMD=../gradlew GRADLE_ARGS_DEPENDENCIES='--configuration releaseRuntimeClasspath' \
         GRADLE_SKIP_MODULES=:test-app cdxgen --fail-on-error --spec-version 1.5 --type gradle --output "$work/$name-prod.json")
-    deduplicate_root "$work/$name.json"
-    deduplicate_root "$work/$name-prod.json"
     full+=("$work/$name.json")
     prod+=("$work/$name-prod.json")
 done
 
-# Hierarchical merging namespaces references from separate generators and crate roots.
-cyclonedx merge --hierarchical --name nl-wallet --version "$version" --output-version v1_5 \
+# Normalize each input's local references before combining dependency graphs.
+while IFS= read -r bom; do
+    normalize_bom "$bom"
+done < <(printf '%s\n' "${full[@]}" "${prod[@]}" | sort -u)
+
+# Flat merging keeps shared dependencies once instead of repeating each crate's tree.
+cyclonedx merge --name nl-wallet --version "$version" --output-version v1_5 \
     --input-files "${full[@]}" --output-file "$work/bom.json"
-cyclonedx merge --hierarchical --name nl-wallet --version "$version" --output-version v1_5 \
+normalize_bom "$work/bom.json"
+cyclonedx merge --name nl-wallet --version "$version" --output-version v1_5 \
     --input-files "${prod[@]}" --output-file "$work/merged-prod.json"
+normalize_bom "$work/merged-prod.json"
 jq '.metadata.properties += [{"name":"nl-wallet:sbom:dart-dependencies",
     "value":"All Dart dependencies are included, including development dependencies."}]' \
     "$work/merged-prod.json" > "$work/bom-prod.json"
 for name in bom bom-prod; do
     cyclonedx convert --output-version v1_5 --input-file "$work/$name.json" --output-file "$work/$name.xml"
+    echo "Validating $name.xml"
     cyclonedx validate --input-file "$work/$name.xml" --input-version v1_5 --fail-on-errors
+    echo "Validating $name.json"
     cyclonedx validate --input-file "$work/$name.json" --input-version v1_5 --fail-on-errors
 done
 cp "$work/bom.json" "$work/bom.xml" "$work/bom-prod.json" "$work/bom-prod.xml" "$output/"

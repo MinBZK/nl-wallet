@@ -10,13 +10,18 @@ Use a new or empty output directory. The command produces `bom.json`, `bom.xml`,
 `bom-prod.json` and `bom-prod.xml`, and validates all four with the CycloneDX CLI.
 Both variants use CycloneDX 1.5.
 
-The CycloneDX CLI merges the generator outputs hierarchically, preserving each
-root's dependency graph and avoiding duplicate references from separate Cargo
-SBOMs. Components are nested beneath their roots; the same package can occur
-under several roots. Use package URLs when comparing unique dependencies.
-Before merging, a small jq cleanup removes cdxgen's duplicate project entry from
-`components` when it is already in `metadata.component`. This keeps every package
-and dependency reference; it does not select production dependencies.
+The CycloneDX CLI performs a flat merge so shared dependencies are represented
+once. `generate.sh` explicitly invokes `normalize.jq` through jq before and after
+merging; CycloneDX does not load this helper itself. Before merging, the helper
+uses package URLs as component references and updates dependency links within
+each input. This prevents collisions between generators' local references.
+After merging, it combines duplicate observations, retaining array-valued
+metadata and the union of dependency links. Distinct versions and package URL
+qualifiers remain separate. Required scope takes precedence over optional or
+excluded scope; other conflicting scalar metadata causes generation to fail.
+This cleanup does not select dependencies: the package managers determine scope.
+
+Both JSON and XML outputs are validated. The log names each file before validation.
 
 ## Prerequisites
 
