@@ -877,7 +877,7 @@ mod tests {
 
         assert_matches!(
             cwt.into_verified_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None,),
-            Err(WrprcCwtError::Cose(CoseError::Es256SignatureVerificationFailed(_)))
+            Err(WrprcCwtError::Cose(CoseError::Esp256SignatureVerificationFailed(_)))
         );
     }
 

@@ -113,13 +113,13 @@ fn invalid_signature_is_rejected() {
     cose.as_mut().signature[0] ^= u8::MAX;
     assert_matches!(
         cose.verify(&public_key),
-        Err(CoseError::Es256SignatureVerificationFailed(_))
+        Err(CoseError::Esp256SignatureVerificationFailed(_))
     );
 
     cose.as_mut().signature.pop();
     assert_matches!(
         cose.verify(&public_key),
-        Err(CoseError::Es256SignatureVerificationFailed(_))
+        Err(CoseError::Esp256SignatureVerificationFailed(_))
     );
 }
 

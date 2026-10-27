@@ -30,13 +30,13 @@ pub enum CoseError {
     #[category(pd)]
     MismatchAlgorithmWithPublicKey(iana::Algorithm),
 
-    #[error("ES256 signature verification failed: {0}")]
+    #[error("ESP256 signature verification failed: {0}")]
     #[category(pd)]
-    Es256SignatureVerificationFailed(#[source] p256::ecdsa::Error),
+    Esp256SignatureVerificationFailed(#[source] p256::ecdsa::Error),
 
-    #[error("ES384 signature verification failed: {0}")]
+    #[error("ESP384 signature verification failed: {0}")]
     #[category(pd)]
-    Es384SignatureVerificationFailed(#[source] p384::ecdsa::Error),
+    Esp384SignatureVerificationFailed(#[source] p384::ecdsa::Error),
 
     #[error("RSA PKCS1v15 signature verification failed: {0}")]
     #[category(pd)]

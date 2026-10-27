@@ -84,12 +84,12 @@ impl Cose for CoseSign1 {
                 (PublicKey::ESP256(verifying_key), iana::Algorithm::ES256 | iana::Algorithm::ESP256) => {
                     p256::ecdsa::Signature::from_slice(signature)
                         .and_then(|signature| verifying_key.verify(data, &signature))
-                        .map_err(CoseError::Es256SignatureVerificationFailed)
+                        .map_err(CoseError::Esp256SignatureVerificationFailed)
                 }
                 (PublicKey::ESP384(verifying_key), iana::Algorithm::ES384 | iana::Algorithm::ESP384) => {
                     p384::ecdsa::Signature::from_slice(signature)
                         .and_then(|signature| verifying_key.verify(data, &signature))
-                        .map_err(CoseError::Es384SignatureVerificationFailed)
+                        .map_err(CoseError::Esp384SignatureVerificationFailed)
                 }
                 (PublicKey::RSA(rsa_public_key), iana::Algorithm::RS256) => {
                     verify_rsa_pkcs1v15::<sha2::Sha256>(data, signature, rsa_public_key.as_ref().clone())
