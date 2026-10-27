@@ -1717,7 +1717,6 @@ mod tests {
     use crypto::utils::random_string;
     use derive_more::Debug;
     use futures::FutureExt;
-    use jwt::jwk::jwk_to_public_key;
     use mdoc::MdocStatus;
     use mdoc::verifier::IssuerSignedVerificationResult;
     use mdoc::verifier::ValidityRequirement;
@@ -2445,6 +2444,7 @@ mod tests {
         UnknownProofNonce,
         CredentialConfigurationId,
         UnknownCredentialIdentifier,
+        JwtProofType,
     }
 
     /// Create a mock `Issuer`, set it up with a fixture of a credential that is ready to be issued and populate a
@@ -2453,7 +2453,14 @@ mod tests {
         format: Format,
         copy_count: NonZeroUsize,
         failure: CredentialRequestFailure,
-    ) -> (MockIssuer, TrustAnchors, AccessToken, Dpop, CredentialRequest) {
+    ) -> (
+        MockIssuer,
+        TrustAnchors,
+        AccessToken,
+        Dpop,
+        VecNonEmpty<VerifyingKey>,
+        CredentialRequest,
+    ) {
         let (issuer, trust_anchors, _issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
         // Create tokens and DPoP variables.
@@ -2510,14 +2517,14 @@ mod tests {
             .collect::<VecNonEmpty<_>>();
 
         let key_attestation = IssuanceMockRemoteWscd::new(&wptl_ca).sign_key_attestation(
-            verifying_keys,
+            verifying_keys.clone(),
             nonce,
             &MockTimeGenerator::default(),
         );
 
         // Populate a `CredentialRequest` that can be used to have the credential issued, its contents depending on the
         // `CredentialRequestFailure` enum.
-        let credential_request = if failure == CredentialRequestFailure::CredentialConfigurationId {
+        let mut credential_request = if failure == CredentialRequestFailure::CredentialConfigurationId {
             CredentialRequest::new(
                 CredentialRequestIdentifier::CredentialConfigurationId(
                     prepared_credential.credential_configuration_id.clone(),
@@ -2537,6 +2544,13 @@ mod tests {
             )
         };
 
+        if failure == CredentialRequestFailure::JwtProofType {
+            credential_request.proofs = Some(
+                serde_json::from_value(json!({ "jwt": ["eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.e30.c2ln"] }))
+                    .expect("deserializing CredentialRequestProofs should succeed"),
+            )
+        }
+
         // Create a fixture to populate the `Issuer` session, containing the `PreparedCredential`.
         let access_token_issued = AccessTokenIssued {
             access_token: access_token.clone(),
@@ -2553,7 +2567,14 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        (issuer, trust_anchors, access_token, dpop, credential_request)
+        (
+            issuer,
+            trust_anchors,
+            access_token,
+            dpop,
+            verifying_keys,
+            credential_request,
+        )
     }
 
     #[rstest]
@@ -2562,23 +2583,12 @@ mod tests {
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
         #[values(1, 4)] copy_count: usize,
     ) {
-        let (issuer, trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            format,
-            copy_count.try_into().unwrap(),
-            CredentialRequestFailure::None,
-        );
-
-        let public_keys = match credential_request.proofs.as_ref() {
-            Some(CredentialRequestProofs::Attestation([key_attestation])) => {
-                let (_header, claims) = key_attestation.as_ref().dangerous_parse_unverified().unwrap();
-                claims
-                    .attested_keys
-                    .iter()
-                    .map(|jwk| jwk_to_public_key(jwk).unwrap())
-                    .collect_vec()
-            }
-            _ => unreachable!(),
-        };
+        let (issuer, trust_anchors, access_token, dpop, holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                format,
+                copy_count.try_into().unwrap(),
+                CredentialRequestFailure::None,
+            );
 
         let response = issuer
             .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
@@ -2663,13 +2673,16 @@ mod tests {
 
         // Check that the holder public keys are exactly the same as the provided input of the credential endpoint.
         assert_eq!(issued_public_keys.len(), copy_count);
-        assert_eq!(issued_public_keys, public_keys);
+        assert_eq!(
+            issued_public_keys,
+            holder_public_keys.into_iter().map(PublicKey::from).collect_vec()
+        );
     }
 
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_malformed_token() {
-        let (issuer, _trust_anchors, _access_token, dpop, credential_request) =
+        let (issuer, _trust_anchors, _access_token, dpop, _holder_public_keys, credential_request) =
             setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
 
         // Processing a Credential Request with an Access Token that is too short to contain an appended Session Token
@@ -2690,7 +2703,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unknown_session() {
-        let (issuer, _trust_anchors, _access_token, dpop, credential_request) =
+        let (issuer, _trust_anchors, _access_token, dpop, _holder_public_keys, credential_request) =
             setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
 
         // Processing a Credential Request with an unknown Session Token should result in an error.
@@ -2713,7 +2726,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unauthorized() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) =
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
             setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
 
         let access_token = AccessToken::new(&access_token.code().unwrap());
@@ -2730,11 +2743,12 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_dpop_invalid() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::WrongDpopNonce,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::WrongDpopNonce,
+            );
 
         // Processing a Credential Request with an incorrect DPoP should result in an error.
         let error = issuer
@@ -2751,11 +2765,12 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_invalid_attestation_proof() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            3.try_into().unwrap(),
-            CredentialRequestFailure::SingleProofKey,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                3.try_into().unwrap(),
+                CredentialRequestFailure::SingleProofKey,
+            );
 
         // Processing a Credential Request with multiple proof JWTs that all contain the same public key should result
         // in an error.
@@ -2770,14 +2785,13 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_proof_type_unsupported() {
-        let (issuer, _trust_anchors, access_token, dpop, mut credential_request) =
-            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
-
         // Replace the proofs with ones of the "jwt" proof type, which the issuer does not support.
-        credential_request.proofs = Some(
-            serde_json::from_value(json!({ "jwt": ["eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.e30.c2ln"] }))
-                .expect("deserializing CredentialRequestProofs should succeed"),
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::JwtProofType,
+            );
 
         let error = issuer
             .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
@@ -2793,11 +2807,12 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_missing_proof_nonce() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::MissingProofNonce,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::MissingProofNonce,
+            );
 
         // Processing a Credential Request with a proof JWT that does not contain a nonce should result in an error.
         let error = issuer
@@ -2811,11 +2826,12 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_invalid_nonce() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::UnknownProofNonce,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::UnknownProofNonce,
+            );
 
         // Processing a Credential Request with a proof JWT that contains an unknown nonce should result in an error.
         let error = issuer
@@ -2829,11 +2845,12 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_too_many_copies_requested() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            5.try_into().unwrap(),
-            CredentialRequestFailure::None,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                5.try_into().unwrap(),
+                CredentialRequestFailure::None,
+            );
 
         // Processing a Credential Request with too many proof JWT should result in an error.
         let error = issuer
@@ -2847,11 +2864,12 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unknown_credential_id() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::UnknownCredentialIdentifier,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::UnknownCredentialIdentifier,
+            );
 
         // Processing a Credential Request with an unknown Credential ID should result in an error.
         let error = issuer
@@ -2865,11 +2883,12 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_credential_configuration_id_not_allowed() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::CredentialConfigurationId,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::CredentialConfigurationId,
+            );
 
         // Processing a Credential Request for a Credential Configuration ID should result in an error.
         let error = issuer
@@ -2883,11 +2902,12 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_missing_credential_configuration() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::IncorrectPreparedCredentialFormat,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::IncorrectPreparedCredentialFormat,
+            );
 
         // Processing a Credential Request when the issuer has an inconsistent `PreparedCredential` in its session state
         // should result in an error.
