@@ -111,4 +111,18 @@ class CoreIssuanceRepository implements IssuanceRepository {
         throw result.error;
     }
   }
+
+  @override
+  Future<List<WalletCard>> issueCardsForReview(String pin) async {
+    final result = await _walletCore.issueCredentialsForReview(pin);
+    switch (result) {
+      case core.IssueCredentialsResult_Ok(field0: final cards):
+        return _attestationMapper.mapList(cards);
+      case core.IssueCredentialsResult_InstructionError():
+        throw result.error;
+    }
+  }
+
+  @override
+  Future<void> acceptIssuedCards() => _walletCore.commitIssuedCredentials();
 }

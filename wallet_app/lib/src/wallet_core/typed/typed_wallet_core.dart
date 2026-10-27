@@ -179,6 +179,20 @@ class TypedWalletCore {
     runnable: () => core.acceptIssuance(pin: pin),
   );
 
+  /// Issue the credentials for an issuer without previews, so they can be reviewed before being stored
+  Future<core.IssueCredentialsResult> issueCredentialsForReview(String pin) => _callWithFlowBreadcrumb(
+    'issuance.issue_for_review',
+    failureCode: 'issuance.fail.issue_for_review',
+    runnable: () => core.issueCredentialsForReview(pin: pin),
+  );
+
+  /// Store the credentials that were issued by [issueCredentialsForReview]
+  Future<void> commitIssuedCredentials() => _callWithFlowBreadcrumb(
+    'issuance.commit_issued',
+    failureCode: 'issuance.fail.commit_issued',
+    runnable: core.commitIssuedCredentials,
+  );
+
   /// Accept offered PID
   Future<core.PidIssuanceResult> acceptPidIssuance(String pin) => _callWithFlowBreadcrumb(
     'pid_issuance.accept',
