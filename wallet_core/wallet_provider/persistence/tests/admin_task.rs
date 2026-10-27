@@ -55,9 +55,9 @@ fn task_payload(task_type: TaskType) -> TaskPayload {
         TaskType::RevokeWallet => TaskPayload::RevokeWallet(RevokeWalletParameters {
             wallet_ids: vec!["some-wallet".to_string().into()].try_into().unwrap(),
         }),
-        TaskType::BlockUser => TaskPayload::BlockUser {},
-        TaskType::UnblockUser => TaskPayload::UnblockUser {},
-        TaskType::RevokeSolution => TaskPayload::RevokeSolution {},
+        TaskType::BlockUser => TaskPayload::BlockUser,
+        TaskType::UnblockUser => TaskPayload::UnblockUser,
+        TaskType::RevokeSolution => TaskPayload::RevokeSolution,
     }
 }
 
