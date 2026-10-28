@@ -96,7 +96,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-demo-issuer-issuance-server-credential-request-encryption-key
-                  key: private_key
+                  key: secret_key
             - name: ISSUANCE_SERVER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
             - name: ISSUANCE_SERVER__STORAGE__URL

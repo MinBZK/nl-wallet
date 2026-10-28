@@ -94,7 +94,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-pacf-demo-issuer-issuance-server-credential-request-encryption-key
-                  key: private_key
+                  key: secret_key
             - name: PACF_ISSUANCE_SERVER__BATCH_SIZE
               value: {{ .Values.batchSize | quote }}
             - name: PACF_ISSUANCE_SERVER__STORAGE__URL
