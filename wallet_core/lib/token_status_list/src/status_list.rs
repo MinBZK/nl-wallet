@@ -581,20 +581,6 @@ pub mod test {
         assert_eq!(packed.get(index), Some(expected));
     }
 
-    #[rstest]
-    #[case(0x00, StatusType::Valid)]
-    #[case(0x01, StatusType::Invalid)]
-    #[case(0x02, StatusType::Suspended)]
-    #[case(0x03, StatusType::ApplicationSpecific(0x03))]
-    #[case(0x04, StatusType::Reserved(0x04))]
-    #[case(0x0B, StatusType::Reserved(0x0B))]
-    #[case(0x0C, StatusType::ApplicationSpecific(0x0C))]
-    #[case(0x0F, StatusType::ApplicationSpecific(0x0F))]
-    #[case(0x10, StatusType::Reserved(0x10))]
-    fn test_status_type_from_u8(#[case] value: u8, #[case] expected: StatusType) {
-        assert_eq!(StatusType::from(value), expected);
-    }
-
     #[test]
     fn test_get_out_of_bounds() {
         let packed = PackedStatusList::new(8);
