@@ -1730,6 +1730,27 @@ async fn pre_authorized_code_flow_credential_request() {
     .unwrap()
     .to_string();
 
+    // Sending an unencrypted Credential Request should fail, as request encryption is mandatory.
+    let response = http_client
+        .post(credential_url.clone())
+        .header(
+            AUTHORIZATION,
+            format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
+        )
+        .header(DPOP_HEADER_NAME, dpop_header.clone())
+        .json(&credential_request)
+        .send()
+        .await
+        .expect("sending credential request to issuer should succeed");
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(
+        body.contains("invalid_encryption_parameters"),
+        "unexpected body: {body}"
+    );
+
+    // Sending an encrypted Credential Request should succeed and result in issued credentials.
     let credential_response = http_client
         .post(credential_url.clone())
         .header(
