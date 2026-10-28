@@ -1718,6 +1718,8 @@ async fn pre_authorized_code_flow_credential_request() {
         .json(&credential_request)
         .send()
         .await
+        .expect("sending credential request to issuer should succeed")
+        .error_for_status()
         .expect("requesting credential from issuer should succeed")
         .json::<CredentialResponse>()
         .await
