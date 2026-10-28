@@ -375,7 +375,6 @@ impl ErrorWithCode for CredentialRequestError {
     type ErrorCode = CredentialErrorCode;
 
     fn error_code(&self) -> Self::ErrorCode {
-        // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
         match self {
             // The session backing the access token is gone (cleaned up) or in a terminal/wrong state:
             // the token is no longer valid, which per RFC 6750 is `invalid_token`. This is hit when the
@@ -390,6 +389,8 @@ impl ErrorWithCode for CredentialRequestError {
             Self::IssuanceError(IssuanceError::SessionStore(_)) => CredentialErrorCode::ServerError,
 
             Self::MalformedToken | Self::Unauthorized => CredentialErrorCode::InvalidToken,
+
+            Self::Decryption(_) => CredentialErrorCode::InvalidEncryptionParameters,
 
             Self::MissingCredentialRequestProof | Self::ProofTypeUnsupported(..) => CredentialErrorCode::InvalidProof,
 

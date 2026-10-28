@@ -29,6 +29,7 @@ use derive_more::Constructor;
 use error_category::ErrorCategory;
 use itertools::Either;
 use itertools::Itertools;
+use jwe::error::JweJsonEncryptionError;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
 use jwt::error::JwtX5cVerifyError;
@@ -84,6 +85,10 @@ pub enum WalletIssuanceError {
 
     #[error("key attestation received from WSCD is invalid: {0}")]
     InvalidKeyAttestation(#[source] KeyAttestationVerificationError),
+
+    #[error("could not encrypt credential request: {0}")]
+    #[category(pd)]
+    CredentialRequestEncryption(#[source] JweJsonEncryptionError),
 
     #[error("mismatch between issued and previewed credential, issued: {actual:?} , previewed: {expected:?}")]
     #[category(pd)]

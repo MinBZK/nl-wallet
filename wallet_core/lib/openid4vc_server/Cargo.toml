@@ -64,6 +64,7 @@ url = { workspace = true, features = ["serde"] }
 
 attestation_types.path = "../attestation_types"
 http_utils = { path = "../http_utils", features = ["client"] }
+jwe.path = "../jwe"
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 wscd = { path = "../wscd", features = ["mock"] }

@@ -32,7 +32,10 @@ use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use jwe::algorithm::EcdhAlgorithm;
+use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
+use jwe::encryption::JwePublicKey;
+use jwe::error::JweJsonDecryptionError;
 use jwt::SignedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
@@ -243,6 +246,9 @@ pub enum CredentialRequestError {
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
 
+    #[error("could not decrypt credential request: {0}")]
+    Decryption(#[source] JweJsonDecryptionError),
+
     #[error("missing credential request proof")]
     MissingCredentialRequestProof,
 
@@ -429,9 +435,7 @@ pub struct Issuer<K, L, S, N> {
 pub struct IssuerData<K, L> {
     credential_configs: CredentialConfigurations<K, L>,
 
-    // TODO (PVW-6445): Use this key to decrypt Credential Requests.
-    #[expect(dead_code)]
-    credential_request_jwe_secret_key: JweEcdhSecretKey,
+    credential_request_decrypter: JweDecrypter,
     batch_size: NonZeroU8,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
@@ -616,6 +620,23 @@ where
     }
 }
 
+fn credential_request_decrypter_and_public_key(encryption_key: SecretKey) -> (JweDecrypter, JwePublicKey) {
+    // According to OpenID4VCI, a `credential_request_encryption` JWK published in the Issuer Metadata should always
+    // contain a `kid` value. Here, we generate the `kid` for the single public key this Issuer supports by
+    // hex-encoding a hash of its public key. If its configured key changes while an issuance request in progress,
+    // this should lead to an error that the `kid` is incorrect, instead of a decryption error.
+    let kid = hex::encode(sha256(&encryption_key.public_key().to_sec1_bytes()));
+
+    // Choose `ECDH-ES` as the JWE algorithm for Credential Request encryption, both to mirror OpenID4VP where this
+    // value is mandated by HAIP and because key wrapping does not provided added benefit in this scenario.
+    let secret_key = JweEcdhSecretKey::new(Some(kid), encryption_key, EcdhAlgorithm::EcdhEs);
+
+    let public_key = secret_key.to_jwe_public_key();
+    let decrypter = JweDecrypter::from_ecdh_secret_key(&secret_key);
+
+    (decrypter, public_key)
+}
+
 impl<K, L, S, N> Issuer<K, L, S, N>
 where
     S: SessionStore<IssuanceData> + Sync + 'static,
@@ -643,20 +664,13 @@ where
             credential_preview_endpoint.then(|| server_url.join_issuer_url("/credential_preview"));
         let type_metadata_base_url = server_url.join_issuer_url("/type_metadata");
 
-        // According to OpenID4VCI, a `credential_request_encryption` JWK published in the Issuer Metadata should always
-        // contain a `kid` value. Here, we generate the `kid` for the single public key this Issuer supports by
-        // hex-encoding a hash of its public key. If its configured key changes while an issuance request in progress,
-        // this should lead to an error that the `kid` is incorrect, instead of a decryption error.
-        let kid = hex::encode(sha256(&credential_request_encryption_key.public_key().to_sec1_bytes()));
-        // Choose `ECDH-ES` as the JWE algorithm for Credential Request encryption, both to mirror OpenID4VP where this
-        // value is mandated by HAIP and because key wrapping does not provided added benefit in this scenario.
-        let credential_request_jwe_secret_key =
-            JweEcdhSecretKey::new(Some(kid), credential_request_encryption_key, EcdhAlgorithm::EcdhEs);
+        let (credential_request_decrypter, credential_request_public_key) =
+            credential_request_decrypter_and_public_key(credential_request_encryption_key);
 
         let metadata = IssuerMetadata::new(
             issuer_identifier,
             IssuerEndpoints::new(credential_endpoint, nonce_endpoint, credential_preview_endpoint),
-            credential_request_jwe_secret_key.to_jwe_public_key(),
+            credential_request_public_key,
             AtLeastTwoU64::try_new(batch_size.into()).ok(),
             registration_certificate,
             credential_configs.to_credential_configurations_supported(&type_metadata_base_url),
@@ -664,7 +678,7 @@ where
 
         let issuer_data = IssuerData {
             credential_configs,
-            credential_request_jwe_secret_key,
+            credential_request_decrypter,
             batch_size,
             accepted_wallet_client_ids,
             server_url: server_url.into_inner(),
@@ -964,7 +978,7 @@ where
         &self,
         access_token: &AccessToken,
         dpop: Dpop,
-        credential_request: CredentialRequest,
+        credential_request_jwe: &str,
         time: &G,
     ) -> Result<CredentialResponse, CredentialRequestError>
     where
@@ -978,7 +992,7 @@ where
 
         let response_result = session
             .process_credential_request(
-                credential_request,
+                credential_request_jwe,
                 access_token,
                 dpop,
                 &self.issuer_data,
@@ -1396,7 +1410,7 @@ impl Session<AccessTokenIssued> {
     #[expect(clippy::too_many_arguments, reason = "internal method")]
     async fn process_credential_request<K, L, N, G>(
         &self,
-        credential_request: CredentialRequest,
+        credential_request_jwe: &str,
         access_token: &AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
@@ -1417,6 +1431,12 @@ impl Session<AccessTokenIssued> {
         )?;
 
         let session_data = self.session_data();
+
+        // Decrypt the Credential Request, which should always be encrypted as we publish `encryption_required: true` in
+        // the Issuer Metadata.
+        let credential_request =
+            CredentialRequest::decrypt(credential_request_jwe, &issuer_data.credential_request_decrypter)
+                .map_err(CredentialRequestError::Decryption)?;
 
         // Verify the received proof of cryptographic key material and collect all of the public keys.
         let public_keys = credential_request
@@ -1717,6 +1737,8 @@ mod tests {
     use crypto::utils::random_string;
     use derive_more::Debug;
     use futures::FutureExt;
+    use jwe::algorithm::EncryptionAlgorithm;
+    use jwe::encryption::JweEncrypter;
     use mdoc::MdocStatus;
     use mdoc::verifier::IssuerSignedVerificationResult;
     use mdoc::verifier::ValidityRequirement;
@@ -1770,6 +1792,7 @@ mod tests {
     use crate::wallet_issuance::AcceptIssuanceTrustAnchors;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
+    use crate::wallet_issuance::issuance_session::CredentialRequestBody;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
     use crate::wallet_issuance::issuer_registration::IssuerRegistration;
@@ -2075,18 +2098,22 @@ mod tests {
             Ok((NonceResponse { c_nonce }, None))
         }
 
-        async fn request_credential(
+        async fn request_credential<'a>(
             &self,
             _url: Url,
-            credential_request: &CredentialRequest,
+            credential_request: CredentialRequestBody<'a>,
             dpop_header: &Dpop,
             access_token: &AccessToken,
         ) -> Result<CredentialResponse, WalletIssuanceError> {
+            let CredentialRequestBody::Encrypted(credential_request_jwe) = credential_request else {
+                panic!("credential request should be encrypted");
+            };
+
             self.issuer
                 .process_credential_request(
                     &self.access_token(access_token),
                     self.dpop_header(dpop_header),
-                    credential_request.clone(),
+                    &credential_request_jwe,
                     &MockTimeGenerator::default(),
                 )
                 .await
@@ -2141,7 +2168,15 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
-            None,
+            Some(
+                issuer_metadata
+                    .credential_request_encryption
+                    .as_ref()
+                    .unwrap()
+                    .select_encryption_parameters()
+                    .unwrap()
+                    .unwrap(),
+            ),
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
                 oauth_metadata
@@ -2459,7 +2494,7 @@ mod tests {
         AccessToken,
         Dpop,
         VecNonEmpty<VerifyingKey>,
-        CredentialRequest,
+        String,
     ) {
         let (issuer, trust_anchors, _issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
@@ -2524,7 +2559,7 @@ mod tests {
 
         // Populate a `CredentialRequest` that can be used to have the credential issued, its contents depending on the
         // `CredentialRequestFailure` enum.
-        let mut credential_request = if failure == CredentialRequestFailure::CredentialConfigurationId {
+        let credential_request = if failure == CredentialRequestFailure::CredentialConfigurationId {
             CredentialRequest::new(
                 CredentialRequestIdentifier::CredentialConfigurationId(
                     prepared_credential.credential_configuration_id.clone(),
@@ -2544,12 +2579,34 @@ mod tests {
             )
         };
 
-        if failure == CredentialRequestFailure::JwtProofType {
-            credential_request.proofs = Some(
-                serde_json::from_value(json!({ "jwt": ["eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.e30.c2ln"] }))
-                    .expect("deserializing CredentialRequestProofs should succeed"),
+        let credential_request_encrypter = JweEncrypter::from(
+            JwePublicKey::try_from_jwk(
+                issuer
+                    .metadata()
+                    .credential_request_encryption
+                    .as_ref()
+                    .unwrap()
+                    .jwks
+                    .keys
+                    .first(),
             )
-        }
+            .unwrap(),
+        );
+
+        let credential_request_jwe = if failure == CredentialRequestFailure::JwtProofType {
+            // Because a "jwt" proof will make a `CredentialRequest` fail to serialize, convert to `serde_json::Value`
+            // first before editing the payload.
+            let mut credential_request = serde_json::to_value(credential_request).unwrap();
+
+            credential_request["proofs"] = json!({"jwt": ["eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.e30.c2ln"]});
+            credential_request_encrypter
+                .encrypt_json(&credential_request, EncryptionAlgorithm::A128Gcm, None, None, None)
+                .unwrap()
+        } else {
+            credential_request
+                .encrypt(&credential_request_encrypter, EncryptionAlgorithm::A128Gcm, None)
+                .unwrap()
+        };
 
         // Create a fixture to populate the `Issuer` session, containing the `PreparedCredential`.
         let access_token_issued = AccessTokenIssued {
@@ -2573,7 +2630,7 @@ mod tests {
             access_token,
             dpop,
             verifying_keys,
-            credential_request,
+            credential_request_jwe,
         )
     }
 
@@ -2591,7 +2648,7 @@ mod tests {
             );
 
         let response = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect("processing CredentialRequest should succeed");
 
@@ -2691,7 +2748,7 @@ mod tests {
             .process_credential_request(
                 &"short".to_string().into(),
                 dpop,
-                credential_request,
+                &credential_request,
                 &MockTimeGenerator::default(),
             )
             .await
@@ -2711,7 +2768,7 @@ mod tests {
             .process_credential_request(
                 &random_string(64).into(),
                 dpop,
-                credential_request,
+                &credential_request,
                 &MockTimeGenerator::default(),
             )
             .await
@@ -2733,7 +2790,7 @@ mod tests {
 
         // Processing a Credential Request with an unknown Access Token should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2752,7 +2809,7 @@ mod tests {
 
         // Processing a Credential Request with an incorrect DPoP should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2775,7 +2832,7 @@ mod tests {
         // Processing a Credential Request with multiple proof JWTs that all contain the same public key should result
         // in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2794,7 +2851,7 @@ mod tests {
             );
 
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2816,7 +2873,7 @@ mod tests {
 
         // Processing a Credential Request with a proof JWT that does not contain a nonce should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2835,7 +2892,7 @@ mod tests {
 
         // Processing a Credential Request with a proof JWT that contains an unknown nonce should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2854,7 +2911,7 @@ mod tests {
 
         // Processing a Credential Request with too many proof JWT should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2873,7 +2930,7 @@ mod tests {
 
         // Processing a Credential Request with an unknown Credential ID should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2892,7 +2949,7 @@ mod tests {
 
         // Processing a Credential Request for a Credential Configuration ID should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2912,7 +2969,7 @@ mod tests {
         // Processing a Credential Request when the issuer has an inconsistent `PreparedCredential` in its session state
         // should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 

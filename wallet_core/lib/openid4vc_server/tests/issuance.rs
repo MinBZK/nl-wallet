@@ -14,15 +14,20 @@ use axum::http::Request;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+use http::HeaderValue;
 use http::header;
 use http::header::ACCEPT;
 use http::header::AUTHORIZATION;
 use http::header::CONTENT_TYPE;
+use http_utils::reqwest::APPLICATION_JWT;
 use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use itertools::Itertools;
+use jwe::algorithm::EncryptionAlgorithm;
+use jwe::encryption::JweEncrypter;
+use jwe::encryption::JwePublicKey;
 use jwt::VerifiedJwt;
 use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
@@ -1694,6 +1699,23 @@ async fn pre_authorized_code_flow_credential_request() {
         key_attestation,
     );
 
+    let credential_request_encrypter = JweEncrypter::from(
+        JwePublicKey::try_from_jwk(
+            issuer
+                .metadata()
+                .credential_request_encryption
+                .as_ref()
+                .unwrap()
+                .jwks
+                .keys
+                .first(),
+        )
+        .unwrap(),
+    );
+    let credential_request_jwe = credential_request
+        .encrypt(&credential_request_encrypter, EncryptionAlgorithm::A128Gcm, None)
+        .unwrap();
+
     let credential_url = format!("{base}issuance/{CREDENTIAL_ENDPOINT_PATH}",)
         .parse::<Url>()
         .unwrap();
@@ -1715,7 +1737,8 @@ async fn pre_authorized_code_flow_credential_request() {
             format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
         )
         .header(DPOP_HEADER_NAME, dpop_header)
-        .json(&credential_request)
+        .header(CONTENT_TYPE, HeaderValue::from_static(APPLICATION_JWT))
+        .body(credential_request_jwe)
         .send()
         .await
         .expect("sending credential request to issuer should succeed")
@@ -1755,6 +1778,9 @@ async fn pre_authorized_code_flow_credential_request() {
         CredentialRequestIdentifier::CredentialIdentifier(credential_id),
         key_attestation,
     );
+    let credential_request_jwe = credential_request
+        .encrypt(&credential_request_encrypter, EncryptionAlgorithm::A128Gcm, None)
+        .unwrap();
 
     let dpop_header = Dpop::new(
         &dpop_key,
@@ -1773,7 +1799,8 @@ async fn pre_authorized_code_flow_credential_request() {
             format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
         )
         .header(DPOP_HEADER_NAME, dpop_header)
-        .json(&credential_request)
+        .header(CONTENT_TYPE, HeaderValue::from_static(APPLICATION_JWT))
+        .body(credential_request_jwe)
         .send()
         .await
         .unwrap();
@@ -1806,7 +1833,7 @@ async fn setup_metadata_test() -> (Arc<MockIssuer>, RequestBuilder) {
 
 #[rstest]
 #[case(None)]
-#[case(Some("application/jwt"))]
+#[case(Some(APPLICATION_JWT))]
 #[tokio::test]
 async fn openid_metadata_signed(#[case] accept_header: Option<&str>) {
     let (issuer, mut request) = setup_metadata_test().await;
@@ -1817,7 +1844,7 @@ async fn openid_metadata_signed(#[case] accept_header: Option<&str>) {
     let response = request.send().await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
 
-    assert_eq!(response.headers()[CONTENT_TYPE], "application/jwt");
+    assert_eq!(response.headers()[CONTENT_TYPE], APPLICATION_JWT);
     let text = response.text().await.unwrap();
     let jwt: VerifiedJwt<SignedIssuerMetadataPayload> = VerifiedJwt::dangerous_parse_unverified(text.as_str()).unwrap();
 

@@ -18,6 +18,9 @@ use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
 use futures::try_join;
+use http::HeaderValue;
+use http::header;
+use http_utils::reqwest::APPLICATION_JWT;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
@@ -110,6 +113,12 @@ pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
     session_state: IssuanceState,
 }
 
+#[derive(Debug)]
+pub enum CredentialRequestBody<'a> {
+    Plain(&'a CredentialRequest),
+    Encrypted(String),
+}
+
 /// Contract for sending OpenID4VCI protocol messages.
 #[cfg_attr(test, mockall::automock)]
 pub trait VcMessageClient {
@@ -133,10 +142,10 @@ pub trait VcMessageClient {
 
     async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<DpopNonce>), WalletIssuanceError>;
 
-    async fn request_credential(
+    async fn request_credential<'a>(
         &self,
         url: Url,
-        credential_request: &CredentialRequest,
+        credential_request: CredentialRequestBody<'a>,
         dpop_header: &Dpop,
         access_token: &AccessToken,
     ) -> Result<CredentialResponse, WalletIssuanceError>;
@@ -275,19 +284,25 @@ impl VcMessageClient for HttpVcMessageClient {
         Ok((nonce_response, dpop_nonce))
     }
 
-    async fn request_credential(
+    async fn request_credential<'a>(
         &self,
         url: Url,
-        credential_request: &CredentialRequest,
+        credential_request: CredentialRequestBody<'a>,
         dpop_header: &Dpop,
         access_token: &AccessToken,
     ) -> Result<CredentialResponse, WalletIssuanceError> {
         self.http_client
             .post(url, |builder| {
-                builder
+                let builder = builder
                     .header(DPOP_HEADER_NAME, dpop_header.to_string())
-                    .header(AUTHORIZATION, Self::dpop_auth_header(access_token))
-                    .json(credential_request)
+                    .header(AUTHORIZATION, Self::dpop_auth_header(access_token));
+
+                match credential_request {
+                    CredentialRequestBody::Plain(request) => builder.json(request),
+                    CredentialRequestBody::Encrypted(jwe) => builder
+                        .header(header::CONTENT_TYPE, HeaderValue::from_static(APPLICATION_JWT))
+                        .body(jwe),
+                }
             })
             .map_err(WalletIssuanceError::CredentialRequestHttp)
             .and_then(|response| async {
@@ -639,8 +654,6 @@ struct IssuanceState {
     access_token: AccessToken,
     issuer_endpoints: IssuerEndpoints,
     batch_size: NonZeroU8,
-    // TODO (PVW-6445): Use this encrypter to encrypt Credential Requests.
-    #[expect(dead_code)]
     credential_request_encryption: Option<CredentialRequestEncryption>,
     // Keep metadata separate from offered credentials to prevent duplication. Metadata is per credential
     // configuration, not per credential. `HttpIssuanceSession::create` enforces that every credential configuration
@@ -653,8 +666,6 @@ struct IssuanceState {
     dpop_nonce: Option<DpopNonce>,
 }
 
-// TODO (PVW-6445): Use this encrypter to encrypt Credential Requests.
-#[expect(dead_code)]
 #[derive(Debug)]
 struct CredentialRequestEncryption {
     encrypter: JweEncrypter,
@@ -1048,11 +1059,28 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .into_url();
         let dpop_header = self.session_state.dpop_header(url.clone(), &Method::POST, dpop_nonce)?;
 
+        // Encrypt the Credential Request if the Issuer Metadata allows or mandates it.
+        let credential_request = CredentialRequest::new(offered_credential.to_request_identifier(), key_attestation);
+        let credential_request_body = match &self.session_state.credential_request_encryption {
+            Some(encryption) => {
+                let jwe = credential_request
+                    .encrypt(
+                        &encryption.encrypter,
+                        encryption.options.encryption_algorithm,
+                        encryption.options.compression,
+                    )
+                    .map_err(WalletIssuanceError::CredentialRequestEncryption)?;
+
+                CredentialRequestBody::Encrypted(jwe)
+            }
+            None => CredentialRequestBody::Plain(&credential_request),
+        };
+
         let credential_response = self
             .message_client
             .request_credential(
                 url,
-                &CredentialRequest::new(offered_credential.to_request_identifier(), key_attestation),
+                credential_request_body,
                 &dpop_header,
                 &self.session_state.access_token,
             )
@@ -2854,8 +2882,12 @@ mod tests {
             (signer, previews, metadata)
         }
 
-        pub fn response_from_request(&self, request: &CredentialRequest) -> CredentialResponse {
-            let credential_id = match &request.identifier {
+        pub fn response_from_request<'a>(&self, request: &CredentialRequestBody<'a>) -> CredentialResponse {
+            let CredentialRequestBody::Plain(credential_request) = request else {
+                panic!("credential request should be unencrypted");
+            };
+
+            let credential_id = match &credential_request.identifier {
                 CredentialRequestIdentifier::CredentialIdentifier(credential_id) => credential_id,
                 CredentialRequestIdentifier::CredentialConfigurationId(config_id) => {
                     if config_id.as_ref() != "config_id" {
@@ -2869,7 +2901,7 @@ mod tests {
                 }
             };
 
-            let holder_pubkeys = match request.proofs.as_ref().unwrap() {
+            let holder_pubkeys = match credential_request.proofs.as_ref().unwrap() {
                 CredentialRequestProofs::Attestation([key_attestation]) => {
                     let (_header, claims) = key_attestation.as_ref().dangerous_parse_unverified().unwrap();
                     claims
@@ -3080,7 +3112,7 @@ mod tests {
                     access_token,
                 );
 
-                Ok(signer.response_from_request(credential_request))
+                Ok(signer.response_from_request(&credential_request))
             });
 
         let (wscd, wptl_trust_anchors) = create_mock_wscd();
@@ -3134,7 +3166,7 @@ mod tests {
             move |_url, credential_request, _dpop_header, _access_token_header| {
                 // Build a normal response first, to reuse its holder-key and attribute handling, then replace its
                 // status with an identifier list and re-sign it.
-                let response = signer.response_from_request(credential_request);
+                let response = signer.response_from_request(&credential_request);
                 let Credentials::MsoMdoc(mdoc_credentials) = response.into_immediate_credentials().unwrap() else {
                     panic!("response should contain mdoc credentials");
                 };
@@ -3197,7 +3229,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                Ok(signer.response_from_request(credential_request))
+                Ok(signer.response_from_request(&credential_request))
             },
         );
 
@@ -3380,7 +3412,7 @@ mod tests {
         // The credential response is only rejected once it has been received, so it is still requested.
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token| {
-                Ok(signer.response_from_request(credential_request))
+                Ok(signer.response_from_request(&credential_request))
             },
         );
 
@@ -3418,7 +3450,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                let response = signer.response_from_request(credential_request);
+                let response = signer.response_from_request(&credential_request);
 
                 Ok(response)
             },
@@ -3459,7 +3491,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                Ok(signer.response_from_request(credential_request))
+                Ok(signer.response_from_request(&credential_request))
             },
         );
 
