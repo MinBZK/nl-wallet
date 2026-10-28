@@ -22,9 +22,11 @@ use etag::EntityTag;
 use http::Method;
 use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
+use jwt::UnverifiedJwt;
 use mediatype::Name;
 use strum::EnumIter;
 use strum::IntoEnumIterator;
+use token_status_list::status_list_jwt::StatusListJwt;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
@@ -229,12 +231,13 @@ async fn serve_status_list(
     Ok(response)
 }
 
-pub fn http_response_for_status_list_body(
+/// Create an HTTP response for a status list that is signed and served from memory instead of being published to a
+/// publish dir.
+pub fn http_response_for_status_list_jwt(
     request_headers: &HeaderMap,
-    status_list_body: Vec<u8>,
+    status_list_jwt: StatusListJwt,
     ttl: Option<Duration>,
 ) -> Result<Response, StatusCode> {
-    // The status list body is only available as JWT
     if requested_format(request_headers.get(header::ACCEPT))? != StatusListFormat::Jwt {
         return Err(StatusCode::NOT_ACCEPTABLE);
     }
@@ -243,7 +246,8 @@ pub fn http_response_for_status_list_body(
         (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE),
         (header::CACHE_CONTROL, cache_control_header_for_ttl(ttl)),
     ];
-    let response = (response_headers, status_list_body).into_response();
+    let body = UnverifiedJwt::from(status_list_jwt).into_serialization();
+    let response = (response_headers, body).into_response();
 
     Ok(response)
 }
