@@ -1513,6 +1513,7 @@ fn verify_metadata_integrity<'a>(
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::borrow::Cow;
     use std::convert::Infallible;
     use std::num::NonZeroU8;
     use std::time::Duration;
@@ -1532,6 +1533,10 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use derive_more::Debug;
     use futures::FutureExt;
+    use jwe::algorithm::EcdhAlgorithm;
+    use jwe::algorithm::EncryptionAlgorithm;
+    use jwe::decryption::JweDecrypter;
+    use jwe::decryption::JweEcdhSecretKey;
     use jwt::jwk::jwk_to_public_key;
     use jwt::nonce::Nonce;
     use mdoc::IdentifierListInfo;
@@ -2692,6 +2697,7 @@ mod tests {
         credential_previews: Vec<CredentialPreview>,
         metadata: HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         batch_size: NonZeroU8,
+        credential_request_encrypter: Option<JweEncrypter>,
         has_nonce_endpoint: bool,
         has_previews: bool,
     ) -> IssuanceState {
@@ -2704,6 +2710,14 @@ mod tests {
         if !has_previews {
             issuer_endpoints.credential_preview_endpoint = None;
         }
+
+        let credential_request_encryption = credential_request_encrypter.map(|encrypter| CredentialRequestEncryption {
+            encrypter,
+            options: CredentialRequestEncryptionOptions {
+                encryption_algorithm: EncryptionAlgorithm::A128Gcm,
+                compression: None,
+            },
+        });
 
         let offered_credentials_and_previews = credential_previews.into_iter().map(|preview| {
             let offered_credential = OfferedCredential::new_by_credential_id(
@@ -2732,7 +2746,7 @@ mod tests {
             access_token: "access_token".to_string().into(),
             issuer_endpoints,
             batch_size,
-            credential_request_encryption: None,
+            credential_request_encryption,
             offered_credentials,
             metadata,
             issuer_registration: IssuerRegistration::new_mock(),
@@ -2765,6 +2779,7 @@ mod tests {
         formats_by_credential_id: HashMap<CredentialId, Format>,
         pub issuer_trust_anchors: TrustAnchors,
         issuer_key: KeyPair,
+        credential_request_decrypter: Option<JweDecrypter>,
         metadata_integrity: Integrity,
         /// mdoc attributes, namespaced (namespace, element).
         mdoc_previewable_payload: PreviewableCredentialPayload,
@@ -2787,11 +2802,13 @@ mod tests {
             format.to_string().into()
         }
 
-        pub fn new_with_preview_and_type_metadata(
+        pub fn new(
             formats_by_credential_id: HashMap<CredentialId, Format>,
             sd_jwt_uses_credential_metadata: SdJwtMetadataUsage,
+            use_credential_request_encryption: bool,
         ) -> (
             Self,
+            Option<JweEncrypter>,
             Vec<CredentialPreview>,
             HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         ) {
@@ -2808,6 +2825,7 @@ mod tests {
                 mdoc_preview_payload,
                 sd_jwt_preview_payload,
                 sd_jwt_uses_credential_metadata,
+                use_credential_request_encryption,
             )
         }
 
@@ -2817,8 +2835,10 @@ mod tests {
             mdoc_previewable_payload: PreviewableCredentialPayload,
             sd_jwt_previewable_payload: PreviewableCredentialPayload,
             sd_jwt_metadata_usage: SdJwtMetadataUsage,
+            use_credential_request_encryption: bool,
         ) -> (
             Self,
+            Option<JweEncrypter>,
             Vec<CredentialPreview>,
             HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         ) {
@@ -2826,6 +2846,16 @@ mod tests {
             let issuer_trust_anchors = TrustAnchors::try_from_trust_anchors([ca.to_borrowing_trust_anchor()]).unwrap();
 
             let issuer_key = ca.generate_pid_issuer_mock().unwrap();
+
+            let (credential_request_encrypter, credential_request_decrypter) = use_credential_request_encryption
+                .then(|| {
+                    let secret_key = JweEcdhSecretKey::new_random(Some("key".to_string()), EcdhAlgorithm::EcdhEsA128kw);
+                    let encrypter = secret_key.to_jwe_public_key().into();
+                    let decrypter = JweDecrypter::from_ecdh_secret_key(&secret_key);
+
+                    (encrypter, decrypter)
+                })
+                .unzip();
 
             let (attestation_type, metadata_integrity, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(type_metadata);
@@ -2872,6 +2902,7 @@ mod tests {
                 formats_by_credential_id,
                 issuer_trust_anchors,
                 issuer_key,
+                credential_request_decrypter,
                 metadata_integrity,
                 first_metadata_integrity_random: false,
                 mdoc_previewable_payload,
@@ -2879,12 +2910,17 @@ mod tests {
                 normalized_metadata,
             };
 
-            (signer, previews, metadata)
+            (signer, credential_request_encrypter, previews, metadata)
         }
 
         pub fn response_from_request<'a>(&self, request: &CredentialRequestBody<'a>) -> CredentialResponse {
-            let CredentialRequestBody::Plain(credential_request) = request else {
-                panic!("credential request should be unencrypted");
+            let credential_request = match (request, &self.credential_request_decrypter) {
+                (CredentialRequestBody::Plain(request), None) => Cow::Borrowed(*request),
+                (CredentialRequestBody::Encrypted(jwe), Some(decrypter)) => {
+                    Cow::Owned(CredentialRequest::decrypt(jwe, decrypter).unwrap())
+                }
+                (CredentialRequestBody::Plain(_), Some(_)) => panic!("expected encrypted credential request"),
+                (CredentialRequestBody::Encrypted(_), None) => panic!("expected unencrypted credential request"),
             };
 
             let credential_id = match &credential_request.identifier {
@@ -3056,6 +3092,7 @@ mod tests {
         #[case] formats: AcceptIssuanceTestFormats,
         #[values(NonZeroU8::MIN, 4.try_into().unwrap())] batch_size: NonZeroU8,
         #[values(NonZeroU8::MIN, 5.try_into().unwrap())] max_copy_count: NonZeroU8,
+        #[values(false, true)] use_credential_request_encryption: bool,
         #[values(
             TestNonceEndpoint::Absent,
             TestNonceEndpoint::Present,
@@ -3076,9 +3113,10 @@ mod tests {
         };
         let credential_count = formats_by_credential_id.len();
 
-        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+        let (signer, encrypter, previews, metadata) = MockCredentialSigner::new(
             formats_by_credential_id,
             SdJwtMetadataUsage::TypeMetadata,
+            use_credential_request_encryption,
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
@@ -3096,7 +3134,14 @@ mod tests {
             ),
         };
 
-        let session_state = new_session_state(previews, metadata, batch_size, has_nonce_endpoint, has_previews);
+        let session_state = new_session_state(
+            previews,
+            metadata,
+            batch_size,
+            encrypter,
+            has_nonce_endpoint,
+            has_previews,
+        );
         let expected_issuer_registration = serde_json::to_value(&session_state.issuer_registration).unwrap();
 
         let dpop_signing_key = session_state.dpop_signing_key.clone();
@@ -3152,11 +3197,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_accept_issuance_with_identifier_list_status() {
-        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+    #[rstest]
+    fn test_accept_issuance_with_identifier_list_status(
+        #[values(false, true)] use_credential_request_encryption: bool,
+    ) {
+        let (signer, encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id".to_owned().into(), Format::MsoMdoc)]),
             SdJwtMetadataUsage::CredentialMetadata,
+            use_credential_request_encryption,
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
@@ -3198,7 +3246,7 @@ mod tests {
 
         let credentials = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, encrypter, true, true),
         }
         .accept_issuance(
             NonZeroU8::MIN,
@@ -3217,11 +3265,14 @@ mod tests {
         assert_eq!(mdoc_copies.len().get(), 1);
     }
 
-    #[test]
-    fn test_accept_issuance_sd_jwt_credential_metadata_fallback() {
-        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+    #[rstest]
+    fn test_accept_issuance_sd_jwt_credential_metadata_fallback(
+        #[values(false, true)] use_credential_request_encryption: bool,
+    ) {
+        let (signer, encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
             SdJwtMetadataUsage::CredentialMetadata,
+            use_credential_request_encryption,
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
@@ -3237,7 +3288,7 @@ mod tests {
 
         let credential_copies = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, encrypter, true, true),
         }
         .accept_issuance(
             NonZeroU8::MAX,
@@ -3315,12 +3366,13 @@ mod tests {
 
     #[test]
     fn test_accept_issuance_error_private_key_credential_count() {
-        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+        let (signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([
                 ("credential_id_1".to_string().into(), Format::SdJwt),
                 ("credential_id_2".to_string().into(), Format::SdJwt),
             ]),
             SdJwtMetadataUsage::TypeMetadata,
+            false,
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
@@ -3334,7 +3386,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, None, true, true),
         }
         .accept_issuance(
             NonZeroU8::MAX,
@@ -3355,9 +3407,10 @@ mod tests {
 
     #[test]
     fn test_accept_issuance_error_invalid_key_attestation() {
-        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+        let (signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
             SdJwtMetadataUsage::TypeMetadata,
+            false,
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
@@ -3373,7 +3426,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, key_count, true, true),
+            session_state: new_session_state(previews, metadata, key_count, None, true, true),
         }
         .accept_issuance(
             NonZeroU8::MAX,
@@ -3393,9 +3446,10 @@ mod tests {
 
     #[test]
     fn test_accept_issuance_error_mdoc_described_by_type_metadata() {
-        let (signer, previews, mut metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+        let (signer, _encrypter, previews, mut metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id".to_string().into(), Format::MsoMdoc)]),
             SdJwtMetadataUsage::TypeMetadata,
+            false,
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
@@ -3420,7 +3474,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, None, true, true),
         }
         .accept_issuance(
             NonZeroU8::MAX,
@@ -3437,9 +3491,10 @@ mod tests {
 
     #[test]
     fn test_accept_issuance_error_metadata_integrity_inconsistent() {
-        let (mut signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+        let (mut signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id_1".to_string().into(), Format::SdJwt)]),
             SdJwtMetadataUsage::TypeMetadata,
+            false,
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
@@ -3460,7 +3515,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), true, true),
+            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), None, true, true),
         }
         .accept_issuance(
             NonZeroU8::MAX,
@@ -3478,9 +3533,10 @@ mod tests {
     #[test]
     fn test_accept_issuance_incorrect_resource_integrity() {
         // Only an SD-JWT binds to a Type Metadata integrity digest, so only that format can mismatch it.
-        let (mut signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+        let (mut signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
             SdJwtMetadataUsage::TypeMetadata,
+            false,
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
@@ -3499,7 +3555,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, None, true, true),
         }
         .accept_issuance(
             NonZeroU8::MAX,
@@ -3519,9 +3575,10 @@ mod tests {
 
     #[rstest]
     fn test_accept_issuance_error_deferred_issuance_unsupported() {
-        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+        let (signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
             SdJwtMetadataUsage::TypeMetadata,
+            false,
         );
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
@@ -3541,7 +3598,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, true, true),
+            session_state: new_session_state(previews, metadata, NonZeroU8::MIN, None, true, true),
         }
         .accept_issuance(
             NonZeroU8::MAX,
@@ -3567,9 +3624,10 @@ mod tests {
         TrustAnchors,
     ) {
         let credential_id: CredentialId = "credential_id".to_string().into();
-        let (signer, previews, metadata) = MockCredentialSigner::new_with_preview_and_type_metadata(
+        let (signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([(credential_id.clone(), format)]),
             sd_jwt_uses_credential_metadata,
+            false,
         );
 
         let holder_pubkey = PublicKey::from(*SigningKey::generate().verifying_key());
