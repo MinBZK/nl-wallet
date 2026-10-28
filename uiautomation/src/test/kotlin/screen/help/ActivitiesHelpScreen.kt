@@ -17,11 +17,14 @@ class ActivitiesHelpScreen : MobileActions() {
 
     fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 
-
     fun clickSomethingElseButton() {
         scrollToElementWithText(somethingElseButton)
         clickElementWithText(somethingElseButton)
     }
 
     fun clickFirstCardActivitiesTopicButton() = clickElementContainingText(firstCardActivitiesTopic)
+
+    fun somethingElseButtonVisible() = elementWithTextVisible(somethingElseButton)
+
+    fun cardActivitiesButtonVisible() = elementWithTextVisible(cardActivitiesButton)
 }
