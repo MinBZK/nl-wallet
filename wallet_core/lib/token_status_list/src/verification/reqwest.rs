@@ -3,7 +3,7 @@ use http::header;
 use reqwest::ClientBuilder;
 use url::Url;
 
-use crate::status_list_token::StatusListToken;
+use crate::status_list_jwt::StatusListJwt;
 use crate::verification::client::StatusListClient;
 use crate::verification::client::StatusListClientError;
 
@@ -21,7 +21,7 @@ impl HttpStatusListClient {
 }
 
 impl StatusListClient for HttpStatusListClient {
-    async fn fetch(&self, url: Url) -> Result<StatusListToken, StatusListClientError> {
+    async fn fetch(&self, url: Url) -> Result<StatusListJwt, StatusListClientError> {
         let response = self
             .as_ref()
             .get(url)

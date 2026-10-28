@@ -14,7 +14,7 @@ doctest = false
 [features]
 # Compile the Rust close-proximity session-crypto helpers that depend on `mdoc`.
 # These helpers are only used from the iOS UniFFI bindings.
-ios_session_crypto = ["dep:mdoc", "dep:rand", "dep:serde_bytes"]
+ios_session_crypto = ["dep:cose", "dep:mdoc", "dep:rand", "dep:serde_bytes"]
 # Implement the mock hardware key types
 mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
 # Include the MockCloseProximityDisclosureClient
@@ -103,6 +103,7 @@ uuid = { workspace = true, optional = true }
 
 android_attest = { path = "../../lib/android_attest", optional = true }
 apple_app_attest = { path = "../../lib/apple_app_attest", optional = true }
+cose = { path = "../../lib/cose", optional = true }
 mdoc = { path = "../../lib/mdoc", optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]

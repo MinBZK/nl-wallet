@@ -33,20 +33,45 @@ type SparseStatusVec = HashMap<usize, StatusType, BuildHasherDefault<IdentityHas
 /// A Status List is a data structure that contains the statuses of many Referenced Tokens represented by one or
 /// multiple bits.
 ///
-/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-list>
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-4>
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct StatusList {
     sparse: SparseStatusVec,
     len: usize,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone)]
 #[cfg_attr(test, derive(Eq))]
 pub struct PackedStatusList {
     /// The amount of bits used to describe the status of each Referenced Token within this Status List.
     bits: Bits,
 
+    lst: Vec<u8>,
+}
+
+/// JSON representation of a [`PackedStatusList`], as used by the JWT profile, in which `lst` is a base64url-encoded
+/// string. Use with `#[serde(with = "JsonPackedStatusList")]`.
+///
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-4.2>
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "PackedStatusList")]
+pub(crate) struct JsonPackedStatusList {
+    bits: Bits,
+
     #[serde(with = "zlib_base64")]
+    lst: Vec<u8>,
+}
+
+/// CBOR representation of a [`PackedStatusList`], as used by the CWT profile, in which `lst` is a byte string. Use
+/// with `#[serde(with = "CborPackedStatusList")]`.
+///
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-4.3>
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "PackedStatusList")]
+pub(crate) struct CborPackedStatusList {
+    bits: Bits,
+
+    #[serde(with = "zlib_bytes")]
     lst: Vec<u8>,
 }
 
@@ -57,15 +82,33 @@ impl PartialEq for PackedStatusList {
     }
 }
 
-mod zlib_base64 {
+mod zlib {
     use std::io::prelude::*;
 
-    use base64::prelude::*;
     use flate2::Compression;
     use flate2::read::ZlibDecoder;
     use flate2::write::ZlibEncoder;
+
+    pub fn compress<W: Write>(writer: W, bytes: &[u8]) -> std::io::Result<W> {
+        // Implementations are RECOMMENDED to use the highest compression level available.
+        let mut e = ZlibEncoder::new(writer, Compression::best());
+        e.write_all(bytes)?;
+        e.finish()
+    }
+
+    pub fn decompress(reader: impl Read, capacity: usize) -> std::io::Result<Vec<u8>> {
+        let mut decompressed = Vec::with_capacity(capacity);
+        ZlibDecoder::new(reader).read_to_end(&mut decompressed)?;
+        Ok(decompressed)
+    }
+}
+
+mod zlib_base64 {
+    use base64::prelude::*;
     use serde::Deserialize;
     use serde::Serialize;
+
+    use super::zlib;
 
     pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -75,10 +118,7 @@ mod zlib_base64 {
         let buf = Vec::with_capacity(bytes.len() / 1024);
         let writer = base64::write::EncoderWriter::new(buf, &BASE64_URL_SAFE_NO_PAD);
 
-        // Implementations are RECOMMENDED to use the highest compression level available.
-        let mut e = ZlibEncoder::new(writer, Compression::best());
-        e.write_all(bytes).map_err(serde::ser::Error::custom)?;
-        let mut writer = e.finish().map_err(serde::ser::Error::custom)?;
+        let mut writer = zlib::compress(writer, bytes).map_err(serde::ser::Error::custom)?;
 
         let encoded = writer.finish().map_err(serde::ser::Error::custom)?;
         let encoded = String::from_utf8(encoded).expect("base64 encoded string should be valid utf-8");
@@ -91,13 +131,33 @@ mod zlib_base64 {
     {
         let encoded = String::deserialize(deserializer)?;
 
-        let mut decompressed = Vec::with_capacity(encoded.len());
         let reader = base64::read::DecoderReader::new(encoded.as_bytes(), &BASE64_URL_SAFE_NO_PAD);
+        zlib::decompress(reader, encoded.len()).map_err(serde::de::Error::custom)
+    }
+}
 
-        let mut d = ZlibDecoder::new(reader);
-        d.read_to_end(&mut decompressed).map_err(serde::de::Error::custom)?;
+mod zlib_bytes {
+    use serde::Deserialize;
+    use serde_bytes::ByteBuf;
 
-        Ok(decompressed)
+    use super::zlib;
+
+    pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Best gzip compression is limited by the algorithm to 1032, rounded to a nice two power
+        let buf = Vec::with_capacity(bytes.len() / 1024);
+        let compressed = zlib::compress(buf, bytes).map_err(serde::ser::Error::custom)?;
+        serializer.serialize_bytes(&compressed)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let compressed = ByteBuf::deserialize(deserializer)?;
+        zlib::decompress(compressed.as_slice(), compressed.len()).map_err(serde::de::Error::custom)
     }
 }
 
@@ -272,7 +332,7 @@ impl Bits {
 
 /// A status describes the state, mode, condition or stage of an entity that is represented by the Referenced Token.
 ///
-/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-12.html#name-status-types>
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-7>
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum StatusType {
     /// The status of the Referenced Token is valid, correct or legal.
@@ -286,7 +346,7 @@ pub enum StatusType {
     /// usually temporary.
     Suspended, // 0x02
 
-    /// The Status Type value 0x03 and Status Type values in the range 0x0B until 0x0F are permanently reserved as
+    /// The Status Type value 0x03 and Status Type values in the range 0x0C until 0x0F are permanently reserved as
     /// application specific. The processing of Status Types using these values is application specific.
     ApplicationSpecific(u8),
 
@@ -301,7 +361,7 @@ impl From<u8> for StatusType {
             1 => StatusType::Invalid,
             2 => StatusType::Suspended,
             3 => StatusType::ApplicationSpecific(3),
-            0x0B..=0x0F => StatusType::ApplicationSpecific(value),
+            0x0C..=0x0F => StatusType::ApplicationSpecific(value),
             _ => StatusType::Reserved(value),
         }
     }
@@ -384,8 +444,7 @@ pub mod test {
         })
     )]
     fn test_status_list_serialization(#[case] list: StatusList, #[case] expected: serde_json::Value) {
-        let packed = list.pack();
-        let compressed = serde_json::to_value(packed).unwrap();
+        let compressed = JsonPackedStatusList::serialize(&list.pack(), serde_json::value::Serializer).unwrap();
         assert_eq!(compressed, expected);
     }
 
@@ -395,9 +454,32 @@ pub mod test {
     #[case(FOUR_BIT_STATUS_LIST.to_owned(), Bits::Four)]
     #[case(EIGHT_BIT_STATUS_LIST.to_owned(), Bits::Eight)]
     fn test_status_list_serialization_bits(#[case] list: StatusList, #[case] expected: Bits) {
-        let packed = list.pack();
-        let compressed = serde_json::to_value(packed).unwrap();
+        let compressed = JsonPackedStatusList::serialize(&list.pack(), serde_json::value::Serializer).unwrap();
         assert_eq!(compressed["bits"].as_u64().unwrap(), u64::from(expected.size()));
+    }
+
+    #[test]
+    fn test_status_list_cbor_serialization_matches_spec_example() {
+        #[rustfmt::skip]
+        let expected: Vec<u8> = vec![
+            0xa2, // map(2)
+            0x64, 0x62, 0x69, 0x74, 0x73, // text(4) "bits"
+            0x01, // uint(1)
+            0x63, 0x6c, 0x73, 0x74, // text(3) "lst"
+            0x4a, // bytes(10)
+            0x78, 0xda, 0xdb, 0xb9, 0x18, 0x00, 0x02, 0x17, 0x01, 0x5d,
+        ];
+
+        #[derive(Serialize, Deserialize)]
+        struct Cbor(#[serde(with = "CborPackedStatusList")] PackedStatusList);
+
+        let packed = EXAMPLE_STATUS_LIST_ONE.to_owned().pack();
+        let mut encoded = Vec::new();
+        ciborium::ser::into_writer(&Cbor(packed.clone()), &mut encoded).unwrap();
+        assert_eq!(encoded, expected);
+
+        let Cbor(decoded) = ciborium::de::from_reader(expected.as_slice()).unwrap();
+        assert_eq!(decoded, packed);
     }
 
     #[rstest]
@@ -480,7 +562,7 @@ pub mod test {
         EIGHT_BIT_STATUS_LIST.to_owned()
     )]
     fn test_status_list_deserialization(#[case] value: serde_json::Value, #[case] expected: StatusList) {
-        let packed: PackedStatusList = serde_json::from_value(value).unwrap();
+        let packed = JsonPackedStatusList::deserialize(value).unwrap();
 
         let status_list = packed.unpack();
 

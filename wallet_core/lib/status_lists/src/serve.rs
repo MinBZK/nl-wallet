@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::io::ErrorKind;
+use std::path::PathBuf;
 use std::string::ToString;
 use std::sync::Arc;
-use std::sync::LazyLock;
 use std::time::Duration;
 
 use axum::Router;
@@ -22,7 +22,11 @@ use etag::EntityTag;
 use http::Method;
 use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
+use jwt::UnverifiedJwt;
 use mediatype::Name;
+use strum::EnumIter;
+use strum::IntoEnumIterator;
+use token_status_list::status_list_jwt::StatusListJwt;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
@@ -36,10 +40,44 @@ const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::new(
     Name::new_unchecked("statuslist"),
     Some(Name::new_unchecked("jwt")),
 );
-static STATUSLIST_JWT_CONTENT_TYPE: LazyLock<HeaderValue> = LazyLock::new(|| {
-    // Convert to HeaderValue, unwrap is safe since string is ASCII.
-    HeaderValue::from_str(&STATUSLIST_JWT_MEDIA_TYPE.to_string()).unwrap()
-});
+const STATUSLIST_JWT_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("application/statuslist+jwt");
+
+const STATUSLIST_CWT_MEDIA_TYPE: MediaType = MediaType::new(
+    mediatype::names::APPLICATION,
+    Name::new_unchecked("statuslist"),
+    Some(Name::new_unchecked("cwt")),
+);
+const STATUSLIST_CWT_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("application/statuslist+cwt");
+
+/// The formats in which a Status List Token can be served, if no preference is given the enum variant order decides.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
+enum StatusListFormat {
+    Jwt,
+    Cwt,
+}
+
+impl StatusListFormat {
+    fn media_type(self) -> MediaType<'static> {
+        match self {
+            Self::Jwt => STATUSLIST_JWT_MEDIA_TYPE,
+            Self::Cwt => STATUSLIST_CWT_MEDIA_TYPE,
+        }
+    }
+
+    fn content_type(self) -> HeaderValue {
+        match self {
+            Self::Jwt => STATUSLIST_JWT_CONTENT_TYPE,
+            Self::Cwt => STATUSLIST_CWT_CONTENT_TYPE,
+        }
+    }
+
+    fn path(self, publish_dir: &PublishDir, id: &ExternalId) -> PathBuf {
+        match self {
+            Self::Jwt => publish_dir.jwt_path(id),
+            Self::Cwt => publish_dir.cwt_path(id),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 struct RouterState {
@@ -170,9 +208,9 @@ async fn serve_status_list(
     Path(id): Path<ExternalId>,
     State(state): State<RouterState>,
 ) -> Result<Response, StatusCode> {
-    check_accept(headers.get(header::ACCEPT))?;
+    let format = requested_format(headers.get(header::ACCEPT))?;
 
-    let path = state.publish_dir.jwt_path(&id);
+    let path = format.path(&state.publish_dir, &id);
     let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
 
     let etag = EntityTag::from_data(&bytes);
@@ -183,7 +221,7 @@ async fn serve_status_list(
     };
 
     let response_headers = [
-        (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
+        (header::CONTENT_TYPE, format.content_type()),
         (header::CACHE_CONTROL, state.cache_control),
         // Unwrap is safe since etag is ASCII
         (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
@@ -193,18 +231,23 @@ async fn serve_status_list(
     Ok(response)
 }
 
-pub fn http_response_for_status_list_body(
+/// Create an HTTP response for a status list that is signed and served from memory instead of being published to a
+/// publish dir.
+pub fn http_response_for_status_list_jwt(
     request_headers: &HeaderMap,
-    status_list_body: Vec<u8>,
+    status_list_jwt: StatusListJwt,
     ttl: Option<Duration>,
 ) -> Result<Response, StatusCode> {
-    check_accept(request_headers.get(header::ACCEPT))?;
+    if requested_format(request_headers.get(header::ACCEPT))? != StatusListFormat::Jwt {
+        return Err(StatusCode::NOT_ACCEPTABLE);
+    }
 
     let response_headers = [
-        (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE.clone()),
+        (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE),
         (header::CACHE_CONTROL, cache_control_header_for_ttl(ttl)),
     ];
-    let response = (response_headers, status_list_body).into_response();
+    let body = UnverifiedJwt::from(status_list_jwt).into_serialization();
+    let response = (response_headers, body).into_response();
 
     Ok(response)
 }
@@ -216,18 +259,15 @@ fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, Stat
     })
 }
 
-/// Check accept header for valid content types
-///
-/// The spec says that a verifier SHOULD send a request with an Accept header
-/// unless the Content-Type is known in the ecosystem or the verifier supports
-/// both. For the moment only the JWT format is supported in this code base.
-fn check_accept(header: Option<&HeaderValue>) -> Result<(), StatusCode> {
+/// Determine the format to serve from the accept header. Without an accept header, or for `*/*`, JWT is served.
+/// Returns `406 Not Acceptable` if no format is acceptable.
+fn requested_format(header: Option<&HeaderValue>) -> Result<StatusListFormat, StatusCode> {
     match find_content_type_from_accept(
         header,
-        |media_type| (media_type == STATUSLIST_JWT_MEDIA_TYPE).then_some(()),
-        (),
+        |media_type| StatusListFormat::iter().find(|format| format.media_type() == media_type),
+        StatusListFormat::Jwt,
     ) {
-        Ok(Some(_)) => Ok(()),
+        Ok(Some(format)) => Ok(format),
         Ok(None) => Err(StatusCode::NOT_ACCEPTABLE),
         Err(err) => {
             tracing::info!("invalid accept header: {err}");
@@ -256,6 +296,8 @@ fn map_io_error(path: &std::path::Path, err: &std::io::Error) -> StatusCode {
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+
+    use rstest::rstest;
 
     use super::*;
 
@@ -335,9 +377,38 @@ mod tests {
     }
 
     #[test]
-    fn check_accept_invalid_type() {
+    fn content_type_matches_media_type() {
+        for format in StatusListFormat::iter() {
+            assert_eq!(format.content_type(), format.media_type().to_string().as_str());
+        }
+    }
+
+    #[test]
+    fn requested_format_invalid_type() {
         let header = HeaderValue::from_str("application/statuslist/jwt").unwrap();
-        assert_matches!(check_accept(Some(&header)), Err(StatusCode::BAD_REQUEST));
+        assert_matches!(requested_format(Some(&header)), Err(StatusCode::BAD_REQUEST));
+    }
+
+    #[rstest]
+    #[case::no_accept(None, Ok(StatusListFormat::Jwt))]
+    #[case::any(Some("*/*"), Ok(StatusListFormat::Jwt))]
+    #[case::jwt(Some("application/statuslist+jwt"), Ok(StatusListFormat::Jwt))]
+    #[case::cwt(Some("application/statuslist+cwt"), Ok(StatusListFormat::Cwt))]
+    #[case::cwt_preferred(
+        Some("application/statuslist+cwt, application/statuslist+jwt"),
+        Ok(StatusListFormat::Cwt)
+    )]
+    #[case::jwt_preferred(
+        Some("application/statuslist+jwt, application/statuslist+cwt"),
+        Ok(StatusListFormat::Jwt)
+    )]
+    #[case::text(Some("text/plain"), Err(StatusCode::NOT_ACCEPTABLE))]
+    fn requested_format_from_accept(
+        #[case] accept: Option<&str>,
+        #[case] expected: Result<StatusListFormat, StatusCode>,
+    ) {
+        let header = accept.map(|accept| HeaderValue::from_str(accept).unwrap());
+        assert_eq!(requested_format(header.as_ref()), expected);
     }
 
     #[test]

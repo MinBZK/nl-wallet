@@ -9,6 +9,9 @@ use attestation_types::status_claim::StatusClaim;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use cose::CborError;
+use cose::CoseError;
+use cose::cbor_serialize;
 use crypto::EcdsaKeySend;
 use futures::StreamExt;
 use futures::future::join_all;
@@ -45,15 +48,19 @@ use sea_orm::sqlx::types::chrono::NaiveDate;
 use token_status_list::status_list::PackedStatusList;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_cwt::StatusListCwt;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::StatusListTokenBuilder;
+use token_status_list::status_list_token::StatusListTokenClaims;
 use tokio::task::AbortHandle;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
@@ -161,6 +168,12 @@ pub enum StatusListServiceError {
 
     #[error("could sign JWT: {0}")]
     JwtSign(#[from] JwtSignError),
+
+    #[error("could not sign CWT: {0}")]
+    CwtSign(#[source] CoseError),
+
+    #[error("could not serialize CWT: {0}")]
+    CwtSerialization(#[source] CborError),
 
     #[error("no status list available and could not create one")]
     NoStatusListAvailable,
@@ -880,7 +893,16 @@ where
                     // Ignore error is ok because it is just logged with WARN
                     .ok();
 
-                if expiry.is_none_or(|exp| refresh_control.should_refresh(exp)) {
+                // The expiry is read from the JWT only, as the CWT is always written before the JWT. A missing CWT
+                // can occur for lists that were published before the CWT format was supported.
+                let cwt_path = self.config.publish_dir.cwt_path(&external_id);
+                let cwt_exists = tokio::fs::try_exists(&cwt_path)
+                    .await
+                    .inspect_err(|err| tracing::warn!("Could not check existence of `{}`: {}", cwt_path.display(), err))
+                    // Ignore error is ok because it is just logged with WARN
+                    .unwrap_or(false);
+
+                if !cwt_exists || expiry.is_none_or(|exp| refresh_control.should_refresh(exp)) {
                     tracing::info!("Republishing status list for ID {}", list.id);
                     let size = list.size.try_into().expect("size should be non-zero");
 
@@ -927,19 +949,23 @@ where
         } else {
             PackedStatusList::new(self.config.list_size.as_usize())
         };
-        let token = StatusListToken::builder(sub, packed)
+        let claims = StatusListToken::builder(sub, packed)
             .exp(Some(expires))
             .ttl(self.config.ttl)
-            .sign(&self.config.key_pair)
-            .await?;
+            .build(&TimeGenerator);
+        let (jwt, cwt) = self.sign_tokens(claims).await?;
 
         // Write to disk
         let publish_lock = self.config.publish_dir.lock_for(external_id);
         let jwt_path = self.config.publish_dir.jwt_path(external_id);
+        let cwt_path = self.config.publish_dir.cwt_path(external_id);
         tokio::task::spawn_blocking(move || {
             // create because a new status list external id can be reused if the transaction fails
             publish_lock.create(expires)?;
-            std::fs::write(&jwt_path, token.as_ref().serialization())
+            // Write the CWT before the JWT, so that a written JWT implies a written CWT (see refresh)
+            let cwt = cbor_serialize(&cwt).map_err(StatusListServiceError::CwtSerialization)?;
+            std::fs::write(&cwt_path, cwt).map_err(|err| StatusListServiceError::IOWithPath(cwt_path, err))?;
+            std::fs::write(&jwt_path, jwt.as_ref().serialization())
                 .map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
         })
         .await?
@@ -1012,23 +1038,36 @@ where
         external_id: &ExternalId,
     ) -> Result<(), StatusListServiceError> {
         // Sign
-        let token = builder
-            .exp(Some(expires))
-            .ttl(self.config.ttl)
-            .sign(&self.config.key_pair)
-            .await?;
+        let claims = builder.exp(Some(expires)).ttl(self.config.ttl).build(&TimeGenerator);
+        let (jwt, cwt) = self.sign_tokens(claims).await?;
 
-        // Write to a tempfile and atomically move via rename
+        // Write the CWT before the JWT, so that a written JWT implies a written CWT (see refresh).
         let jwt_path = self.config.publish_dir.jwt_path(external_id);
+        let cwt_path = self.config.publish_dir.cwt_path(external_id);
         let tmp_path = self.config.publish_dir.tmp_path(external_id);
         tokio::task::spawn_blocking(move || {
-            let buf = token.as_ref().serialization();
-            std::fs::write(&tmp_path, buf).map_err(|err| StatusListServiceError::IOWithPath(tmp_path.clone(), err))?;
-            std::fs::rename(&tmp_path, &jwt_path).map_err(|err| StatusListServiceError::IOWithPath(jwt_path, err))
+            let cwt = cbor_serialize(&cwt).map_err(StatusListServiceError::CwtSerialization)?;
+            let jwt = jwt.as_ref().serialization();
+
+            write_atomically(&tmp_path, &cwt_path, &cwt)?;
+            write_atomically(&tmp_path, &jwt_path, jwt)
         })
         .await??;
 
         Ok(())
+    }
+
+    /// Sign the claims as both a JWT and a CWT. Both tokens contain the same claims, including `iat`.
+    async fn sign_tokens(
+        &self,
+        claims: StatusListTokenClaims,
+    ) -> Result<(StatusListJwt, StatusListCwt), StatusListServiceError> {
+        let jwt = StatusListJwt::sign(claims.clone(), &self.config.key_pair).await?;
+        let cwt = StatusListCwt::sign(claims, &self.config.key_pair)
+            .await
+            .map_err(StatusListServiceError::CwtSign)?;
+
+        Ok((jwt, cwt))
     }
 }
 
@@ -1084,10 +1123,17 @@ enum TokenReadError {
     NoExpiry,
 }
 
+// Write to a tempfile and atomically move via rename.
+fn write_atomically(tmp_path: &Path, path: &Path, contents: impl AsRef<[u8]>) -> Result<(), StatusListServiceError> {
+    std::fs::write(tmp_path, contents)
+        .map_err(|err| StatusListServiceError::IOWithPath(tmp_path.to_path_buf(), err))?;
+    std::fs::rename(tmp_path, path).map_err(|err| StatusListServiceError::IOWithPath(path.to_path_buf(), err))
+}
+
 async fn read_token_expiry(path: &Path) -> Result<DateTime<Utc>, TokenReadError> {
-    let token = tokio::fs::read_to_string(path).await?.parse::<StatusListToken>()?;
+    let token = tokio::fs::read_to_string(path).await?.parse::<StatusListJwt>()?;
     // Trusting the files this service writes
-    let (_, claims) = token.as_ref().dangerous_parse_unverified()?;
+    let (_, claims) = token.dangerous_parse_unverified()?;
     claims.exp.ok_or(TokenReadError::NoExpiry)
 }
 

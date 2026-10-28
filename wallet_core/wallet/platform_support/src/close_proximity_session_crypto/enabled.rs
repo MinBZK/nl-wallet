@@ -9,6 +9,7 @@
 
 use std::fmt::Display;
 
+use cose::CborIntMap;
 use mdoc::holder::disclosure::SessionEncryption;
 use mdoc::holder::disclosure::SessionEncryptionError;
 use mdoc::holder::disclosure::SessionRole;
@@ -26,7 +27,6 @@ use mdoc::iso::engagement::RetrievalOptions;
 use mdoc::iso::engagement::SecurityKeyed;
 use mdoc::iso::engagement::SessionTranscript;
 use mdoc::utils::cose::CoseKey;
-use mdoc::utils::serialization::CborIntMap;
 use mdoc::utils::serialization::TaggedBytes;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
@@ -262,6 +262,7 @@ fn map_session_encryption_error(error: SessionEncryptionError) -> CloseProximity
 
 #[cfg(test)]
 mod tests {
+    use cose::CborIntMap;
     use mdoc::holder::disclosure::SessionEncryption;
     use mdoc::holder::disclosure::SessionRole;
     use mdoc::holder::disclosure::SessionStatus;
@@ -270,7 +271,6 @@ mod tests {
     use mdoc::iso::engagement::RetrievalOptions;
     use mdoc::iso::engagement::SessionTranscript;
     use mdoc::utils::cose::CoseKey;
-    use mdoc::utils::serialization::CborIntMap;
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::utils::serialization::cbor_deserialize;
     use mdoc::utils::serialization::cbor_serialize;

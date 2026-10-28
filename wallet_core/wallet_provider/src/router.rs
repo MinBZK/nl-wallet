@@ -24,7 +24,7 @@ use metrics_exporter_prometheus::PrometheusHandle;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use status_lists::serve::add_status_list_middleware;
-use status_lists::serve::http_response_for_status_list_body;
+use status_lists::serve::http_response_for_status_list_jwt;
 use tokio::sync::Semaphore;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -298,12 +298,10 @@ async fn key_storage_tsl<GRC, PIC>(
             warn!("generating key storage status list failed: {}", error);
 
             StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .into_inner()
-        .into_serialization();
+        })?;
 
     let ttl = state.user_state.key_storage_status_list.token_ttl;
-    http_response_for_status_list_body(&headers, token.into_bytes(), Some(ttl))
+    http_response_for_status_list_jwt(&headers, token, Some(ttl))
 }
 
 async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {

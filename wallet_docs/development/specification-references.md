@@ -57,5 +57,5 @@ this project:
   Person Identification Data (PID) Rulebook
 - [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807) - Problem Details
   for HTTP APIs
-- [TSL](https://datatracker.ietf.org/doc/draft-ietf-oauth-status-list/13/) -
-  Token Status List (draft 13)
+- [TSL](https://datatracker.ietf.org/doc/draft-ietf-oauth-status-list/21/) -
+  Token Status List (draft 21)

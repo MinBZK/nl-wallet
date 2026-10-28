@@ -16,6 +16,10 @@ use attestation_types::status_claim::StatusClaim;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use cose::CborIntMap;
+use cose::TypedCose;
+use coset::CoseSign1;
+use coset::TaggedCborSerializable;
 use crypto::EcdsaKey;
 use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
@@ -28,7 +32,6 @@ use futures::future::try_join_all;
 use itertools::Itertools;
 use jwt::ESP256_ONLY_VALIDATION;
 use jwt::JwtDecodingKey;
-use jwt::SignedJwt;
 use p256::ecdsa::SigningKey;
 use rstest::rstest;
 use sea_orm::ColumnTrait;
@@ -52,10 +55,12 @@ use tempfile::TempDir;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_cwt::StatusListCwtClaims;
+use token_status_list::status_list_jwt::StatusListJwt;
+use token_status_list::status_list_jwt::TOKEN_STATUS_LIST_JWT_TYP;
 use token_status_list::status_list_service::ObtainClaimError;
 use token_status_list::status_list_service::StatusListService;
-use token_status_list::status_list_token::StatusListToken;
-use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
+use token_status_list::status_list_token::StatusListTokenClaims;
 use tokio::task::AbortHandle;
 use tokio::time::error::Elapsed;
 use utils::date_time_seconds::DateTimeSeconds;
@@ -201,20 +206,47 @@ async fn assert_published_list(
     revoked: impl IntoIterator<Item = usize>,
 ) {
     let external_id = ExternalId::try_from(list.external_id.to_string()).unwrap();
-    let path = config.publish_dir.jwt_path(&external_id);
-    let status_list_token = tokio::fs::read_to_string(path)
+    let verifying_key = config.key_pair.verifying_key().await.unwrap();
+
+    let jwt_path = config.publish_dir.jwt_path(&external_id);
+    let status_list_jwt = tokio::fs::read_to_string(jwt_path)
         .await
         .unwrap()
-        .parse::<StatusListToken>()
+        .parse::<StatusListJwt>()
         .unwrap();
-
-    let public_key = PublicKey::from(config.key_pair.verifying_key().await.unwrap());
-    let (header, claims) = status_list_token
+    let (header, jwt_claims) = status_list_jwt
         .as_ref()
-        .parse_and_verify(JwtDecodingKey::from(&public_key), &*ESP256_ONLY_VALIDATION)
+        .parse_and_verify(
+            JwtDecodingKey::from(&PublicKey::from(verifying_key)),
+            &*ESP256_ONLY_VALIDATION,
+        )
         .unwrap();
     assert_eq!(header.inner().typ, TOKEN_STATUS_LIST_JWT_TYP);
+    let jwt_claims = StatusListTokenClaims::from(jwt_claims);
 
+    // `from_tagged_slice` requires the `COSE_Sign1_Tagged` (CBOR tag 18) form
+    let cwt_path = config.publish_dir.cwt_path(&external_id);
+    let status_list_cwt = TypedCose::<CoseSign1, CborIntMap<StatusListCwtClaims>>::from(
+        CoseSign1::from_tagged_slice(&tokio::fs::read(cwt_path).await.unwrap()).unwrap(),
+    );
+    let CborIntMap(cwt_claims) = status_list_cwt.verify_and_parse(&verifying_key).unwrap();
+    let cwt_claims = StatusListTokenClaims::from(cwt_claims);
+
+    // Both tokens are signed from the same claims
+    assert_eq!(jwt_claims.iat, cwt_claims.iat);
+
+    let revoked = revoked.into_iter().collect_vec();
+    for claims in [&jwt_claims, &cwt_claims] {
+        assert_published_claims(config, list, &revoked, claims);
+    }
+}
+
+fn assert_published_claims(
+    config: &StatusListConfig<SigningKey>,
+    list: &status_list::Model,
+    revoked: &[usize],
+    claims: &StatusListTokenClaims,
+) {
     let bits = *claims.status_list.bits();
     assert_eq!(bits, Bits::One);
     assert_eq!(claims.ttl, config.ttl);
@@ -232,7 +264,7 @@ async fn assert_published_list(
     let published = claims.status_list.unpack();
     let mut expected = StatusList::new_aligned(list.size as usize, bits);
     for index in revoked {
-        expected.insert(index, StatusType::Invalid);
+        expected.insert(*index, StatusType::Invalid);
     }
     assert_eq!(published, expected);
 }
@@ -729,13 +761,11 @@ async fn test_service_revoke_attestation_batches_concurrently() {
 }
 
 async fn republish_list_with_expiry(path: &Path, key_pair: &KeyPair<impl EcdsaKey>, expiry: Option<DateTime<Utc>>) {
-    let token: StatusListToken = tokio::fs::read_to_string(path).await.unwrap().parse().unwrap();
-    let (_, mut claims) = token.as_ref().dangerous_parse_unverified().unwrap();
+    let token: StatusListJwt = tokio::fs::read_to_string(path).await.unwrap().parse().unwrap();
+    let (_, mut claims) = token.dangerous_parse_unverified().unwrap();
     claims.exp = expiry;
-    let signed = SignedJwt::sign_with_certificate(&claims, key_pair).await.unwrap();
-    tokio::fs::write(path, signed.into_unverified().serialization())
-        .await
-        .unwrap();
+    let signed = StatusListJwt::sign(claims, key_pair).await.unwrap();
+    tokio::fs::write(path, signed.as_ref().serialization()).await.unwrap();
     let lock_path = path.with_extension("lock");
     tokio::fs::write(&lock_path, []).await.unwrap();
 }
@@ -760,6 +790,30 @@ async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<Date
 
     let path = publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id));
     republish_list_with_expiry(&path, &config.key_pair, expiry).await;
+
+    wait_for_refresh(path, || service.start_refresh_job()).await.unwrap();
+    assert_published_list(&config, &db_lists[0], []).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_service_refresh_status_list_if_cwt_missing() {
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let db_setup = DbSetup::create().await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
+    let publish_dir = tempfile::tempdir().unwrap();
+    let (attestation_group, config, _, service) =
+        create_status_list_service(&ca, &connection, 3, 1, None, &publish_dir)
+            .await
+            .unwrap();
+
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
+    let db_lists = fetch_status_list(&connection, type_id).await;
+    assert_eq!(db_lists.len(), 1);
+
+    // Simulate a list published before the CWT format was supported
+    let path = publish_dir.path().join(format!("{}.cwt", db_lists[0].external_id));
+    tokio::fs::remove_file(&path).await.unwrap();
+    tokio::fs::write(path.with_extension("lock"), []).await.unwrap();
 
     wait_for_refresh(path, || service.start_refresh_job()).await.unwrap();
     assert_published_list(&config, &db_lists[0], []).await;

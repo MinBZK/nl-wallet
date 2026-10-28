@@ -41,7 +41,7 @@ use serde_json::json;
 use time::Duration;
 use time::OffsetDateTime;
 use token_status_list::status_list::StatusType;
-use token_status_list::status_list_token::StatusListToken;
+use token_status_list::status_list_jwt::StatusListJwt;
 use url::Url;
 use utils::generator::TimeGenerator;
 use x509_parser::extensions::GeneralName;
@@ -684,7 +684,7 @@ fn generate_and_validate_status_list_token() -> Result<()> {
         .clone();
     let after = Utc::now();
 
-    let token: StatusListToken = std::str::from_utf8(&output)?.trim().parse()?;
+    let token: StatusListJwt = std::str::from_utf8(&output)?.trim().parse()?;
     let trust_anchors = trust_anchors_from_pem(&ca_crt)?;
     let claims = token.parse_and_verify(&trust_anchors, uri.clone(), &TimeGenerator)?;
 
