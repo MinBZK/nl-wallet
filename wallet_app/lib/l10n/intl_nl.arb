@@ -783,7 +783,7 @@
     "issuanceAuthenticateExternallyTitle": "Ga verder in de browser",
     "issuanceConfirmIssuerPageAcceptCta": "Ja, verder",
     "issuanceConfirmIssuerPageDeclineCta": "Stoppen",
-    "issuanceConfirmIssuerPageDescription": "Je kaart(en) worden aan je NL Wallet toegevoegd nadat je bevestigt met je pincode.",
+    "issuanceConfirmIssuerPageDescription": "Ga verder om je kaart(en) te bekijken en de gegevens te controleren voordat je ze aan je NL Wallet toevoegt.",
     "issuanceConfirmIssuerPageTitle": "Wil je je kaart(en) ophalen bij {organization}?",
     "@issuanceConfirmIssuerPageTitle": {
         "placeholders": {

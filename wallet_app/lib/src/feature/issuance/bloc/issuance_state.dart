@@ -201,6 +201,42 @@ class IssuanceProvidePinForIssuance extends IssuanceState {
   List<Object?> get props => [cards, ...super.props];
 }
 
+/// Asks the user for their PIN to retrieve the cards from an issuer that does not provide previews.
+class IssuanceProvidePinToRetrieveCards extends IssuanceState {
+  final Organization organization;
+
+  const IssuanceProvidePinToRetrieveCards({required this.organization});
+
+  @override
+  bool get canGoBack => true;
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps);
+
+  @override
+  List<Object?> get props => [organization, ...super.props];
+}
+
+/// Shows the cards that were retrieved from an issuer without previews. The cards are only added to the wallet after
+/// the user accepts them, which does not require the PIN again.
+class IssuanceReviewRetrievedCards extends IssuanceState {
+  final List<WalletCard> cards;
+
+  const IssuanceReviewRetrievedCards({required this.cards});
+
+  /// Returns the list of cards that are not persisted (i.e., newly created cards).
+  List<WalletCard> get offeredCards => cards.where((card) => !card.isPersisted).toList();
+
+  /// Returns the list of persisted cards (i.e., updated cards).
+  List<WalletCard> get renewedCards => cards.where((card) => card.isPersisted).toList();
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps);
+
+  @override
+  List<Object?> get props => [cards, ...super.props];
+}
+
 class IssuanceCompleted extends IssuanceState {
   final List<WalletCard> addedCards;
 

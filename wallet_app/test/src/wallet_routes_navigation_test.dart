@@ -42,6 +42,7 @@ import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart'
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/impl/get_help_categories_usecase_impl.dart';
 import 'package:wallet/src/domain/usecase/help/impl/get_help_topic_blocks_usecase_impl.dart';
+import 'package:wallet/src/domain/usecase/issuance/accept_issued_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
@@ -231,6 +232,7 @@ List<SingleChildWidget> _getUseCaseProviders() {
     RepositoryProvider<CompletePinRecoveryUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<ConfirmWalletTransferUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<ContinuePidIssuanceUseCase>(create: (c) => Mocks.create()),
+    RepositoryProvider<AcceptIssuedCardsUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<ContinueIssuanceUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<ContinuePinRecoveryUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<CreatePinRecoveryRedirectUriUseCase>(create: (c) => Mocks.create()),

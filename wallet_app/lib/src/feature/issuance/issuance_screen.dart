@@ -47,6 +47,7 @@ import 'issuance_stop_sheet.dart';
 import 'page/issuance_confirm_issuer_page.dart';
 import 'page/issuance_confirm_pin_for_disclosure_page.dart';
 import 'page/issuance_confirm_pin_for_issuance_page.dart';
+import 'page/issuance_confirm_pin_to_retrieve_cards_page.dart';
 import 'page/issuance_review_cards_page.dart';
 import 'page/issuance_stopped_page.dart';
 import 'page/issuance_success_page.dart';
@@ -133,6 +134,8 @@ class IssuanceScreen extends StatelessWidget {
           IssuanceError(:final error, :final returnUrl) => _buildGenericErrorPage(context, error, returnUrl: returnUrl),
           IssuanceProvidePinForDisclosure() => _buildProvidePinForDisclosurePage(context, state),
           IssuanceProvidePinForIssuance() => _buildProvidePinForIssuancePage(context, state),
+          IssuanceProvidePinToRetrieveCards() => _buildProvidePinToRetrieveCardsPage(context),
+          IssuanceReviewRetrievedCards() => _buildReviewRetrievedCardsPage(context, state),
           IssuanceNoCardsRetrieved() => _buildNoCardsReceived(context, state),
           IssuanceExternalScannerError(:final error) => _buildGenericErrorPage(context, error),
           IssuanceSessionExpired() => _buildSessionExpiredPage(context, state),
@@ -229,8 +232,18 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildProvidePinToRetrieveCardsPage(BuildContext context) {
+    return IssuanceConfirmPinToRetrieveCardsPage(
+      onPinValidated: (cards) => context.bloc.add(IssuancePinToRetrieveCardsConfirmed(cards: cards)),
+      onConfirmWithPinFailed: (context, errorState) =>
+          context.bloc.add(IssuanceConfirmPinFailed(error: errorState.error)),
+      onForgotPinPressed: () => _onForgotPinPressed(context),
+    );
+  }
+
   Future<void> _onForgotPinPressed(BuildContext context) async {
-    final session = context.bloc.state is IssuanceProvidePinForIssuance
+    final state = context.bloc.state;
+    final session = state is IssuanceProvidePinForIssuance || state is IssuanceProvidePinToRetrieveCards
         ? StopCopyVariant.issuance
         : StopCopyVariant.disclosure;
     final organizationName = context.bloc.relyingParty?.displayName;
@@ -246,6 +259,15 @@ class IssuanceScreen extends StatelessWidget {
       offeredCards: state.offeredCards,
       renewedCards: state.renewedCards,
       onAccept: (acceptedCards) => context.bloc.add(IssuanceApproveCards(cards: acceptedCards)),
+      onDecline: () => _stopIssuance(context),
+    );
+  }
+
+  Widget _buildReviewRetrievedCardsPage(BuildContext context, IssuanceReviewRetrievedCards state) {
+    return IssuanceReviewCardsPage(
+      offeredCards: state.offeredCards,
+      renewedCards: state.renewedCards,
+      onAccept: (_) => context.bloc.add(const IssuanceRetrievedCardsApproved()),
       onDecline: () => _stopIssuance(context),
     );
   }
@@ -392,6 +414,12 @@ class IssuanceScreen extends StatelessWidget {
       IssuanceMissingAttributes() => context.l10n.missingAttributesPageTitle,
       IssuanceProvidePinForIssuance() => '',
       IssuanceProvidePinForDisclosure() => '',
+      IssuanceProvidePinToRetrieveCards() => '',
+      IssuanceReviewRetrievedCards() => IssuanceReviewCardsPage.resolveTitle(
+        context,
+        renewedCards: state.renewedCards,
+        offeredCards: state.offeredCards,
+      ),
       IssuanceReviewCards() => IssuanceReviewCardsPage.resolveTitle(
         context,
         renewedCards: state.renewedCards,
@@ -419,6 +447,7 @@ class IssuanceScreen extends StatelessWidget {
       case IssuanceProvidePinForDisclosure():
         return ReportingGroup.disclosureConfirmMultipleAttributes;
       case IssuanceReviewCards():
+      case IssuanceReviewRetrievedCards():
         return ReportingGroup.issuanceConfirmCards;
       case IssuanceMissingAttributes():
         return ReportingGroup.disclosureMissingAttributes;

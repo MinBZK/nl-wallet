@@ -15,6 +15,7 @@ import '../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/result/application_error.dart';
+import '../../../domain/usecase/issuance/accept_issued_cards_usecase.dart';
 import '../../../domain/usecase/issuance/continue_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../../../domain/usecase/session/cancel_session_usecase.dart';
@@ -29,6 +30,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   final StartIssuanceUseCase _startIssuanceUseCase;
   final ContinueIssuanceUseCase _continueIssuanceUseCase;
   final CancelSessionUseCase _cancelSessionUseCase;
+  final AcceptIssuedCardsUseCase _acceptIssuedCardsUseCase;
 
   StartIssuanceResult? _startIssuanceResult;
 
@@ -49,6 +51,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     this._startIssuanceUseCase,
     this._continueIssuanceUseCase,
     this._cancelSessionUseCase,
+    this._acceptIssuedCardsUseCase,
   ) : super(const IssuanceInitial()) {
     on<IssuanceSessionStarted>(_onSessionStarted);
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
@@ -57,6 +60,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceShareRequestedAttributesDeclined>(_onIssuanceShareRequestedAttributesDeclined);
     on<IssuancePinForDisclosureConfirmed>(_onPinConfirmedForDisclosure);
     on<IssuancePinForIssuanceConfirmed>(_onPinConfirmedForIssuance);
+    on<IssuancePinToRetrieveCardsConfirmed>(_onPinConfirmedToRetrieveCards);
+    on<IssuanceRetrievedCardsApproved>(_onRetrievedCardsApproved);
     on<IssuanceConfirmPinFailed>(_onIssuanceConfirmPinFailed);
     on<IssuanceApproveCards>(_onCardsApproved);
     on<IssuanceCardToggled>(_onIssuanceCardToggled);
@@ -129,10 +134,9 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
       return;
     }
 
-    // Without previews there are no cards to review, so navigate back to confirming the issuer.
-    final issuerWithoutPreviews = _issuerWithoutPreviews;
-    if (state is IssuanceProvidePinForIssuance && issuerWithoutPreviews != null) {
-      emit(IssuanceConfirmIssuer(organization: issuerWithoutPreviews, afterBackPressed: true));
+    // Without previews there are no cards to review yet, so navigate back to confirming the issuer.
+    if (state is IssuanceProvidePinToRetrieveCards) {
+      emit(IssuanceConfirmIssuer(organization: state.organization, afterBackPressed: true));
       return;
     }
 
@@ -184,9 +188,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   void _onIssuanceIssuerApproved(IssuanceIssuerApproved event, Emitter<IssuanceState> emit) {
     final state = this.state;
     if (state is! IssuanceConfirmIssuer) throw UnsupportedError('Incorrect state to $state');
-    // Without previews there are no cards to show, they are only known once issued.
-    // TODO(PVW-5559): let the user review the issued cards after entering the PIN, instead of accepting them blindly.
-    emit(const IssuanceProvidePinForIssuance(cards: []));
+    // Without previews there are no cards to show yet, they are retrieved after entering the PIN and reviewed afterwards.
+    emit(IssuanceProvidePinToRetrieveCards(organization: state.organization));
   }
 
   void _emitConfirmIssuer(Organization organization, Emitter<IssuanceState> emit) {
@@ -224,8 +227,36 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     emit(IssuanceLoadInProgress(state.stepperProgress));
     await Future.delayed(Duration(seconds: Environment.mockRepositories ? 2 : 0));
 
-    // TODO(PVW-5559): without previews, show the issued cards for review here and only store them once accepted.
     emit(IssuanceCompleted(addedCards: state.cards));
+  }
+
+  Future<void> _onPinConfirmedToRetrieveCards(
+    IssuancePinToRetrieveCardsConfirmed event,
+    Emitter<IssuanceState> emit,
+  ) async {
+    final state = tryCast<IssuanceProvidePinToRetrieveCards>(this.state);
+    if (state == null) throw StateError('Bloc in invalid state: ${this.state}');
+
+    emit(IssuanceLoadInProgress(state.stepperProgress));
+    await Future.delayed(Duration(seconds: Environment.mockRepositories ? 2 : 0));
+
+    if (event.cards.isEmpty) {
+      emit(IssuanceNoCardsRetrieved(organization: state.organization));
+    } else {
+      emit(IssuanceReviewRetrievedCards(cards: event.cards));
+    }
+  }
+
+  Future<void> _onRetrievedCardsApproved(IssuanceRetrievedCardsApproved event, Emitter<IssuanceState> emit) async {
+    final state = tryCast<IssuanceReviewRetrievedCards>(this.state);
+    if (state == null) throw StateError('Bloc in invalid state: ${this.state}');
+
+    emit(IssuanceLoadInProgress(state.stepperProgress));
+    final result = await _acceptIssuedCardsUseCase.invoke();
+    await result.process(
+      onSuccess: (_) => emit(IssuanceCompleted(addedCards: state.cards)),
+      onError: (error) => _handleApplicationError(error, emit),
+    );
   }
 
   void _onCardsApproved(IssuanceApproveCards event, Emitter<IssuanceState> emit) {

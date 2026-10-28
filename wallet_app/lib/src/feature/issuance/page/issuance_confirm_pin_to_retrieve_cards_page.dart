@@ -1,0 +1,44 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../domain/model/card/wallet_card.dart';
+import '../../../domain/usecase/issuance/issue_cards_for_review_usecase.dart';
+import '../../../util/extension/build_context_extension.dart';
+import '../../common/widget/pin_header.dart';
+import '../../pin/bloc/pin_bloc.dart';
+import '../../pin/pin_page.dart';
+
+/// Asks for the PIN to retrieve cards from an issuer that does not provide previews.
+class IssuanceConfirmPinToRetrieveCardsPage extends StatelessWidget {
+  final OnPinValidatedCallback<List<WalletCard>> onPinValidated;
+  final OnPinErrorCallback onConfirmWithPinFailed;
+  final VoidCallback? onForgotPinPressed;
+  final String? title;
+
+  @visibleForTesting
+  final PinBloc? bloc;
+
+  const IssuanceConfirmPinToRetrieveCardsPage({
+    required this.onPinValidated,
+    required this.onConfirmWithPinFailed,
+    this.onForgotPinPressed,
+    this.title,
+    this.bloc,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<PinBloc>(
+      create: (BuildContext context) => bloc ?? PinBloc(context.read<IssueCardsForReviewUseCase>()),
+      child: PinPage(
+        headerBuilder: (context, attempts, isFinalRound) {
+          return PinHeader(title: title ?? context.l10n.issuanceConfirmPinPageTitle);
+        },
+        onPinValidated: (result) => onPinValidated.call(result as List<WalletCard>),
+        onPinError: onConfirmWithPinFailed,
+        onForgotPinPressed: onForgotPinPressed,
+      ),
+    );
+  }
+}

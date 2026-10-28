@@ -61,6 +61,21 @@ class IssuancePinForIssuanceConfirmed extends IssuanceEvent {
   const IssuancePinForIssuanceConfirmed();
 }
 
+/// The PIN was validated and the cards were retrieved from an issuer that does not provide previews.
+class IssuancePinToRetrieveCardsConfirmed extends IssuanceEvent {
+  final List<WalletCard> cards;
+
+  const IssuancePinToRetrieveCardsConfirmed({required this.cards});
+
+  @override
+  List<Object?> get props => [cards];
+}
+
+/// The user accepted the cards that were retrieved from an issuer that does not provide previews.
+class IssuanceRetrievedCardsApproved extends IssuanceEvent {
+  const IssuanceRetrievedCardsApproved();
+}
+
 class IssuanceApproveCards extends IssuanceEvent {
   final List<WalletCard> cards;
 
