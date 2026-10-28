@@ -384,6 +384,14 @@ openssl pkcs8 -topk8 -nocrypt \
 openssl pkcs8 -topk8 -nocrypt \
     -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.pem" -inform PEM \
     -out "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der" -outform DER
+
+# Generate a secret key used for decrypting encrypted Credential Requests.
+
+openssl ecparam -genkey -name prime256v1 -noout \
+    -out "${TARGET_DIR}/credential_request_encryption.ec.key" > /dev/null
+openssl pkcs8 -topk8 -inform PEM -outform DER \
+    -in "${TARGET_DIR}/credential_request_encryption.ec.key" \
+    -out "${TARGET_DIR}/credential_request_encryption.key.der" -nocrypt
 ```
 
 Serve `${TARGET_DIR}/wrpac.${IDENTIFIER}.crl.der` at `WRPAC_CRL_URL` and replace
@@ -815,6 +823,19 @@ cat <<EOF > "$TARGET_DIR/parts/06-wallet-client-ids.toml"
 wallet_client_ids = [$(printf '"%s",' "${IS_WALLET_CLIENT_IDS[@]}" | sed 's/,$//')]
 EOF
 unset IS_WALLET_CLIENT_IDS
+```
+
+#### Configuring Credential Request encryption
+
+Decryption of Credential Requests requires configuration of a static ECDSA
+secret key. The public key corresponding to this will be published in theIssuer Metadata.
+
+```shell
+cd nl-wallet
+export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
+cat <<EOF > "$TARGET_DIR/parts/07-credential-request-encryption.toml"
+credential_request_encryption_key = "$(openssl base64 -e -A -in "${TARGET_DIR}/credential_request_encryption.key.der")"
+EOF
 ```
 
 #### Configuring metadata and issuer registration
