@@ -1041,8 +1041,7 @@ where
         let claims = builder.exp(Some(expires)).ttl(self.config.ttl).build(&TimeGenerator);
         let (jwt, cwt) = self.sign_tokens(claims).await?;
 
-        // Write to a tempfile and atomically move via rename. Write the CWT before the JWT, so that a written JWT
-        // implies a written CWT (see refresh).
+        // Write the CWT before the JWT, so that a written JWT implies a written CWT (see refresh).
         let jwt_path = self.config.publish_dir.jwt_path(external_id);
         let cwt_path = self.config.publish_dir.cwt_path(external_id);
         let tmp_path = self.config.publish_dir.tmp_path(external_id);
@@ -1124,6 +1123,7 @@ enum TokenReadError {
     NoExpiry,
 }
 
+// Write to a tempfile and atomically move via rename.
 fn write_atomically(tmp_path: &Path, path: &Path, contents: impl AsRef<[u8]>) -> Result<(), StatusListServiceError> {
     std::fs::write(tmp_path, contents)
         .map_err(|err| StatusListServiceError::IOWithPath(tmp_path.to_path_buf(), err))?;
