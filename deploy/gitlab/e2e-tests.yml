@@ -32,6 +32,7 @@ scheduled-automation-tests-trigger:
     - java -version
     - cd uiautomation
     - set -euxo pipefail
+    - !reference [.extract-xyz-bank-registration-certificate, before_script]
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
     AUTO_GRANT_PERMISSIONS: "true"
@@ -59,6 +60,13 @@ scheduled-automation-tests-trigger:
     - kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.registration_certificate}' | base64 --decode > /tmp/monkey_bike.wrprc
     - export MONKEY_BIKE_WRPRC_FILE=/tmp/monkey_bike.wrprc
 
+.extract-xyz-bank-registration-certificate:
+  extends: .env-k8s
+  before_script:
+    - XYZ_BANK_WRPRC_JWT=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank -o jsonpath='{.data.registration_certificate_mdoc}' | base64 --decode | tr -- '-_' '+/' | awk '{ while (length($0) % 4) $0 = $0 "="; print }' | base64 --decode)
+    - echo "$XYZ_BANK_WRPRC_JWT" | cut -d. -f2 | tr -- '-_' '+/' | awk '{ while (length($0) % 4) $0 = $0 "="; print }' | base64 --decode > /tmp/xyz_bank.wrprc.json
+    - export XYZ_BANK_WRPRC_FILE=/tmp/xyz_bank.wrprc.json
+
 # Install the Apple development certificate and provisioning profiles that Appium needs to build
 # WebDriverAgent for real iOS devices, from the fastlane match repository (read-only). The job
 # token must be allowlisted on the certificates project. The login keychain is unlocked first
@@ -70,6 +78,7 @@ scheduled-automation-tests-trigger:
 .install-ios-signing:
   extends: .env-k8s
   before_script:
+    - !reference [.extract-xyz-bank-registration-certificate, before_script]
     - *extract-reader-wrpac-credentials-script
     - MACOS_KEYCHAIN_PASSWORD="$(kubectl get secret nl-wallet-macmini -o jsonpath='{.data.password}' | base64 --decode)"
     - security unlock-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" ~/Library/Keychains/login.keychain-db
