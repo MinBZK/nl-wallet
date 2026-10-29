@@ -54,7 +54,6 @@
 import { computed, onBeforeUnmount, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePageTitle } from '@/composables/pageTitle.ts'
-import { useAuth } from '@/composables/authentication.ts'
 import { useNavigation } from '@/composables/navigation.ts'
 import TaskStepHeader from '@/components/create-task/TaskStepHeader.vue'
 import TaskWizardFooter from '@/components/create-task/TaskWizardFooter.vue'
@@ -76,7 +75,6 @@ const NUMBERED_STEPS: WizardStep[] = ['intro', 'reason', 'check']
 
 const route = useRoute()
 const { setPageTitle, resetPageTitle } = usePageTitle()
-const { loggedInUser } = useAuth()
 const { goBackOrHome, goHome } = useNavigation()
 
 const step = ref<WizardStep>('intro')
@@ -124,11 +122,7 @@ async function handleNext() {
     if (isCreatingTask.value) return
     isCreatingTask.value = true
     try {
-      const task = await createTask(
-        type.value,
-        loggedInUser.value?.displayName ?? 'Onbekend',
-        reason.value,
-      )
+      const task = await createTask(type.value, reason.value)
       taskId.value = task.id
       taskCreationFailed.value = false
       step.value = 'done'

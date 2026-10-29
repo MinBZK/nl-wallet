@@ -277,7 +277,7 @@ x509-cert = { version = "0.2.5", default-features = false, features = ["std"] }
 x509-parser = "0.18.0"
 xxhash-rust = "0.8.15"
 yoke = "0.8.1"
-zstd = "0.13.3"
+zstd = "0.14.3"
 zeroize = "1.9.0"
 
 [patch.crates-io]

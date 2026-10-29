@@ -1,138 +1,164 @@
 import type { Task } from '@/types/task.ts'
 import type { TaskDetail } from '@/types/task-detail.ts'
-import { isTaskHistoryEntry, type TaskHistoryEntry } from '@/types/task-history-entry.ts'
+import type { TaskHistoryEntry } from '@/types/task-history-entry.ts'
+import type { TaskResponse, TaskStatus } from '@/types/task-response.ts'
 import { TASK_ACTION_INFO, TaskActionType } from '@/types/task-action.ts'
+import { getAuthState } from '@/composables/authentication.ts'
 import { dateTimeFormatter } from '@/utils/dateFormatters.ts'
+import { postJson, request } from '@/api/request.ts'
 
-const MOCK_API_DELAY_MS = 300
+type TaskListView = 'open' | 'history' | 'reviewable'
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+const VERDICT_BY_STATUS: Record<TaskStatus, string> = {
+  created: '—',
+  approved: 'Goedgekeurd',
+  rejected: 'Afgewezen',
+  withdrawn: 'Ingetrokken',
 }
 
-export interface CreatedTask {
-  id: string
+/**
+ * Resolves the "purpose" of a task, i.e. what it targets.
+ *
+ * Only the revoke solution action has a fixed target, for all other actions this falls back to '—'.
+ * TODO(Anyone): derive the purpose from the task parameters, see PVW-6177, PVW-6176 and PVW-6175.
+ */
+function resolvePurpose(response: TaskResponse): string {
+  switch (response.taskType) {
+    case TaskActionType.RevokeSolution:
+      return 'Alle wallets'
+    default:
+      return '—'
+  }
 }
 
-const MOCK_OPEN_TASKS: Task[] = []
-const MOCK_HISTORIC_TASKS: TaskHistoryEntry[] = []
-
-function toHistoryEntry(
-  task: Task,
-  verdict: string,
-  result: string,
-  completedBy: string,
-  completionReason?: string,
-): TaskHistoryEntry {
-  return { ...task, verdict, result, completedAt: new Date(), completedBy, completionReason }
+function toTask(response: TaskResponse): Task {
+  return {
+    id: response.taskId,
+    action: response.taskType,
+    purpose: resolvePurpose(response),
+    reason: response.taskReason,
+    createdAt: new Date(response.createdAt),
+    createdBy: response.createdBy,
+  }
 }
 
-// Creates a task; mocked until PVW-6169.
-export async function createTask(
-  action: TaskActionType,
-  createdBy: string,
-  reason: string,
-): Promise<CreatedTask> {
-  await delay(MOCK_API_DELAY_MS)
-  const id = `RW-${Math.floor(1_000_000 + Math.random() * 9_000_000)}`
-  MOCK_OPEN_TASKS.push({
-    id,
-    action,
-    purpose: '—',
-    reason,
-    createdAt: new Date(),
-    createdBy,
-  })
-  return { id }
+function toHistoryEntry(response: TaskResponse): TaskHistoryEntry {
+  const withdrawn = response.status === 'withdrawn'
+  return {
+    ...toTask(response),
+    verdict: VERDICT_BY_STATUS[response.status],
+    result: response.executionResult ?? '—',
+    completedAt: new Date(
+      (withdrawn ? response.withdrawnAt : response.reviewedAt) ?? response.createdAt,
+    ),
+    // The backend only allows the creator to withdraw a task.
+    completedBy: (withdrawn ? response.createdBy : response.reviewedBy) ?? '—',
+    // Withdrawing does not take a reason, so this is only set for reviewed tasks.
+    completionReason: response.reviewComment || undefined,
+  }
 }
 
-// Backs the "Open tasks" grid; mocked until PVW-6169.
-// Expected to return all open tasks that the logged in user is allowed to review.
+function fetchTasks(view: TaskListView): Promise<TaskResponse[]> {
+  return request<TaskResponse[]>(`/tasks?view=${view}`)
+}
+
+/** Creates a task of type [action] with [reason]; the creator is the logged in user. */
+export async function createTask(action: TaskActionType, reason: string): Promise<Task> {
+  return toTask(await postJson<TaskResponse>('/tasks', { taskType: action, taskReason: reason }))
+}
+
+/**
+ * Backs the "Open tasks" grid.
+ * Returns all open tasks that the logged in user is allowed to review.
+ */
 export async function fetchOpenTasks(): Promise<Task[]> {
-  await delay(MOCK_API_DELAY_MS)
-  return []
+  return (await fetchTasks('reviewable')).map(toTask)
 }
 
-// Backs the "My open tasks" grid; mocked until PVW-6169.
-// Expected to return open tasks created by the logged in user that are still awaiting review by someone else.
+/**
+ * Backs the "My open tasks" grid.
+ * Returns open tasks created by the logged in user that are still awaiting review by someone else.
+ */
 export async function fetchMyOpenTasks(): Promise<Task[]> {
-  await delay(MOCK_API_DELAY_MS)
-  return MOCK_OPEN_TASKS
+  return (await fetchTasks('open')).map(toTask)
 }
 
-// Backs the "Task history" grid; mocked until PVW-6169.
-// Expected to return completed tasks (approved, rejected or withdrawn) that the logged in user created or reviewed.
+/**
+ * Backs the "Task history" grid.
+ * Returns completed tasks (approved, rejected or withdrawn) that the logged in user created or reviewed.
+ */
 export async function fetchTaskHistory(): Promise<TaskHistoryEntry[]> {
-  await delay(MOCK_API_DELAY_MS)
-  return MOCK_HISTORIC_TASKS
+  return (await fetchTasks('history')).map(toHistoryEntry)
 }
 
-// Backs the task details page; mocked until PVW-6169.
-// Expected to return the details of a task with [id] if the user has permission to view it,
-// or throw an error if the task does not exist or the user is not allowed to view it.
+/**
+ * TODO(Anyone): Add a single-task endpoint to the backend, so this can be simplified (PVW-6444).
+ *
+ * Backs the task details page.
+ * There is no single-task endpoint (yet), so the task is looked up in all lists the logged in user can see.
+ * Throws if the task does not exist.
+ */
 export async function fetchTaskDetail(id: string): Promise<TaskDetail> {
-  await delay(MOCK_API_DELAY_MS)
-  const task =
-    MOCK_OPEN_TASKS.find((task) => task.id === id) ??
-    MOCK_HISTORIC_TASKS.find((task) => task.id === id)
+  const [tasks, authState] = await Promise.all([
+    Promise.all([fetchTasks('open'), fetchTasks('reviewable'), fetchTasks('history')]).then(
+      (lists) => lists.flat(),
+    ),
+    getAuthState(),
+  ])
+  const task = tasks.find((task) => task.taskId === id)
   if (!task) {
     throw new Error(`Task not found: ${id}`)
   }
-  // isOwnTask, 'Doel' and the '(jij)' suffix are hardcoded stand-ins.
+
+  // The response only has the creator's display name, so compare that to find out if the task is the user's own.
+  // TODO(Anyone): Display names are not unique; let the backend expose an ownership flag or the creator's ID (PVW-6444).
+  const isOwnTask =
+    authState.status === 'authenticated' && task.createdBy === authState.user.displayName
+  const createdBy = isOwnTask ? `${task.createdBy} (jij)` : task.createdBy
+
   return {
     id,
-    action: task.action,
+    action: task.taskType,
     overview: [
-      { label: 'Actie', value: TASK_ACTION_INFO[task.action].title },
-      {
-        label: 'Aangemaakt op:',
-        value: dateTimeFormatter.format(task.createdAt),
-      },
-      { label: 'Aangemaakt door:', value: `${task.createdBy} (jij)` },
+      { label: 'Actie', value: TASK_ACTION_INFO[task.taskType].title },
+      { label: 'Aangemaakt op:', value: dateTimeFormatter.format(new Date(task.createdAt)) },
+      { label: 'Aangemaakt door:', value: createdBy },
     ],
-    details: [
-      { label: 'Doel:', value: '2 Wallets' },
-      { label: 'Wallet-ID(s)', value: ['Wallet ID WL-0000-0000', 'Wallet ID WL-1111-1111'] },
-      { label: 'Reden', value: task.reason },
-    ],
-    consequences: TASK_ACTION_INFO[task.action].consequences,
-    isOwnTask: true,
-    log: isTaskHistoryEntry(task) ? task : undefined,
+    // The task parameters (e.g. the wallet IDs) are not shown yet, as their shape is not defined by the backend.
+    details: [{ label: 'Reden', value: task.taskReason }],
+    consequences: TASK_ACTION_INFO[task.taskType].consequences,
+    isOwnTask,
+    log: task.status === 'created' ? undefined : toHistoryEntry(task),
   }
 }
 
-// Withdraws a task; mocked until PVW-6169.
-// Expected to remove the task with [id] from the list of open tasks if it exists and the user is allowed to withdraw it.
-export async function withdrawTask(id: string, reason: string): Promise<void> {
-  await delay(MOCK_API_DELAY_MS)
-  console.log(`Withdrawing task ${id} for reason: ${reason}`)
-  const task = MOCK_OPEN_TASKS.find((task) => task.id === id)
-  if (task) {
-    MOCK_OPEN_TASKS.splice(MOCK_OPEN_TASKS.indexOf(task), 1)
-    MOCK_HISTORIC_TASKS.push(toHistoryEntry(task, 'Ingetrokken', '—', task.createdBy, reason))
-  }
+/**
+ * TODO(Anyone): The design requires a withdrawal reason, so the backend should accept and store it.
+ *
+ * Withdraws the task with [id], which is only allowed for the creator while the task is still open.
+ * The backend does not store a withdrawal reason, so [_reason] is currently not sent.
+ * Returns the withdrawn task.
+ */
+export async function withdrawTask(id: string, _reason: string): Promise<TaskHistoryEntry> {
+  return toHistoryEntry(await postJson<TaskResponse>(`/tasks/${encodeURIComponent(id)}/withdraw`))
 }
 
-// Approves a task; mocked until PVW-6169.
-// Expected to remove the task with [id] from the list of open tasks if it exists and the user is allowed to review it.
-export async function approveTask(id: string): Promise<void> {
-  await delay(MOCK_API_DELAY_MS)
-  console.log(`Approving task ${id}`)
-  const task = MOCK_OPEN_TASKS.find((task) => task.id === id)
-  if (task) {
-    MOCK_OPEN_TASKS.splice(MOCK_OPEN_TASKS.indexOf(task), 1)
-    MOCK_HISTORIC_TASKS.push(toHistoryEntry(task, 'Goedgekeurd', 'Uitgevoerd', 'Jane Doe'))
-  }
+/** Approves the task with [id] and returns it; the backend does not allow reviewing your own task. */
+export async function approveTask(id: string): Promise<TaskHistoryEntry> {
+  return toHistoryEntry(
+    await postJson<TaskResponse>(`/tasks/${encodeURIComponent(id)}/review`, {
+      verdict: 'approve',
+      reviewComment: '',
+    }),
+  )
 }
 
-// Rejects a task; mocked until PVW-6169.
-// Expected to remove the task with [id] from the list of open tasks if it exists and the user is allowed to review it.
-export async function rejectTask(id: string, reason: string): Promise<void> {
-  await delay(MOCK_API_DELAY_MS)
-  console.log(`Rejecting task ${id} for reason: ${reason}`)
-  const task = MOCK_OPEN_TASKS.find((task) => task.id === id)
-  if (task) {
-    MOCK_OPEN_TASKS.splice(MOCK_OPEN_TASKS.indexOf(task), 1)
-    MOCK_HISTORIC_TASKS.push(toHistoryEntry(task, 'Afgewezen', '—', 'Jane Doe', reason))
-  }
+/** Rejects the task with [id] for [reason] and returns it; the backend does not allow reviewing your own task. */
+export async function rejectTask(id: string, reason: string): Promise<TaskHistoryEntry> {
+  return toHistoryEntry(
+    await postJson<TaskResponse>(`/tasks/${encodeURIComponent(id)}/review`, {
+      verdict: 'reject',
+      reviewComment: reason,
+    }),
+  )
 }
