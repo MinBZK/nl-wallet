@@ -199,9 +199,10 @@ pub trait Storage: Send {
         credential_kinds: &HashSet<CredentialKind>,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
-    /// Returns a single valid attestation copy for each stored attestation whose attestation type and format match one
-    /// of the requested [`CredentialKind`] instances. Valid in this context describes the revocation status and the
-    /// validity window of the attestation.
+    /// Returns a single attestation copy eligible for disclosure for each stored attestation whose attestation type
+    /// and format match one of the requested [`CredentialKind`] instances. Copies must be within their validity window
+    /// and must not have a corrupted revocation status. Revoked copies are included so the relying party can evaluate
+    /// their status.
     ///
     /// In addition to the attestations of the requested attestation types themselves, the returned attestation copies
     /// include those of which the type metadata extends one of the requested attestation types. Note that this can only
