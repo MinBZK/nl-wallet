@@ -41,7 +41,7 @@ function resetAuthState() {
 /** Fetches the current auth state; a 401 is unauthenticated, any other failure is unavailable. */
 async function fetchAuthState(): Promise<AuthState> {
   try {
-    const profile = await request<UserProfileResponse>('/me')
+    const profile = await request<UserProfileResponse>('/api/me')
     const user: UserProfile = {
       ...profile,
       role: roleFromPrivileges(profile.privileges),

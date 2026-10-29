@@ -134,7 +134,7 @@ function closeModals() {
 }
 
 /** Runs a confirmed task action; on success closes its modal and leaves the page. */
-async function runAction(action: () => Promise<void>, modal: Ref<boolean>) {
+async function runAction(action: () => Promise<unknown>, modal: Ref<boolean>) {
   submitting.value = true
   actionFailed.value = false
   try {
