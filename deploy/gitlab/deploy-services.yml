@@ -63,9 +63,9 @@ create-deployment-pub:
       artifacts: false
     - job: build-pacf-issuance-server-migrations-image
       artifacts: false
-    - job: build-acf-demo-server-image
+    - job: build-acf-demo-issuer-image
       artifacts: false
-    - job: build-acf-demo-server-migrations-image
+    - job: build-acf-demo-issuer-migrations-image
       artifacts: false
     - job: build-pid-issuer-image
       artifacts: false
