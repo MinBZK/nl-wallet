@@ -91,10 +91,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     fun dataVisible(data: String) = elementContainingTextVisible(data)
 
-    fun sharingReasonVisible(reason: String): Boolean {
-        // TODO PVW-6101 check for purpose
-        return true
-    }
+    fun sharingReasonVisible(reason: String) = elementContainingTextVisible(reason)
 
     fun privacyHeaderVisible(): Boolean {
         scrollToElementWithText(privacySectionTitle)
