@@ -56,8 +56,7 @@ pub(crate) struct CredentialRequestEncryptionParameters {
     pub options: CredentialRequestEncryptionOptions,
 }
 
-/// Inner data type that is contained within [`CredentialRequestEncryptionParameters`], to be stored by
-/// `HttpIssuanceSession`.
+/// Inner data type that is contained within [`CredentialRequestEncryptionParameters`].
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct CredentialRequestEncryptionOptions {
