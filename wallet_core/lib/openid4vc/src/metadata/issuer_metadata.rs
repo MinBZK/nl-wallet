@@ -21,10 +21,10 @@ use derive_more::Into;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwe::algorithm::CompressionAlgorithm;
+use jwe::algorithm::EncryptionAlgorithm;
 use jwe::encryption::JwePublicKey;
 use jwk_simple::Algorithm;
 use jwt::JwtTyp;
-use nonempty_collections::IntoNonEmptyIterator;
 use nonempty_collections::NESet;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::issuer_identifier::IssuerUrl;
@@ -43,6 +43,7 @@ use serde_with::MapPreventDuplicates;
 use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use strum::VariantArray;
 use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::NonEmptyIterator;
@@ -50,7 +51,6 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::payload::key_attestation::AttackPotentialResistance;
 
-use crate::credential::SUPPORTED_ENCRYPTION_ALGORITHMS;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::jwks::Jwks;
@@ -297,12 +297,18 @@ pub struct CredentialRequestEncryption {
 
 impl CredentialRequestEncryption {
     pub fn new(public_key: JwePublicKey) -> Self {
+        let enc_values_supported = NESet::try_from_set(
+            EncryptionAlgorithm::VARIANTS
+                .iter()
+                .copied()
+                .map(|algorithm| algorithm.into())
+                .collect::<HashSet<_>>(),
+        )
+        .expect("the EncryptionAlgorithm type has at least one variant");
+
         Self {
             jwks: Jwks::new(vec_nonempty![public_key.into()]),
-            enc_values_supported: SUPPORTED_ENCRYPTION_ALGORITHMS
-                .into_nonempty_iter()
-                .map(|algorithm| algorithm.into())
-                .collect(),
+            enc_values_supported,
             zip_values_supported: HashSet::from([CompressionAlgorithm::Deflate.into()]),
             encryption_required: true,
         }

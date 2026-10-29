@@ -33,9 +33,6 @@ use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 
-pub(crate) const SUPPORTED_ENCRYPTION_ALGORITHMS: [EncryptionAlgorithm; 2] =
-    [EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm];
-
 /// A request sent to the issuer's Credential Endpoint.
 ///
 /// See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.2>
@@ -70,10 +67,7 @@ impl CredentialRequest {
     }
 
     pub fn decrypt(jwe: &str, decrypter: &JweDecrypter) -> Result<Self, JweJsonDecryptionError> {
-        decrypter.decrypt_json(
-            jwe,
-            ExpectedEncryptionAlgorithm::Algorithms(&SUPPORTED_ENCRYPTION_ALGORITHMS),
-        )
+        decrypter.decrypt_json(jwe, ExpectedEncryptionAlgorithm::Any)
     }
 
     pub fn encrypt(
