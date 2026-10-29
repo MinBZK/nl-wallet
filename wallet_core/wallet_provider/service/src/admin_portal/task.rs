@@ -600,6 +600,13 @@ mod tests {
 
     /// Wallet user repository that revokes all requested wallet ids that are in `existing_wallet_ids`.
     fn wallet_user_repository(existing_wallet_ids: &'static [&'static str]) -> MockTransactionalWalletUserRepository {
+        wallet_user_repository_with_count(existing_wallet_ids, None)
+    }
+
+    fn wallet_user_repository_with_count(
+        existing_wallet_ids: &'static [&'static str],
+        revoked_count: Option<u64>,
+    ) -> MockTransactionalWalletUserRepository {
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
@@ -615,9 +622,9 @@ mod tests {
             });
         wallet_user_repo
             .expect_revoke_wallet_users()
-            .returning(|_, wallet_user_ids, _, _| {
+            .returning(move |_, wallet_user_ids, _, _| {
                 Ok(RevokedWalletUsers {
-                    revoked_count: wallet_user_ids.len() as u64,
+                    revoked_count: revoked_count.unwrap_or(wallet_user_ids.len() as u64),
                     wia_ids: vec![],
                 })
             });
@@ -1064,13 +1071,15 @@ mod tests {
     }
 
     #[rstest]
-    #[case::successful(&["wallet-1"], true, "revoked 1 wallet(s)")]
-    #[case::unknown_wallet(&[], false, "wallet ID not found")]
+    #[case::successful(&["wallet-1"], None, true, "revoked 1 wallet(s)")]
+    #[case::already_revoked(&["wallet-1"], Some(0), true, "revoked 0 wallet(s)")]
+    #[case::unknown_wallet(&[], None, false, "wallet ID not found")]
     #[tokio::test]
     async fn execute_task_stores_revocation_result(
         now: DateTime<Utc>,
         task_id: Uuid,
         #[case] existing_wallet_ids: &'static [&'static str],
+        #[case] revoked_count: Option<u64>,
         #[case] expected_successful: bool,
         #[case] expected_details: &str,
     ) {
@@ -1080,7 +1089,8 @@ mod tests {
         expect_find_task(&mut repository, task_id, Some(approved.clone()));
         expect_store_execution_result(&mut repository, approved, now);
 
-        let executed = execute(repository, wallet_user_repository(existing_wallet_ids), now, task_id)
+        let user_repo = wallet_user_repository_with_count(existing_wallet_ids, revoked_count);
+        let executed = execute(repository, user_repo, now, task_id)
             .await
             .expect("task should be executed");
 

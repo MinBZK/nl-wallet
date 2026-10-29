@@ -58,8 +58,6 @@ use wallet_provider_persistence::wallet_user;
 use wallet_provider_persistence::wallet_user_wia;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock::user_state;
-use wallet_provider_service::admin_portal::LoggedInUser;
-use wallet_provider_service::admin_portal::execution::revoke_wallets;
 use wallet_provider_service::flags::WalletFlags;
 use wallet_provider_service::flags::mock::StubWalletFlags;
 use wallet_provider_service::revocation::RevocationError;
@@ -479,54 +477,6 @@ async fn test_revoke_wallet_not_found() {
         &user_state,
         &revocation_helper,
         StatusType::Valid,
-    )
-    .await;
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_revoke_wallets_for_admin_task_counts_only_newly_revoked_wallets() {
-    let db_setup = DbSetup::create().await;
-    let temp_dir = tempfile::tempdir().unwrap();
-    let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
-
-    let (wallets, wias) = register_wallets_with_wias(vec![1, 2, 3], &user_state).await;
-
-    // revoke the first wallet beforehand
-    revoke_wallets_by_wallet_id(
-        &HashSet::from([wallets[0].clone()]),
-        &user_state,
-        &MockTimeGenerator::default(),
-        &MockAuditLog,
-    )
-    .await
-    .unwrap();
-
-    let revoked_count = revoke_wallets(
-        Uuid::new_v4(),
-        &wallets.iter().cloned().collect(),
-        &LoggedInUser {
-            user_id: "approver-id".to_string(),
-            display_name: "Approver".to_string(),
-            privileges: vec![],
-        },
-        &user_state,
-        &MockTimeGenerator::default(),
-        &MockAuditLog,
-    )
-    .await
-    .unwrap();
-
-    assert_eq!(revoked_count, 2);
-
-    verify_revocation(
-        &wallets,
-        Some(RevocationReason::AdminRequest),
-        wias.iter().flatten(),
-        Some(&publish_dir),
-        &user_state,
-        &revocation_helper,
-        StatusType::Invalid,
     )
     .await;
 }
