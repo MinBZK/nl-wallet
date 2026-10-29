@@ -1198,9 +1198,13 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 </pre></div>
 </div>
 <p>By default the issuance server will serve the status lists it creates. You can
-opt out of this behaviour and serve the status lists yourself. Ensure that you
-map a request with URL path ending on <code class="docutils literal notranslate"><span class="pre">/id</span></code> to filesystem path of with name
-<code class="docutils literal notranslate"><span class="pre">id.jwt</span></code>.</p>
+opt out of this behaviour and serve the status lists yourself. Each status list
+is published in two formats: as a JWT in a file named <code class="docutils literal notranslate"><span class="pre">id.jwt</span></code> and as a (binary)
+CWT in a file named <code class="docutils literal notranslate"><span class="pre">id.cwt</span></code>. Ensure that you map a request with URL path ending
+on <code class="docutils literal notranslate"><span class="pre">/id</span></code> to one of these files, based on the <code class="docutils literal notranslate"><span class="pre">Accept</span></code> header of the request:
+serve <code class="docutils literal notranslate"><span class="pre">id.cwt</span></code> with content type <code class="docutils literal notranslate"><span class="pre">application/statuslist+cwt</span></code> when that is
+requested, and <code class="docutils literal notranslate"><span class="pre">id.jwt</span></code> with content type <code class="docutils literal notranslate"><span class="pre">application/statuslist+jwt</span></code>
+otherwise.</p>
 <p>By default the status lists uses the same database as configured for the session
 store. If you have a memory store as session store you need to configure a
 PostgreSQL <code class="docutils literal notranslate"><span class="pre">storage_url</span></code> under the <code class="docutils literal notranslate"><span class="pre">[status_lists]</span></code> block. You can also

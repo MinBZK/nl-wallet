@@ -985,9 +985,13 @@ EOF
 ```
 
 By default the issuance server will serve the status lists it creates. You can
-opt out of this behaviour and serve the status lists yourself. Ensure that you
-map a request with URL path ending on `/id` to filesystem path of with name
-`id.jwt`.
+opt out of this behaviour and serve the status lists yourself. Each status list
+is published in two formats: as a JWT in a file named `id.jwt` and as a (binary)
+CWT in a file named `id.cwt`. Ensure that you map a request with URL path ending
+on `/id` to one of these files, based on the `Accept` header of the request:
+serve `id.cwt` with content type `application/statuslist+cwt` when that is
+requested, and `id.jwt` with content type `application/statuslist+jwt`
+otherwise.
 
 By default the status lists uses the same database as configured for the session
 store. If you have a memory store as session store you need to configure a

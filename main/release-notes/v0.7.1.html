@@ -250,6 +250,10 @@ Credential Preview Endpoint, behaving like a standard OpenID4VCI issuer. This
 is intended for testing the wallet against such issuers; note that the wallet
 still requires previews for PID and disclosure based issuance.</p></li>
 <li><p>Wallet supports X509 certificates with ES384 and RSA (min 2048) keys.</p></li>
+<li><p>The issuance server now also publish their status lists in CWT format, as
+required for mdoc credentials by the draft second edition of ISO 18013-5. When
+serving a status list, the format is chosen based on the <code class="docutils literal notranslate"><span class="pre">Accept</span></code> header of
+the request (<code class="docutils literal notranslate"><span class="pre">application/statuslist+jwt</span></code> or <code class="docutils literal notranslate"><span class="pre">application/statuslist+cwt</span></code>).</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">

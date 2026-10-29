@@ -51,6 +51,10 @@
   is intended for testing the wallet against such issuers; note that the wallet
   still requires previews for PID and disclosure based issuance.
 - Wallet supports X509 certificates with ES384 and RSA (min 2048) keys.
+- The issuance server now also publish their status lists in CWT format, as
+  required for mdoc credentials by the draft second edition of ISO 18013-5. When
+  serving a status list, the format is chosen based on the `Accept` header of
+  the request (`application/statuslist+jwt` or `application/statuslist+cwt`).
 
 ## Interoperability improvements
 
