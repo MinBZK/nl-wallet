@@ -2,8 +2,8 @@
   <div class="pagination">
     <div class="summary">
       <span>Pagina 1 van 12</span>
-      <span>Resultaten per pagina</span>
-      <select>
+      <label :for="pageSizeId">Resultaten per pagina</label>
+      <select :id="pageSizeId">
         <option>10</option>
         <option>25</option>
         <option>50</option>
@@ -25,6 +25,12 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { useId } from 'vue'
+
+const pageSizeId = useId()
+</script>
 
 <style scoped>
 .pagination {
