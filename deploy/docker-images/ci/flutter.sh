@@ -7,11 +7,11 @@ echo "baf7dcc5a3dbba60fe863bf493a6cf203195621f7786eaa5a1bba02cd0d87dd2  flutter.
 tar -xf flutter.tar.xz
 rm flutter.tar.xz
 
-mv -T flutter $FLUTTER_HOME
+mv -T flutter "$FLUTTER_HOME"
 
 # Needed to be able to run flutter as root
 # (although this is run as user, root will have user's home at the end)
-git config --global --add safe.directory $FLUTTER_HOME
+git config --global --add safe.directory "$FLUTTER_HOME"
 
 dart --disable-analytics
 flutter config --no-analytics
