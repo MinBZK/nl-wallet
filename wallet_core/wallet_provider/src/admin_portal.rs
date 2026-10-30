@@ -364,6 +364,7 @@ pub struct TaskResponse {
     pub task_reason: String,
     pub status: TaskStatus,
     pub withdrawal_comment: Option<String>,
+    pub is_own_task: bool,
     pub withdrawn_at: Option<DateTime<Utc>>,
     pub reviewed_at: Option<DateTime<Utc>>,
     pub reviewed_by: Option<String>,
@@ -373,8 +374,8 @@ pub struct TaskResponse {
     pub execution_details: Option<String>,
 }
 
-impl From<AdminTask> for TaskResponse {
-    fn from(task: AdminTask) -> Self {
+impl From<(&LoggedInUser, AdminTask)> for TaskResponse {
+    fn from((user, task): (&LoggedInUser, AdminTask)) -> Self {
         Self {
             task_id: task.id,
             created_at: task.created_at,
@@ -383,6 +384,7 @@ impl From<AdminTask> for TaskResponse {
             task_reason: task.task_reason,
             status: task.status,
             withdrawal_comment: task.withdrawal_comment,
+            is_own_task: user.user_id == task.created_by_user_id,
             withdrawn_at: task.withdrawn_at,
             reviewed_at: task.reviewed_at,
             reviewed_by: task.reviewed_by_display_name,
@@ -412,7 +414,7 @@ async fn create_task(
         .await
         .map_err(TaskApiError::Create)?;
 
-    Ok((StatusCode::CREATED, Json(TaskResponse::from(task))))
+    Ok((StatusCode::CREATED, Json(TaskResponse::from((&user, task)))))
 }
 
 async fn withdraw_task(
@@ -427,7 +429,7 @@ async fn withdraw_task(
         .await
         .map_err(TaskApiError::Withdraw)?;
 
-    Ok(Json(TaskResponse::from(task)))
+    Ok(Json(TaskResponse::from((&user, task))))
 }
 
 async fn review_task(
@@ -454,7 +456,7 @@ async fn review_task(
         .await
         .map_err(TaskApiError::Execution)?;
 
-    Ok(Json(TaskResponse::from(task)))
+    Ok(Json(TaskResponse::from((&user, task))))
 }
 
 async fn retrieve_task(
@@ -468,7 +470,7 @@ async fn retrieve_task(
         .await
         .map_err(TaskApiError::Retrieve)?;
 
-    Ok(Json(TaskResponse::from(task)))
+    Ok(Json(TaskResponse::from((&user, task))))
 }
 
 #[derive(Debug, Deserialize)]
@@ -487,7 +489,12 @@ async fn list_tasks(
         .await
         .map_err(TaskApiError::List)?;
 
-    Ok(Json(tasks.into_iter().map(TaskResponse::from).collect_vec()))
+    Ok(Json(
+        tasks
+            .into_iter()
+            .map(|task| TaskResponse::from((&user, task)))
+            .collect_vec(),
+    ))
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -553,6 +560,11 @@ mod tests {
 
     #[test]
     fn task_response_maps_display_names_not_user_ids() {
+        let user = LoggedInUser {
+            user_id: "user-1".to_string(),
+            display_name: "User One".to_string(),
+            privileges: vec![],
+        };
         let task = AdminTask {
             id: Uuid::new_v4(),
             created_at: Utc::now(),
@@ -572,7 +584,7 @@ mod tests {
             execution_details: None,
         };
 
-        let response = TaskResponse::from(task);
+        let response = TaskResponse::from((&user, task));
 
         assert_eq!(response.created_by, "User One");
     }
