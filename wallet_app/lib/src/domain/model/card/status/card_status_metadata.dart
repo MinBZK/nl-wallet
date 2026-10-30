@@ -5,6 +5,7 @@ class CardStatusMetadata {
   final String text;
   final Color textColor;
   final IconData? icon;
+  final String? iconSemanticsLabel;
   final Color? iconColor;
   final Color? backgroundColor;
 
@@ -12,6 +13,7 @@ class CardStatusMetadata {
     required this.text,
     required this.textColor,
     this.icon,
+    this.iconSemanticsLabel,
     this.iconColor,
     this.backgroundColor,
   });
