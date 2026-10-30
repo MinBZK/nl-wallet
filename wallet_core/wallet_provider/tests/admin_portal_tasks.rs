@@ -5,6 +5,8 @@
 //! the happy flow of each operation is covered here; the not-found/forbidden/invalid-state/conflict paths are
 //! already covered by the HTTP-layer integration tests in `src/admin_portal.rs` and the
 //! persistence-layer DB tests in `wallet_provider_persistence/tests/admin_task.rs`.
+//! Although E2E browser tests also cover these flows, these tests provide shorter iteration times, but don't include
+//! the frontend.
 
 use std::sync::Arc;
 use std::time::Duration;
