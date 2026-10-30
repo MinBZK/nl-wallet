@@ -2,14 +2,14 @@ use std::str::FromStr;
 
 use derive_more::Display;
 use derive_more::From;
+use jwe::algorithm::CompressionAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
-use strum::EnumString;
 
 /// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
-#[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, From, Display, SerializeDisplay, DeserializeFromStr)]
 pub enum JweEncryptionAlgorithm {
     #[from]
     Known(EncryptionAlgorithm),
@@ -18,7 +18,7 @@ pub enum JweEncryptionAlgorithm {
 
 impl From<&str> for JweEncryptionAlgorithm {
     fn from(value: &str) -> Self {
-        match value.parse::<EncryptionAlgorithm>() {
+        match value.parse() {
             Ok(algorithm) => Self::Known(algorithm),
             Err(_) => Self::Unknown(value.to_string()),
         }
@@ -60,16 +60,33 @@ impl JweEncryptionAlgorithm {
 
 /// A type representing the "zip" header parameter value for JWE, i.e. the JWE encryption compression algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-7.3>
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, From, Display, SerializeDisplay, DeserializeFromStr)]
 pub enum JweCompressionAlgorithm {
-    #[strum(serialize = "DEF")]
-    Deflate,
-    #[strum(default)]
-    Other(String),
+    #[from]
+    Known(CompressionAlgorithm),
+    Unknown(String),
+}
+
+impl From<&str> for JweCompressionAlgorithm {
+    fn from(value: &str) -> Self {
+        match value.parse() {
+            Ok(compression) => Self::Known(compression),
+            Err(_) => Self::Unknown(value.to_string()),
+        }
+    }
+}
+
+impl FromStr for JweCompressionAlgorithm {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.into())
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use jwe::algorithm::CompressionAlgorithm;
     use jwe::algorithm::EncryptionAlgorithm;
     use rstest::rstest;
 
@@ -92,8 +109,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::ecdh_es("DEF", JweCompressionAlgorithm::Deflate)]
-    #[case::ecdh_gzip("gzip", JweCompressionAlgorithm::Other("gzip".to_string()))]
+    #[case::deflate("DEF", JweCompressionAlgorithm::Known(CompressionAlgorithm::Deflate))]
+    #[case::unknown_gzip("gzip", JweCompressionAlgorithm::Unknown("gzip".to_string()))]
     fn test_jwe_compression_algorithm_parse(#[case] input: &str, #[case] expected_jwe_zip: JweCompressionAlgorithm) {
         let jwe_zip = input
             .parse::<JweCompressionAlgorithm>()

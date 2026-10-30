@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use chrono::Days;
+use crypto::p256_der::DerSecretKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
@@ -41,6 +42,7 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_with::TryFromInto;
 use serde_with::TryFromIntoRef;
+use serde_with::base64::Base64;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
@@ -152,6 +154,11 @@ pub struct IssuerSettings {
 
     /// The maximum amount of copies of a credential that the holder can request.
     pub batch_size: NonZeroU8,
+
+    /// The P-256 ECDH secret key that the Issuer uses to decrypt received Credential Requests. The Issuer advertises
+    /// the corresponding public key to this key in the Issuer Metadata.
+    #[serde_as(as = "Base64")]
+    pub credential_request_encryption_key: DerSecretKey,
 
     /// Whether to offer the (non-standard) Credential Preview Endpoint. Without it, the wallet does not show the
     /// credentials before they are issued.
@@ -683,6 +690,7 @@ impl IssuerSettings {
             self.public_url,
             metadata_keypair,
             self.registration_certificate,
+            self.credential_request_encryption_key.into_inner(),
             self.batch_size,
             self.wallet_client_ids,
             credential_configs,
@@ -771,6 +779,7 @@ mod tests {
     use attestation_data::registration_certificate::mock::MockRegistrationCertificate;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
+    use base64::prelude::*;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificate;
@@ -780,6 +789,9 @@ mod tests {
     use crypto::x509::DistinguishedName;
     use openid4vc::credential_configurations::SdJwtMetadata;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+    use p256::SecretKey;
+    use p256::elliptic_curve::Generate;
+    use p256::pkcs8::EncodePrivateKey;
     use sd_jwt_vc_metadata::TypeMetadataChainError;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use serde::Serialize;
@@ -859,6 +871,7 @@ mod tests {
             .unwrap(),
             wallet_client_ids: HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
             batch_size: NonZeroU8::MIN,
+            credential_request_encryption_key: SecretKey::generate().into(),
             credential_preview_endpoint: true,
             server_settings: Settings {
                 wallet_server: Server {
@@ -910,6 +923,10 @@ mod tests {
         let envelope =
             RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap();
         let encoded = String::try_from(&envelope).unwrap();
+
+        let credential_request_encryption_key =
+            BASE64_STANDARD.encode(SecretKey::generate().to_pkcs8_der().unwrap().as_bytes());
+
         let mut settings = json!({
             "public_url": "https://example.com",
             "credential_configurations": {},
@@ -922,6 +939,7 @@ mod tests {
             "type_metadata": [],
             "wallet_client_ids": [MOCK_WALLET_CLIENT_ID],
             "batch_size": 1,
+            "credential_request_encryption_key": credential_request_encryption_key,
             "wallet_server": { "ip": "127.0.0.1", "port": 42 },
             "internal_server": { "ip": "127.0.0.1", "port": 43 },
             "log_requests": false,

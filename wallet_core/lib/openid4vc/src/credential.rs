@@ -3,6 +3,13 @@ use std::time::Duration;
 
 use attestation_types::credential_format::Format;
 use derive_more::Constructor;
+use jwe::algorithm::CompressionAlgorithm;
+use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::ExpectedEncryptionAlgorithm;
+use jwe::decryption::JweDecrypter;
+use jwe::encryption::JweEncrypter;
+use jwe::error::JweJsonDecryptionError;
+use jwe::error::JweJsonEncryptionError;
 use jwk_simple::Key;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
@@ -57,6 +64,19 @@ impl CredentialRequest {
             proofs: Some(CredentialRequestProofs::Attestation([key_attestation])),
             credential_response_encryption: None,
         }
+    }
+
+    pub fn decrypt(jwe: &str, decrypter: &JweDecrypter) -> Result<Self, JweJsonDecryptionError> {
+        decrypter.decrypt_json(jwe, ExpectedEncryptionAlgorithm::Any)
+    }
+
+    pub fn encrypt(
+        &self,
+        encrypter: &JweEncrypter,
+        encryption_algorithm: EncryptionAlgorithm,
+        use_compression: Option<CompressionAlgorithm>,
+    ) -> Result<String, JweJsonEncryptionError> {
+        encrypter.encrypt_json(self, encryption_algorithm, None, None, use_compression)
     }
 }
 

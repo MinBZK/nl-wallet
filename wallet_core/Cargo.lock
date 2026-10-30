@@ -4514,6 +4514,7 @@ version = "0.7.1-dev"
 dependencies = [
  "attestation_data",
  "attestation_types",
+ "base64 0.22.1",
  "chrono",
  "crypto",
  "db_test",
@@ -4526,6 +4527,7 @@ dependencies = [
  "jwt",
  "oauth",
  "openid4vc",
+ "p256 0.14.0",
  "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
@@ -5358,6 +5360,9 @@ name = "nonempty-collections"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3fc446c90b1fb75a59aeacd45aa8b107a1777c080a719d4e0ae1a8e6ddabae5"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "noop_proc_macro"
@@ -5841,6 +5846,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
+ "jwe",
  "jwt",
  "mediatype",
  "oauth",

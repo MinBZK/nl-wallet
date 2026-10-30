@@ -39,6 +39,10 @@ type_metadata = ["com_example_address_metadata.json"]
 # The maximum amount of credentials a holder will be able to request, in the range 1-255
 batch_size = 10
 
+# The P-256 ECDH secret key that is used to decrypt all received Credential Requests.
+# This should be Base64 encoded and in PKCS #8 format.
+credential_request_encryption_key = "MII..."
+
 # Base64url-encoded WRPRC bound to the WRPAC in credential_metadata_keypair
 registration_certificate = "<base64url-encoded WRPRC>"
 

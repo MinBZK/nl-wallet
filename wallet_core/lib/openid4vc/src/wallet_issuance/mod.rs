@@ -1,6 +1,7 @@
 pub mod authorization;
 mod authorization_endpoints;
 pub mod credential;
+mod credential_request_encryption;
 pub mod discovery;
 pub mod issuance_session;
 pub mod issuer_registration;
@@ -28,6 +29,7 @@ use derive_more::Constructor;
 use error_category::ErrorCategory;
 use itertools::Either;
 use itertools::Itertools;
+use jwe::error::JweJsonEncryptionError;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
 use jwt::error::JwtX5cVerifyError;
@@ -56,6 +58,7 @@ use wscd::wia::WiaClient;
 use self::authorization::OAuthError;
 use self::authorization_endpoints::AuthorizationEndpointsError;
 use self::credential::CredentialWithMetadata;
+pub use self::credential_request_encryption::CredentialRequestEncryptionMetadataError;
 use self::issuer_registration::IssuerRegistration;
 use crate::authorization_details::CredentialId;
 use crate::client_auth::ClientAttestationChallengeError;
@@ -82,6 +85,10 @@ pub enum WalletIssuanceError {
 
     #[error("key attestation received from WSCD is invalid: {0}")]
     InvalidKeyAttestation(#[source] KeyAttestationVerificationError),
+
+    #[error("could not encrypt credential request: {0}")]
+    #[category(pd)]
+    CredentialRequestEncryption(#[source] JweJsonEncryptionError),
 
     #[error("mismatch between issued and previewed credential, issued: {actual:?} , previewed: {expected:?}")]
     #[category(pd)]
@@ -404,6 +411,9 @@ pub enum WalletIssuanceError {
 
     #[error("could not verify Authorization Server support for Attestation-Based Client Authentication: {0}")]
     ClientAttestationMetadata(#[source] ClientAttestationMetadataError),
+
+    #[error("could not determine credential request encryption parameters from issuer metadata: {0}")]
+    CredentialRequestEncryptionMetadata(#[source] CredentialRequestEncryptionMetadataError),
 
     #[error("could not determine Attestation-Based Client Authentication challenge mechanism: {0}")]
     ClientAttestationChallengeMechanism(#[source] ClientAttestationChallengeMechanismError),

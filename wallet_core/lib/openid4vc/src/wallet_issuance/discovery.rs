@@ -32,6 +32,7 @@ use super::IssuanceFlow;
 use super::WalletIssuanceError;
 use super::authorization::HttpAuthorizationSession;
 use super::authorization_endpoints::AuthorizationEndpoints;
+use super::credential_request_encryption::CredentialRequestEncryptionParameters;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
 use super::issuer_registration::IssuerRegistration;
@@ -102,9 +103,17 @@ where
             wrprc_trust_anchors,
         } = common_parameters;
 
-        let (credential_configurations, credential_issuer, issuer_endpoints, issuer_registration, batch_size, flow) =
-            self.resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
-                .await?;
+        let (
+            credential_configurations,
+            credential_issuer,
+            issuer_endpoints,
+            issuer_registration,
+            batch_size,
+            encryption_parameters,
+            flow,
+        ) = self
+            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
+            .await?;
 
         let issuance_flow = match flow {
             CredentialOfferFlow::AuthorizationCode {
@@ -119,6 +128,7 @@ where
                     issuer_endpoints,
                     issuer_registration,
                     batch_size,
+                    encryption_parameters,
                     auth_endpoints,
                     client_id,
                     redirect_uri,
@@ -144,6 +154,7 @@ where
                         issuer_endpoints,
                         issuer_registration,
                         batch_size,
+                        encryption_parameters,
                         token_endpoint,
                         challenge_endpoint,
                         wia_client,
@@ -175,9 +186,17 @@ where
             wrprc_trust_anchors,
         } = common_parameters;
 
-        let (credential_configurations, credential_identifier, issuer_endpoints, issuer_registration, batch_size, flow) =
-            self.resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
-                .await?;
+        let (
+            credential_configurations,
+            credential_identifier,
+            issuer_endpoints,
+            issuer_registration,
+            batch_size,
+            encryption_parameters,
+            flow,
+        ) = self
+            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
+            .await?;
 
         let CredentialOfferFlow::AuthorizationCode {
             issuer_state,
@@ -195,6 +214,7 @@ where
             issuer_endpoints,
             issuer_registration,
             batch_size,
+            encryption_parameters,
             auth_endpoints,
             client_id,
             redirect_uri,
@@ -220,9 +240,17 @@ where
             wrprc_trust_anchors,
         } = common_parameters;
 
-        let (credential_configurations, credential_identifier, issuer_endpoints, issuer_registration, batch_size, flow) =
-            self.resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
-                .await?;
+        let (
+            credential_configurations,
+            credential_identifier,
+            issuer_endpoints,
+            issuer_registration,
+            batch_size,
+            encryption_parameters,
+            flow,
+        ) = self
+            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
+            .await?;
 
         let CredentialOfferFlow::PreAuthorizedCode {
             pre_authorized_code,
@@ -241,6 +269,7 @@ where
             issuer_endpoints,
             issuer_registration,
             batch_size,
+            encryption_parameters,
             token_endpoint,
             challenge_endpoint,
             wia_client,
@@ -578,6 +607,7 @@ where
             IssuerEndpoints,
             IssuerRegistration,
             NonZeroU8,
+            Option<CredentialRequestEncryptionParameters>,
             CredentialOfferFlow,
         ),
         WalletIssuanceError,
@@ -602,9 +632,26 @@ where
         let IssuerMetadata {
             credential_issuer,
             endpoints: issuer_endpoints,
+            credential_request_encryption,
             mut credential_configurations_supported,
             ..
         } = issuer_metadata;
+
+        // Select the public key and other Credential Request encryption parameters based on the contents of the Issuer
+        // Metadata. There are three cases in which request encryption is not used:
+        //
+        // 1. When the `credential_request_encryption` field is not present in the Issuer Metadata.
+        // 2. When all of the JWKs contained in the `credential_request_encryption` field are unsupported or lack a
+        //    `kid` value and the Issuer indicates that request encryption is optional by setting the
+        //    `encryption_required` field to `false`.
+        // 3. The `credential_request_encryption` field does not contain a `enc_values_supported` value that the Wallet
+        //    supports and request encryption is optional.
+        //
+        // Note that the Wallet chooses to always apply request encryption when there is a valid JWK.
+        let encryption_parameters = credential_request_encryption
+            .and_then(|encryption| encryption.select_encryption_parameters().transpose())
+            .transpose()
+            .map_err(WalletIssuanceError::CredentialRequestEncryptionMetadata)?;
 
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
@@ -695,6 +742,7 @@ where
             issuer_endpoints,
             issuer_registration,
             batch_size,
+            encryption_parameters,
             flow,
         ))
     }
@@ -708,6 +756,7 @@ where
         issuer_endpoints: IssuerEndpoints,
         issuer_registration: IssuerRegistration,
         batch_size: NonZeroU8,
+        encryption_parameters: Option<CredentialRequestEncryptionParameters>,
         token_endpoint: Url,
         challenge_endpoint: Option<Url>,
         wia_client: &impl WiaClient,
@@ -729,6 +778,7 @@ where
             issuer_endpoints,
             issuer_registration,
             batch_size,
+            encryption_parameters,
             token_endpoint,
             client_auth_challenge,
             token_request,

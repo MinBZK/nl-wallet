@@ -78,9 +78,6 @@ pub enum JweDecryptionError {
     #[error("could not decrypt data: {0}")]
     Decryption(#[source] JoseError),
 
-    #[error("kid does not match \"{}\": \"{}\"", .0, .1.as_deref().unwrap_or("<NONE>"))]
-    IdMismatch(String, Option<String>),
-
     #[error("received encryption algorithm \"{}\", expected (one of) \"{}\"", received, expected.iter().join(", "))]
     UnexpectedEncryptionAlgorithm {
         received: String,

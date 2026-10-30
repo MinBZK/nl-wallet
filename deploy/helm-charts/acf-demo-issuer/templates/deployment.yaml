@@ -121,6 +121,11 @@ spec:
                   key: private_key
             - name: ACF_DEMO_ISSUER__CREDENTIAL_METADATA_KEYPAIR__PRIVATE_KEY_TYPE
               value: "software"
+            - name: ACF_DEMO_ISSUER__CREDENTIAL_REQUEST_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-acf-demo-issuer-credential-request-encryption-key
+                  key: secret_key
             - name: ACF_DEMO_ISSUER__STORAGE__URL
               valueFrom:
                 secretKeyRef:
