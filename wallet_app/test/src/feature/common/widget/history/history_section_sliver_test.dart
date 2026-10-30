@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/event/event_section.dart';
@@ -107,6 +109,51 @@ void main() {
       expect(attribFinder1, findsOneWidget);
       expect(attribFinder2, findsOneWidget);
       expect(attribFinder3, findsOneWidget);
+    });
+
+    testWidgets('each row is exposed as a single named button, without an unnamed wrapper button', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      await tester.pumpWidgetWithAppWrapper(
+        CustomScrollView(
+          slivers: [
+            HistorySectionSliver(
+              onRowPressed: (WalletEvent event) {},
+              section: EventSection(
+                DateTime(2023, 1),
+                mockAttributes,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      final buttons = find.semantics.byFlag(SemanticsFlag.isButton).evaluate().toList();
+      expect(buttons, hasLength(mockAttributes.length));
+      for (final (i, button) in buttons.indexed) {
+        expect(button, isSemantics(isButton: true, isFocusable: true, hasTapAction: true));
+        expect(button.label, contains('January ${i + 1}'));
+      }
+      semanticsHandle.dispose();
+    });
+
+    testWidgets('month header is exposed as a heading', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      await tester.pumpWidgetWithAppWrapper(
+        CustomScrollView(
+          slivers: [
+            HistorySectionSliver(
+              onRowPressed: (WalletEvent event) {},
+              section: EventSection(
+                DateTime(2023, 1),
+                mockAttributes,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      expect(tester.getSemantics(find.text('January 2023')), isSemantics(label: 'January 2023', isHeader: true));
+      semanticsHandle.dispose();
     });
   });
 }
