@@ -1117,7 +1117,7 @@ mod test {
         }
     }
 
-    /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint, and, if enabled in the
+    /// Start an httpmock server that serves the well-known metadata endpoints, a token endpoint, and, if enabled in the
     /// options, a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
     async fn start_httpmock_issuer(
         metadata_options: IssuerMetadataOptions<'_>,
