@@ -70,6 +70,8 @@ pub enum EncryptionAlgorithm {
     A256Gcm,
 }
 
+/// A type representing possible values of the "zip" header parameter value for JWE. The value of this header indicates
+/// the compression algorithm of the payload.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, EnumString)]
 pub enum CompressionAlgorithm {
     #[strum(serialize = "DEF")]

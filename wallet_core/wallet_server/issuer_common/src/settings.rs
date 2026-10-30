@@ -155,6 +155,8 @@ pub struct IssuerSettings {
     /// The maximum amount of copies of a credential that the holder can request.
     pub batch_size: NonZeroU8,
 
+    /// The P-256 ECDH secret key that the Issuer uses to decrypt received Credential Requests. The Issuer advertises
+    /// the corresponding public key to this key in the Issuer Metadata.
     #[serde_as(as = "Base64")]
     pub credential_request_encryption_key: DerSecretKey,
 
