@@ -9,14 +9,12 @@ if [[ -n "$(find "$output" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
     echo "Output directory must be empty: $output" >&2
     exit 1
 fi
-work="$(mktemp -d)"
-# cargo-cyclonedx writes one file next to each workspace member's manifest.
-# Unique filenames keep previous SBOMs out of both merges and out of cleanup.
-rust_name="sbom-$(basename "$work")"
+work=""
 rust_files=()
-full=()
-prod=()
 cleanup() {
+    if [[ -z "$work" ]]; then
+        return
+    fi
     if [[ -f "$work/flutter-plugins-dependencies" ]]; then
         cp "$work/flutter-plugins-dependencies" "$repo/wallet_app/.flutter-plugins-dependencies"
     fi
@@ -26,6 +24,13 @@ cleanup() {
     rm -rf "$work"
 }
 trap cleanup EXIT
+
+work="$(mktemp -d)"
+# cargo-cyclonedx writes one file next to each workspace member's manifest.
+# Unique filenames keep previous SBOMs out of both merges and out of cleanup.
+rust_name="sbom-$(basename "$work")"
+full=()
+prod=()
 cd "$repo"
 
 normalize_bom() {
