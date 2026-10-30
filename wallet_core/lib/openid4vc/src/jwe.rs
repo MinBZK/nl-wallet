@@ -109,8 +109,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case::ecdh_es("DEF", JweCompressionAlgorithm::Known(CompressionAlgorithm::Deflate))]
-    #[case::ecdh_gzip("gzip", JweCompressionAlgorithm::Unknown("gzip".to_string()))]
+    #[case::deflate("DEF", JweCompressionAlgorithm::Known(CompressionAlgorithm::Deflate))]
+    #[case::unknown_gzip("gzip", JweCompressionAlgorithm::Unknown("gzip".to_string()))]
     fn test_jwe_compression_algorithm_parse(#[case] input: &str, #[case] expected_jwe_zip: JweCompressionAlgorithm) {
         let jwe_zip = input
             .parse::<JweCompressionAlgorithm>()
