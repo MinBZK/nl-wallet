@@ -11,7 +11,7 @@ COPY rust-root.sh /tmp/
 RUN /tmp/rust-root.sh
 ENV PATH=${PATH}:/wallet/.cargo/bin
 COPY rust-user.sh /tmp/
-RUN sudo -E -H -u wallet -- sh -c 'cd $HOME && /tmp/rust-user.sh'
+RUN sudo -E -H -u wallet -- sh -c 'cd && /tmp/rust-user.sh'
 
 # Cleanup
 RUN rm -rf /tmp/*

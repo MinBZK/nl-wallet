@@ -8,6 +8,6 @@ mkdir -p .cache # rosetta already creates cache directory
 chown -R wallet:wallet .cache .npm
 
 # Preinstall browsers
-sudo -E -H -u wallet -- sh -c 'cd $HOME && npx @playwright/test@1.63.0 install chromium webkit'
+sudo -E -H -u wallet -- sh -c 'cd && npx @playwright/test@1.63.0 install chromium webkit'
 
 rm -rf ~/.npm
