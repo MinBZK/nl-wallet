@@ -385,7 +385,7 @@ openssl pkcs8 -topk8 -nocrypt \
     -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.pem" -inform PEM \
     -out "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der" -outform DER
 
-# Generate a secret key used for decrypting encrypted Credential Requests.
+# Generate a P-256 ECDH secret key used for decrypting encrypted Credential Requests.
 
 openssl ecparam -genkey -name prime256v1 -noout \
     -out "${TARGET_DIR}/credential_request_encryption.ec.key" > /dev/null
@@ -827,8 +827,9 @@ unset IS_WALLET_CLIENT_IDS
 
 #### Configuring Credential Request encryption
 
-Decryption of Credential Requests requires configuration of a static ECDSA
-secret key. The public key corresponding to this will be published in theIssuer Metadata.
+Decryption of Credential Requests requires configuration of a static P-256 ECDH
+secret key. The Issuer will publish the public key corresponding to this in the
+Issuer Metadata.
 
 ```shell
 cd nl-wallet
