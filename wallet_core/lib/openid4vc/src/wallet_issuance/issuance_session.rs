@@ -75,6 +75,7 @@ use super::AcceptIssuanceTrustAnchors;
 use super::IssuanceSession;
 use super::OfferedCredentialMetadata;
 use super::OfferedCredentialPreview;
+use super::SUPPORTED_MDOC_ISSUER_ALGORITHMS;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
@@ -1346,8 +1347,13 @@ impl Credentials {
                 }
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
-                let mdoc = Mdoc::new(issuer_signed, &TimeGenerator, issuer_trust_anchors)
-                    .map_err(WalletIssuanceError::MdocVerification)?;
+                let mdoc = Mdoc::new(
+                    issuer_signed,
+                    &TimeGenerator,
+                    issuer_trust_anchors,
+                    SUPPORTED_MDOC_ISSUER_ALGORITHMS,
+                )
+                .map_err(WalletIssuanceError::MdocVerification)?;
 
                 let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone())?;
 

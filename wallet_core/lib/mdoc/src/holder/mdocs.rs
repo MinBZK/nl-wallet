@@ -2,6 +2,7 @@ use std::result::Result;
 
 use chrono::DateTime;
 use chrono::Utc;
+use coset::iana;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use utils::generator::Generator;
@@ -29,11 +30,16 @@ impl Mdoc {
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
+        supported_algorithms: &[iana::Algorithm],
     ) -> crate::Result<Mdoc> {
         // Unfortunately we have to discard the `attributes` here, even though
         // the only consumer of this function will need them right away.
-        let IssuerSignedVerificationResult { mso, .. } =
-            issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
+        let IssuerSignedVerificationResult { mso, .. } = issuer_signed.verify(
+            ValidityRequirement::AllowNotYetValid,
+            time,
+            trust_anchors,
+            supported_algorithms,
+        )?;
 
         let mdoc = Mdoc { mso, issuer_signed };
 
@@ -166,6 +172,7 @@ pub mod mock {
     use chrono::DateTime;
     use chrono::Utc;
     use ciborium::Value;
+    use coset::iana;
     use crypto::CredentialEcdsaKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -200,7 +207,13 @@ pub mod mock {
                 .unwrap()
                 .issuer_signed;
 
-            Mdoc::new(issuer_signed, &IsoCertTimeGenerator, &ca.to_trust_anchors()).unwrap()
+            Mdoc::new(
+                issuer_signed,
+                &IsoCertTimeGenerator,
+                &ca.to_trust_anchors(),
+                &[iana::Algorithm::ES256],
+            )
+            .unwrap()
         }
 
         pub async fn new_mock() -> Self {

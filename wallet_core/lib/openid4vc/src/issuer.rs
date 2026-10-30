@@ -1733,6 +1733,7 @@ mod tests {
 
     use attestation_types::status_claim::StatusClaim;
     use chrono::Timelike;
+    use coset::iana;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_string;
@@ -2689,7 +2690,12 @@ mod tests {
                 .map(|mdoc_credential| {
                     let IssuerSignedVerificationResult { mso, .. } = mdoc_credential
                         .credential
-                        .verify(ValidityRequirement::AllowNotYetValid, &time, &trust_anchors)
+                        .verify(
+                            ValidityRequirement::AllowNotYetValid,
+                            &time,
+                            &trust_anchors,
+                            &[iana::Algorithm::ES256],
+                        )
                         .expect("issued mdoc should verify correctly");
 
                     let issued_at = DateTime::<Utc>::try_from(&mso.validity_info.signed).unwrap();

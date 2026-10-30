@@ -210,6 +210,11 @@ where
     C: Cose,
     T: DeserializeOwned,
 {
+    /// Returns algorithm
+    pub fn algorithm(&self) -> Result<iana::Algorithm, CoseError> {
+        self.as_ref().validate_algorithm()
+    }
+
     /// Parse the payload without verifying the COSE signature or MAC.
     ///
     /// The authenticity of the returned payload is not established. Prefer [`TypedCose::verify_and_parse`].
