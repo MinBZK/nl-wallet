@@ -48,18 +48,11 @@ pub enum CredentialRequestEncryptionMetadataError {
 /// Data type that is the result of the selecting a Credential Request encryption JWK to use amongst those present in
 /// the Issuer Metadata. The Wallet uses the values within this type to encrypt Credential Requests before sending them
 /// to the Issuer.
+#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct CredentialRequestEncryptionParameters {
     pub public_key: JwePublicKey,
 
-    #[serde(flatten)]
-    pub options: CredentialRequestEncryptionOptions,
-}
-
-/// Inner data type that is contained within [`CredentialRequestEncryptionParameters`].
-#[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) struct CredentialRequestEncryptionOptions {
     #[serde_as(as = "DisplayFromStr")]
     pub encryption_algorithm: EncryptionAlgorithm,
 
@@ -75,10 +68,8 @@ impl CredentialRequestEncryptionParameters {
     ) -> Self {
         Self {
             public_key,
-            options: CredentialRequestEncryptionOptions {
-                encryption_algorithm,
-                compression,
-            },
+            encryption_algorithm,
+            compression,
         }
     }
 }
@@ -280,8 +271,8 @@ mod tests {
         .expect("a public key should be selected");
 
         assert_eq!(parameters.public_key.id(), Some("ec-key-2"));
-        assert_eq!(parameters.options.encryption_algorithm, EncryptionAlgorithm::A256Gcm);
-        assert_eq!(parameters.options.compression, None);
+        assert_eq!(parameters.encryption_algorithm, EncryptionAlgorithm::A256Gcm);
+        assert_eq!(parameters.compression, None);
     }
 
     #[rstest]

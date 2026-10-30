@@ -24,6 +24,8 @@ use http_utils::reqwest::APPLICATION_JWT;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
+use jwe::algorithm::CompressionAlgorithm;
+use jwe::algorithm::EncryptionAlgorithm;
 use jwe::encryption::JweEncrypter;
 use jwt::nonce::Nonce;
 use mdoc::ATTR_RANDOM_LENGTH;
@@ -79,7 +81,6 @@ use super::credential::IssuedCredentialCopies;
 use super::credential::IssuedCredentialMetadata;
 use super::credential::MdocCopy;
 use super::credential::SdJwtCopy;
-use super::credential_request_encryption::CredentialRequestEncryptionOptions;
 use super::credential_request_encryption::CredentialRequestEncryptionParameters;
 use super::issuer_registration::IssuerRegistration;
 use crate::authorization_details::CredentialId;
@@ -669,14 +670,16 @@ struct IssuanceState {
 #[derive(Debug)]
 struct CredentialRequestEncryption {
     encrypter: JweEncrypter,
-    options: CredentialRequestEncryptionOptions,
+    encryption_algorithm: EncryptionAlgorithm,
+    compression: Option<CompressionAlgorithm>,
 }
 
 impl From<CredentialRequestEncryptionParameters> for CredentialRequestEncryption {
     fn from(value: CredentialRequestEncryptionParameters) -> Self {
         Self {
             encrypter: JweEncrypter::from(value.public_key),
-            options: value.options,
+            encryption_algorithm: value.encryption_algorithm,
+            compression: value.compression,
         }
     }
 }
@@ -883,7 +886,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             access_token: token_response.oauth_response.access_token,
             issuer_endpoints,
             batch_size,
-            credential_request_encryption: encryption_parameters.map(Into::into),
+            credential_request_encryption: encryption_parameters.map(CredentialRequestEncryption::from),
             offered_credentials,
             metadata,
             issuer_registration,
@@ -1066,8 +1069,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 let jwe = credential_request
                     .encrypt(
                         &encryption.encrypter,
-                        encryption.options.encryption_algorithm,
-                        encryption.options.compression,
+                        encryption.encryption_algorithm,
+                        encryption.compression,
                     )
                     .map_err(WalletIssuanceError::CredentialRequestEncryption)?;
 
@@ -2713,10 +2716,8 @@ mod tests {
 
         let credential_request_encryption = credential_request_encrypter.map(|encrypter| CredentialRequestEncryption {
             encrypter,
-            options: CredentialRequestEncryptionOptions {
-                encryption_algorithm: EncryptionAlgorithm::A128Gcm,
-                compression: None,
-            },
+            encryption_algorithm: EncryptionAlgorithm::A128Gcm,
+            compression: None,
         });
 
         let offered_credentials_and_previews = credential_previews.into_iter().map(|preview| {
