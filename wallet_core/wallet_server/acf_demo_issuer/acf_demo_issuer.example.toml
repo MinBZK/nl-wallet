@@ -37,8 +37,8 @@ type_metadata = []
 # Maximum number of attestation copies the wallet may request per credential in a single batch
 batch_size = 10
 
-# The ECDSA secret key that is used to decrypt all received Credential Requests.
-# This should be Base64 encoded and in PKC 8 format.
+# The P-256 ECDH secret key that is used to decrypt all received Credential Requests.
+# This should be Base64 encoded and in PKCS #8 format.
 credential_request_encryption_key = "MII..."
 
 # Base64url-encoded WRPRC bound to the WRPAC in credential_metadata_keypair

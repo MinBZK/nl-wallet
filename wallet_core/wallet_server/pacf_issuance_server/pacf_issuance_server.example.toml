@@ -30,8 +30,8 @@ type_metadata = []
 # The maximum amount of credentials a holder will be able to request, in the range 1-255
 batch_size = 10
 
-# The ECDSA secret key that is used to decrypt all received Credential Requests.
-# This should be Base64 encoded and in PKC 8 format.
+# The P-256 ECDH secret key that is used to decrypt all received Credential Requests.
+# This should be Base64 encoded and in PKCS #8 format.
 credential_request_encryption_key = "MII..."
 
 # Public and private endpoint for the issuer

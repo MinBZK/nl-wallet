@@ -38,9 +38,9 @@ pub enum CredentialRequestJwkError {
     MissingKid,
 }
 
-/// Data type that is the result of the selecting a Credential Request encryption JWK to use amongst those present in
-/// the Issuer Metadata. The Wallet uses the values within this type to encrypt Credential Requests before sending them
-/// to the Issuer.
+/// Data type that is the result of selecting a Credential Request encryption JWK to use amongst those present in the
+/// Issuer Metadata. The Wallet uses the values within this type to encrypt Credential Requests before sending them to
+/// the Issuer.
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct CredentialRequestEncryptionParameters {
@@ -69,8 +69,8 @@ impl CredentialRequestEncryptionParameters {
 
 impl CredentialRequestEncryption {
     /// Selection algorithm for the JWKs present in the `credential_request_encryption` section of the Issuer Metadata.
-    /// If the metadata indicates that request encryption is mandatory through the `encryption_required` field, it
-    /// constitutes an error of none of the JWKs contain a valid and supported public key. If encryption is optional,
+    /// If the metadata indicates that request encryption is mandatory through the `encryption_required` field, this
+    /// will return an error if none of the JWKs contain a valid and supported public key. If encryption is optional,
     /// this method will return `None`.
     pub(crate) fn select_encryption_parameters(
         &self,
@@ -107,7 +107,7 @@ impl CredentialRequestEncryption {
                         .expect("self.jwks.keys is non-empty and none of the JWKs parsed successfully"),
                 ));
             } else {
-                // If encryption is mandatory, succeed and return no encryption parameters.
+                // If encryption is optional, succeed and return no encryption parameters.
                 return Ok(None);
             }
         };
