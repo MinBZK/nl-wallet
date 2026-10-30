@@ -34,7 +34,7 @@ prod=()
 cd "$repo"
 
 normalize_bom() {
-    jq -L "$repo/scripts/sbom" 'include "normalize"; normalize' "$1" > "$work/normalized.json"
+    python3 "$repo/scripts/sbom/normalize.py" "$1" > "$work/normalized.json"
     mv "$work/normalized.json" "$1"
 }
 
