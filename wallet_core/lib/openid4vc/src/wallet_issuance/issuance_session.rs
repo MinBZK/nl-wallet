@@ -655,7 +655,7 @@ struct IssuanceState {
     access_token: AccessToken,
     issuer_endpoints: IssuerEndpoints,
     batch_size: NonZeroU8,
-    credential_request_encryption: Option<CredentialRequestEncryption>,
+    credential_request_encrypter: Option<CredentialRequestEncrypter>,
     // Keep metadata separate from offered credentials to prevent duplication. Metadata is per credential
     // configuration, not per credential. `HttpIssuanceSession::create` enforces that every credential configuration
     // has metadata.
@@ -668,13 +668,13 @@ struct IssuanceState {
 }
 
 #[derive(Debug)]
-struct CredentialRequestEncryption {
+struct CredentialRequestEncrypter {
     encrypter: JweEncrypter,
     encryption_algorithm: EncryptionAlgorithm,
     compression: Option<CompressionAlgorithm>,
 }
 
-impl From<CredentialRequestEncryptionParameters> for CredentialRequestEncryption {
+impl From<CredentialRequestEncryptionParameters> for CredentialRequestEncrypter {
     fn from(value: CredentialRequestEncryptionParameters) -> Self {
         Self {
             encrypter: JweEncrypter::from(value.public_key),
@@ -886,7 +886,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             access_token: token_response.oauth_response.access_token,
             issuer_endpoints,
             batch_size,
-            credential_request_encryption: encryption_parameters.map(CredentialRequestEncryption::from),
+            credential_request_encrypter: encryption_parameters.map(CredentialRequestEncrypter::from),
             offered_credentials,
             metadata,
             issuer_registration,
@@ -1064,7 +1064,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         // Encrypt the Credential Request if the Issuer Metadata allows or mandates it.
         let credential_request = CredentialRequest::new(offered_credential.to_request_identifier(), key_attestation);
-        let credential_request_body = match &self.session_state.credential_request_encryption {
+        let credential_request_body = match &self.session_state.credential_request_encrypter {
             Some(encryption) => {
                 let jwe = credential_request
                     .encrypt(
@@ -2714,7 +2714,7 @@ mod tests {
             issuer_endpoints.credential_preview_endpoint = None;
         }
 
-        let credential_request_encryption = credential_request_encrypter.map(|encrypter| CredentialRequestEncryption {
+        let credential_request_encrypter = credential_request_encrypter.map(|encrypter| CredentialRequestEncrypter {
             encrypter,
             encryption_algorithm: EncryptionAlgorithm::A128Gcm,
             compression: None,
@@ -2747,7 +2747,7 @@ mod tests {
             access_token: "access_token".to_string().into(),
             issuer_endpoints,
             batch_size,
-            credential_request_encryption,
+            credential_request_encrypter,
             offered_credentials,
             metadata,
             issuer_registration: IssuerRegistration::new_mock(),
