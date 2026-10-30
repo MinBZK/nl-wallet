@@ -6,6 +6,7 @@ import '../widget/button/bottom_close_button.dart';
 import '../widget/select_card_row.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';
+import 'wallet_modal_bottom_sheet.dart';
 
 class SelectCardSheet extends StatelessWidget {
   final List<WalletCard> candidates;
@@ -54,10 +55,8 @@ class SelectCardSheet extends StatelessWidget {
   }
 
   static Future<WalletCard?> show(BuildContext context, {required List<WalletCard> candidates}) async {
-    return showModalBottomSheet<WalletCard>(
+    return showWalletModalBottomSheet<WalletCard>(
       context: context,
-      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return WalletScrollbar(
           child: SingleChildScrollView(

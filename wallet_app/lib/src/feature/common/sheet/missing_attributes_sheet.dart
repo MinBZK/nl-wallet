@@ -8,6 +8,7 @@ import '../widget/bullet_list_dot.dart';
 import '../widget/button/tertiary_button.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';
+import 'wallet_modal_bottom_sheet.dart';
 
 class MissingAttributesSheet extends StatelessWidget {
   final List<MissingAttribute> missingAttributes;
@@ -61,10 +62,8 @@ class MissingAttributesSheet extends StatelessWidget {
   }
 
   static Future<void> show(BuildContext context, List<MissingAttribute> missingAttributes) async {
-    return showModalBottomSheet<void>(
+    return showWalletModalBottomSheet<void>(
       context: context,
-      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return WalletScrollbar(
           child: SingleChildScrollView(

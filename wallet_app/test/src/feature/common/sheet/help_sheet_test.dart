@@ -78,5 +78,28 @@ void main() {
       expect(find.byType(OsVersionText), findsOneWidget);
       expect(find.byType(ConfigVersionText), findsOneWidget);
     });
+
+    testWidgets('show displays the sheet with the provided codes', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () => HelpSheet.show(context, errorCode: 'ERROR_CODE', supportCode: 'SUPPORT_CODE'),
+              child: const Text('Show Sheet'),
+            ),
+          ),
+        ),
+        providers: [
+          RepositoryProvider<ConfigurationRepository>(create: (c) => MockConfigurationRepository()),
+        ],
+      );
+
+      await tester.tap(find.text('Show Sheet'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(HelpSheet), findsOneWidget);
+      expect(find.textContaining('ERROR_CODE'), findsOneWidget);
+      expect(find.textContaining('SUPPORT_CODE'), findsOneWidget);
+    });
   });
 }

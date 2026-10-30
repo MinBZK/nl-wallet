@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -140,6 +138,36 @@ void main() {
       verifyNever(requestPermissionUseCase.invoke([.notification]));
       // Verify the user setting is NOT set when permission is granted
       verifyNever(setPushNotificationsSettingUseCase.invoke(enabled: anyNamed('enabled')));
+    });
+
+    testWidgets('show displays the sheet and dismiss closes it without requesting permission', (tester) async {
+      bool? result;
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () async => result = await RequestNotificationPermissionSheet.show(context),
+              child: const Text('Show Sheet'),
+            ),
+          ),
+        ),
+        providers: [
+          RepositoryProvider<RequestPermissionUseCase>.value(value: requestPermissionUseCase),
+          RepositoryProvider<SetPushNotificationsSettingUseCase>.value(value: setPushNotificationsSettingUseCase),
+        ],
+      );
+
+      await tester.tap(find.text('Show Sheet'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RequestNotificationPermissionSheet), findsOneWidget);
+
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.tap(find.text(l10n.requestNotificationPermissionSheetNegativeCta));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RequestNotificationPermissionSheet), findsNothing);
+      expect(result, isFalse);
+      verifyNever(requestPermissionUseCase.invoke([.notification]));
     });
   });
 }
