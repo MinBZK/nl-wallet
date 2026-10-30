@@ -71,12 +71,14 @@ pub struct LoggedInUser {
 }
 
 impl LoggedInUser {
+    /// Verify whether this user is authorized to execute `task_type`.
+    pub fn is_authorized_to(&self, task_type: &TaskType) -> bool {
+        self.authorized_task_types().any(|privilege| privilege == *task_type)
+    }
+
     /// The task types this user may create and review, i.e. the privileges that name a [`TaskType`].
-    pub fn authorized_task_types(&self) -> HashSet<TaskType> {
-        self.privileges
-            .iter()
-            .filter_map(|privilege| privilege.parse().ok())
-            .collect()
+    pub fn authorized_task_types(&self) -> impl Iterator<Item = TaskType> {
+        self.privileges.iter().filter_map(|privilege| privilege.parse().ok())
     }
 }
 

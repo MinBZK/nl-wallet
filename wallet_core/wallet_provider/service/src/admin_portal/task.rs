@@ -144,7 +144,7 @@ where
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
         let task_type = payload.task_type();
-        if !user.authorized_task_types().contains(&task_type) {
+        if !user.is_authorized_to(&task_type) {
             return Err(CreateTaskError::MissingPrivilege(task_type));
         }
 
@@ -283,7 +283,7 @@ where
 
         // Enforce business rule: A reviewer may only review tasks of types it has the privilege for.
         let task_type = existing.payload.task_type();
-        if !reviewer.authorized_task_types().contains(&task_type) {
+        if !reviewer.is_authorized_to(&task_type) {
             return Err(ReviewTaskError::MissingPrivilege(task_type));
         }
 
@@ -336,7 +336,7 @@ where
             TaskListViewKind::History => TaskListView::History { user_id },
             TaskListViewKind::Reviewable => TaskListView::Reviewable {
                 user_id,
-                authorized_task_types: user.authorized_task_types().into_iter().collect(),
+                authorized_task_types: user.authorized_task_types().collect(),
             },
         };
 

@@ -34,8 +34,8 @@ impl<R, T, U> AdminPortalService<R, T, U> {
         TX: Committable,
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
-        // Only authorized users with `privilege_revoke_wallet` may check wallet IDs, as this is used
-        if !user.authorized_task_types().contains(&TaskType::RevokeWallet) {
+        // Only authorized users with `privilege_revoke_wallet` may check wallet IDs.
+        if !user.is_authorized_to(&TaskType::RevokeWallet) {
             return Err(CheckWalletError::MissingPrivilege(TaskType::RevokeWallet));
         }
 
