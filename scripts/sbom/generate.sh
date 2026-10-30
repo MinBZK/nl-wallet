@@ -52,16 +52,12 @@ done
 cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json \
     --no-build-deps --override-filename "$rust_name-prod"
 
-# Product roots, including the demo services already covered by the existing job.
-# Standalone tests, developer tools and code generators are not production roots.
-for package in flutter_api wallet_provider wallet_provider_migrations audit_log_migrations \
-    update_policy_server pid_issuer pid_issuer_migrations issuance_server issuance_server_migrations \
-    verification_server verification_server_migrations pacf_issuance_server pacf_issuance_server_migrations \
-    acf_demo_issuer acf_demo_issuer_migrations revocation_portal gba_hc_converter \
-    demo_issuer demo_relying_party demo_index; do
-    manifest=$(jq -er --arg name "$package" '.packages[] | select(.name == $name) | .manifest_path' "$work/rust.json")
+# Cargo binary/native-library targets are roots unless their manifest opts out
+# with package.metadata.sbom.production-root = false.
+python3 "$repo/scripts/sbom/production_roots.py" "$work/rust.json" > "$work/prod-manifests"
+while IFS= read -r manifest; do
     prod+=("$(dirname "$manifest")/$rust_name-prod.json")
-done
+done < "$work/prod-manifests"
 
 for project in wallet_web wallet_admin_portal; do
     (cd "$project" && pnpm sbom --sbom-format cyclonedx --sbom-spec-version 1.5 --lockfile-only) > "$work/$project.json"

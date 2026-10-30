@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[package.metadata.sbom]
+# The verification CLI is a development tool; the library is included through the app.
+production-root = false
+
 [lints]
 workspace = true
 
