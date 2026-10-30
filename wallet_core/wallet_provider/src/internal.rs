@@ -1,5 +1,3 @@
-//! TODO(PVW-6473) Remove once the admin-portal is complete.
-
 use std::collections::HashSet;
 use std::sync::Arc;
 

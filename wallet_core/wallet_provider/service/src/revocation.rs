@@ -177,6 +177,7 @@ where
     Ok(found_wallet_count)
 }
 
+// TODO(PVW-6179) Remove once the admin-portal is complete.
 #[audited]
 pub async fn revoke_wallets_by_wallet_id<T, R, F, H>(
     #[audit] wallet_ids: &HashSet<WalletId>,
