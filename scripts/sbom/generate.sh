@@ -87,6 +87,9 @@ for variant in full prod; do
     # The guarded expansion passes no arguments when flags is empty.
     (cd wallet_app/ios && cyclonedx-cocoapods ${flags[@]+"${flags[@]}"} --name nl-wallet-ios \
         --version "$version" --type application --output "$work/ios-$variant.xml")
+    # Strip Flutter 1.0.0: this placeholder pod version does not identify a Flutter release.
+    # https://github.com/flutter/flutter/issues/154023#issuecomment-2310710611
+    # https://github.com/flutter/flutter/issues/85820#issuecomment-874103549
     cyclonedx convert --output-version v1_5 --input-file "$work/ios-$variant.xml" --output-format json \
         | jq --arg flutter 'pkg:cocoapods/Flutter@1.0.0?file_name=Flutter' \
             'del(.components[] | select(."bom-ref" == $flutter)) |
