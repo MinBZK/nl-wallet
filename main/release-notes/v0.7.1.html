@@ -239,6 +239,10 @@ List Token.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_client_ids</span></code> setting has been removed from the verification server
 configuration. It was used to verify the issuer of the Proof of Association
 (PoA), which has been removed.</p></li>
+<li><p>Credential Rquest encryption is implemented in both the Wallet and Issuer and
+is mandatory for all issuing services. These have all had the
+<code class="docutils literal notranslate"><span class="pre">credential_request_encryption_key</span></code> setting added to their configurations,
+which should contain a Base64-encoded P-256 ECDH secret key in PKCS 8 format.</p></li>
 </ul>
 </section>
 <section id="new-features">

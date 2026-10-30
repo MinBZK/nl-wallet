@@ -239,33 +239,34 @@ issuer/verstrekkende-voorziening.</p>
 <li><p><a class="reference internal" href="#determine-public-url" id="id17">Determine public URL</a></p></li>
 <li><p><a class="reference internal" href="#universal-link-base-url" id="id18">Universal link base URL</a></p></li>
 <li><p><a class="reference internal" href="#configuring-allowed-client-ids" id="id19">Configuring allowed client IDs</a></p></li>
-<li><p><a class="reference internal" href="#configuring-metadata-and-issuer-registration" id="id20">Configuring metadata and issuer registration</a></p></li>
-<li><p><a class="reference internal" href="#configuring-listener-address-and-port" id="id21">Configuring listener address and port</a></p></li>
-<li><p><a class="reference internal" href="#the-storage-settings-optional" id="id22">The storage settings (optional)</a></p>
+<li><p><a class="reference internal" href="#configuring-credential-request-encryption" id="id20">Configuring Credential Request encryption</a></p></li>
+<li><p><a class="reference internal" href="#configuring-metadata-and-issuer-registration" id="id21">Configuring metadata and issuer registration</a></p></li>
+<li><p><a class="reference internal" href="#configuring-listener-address-and-port" id="id22">Configuring listener address and port</a></p></li>
+<li><p><a class="reference internal" href="#the-storage-settings-optional" id="id23">The storage settings (optional)</a></p>
 <ul>
-<li><p><a class="reference internal" href="#using-in-memory-session-state" id="id23">Using in-memory session state</a></p></li>
-<li><p><a class="reference internal" href="#using-database-persisted-session-state" id="id24">Using database persisted session state</a></p></li>
+<li><p><a class="reference internal" href="#using-in-memory-session-state" id="id24">Using in-memory session state</a></p></li>
+<li><p><a class="reference internal" href="#using-database-persisted-session-state" id="id25">Using database persisted session state</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#configuring-a-hardware-security-module-optional" id="id25">Configuring a hardware security module (optional)</a></p></li>
-<li><p><a class="reference internal" href="#configuring-the-status-list-settings-optional" id="id26">Configuring the status list settings (optional)</a></p></li>
-<li><p><a class="reference internal" href="#configuring-disclosure-based-issuance-elements" id="id27">Configuring disclosure-based issuance elements</a></p>
+<li><p><a class="reference internal" href="#configuring-a-hardware-security-module-optional" id="id26">Configuring a hardware security module (optional)</a></p></li>
+<li><p><a class="reference internal" href="#configuring-the-status-list-settings-optional" id="id27">Configuring the status list settings (optional)</a></p></li>
+<li><p><a class="reference internal" href="#configuring-disclosure-based-issuance-elements" id="id28">Configuring disclosure-based issuance elements</a></p>
 <ul>
-<li><p><a class="reference internal" href="#the-disclosure-settings" id="id28">The disclosure settings</a></p></li>
-<li><p><a class="reference internal" href="#the-dcql-query-credentials" id="id29">The DCQL query credentials</a></p></li>
-<li><p><a class="reference internal" href="#the-attestation-url-configuration" id="id30">The attestation URL configuration</a></p></li>
-<li><p><a class="reference internal" href="#the-attestation-settings" id="id31">The attestation settings</a></p></li>
-<li><p><a class="reference internal" href="#the-attestation-settings-associated-status-list-settings" id="id32">The attestation settings associated status list settings</a></p></li>
+<li><p><a class="reference internal" href="#the-disclosure-settings" id="id29">The disclosure settings</a></p></li>
+<li><p><a class="reference internal" href="#the-dcql-query-credentials" id="id30">The DCQL query credentials</a></p></li>
+<li><p><a class="reference internal" href="#the-attestation-url-configuration" id="id31">The attestation URL configuration</a></p></li>
+<li><p><a class="reference internal" href="#the-attestation-settings" id="id32">The attestation settings</a></p></li>
+<li><p><a class="reference internal" href="#the-attestation-settings-associated-status-list-settings" id="id33">The attestation settings associated status list settings</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#writing-the-configuration-file" id="id33">Writing the configuration file</a></p></li>
+<li><p><a class="reference internal" href="#writing-the-configuration-file" id="id34">Writing the configuration file</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#running-the-server-for-the-first-time" id="id34">Running the server for the first time</a></p></li>
-<li><p><a class="reference internal" href="#validating-your-setup" id="id35">Validating your setup</a></p></li>
+<li><p><a class="reference internal" href="#running-the-server-for-the-first-time" id="id35">Running the server for the first time</a></p></li>
+<li><p><a class="reference internal" href="#validating-your-setup" id="id36">Validating your setup</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#integrating-your-app-with-your-issuance-server" id="id36">Integrating your app with your issuance server</a></p></li>
+<li><p><a class="reference internal" href="#integrating-your-app-with-your-issuance-server" id="id37">Integrating your app with your issuance server</a></p></li>
 </ul>
 </nav>
 <section id="what-we-re-going-to-cover">
@@ -649,6 +650,14 @@ openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w
 openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w"> </span>-nocrypt<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.pem&quot;</span><span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/wrpac.</span><span class="si">${</span><span class="nv">IDENTIFIER</span><span class="si">}</span><span class="s2">.key.der&quot;</span><span class="w"> </span>-outform<span class="w"> </span>DER
+
+<span class="c1"># Generate a P-256 ECDH secret key used for decrypting encrypted Credential Requests.</span>
+
+openssl<span class="w"> </span>ecparam<span class="w"> </span>-genkey<span class="w"> </span>-name<span class="w"> </span>prime256v1<span class="w"> </span>-noout<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/credential_request_encryption.ec.key&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>/dev/null
+openssl<span class="w"> </span>pkcs8<span class="w"> </span>-topk8<span class="w"> </span>-inform<span class="w"> </span>PEM<span class="w"> </span>-outform<span class="w"> </span>DER<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-in<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/credential_request_encryption.ec.key&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-out<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">TARGET_DIR</span><span class="si">}</span><span class="s2">/credential_request_encryption.key.der&quot;</span><span class="w"> </span>-nocrypt
 </pre></div>
 </div>
 <p>Serve <code class="docutils literal notranslate"><span class="pre">${TARGET_DIR}/wrpac.${IDENTIFIER}.crl.der</span></code> at <code class="docutils literal notranslate"><span class="pre">WRPAC_CRL_URL</span></code> and replace
@@ -1037,6 +1046,19 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 <span class="s">wallet_client_ids = [$(printf &#39;&quot;%s&quot;,&#39; &quot;${IS_WALLET_CLIENT_IDS[@]}&quot; | sed &#39;s/,$//&#39;)]</span>
 <span class="s">EOF</span>
 <span class="nb">unset</span><span class="w"> </span>IS_WALLET_CLIENT_IDS
+</pre></div>
+</div>
+</section>
+<section id="configuring-credential-request-encryption">
+<h4>Configuring Credential Request encryption<a class="headerlink" href="#configuring-credential-request-encryption" title="Link to this heading"></a></h4>
+<p>Decryption of Credential Requests requires configuration of a static P-256 ECDH
+secret key. The Issuer will publish the public key corresponding to this in the
+Issuer Metadata.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
+<span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/is-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
+cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/07-credential-request-encryption.toml&quot;</span>
+<span class="s">credential_request_encryption_key = &quot;$(openssl base64 -e -A -in &quot;${TARGET_DIR}/credential_request_encryption.key.der&quot;)&quot;</span>
+<span class="s">EOF</span>
 </pre></div>
 </div>
 </section>
