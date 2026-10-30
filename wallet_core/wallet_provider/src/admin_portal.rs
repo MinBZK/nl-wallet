@@ -843,10 +843,9 @@ mod http_tests {
 
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn authenticated_admin_user_with_valid_session_cookie_is_extracted() {
+    async fn me_with_valid_session_reports_logged_in_user() {
         let (state, jar) = setup_state_with_valid_user().await;
         let mut parts = request_parts(&jar);
-
         let AuthenticatedAdminUser(user) = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
             .await
             .expect("valid session should be extracted");
@@ -854,18 +853,8 @@ mod http_tests {
         assert_eq!(user.user_id, "user_id");
         assert_eq!(user.display_name, "Jane Doe");
         assert_eq!(user.privileges, vec!["admin"]);
-    }
 
-    #[serial_test::serial(hsm)]
-    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn me_with_valid_session_reports_logged_in_user() {
-        let (state, jar) = setup_state_with_valid_user().await;
-        let mut parts = request_parts(&jar);
-        let user = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
-            .await
-            .expect("valid session should be extracted");
-
-        let response = me(user).await;
+        let response = me(AuthenticatedAdminUser(user)).await;
 
         assert_eq!(response.status(), StatusCode::OK);
         assert!(!response.headers().contains_key(header::SET_COOKIE));
