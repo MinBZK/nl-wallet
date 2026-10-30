@@ -624,7 +624,8 @@ fn credential_request_decrypter_and_public_key(encryption_key: SecretKey) -> (Jw
     // According to OpenID4VCI, a `credential_request_encryption` JWK published in the Issuer Metadata should always
     // contain a `kid` value. Here, we generate the `kid` for the single public key this Issuer supports by
     // hex-encoding a hash of its public key. If its configured key changes while an issuance request in progress,
-    // this should lead to an error that the `kid` is incorrect, instead of a decryption error.
+    // this should lead to an error that the `kid` is incorrect, instead of the JWE library attempting decryption and
+    // then reporting that this failed.
     let kid = hex::encode(sha256(&encryption_key.public_key().to_sec1_bytes()));
 
     // Choose `ECDH-ES` as the JWE algorithm for Credential Request encryption, both to mirror OpenID4VP where this

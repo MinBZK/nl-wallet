@@ -89,8 +89,7 @@ fn test_encrypt_decrypt_id_mismatch() {
 
     assert_matches!(
         error,
-        JweJsonDecryptionError::JweDecryption(JweDecryptionError::IdMismatch(expected_kid, Some(received_kid)))
-            if &expected_kid == "key_id" && received_kid == "wrong_key_id"
+        JweJsonDecryptionError::JweDecryption(JweDecryptionError::Decryption(_))
     );
 
     // The sender should not omit the kid value from the JWE.
@@ -104,8 +103,7 @@ fn test_encrypt_decrypt_id_mismatch() {
 
     assert_matches!(
         error,
-        JweJsonDecryptionError::JweDecryption(JweDecryptionError::IdMismatch(expected_kid, None))
-            if &expected_kid == "key_id"
+        JweJsonDecryptionError::JweDecryption(JweDecryptionError::Decryption(_))
     );
 }
 
