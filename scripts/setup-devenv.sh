@@ -642,8 +642,8 @@ export ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
 ACF_DEMO_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/acf_demo_issuer_credential_request_encryption.key.der" ${BASE64})
 export ACF_DEMO_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
 
-PACF_ISSUANCE_SERVER_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/pacf_issuance_server_credential_request_encryption.key.der" ${BASE64})
-export PACF_ISSUANCE_SERVER_REQUEST_ENCRYPTION_KEY
+PACF_ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/pacf_issuance_server_credential_request_encryption.key.der" ${BASE64})
+export PACF_ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
 
 # The shared demo issuance services have their own identities, separate from the demo organizations.
 generate_demo_issuer_issuance_key_pair issuance_server wrpac
