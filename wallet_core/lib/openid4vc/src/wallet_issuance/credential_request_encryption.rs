@@ -112,14 +112,21 @@ impl CredentialRequestEncryption {
             }
         };
 
-        // Amongst the supported encryption algorithm, pick one based on preference. Return an error if all of them are
-        // unsupported.
-        let encryption_algorithm = JweEncryptionAlgorithm::find_preferred_known(&self.enc_values_supported)
-            .ok_or_else(|| {
-                CredentialRequestEncryptionMetadataError::NoSupportedEncryptionAlgorithm(
-                    self.enc_values_supported.clone(),
-                )
-            })?;
+        // Amongst the supported encryption algorithm, pick one based on preference.
+        let Some(encryption_algorithm) = JweEncryptionAlgorithm::find_preferred_known(&self.enc_values_supported)
+        else {
+            if self.encryption_required {
+                // Return an error if all of them are unsupported and encryption is mandatory.
+                return Err(
+                    CredentialRequestEncryptionMetadataError::NoSupportedEncryptionAlgorithm(
+                        self.enc_values_supported.clone(),
+                    ),
+                );
+            } else {
+                // If encryption is optional, return no encryption parameters.
+                return Ok(None);
+            }
+        };
 
         // Find the first compression algorithm that the Issuer supports, which will always be "deflate" as this is the
         // only one known.
@@ -280,23 +287,32 @@ mod tests {
     #[rstest]
     fn test_error_no_supported_encryption_algorithm(#[values(false, true)] encryption_required: bool) {
         // If the metadata only contains unsupported encryption algorithms, the selection procedure should return an
-        // error.
+        // error only if encryption is mandatory. Otherwise, it should return `None`.
         let enc_values_supported = nes![
             JweEncryptionAlgorithm::Unknown("foo".to_string()),
             JweEncryptionAlgorithm::Unknown("bar".to_string())
         ];
-        let error = credential_request_encryption_with_algs(
+        let result = credential_request_encryption_with_algs(
             vec_nonempty![valid_ec_key(0), valid_ec_key(1), valid_ec_key(2)],
             enc_values_supported.clone(),
             encryption_required,
         )
-        .select_encryption_parameters()
-        .expect_err("selecting parameters from credential request encryption metadata should fail");
+        .select_encryption_parameters();
 
-        assert_matches!(
-            error,
-            CredentialRequestEncryptionMetadataError::NoSupportedEncryptionAlgorithm(algs)
-                if algs == enc_values_supported
-        );
+        if encryption_required {
+            let error =
+                result.expect_err("selecting parameters from credential request encryption metadata should fail");
+
+            assert_matches!(
+                error,
+                CredentialRequestEncryptionMetadataError::NoSupportedEncryptionAlgorithm(algs)
+                    if algs == enc_values_supported
+            );
+        } else {
+            let parameters =
+                result.expect("selecting parameters from credential request encryption metadata should succeed");
+
+            assert!(parameters.is_none());
+        }
     }
 }
