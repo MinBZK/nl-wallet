@@ -641,8 +641,9 @@ where
         // Metadata. There are two cases in which request encryption is not used:
         //
         // 1. When the `credential_request_encryption` field is not present in the Issuer Metadata.
-        // 2. When all of the JWKs contained in the `credential_request_encryption` field are unsupported and the Issuer
-        //    indicates that request encryption is optional by setting the `encryption_required` field to `false`.
+        // 2. When all of the JWKs contained in the `credential_request_encryption` field are unsupported or lack a
+        //    `kid` value and the Issuer indicates that request encryption is optional by setting the
+        //    `encryption_required` field to `false`.
         //
         // Note that the Wallet chooses to always apply request encryption when there is a valid JWK.
         let encryption_parameters = credential_request_encryption

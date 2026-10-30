@@ -1,8 +1,4 @@
-use std::collections::HashSet;
-use std::collections::VecDeque;
-
 use error_category::ErrorCategory;
-use itertools::Either;
 use itertools::Itertools;
 use jwe::algorithm::CompressionAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
@@ -21,28 +17,25 @@ use crate::metadata::issuer_metadata::CredentialRequestEncryption;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CredentialRequestEncryptionMetadataError {
-    #[error("missing \"kid\" value of JWK(s) at index: {}", .0.iter().join(", "))]
-    #[category(critical)]
-    MissingKid(VecNonEmpty<usize>),
-
-    #[error("\"kid\" value(s) used by multiple JWKs: {}", .0.iter().join(", "))]
-    #[category(pd)]
-    DuplicateKid(NESet<String>),
-
     #[error(
-        "none of the JWKs contained a supported algorithm or were internally consistent: {}",
-        std::iter::once(first).chain(subsequent).join(", ")
+        "no suitable JWK candidate received: {}",
+        .0.iter().join(", ")
     )]
     #[category(pd)]
-    NoSupportedJwk {
-        #[source]
-        first: EcdhPublicJwkError,
-        subsequent: Vec<EcdhPublicJwkError>,
-    },
+    NoSupportedJwk(VecNonEmpty<CredentialRequestJwkError>),
 
     #[error("no supported encryption algorithm found among those listed: {}", .0.iter().join(", "))]
     #[category(pd)]
     NoSupportedEncryptionAlgorithm(NESet<JweEncryptionAlgorithm>),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CredentialRequestJwkError {
+    #[error("unsupported or inconsistent JWK: {0}")]
+    EcdhJwk(#[source] EcdhPublicJwkError),
+
+    #[error("JWK does not have a \"kid\" value")]
+    MissingKid,
 }
 
 /// Data type that is the result of the selecting a Credential Request encryption JWK to use amongst those present in
@@ -82,62 +75,37 @@ impl CredentialRequestEncryption {
     pub(crate) fn select_encryption_parameters(
         &self,
     ) -> Result<Option<CredentialRequestEncryptionParameters>, CredentialRequestEncryptionMetadataError> {
-        // According to the OpenID4VCI spec, every advertised Credential Request encryption JWK must have a `kid` value.
-        let (kids, missing_kid_indices): (Vec<_>, Vec<_>) =
-            self.jwks
-                .keys
-                .iter()
-                .enumerate()
-                .partition_map(|(index, jwk)| match jwk.kid() {
-                    Some(kid) => Either::Left(kid),
-                    None => Either::Right(index),
-                });
+        // Find the first JWK that both contains a `kid` value and is supported and internally consistent, while
+        // collecting an error for each JWK that does not meet these criteria. Note that, according to the OpenID4VCI
+        // spec, every advertised Credential Request encryption JWK must have a `kid` value. For our purposes it is only
+        // relevant that the selected JWK has one.
+        let mut jwk_errors = Vec::new();
+        let public_key = self.jwks.keys.iter().find_map(|jwk| {
+            if jwk.kid().is_none() {
+                jwk_errors.push(CredentialRequestJwkError::MissingKid);
 
-        if let Ok(missing_kid_indices) = VecNonEmpty::try_from(missing_kid_indices) {
-            return Err(CredentialRequestEncryptionMetadataError::MissingKid(
-                missing_kid_indices,
-            ));
-        }
+                return None;
+            }
 
-        // According to the OpenID4VCI spec, the `kid` value should be unique to each JWK.
-        let duplicate_kids = kids
-            .into_iter()
-            .duplicates()
-            .map(str::to_string)
-            .collect::<HashSet<_>>();
-
-        if let Some(duplicate_kids) = NESet::try_from_set(duplicate_kids) {
-            return Err(CredentialRequestEncryptionMetadataError::DuplicateKid(duplicate_kids));
-        }
-
-        // Find the first JWK that contains a valid and supported public key, while collecting the error for each
-        // unsupported JWK.
-        let mut jwk_errors = VecDeque::new();
-        let public_key = self
-            .jwks
-            .keys
-            .iter()
-            .find_map(|jwk| match JwePublicKey::try_from_jwk(jwk) {
+            match JwePublicKey::try_from_jwk(jwk) {
                 Ok(public_key) => Some(public_key),
                 Err(error) => {
-                    jwk_errors.push_back(error);
+                    jwk_errors.push(CredentialRequestJwkError::EcdhJwk(error));
+
                     None
                 }
-            });
+            }
+        });
 
         let Some(public_key) = public_key else {
             if self.encryption_required {
                 // If no supported JWK is found and encryption is mandatory, return an error containing all of the JWK
                 // errors encountered.
-                let first = jwk_errors.pop_front().expect(
-                    "jwk_errors should contain at least one value, as self.jwks.keys is non-empty and none of the \
-                     JWKs parsed successfully",
-                );
-
-                return Err(CredentialRequestEncryptionMetadataError::NoSupportedJwk {
-                    first,
-                    subsequent: jwk_errors.into(),
-                });
+                return Err(CredentialRequestEncryptionMetadataError::NoSupportedJwk(
+                    jwk_errors
+                        .try_into()
+                        .expect("self.jwks.keys is non-empty and none of the JWKs parsed successfully"),
+                ));
             } else {
                 // If encryption is mandatory, succeed and return no encryption parameters.
                 return Ok(None);
@@ -276,63 +244,18 @@ mod tests {
     }
 
     #[rstest]
-    fn test_error_missing_kid(#[values(false, true)] encryption_required: bool) {
-        // If any of the provided JWKs is missing a `kid` value the selection procedure should return an error, even if
-        // one or more of the keys are valid.
-        let error = credential_request_encryption(
-            vec_nonempty![
-                valid_ec_key(0),
-                ec_key_without_kid(),
-                valid_ec_key(2),
-                ec_key_without_kid()
-            ],
-            encryption_required,
-        )
-        .select_encryption_parameters()
-        .expect_err("selecting parameters from credential request encryption metadata should fail");
-
-        assert_matches!(
-            error,
-            CredentialRequestEncryptionMetadataError::MissingKid(indices) if indices == vec_nonempty![1, 3]
-        );
-    }
-
-    #[rstest]
-    fn test_error_duplicate_kid(#[values(false, true)] encryption_required: bool) {
-        // If any of the `kid` values in the JWKs appear more than once the selection procedure should return an error,
-        // even if one or more of the keys are valid.
-        let error = credential_request_encryption(
-            vec_nonempty![
-                valid_ec_key(0),
-                valid_ec_key(1),
-                valid_ec_key(2),
-                valid_ec_key(3),
-                valid_ec_key(3),
-                valid_ec_key(1),
-            ],
-            encryption_required,
-        )
-        .select_encryption_parameters()
-        .expect_err("selecting parameters from credential request encryption metadata should fail");
-
-        assert_matches!(
-            error,
-            CredentialRequestEncryptionMetadataError::DuplicateKid(kids)
-                if kids == nes!["ec-key-1".to_string(), "ec-key-3".to_string()]
-        );
-    }
-
-    #[rstest]
     fn test_error_no_supported_jwk(#[values(false, true)] encryption_required: bool) {
-        // If all of the JWKs are invalid or use unsupported algorithms, the selection procedure should return an error
-        // only if encryption is mandatory. Otherwise, it should return `None`.
+        // If all of the JWKs are lacking a `kid`, are invalid or use unsupported algorithms, the selection procedure
+        // should return an error only if encryption is mandatory. Otherwise, it should return `None`.
         let result = credential_request_encryption(
             vec_nonempty![
-                invalid_ec_key(0),
+                ec_key_without_kid(),
                 invalid_ec_key(1),
-                rsa_key(2),
-                invalid_ec_key(3),
-                rsa_key(4),
+                invalid_ec_key(2),
+                rsa_key(3),
+                invalid_ec_key(4),
+                rsa_key(5),
+                ec_key_without_kid(),
             ],
             encryption_required,
         )
@@ -344,7 +267,7 @@ mod tests {
 
             assert_matches!(
                 error,
-                CredentialRequestEncryptionMetadataError::NoSupportedJwk { subsequent, .. } if subsequent.len() == 4
+                CredentialRequestEncryptionMetadataError::NoSupportedJwk(errors) if errors.len().get() == 7
             );
         } else {
             let parameters =
