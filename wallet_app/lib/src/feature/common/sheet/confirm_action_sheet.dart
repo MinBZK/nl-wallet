@@ -7,6 +7,7 @@ import '../widget/button/primary_button.dart';
 import '../widget/button/secondary_button.dart';
 import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
+import 'wallet_modal_bottom_sheet.dart';
 
 /// A widget that displays a modal bottom sheet for confirming an action.
 ///
@@ -130,10 +131,8 @@ class ConfirmActionSheet extends StatelessWidget {
     required ConfirmSheetButtonStyle cancelButton,
     Widget? extraContent,
   }) async {
-    final confirmed = await showModalBottomSheet<bool>(
+    final confirmed = await showWalletModalBottomSheet<bool>(
       context: context,
-      isScrollControlled: true,
-      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
       builder: (BuildContext context) {
         return ConfirmActionSheet(
           title: title,

@@ -5,6 +5,7 @@ import '../../../domain/usecase/notification/set_push_notifications_setting_usec
 import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
+import '../../common/sheet/wallet_modal_bottom_sheet.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 /// A bottom sheet that asks the user to grant notification permissions.
@@ -38,10 +39,9 @@ class RequestNotificationPermissionSheet extends StatelessWidget {
   }
 
   static Future<bool> show(BuildContext context) async {
-    final confirmed = await showModalBottomSheet<bool>(
+    final confirmed = await showWalletModalBottomSheet<bool>(
       context: context,
       isDismissible: false,
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return const WalletScrollbar(
           child: SingleChildScrollView(
