@@ -83,6 +83,8 @@ jq '.swift_package_manager_enabled.ios = true' "$work/flutter-plugins-dependenci
 for variant in full prod; do
     flags=()
     if [[ "$variant" == prod ]]; then flags+=(--exclude-test-targets); fi
+    # Bash 3.2 (macOS) treats empty arrays as unset under set -u.
+    # The guarded expansion passes no arguments when flags is empty.
     (cd wallet_app/ios && cyclonedx-cocoapods ${flags[@]+"${flags[@]}"} --name nl-wallet-ios \
         --version "$version" --type application --output "$work/ios-$variant.xml")
     cyclonedx convert --output-version v1_5 --input-file "$work/ios-$variant.xml" --output-format json \
