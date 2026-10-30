@@ -70,10 +70,6 @@ impl Mdoc {
     pub fn issuer_certificate_chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
         self.issuer_signed.issuer_auth.x5chain()
     }
-
-    pub fn issuer_leaf_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
-        self.issuer_certificate_chain().map(VecNonEmpty::into_first)
-    }
 }
 
 #[cfg(any(test, feature = "test"))]
