@@ -47,14 +47,14 @@ impl<R, T, U> AdminPortalService<R, T, U> {
 
         let result = user_state
             .repositories
-            .find_wallet_user_by_wallet_id(&transaction, wallet_id)
+            .find_wallet_user_state_by_wallet_id(&transaction, wallet_id)
             .await
             .map_err(CheckWalletError::Storage)?;
 
         transaction.commit().await.map_err(CheckWalletError::Storage)?;
 
         match result {
-            QueryResult::Found(wallet_user) => Ok(wallet_user.state),
+            QueryResult::Found(state) => Ok(*state),
             QueryResult::NotFound => Err(CheckWalletError::NotFound(wallet_id.clone())),
         }
     }
@@ -70,7 +70,6 @@ mod tests {
     use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
-    use wallet_provider_domain::model::wallet_user::mock::wallet_user_with_id;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockAdminPortalRepository;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
@@ -136,31 +135,19 @@ mod tests {
     }
 
     #[rstest]
-    #[case::active(WalletUserState::Active)]
-    #[case::blocked(WalletUserState::Blocked)]
-    #[case::recovering_pin(WalletUserState::RecoveringPin)]
-    #[case::transferring(WalletUserState::Transferring)]
-    #[case::transferred(WalletUserState::Transferred)]
-    #[case::revoked(WalletUserState::Revoked)]
     #[tokio::test]
-    async fn check_wallet_returns_state_when_found(
-        wallet_id: WalletId,
-        privileged_user: LoggedInUser,
-        #[case] state: WalletUserState,
-    ) {
+    async fn check_wallet_returns_state_when_found(wallet_id: WalletId, privileged_user: LoggedInUser) {
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         let returned_wallet_id = wallet_id.clone();
         wallet_user_repo
-            .expect_find_wallet_user_by_wallet_id()
+            .expect_find_wallet_user_state_by_wallet_id()
             .times(1)
             .return_once(move |_, id| {
                 assert_eq!(*id, returned_wallet_id);
-                let mut wallet_user = wallet_user_with_id(id.clone());
-                wallet_user.state = state;
-                Ok(QueryResult::Found(Box::new(wallet_user)))
+                Ok(QueryResult::Found(Box::new(WalletUserState::Active)))
             });
         let user_state = user_state(
             wallet_user_repo,
@@ -173,7 +160,7 @@ mod tests {
 
         let result = service().check_wallet(&wallet_id, &privileged_user, &user_state).await;
 
-        assert_matches!(result, Ok(found_state) if found_state == state);
+        assert_matches!(result, Ok(found_state) if found_state == WalletUserState::Active);
     }
 
     #[rstest]
@@ -187,7 +174,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_find_wallet_user_by_wallet_id()
+            .expect_find_wallet_user_state_by_wallet_id()
             .times(1)
             .return_once(|_, _| Ok(QueryResult::NotFound));
         let user_state = user_state(

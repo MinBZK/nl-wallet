@@ -23,6 +23,7 @@ use crate::keys::Kid;
 use crate::model::QueryResult;
 
 pub type WalletUserQueryResult = QueryResult<WalletUser>;
+pub type WalletUserStateQueryResult = QueryResult<WalletUserState>;
 
 #[derive(Debug, Clone)]
 pub struct WithKid<T> {

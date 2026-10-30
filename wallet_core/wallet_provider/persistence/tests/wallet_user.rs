@@ -65,6 +65,45 @@ async fn test_list_wallets() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_find_wallet_user_state_by_wallet_id() {
+    let db_setup = DbSetup::create().await;
+    let (db, wallet_user_id, wallet_id, _) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
+    let repositories = Repositories::from(db);
+    let transaction = repositories.begin_transaction().await.unwrap();
+
+    let state = repositories
+        .find_wallet_user_state_by_wallet_id(&transaction, &wallet_id)
+        .await
+        .unwrap();
+    assert_matches!(state, QueryResult::Found(state) if *state == WalletUserState::Active);
+
+    transition_wallet_user_state(
+        &transaction,
+        wallet_user_id,
+        WalletUserState::Active,
+        WalletUserState::Blocked,
+    )
+    .await
+    .unwrap();
+
+    // Find state of provisioned wallet user, should return found state
+    let state = repositories
+        .find_wallet_user_state_by_wallet_id(&transaction, &wallet_id)
+        .await
+        .unwrap();
+    assert_matches!(state, QueryResult::Found(state) if *state == WalletUserState::Blocked);
+
+    // Find state of unknown user should return not found
+    let missing = repositories
+        .find_wallet_user_state_by_wallet_id(&transaction, &WalletId::from("unknown".to_owned()))
+        .await
+        .unwrap();
+    assert_matches!(missing, QueryResult::NotFound);
+
+    transaction.commit().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_find_wallet_user_by_wallet_id() {
     let db_setup = DbSetup::create().await;
     let (db, wallet_user_id, wallet_id, wallet_user_model) =

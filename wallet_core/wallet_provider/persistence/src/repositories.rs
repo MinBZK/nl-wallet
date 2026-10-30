@@ -34,6 +34,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WalletUserStateQueryResult;
 use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::PersistenceError;
@@ -219,6 +220,15 @@ impl WalletUserRepository for Repositories {
         wallet_id: &WalletId,
     ) -> Result<WalletUserQueryResult, PersistenceError> {
         wallet_user::find_wallet_user_by_wallet_id(transaction, wallet_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_wallet_user_state_by_wallet_id(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &WalletId,
+    ) -> Result<WalletUserStateQueryResult, PersistenceError> {
+        wallet_user::find_wallet_user_state_by_wallet_id(transaction, wallet_id).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -721,6 +731,7 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
+    use wallet_provider_domain::model::wallet_user::WalletUserStateQueryResult;
     use wallet_provider_domain::model::wallet_user::WithKid;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_1;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_with_id;
@@ -837,6 +848,12 @@ pub mod mock {
                 transaction: &MockTransaction,
                 wallet_id: &WalletId,
             ) -> Result<WalletUserQueryResult, PersistenceError>;
+
+            async fn find_wallet_user_state_by_wallet_id(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &WalletId,
+            ) -> Result<WalletUserStateQueryResult, PersistenceError>;
 
             async fn find_wallet_user_id_by_wallet_ids(
                 &self,
@@ -1181,6 +1198,14 @@ pub mod mock {
                 recovery_code: None,
                 recovery_code_is_denied: false,
             })))
+        }
+
+        async fn find_wallet_user_state_by_wallet_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &WalletId,
+        ) -> Result<WalletUserStateQueryResult, PersistenceError> {
+            Ok(QueryResult::Found(Box::new(self.state)))
         }
 
         async fn find_wallet_user_id_by_wallet_ids(
