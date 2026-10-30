@@ -10,6 +10,8 @@ if [[ -n "$(find "$output" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
     exit 1
 fi
 work="$(mktemp -d)"
+# cargo-cyclonedx writes one file next to each workspace member's manifest.
+# Unique filenames keep previous SBOMs out of both merges and out of cleanup.
 rust_name="sbom-$(basename "$work")"
 rust_files=()
 full=()
@@ -31,8 +33,6 @@ normalize_bom() {
     mv "$work/normalized.json" "$1"
 }
 
-# cargo-cyclonedx writes one file next to each workspace member's manifest.
-# Unique filenames keep previous SBOMs out of both merges and out of cleanup.
 cargo metadata --locked --no-deps --format-version 1 --manifest-path wallet_core/Cargo.toml > "$work/rust.json"
 cargo metadata --locked --no-deps --format-version 1 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml > "$work/uniffi.json"
 version=$(jq -er '.packages[] | select(.name == "flutter_api") | .version' "$work/rust.json")
