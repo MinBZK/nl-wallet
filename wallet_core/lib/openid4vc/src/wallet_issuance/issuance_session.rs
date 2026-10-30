@@ -114,6 +114,9 @@ pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
     session_state: IssuanceState,
 }
 
+/// Part of the method signature of `VcMessageClient::request_credential()`, which allows either an unencrypted or
+/// encrypted Credential Request to be sent to the Issuer. Note that the ownership is different for both variants, as
+/// the canonical implementation of `request_credential()` only requires ownership of the encrypted variant.
 #[derive(Debug)]
 pub enum CredentialRequestBody<'a> {
     Plain(&'a CredentialRequest),
