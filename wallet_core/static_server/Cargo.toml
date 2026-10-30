@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[package.metadata.sbom]
+# Local development server.
+production-root = false
+
 [lints]
 workspace = true
 

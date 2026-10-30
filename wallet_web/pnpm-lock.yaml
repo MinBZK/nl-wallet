@@ -15,6 +15,13 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      axios:
+        specifier: ^1.20.0
+        version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
+      vue:
+        specifier: ^3.5.43
+        version: 3.5.43(typescript@6.0.3)
     devDependencies:
       '@microsoft/api-extractor':
         specifier: ^7.59.3
@@ -49,9 +56,6 @@ importers:
       autoprefixer:
         specifier: ^10.6.1
         version: 10.6.1(postcss@8.5.28)
-      axios:
-        specifier: ^1.20.0
-        version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
       eslint:
         specifier: ^10.11.0
         version: 10.11.0(supports-color@8.1.1)
@@ -91,9 +95,6 @@ importers:
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@26.6.3)(@vitest/coverage-v8@4.1.11)(happy-dom@21.0.4)(vite@8.3.3(@types/node@26.6.3))
-      vue:
-        specifier: ^3.5.43
-        version: 3.5.43(typescript@6.0.3)
       vue-tsc:
         specifier: ^3.3.11
         version: 3.3.11(typescript@6.0.3)
