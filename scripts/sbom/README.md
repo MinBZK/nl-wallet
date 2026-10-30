@@ -76,10 +76,10 @@ artifacts. On the default branch, the full files are stored at
 
 Two default-branch jobs upload the JSON files to Dependency-Track:
 
-| Job | File | Project |
+| Job | File | Project ID key in `nl-wallet-dependency-track-secret` |
 | --- | --- | --- |
-| `upload-sbom-to-dependency-track` | `bom.json` | Existing `project_id` from `nl-wallet-dependency-track-secret`. |
-| `upload-prod-sbom-to-dependency-track` | `bom-prod.json` | `bf56a989-fdcc-4316-a512-533fee3ad8c0`, configured as `DEPENDENCY_TRACK_PROJECT_ID`. |
+| `upload-sbom-to-dependency-track` | `bom.json` | `project_id` |
+| `upload-prod-sbom-to-dependency-track` | `bom-prod.json` | `prod_project_id` |
 
 Both jobs reuse the existing secret's API key and upload URL. The API key must
 have upload access to both projects. No project is created by the pipeline.

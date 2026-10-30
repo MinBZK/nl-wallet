@@ -41,11 +41,7 @@ build-sbom:
   script: |
     set -euo pipefail
     test -s "$BOM_FILENAME"
-    if [[ -n "${DEPENDENCY_TRACK_PROJECT_ID+x}" ]]; then
-      PROJECT_ID="$DEPENDENCY_TRACK_PROJECT_ID"
-    else
-      PROJECT_ID=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.project_id}' | base64 --decode)
-    fi
+    PROJECT_ID=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath="{.data.${DEPENDENCY_TRACK_PROJECT_ID_KEY}}" | base64 --decode)
     : "${PROJECT_ID:?Missing Dependency-Track project ID}"
     API_KEY=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.api_key}' | base64 --decode)
     URL=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.url}' | base64 --decode)
@@ -62,9 +58,10 @@ upload-sbom-to-dependency-track:
   extends: .upload-sbom-to-dependency-track
   variables:
     BOM_FILENAME: bom.json
+    DEPENDENCY_TRACK_PROJECT_ID_KEY: project_id
 
 upload-prod-sbom-to-dependency-track:
   extends: .upload-sbom-to-dependency-track
   variables:
     BOM_FILENAME: bom-prod.json
-    DEPENDENCY_TRACK_PROJECT_ID: "bf56a989-fdcc-4316-a512-533fee3ad8c0"
+    DEPENDENCY_TRACK_PROJECT_ID_KEY: prod_project_id
