@@ -413,7 +413,7 @@ for CERT_TYPE in wrprc tsl; do
         --type "${CERT_TYPE}" \
         --ca-key-file "${WRPRC_CA_DIR}/ca.wrprc.key.pem" \
         --ca-crt-file "${WRPRC_CA_DIR}/ca.wrprc.crt.pem" \
-        --common-name "Development Registrar ${CERT_TYPE}" \
+        --common-name "Development Registrar" \
         --organization-name "Development Registrar" \
         --organization-id "NTRNL-00000001" \
         --file-prefix "${TARGET_DIR}/${CERT_TYPE}-registrar.${IDENTIFIER}"
