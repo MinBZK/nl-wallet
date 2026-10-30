@@ -1,4 +1,6 @@
 use crypto::keys::SecureEcdsaKey;
+use serde::Deserialize;
+use serde::Serialize;
 use token_status_list::status_list_service::StatusListService;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::admin_task::TaskType;
@@ -13,6 +15,25 @@ use super::AdminPortalService;
 use super::LoggedInUser;
 use crate::account_server::UserState;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum WalletRevocationState {
+    Revoked,
+    Revokable,
+}
+
+impl From<WalletUserState> for WalletRevocationState {
+    fn from(source: WalletUserState) -> Self {
+        // All wallets that have not yet been revoked can be revoked, see
+        // [`wallet_provider_persistence::wallet_user::revoke_wallets`]
+        if source == WalletUserState::Revoked {
+            Self::Revoked
+        } else {
+            Self::Revokable
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum CheckWalletError {
     #[error("missing privilege for task type {0}")]
@@ -24,12 +45,12 @@ pub enum CheckWalletError {
 }
 
 impl<R, T, U> AdminPortalService<R, T, U> {
-    pub async fn check_wallet<TX, UR, F, H>(
+    pub async fn get_wallet_revocation_state<TX, UR, F, H>(
         &self,
         wallet_id: &WalletId,
         user: &LoggedInUser,
         user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
-    ) -> Result<WalletUserState, CheckWalletError>
+    ) -> Result<WalletRevocationState, CheckWalletError>
     where
         TX: Committable,
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
@@ -54,7 +75,7 @@ impl<R, T, U> AdminPortalService<R, T, U> {
         transaction.commit().await.map_err(CheckWalletError::Storage)?;
 
         match result {
-            QueryResult::Found(state) => Ok(*state),
+            QueryResult::Found(state) => Ok((*state).into()),
             QueryResult::NotFound => Err(CheckWalletError::NotFound(wallet_id.clone())),
         }
     }
@@ -128,7 +149,7 @@ mod tests {
         );
 
         let result = service()
-            .check_wallet(&wallet_id, &unprivileged_user, &user_state)
+            .get_wallet_revocation_state(&wallet_id, &unprivileged_user, &user_state)
             .await;
 
         assert_matches!(result, Err(CheckWalletError::MissingPrivilege(TaskType::RevokeWallet)));
@@ -158,9 +179,11 @@ mod tests {
             mock_status_list_service(),
         );
 
-        let result = service().check_wallet(&wallet_id, &privileged_user, &user_state).await;
+        let result = service()
+            .get_wallet_revocation_state(&wallet_id, &privileged_user, &user_state)
+            .await;
 
-        assert_matches!(result, Ok(found_state) if found_state == WalletUserState::Active);
+        assert_matches!(result, Ok(found_state) if found_state == WalletRevocationState::Revokable);
     }
 
     #[rstest]
@@ -186,7 +209,9 @@ mod tests {
             mock_status_list_service(),
         );
 
-        let result = service().check_wallet(&wallet_id, &privileged_user, &user_state).await;
+        let result = service()
+            .get_wallet_revocation_state(&wallet_id, &privileged_user, &user_state)
+            .await;
 
         assert_matches!(result, Err(CheckWalletError::NotFound(id)) if id == wallet_id);
     }

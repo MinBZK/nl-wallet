@@ -36,7 +36,6 @@ use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::wallet_user::WalletId;
-use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::admin_portal::AdminPortalConfig;
 use wallet_provider_service::admin_portal::AdminPortalService;
@@ -49,6 +48,7 @@ use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
 use wallet_provider_service::admin_portal::wallet_lookup::CheckWalletError;
+use wallet_provider_service::admin_portal::wallet_lookup::WalletRevocationState;
 
 use crate::router_state::ProductionUserState;
 use crate::settings::AdminPortalSettings;
@@ -475,7 +475,7 @@ async fn list_tasks(
 #[cfg_attr(feature = "web_test", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub struct CheckWalletResponse {
-    pub status: WalletUserState,
+    pub status: WalletRevocationState,
 }
 
 async fn check_wallet(
@@ -485,7 +485,7 @@ async fn check_wallet(
 ) -> Result<Json<CheckWalletResponse>, WalletApiError> {
     let status = state
         .service
-        .check_wallet(&wallet_id, &user, &state.user_state)
+        .get_wallet_revocation_state(&wallet_id, &user, &state.user_state)
         .await
         .map_err(WalletApiError::Check)?;
 

@@ -39,13 +39,13 @@ use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::model::wallet_user::WalletId;
-use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
+use wallet_provider_service::admin_portal::wallet_lookup::WalletRevocationState;
 
 /// An admin portal user. Every user gets a unique id, so tests sharing a database do not see each other's data.
 struct TestUser {
@@ -246,7 +246,7 @@ async fn test_check_wallet_succeeds() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let body: CheckWalletResponse = json_body(response).await;
-    assert_eq!(body.status, WalletUserState::Active);
+    assert_eq!(body.status, WalletRevocationState::Revokable);
 }
 
 #[serial_test::serial(hsm)]
