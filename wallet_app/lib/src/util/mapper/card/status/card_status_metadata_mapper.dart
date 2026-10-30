@@ -33,6 +33,7 @@ class CardStatusMetadataMapper {
         text: formatter.text(context, card, isPidCard: isPidCard),
         textColor: formatter.textColor(context, card.status),
         icon: formatter.icon(card.status),
+        iconSemanticsLabel: formatter.iconSemanticsLabel(context, card),
         iconColor: formatter.iconColor(context, card.status),
         backgroundColor: formatter.backgroundColor(context, card.status),
       );

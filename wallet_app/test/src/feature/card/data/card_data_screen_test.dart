@@ -190,5 +190,24 @@ void main() {
       expect(errorFinder, findsAtLeastNWidgets(1));
       expect(ctaFinder, findsOneWidget);
     });
+
+    testWidgets('revoked status is exposed as one labelled announcement, not by icon and colour only', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardDataScreen(cardTitle: 'Card Title').withState<CardDataBloc, CardDataState>(
+          MockCardDataBloc(),
+          CardDataLoadSuccess(WalletMockData.cardWithStatus(const CardStatusRevoked())),
+        ),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      final statusSemantics = tester.getSemantics(find.text(l10n.cardStatusMetadataCardDataScreenRevoked));
+      expect(
+        statusSemantics,
+        matchesSemantics(
+          label: '${l10n.cardStatusMetadataWalletItemRevoked}\n${l10n.cardStatusMetadataCardDataScreenRevoked}',
+        ),
+      );
+    });
   });
 }

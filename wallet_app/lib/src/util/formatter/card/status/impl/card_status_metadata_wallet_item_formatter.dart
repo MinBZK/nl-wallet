@@ -65,6 +65,9 @@ class CardStatusMetadataWalletItemFormatter implements CardStatusMetadataFormatt
   }
 
   @override
+  String? iconSemanticsLabel(BuildContext context, WalletCard card) => null;
+
+  @override
   Color iconColor(BuildContext context, CardStatus status) {
     const colorScheme = LightWalletTheme.colorScheme;
     return switch (status) {

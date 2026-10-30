@@ -31,8 +31,6 @@ class MenuScreen : MobileActions() {
 
     fun clickSettingsButton() = clickElementWithText(settingsButton)
 
-    fun clickFeedbackButton() = clickElementWithText(feedbackButton)
-
     fun clickAboutButton() {
         scrollToElementWithText(aboutButton)
         clickElementWithText(aboutButton)

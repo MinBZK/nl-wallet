@@ -17,6 +17,8 @@ const kMockPin = '123456';
 // External URLs
 const kDigidWebsiteUrl = 'https://www.digid.nl/inlogmethodes/identiteitsbewijs';
 const kSafeBrowsingUrl = 'https://veiliginternetten.nl';
+const kFeedbackFormUrlEn = 'https://formulieren.pleio.nl/forms/55e9b98f-39f1-4aec-81e4-2e3ab11fbc88/introduction';
+const kFeedbackFormUrlNl = 'https://formulieren.pleio.nl/forms/f00f1f33-71f1-459f-a6c1-a34c84772eac/introduction';
 
 // Mocking
 const kDefaultMockDelay = Duration(milliseconds: 1000);

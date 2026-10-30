@@ -4,6 +4,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/tertiary_button.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';
+import 'wallet_modal_bottom_sheet.dart';
 
 class ExplanationSheet extends StatelessWidget {
   final String title;
@@ -65,10 +66,8 @@ class ExplanationSheet extends StatelessWidget {
     required String description,
     required String closeButtonText,
   }) async {
-    return showModalBottomSheet<void>(
+    return showWalletModalBottomSheet<void>(
       context: context,
-      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return WalletScrollbar(
           child: SingleChildScrollView(
