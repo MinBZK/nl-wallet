@@ -23,6 +23,7 @@ use crypto::EcdsaKeySend;
 use crypto::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
+use crypto::utils::sha256;
 use derive_more::Constructor;
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -30,6 +31,11 @@ use futures::join;
 use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use jwe::algorithm::EcdhAlgorithm;
+use jwe::decryption::JweDecrypter;
+use jwe::decryption::JweEcdhSecretKey;
+use jwe::encryption::JwePublicKey;
+use jwe::error::JweJsonDecryptionError;
 use jwt::SignedJwt;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtSignError;
@@ -47,6 +53,7 @@ use oauth::pkce::S256PkcePair;
 use oauth::scope::Scope;
 use oauth::token::AccessToken;
 use oauth::token::AuthorizationCode;
+use p256::SecretKey;
 use reqwest::Method;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -62,7 +69,6 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
-use utils::vec_nonempty;
 use uuid::Uuid;
 use wscd::payload::key_attestation::KeyAttestationVerificationError;
 use wscd::payload::key_attestation::KeyAttestationVerificationResult;
@@ -88,10 +94,8 @@ use crate::credential_configurations::CredentialConfigurations;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
-use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
-use crate::metadata::issuer_metadata::IssuerInfo;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::SignedIssuerMetadataPayload;
 use crate::metadata::oauth_metadata::IssuerAuthorizationServerMetadata;
@@ -241,6 +245,9 @@ pub enum CredentialRequestError {
 
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
+
+    #[error("could not decrypt credential request: {0}")]
+    Decryption(#[source] JweJsonDecryptionError),
 
     #[error("missing credential request proof")]
     MissingCredentialRequestProof,
@@ -428,6 +435,7 @@ pub struct Issuer<K, L, S, N> {
 pub struct IssuerData<K, L> {
     credential_configs: CredentialConfigurations<K, L>,
 
+    credential_request_decrypter: JweDecrypter,
     batch_size: NonZeroU8,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
@@ -445,27 +453,6 @@ pub struct IssuerData<K, L> {
 }
 
 impl<K, L> IssuerData<K, L> {
-    #[expect(clippy::too_many_arguments, reason = "Internal constructor")]
-    fn new(
-        credential_configs: CredentialConfigurations<K, L>,
-        batch_size: NonZeroU8,
-        accepted_wallet_client_ids: HashSet<String>,
-        server_url: BaseUrl,
-        metadata: IssuerMetadata,
-        metadata_keypair: KeyPair<K>,
-        wp_trusted_list_anchors: TrustAnchors,
-    ) -> Self {
-        Self {
-            credential_configs,
-            batch_size,
-            accepted_wallet_client_ids,
-            server_url,
-            metadata,
-            metadata_keypair,
-            wp_trusted_list_anchors,
-        }
-    }
-
     fn get_checked_credential_config(
         &self,
         config_id: &CredentialConfigurationId,
@@ -633,6 +620,24 @@ where
     }
 }
 
+fn credential_request_decrypter_and_public_key(encryption_key: SecretKey) -> (JweDecrypter, JwePublicKey) {
+    // According to OpenID4VCI, a `credential_request_encryption` JWK published in the Issuer Metadata should always
+    // contain a `kid` value. Here, we generate the `kid` for the single public key this Issuer supports by
+    // hex-encoding a hash of its public key. If its configured key changes while an issuance request in progress,
+    // this should lead to an error that the `kid` is incorrect, instead of the JWE library attempting decryption and
+    // then reporting that this failed.
+    let kid = hex::encode(sha256(&encryption_key.public_key().to_sec1_bytes()));
+
+    // Choose `ECDH-ES` as the JWE algorithm for Credential Request encryption, both to mirror OpenID4VP where this
+    // value is mandated by HAIP and because key wrapping does not provided added benefit in this scenario.
+    let secret_key = JweEcdhSecretKey::new(Some(kid), encryption_key, EcdhAlgorithm::EcdhEs);
+
+    let public_key = secret_key.to_jwe_public_key();
+    let decrypter = JweDecrypter::from_ecdh_secret_key(&secret_key);
+
+    (decrypter, public_key)
+}
+
 impl<K, L, S, N> Issuer<K, L, S, N>
 where
     S: SessionStore<IssuanceData> + Sync + 'static,
@@ -644,8 +649,9 @@ where
         issuer_identifier: IssuerIdentifier,
         metadata_keypair: KeyPair<K>,
         registration_certificate: RegistrationCertificateEnvelope,
+        credential_request_encryption_key: SecretKey,
         batch_size: NonZeroU8,
-        wallet_client_ids: HashSet<String>,
+        accepted_wallet_client_ids: HashSet<String>,
         credential_configs: CredentialConfigurations<K, L>,
         credential_preview_endpoint: bool,
         wp_trusted_list_anchors: TrustAnchors,
@@ -659,41 +665,28 @@ where
             credential_preview_endpoint.then(|| server_url.join_issuer_url("/credential_preview"));
         let type_metadata_base_url = server_url.join_issuer_url("/type_metadata");
 
-        let batch_credential_issuance = AtLeastTwoU64::try_new(batch_size.into())
-            .ok()
-            .map(|batch_size| BatchCredentialIssuance { batch_size });
-        let metadata = IssuerMetadata {
-            credential_issuer: issuer_identifier,
-            authorization_servers: None,
-            endpoints: IssuerEndpoints {
-                credential_endpoint,
-                nonce_endpoint: Some(nonce_endpoint),
-                deferred_credential_endpoint: None,
-                notification_endpoint: None,
-                credential_preview_endpoint,
-            },
-            credential_request_encryption: None,
-            credential_response_encryption: None,
-            batch_credential_issuance,
-            display: None,
-            issuer_info: Some(vec_nonempty![IssuerInfo::RegistrationCertificate {
-                data: registration_certificate,
-            }]),
-            credential_configurations_supported: credential_configs
-                .to_credential_configurations_supported(&type_metadata_base_url),
-        };
+        let (credential_request_decrypter, credential_request_public_key) =
+            credential_request_decrypter_and_public_key(credential_request_encryption_key);
 
-        let issuer_data = IssuerData::new(
+        let metadata = IssuerMetadata::new(
+            issuer_identifier,
+            IssuerEndpoints::new(credential_endpoint, nonce_endpoint, credential_preview_endpoint),
+            credential_request_public_key,
+            AtLeastTwoU64::try_new(batch_size.into()).ok(),
+            registration_certificate,
+            credential_configs.to_credential_configurations_supported(&type_metadata_base_url),
+        );
+
+        let issuer_data = IssuerData {
             credential_configs,
+            credential_request_decrypter,
             batch_size,
-            wallet_client_ids,
-            // In this implementation, the public server URL is composed of the Credential Issuer Identifier appended
-            // with the "/issuance/" path.
-            server_url.into_inner(),
+            accepted_wallet_client_ids,
+            server_url: server_url.into_inner(),
             metadata,
             metadata_keypair,
             wp_trusted_list_anchors,
-        );
+        };
 
         let nonce_store = Arc::new(nonce_store);
 
@@ -986,7 +979,7 @@ where
         &self,
         access_token: &AccessToken,
         dpop: Dpop,
-        credential_request: CredentialRequest,
+        credential_request_jwe: &str,
         time: &G,
     ) -> Result<CredentialResponse, CredentialRequestError>
     where
@@ -1000,7 +993,7 @@ where
 
         let response_result = session
             .process_credential_request(
-                credential_request,
+                credential_request_jwe,
                 access_token,
                 dpop,
                 &self.issuer_data,
@@ -1418,7 +1411,7 @@ impl Session<AccessTokenIssued> {
     #[expect(clippy::too_many_arguments, reason = "internal method")]
     async fn process_credential_request<K, L, N, G>(
         &self,
-        credential_request: CredentialRequest,
+        credential_request_jwe: &str,
         access_token: &AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<K, L>,
@@ -1439,6 +1432,12 @@ impl Session<AccessTokenIssued> {
         )?;
 
         let session_data = self.session_data();
+
+        // Decrypt the Credential Request, which should always be encrypted as we publish `encryption_required: true` in
+        // the Issuer Metadata.
+        let credential_request =
+            CredentialRequest::decrypt(credential_request_jwe, &issuer_data.credential_request_decrypter)
+                .map_err(CredentialRequestError::Decryption)?;
 
         // Verify the received proof of cryptographic key material and collect all of the public keys.
         let public_keys = credential_request
@@ -1739,7 +1738,8 @@ mod tests {
     use crypto::utils::random_string;
     use derive_more::Debug;
     use futures::FutureExt;
-    use jwt::jwk::jwk_to_public_key;
+    use jwe::algorithm::EncryptionAlgorithm;
+    use jwe::encryption::JweEncrypter;
     use mdoc::MdocStatus;
     use mdoc::verifier::IssuerSignedVerificationResult;
     use mdoc::verifier::ValidityRequirement;
@@ -1774,6 +1774,7 @@ mod tests {
     use crate::errors::VciTokenErrorCode;
     use crate::issuable_document::IssuableDocument;
     use crate::metadata::issuer_metadata::CredentialMetadata;
+    use crate::metadata::issuer_metadata::IssuerInfo;
     use crate::nonce::response::NonceResponse;
     use crate::preview::CredentialPreviewResponse;
     use crate::server_state::MemorySessionStore;
@@ -1792,6 +1793,7 @@ mod tests {
     use crate::wallet_issuance::AcceptIssuanceTrustAnchors;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
+    use crate::wallet_issuance::issuance_session::CredentialRequestBody;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
     use crate::wallet_issuance::issuer_registration::IssuerRegistration;
@@ -2097,18 +2099,22 @@ mod tests {
             Ok((NonceResponse { c_nonce }, None))
         }
 
-        async fn request_credential(
+        async fn request_credential<'a>(
             &self,
             _url: Url,
-            credential_request: &CredentialRequest,
+            credential_request: CredentialRequestBody<'a>,
             dpop_header: &Dpop,
             access_token: &AccessToken,
         ) -> Result<CredentialResponse, WalletIssuanceError> {
+            let CredentialRequestBody::Encrypted(credential_request_jwe) = credential_request else {
+                panic!("credential request should be encrypted");
+            };
+
             self.issuer
                 .process_credential_request(
                     &self.access_token(access_token),
                     self.dpop_header(dpop_header),
-                    credential_request.clone(),
+                    &credential_request_jwe,
                     &MockTimeGenerator::default(),
                 )
                 .await
@@ -2163,6 +2169,15 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
+            Some(
+                issuer_metadata
+                    .credential_request_encryption
+                    .as_ref()
+                    .unwrap()
+                    .select_encryption_parameters()
+                    .unwrap()
+                    .unwrap(),
+            ),
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
                 oauth_metadata
@@ -2234,6 +2249,7 @@ mod tests {
             issuer_metadata.endpoints,
             IssuerRegistration::new_mock(),
             batch_size,
+            None,
             oauth_metadata.oauth_metadata.token_endpoint,
             ClientAttestationChallengeMechanism::ChallengeEndpoint(
                 oauth_metadata
@@ -2464,6 +2480,7 @@ mod tests {
         UnknownProofNonce,
         CredentialConfigurationId,
         UnknownCredentialIdentifier,
+        JwtProofType,
     }
 
     /// Create a mock `Issuer`, set it up with a fixture of a credential that is ready to be issued and populate a
@@ -2472,7 +2489,14 @@ mod tests {
         format: Format,
         copy_count: NonZeroUsize,
         failure: CredentialRequestFailure,
-    ) -> (MockIssuer, TrustAnchors, AccessToken, Dpop, CredentialRequest) {
+    ) -> (
+        MockIssuer,
+        TrustAnchors,
+        AccessToken,
+        Dpop,
+        VecNonEmpty<VerifyingKey>,
+        String,
+    ) {
         let (issuer, trust_anchors, _issuer_identifier, wptl_ca) = setup_simple_mock_issuer();
 
         // Create tokens and DPoP variables.
@@ -2529,7 +2553,7 @@ mod tests {
             .collect::<VecNonEmpty<_>>();
 
         let key_attestation = IssuanceMockRemoteWscd::new(&wptl_ca).sign_key_attestation(
-            verifying_keys,
+            verifying_keys.clone(),
             nonce,
             &MockTimeGenerator::default(),
         );
@@ -2556,6 +2580,35 @@ mod tests {
             )
         };
 
+        let credential_request_encrypter = JweEncrypter::from(
+            JwePublicKey::try_from_jwk(
+                issuer
+                    .metadata()
+                    .credential_request_encryption
+                    .as_ref()
+                    .unwrap()
+                    .jwks
+                    .keys
+                    .first(),
+            )
+            .unwrap(),
+        );
+
+        let credential_request_jwe = if failure == CredentialRequestFailure::JwtProofType {
+            // Because a "jwt" proof will make a `CredentialRequest` fail to serialize, convert to `serde_json::Value`
+            // first before editing the payload.
+            let mut credential_request = serde_json::to_value(credential_request).unwrap();
+
+            credential_request["proofs"] = json!({"jwt": ["eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.e30.c2ln"]});
+            credential_request_encrypter
+                .encrypt_json(&credential_request, EncryptionAlgorithm::A128Gcm, None, None, None)
+                .unwrap()
+        } else {
+            credential_request
+                .encrypt(&credential_request_encrypter, EncryptionAlgorithm::A128Gcm, None)
+                .unwrap()
+        };
+
         // Create a fixture to populate the `Issuer` session, containing the `PreparedCredential`.
         let access_token_issued = AccessTokenIssued {
             access_token: access_token.clone(),
@@ -2572,7 +2625,14 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        (issuer, trust_anchors, access_token, dpop, credential_request)
+        (
+            issuer,
+            trust_anchors,
+            access_token,
+            dpop,
+            verifying_keys,
+            credential_request_jwe,
+        )
     }
 
     #[rstest]
@@ -2581,26 +2641,15 @@ mod tests {
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
         #[values(1, 4)] copy_count: usize,
     ) {
-        let (issuer, trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            format,
-            copy_count.try_into().unwrap(),
-            CredentialRequestFailure::None,
-        );
-
-        let public_keys = match credential_request.proofs.as_ref() {
-            Some(CredentialRequestProofs::Attestation([key_attestation])) => {
-                let (_header, claims) = key_attestation.as_ref().dangerous_parse_unverified().unwrap();
-                claims
-                    .attested_keys
-                    .iter()
-                    .map(|jwk| jwk_to_public_key(jwk).unwrap())
-                    .collect_vec()
-            }
-            _ => unreachable!(),
-        };
+        let (issuer, trust_anchors, access_token, dpop, holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                format,
+                copy_count.try_into().unwrap(),
+                CredentialRequestFailure::None,
+            );
 
         let response = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect("processing CredentialRequest should succeed");
 
@@ -2682,13 +2731,16 @@ mod tests {
 
         // Check that the holder public keys are exactly the same as the provided input of the credential endpoint.
         assert_eq!(issued_public_keys.len(), copy_count);
-        assert_eq!(issued_public_keys, public_keys);
+        assert_eq!(
+            issued_public_keys,
+            holder_public_keys.into_iter().map(PublicKey::from).collect_vec()
+        );
     }
 
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_malformed_token() {
-        let (issuer, _trust_anchors, _access_token, dpop, credential_request) =
+        let (issuer, _trust_anchors, _access_token, dpop, _holder_public_keys, credential_request) =
             setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
 
         // Processing a Credential Request with an Access Token that is too short to contain an appended Session Token
@@ -2697,7 +2749,7 @@ mod tests {
             .process_credential_request(
                 &"short".to_string().into(),
                 dpop,
-                credential_request,
+                &credential_request,
                 &MockTimeGenerator::default(),
             )
             .await
@@ -2709,7 +2761,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unknown_session() {
-        let (issuer, _trust_anchors, _access_token, dpop, credential_request) =
+        let (issuer, _trust_anchors, _access_token, dpop, _holder_public_keys, credential_request) =
             setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
 
         // Processing a Credential Request with an unknown Session Token should result in an error.
@@ -2717,7 +2769,7 @@ mod tests {
             .process_credential_request(
                 &random_string(64).into(),
                 dpop,
-                credential_request,
+                &credential_request,
                 &MockTimeGenerator::default(),
             )
             .await
@@ -2732,14 +2784,14 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unauthorized() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) =
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
             setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
 
         let access_token = AccessToken::new(&access_token.code().unwrap());
 
         // Processing a Credential Request with an unknown Access Token should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2749,15 +2801,16 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_dpop_invalid() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::WrongDpopNonce,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::WrongDpopNonce,
+            );
 
         // Processing a Credential Request with an incorrect DPoP should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2770,16 +2823,17 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_invalid_attestation_proof() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            3.try_into().unwrap(),
-            CredentialRequestFailure::SingleProofKey,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                3.try_into().unwrap(),
+                CredentialRequestFailure::SingleProofKey,
+            );
 
         // Processing a Credential Request with multiple proof JWTs that all contain the same public key should result
         // in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2789,17 +2843,16 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_proof_type_unsupported() {
-        let (issuer, _trust_anchors, access_token, dpop, mut credential_request) =
-            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
-
         // Replace the proofs with ones of the "jwt" proof type, which the issuer does not support.
-        credential_request.proofs = Some(
-            serde_json::from_value(json!({ "jwt": ["eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.e30.c2ln"] }))
-                .expect("deserializing CredentialRequestProofs should succeed"),
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::JwtProofType,
+            );
 
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2812,15 +2865,16 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_missing_proof_nonce() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::MissingProofNonce,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::MissingProofNonce,
+            );
 
         // Processing a Credential Request with a proof JWT that does not contain a nonce should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2830,15 +2884,16 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_invalid_nonce() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::UnknownProofNonce,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::UnknownProofNonce,
+            );
 
         // Processing a Credential Request with a proof JWT that contains an unknown nonce should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2848,15 +2903,16 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_too_many_copies_requested() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            5.try_into().unwrap(),
-            CredentialRequestFailure::None,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                5.try_into().unwrap(),
+                CredentialRequestFailure::None,
+            );
 
         // Processing a Credential Request with too many proof JWT should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2866,15 +2922,16 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unknown_credential_id() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::UnknownCredentialIdentifier,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::UnknownCredentialIdentifier,
+            );
 
         // Processing a Credential Request with an unknown Credential ID should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2884,15 +2941,16 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_credential_configuration_id_not_allowed() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::CredentialConfigurationId,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::CredentialConfigurationId,
+            );
 
         // Processing a Credential Request for a Credential Configuration ID should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 
@@ -2902,16 +2960,17 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_missing_credential_configuration() {
-        let (issuer, _trust_anchors, access_token, dpop, credential_request) = setup_mock_issuer_and_credential_request(
-            Format::SdJwt,
-            NonZeroUsize::MIN,
-            CredentialRequestFailure::IncorrectPreparedCredentialFormat,
-        );
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::IncorrectPreparedCredentialFormat,
+            );
 
         // Processing a Credential Request when the issuer has an inconsistent `PreparedCredential` in its session state
         // should result in an error.
         let error = issuer
-            .process_credential_request(&access_token, dpop, credential_request, &MockTimeGenerator::default())
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await
             .expect_err("processing CredentialRequest should fail");
 

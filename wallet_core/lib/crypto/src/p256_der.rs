@@ -4,6 +4,7 @@ use std::hash::Hasher;
 use base64::prelude::*;
 use derive_more::AsRef;
 use derive_more::From;
+use p256::SecretKey;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -14,30 +15,44 @@ use p256::pkcs8::EncodePublicKey;
 use crate::utils::sha256;
 
 /// Wraps a [`SigningKey`] and implements `TryFrom<Vec<u8>>` for deserialization using `serde_with`.
+pub type DerSigningKey = DerPrivateKey<SigningKey>;
+
+/// Wraps a [`SecretKey`] and implements `TryFrom<Vec<u8>>` for deserialization using `serde_with`.
+pub type DerSecretKey = DerPrivateKey<SecretKey>;
+
 #[derive(Debug, Clone, From)]
-pub struct DerSigningKey(SigningKey);
+pub struct DerPrivateKey<T>(T);
 
-impl DerSigningKey {
-    pub fn as_inner(&self) -> &SigningKey {
-        let Self(signing_key) = self;
+impl<T> DerPrivateKey<T> {
+    pub fn as_inner(&self) -> &T {
+        let Self(private_key) = self;
 
-        signing_key
+        private_key
     }
 
-    pub fn into_inner(self) -> SigningKey {
-        let Self(signing_key) = self;
+    pub fn into_inner(self) -> T {
+        let Self(private_key) = self;
 
-        signing_key
+        private_key
     }
 }
 
-impl TryFrom<Vec<u8>> for DerSigningKey {
+// This trait is a workaround for the `TryFrom<Vec<u8>>` implementation below, which would conflict with a Rust blanket
+// implementation if the trait bound were `DecodePrivateKey`.
+trait PrivateKey: DecodePrivateKey {}
+impl PrivateKey for SigningKey {}
+impl PrivateKey for SecretKey {}
+
+impl<T> TryFrom<Vec<u8>> for DerPrivateKey<T>
+where
+    T: PrivateKey,
+{
     type Error = p256::pkcs8::Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        let signing_key = SigningKey::from_pkcs8_der(&value)?;
+        let private_key = T::from_pkcs8_der(&value)?;
 
-        Ok(Self(signing_key))
+        Ok(Self(private_key))
     }
 }
 

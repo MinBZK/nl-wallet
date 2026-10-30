@@ -15,7 +15,7 @@ import screen.help.ActivitiesHelpScreen
 import screen.help.ContactScreen
 import screen.help.HelpAndInfoScreen
 import screen.menu.MenuScreen
-import util.MobileActions.Companion.ANIMATION_SETTLE_MILLIS
+import util.MobileActions.Companion.SCREEN_TRANSITION_MILLIS
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 9.6 Get help")
@@ -57,13 +57,13 @@ class HelpTests : TestBase() {
         assertTrue(contactScreen.visible(), "Contact screen not visible")
 
         contactScreen.clickBottomBackButton()
-        Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        assertTrue(activitiesHelpScreen.somethingElseButtonVisible(), "somethingElseButton not visible")
         activitiesHelpScreen.clickBottomBackButton()
-        Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
         activitiesHelpScreen.clickBottomBackButton()
-        Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        assertTrue(activitiesHelpScreen.cardActivitiesButtonVisible(), "cardActivitiesButton not visible")
         helpAndInfoScreen.clickBottomBackButton()
-        Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        assertTrue(helpAndInfoScreen.visible(), "Help buttons are not visible")
         helpAndInfoScreen.clickBottomBackButton()
         assertTrue(menuScreen.menuVisible(), "Menu screen not visible")
     }

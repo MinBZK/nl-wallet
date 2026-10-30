@@ -5,6 +5,40 @@ default:
 variables:
   HELM_CHARTS_PATH: deploy/helm-charts
 
+tag-images-${DEPLOY_ENV}:
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-base:${BUILD_TAG}"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+  script:
+    - set -euo pipefail
+    - |
+      mapfile -t BUILD_IMAGES < deploy/build-images.txt
+
+      errors=()
+
+      tag_images() {
+        local registry="$1"
+        local basic_auth="$2:$(base64 -d <<< "$3")"
+
+        for image in "${BUILD_IMAGES[@]}"; do
+          base="https://${registry}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts"
+          curl -sS -o /dev/null --user "$basic_auth" -XDELETE "$base/${DEPLOY_ENV}/tags/${DEPLOY_ENV}"
+          if ! curl -fsS --user "$basic_auth" -H "Content-Type: application/json" -d '{"name": "${DEPLOY_ENV}"}' "$base/${DEPLOY_IMAGE_VERSION}/tags"; then
+            errors+=("Could not create tag $image:$DEPLOY_ENV on $registry")
+          fi
+        done
+      }
+
+      tag_images "$HARBOR_GN2_REGISTRY" "$HARBOR_GN2_ROBOT_NAME" "$HARBOR_GN2_ROBOT_SECRET"
+      tag_images "$HARBOR_GN3_REGISTRY" "$HARBOR_GN3_ROBOT_NAME" "$HARBOR_GN3_ROBOT_SECRET"
+
+      if [[ ${#errors[@]} -gt 0 ]]; then
+        for error in "${errors[@]}"; do
+          >&2 echo "ERROR: $error"
+        done
+        exit 1
+      fi
+
 .deploy-base:
   rules:
     - if: $CI_PIPELINE_SOURCE == "parent_pipeline"

@@ -82,18 +82,18 @@ class PidIssuanceTests : TestBase() {
         personalizePidPreviewScreen.switchToNativeContext()
         assertAll(
             { assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "first name is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "name is not visible") },
         )
         personalizePidPreviewScreen.captureA11ySnapshot("PersonalizePidPreview")
 
         personalizePidPreviewScreen.scrollToEndOfScreen()
         assertAll(
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(POSTAL_CODE, DEFAULT_BSN)), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(STREET, DEFAULT_BSN)), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(CITY, DEFAULT_BSN)), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(HOUSE_NUMBER, DEFAULT_BSN)), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "bsn is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(POSTAL_CODE, DEFAULT_BSN)), "postal code is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(STREET, DEFAULT_BSN)), "street is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(CITY, DEFAULT_BSN)), "city is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(HOUSE_NUMBER, DEFAULT_BSN)), "house number is not visible") },
             { assertTrue(personalizePidPreviewScreen.confirmButtonsVisible(), "confirm buttons are not visible") }
         )
         personalizePidPreviewScreen.captureA11ySnapshot("PersonalizePidPreviewBottom")

@@ -1,5 +1,6 @@
 pub mod attributes;
 pub mod credential_payload;
+pub mod decoded_claims;
 pub mod disclosure;
 pub mod disclosure_type;
 pub mod metadata;

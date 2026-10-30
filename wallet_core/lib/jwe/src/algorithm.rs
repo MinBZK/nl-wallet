@@ -3,6 +3,7 @@ use jwk_simple::Algorithm;
 #[cfg(feature = "rsa")]
 pub use rsa::RsaAlgorithm;
 use strum::EnumString;
+use strum::VariantArray;
 
 /// A type representing possible values of the "alg" header parameter value for JWE, when using an elliptic curve
 /// secret and public key. It contains only those algorithms supported by this crate.
@@ -55,7 +56,7 @@ impl From<EcdhAlgorithm> for EcdhEsJweAlgorithm {
 
 /// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm. It contains only
 /// those algorithms supported by this crate. See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, EnumString, VariantArray)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum EncryptionAlgorithm {
     #[strum(serialize = "A128CBC-HS256")]
@@ -67,6 +68,14 @@ pub enum EncryptionAlgorithm {
     A128Gcm,
     A192Gcm,
     A256Gcm,
+}
+
+/// A type representing possible values of the "zip" header parameter value for JWE. The value of this header indicates
+/// the compression algorithm of the payload.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, EnumString)]
+pub enum CompressionAlgorithm {
+    #[strum(serialize = "DEF")]
+    Deflate,
 }
 
 #[cfg(feature = "rsa")]

@@ -119,4 +119,23 @@ void main() {
       expect(find.byType(CheckAttributesScreen), findsOneWidget);
     });
   });
+
+  group('Organization', () {
+    testWidgets('About organization row is exposed as a single named button, without an unnamed wrapper button', (
+      tester,
+    ) async {
+      final semanticsHandle = tester.ensureSemantics();
+      await tester.pumpWidgetWithAppWrapper(
+        buildLoginDetailScreen(cardRequests: [WalletMockData.discloseCardRequestSingleCard]),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      final ctaLabel = l10n.requestDetailScreenAboutOrganizationCta(WalletMockData.organization.displayName);
+      final button = tester.getSemantics(find.text(ctaLabel));
+      expect(button, isSemantics(isButton: true, isFocusable: true, hasTapAction: true));
+      expect(button.label, contains(ctaLabel));
+      expect(button.parent!.flagsCollection.isButton, isFalse);
+      semanticsHandle.dispose();
+    });
+  });
 }

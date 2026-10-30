@@ -13,6 +13,7 @@ import '../widget/button/bottom_close_button.dart';
 import '../widget/menu_item.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';
+import 'wallet_modal_bottom_sheet.dart';
 
 class QrActionSheet extends StatelessWidget {
   const QrActionSheet({super.key});
@@ -67,10 +68,8 @@ class QrActionSheet extends StatelessWidget {
   }
 
   static Future<void> show(BuildContext context) {
-    return showModalBottomSheet<void>(
+    return showWalletModalBottomSheet<void>(
       context: context,
-      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return const WalletScrollbar(
           child: SingleChildScrollView(

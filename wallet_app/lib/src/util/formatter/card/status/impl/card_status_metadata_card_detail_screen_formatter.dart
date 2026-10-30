@@ -102,6 +102,10 @@ class CardStatusMetadataCardDetailScreenFormatter implements CardStatusMetadataF
     };
   }
 
+  /// The detail texts already describe the status themselves (e.g. "Withdrawn by …"), so a label would only repeat it.
+  @override
+  String? iconSemanticsLabel(BuildContext context, WalletCard card) => null;
+
   @override
   Color? iconColor(BuildContext context, CardStatus status) {
     return switch (status) {

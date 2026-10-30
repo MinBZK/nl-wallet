@@ -190,7 +190,9 @@ mod tests {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
+    use p256::SecretKey;
     use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::Generate;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use token_status_list::verification::verifier::RevocationStatus;
@@ -293,6 +295,7 @@ mod tests {
             "https://example.com".parse().unwrap(),
             metadata_keypair,
             RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap(),
+            SecretKey::generate(),
             NonZeroU8::MIN,
             HashSet::new(),
             CredentialConfigurations::try_new([("credential_config_id".to_string().into(), credential_config)].into())

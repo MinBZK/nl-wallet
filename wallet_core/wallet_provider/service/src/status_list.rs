@@ -9,6 +9,7 @@ use crypto::server_keys::KeyPair;
 use jwt::error::JwtSignError;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::status_list_token::StatusListToken;
 use tokio::sync::Mutex;
 use url::Url;
@@ -16,7 +17,7 @@ use utils::generator::Generator;
 
 use crate::flags::WalletFlags;
 
-/// If the cached [`StatusListToken`] held by [`KeyStorageStatusList`] expires within this period, it will be discarded
+/// If the cached [`StatusListJwt`] held by [`KeyStorageStatusList`] expires within this period, it will be discarded
 /// and [`KeyStorageStatusList`] will sign and cache a new one.
 const EXPIRY_MARGIN: Duration = Duration::from_mins(5);
 
@@ -33,7 +34,7 @@ pub enum KeyStorageStatusListError {
     ExpiryLessThanTtl { expiry: Duration, ttl: Duration },
 }
 
-/// This type holds a cached [`SingleEntryStatusListToken`], which in turn contains a [`StatusListToken`] in which only
+/// This type holds a cached [`SingleEntryStatusListToken`], which in turn contains a [`StatusListJwt`] in which only
 /// index 0 is used and indicates the revocation status of Wallet Provider's HSM. This is to be used as the Key Storage
 /// type revocation status of an OpenID4VCI Key Attestation. Within the context of TS3, this refers to Option 1 of
 /// section 2.5.2.
@@ -90,13 +91,13 @@ impl<K, F> KeyStorageStatusList<K, F> {
         Ok(status_list)
     }
 
-    /// Either return the signed [`StatusListToken`] from cache or sign a new one, using the type's [`KeyPair`]. A new
+    /// Either return the signed [`StatusListJwt`] from cache or sign a new one, using the type's [`KeyPair`]. A new
     /// token is signed in the following situations:
     ///
     /// 1. It is the first time this method is called and the cache is empty.
     /// 2. The Wallet Solution's revocation status has changed since the cached value was signed.
     /// 3. The cached token is about to expire.
-    pub async fn status_list_token(&self, time: &impl Generator<DateTime<Utc>>) -> Result<StatusListToken, JwtSignError>
+    pub async fn status_list_token(&self, time: &impl Generator<DateTime<Utc>>) -> Result<StatusListJwt, JwtSignError>
     where
         K: EcdsaKey,
         F: WalletFlags,
@@ -123,6 +124,7 @@ impl<K, F> KeyStorageStatusList<K, F> {
                     now + self.token_expiry,
                     Some(self.token_ttl),
                     &self.key_pair,
+                    time,
                 )
                 .await?;
 
@@ -137,11 +139,11 @@ impl<K, F> KeyStorageStatusList<K, F> {
     }
 }
 
-/// Wraps a [`StatusListToken`] that holds just a single value at index 0, along with that [`StatusType`] stored at that
+/// Wraps a [`StatusListJwt`] that holds just a single value at index 0, along with that [`StatusType`] stored at that
 /// index and the time at which the token expires.
 #[derive(Debug)]
 struct SingleEntryStatusListToken {
-    token: StatusListToken,
+    token: StatusListJwt,
     status: StatusType,
     expires: DateTime<Utc>,
 }
@@ -153,15 +155,19 @@ impl SingleEntryStatusListToken {
         expires: DateTime<Utc>,
         ttl: Option<Duration>,
         key_pair: &KeyPair<impl EcdsaKey>,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Self, JwtSignError> {
         let mut list = StatusList::new(1);
         list.insert(0, status);
 
-        let token = StatusListToken::builder(uri, list.pack())
-            .exp(Some(expires))
-            .ttl(ttl)
-            .sign(key_pair)
-            .await?;
+        let token = StatusListJwt::sign(
+            StatusListToken::builder(uri, list.pack())
+                .exp(Some(expires))
+                .ttl(ttl)
+                .build(time),
+            key_pair,
+        )
+        .await?;
 
         Ok(Self { token, status, expires })
     }
@@ -179,7 +185,7 @@ mod tests {
     use futures::FutureExt;
     use rstest::rstest;
     use token_status_list::status_list::StatusType;
-    use token_status_list::status_list_token::StatusListToken;
+    use token_status_list::status_list_jwt::StatusListJwt;
     use url::Url;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
@@ -208,7 +214,7 @@ mod tests {
         let expires = time.generate() + Duration::from_hours(1);
         let status = StatusType::Invalid;
 
-        let single_token = SingleEntryStatusListToken::try_new(uri.clone(), status, expires, None, key_pair)
+        let single_token = SingleEntryStatusListToken::try_new(uri.clone(), status, expires, None, key_pair, &time)
             .now_or_never()
             .unwrap()
             .expect("signing single entry token status list should succeed");
@@ -268,7 +274,7 @@ mod tests {
     /// Helper function to extract the one [`StatusType`] from a [`StatusListToken`] contained
     /// [`SingleEntryStatusListToken`].
     fn key_storage_status(
-        token: &StatusListToken,
+        token: &StatusListJwt,
         trust_anchors: &TrustAnchors,
         public_uri: Url,
         time: &MockTimeGenerator,

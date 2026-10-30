@@ -47,6 +47,7 @@ pub enum PublishDirError {
 enum Extension {
     Tmp,
     Jwt,
+    Cwt,
     Lock,
 }
 
@@ -82,6 +83,10 @@ impl PublishDir {
 
     pub fn jwt_path(&self, external_id: &ExternalId) -> PathBuf {
         self.path_with_extension(external_id, Extension::Jwt)
+    }
+
+    pub fn cwt_path(&self, external_id: &ExternalId) -> PathBuf {
+        self.path_with_extension(external_id, Extension::Cwt)
     }
 
     pub fn lock_for(&self, external_id: &ExternalId) -> PublishLock {

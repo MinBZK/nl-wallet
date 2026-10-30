@@ -2,12 +2,23 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import router from '../../router'
 import CreateTaskView from '../../views/CreateTaskView.vue'
-import { createTask, type CreatedTask } from '@/api/tasks.ts'
+import { createTask } from '@/api/tasks.ts'
 import { loggedInUser, mockGetAuthState, mockLoggedInUser } from '../mockUseAuth'
 import { Privilege } from '@/types/privilege.ts'
+import { TaskActionType } from '@/types/task-action.ts'
+import type { Task } from '@/types/task.ts'
+
+const createdTask: Task = {
+  id: 'TST-1234567',
+  action: TaskActionType.RevokeWallet,
+  purpose: '—',
+  reason: 'Because reasons',
+  createdAt: new Date('2026-08-01T10:00:00'),
+  createdBy: 'Jane Doe',
+}
 
 vi.mock('@/api/tasks.ts', () => ({
-  createTask: vi.fn<() => Promise<CreatedTask>>(() => Promise.resolve({ id: 'TST-1234567' })),
+  createTask: vi.fn<() => Promise<Task>>(() => Promise.resolve(createdTask)),
 }))
 
 vi.mock('@/composables/authentication.ts', () => ({
@@ -110,7 +121,7 @@ describe('CreateTaskView', () => {
   })
 
   it('does not create a duplicate task when the next button is clicked twice before it resolves', async () => {
-    let resolveTask!: (value: { id: string }) => void
+    let resolveTask!: (value: Task) => void
     vi.mocked(createTask).mockReturnValueOnce(
       new Promise((resolve) => {
         resolveTask = resolve
@@ -128,7 +139,7 @@ describe('CreateTaskView', () => {
     const secondClick = nextButton(wrapper).trigger('click')
     await Promise.all([firstClick, secondClick])
 
-    resolveTask({ id: 'TST-1234567' })
+    resolveTask(createdTask)
     await wrapper.vm.$nextTick()
 
     // Ensure that createTask was only called once, even though the button was clicked twice.

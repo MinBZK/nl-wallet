@@ -29,8 +29,8 @@ use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::revocation_helper::PostgresRevocationHelper;
 use status_lists::publish::PublishDir;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::status_list_service::StatusListService;
-use token_status_list::status_list_token::StatusListToken;
 use utils::generator::mock::MockTimeGenerator;
 use utils::num::NonZeroU31;
 use utils::num::U31;
@@ -174,9 +174,8 @@ async fn status_type_for_claim(claim: &StatusClaim, publish_dir: &PublishDir) ->
     tokio::fs::read_to_string(path)
         .await
         .unwrap()
-        .parse::<StatusListToken>()
+        .parse::<StatusListJwt>()
         .unwrap()
-        .as_ref()
         .dangerous_parse_unverified()
         .unwrap()
         .1
