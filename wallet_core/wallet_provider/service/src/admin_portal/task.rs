@@ -34,6 +34,24 @@ use crate::account_server::UserState;
 use crate::admin_portal::execution::revoke_wallets;
 
 #[derive(Debug, thiserror::Error)]
+pub enum RetrieveTaskError {
+    #[error("task not found by ID: {0}")]
+    NotFound(Uuid),
+    #[error("unauthorized to view task")]
+    UnAuthorized,
+    #[error("persistence error: {0}")]
+    Storage(#[source] PersistenceError),
+    #[error("error while auditing: {0}")]
+    AuditLog(#[source] Box<dyn Error + Send + Sync>),
+}
+
+impl FromAuditLogError for RetrieveTaskError {
+    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
+        Self::AuditLog(audit_log_error)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum CreateTaskError {
     #[error("missing privilege for task type {0}")]
     MissingPrivilege(TaskType),
@@ -130,6 +148,33 @@ where
     T: Generator<DateTime<Utc>>,
     U: Generator<Uuid>,
 {
+    #[audited]
+    pub async fn retrieve_task(
+        &self,
+        #[audit] task_id: Uuid,
+        #[audit_user] user: &LoggedInUser,
+        #[auditor] audit_log: &impl AuditLog,
+    ) -> Result<AdminTask, RetrieveTaskError> {
+        let task = self
+            .repository
+            .find_task_by_id(task_id)
+            .await
+            .map_err(RetrieveTaskError::Storage)?
+            .ok_or(RetrieveTaskError::NotFound(task_id))?;
+
+        if task.created_by_user_id == user.user_id
+            || task
+                .reviewed_by_user_id
+                .as_ref()
+                .is_some_and(|reviewer| *reviewer == user.user_id)
+            || user.is_authorized_to(&task.payload.task_type())
+        {
+            Ok(task)
+        } else {
+            Err(RetrieveTaskError::UnAuthorized)
+        }
+    }
+
     #[audited]
     pub async fn create_task<TX, UR, F, H>(
         &self,
@@ -1145,5 +1190,53 @@ mod tests {
         let result = execute(repository, wallet_user_repository(&["wallet-1"]), now, task_id).await;
 
         assert_matches!(result, Err(ExecuteTaskError::InvalidState));
+    }
+
+    async fn retrieve_task_with_lookup_result(
+        id: Uuid,
+        lookup_result: Option<AdminTask>,
+        user: &LoggedInUser,
+    ) -> Result<AdminTask, RetrieveTaskError> {
+        let mut repository = MockAdminPortalRepository::new();
+        repository
+            .expect_find_task_by_id()
+            .withf(move |task_id| *task_id == id)
+            .times(1)
+            .return_once(move |_| Ok(lookup_result));
+
+        service(repository, Utc::now(), Uuid::new_v4())
+            .retrieve_task(id, user, &MockAuditLog)
+            .await
+    }
+
+    #[rstest]
+    #[case::creator(CREATOR, &[], State::Created)]
+    #[case::reviewer(REVIEWER, &[], State::Approved)]
+    #[case::privileged_user("user-3", &[TaskType::RevokeWallet], State::Created)]
+    #[tokio::test]
+    async fn retrieve_task_happy_flow(#[case] user_id: &str, #[case] task_types: &[TaskType], #[case] state: State) {
+        let id = Uuid::new_v4();
+        let task = task_in(state, id);
+        let result = retrieve_task_with_lookup_result(id, Some(task.clone()), &user(user_id, task_types))
+            .await
+            .unwrap();
+        assert_eq!(result, task);
+    }
+
+    #[tokio::test]
+    async fn retrieve_task_returns_not_found() {
+        let id = Uuid::new_v4();
+        let result = retrieve_task_with_lookup_result(id, None, &user("user-1", &[])).await;
+
+        assert_matches!(result, Err(RetrieveTaskError::NotFound(task_id)) if task_id == id);
+    }
+
+    #[tokio::test]
+    async fn retrieve_task_rejects_unrelated_user_without_task_privilege() {
+        let id = Uuid::new_v4();
+        let task = task_in(State::Created, id);
+        let result = retrieve_task_with_lookup_result(id, Some(task), &user("user-3", &[TaskType::BlockUser])).await;
+
+        assert_matches!(result, Err(RetrieveTaskError::UnAuthorized));
     }
 }

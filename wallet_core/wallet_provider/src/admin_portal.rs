@@ -44,6 +44,7 @@ use wallet_provider_service::admin_portal::UuidV7Generator;
 use wallet_provider_service::admin_portal::task::CreateTaskError;
 use wallet_provider_service::admin_portal::task::ExecuteTaskError;
 use wallet_provider_service::admin_portal::task::ListTasksError;
+use wallet_provider_service::admin_portal::task::RetrieveTaskError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
@@ -64,6 +65,7 @@ enum TaskApiError {
     Review(ReviewTaskError),
     List(ListTasksError),
     Execution(ExecuteTaskError),
+    Retrieve(RetrieveTaskError),
 }
 
 impl IntoResponse for TaskApiError {
@@ -72,18 +74,20 @@ impl IntoResponse for TaskApiError {
         let status = match self {
             // Report why the request could not be parsed, e.g. an unknown task type or invalid task parameters.
             Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
-            Self::Create(CreateTaskError::MissingPrivilege(_)) | Self::Review(ReviewTaskError::MissingPrivilege(_)) => {
-                StatusCode::FORBIDDEN
-            }
             // The request references wallet IDs that do not exist; this is a client error, not a missing resource.
             Self::Create(CreateTaskError::WalletIdsNotFound(_)) => StatusCode::BAD_REQUEST,
-            Self::Withdraw(WithdrawTaskError::NotFound(_))
+            Self::Retrieve(RetrieveTaskError::UnAuthorized)
+            | Self::Create(CreateTaskError::MissingPrivilege(_))
+            | Self::Review(ReviewTaskError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
+            Self::Retrieve(RetrieveTaskError::NotFound(_))
+            | Self::Withdraw(WithdrawTaskError::NotFound(_))
             | Self::Review(ReviewTaskError::NotFound(_))
             | Self::Execution(ExecuteTaskError::NotFound(_)) => StatusCode::NOT_FOUND,
             Self::Withdraw(WithdrawTaskError::InvalidState)
             | Self::Review(ReviewTaskError::InvalidState)
             | Self::Execution(ExecuteTaskError::InvalidState) => StatusCode::CONFLICT,
-            Self::Create(CreateTaskError::Storage(_) | CreateTaskError::AuditLog(_))
+            Self::Retrieve(RetrieveTaskError::Storage(_) | RetrieveTaskError::AuditLog(_))
+            | Self::Create(CreateTaskError::Storage(_) | CreateTaskError::AuditLog(_))
             | Self::Withdraw(WithdrawTaskError::Storage(_) | WithdrawTaskError::AuditLog(_))
             | Self::Review(ReviewTaskError::Storage(_) | ReviewTaskError::AuditLog(_))
             | Self::List(ListTasksError::Storage(_) | ListTasksError::AuditLog(_))
@@ -170,6 +174,7 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
             "/tasks",
             Router::new()
                 .route("/", post(create_task).get(list_tasks))
+                .route("/{task_id}", get(retrieve_task))
                 .route("/{task_id}/withdraw", post(withdraw_task))
                 .route("/{task_id}/review", post(review_task)),
         )
@@ -448,6 +453,20 @@ async fn review_task(
         .execute_task(task.id, &user, &state.user_state, &state.audit_log)
         .await
         .map_err(TaskApiError::Execution)?;
+
+    Ok(Json(TaskResponse::from(task)))
+}
+
+async fn retrieve_task(
+    State(state): State<Arc<AdminPortalState>>,
+    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<TaskResponse>, TaskApiError> {
+    let task = state
+        .service
+        .retrieve_task(task_id, &user, &state.audit_log)
+        .await
+        .map_err(TaskApiError::Retrieve)?;
 
     Ok(Json(TaskResponse::from(task)))
 }
