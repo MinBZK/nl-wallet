@@ -79,9 +79,7 @@ jq '.swift_package_manager_enabled.ios = true' "$work/flutter-plugins-dependenci
 for variant in full prod; do
     flags=()
     if [[ "$variant" == prod ]]; then flags+=(--exclude-test-targets); fi
-    # Bash 3.2 (macOS) treats empty arrays as unset under set -u.
-    # The guarded expansion passes no arguments when flags is empty.
-    (cd wallet_app/ios && cyclonedx-cocoapods ${flags[@]+"${flags[@]}"} --name nl-wallet-ios \
+    (cd wallet_app/ios && cyclonedx-cocoapods "${flags[@]}" --name nl-wallet-ios \
         --version "$version" --type application --output "$work/ios-$variant.xml")
     # Strip Flutter 1.0.0: this placeholder pod version does not identify a Flutter release.
     # https://github.com/flutter/flutter/issues/154023#issuecomment-2310710611
