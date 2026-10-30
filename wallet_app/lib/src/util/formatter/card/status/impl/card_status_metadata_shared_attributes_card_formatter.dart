@@ -4,6 +4,7 @@ import '../../../../../domain/model/card/status/card_status.dart';
 import '../../../../../domain/model/card/wallet_card.dart';
 import '../../../../extension/build_context_extension.dart';
 import '../card_status_metadata_formatter.dart';
+import 'card_status_metadata_wallet_item_formatter.dart';
 
 class CardStatusMetadataSharedAttributesCardFormatter implements CardStatusMetadataFormatter {
   @override
@@ -47,6 +48,10 @@ class CardStatusMetadataSharedAttributesCardFormatter implements CardStatusMetad
       CardStatusUndetermined() => Icons.feedback_outlined,
     };
   }
+
+  @override
+  String? iconSemanticsLabel(BuildContext context, WalletCard card) =>
+      CardStatusMetadataWalletItemFormatter().text(context, card);
 
   @override
   Color? iconColor(BuildContext context, CardStatus status) => context.colorScheme.onSurfaceVariant;
