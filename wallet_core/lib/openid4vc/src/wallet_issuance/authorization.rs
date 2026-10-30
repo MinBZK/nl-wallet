@@ -880,7 +880,7 @@ mod tests {
             issuer_registration: persisted.issuer_registration.clone(),
             token_endpoint: persisted.token_endpoint,
             batch_size: persisted.batch_size,
-            encryption_parameters: persisted.encryption_parameters,
+            encryption_parameters: persisted.encryption_parameters.clone(),
             client_attestation_challenge: persisted.client_attestation_challenge,
             http_client: HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: persisted.auth_url.clone(),
@@ -916,10 +916,10 @@ mod tests {
             restored_persisted.issuer_registration.access_certificate(),
             persisted.issuer_registration.access_certificate(),
         );
-        assert_eq!(restored_persisted.batch_size, restored_persisted.batch_size);
+        assert_eq!(restored_persisted.batch_size, persisted.batch_size);
         assert_eq!(
             restored_persisted.encryption_parameters,
-            restored_persisted.encryption_parameters
+            persisted.encryption_parameters
         );
         assert_eq!(restored_persisted.auth_url, persisted.auth_url);
         assert_eq!(restored_persisted.redirect_uri, persisted.redirect_uri);
