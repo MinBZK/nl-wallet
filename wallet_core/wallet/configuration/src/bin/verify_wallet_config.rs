@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use anyhow::Context;
 use anyhow::Result;
 use clap::Parser;
-use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use jwt::JwtDecodingKey;
 use jwt::UnverifiedJwt;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
@@ -39,7 +39,7 @@ fn main() -> Result<()> {
         .context("could not parse wallet configuration JWT")?;
 
     let signing_public_key: JwtDecodingKey =
-        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into();
+        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into();
 
     let (_, wallet_config) = jwt
         .parse_and_verify(&signing_public_key, &*WALLET_CONFIG_VALIDATION)

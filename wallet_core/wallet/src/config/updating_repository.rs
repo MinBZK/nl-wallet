@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use error_category::sentry::classify_mask_and_capture;
 use http_utils::client::TlsPinningConfig;
 use parking_lot::Mutex;
@@ -150,7 +150,7 @@ impl WalletConfigurationRepository {
     ) -> Result<Self, ConfigurationError> {
         let wrapped = FileStorageConfigurationRepository::init(
             storage_path,
-            PublicKey::from(*config.signing_public_key.as_inner()).into(),
+            PublicKeyRef::from(config.signing_public_key.as_inner()).into(),
             initial_config,
         )
         .await?;

@@ -9,7 +9,8 @@ use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::AsPublicKeyRef;
+use crypto::PublicKeyRef;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
@@ -137,9 +138,9 @@ pub struct CertificatePublicKey {
     pub used_from: DateTimeSeconds,
 }
 
-impl From<CertificatePublicKey> for PublicKey {
-    fn from(value: CertificatePublicKey) -> Self {
-        PublicKey::from(*value.key.as_inner())
+impl AsPublicKeyRef for CertificatePublicKey {
+    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+        PublicKeyRef::from(self.key.as_inner())
     }
 }
 

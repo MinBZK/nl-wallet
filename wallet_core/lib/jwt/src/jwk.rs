@@ -1,5 +1,7 @@
 use base64::prelude::*;
+use crypto::AsPublicKeyRef;
 use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use ecdsa::elliptic_curve::AffinePoint;
 use ecdsa::elliptic_curve::CurveArithmetic;
 use ecdsa::elliptic_curve::FieldBytes;
@@ -16,18 +18,18 @@ use rsa::traits::PublicKeyParts;
 use crate::error::JwkConversionError;
 
 /// Converts a [`PublicKey`] to a JWK.
-pub fn jwk_from_public_key(value: &PublicKey) -> Result<Jwk, JwkConversionError> {
+pub fn jwk_from_public_key(value: &impl AsPublicKeyRef) -> Result<Jwk, JwkConversionError> {
     Ok(Jwk {
         common: Default::default(),
         algorithm: jwk_alg_from_public_key(value)?,
     })
 }
 
-pub fn jwk_alg_from_public_key(value: &PublicKey) -> Result<jwk::AlgorithmParameters, JwkConversionError> {
-    match value {
-        PublicKey::ESP256(key) => jwk_alg_from_ecdsa(key),
-        PublicKey::ESP384(key) => jwk_alg_from_ecdsa(key),
-        PublicKey::RSA(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
+pub fn jwk_alg_from_public_key(value: &impl AsPublicKeyRef) -> Result<jwk::AlgorithmParameters, JwkConversionError> {
+    match value.as_ref() {
+        PublicKeyRef::ESP256(key) => jwk_alg_from_ecdsa(key),
+        PublicKeyRef::ESP384(key) => jwk_alg_from_ecdsa(key),
+        PublicKeyRef::RSA(key) => Ok(jwk_alg_from_rsa(key.as_ref())),
     }
 }
 
@@ -135,7 +137,7 @@ mod tests {
         let signing_key = SigningKey::generate();
         let verifying_key = *signing_key.verifying_key();
 
-        let jwk = jwk_from_public_key(&PublicKey::from(verifying_key)).unwrap();
+        let jwk = jwk_from_public_key(&PublicKeyRef::from(&verifying_key)).unwrap();
         let public_key = jwk_to_public_key(&jwk).unwrap();
 
         assert_eq!(public_key, PublicKey::ESP256(verifying_key));

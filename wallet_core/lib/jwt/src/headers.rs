@@ -9,6 +9,7 @@
 use std::borrow::Cow;
 
 use base64::prelude::*;
+use crypto::AsPublicKeyRef;
 use crypto::PublicKey;
 use crypto::x509::BorrowingCertificate;
 use jsonwebtoken::Algorithm;
@@ -92,7 +93,7 @@ pub struct HeaderWithJwk<H = HeaderWithTyp> {
 }
 
 impl HeaderWithJwk {
-    pub fn try_from_public_key(key: &PublicKey) -> Result<Self, JwkConversionError> {
+    pub fn try_from_public_key(key: &impl AsPublicKeyRef) -> Result<Self, JwkConversionError> {
         let jwk = jwk_from_public_key(key)?;
         Ok(HeaderWithJwk {
             header: HeaderWithTyp::default(),

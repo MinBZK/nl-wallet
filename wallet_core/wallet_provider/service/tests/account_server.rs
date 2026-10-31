@@ -8,6 +8,7 @@ use attestation_types::status_claim::StatusClaim;
 use base64::prelude::*;
 use chrono::Utc;
 use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::generate::Ca;
@@ -247,7 +248,7 @@ async fn do_pin_change(
         .expect("ChangePinStart should succeed");
 
     let new_certificate = new_certificate_result
-        .parse_and_verify_with_sub(&PublicKey::from(*certificate_signing_key.verifying_key()).into())
+        .parse_and_verify_with_sub(&PublicKeyRef::from(certificate_signing_key.verifying_key()).into())
         .expect("Could not parse and verify instruction result")
         .1
         .result;
@@ -620,7 +621,7 @@ async fn test_certificate_signing_key_rollover() {
         .expect("refreshing the wallet certificate should succeed during the rollover window");
 
     let refreshed_certificate = refreshed_certificate_result
-        .parse_and_verify_with_sub(&PublicKey::from(*certificate_signing_key.verifying_key()).into())
+        .parse_and_verify_with_sub(&PublicKeyRef::from(certificate_signing_key.verifying_key()).into())
         .expect("could not parse and verify instruction result")
         .1
         .result;

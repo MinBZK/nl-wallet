@@ -12,6 +12,8 @@ use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
 
+use crate::AsPublicKeyRef;
+use crate::PublicKeyRef;
 use crate::utils::sha256;
 
 /// Wraps a [`SigningKey`] and implements `TryFrom<Vec<u8>>` for deserialization using `serde_with`.
@@ -112,6 +114,12 @@ impl Hash for DerVerifyingKey {
         let Self(_, der) = self;
 
         der.hash(state)
+    }
+}
+
+impl AsPublicKeyRef for DerVerifyingKey {
+    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+        PublicKeyRef::ESP256(&self.0)
     }
 }
 

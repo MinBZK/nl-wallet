@@ -29,7 +29,7 @@ use attestation_types::pid_constants::pid_attestation_type;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -337,7 +337,7 @@ pub fn mdoc_from_credential_payload(
     let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
         preview_payload,
         Utc::now(),
-        &PublicKey::from(*holder_key.verifying_key()),
+        &PublicKeyRef::from(holder_key.verifying_key()),
         None,
         Some(StatusListClaim::new_mock()),
     )

@@ -16,7 +16,7 @@ pub mod mock {
     use std::time::Duration;
 
     use chrono::Utc;
-    use crypto::PublicKey;
+    use crypto::PublicKeyRef;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::verifying_key_sha256;
     use crypto::server_keys::KeyPair;
@@ -86,7 +86,7 @@ pub mod mock {
             let time = MockTimeGenerator::default();
             let wia = SignedJwt::sign_with_iat(
                 &WiaClaims::new(
-                    &PublicKey::from(*wia_key.verifying_key()),
+                    &PublicKeyRef::from(wia_key.verifying_key()),
                     wia_keypair.certificate().common_name().unwrap().unwrap().to_string(),
                     client_id.clone(),
                     exp.into(),

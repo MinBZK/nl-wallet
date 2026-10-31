@@ -17,7 +17,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde::de;
 
-use crate::p256_der::DerVerifyingKey;
 use crate::utils;
 
 const AES_GCM_IV_BYTES_SIZE: usize = 12;
@@ -41,6 +40,48 @@ pub enum PublicKey {
     RSA(RsaMin2048PublicKey),
 }
 
+#[derive(Debug, Clone)]
+pub enum PublicKeyRef<'a> {
+    // ECDSA keys, named in line with [RFC9864](https://datatracker.ietf.org/doc/rfc9864/)
+    ESP256(&'a p256::ecdsa::VerifyingKey),
+    ESP384(&'a p384::ecdsa::VerifyingKey),
+
+    // RSA key
+    RSA(&'a RsaMin2048PublicKey),
+}
+
+impl<'a> From<&'a PublicKey> for PublicKeyRef<'a> {
+    fn from(key: &'a PublicKey) -> Self {
+        match key {
+            PublicKey::ESP256(verifying_key) => PublicKeyRef::ESP256(verifying_key),
+            PublicKey::ESP384(verifying_key) => PublicKeyRef::ESP384(verifying_key),
+            PublicKey::RSA(rsa_public_key) => PublicKeyRef::RSA(rsa_public_key),
+        }
+    }
+}
+
+pub trait AsPublicKeyRef {
+    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a>;
+}
+
+impl AsPublicKeyRef for PublicKey {
+    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+        self.into()
+    }
+}
+
+impl AsPublicKeyRef for &PublicKey {
+    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+        (*self).into()
+    }
+}
+
+impl<'a> AsPublicKeyRef for PublicKeyRef<'a> {
+    fn as_ref<'b>(&'b self) -> PublicKeyRef<'b> {
+        self.clone()
+    }
+}
+
 impl Hash for PublicKey {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         std::mem::discriminant(self).hash(state);
@@ -58,14 +99,20 @@ impl From<p256::ecdsa::VerifyingKey> for PublicKey {
     }
 }
 
-impl From<DerVerifyingKey> for PublicKey {
-    fn from(key: DerVerifyingKey) -> Self {
-        Self::ESP256(key.into_inner())
+impl<'a> From<&'a p256::ecdsa::VerifyingKey> for PublicKeyRef<'a> {
+    fn from(key: &'a p256::ecdsa::VerifyingKey) -> Self {
+        Self::ESP256(key)
     }
 }
 
 impl From<p384::ecdsa::VerifyingKey> for PublicKey {
     fn from(key: p384::ecdsa::VerifyingKey) -> Self {
+        Self::ESP384(key)
+    }
+}
+
+impl<'a> From<&'a p384::ecdsa::VerifyingKey> for PublicKeyRef<'a> {
+    fn from(key: &'a p384::ecdsa::VerifyingKey) -> Self {
         Self::ESP384(key)
     }
 }

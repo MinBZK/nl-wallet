@@ -312,7 +312,7 @@ mod tests {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use base64::prelude::*;
     use cose::wrprc_cwt::SignedWrprcCwt;
-    use crypto::PublicKey;
+    use crypto::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -582,7 +582,7 @@ mod tests {
             Format::SdJwt => {
                 let issuer_key_pair = ca.generate_issuer_mock().unwrap();
                 let verified_sd_jwt =
-                    SignedSdJwt::pid_example(&issuer_key_pair, &PublicKey::from(*attestation_key.verifying_key()))
+                    SignedSdJwt::pid_example(&issuer_key_pair, &PublicKeyRef::from(attestation_key.verifying_key()))
                         .into_verified();
                 let unsigned_presentation = verified_sd_jwt
                     .into_presentation_builder()
