@@ -10,12 +10,6 @@ plugins {
     id("net.razvan.jacoco-to-cobertura")
 }
 
-// Only applied here for this module's standalone build (i.e. test-app, CI unit tests).
-// When built as part of the Flutter app, the Flutter Gradle Plugin applies this automatically.
-if (project == rootProject) {
-    apply(plugin = "org.jetbrains.kotlin.android")
-}
-
 val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
     ?: listOf("armeabi-v7a", "arm64-v8a", "x86_64")
 
@@ -121,6 +115,7 @@ android {
     }
 }
 
+// Standalone uses built-in Kotlin, in the app Flutter applies KGP
 extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension> {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
@@ -139,7 +134,7 @@ tasks.named { it == "testDebugUnitTest" }.configureEach {
 }
 tasks.register<JacocoReport>("jacocoReport") {
     // Explicit setup seems to work best, but might be broken on AGP upgrades
-    classDirectories.setFrom(layout.buildDirectory.file("tmp/kotlin-classes/debug/nl/rijksoverheid/edi/wallet"))
+    classDirectories.setFrom(layout.buildDirectory.file("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/nl/rijksoverheid/edi/wallet"))
     executionData.from(layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"))
     reports {
         csv.required = false
