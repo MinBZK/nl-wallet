@@ -143,6 +143,16 @@ where
         };
 
         // Have the WSCD sign all of the unsigned presentations in one operation, if there are any.
+        //
+        // Note that when both mdocs and SD-JWTs are disclosed, the code below results in a second signing operation to
+        // the WSCD on top of the one made above, even though nothing about such an instruction precludes it from
+        // containing the payloads for both formats. Combining them would require restructuring the code, as the WSCD
+        // is currently passed into format-specific code in the `mdoc` and `sd_jwt` crates. As disclosing a mix of
+        // formats is expected to be rare, we accept that the user has to wait slightly longer in that case.
+        //
+        // The two signing operations are deliberately performed sequentially instead of in parallel: the instruction
+        // client holds a lock on the database while incrementing the instruction sequence number, so the instructions
+        // would be executed in sequence anyway.
         let signed_presentations = match sign_per_query(unsigned_presentations, |unsigned_presentations| {
             info!("signing disclosed SD-JWT documents");
             let key_binding_builder =
@@ -160,6 +170,8 @@ where
             }
         };
 
+        // Merge the signed attestations of both formats back into a single map. The `CredentialQueryIdentifier` keys
+        // cannot collide, as both lists were partitioned from the same map above.
         let vp_token = device_responses
             .into_iter()
             .map(|(id, device_responses)| (id, VerifiablePresentation::MsoMdoc(device_responses)))
@@ -212,7 +224,8 @@ where
     }
 }
 
-/// Check that the attestations for each credential query have the format requested in that credential query.
+/// Check that each credential query for which attestations are provided is present in the credential requests, and that
+/// those attestations have the format requested in that credential query.
 fn check_attestation_formats(
     credential_requests: &NormalizedCredentialRequests,
     attestations: &NonEmptyDisclosableAttestations,
