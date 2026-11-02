@@ -316,6 +316,7 @@ mod tests {
     use futures::FutureExt;
     use http::StatusCode;
     use http_utils::urls::BaseUrl;
+    use itertools::Itertools;
     use jwe::algorithm::EncryptionAlgorithm;
     use mdoc::holder::disclosure::PartialMdoc;
     use rstest::rstest;
@@ -323,6 +324,7 @@ mod tests {
     use serde::de::Error;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use super::super::DisclosableAttestations;
@@ -338,6 +340,7 @@ mod tests {
     use super::super::message_client::mock::MockVerifierVpMessageClient;
     use super::super::message_client::mock::WalletMessage;
     use super::VpDisclosureSession;
+    use super::sign_per_query;
     use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::VpAuthorizationErrorCode;
     use crate::openid4vp::VpRequestUriMethod;
@@ -592,6 +595,33 @@ mod tests {
             }
         );
         assert!(verifier_session.wallet_messages.lock().is_empty());
+    }
+
+    #[rstest]
+    #[case::too_few(2)]
+    #[case::too_many(4)]
+    fn test_sign_per_query_error_signed_attestation_count_mismatch(#[case] received_count: usize) {
+        // When `sign` returns a different number of signed attestations than it received, `sign_per_query()` should
+        // result in an error.
+        let attestations = vec![
+            ("query_1".try_into().unwrap(), vec_nonempty![1, 2]),
+            ("query_2".try_into().unwrap(), vec_nonempty![3]),
+        ];
+
+        let error = sign_per_query(attestations, |attestations| async move {
+            let signed = attestations.into_iter().cycle().take(received_count).collect_vec();
+
+            Ok(VecNonEmpty::try_from(signed).unwrap())
+        })
+        .now_or_never()
+        .unwrap()
+        .expect_err("signing per query should not succeed");
+
+        assert_matches!(
+            error,
+            VpClientError::SignedAttestationCountMismatch { expected, received }
+                if expected.get() == 3 && received.get() == received_count
+        );
     }
 
     /// Helper function for testing `VpDisclosureSession::disclose()` HTTP errors.
