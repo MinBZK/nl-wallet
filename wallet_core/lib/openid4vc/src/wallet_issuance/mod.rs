@@ -270,10 +270,6 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     MetadataIntegrityVerification(#[source] TypeMetadataChainError),
 
-    #[error("metadata integrity digest contained is not consistent across credential copies")]
-    #[category(critical)]
-    MetadataIntegrityInconsistent,
-
     #[error("credential copies are inconsistent")]
     #[category(critical)]
     CredentialCopiesInconsistent,

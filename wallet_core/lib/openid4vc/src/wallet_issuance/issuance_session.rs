@@ -57,6 +57,7 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+use ssri::Integrity;
 use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -1114,9 +1115,16 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         trust_anchors.issuer_trust_anchors,
                     )?;
 
-                    // Verify that all credentials contain the same metadata integrity value and validate this against
-                    // the SD-JWT VC Type Metadata document chain.
-                    let verified_metadata = verify_metadata_integrity(sd_jwts.iter(), raw.clone())?;
+                    // Only the first copy's integrity digest is verified here; [`verify_copies_consistency`] ensures
+                    // digests are identical for all copies.
+                    let verified_metadata = verify_metadata_integrity(
+                        credential_payloads
+                            .first()
+                            .vct_integrity
+                            .clone()
+                            .ok_or(WalletIssuanceError::MetadataIntegrityMissing)?,
+                        raw.clone(),
+                    )?;
 
                     // Credential Metadata is not covered by an integrity digest, nor does it describe a chain of
                     // extended attestation types.
@@ -1489,34 +1497,16 @@ impl Credentials {
     }
 }
 
-/// Verify that each credential copy contains the same metadata integrity value, use this to validate a SD-JWT VC
-/// Type Metadata document chain and return the resulting `VerifiedTypeMetadataDocuments` type.
-fn verify_metadata_integrity<'a>(
-    sd_jwts: impl Iterator<Item = &'a SdJwtCopy>,
+/// Validate the SD-JWT VC Type Metadata document chain against the metadata integrity digest of a credential and return
+/// the resulting [`VerifiedTypeMetadataDocuments`].
+fn verify_metadata_integrity(
+    metadata_integrity: Integrity,
     metadata_documents: SortedTypeMetadataDocuments,
 ) -> Result<VerifiedTypeMetadataDocuments, WalletIssuanceError> {
-    // Verify that each of the resulting credentials contain exactly the same metadata integrity digest.
-    let unique_integrities: HashSet<_> = sd_jwts
-        .map(|sd_jwt_copy| {
-            sd_jwt_copy
-                .sd_jwt
-                .sd_jwt()
-                .claims()
-                .vct_integrity
-                .as_ref()
-                .ok_or(WalletIssuanceError::MetadataIntegrityMissing)
-        })
-        .try_collect()?;
-
-    let integrity = unique_integrities
-        .into_iter()
-        .exactly_one()
-        .map_err(|_| WalletIssuanceError::MetadataIntegrityInconsistent)?;
-
     // Check that the integrity hash received in the credential matches that of encoded JSON of the first metadata
     // document.
     let verified_metadata = metadata_documents
-        .into_verified(integrity.clone())
+        .into_verified(metadata_integrity)
         .map_err(WalletIssuanceError::MetadataIntegrityVerification)?;
 
     Ok(verified_metadata)
@@ -2824,7 +2814,7 @@ mod tests {
         /// `NormalizedTypeMetadata`.
         sd_jwt_previewable_payload: PreviewableCredentialPayload,
         normalized_metadata: NormalizedTypeMetadata,
-        pub first_metadata_integrity_random: bool,
+        pub random_metadata_integrity_index: Option<usize>,
         pub first_copy_expires_later: bool,
     }
 
@@ -2942,7 +2932,7 @@ mod tests {
                 issuer_key,
                 credential_request_decrypter,
                 metadata_integrity,
-                first_metadata_integrity_random: false,
+                random_metadata_integrity_index: None,
                 first_copy_expires_later: false,
                 mdoc_previewable_payload,
                 sd_jwt_previewable_payload,
@@ -3016,7 +3006,7 @@ mod tests {
                 .enumerate()
                 .map(|(index, holder_pubkey)| {
                     let metadata_integrity = matches!(format, Format::SdJwt).then(|| {
-                        if self.first_metadata_integrity_random && index == 0 {
+                        if self.random_metadata_integrity_index == Some(index) {
                             Integrity::from(crypto::utils::random_bytes(32))
                         } else {
                             self.metadata_integrity.clone()
@@ -3536,7 +3526,7 @@ mod tests {
     }
 
     #[test]
-    fn test_accept_issuance_error_metadata_integrity_inconsistent() {
+    fn test_accept_issuance_error_metadata_integrity_failed() {
         let (mut signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id_1".to_string().into(), Format::SdJwt)]),
             SdJwtMetadataUsage::TypeMetadata,
@@ -3544,8 +3534,8 @@ mod tests {
         );
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
-        // Prepare one of the returned SD-JWT copies to have an incorrect resource integrity in its payload.
-        signer.first_metadata_integrity_random = true;
+        // Prepare the first SD-JWT copy to have an incorrect resource integrity in its payload.
+        signer.random_metadata_integrity_index = Some(0);
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
@@ -3573,7 +3563,48 @@ mod tests {
         .unwrap()
         .expect_err("accepting issuance should not succeed");
 
-        assert_matches!(error, WalletIssuanceError::MetadataIntegrityInconsistent);
+        assert_matches!(error, WalletIssuanceError::MetadataIntegrityVerification(..));
+    }
+
+    #[test]
+    fn test_accept_issuance_error_metadata_integrity_inconsistent() {
+        let (mut signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
+            HashMap::from([("credential_id_1".to_string().into(), Format::SdJwt)]),
+            SdJwtMetadataUsage::TypeMetadata,
+            false,
+        );
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
+
+        // Prepare one of the returned SD-JWT copies to have a different resource integrity than the others.
+        signer.random_metadata_integrity_index = Some(1);
+
+        let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
+
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            move |_url, credential_request, _dpop_header, _access_token_header| {
+                let response = signer.response_from_request(&credential_request);
+
+                Ok(response)
+            },
+        );
+
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), None, true, true),
+        }
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
     }
 
     #[rstest]
