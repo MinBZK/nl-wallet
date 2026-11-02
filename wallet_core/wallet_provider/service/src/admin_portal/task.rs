@@ -196,8 +196,7 @@ where
         // Verify payload
         match &payload {
             TaskPayload::RevokeWallet(revoke_wallet_parameters) => {
-                self.verify_revoke_wallet_parameters(revoke_wallet_parameters, user_state)
-                    .await?;
+                verify_revoke_wallet_parameters(revoke_wallet_parameters, user_state).await?;
             }
             TaskPayload::BlockUser {} => todo!("PVW-6176"),
             TaskPayload::UnblockUser {} => todo!("PVW-6177"),
@@ -218,40 +217,6 @@ where
             .map_err(CreateTaskError::Storage)?;
 
         Ok(task)
-    }
-
-    async fn verify_revoke_wallet_parameters<TX, UR, F, H>(
-        &self,
-        revoke_wallet_parameters: &RevokeWalletParameters,
-        user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
-    ) -> Result<(), CreateTaskError>
-    where
-        TX: Committable,
-        UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
-    {
-        let transaction = user_state
-            .repositories
-            .begin_transaction()
-            .await
-            .map_err(CreateTaskError::Storage)?;
-
-        let wallet_ids: HashSet<WalletId> = revoke_wallet_parameters.wallet_ids.iter().cloned().collect();
-        let found_wallet_ids = user_state
-            .repositories
-            .find_wallet_user_id_by_wallet_ids(&transaction, &wallet_ids)
-            .await
-            .map_err(CreateTaskError::Storage)?;
-
-        transaction.commit().await.map_err(CreateTaskError::Storage)?;
-
-        if found_wallet_ids.len() != wallet_ids.len() {
-            let not_found_ids: HashSet<WalletId> = wallet_ids
-                .difference(&found_wallet_ids.into_keys().collect())
-                .cloned()
-                .collect();
-            return Err(CreateTaskError::WalletIdsNotFound(not_found_ids));
-        }
-        Ok(())
     }
 
     /// Withdraws a task created by the caller that is still in `Created` status.
@@ -452,6 +417,39 @@ where
         transaction.commit().await.map_err(ExecuteTaskError::Storage)?;
         Ok(task)
     }
+}
+
+async fn verify_revoke_wallet_parameters<TX, UR, F, H>(
+    revoke_wallet_parameters: &RevokeWalletParameters,
+    user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
+) -> Result<(), CreateTaskError>
+where
+    TX: Committable,
+    UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
+{
+    let transaction = user_state
+        .repositories
+        .begin_transaction()
+        .await
+        .map_err(CreateTaskError::Storage)?;
+
+    let wallet_ids: HashSet<WalletId> = revoke_wallet_parameters.wallet_ids.iter().cloned().collect();
+    let found_wallet_ids = user_state
+        .repositories
+        .find_wallet_user_id_by_wallet_ids(&transaction, &wallet_ids)
+        .await
+        .map_err(CreateTaskError::Storage)?;
+
+    transaction.commit().await.map_err(CreateTaskError::Storage)?;
+
+    if found_wallet_ids.len() != wallet_ids.len() {
+        let not_found_ids: HashSet<WalletId> = wallet_ids
+            .difference(&found_wallet_ids.into_keys().collect())
+            .cloned()
+            .collect();
+        return Err(CreateTaskError::WalletIdsNotFound(not_found_ids));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
