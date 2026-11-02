@@ -10,7 +10,7 @@ import 'package:wallet_core/core.dart' as core;
 import '../../../mocks/wallet_mocks.dart';
 
 void main() {
-  late Mapper<(String, String)?, MaintenanceWindow?> mockMaintenanceWindowMapper;
+  late Mapper<core.FlutterMaintenanceWindow?, MaintenanceWindow?> mockMaintenanceWindowMapper;
   late Mapper<core.PidAttestation, PidAttestation> mockPidAttestationMapper;
 
   late Mapper<core.FlutterConfiguration, FlutterAppConfiguration> mapper;
