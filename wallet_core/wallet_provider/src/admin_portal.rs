@@ -44,6 +44,7 @@ use wallet_provider_service::admin_portal::UuidV7Generator;
 use wallet_provider_service::admin_portal::task::CreateTaskError;
 use wallet_provider_service::admin_portal::task::ExecuteTaskError;
 use wallet_provider_service::admin_portal::task::ListTasksError;
+use wallet_provider_service::admin_portal::task::RetrieveTaskError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
@@ -64,6 +65,7 @@ enum TaskApiError {
     Review(ReviewTaskError),
     List(ListTasksError),
     Execution(ExecuteTaskError),
+    Retrieve(RetrieveTaskError),
 }
 
 impl IntoResponse for TaskApiError {
@@ -72,18 +74,20 @@ impl IntoResponse for TaskApiError {
         let status = match self {
             // Report why the request could not be parsed, e.g. an unknown task type or invalid task parameters.
             Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
-            Self::Create(CreateTaskError::MissingPrivilege(_)) | Self::Review(ReviewTaskError::MissingPrivilege(_)) => {
-                StatusCode::FORBIDDEN
-            }
             // The request references wallet IDs that do not exist; this is a client error, not a missing resource.
             Self::Create(CreateTaskError::WalletIdsNotFound(_)) => StatusCode::BAD_REQUEST,
-            Self::Withdraw(WithdrawTaskError::NotFound(_))
+            Self::Retrieve(RetrieveTaskError::UnAuthorized)
+            | Self::Create(CreateTaskError::MissingPrivilege(_))
+            | Self::Review(ReviewTaskError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
+            Self::Retrieve(RetrieveTaskError::NotFound(_))
+            | Self::Withdraw(WithdrawTaskError::NotFound(_))
             | Self::Review(ReviewTaskError::NotFound(_))
             | Self::Execution(ExecuteTaskError::NotFound(_)) => StatusCode::NOT_FOUND,
             Self::Withdraw(WithdrawTaskError::InvalidState)
             | Self::Review(ReviewTaskError::InvalidState)
             | Self::Execution(ExecuteTaskError::InvalidState) => StatusCode::CONFLICT,
-            Self::Create(CreateTaskError::Storage(_) | CreateTaskError::AuditLog(_))
+            Self::Retrieve(RetrieveTaskError::Storage(_) | RetrieveTaskError::AuditLog(_))
+            | Self::Create(CreateTaskError::Storage(_) | CreateTaskError::AuditLog(_))
             | Self::Withdraw(WithdrawTaskError::Storage(_) | WithdrawTaskError::AuditLog(_))
             | Self::Review(ReviewTaskError::Storage(_) | ReviewTaskError::AuditLog(_))
             | Self::List(ListTasksError::Storage(_) | ListTasksError::AuditLog(_))
@@ -170,6 +174,7 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
             "/tasks",
             Router::new()
                 .route("/", post(create_task).get(list_tasks))
+                .route("/{task_id}", get(retrieve_task))
                 .route("/{task_id}/withdraw", post(withdraw_task))
                 .route("/{task_id}/review", post(review_task)),
         )
@@ -359,6 +364,7 @@ pub struct TaskResponse {
     pub task_reason: String,
     pub status: TaskStatus,
     pub withdrawal_comment: Option<String>,
+    pub is_own_task: bool,
     pub withdrawn_at: Option<DateTime<Utc>>,
     pub reviewed_at: Option<DateTime<Utc>>,
     pub reviewed_by: Option<String>,
@@ -368,8 +374,8 @@ pub struct TaskResponse {
     pub execution_details: Option<String>,
 }
 
-impl From<AdminTask> for TaskResponse {
-    fn from(task: AdminTask) -> Self {
+impl From<(&LoggedInUser, AdminTask)> for TaskResponse {
+    fn from((user, task): (&LoggedInUser, AdminTask)) -> Self {
         Self {
             task_id: task.id,
             created_at: task.created_at,
@@ -378,6 +384,7 @@ impl From<AdminTask> for TaskResponse {
             task_reason: task.task_reason,
             status: task.status,
             withdrawal_comment: task.withdrawal_comment,
+            is_own_task: user.user_id == task.created_by_user_id,
             withdrawn_at: task.withdrawn_at,
             reviewed_at: task.reviewed_at,
             reviewed_by: task.reviewed_by_display_name,
@@ -407,7 +414,7 @@ async fn create_task(
         .await
         .map_err(TaskApiError::Create)?;
 
-    Ok((StatusCode::CREATED, Json(TaskResponse::from(task))))
+    Ok((StatusCode::CREATED, Json(TaskResponse::from((&user, task)))))
 }
 
 async fn withdraw_task(
@@ -422,7 +429,7 @@ async fn withdraw_task(
         .await
         .map_err(TaskApiError::Withdraw)?;
 
-    Ok(Json(TaskResponse::from(task)))
+    Ok(Json(TaskResponse::from((&user, task))))
 }
 
 async fn review_task(
@@ -449,7 +456,21 @@ async fn review_task(
         .await
         .map_err(TaskApiError::Execution)?;
 
-    Ok(Json(TaskResponse::from(task)))
+    Ok(Json(TaskResponse::from((&user, task))))
+}
+
+async fn retrieve_task(
+    State(state): State<Arc<AdminPortalState>>,
+    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<TaskResponse>, TaskApiError> {
+    let task = state
+        .service
+        .retrieve_task(task_id, &user, &state.audit_log)
+        .await
+        .map_err(TaskApiError::Retrieve)?;
+
+    Ok(Json(TaskResponse::from((&user, task))))
 }
 
 #[derive(Debug, Deserialize)]
@@ -468,7 +489,12 @@ async fn list_tasks(
         .await
         .map_err(TaskApiError::List)?;
 
-    Ok(Json(tasks.into_iter().map(TaskResponse::from).collect_vec()))
+    Ok(Json(
+        tasks
+            .into_iter()
+            .map(|task| TaskResponse::from((&user, task)))
+            .collect_vec(),
+    ))
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -534,6 +560,11 @@ mod tests {
 
     #[test]
     fn task_response_maps_display_names_not_user_ids() {
+        let user = LoggedInUser {
+            user_id: "user-1".to_string(),
+            display_name: "User One".to_string(),
+            privileges: vec![],
+        };
         let task = AdminTask {
             id: Uuid::new_v4(),
             created_at: Utc::now(),
@@ -553,7 +584,7 @@ mod tests {
             execution_details: None,
         };
 
-        let response = TaskResponse::from(task);
+        let response = TaskResponse::from((&user, task));
 
         assert_eq!(response.created_by, "User One");
     }
