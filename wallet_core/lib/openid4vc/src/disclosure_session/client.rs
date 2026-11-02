@@ -1275,7 +1275,7 @@ mod tests {
         let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
         let sd_jwt = SignedSdJwt::pid_example(
             &ca.generate_issuer_mock().unwrap(),
-            &PublicKey::from(*sd_jwt_key.verifying_key()),
+            &PublicKeyRef::from(sd_jwt_key.verifying_key()),
         )
         .into_verified();
 
