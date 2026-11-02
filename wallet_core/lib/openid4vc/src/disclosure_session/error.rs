@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::num::NonZeroUsize;
 
 use attestation_types::credential_format::Format;
 use dcql::CredentialQueryIdentifier;
@@ -68,6 +69,13 @@ pub enum VpClientError {
         id: CredentialQueryIdentifier,
         requested: Format,
         provided: Format,
+    },
+
+    #[error("signing returned {received} signed attestations, expected {expected}")]
+    #[category(impossible)]
+    SignedAttestationCountMismatch {
+        expected: NonZeroUsize,
+        received: NonZeroUsize,
     },
 
     #[error("error creating mdoc device response: {0}")]

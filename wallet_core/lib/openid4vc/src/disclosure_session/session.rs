@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::hash::Hash;
 
 use attestation_data::organization::Organization;
@@ -9,6 +8,7 @@ use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
+use futures::TryFutureExt;
 use itertools::Either;
 use itertools::Itertools;
 use jwe::algorithm::EncryptionAlgorithm;
@@ -129,7 +129,9 @@ where
         let device_responses = match sign_per_query(partial_mdocs, |partial_mdocs| async {
             info!("signing disclosed mdoc documents");
             let session_transcript = self.auth_request.session_transcript();
-            DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, wscd).await
+            DeviceResponse::sign_multiple_from_partial_mdocs(partial_mdocs, &session_transcript, wscd)
+                .await
+                .map_err(VpClientError::DeviceResponse)
         })
         .await
         {
@@ -137,7 +139,7 @@ where
             Err(error) => {
                 return Err((
                     Box::new(self),
-                    DisclosureError::before_sharing(VpSessionError::Client(VpClientError::DeviceResponse(error))),
+                    DisclosureError::before_sharing(VpSessionError::Client(error)),
                 ));
             }
         };
@@ -158,6 +160,7 @@ where
             let key_binding_builder =
                 KeyBindingJwtBuilder::new(self.auth_request.client_id.to_string(), self.auth_request.nonce.clone());
             UnsignedSdJwtPresentation::sign_multiple(unsigned_presentations, key_binding_builder, wscd, time)
+                .map_err(VpClientError::SdJwtSigning)
         })
         .await
         {
@@ -165,7 +168,7 @@ where
             Err(error) => {
                 return Err((
                     Box::new(self),
-                    DisclosureError::before_sharing(VpSessionError::Client(VpClientError::SdJwtSigning(error))),
+                    DisclosureError::before_sharing(VpSessionError::Client(error)),
                 ));
             }
         };
@@ -252,13 +255,15 @@ fn check_attestation_formats(
 /// Lay out the attestations for all credential queries in a single linear list, have them all signed in one operation
 /// by calling `sign`, and then group the results by credential query again. If there are no attestations at all,
 /// `sign` is not called and an empty `Vec` is returned.
-async fn sign_per_query<T, S, E, F, Fut>(
+///
+/// Note that `sign` MUST return the signed attestations in the same order as it received them.
+async fn sign_per_query<T, S, F, Fut>(
     attestations: Vec<(CredentialQueryIdentifier, VecNonEmpty<T>)>,
     sign: F,
-) -> Result<Vec<(CredentialQueryIdentifier, VecNonEmpty<S>)>, E>
+) -> Result<Vec<(CredentialQueryIdentifier, VecNonEmpty<S>)>, VpClientError>
 where
     F: FnOnce(VecNonEmpty<T>) -> Fut,
-    Fut: Future<Output = Result<VecNonEmpty<S>, E>>,
+    Fut: Future<Output = Result<VecNonEmpty<S>, VpClientError>>,
     S: std::fmt::Debug,
 {
     // Remember the identifiers and attestation counts, as we will need these to reconstruct the grouping later.
@@ -272,22 +277,25 @@ where
         return Ok(Vec::new());
     };
 
-    let mut signed = VecDeque::from(sign(attestations).await?.into_inner());
+    let expected = attestations.len();
+    let signed = sign(attestations).await?;
 
-    let grouped = id_and_counts
+    let received = signed.len();
+    if received != expected {
+        return Err(VpClientError::SignedAttestationCountMismatch { expected, received });
+    }
+
+    let mut signed = signed.into_iter();
+    id_and_counts
         .into_iter()
         .map(|(id, count)| {
-            // Note that:
-            // * The `drain()` is guaranteed not to panic as `sign` should return exactly the same amount of signed
-            //   attestations as it received.
-            // * The conversion to `VecNonEmpty` is guaranteed to succeed, as the count is non-zero.
-            let signed = signed.drain(..count.get()).collect_vec().try_into().unwrap();
+            // Given the check above, each group receives exactly `count` signed attestations, which is non-zero.
+            let group = signed.by_ref().take(count.get()).collect_vec();
+            let group = VecNonEmpty::try_from(group).expect("count is non-zero and the total count was checked above");
 
-            (id, signed)
+            Ok((id, group))
         })
-        .collect();
-
-    Ok(grouped)
+        .collect()
 }
 
 #[cfg(test)]
