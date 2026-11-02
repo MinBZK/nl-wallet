@@ -315,8 +315,8 @@ mod tests {
 
     #[test]
     fn different_ecdsa_variants_are_not_equal() {
-        let p256_key = PublicKey::ESP256(*p256::ecdsa::SigningKey::generate().verifying_key());
-        let p384_key = PublicKey::ESP384(*p384::ecdsa::SigningKey::generate().verifying_key());
+        let p256_key = PublicKey::from(*p256::ecdsa::SigningKey::generate().verifying_key());
+        let p384_key = PublicKey::from(*p384::ecdsa::SigningKey::generate().verifying_key());
         assert_ne!(p256_key, p384_key);
         assert_ne!(hash(&p256_key), hash(&p384_key));
     }

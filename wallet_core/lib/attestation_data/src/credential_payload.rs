@@ -731,6 +731,7 @@ mod test {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use chrono::TimeZone;
     use chrono::Utc;
+    use coset::iana;
     use crypto::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -840,7 +841,12 @@ mod test {
 
         // The IssuerSigned should be valid
         issuer_signed
-            .verify(ValidityRequirement::Valid, &TimeGenerator, &ca.to_trust_anchors())
+            .verify(
+                ValidityRequirement::Valid,
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+                &[iana::Algorithm::ES256],
+            )
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth

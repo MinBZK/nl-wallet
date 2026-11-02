@@ -24,6 +24,7 @@ use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
+use coset::iana;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
@@ -70,6 +71,13 @@ use crate::errors::VciTokenErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::CredentialMetadata;
 use crate::registration_certificate::RegistrationCertificateError;
+
+const SUPPORTED_MDOC_ISSUER_ALGORITHMS: &[iana::Algorithm] = &[
+    iana::Algorithm::ES256,
+    iana::Algorithm::ES384,
+    iana::Algorithm::ESP256,
+    iana::Algorithm::ESP384,
+];
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]

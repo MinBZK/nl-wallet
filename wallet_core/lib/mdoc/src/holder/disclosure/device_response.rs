@@ -114,6 +114,7 @@ impl DeviceResponse {
 
 #[cfg(test)]
 mod tests {
+    use crypto::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -183,7 +184,7 @@ mod tests {
             if let DeviceAuth::DeviceSignature(signature) = &document.device_signed.device_auth {
                 signature
                     .clone_with_payload(device_auth_bytes)
-                    .verify(&partial_mdoc.public_key().unwrap())
+                    .verify(&PublicKey::from(partial_mdoc.public_key().unwrap()))
                     .expect("device authentication in DeviceResponse should be valid");
             } else {
                 panic!("device authentication in DeviceResponse should be of signature type");
