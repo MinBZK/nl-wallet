@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "nl.rijksoverheid.edi.wallet.platform_support"
+    namespace = "nl.rijksoverheid.edi.wallet.platform_support.test"
     compileSdk = 36
 
     defaultConfig {
