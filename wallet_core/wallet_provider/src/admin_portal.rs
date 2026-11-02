@@ -47,7 +47,7 @@ use wallet_provider_service::admin_portal::task::ListTasksError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
-use wallet_provider_service::admin_portal::wallet_lookup::CheckWalletError;
+use wallet_provider_service::admin_portal::wallet_lookup::GetWalletRevocationStateError;
 use wallet_provider_service::admin_portal::wallet_lookup::WalletRevocationState;
 
 use crate::router_state::ProductionUserState;
@@ -96,16 +96,16 @@ impl IntoResponse for TaskApiError {
 /// Failure of a `/wallets` endpoint, mapped to the matching HTTP status code.
 #[derive(Debug)]
 enum WalletApiError {
-    Check(CheckWalletError),
+    Check(GetWalletRevocationStateError),
 }
 
 impl IntoResponse for WalletApiError {
     fn into_response(self) -> Response {
         warn!("wallet endpoint failed: {self:?}");
         let status = match self {
-            Self::Check(CheckWalletError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
-            Self::Check(CheckWalletError::NotFound(_)) => StatusCode::NOT_FOUND,
-            Self::Check(CheckWalletError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Check(GetWalletRevocationStateError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
+            Self::Check(GetWalletRevocationStateError::NotFound(_)) => StatusCode::NOT_FOUND,
+            Self::Check(GetWalletRevocationStateError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         status.into_response()
     }
@@ -634,15 +634,15 @@ mod tests {
 
     #[rstest]
     #[case::missing_privilege(
-        WalletApiError::Check(CheckWalletError::MissingPrivilege(TaskType::RevokeWallet)),
+        WalletApiError::Check(GetWalletRevocationStateError::MissingPrivilege(TaskType::RevokeWallet)),
         StatusCode::FORBIDDEN
     )]
     #[case::not_found(
-        WalletApiError::Check(CheckWalletError::NotFound(WalletId::from("wallet-1".to_string()))),
+        WalletApiError::Check(GetWalletRevocationStateError::NotFound(WalletId::from("wallet-1".to_string()))),
         StatusCode::NOT_FOUND
     )]
     #[case::storage(
-        WalletApiError::Check(CheckWalletError::Storage(storage_error())),
+        WalletApiError::Check(GetWalletRevocationStateError::Storage(storage_error())),
         StatusCode::INTERNAL_SERVER_ERROR
     )]
     fn wallet_api_error_status_codes(#[case] error: WalletApiError, #[case] status: StatusCode) {

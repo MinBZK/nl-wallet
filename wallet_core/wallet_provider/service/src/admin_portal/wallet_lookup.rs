@@ -35,7 +35,7 @@ impl From<WalletUserState> for WalletRevocationState {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum CheckWalletError {
+pub enum GetWalletRevocationStateError {
     #[error("missing privilege for task type {0}")]
     MissingPrivilege(TaskType),
     #[error("wallet not found: {0}")]
@@ -50,33 +50,36 @@ impl<R, T, U> AdminPortalService<R, T, U> {
         wallet_id: &WalletId,
         user: &LoggedInUser,
         user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
-    ) -> Result<WalletRevocationState, CheckWalletError>
+    ) -> Result<WalletRevocationState, GetWalletRevocationStateError>
     where
         TX: Committable,
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
         // Only authorized users with `privilege_revoke_wallet` may check wallet IDs.
         if !user.is_authorized_to(&TaskType::RevokeWallet) {
-            return Err(CheckWalletError::MissingPrivilege(TaskType::RevokeWallet));
+            return Err(GetWalletRevocationStateError::MissingPrivilege(TaskType::RevokeWallet));
         }
 
         let transaction = user_state
             .repositories
             .begin_transaction()
             .await
-            .map_err(CheckWalletError::Storage)?;
+            .map_err(GetWalletRevocationStateError::Storage)?;
 
         let result = user_state
             .repositories
             .find_wallet_user_state_by_wallet_id(&transaction, wallet_id)
             .await
-            .map_err(CheckWalletError::Storage)?;
+            .map_err(GetWalletRevocationStateError::Storage)?;
 
-        transaction.commit().await.map_err(CheckWalletError::Storage)?;
+        transaction
+            .commit()
+            .await
+            .map_err(GetWalletRevocationStateError::Storage)?;
 
         match result {
             QueryResult::Found(state) => Ok((*state).into()),
-            QueryResult::NotFound => Err(CheckWalletError::NotFound(wallet_id.clone())),
+            QueryResult::NotFound => Err(GetWalletRevocationStateError::NotFound(wallet_id.clone())),
         }
     }
 }
@@ -152,7 +155,10 @@ mod tests {
             .get_wallet_revocation_state(&wallet_id, &unprivileged_user, &user_state)
             .await;
 
-        assert_matches!(result, Err(CheckWalletError::MissingPrivilege(TaskType::RevokeWallet)));
+        assert_matches!(
+            result,
+            Err(GetWalletRevocationStateError::MissingPrivilege(TaskType::RevokeWallet))
+        );
     }
 
     #[rstest]
@@ -213,6 +219,6 @@ mod tests {
             .get_wallet_revocation_state(&wallet_id, &privileged_user, &user_state)
             .await;
 
-        assert_matches!(result, Err(CheckWalletError::NotFound(id)) if id == wallet_id);
+        assert_matches!(result, Err(GetWalletRevocationStateError::NotFound(id)) if id == wallet_id);
     }
 }
