@@ -26,7 +26,7 @@ pub fn jwk_from_public_key(value: &impl AsPublicKeyRef) -> Result<Jwk, JwkConver
 }
 
 pub fn jwk_alg_from_public_key(value: &impl AsPublicKeyRef) -> Result<jwk::AlgorithmParameters, JwkConversionError> {
-    match value.as_ref() {
+    match value.as_public_key_ref() {
         PublicKeyRef::ESP256(key) => jwk_alg_from_ecdsa(key),
         PublicKeyRef::ESP384(key) => jwk_alg_from_ecdsa(key),
         PublicKeyRef::RSA(key) => Ok(jwk_alg_from_rsa(key.as_ref())),

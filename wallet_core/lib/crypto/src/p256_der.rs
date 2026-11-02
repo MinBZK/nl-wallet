@@ -118,7 +118,7 @@ impl Hash for DerVerifyingKey {
 }
 
 impl AsPublicKeyRef for DerVerifyingKey {
-    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+    fn as_public_key_ref<'a>(&'a self) -> PublicKeyRef<'a> {
         PublicKeyRef::ESP256(&self.0)
     }
 }

@@ -139,7 +139,7 @@ pub struct CertificatePublicKey {
 }
 
 impl AsPublicKeyRef for CertificatePublicKey {
-    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+    fn as_public_key_ref<'a>(&'a self) -> PublicKeyRef<'a> {
         PublicKeyRef::from(self.key.as_inner())
     }
 }

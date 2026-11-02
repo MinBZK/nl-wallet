@@ -577,11 +577,11 @@ impl<'a> PublicKeyByKid<'a> for CertificateSigningKeysByKid<'a> {
         };
 
         if kid == self.current.kid {
-            return Ok(Some(self.current.public_key.as_ref()));
+            return Ok(Some(self.current.public_key.as_public_key_ref()));
         }
 
         match self.previous.get(&kid) {
-            Some(key) if key.exp > self.now => Ok(Some(key.certificate_public_key.as_ref())),
+            Some(key) if key.exp > self.now => Ok(Some(key.certificate_public_key.as_public_key_ref())),
             Some(key) => Err(KeyExpired(key.exp)),
             None => Ok(None),
         }

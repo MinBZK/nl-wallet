@@ -61,23 +61,23 @@ impl<'a> From<&'a PublicKey> for PublicKeyRef<'a> {
 }
 
 pub trait AsPublicKeyRef {
-    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a>;
+    fn as_public_key_ref<'a>(&'a self) -> PublicKeyRef<'a>;
 }
 
 impl AsPublicKeyRef for PublicKey {
-    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+    fn as_public_key_ref<'a>(&'a self) -> PublicKeyRef<'a> {
         self.into()
     }
 }
 
 impl AsPublicKeyRef for &PublicKey {
-    fn as_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+    fn as_public_key_ref<'a>(&'a self) -> PublicKeyRef<'a> {
         (*self).into()
     }
 }
 
 impl<'a> AsPublicKeyRef for PublicKeyRef<'a> {
-    fn as_ref<'b>(&'b self) -> PublicKeyRef<'b> {
+    fn as_public_key_ref<'b>(&'b self) -> PublicKeyRef<'b> {
         self.clone()
     }
 }

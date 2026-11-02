@@ -494,7 +494,7 @@ where
     type Error = Infallible;
 
     fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
-        Ok(self.get(kid).map(AsPublicKeyRef::as_ref))
+        Ok(self.get(kid).map(AsPublicKeyRef::as_public_key_ref))
     }
 }
 
@@ -517,7 +517,7 @@ where
             .ok_or(JwtVerifyError::KeyNotFound(kid))?;
 
         let validation = validation.into_validation(&pubkey);
-        self.parse_and_verify(JwtDecodingKey::from(pubkey.as_ref()), validation)
+        self.parse_and_verify(JwtDecodingKey::from(pubkey.as_public_key_ref()), validation)
     }
 }
 
@@ -970,7 +970,7 @@ impl JwtValidation {
     /// Since `jsonwebtoken` only supports one algorithm family at a time, this converts a `JwtValidation` into a valid
     /// `Validation` for the given public key.
     pub fn into_validation(mut self, public_key: &impl AsPublicKeyRef) -> ValidationWrapper {
-        let public_key = public_key.as_ref();
+        let public_key = public_key.as_public_key_ref();
 
         // only include algorithms supported by the public key
         self.0.algorithms = self
@@ -2304,9 +2304,10 @@ mod tests {
         let unverified: UnverifiedJwt<ToyMessage> = token_str.parse().unwrap();
 
         let public_key = private_key.public_key();
-        let validation = JwtValidation::default_with_algorithms(public_key.as_ref().supported_algorithms().to_vec())
-            .try_into_validation()
-            .unwrap();
+        let validation =
+            JwtValidation::default_with_algorithms(public_key.as_public_key_ref().supported_algorithms().to_vec())
+                .try_into_validation()
+                .unwrap();
 
         let decoding_key = JwtDecodingKey::from(&public_key);
         let (_, parsed) = unverified.parse_and_verify(&decoding_key, &validation).unwrap();
