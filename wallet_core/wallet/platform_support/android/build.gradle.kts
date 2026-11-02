@@ -110,7 +110,7 @@ android {
     sourceSets {
         getByName("main") {
             // UniFFI generated bindings
-            kotlin.srcDirs("../kotlin")
+            kotlin.directories += "../kotlin"
         }
     }
 }
