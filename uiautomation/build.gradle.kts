@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.1.20"
+    kotlin("jvm") version "2.4.21"
     application
 }
 
@@ -14,7 +14,7 @@ kotlin {
     jvmToolchain(jdkVersion = 21)
 }
 
-val browserstackAgent by configurations.creating
+val browserstackAgent = configurations.create("browserstackAgent")
 
 dependencies {
     browserstackAgent("com.browserstack:browserstack-java-sdk:1.65.1")
