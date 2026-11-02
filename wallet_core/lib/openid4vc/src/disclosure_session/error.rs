@@ -2,7 +2,6 @@ use std::error::Error;
 use std::num::NonZeroUsize;
 
 use attestation_types::credential_format::Format;
-use dcql::CredentialQueryIdentifier;
 use derive_more::Constructor;
 use derive_more::Display;
 use error_category::ErrorCategory;
@@ -59,17 +58,15 @@ pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[source] VpMessageClientError),
 
-    #[error("attestations provided for unknown credential query: {0}")]
-    #[category(critical)]
-    UnknownCredentialQuery(CredentialQueryIdentifier),
+    // The credential query identifier is not included in this error and the next one, since it is privacy-sensitive
+    // and since `impossible` errors get reported.
+    #[error("attestations provided for unknown credential query")]
+    #[category(impossible)]
+    UnknownCredentialQuery,
 
-    #[error("attestation format mismatch for credential query {id}: requested {requested}, provided {provided}")]
-    #[category(critical)]
-    AttestationFormatMismatch {
-        id: CredentialQueryIdentifier,
-        requested: Format,
-        provided: Format,
-    },
+    #[error("attestation format mismatch for credential query: requested {requested}, provided {provided}")]
+    #[category(impossible)]
+    AttestationFormatMismatch { requested: Format, provided: Format },
 
     #[error("signing returned {received} signed attestations, expected {expected}")]
     #[category(impossible)]

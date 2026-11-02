@@ -238,11 +238,10 @@ fn check_attestation_formats(
             .as_ref()
             .iter()
             .find(|request| request.id() == id)
-            .ok_or_else(|| VpClientError::UnknownCredentialQuery(id.clone()))?;
+            .ok_or(VpClientError::UnknownCredentialQuery)?;
 
         if request.format() != attestations.format() {
             return Err(VpClientError::AttestationFormatMismatch {
-                id: id.clone(),
                 requested: request.format(),
                 provided: attestations.format(),
             });
@@ -554,8 +553,8 @@ mod tests {
             error,
             DisclosureError {
                 data_shared: DataDisclosed::NotDisclosed,
-                error: VpSessionError::Client(VpClientError::UnknownCredentialQuery(id))
-            } if id.as_ref() == "sd_jwt_pid_example"
+                error: VpSessionError::Client(VpClientError::UnknownCredentialQuery)
+            }
         );
         assert!(verifier_session.wallet_messages.lock().is_empty());
     }
@@ -590,7 +589,6 @@ mod tests {
                 error: VpSessionError::Client(VpClientError::AttestationFormatMismatch {
                     requested: Format::MsoMdoc,
                     provided: Format::SdJwt,
-                    ..
                 })
             }
         );
