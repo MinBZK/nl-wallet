@@ -227,8 +227,6 @@ mod tests {
     #[case::too_many(3)]
     #[tokio::test]
     async fn test_sign_coses_error_incorrect_signature_count(#[case] signature_count: usize) {
-        // When the WSCD returns a different number of signatures than requested, `sign_coses_without_payload()`
-        // should result in an error.
         let wscd = FixedSignatureCountWscd {
             wscd: DisclosureMockRemoteWscd::default(),
             signature_count,
