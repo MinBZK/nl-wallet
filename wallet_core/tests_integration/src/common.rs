@@ -540,10 +540,9 @@ async fn build_wallet_environment_inner(
 
     static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
 
-    let static_port = start_static_server(static_settings, static_root_ca.clone()).await;
+    let config_url = start_static_server(static_settings, static_root_ca.clone()).await;
     let config_server_config = ConfigServerConfiguration {
-        http_config: TlsPinningConfig::try_new(local_config_base_url(static_port), vec_nonempty![static_root_ca])
-            .unwrap(),
+        http_config: TlsPinningConfig::try_new(config_url, vec_nonempty![static_root_ca]).unwrap(),
         ..default_config_server_config()
     };
 
@@ -814,7 +813,7 @@ pub fn wallet_provider_settings(db_url: Url, audit_db_url: Url) -> (WpSettings, 
     (settings, root_ca)
 }
 
-pub async fn start_static_server(settings: StaticSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
+pub async fn start_static_server(settings: StaticSettings, trust_anchor: ReqwestTrustAnchor) -> BaseUrl {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
@@ -831,7 +830,7 @@ pub async fn start_static_server(settings: StaticSettings, trust_anchor: Reqwest
         Some(vec_nonempty![trust_anchor.into_certificate()]),
     )
     .await;
-    port
+    base_url
 }
 
 pub async fn start_static_crl_server(settings: &StaticSettings) -> u16 {

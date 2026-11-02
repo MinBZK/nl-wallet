@@ -62,10 +62,10 @@ async fn test_wallet_config() {
 
     let (mut static_settings, static_root_ca) = static_server_settings();
     static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
-    let port = start_static_server(static_settings, static_root_ca.clone()).await;
+    let config_url = start_static_server(static_settings, static_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
-        http_config: TlsPinningConfig::try_new(local_config_base_url(port), vec_nonempty![static_root_ca]).unwrap(),
+        http_config: TlsPinningConfig::try_new(config_url, vec_nonempty![static_root_ca]).unwrap(),
         ..default_config_server_config()
     };
 
@@ -109,10 +109,10 @@ async fn test_wallet_config_stale() {
 
     let (mut static_settings, static_root_ca) = static_server_settings();
     static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
-    let port = start_static_server(static_settings, static_root_ca.clone()).await;
+    let config_url = start_static_server(static_settings, static_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
-        http_config: TlsPinningConfig::try_new(local_config_base_url(port), vec_nonempty![static_root_ca]).unwrap(),
+        http_config: TlsPinningConfig::try_new(config_url, vec_nonempty![static_root_ca]).unwrap(),
         ..default_config_server_config()
     };
 
@@ -156,10 +156,10 @@ async fn test_wallet_config_signature_verification_failed() {
     .unwrap();
     // Serve a wallet configuration as JWT signed by a random key
     static_settings.wallet_config_jwt = jwt.into();
-    let port = start_static_server(static_settings, static_root_ca.clone()).await;
+    let config_url = start_static_server(static_settings, static_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
-        http_config: TlsPinningConfig::try_new(local_config_base_url(port), vec_nonempty![static_root_ca]).unwrap(),
+        http_config: TlsPinningConfig::try_new(config_url, vec_nonempty![static_root_ca]).unwrap(),
         ..default_config_server_config()
     };
 
@@ -193,10 +193,10 @@ async fn test_wallet_config_rejected_etag_not_stored() {
         .await
         .unwrap()
         .into();
-    let port = start_static_server(static_settings, static_root_ca.clone()).await;
+    let config_url = start_static_server(static_settings, static_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
-        http_config: TlsPinningConfig::try_new(local_config_base_url(port), vec_nonempty![static_root_ca]).unwrap(),
+        http_config: TlsPinningConfig::try_new(config_url, vec_nonempty![static_root_ca]).unwrap(),
         ..default_config_server_config()
     };
 
