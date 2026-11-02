@@ -894,7 +894,7 @@ where
             .try_into()
             // There will be at least one attestation, which is guaranteed by
             // `NormalizedCredentialRequests` and the logic in `start_disclosure()`.
-            .unwrap_or_else(|_| unreachable!());
+            .expect("disclosure session should contain at least one attestation");
 
         // Actually perform disclosure, casting any `InstructionError` that occurs during signing
         // to `RemoteEcdsaKeyError::Instruction`.
