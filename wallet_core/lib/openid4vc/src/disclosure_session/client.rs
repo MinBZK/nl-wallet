@@ -7,6 +7,7 @@ use crypto::x509::crl::CrlFetcher;
 use crypto::x509::crl::HttpCrlFetcher;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
+use itertools::Itertools;
 use oauth::errors::AuthorizationErrorResponse;
 use oauth::errors::ErrorResponse;
 use serde::Deserialize;
@@ -248,6 +249,7 @@ where
             .as_ref()
             .iter()
             .map(NormalizedCredentialRequest::format)
+            .unique()
             .find(|format| match format {
                 Format::MsoMdoc => !vp_formats
                     .mso_mdoc
