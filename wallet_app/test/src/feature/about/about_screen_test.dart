@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -71,6 +73,30 @@ void main() {
       expect(widgetFinder, findsOneWidget);
     });
 
+    testWidgets('ltc28 only the url in the description is exposed as a link', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidgetWithAppWrapper(
+        const AboutScreen()
+            .withDependency<GetVersionStringUseCase>((context) => getVersionUsecase)
+            .withDependency<ConfigurationRepository>((context) => Mocks.create()),
+      );
+      await tester.pumpAndSettle();
+
+      final url = l10n.aboutScreenDescriptionLink;
+      final linkFinder = find.semantics.byFlag(SemanticsFlag.isLink);
+      expect(linkFinder, findsOne);
+      final link = linkFinder.evaluate().single;
+      expect(link, isSemantics(label: url, isLink: true, isButton: false, hasTapAction: true));
+      expect(link.getSemanticsData().linkUrl, Uri.parse('https://$url'));
+
+      final textBeforeLink = l10n.aboutScreenDescription(url).split('\n\n').last.split(url).first;
+      final textFinder = find.semantics.byLabel(textBeforeLink);
+      expect(textFinder, findsOne);
+      expect(textFinder.evaluate().single, isSemantics(isButton: false, hasTapAction: false));
+      semanticsHandle.dispose();
+    });
+
     testWidgets('ltc28 app version and config are separate semantics nodes', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
@@ -86,6 +112,37 @@ void main() {
       );
       expect(versionSemantics.label, isNot(contains(l10n.generalConfigVersionText)));
       expect(configSemantics.label, isNot(contains(l10n.generalVersionText)));
+    });
+
+    testWidgets('ltc28 activating the link opens the url', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final launchedUrls = <String>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/url_launcher'),
+        (MethodCall methodCall) async {
+          launchedUrls.add(methodCall.arguments['url'] as String);
+          return true;
+        },
+      );
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/url_launcher'),
+          null,
+        ),
+      );
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidgetWithAppWrapper(
+        const AboutScreen()
+            .withDependency<GetVersionStringUseCase>((context) => getVersionUsecase)
+            .withDependency<ConfigurationRepository>((context) => Mocks.create()),
+      );
+      await tester.pumpAndSettle();
+
+      tester.semantics.tap(find.semantics.byFlag(SemanticsFlag.isLink));
+      await tester.pumpAndSettle();
+
+      expect(launchedUrls, ['https://${l10n.aboutScreenDescriptionLink}']);
+      semanticsHandle.dispose();
     });
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +10,7 @@ import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dar
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../test_util/golden_utils.dart';
+import '../../../../test_util/test_utils.dart';
 
 const _defaultTestSurfaceSize = Size(328, 206);
 const _expiredFooterTestSurfaceSize = Size(328, 243);
@@ -84,6 +87,26 @@ void main() {
 
       // Validate the onTap listener was called
       expect(listenerTriggered, isTrue);
+    });
+
+    testWidgets('card is exposed as a single named button, without a nested unnamed View button', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidgetWithAppWrapper(
+        SharedAttributesCard(
+          card: WalletMockData.card,
+          attributes: WalletMockData.card.attributes,
+          onPressed: () {},
+        ),
+      );
+
+      final buttonFinder = find.semantics.byFlag(SemanticsFlag.isButton);
+      expect(buttonFinder, findsOne);
+      final button = buttonFinder.evaluate().single;
+      expect(button, isSemantics(isButton: true, isFocusable: true, hasTapAction: true));
+      expect(button.label, startsWith(l10n.sharedAttributesCardTitle(WalletMockData.card.title.testValue, 1)));
+      expect(button.label, endsWith(l10n.sharedAttributesCardCtaSemanticsLabel(WalletMockData.card.title.testValue)));
+      semanticsHandle.dispose();
     });
 
     testWidgets('showCta: false hides the View call-to-action', (tester) async {

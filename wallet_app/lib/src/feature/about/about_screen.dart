@@ -93,14 +93,13 @@ class AboutScreen extends StatelessWidget {
       itemBuilder: (c, i) {
         final paragraph = paragraphs[i];
         if (paragraph.contains(url)) {
+          final urlString = url.startsWith('http') ? url : 'https://$url';
           return TextWithLink(
             fullText: paragraph,
             linkText: url,
             onTapHint: context.l10n.generalWCAGOpenLink,
-            onLinkPressed: () {
-              final urlString = url.startsWith('http') ? url : 'https://$url';
-              launchUrlStringCatching(urlString, mode: LaunchMode.externalApplication);
-            },
+            linkUrl: Uri.tryParse(urlString),
+            onLinkPressed: () => launchUrlStringCatching(urlString, mode: LaunchMode.externalApplication),
           );
         } else {
           return BodyText(paragraphs[i]);
