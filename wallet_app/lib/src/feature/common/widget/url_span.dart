@@ -18,31 +18,50 @@ class UrlSpan extends WidgetSpan {
     required String ctaText,
     VoidCallback? onPressed,
     TextStyle? textStyle,
+    String? onTapHint,
+    Uri? linkUrl,
   }) : super(
-         child: FocusBuilder(
-           builder: (context, hasFocus) {
-             final urlTextStyle = (textStyle ?? context.textTheme.bodyLarge)?.copyWith(
-               color: context.colorScheme.primary,
-               decoration: TextDecoration.underline,
-               fontVariations: hasFocus ? [BaseWalletTheme.fontVariationBold] : null,
-             );
-             // Border that is drawn around the url when it has focus.
-             final focusedBorderDecoration = BoxDecoration(
-               border: Border.all(
-                 color: context.textTheme.bodyLarge?.color ?? context.colorScheme.primary,
-                 strokeAlign: BorderSide.strokeAlignOutside,
-               ),
-             );
-             return GestureDetector(
+         child: Builder(
+           builder: (context) {
+             // Wraps the focus node as well, so link, focus and tap end up in one named node.
+             return Semantics(
+               container: true,
+               link: true,
+               // Without a url Android exposes a link as a button.
+               linkUrl: linkUrl,
                onTap: onPressed,
-               child: Container(
-                 padding: EdgeInsets.symmetric(horizontal: hasFocus ? _kHyperlinkHorizontalPadding : 0),
-                 decoration: hasFocus ? focusedBorderDecoration : null,
-                 child: Text.rich(
-                   ctaText.toTextSpan(context),
-                   style: urlTextStyle,
-                   textScaler: TextScaler.noScaling, // Scaled by the parent
-                 ),
+               onTapHint: onTapHint,
+               attributedLabel: ctaText.toAttributedString(context),
+               child: FocusBuilder(
+                 builder: (context, hasFocus) {
+                   final urlTextStyle = (textStyle ?? context.textTheme.bodyLarge)?.copyWith(
+                     color: context.colorScheme.primary,
+                     decoration: TextDecoration.underline,
+                     fontVariations: hasFocus ? [BaseWalletTheme.fontVariationBold] : null,
+                   );
+                   // Border that is drawn around the url when it has focus.
+                   final focusedBorderDecoration = BoxDecoration(
+                     border: Border.all(
+                       color: context.textTheme.bodyLarge?.color ?? context.colorScheme.primary,
+                       strokeAlign: BorderSide.strokeAlignOutside,
+                     ),
+                   );
+                   return GestureDetector(
+                     onTap: onPressed,
+                     excludeFromSemantics: true,
+                     child: Container(
+                       padding: EdgeInsets.symmetric(horizontal: hasFocus ? _kHyperlinkHorizontalPadding : 0),
+                       decoration: hasFocus ? focusedBorderDecoration : null,
+                       child: ExcludeSemantics(
+                         child: Text.rich(
+                           ctaText.toTextSpan(context),
+                           style: urlTextStyle,
+                           textScaler: TextScaler.noScaling, // Scaled by the parent
+                         ),
+                       ),
+                     ),
+                   );
+                 },
                ),
              );
            },
