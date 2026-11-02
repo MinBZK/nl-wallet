@@ -97,7 +97,7 @@ use crate::attestation::mock::EmptyPresentationConfig;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
-use crate::config::test::test_wallet_config;
+use crate::config::test_wallet_config;
 use crate::pin::key as pin_key;
 use crate::storage::KeyData;
 use crate::storage::MockHardwareDatabaseStorage;
@@ -456,8 +456,11 @@ where
     /// Creates an unregistered `Wallet` with mock dependencies, holding the provided configuration.
     pub async fn new_unregistered_with_config(vendor: WalletDeviceVendor, config: WalletConfiguration) -> Self {
         let config_server_config = default_config_server_config();
-        let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), config_server_config).await;
+        let config_repository = UpdatingConfigurationRepository::new(
+            LocalConfigurationRepository::new(config),
+            config_server_config.into(),
+        )
+        .await;
 
         Wallet::new(
             S::init().await,
@@ -475,7 +478,8 @@ where
     pub async fn new_init_registration(vendor: WalletDeviceVendor) -> Result<Self, WalletInitError> {
         let config_server_config = default_config_server_config();
         let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config.into())
+                .await;
 
         Wallet::init_registration(
             S::init().await,
@@ -546,7 +550,8 @@ impl TestWalletMockStorage {
     ) -> Result<Self, WalletInitError> {
         let config_server_config = default_config_server_config();
         let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config.into())
+                .await;
 
         Wallet::init_registration(
             storage,

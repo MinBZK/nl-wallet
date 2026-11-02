@@ -468,7 +468,7 @@ mod tests {
     use super::StoredAttestationCopy;
     use super::WithKeyIdentifier;
     use crate::attestation::AttestationAttribute;
-    use crate::config::test::test_wallet_config;
+    use crate::config::test_wallet_config;
     use crate::storage::StoredAttestationMetadata;
 
     static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);

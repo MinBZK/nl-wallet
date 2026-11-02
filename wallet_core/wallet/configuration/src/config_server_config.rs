@@ -14,6 +14,9 @@ use crate::EnvironmentSpecific;
 pub struct ConfigServerConfiguration {
     pub environment: String,
     pub http_config: TlsPinningConfig,
+
+    pub signing_key_id: String,
+
     #[serde_as(as = "Base64")]
     pub signing_public_key: DerVerifyingKey,
 

@@ -10702,6 +10702,7 @@ dependencies = [
  "itertools 0.14.0",
  "jwt",
  "openid4vc",
+ "p256 0.14.0",
  "rustls-pki-types",
  "serde",
  "serde_json",

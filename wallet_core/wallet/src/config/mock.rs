@@ -1,5 +1,12 @@
 use std::sync::Arc;
 
+use crypto::EcdsaKey;
+use jwt::KeyWithKid;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::signature::Signer;
+use p256::elliptic_curve::Generate;
+use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::ConfigurationError;
@@ -9,6 +16,43 @@ use crate::repository::Repository;
 use crate::repository::RepositoryCallback;
 use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
+
+pub struct ConfigSigningKey {
+    pub key: p256::ecdsa::SigningKey,
+    pub kid: &'static str,
+}
+
+impl ConfigSigningKey {
+    pub fn new_with_kid(kid: &'static str) -> Self {
+        let key = p256::ecdsa::SigningKey::generate();
+        Self { key, kid }
+    }
+
+    pub fn to_config_key_with_kid(&self) -> ConfigKeyWithKid {
+        ConfigKeyWithKid {
+            kid: self.kid.to_string(),
+            key: (*self.key.verifying_key()).into(),
+        }
+    }
+}
+
+impl EcdsaKey for ConfigSigningKey {
+    type Error = p256::ecdsa::Error;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        Ok(*self.key.verifying_key())
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        Signer::try_sign(&self.key, msg)
+    }
+}
+
+impl KeyWithKid for ConfigSigningKey {
+    fn kid(&self) -> &str {
+        self.kid
+    }
+}
 
 pub struct LocalConfigurationRepository {
     config: Arc<WalletConfiguration>,

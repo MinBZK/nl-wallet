@@ -8,7 +8,6 @@ use axum::extract::State;
 use axum::routing::get;
 use chrono::TimeDelta;
 use chrono::Utc;
-use crypto::PublicKeyRef;
 use http_utils::client::TlsPinningConfig;
 use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
@@ -27,6 +26,7 @@ use wallet::test::UpdatingConfigurationRepository;
 use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
+use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 /// Serves a wallet configuration JWT, which can be replaced while the server is running. This makes it possible to
@@ -44,10 +44,11 @@ impl SwappableConfigServer {
         let listener = TcpListener::bind("localhost:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
 
+        let kid = "0";
         let app = Router::new().merge(create_health_router([])).nest(
             "/config/v1",
             Router::new()
-                .route("/wallet-config", get(serve_configuration))
+                .route(&format!("/{kid}"), get(serve_configuration))
                 .with_state(Arc::clone(&jwt)),
         );
 
@@ -69,6 +70,7 @@ impl SwappableConfigServer {
 
         let config_server_config = ConfigServerConfiguration {
             http_config: TlsPinningConfig::try_new(base_url, vec_nonempty![trust_anchor]).unwrap(),
+            signing_key_id: kid.to_string(),
             ..default_config_server_config()
         };
 
@@ -113,7 +115,10 @@ async fn test_expired_configuration_is_rejected() {
 
     let storage_dir = tempfile::tempdir().unwrap();
     let repository = HttpConfigurationRepository::new(
-        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
+        ConfigKeyWithKid::new(
+            config_server_config.signing_key_id,
+            config_server_config.signing_public_key,
+        ),
         storage_dir.path().join("wallet-config.jwt"),
         embedded_config,
     );

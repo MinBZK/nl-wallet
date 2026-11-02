@@ -1,6 +1,5 @@
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use crypto::PublicKeyRef;
 use ctor::ctor;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -31,6 +30,7 @@ use wallet::test::MockHardwareDatabaseStorage;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
+use wallet_configuration::verification::ConfigKeyWithKid;
 
 #[ctor]
 fn init() {
@@ -70,7 +70,10 @@ async fn main() {
     let wallet_config = default_wallet_config();
 
     let config_repository = HttpConfigurationRepository::new(
-        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
+        ConfigKeyWithKid::new(
+            config_server_config.signing_key_id,
+            config_server_config.signing_public_key,
+        ),
         temp_path.join("config.etag"),
         wallet_config,
     );

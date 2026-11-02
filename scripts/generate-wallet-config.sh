@@ -25,8 +25,8 @@ base64_padding()
 base64_url_decode() { base64_padding "$1" | tr -- '-_' '+/' | openssl base64 -d -A; }
 
 # Print usage instructions when there are not enough arguments.
-if [ $# -lt 5 ]; then
-    >&2 echo "Usage: $0 <output location> <wallet env> <env static hostname> <config public key> <config server TLS CA> [<config server TLS CA>..]"
+if [ $# -lt 6 ]; then
+    >&2 echo "Usage: $0 <output location> <wallet env> <env static hostname> <config key id> <config public key> <config server TLS CA> [<config server TLS CA>..]"
     exit 1
 fi
 
@@ -34,8 +34,9 @@ fi
 OUTPUT_LOCATION=$1
 WALLET_ENV=$2
 STATIC_HOSTNAME=$3
-CONFIG_PUBLIC_KEY=$4
-CONFIG_SERVER_CAS=("${@:5}")
+CONFIG_KEY_ID=$4
+CONFIG_PUBLIC_KEY=$5
+CONFIG_SERVER_CAS=("${@:6}")
 
 # Create temp dir for intermediate files and clean on exit
 trap clean EXIT
@@ -58,7 +59,7 @@ for CA in "${CONFIG_SERVER_CAS[@]}"; do
 done
 
 # Fetch the configuration and extract its payload.
-CONFIG_JWT=$(curl -sf --cacert "$CA_FILE" "https://${STATIC_HOSTNAME}/config/v1/wallet-config")
+CONFIG_JWT=$(curl -sf --cacert "$CA_FILE" "https://${STATIC_HOSTNAME}/config/v1/$CONFIG_KEY_ID")
 JWT_PAYLOAD=$(echo "$CONFIG_JWT" | cut -d . -f 2)
 
 # Generate the config_server_configuration JSON in the temp dir, so it can be used for verification below.
@@ -70,11 +71,13 @@ jq -n \
             "base_url": $url,
             "trust_anchors": $ARGS.positional
         },
+        "signing_key_id": $kid,
         "signing_public_key": $pubkey,
         "update_frequency_in_sec": 3600
     }' \
     --arg env "$WALLET_ENV" \
     --arg url "https://${STATIC_HOSTNAME}/config/v1/" \
+    --arg kid "${CONFIG_KEY_ID}" \
     --arg pubkey "${CONFIG_PUBLIC_KEY}" \
     --args "${CONFIG_SERVER_CAS[@]}" \
     > "$CONFIG_SERVER_CONFIG_FILE"

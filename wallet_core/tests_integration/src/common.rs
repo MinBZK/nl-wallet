@@ -22,7 +22,6 @@ use attestation_types::credential_format::Format;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
-use crypto::PublicKeyRef;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -46,6 +45,7 @@ use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
 use jwt::SignedJwt;
+use jwt::headers::HeaderWithKid;
 use oauth::issuer_identifier::IssuerIdentifier;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::HttpVpMessageClient;
@@ -104,6 +104,7 @@ use wallet::Pin;
 use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::WalletRepositories;
+use wallet::test::ConfigSigningKey;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
@@ -112,6 +113,7 @@ use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
+use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::CertificatePublicKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AndroidRootPublicKey;
@@ -617,7 +619,10 @@ where
 
     let etag_path = temp_path.as_ref().join(format!("{}.etag", random_string(10)));
     let config_repository = HttpConfigurationRepository::new(
-        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
+        ConfigKeyWithKid::new(
+            config_server_config.signing_key_id,
+            config_server_config.signing_public_key,
+        ),
         etag_path,
         wallet_config,
     );
@@ -801,15 +806,14 @@ pub fn update_policy_server_settings() -> (UpsSettings, ReqwestTrustAnchor) {
     (settings, root_ca)
 }
 
-pub async fn config_jwt(wallet_config: &WalletConfiguration) -> SignedJwt<WalletConfiguration> {
+pub async fn config_jwt(wallet_config: &WalletConfiguration) -> SignedJwt<WalletConfiguration, HeaderWithKid> {
     let key = read_file("config_signing.pem");
+    let signing_key = ConfigSigningKey {
+        key: SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
+        kid: "0",
+    };
 
-    SignedJwt::sign(
-        wallet_config,
-        &SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
-    )
-    .await
-    .unwrap()
+    SignedJwt::sign_with_kid(wallet_config, &signing_key).await.unwrap()
 }
 
 pub fn wallet_provider_settings(db_url: Url, audit_db_url: Url) -> (WpSettings, ReqwestTrustAnchor) {

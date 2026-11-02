@@ -1,15 +1,11 @@
 use std::assert_matches;
 
-use crypto::PublicKeyRef;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::default_reqwest_client_builder;
 use jwt::SignedJwt;
 use jwt::error::JwtVerifyError;
-use p256::ecdsa::SigningKey;
-use p256::elliptic_curve::Generate;
-use p256::pkcs8::DecodePrivateKey;
-use p256::pkcs8::EncodePrivateKey;
 use regex::regex;
+use reqwest::StatusCode;
 use reqwest::header;
 use reqwest::header::HeaderValue;
 use tests_integration::common::*;
@@ -17,6 +13,8 @@ use tokio::fs;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wallet::errors::ConfigurationError;
+use wallet::errors::HttpClientError;
+use wallet::test::ConfigSigningKey;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::Repository;
 use wallet::test::RepositoryUpdateState;
@@ -24,6 +22,7 @@ use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
+use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_provider::settings::Settings as WpSettings;
 
 #[tokio::test]
@@ -72,7 +71,10 @@ async fn test_wallet_config() {
     let storage_dir = tempfile::tempdir().unwrap();
     let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
-        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
+        ConfigKeyWithKid::new(
+            config_server_config.signing_key_id,
+            config_server_config.signing_public_key,
+        ),
         etag_path.clone(),
         default_wallet_config(),
     );
@@ -97,14 +99,7 @@ async fn test_wallet_config() {
 
 #[tokio::test]
 async fn test_wallet_config_stale() {
-    let settings = WpSettings::new().expect("Could not read settings");
-
-    let mut served_wallet_config = default_wallet_config();
-    served_wallet_config.account_server.http_config = TlsPinningConfig::try_new(
-        local_wp_base_url(settings.webserver.port),
-        VecNonEmpty::try_from(served_wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
-    )
-    .unwrap();
+    let served_wallet_config = default_wallet_config();
 
     let (mut static_settings, static_root_ca) = static_server_settings();
     static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
@@ -118,7 +113,10 @@ async fn test_wallet_config_stale() {
     let storage_dir = tempfile::tempdir().unwrap();
     let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
-        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
+        ConfigKeyWithKid::new(
+            config_server_config.signing_key_id,
+            config_server_config.signing_public_key,
+        ),
         etag_path,
         default_wallet_config(),
     );
@@ -129,6 +127,36 @@ async fn test_wallet_config_stale() {
 
     assert_matches!(result, RepositoryUpdateState::Unmodified(_));
     assert_eq!(before.version, after.version);
+}
+
+#[tokio::test]
+async fn test_wallet_config_incorrect_kid() {
+    let served_wallet_config = default_wallet_config();
+
+    let (mut static_settings, static_root_ca) = static_server_settings();
+    static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
+    let config_url = start_static_server(static_settings, static_root_ca.clone()).await;
+
+    let config_server_config = ConfigServerConfiguration {
+        http_config: TlsPinningConfig::try_new(config_url, vec_nonempty![static_root_ca]).unwrap(),
+        ..default_config_server_config()
+    };
+
+    let storage_dir = tempfile::tempdir().unwrap();
+    let etag_path = storage_dir.path().join("config.etag");
+    let http_config = HttpConfigurationRepository::new(
+        ConfigKeyWithKid::new("different".to_string(), config_server_config.signing_public_key),
+        etag_path,
+        default_wallet_config(),
+    );
+
+    let result = http_config
+        .fetch(&config_server_config.http_config)
+        .await
+        .expect_err("Expecting http client error");
+
+    assert_matches!(result, ConfigurationError::HttpClient(HttpClientError::Response(e, _))
+        if e.status() == Some(StatusCode::NOT_FOUND));
 }
 
 #[tokio::test]
@@ -146,14 +174,10 @@ async fn test_wallet_config_signature_verification_failed() {
     served_wallet_config.version = 0;
 
     let (mut static_settings, static_root_ca) = static_server_settings();
-    let signing_key = SigningKey::generate();
-    let pkcs8_der = signing_key.to_pkcs8_der().unwrap();
-    let jwt = SignedJwt::sign(
-        &served_wallet_config,
-        &SigningKey::from_pkcs8_der(pkcs8_der.as_bytes()).unwrap(),
-    )
-    .await
-    .unwrap();
+    let signing_key = ConfigSigningKey::new_with_kid("0");
+    let jwt = SignedJwt::sign_with_kid(&served_wallet_config, &signing_key)
+        .await
+        .unwrap();
     // Serve a wallet configuration as JWT signed by a random key
     static_settings.wallet_config_jwt = jwt.into();
     let config_url = start_static_server(static_settings, static_root_ca.clone()).await;
@@ -166,7 +190,10 @@ async fn test_wallet_config_signature_verification_failed() {
     let storage_dir = tempfile::tempdir().unwrap();
     let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
-        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
+        ConfigKeyWithKid::new(
+            config_server_config.signing_key_id,
+            config_server_config.signing_public_key,
+        ),
         etag_path,
         default_wallet_config(),
     );
@@ -188,9 +215,9 @@ async fn test_wallet_config_rejected_etag_not_stored() {
     served_wallet_config.version = default_wallet_config().version + 1;
 
     // Sign the served configuration with a key the current app does not know, so that it gets rejected.
-    let signing_key = SigningKey::generate();
+    let signing_key = ConfigSigningKey::new_with_kid("0");
     let (mut static_settings, static_root_ca) = static_server_settings();
-    static_settings.wallet_config_jwt = SignedJwt::sign(&served_wallet_config, &signing_key)
+    static_settings.wallet_config_jwt = SignedJwt::sign_with_kid(&served_wallet_config, &signing_key)
         .await
         .unwrap()
         .into();
@@ -204,7 +231,10 @@ async fn test_wallet_config_rejected_etag_not_stored() {
     let storage_dir = tempfile::tempdir().unwrap();
     let etag_path = storage_dir.path().join("config.etag");
     let rejecting_http_config = HttpConfigurationRepository::new(
-        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
+        ConfigKeyWithKid::new(
+            config_server_config.signing_key_id.clone(),
+            config_server_config.signing_public_key,
+        ),
         etag_path.clone(),
         default_wallet_config(),
     );
@@ -223,7 +253,10 @@ async fn test_wallet_config_rejected_etag_not_stored() {
     // An app update that accepts the served configuration starts out with the same storage, and should therefore
     // receive and apply that configuration.
     let accepting_http_config = HttpConfigurationRepository::new(
-        PublicKeyRef::from(signing_key.verifying_key()).into(),
+        ConfigKeyWithKid::new(
+            config_server_config.signing_key_id,
+            (*signing_key.key.verifying_key()).into(),
+        ),
         etag_path.clone(),
         default_wallet_config(),
     );

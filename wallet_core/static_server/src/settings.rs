@@ -8,6 +8,7 @@ use config::Environment;
 use config::File;
 use http_utils::server::TlsServerConfig;
 use jwt::VerifiedJwt;
+use jwt::headers::HeaderWithKid;
 use serde::Deserialize;
 use status_lists::publish::PublishDir;
 use utils::path::prefix_local_path;
@@ -22,7 +23,7 @@ pub struct Settings {
     pub tls_config: TlsServerConfig,
 
     #[serde(deserialize_with = "VerifiedJwt::dangerous_deserialize")] // we trust our own config file
-    pub wallet_config_jwt: VerifiedJwt<WalletConfiguration>,
+    pub wallet_config_jwt: VerifiedJwt<WalletConfiguration, HeaderWithKid>,
     pub wua_publish_dir: PublishDir,
     pub wrprc_publish_dir: PublishDir,
 }

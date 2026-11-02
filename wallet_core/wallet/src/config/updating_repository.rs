@@ -6,7 +6,6 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKeyRef;
 use error_category::sentry::classify_mask_and_capture;
 use http_utils::client::TlsPinningConfig;
 use parking_lot::Mutex;
@@ -19,6 +18,7 @@ use tracing::warn;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
+use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::CONFIG_EXPIRY_LEEWAY;
@@ -148,14 +148,38 @@ impl WalletConfigurationRepository {
         config: ConfigServerConfiguration,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
+        let update_config = UpdateConfig {
+            http_config: config.http_config,
+            update_frequency: config.update_frequency,
+            expired_retry_interval: config.expired_retry_interval,
+        };
+
         let wrapped = FileStorageConfigurationRepository::init(
             storage_path,
-            PublicKeyRef::from(config.signing_public_key.as_inner()).into(),
+            ConfigKeyWithKid::new(config.signing_key_id, config.signing_public_key),
             initial_config,
         )
         .await?;
-        let updating_repository = Self::new(wrapped, config).await;
+        let updating_repository = Self::new(wrapped, update_config).await;
         Ok(updating_repository)
+    }
+}
+
+pub struct UpdateConfig {
+    pub http_config: TlsPinningConfig,
+    pub update_frequency: Duration,
+    pub expired_retry_interval: Duration,
+}
+
+// Convenience for testing, should not be necessary for normal use
+#[cfg(test)]
+impl From<ConfigServerConfiguration> for UpdateConfig {
+    fn from(config: ConfigServerConfiguration) -> Self {
+        Self {
+            http_config: config.http_config,
+            update_frequency: config.update_frequency,
+            expired_retry_interval: config.expired_retry_interval,
+        }
     }
 }
 
@@ -166,7 +190,7 @@ where
         + Sync
         + 'static,
 {
-    pub async fn new(wrapped: T, config: ConfigServerConfiguration) -> UpdatingConfigurationRepository<T> {
+    pub async fn new(wrapped: T, config: UpdateConfig) -> UpdatingConfigurationRepository<T> {
         let wrapped = Arc::new(wrapped);
         let callback = Arc::new(Mutex::new(None));
         let expiry = Arc::new(ExpiryState::default());
@@ -187,7 +211,7 @@ where
         wrapped: Arc<T>,
         callback: Arc<Mutex<Option<RepositoryCallback<Arc<WalletConfiguration>>>>>,
         expiry: Arc<ExpiryState>,
-        config: ConfigServerConfiguration,
+        config: UpdateConfig,
     ) -> JoinHandle<()> {
         tokio::spawn(async move {
             // The number of consecutive attempts that have left the wallet without a valid configuration.
@@ -352,7 +376,7 @@ mod tests {
 
         let config = UpdatingConfigurationRepository::new(
             TestConfigRepo(RwLock::new(initial_wallet_config)),
-            config_server_config,
+            config_server_config.into(),
         )
         .await;
 
@@ -400,7 +424,7 @@ mod tests {
         {
             let config = UpdatingConfigurationRepository::new(
                 TestConfigRepo(RwLock::new(initial_wallet_config)),
-                config_server_config,
+                config_server_config.into(),
             )
             .await;
 
