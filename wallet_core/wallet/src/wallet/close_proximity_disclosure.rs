@@ -1042,6 +1042,7 @@ mod tests {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use chrono::Utc;
     use ciborium::value::Value;
+    use cose::wrprc_cwt::WrprcCwtError;
     use crypto::WithVerifyingKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -1055,6 +1056,9 @@ mod tests {
     use futures::future::join_all;
     use indexmap::IndexMap;
     use jwt::error::JwtParseError;
+    use jwt::error::JwtVerifyError;
+    use jwt::error::JwtX5cVerifyError;
+    use jwt::error::ValidationErrorKind;
     use mdoc::DeviceEngagement;
     use mdoc::DeviceRequest;
     use mdoc::DeviceResponse;
@@ -1084,7 +1088,7 @@ mod tests {
     use serial_test::serial;
     use token_status_list::status_list::StatusList;
     use token_status_list::status_list::StatusType;
-    use token_status_list::status_list_token::StatusListToken;
+    use token_status_list::status_list_jwt::StatusListJwt;
     use token_status_list::verification::client::StatusListClientError;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use url::Url;
@@ -1833,7 +1837,7 @@ mod tests {
     async fn assert_registration_certificate_rejected(
         registration_certificate: Option<Value>,
         expected_status: DeviceResponseStatus,
-        status_list_result: Option<Result<StatusListToken, StatusListClientError>>,
+        status_list_result: Option<Result<StatusListJwt, StatusListClientError>>,
         wrprc_strict_mode: bool,
     ) -> DisclosureError {
         let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
@@ -1996,13 +2000,17 @@ mod tests {
     #[case::expired(
         |payload: &mut RegistrationCertificateFixture| {
             let now = Utc::now().timestamp();
-            payload.0["iat"] = json!(now - 120);
-            payload.0["exp"] = json!(now - 60);
+            payload.0["iat"] = json!(now - 180);
+            payload.0["exp"] = json!(now - 120);
         },
         |error: &CloseProximityDisclosureError| {
             matches!(error, CloseProximityDisclosureError::RegistrationCertificateVerification(
-                RegistrationCertificateEnvelopeError::Validity(RegistrationCertificateValidationError::Expired { .. })
-            ))
+                RegistrationCertificateEnvelopeError::Cwt(WrprcCwtError::Expired)
+            )) || matches!(error, CloseProximityDisclosureError::RegistrationCertificateVerification(
+                RegistrationCertificateEnvelopeError::Jwt(JwtX5cVerifyError::JwtVerify(
+                    JwtVerifyError::Validation(error)
+                ))
+            ) if *error.kind() == ValidationErrorKind::ExpiredSignature)
         }
     )]
     #[tokio::test]

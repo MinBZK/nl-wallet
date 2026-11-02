@@ -13,6 +13,7 @@ function stubApiMe(status: number, json: () => Promise<unknown>) {
     vi.fn(async (input: string | URL | Request) => {
       const url = input instanceof Request ? input.url : String(input)
       if (url.includes('/api/me')) return { status, ok: status >= 200 && status < 300, json }
+      if (url.includes('/tasks?view=')) return { status: 200, ok: true, json: async () => [] }
       throw new Error(`Unmocked fetch call: ${url}`)
     }),
   )

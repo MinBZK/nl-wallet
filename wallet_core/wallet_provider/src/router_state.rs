@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use android_attest::root_public_key::RootPublicKey;
 use audit_log::model::DbAuditLog;
@@ -22,10 +23,8 @@ use serde::de::DeserializeOwned;
 use status_lists::postgres::PostgresStatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
-use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::generator::UuidV4AndTimeGenerator;
-use uuid::Uuid;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
@@ -41,6 +40,7 @@ use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::account_server::CurrentCertificateSigningKey;
 use wallet_provider_service::account_server::PreviousCertificateSigningKey;
 use wallet_provider_service::account_server::UserState;
+use wallet_provider_service::admin_portal::UuidV7Generator;
 use wallet_provider_service::flags::WalletRepoFlags;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::PinChecks;
@@ -58,7 +58,7 @@ use crate::errors::WalletProviderError;
 use crate::router::KEY_STORAGE_TSL_PATH;
 use crate::settings::Settings;
 
-type ProductionUserState = UserState<
+pub(crate) type ProductionUserState = UserState<
     Repositories,
     WalletRepoFlags<Repositories>,
     Pkcs11Hsm,
@@ -72,7 +72,7 @@ pub struct RouterState<GRC, PIC> {
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
-    pub user_state: ProductionUserState,
+    pub user_state: Arc<ProductionUserState>,
     pub max_transfer_upload_size_in_bytes: usize,
     pub wallet_transfer_concurrency_limit: usize,
     status_list_refresh_task: AbortHandle,
@@ -297,7 +297,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             pin_policy,
             max_transfer_upload_size_in_bytes: settings.max_transfer_upload_size_in_bytes,
             wallet_transfer_concurrency_limit: settings.wallet_transfer_concurrency_limit,
-            user_state: UserState {
+            user_state: Arc::new(UserState {
                 repositories,
                 flags,
                 wallet_user_hsm,
@@ -313,7 +313,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
                 wia_status_list,
                 key_storage_status_list,
-            },
+            }),
             status_list_refresh_task,
         };
 
@@ -365,15 +365,5 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         info!("Replying with the instruction result");
 
         Ok(InstructionResultMessage { result })
-    }
-}
-
-// Time-Sortable and Index-Friendly Uuid generator
-#[derive(Clone, Copy)]
-pub struct UuidV7Generator;
-
-impl Generator<Uuid> for UuidV7Generator {
-    fn generate(&self) -> Uuid {
-        Uuid::now_v7()
     }
 }

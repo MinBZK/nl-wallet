@@ -340,7 +340,7 @@ function generate_pid_issuer_hsm_key_pair {
 
     # Generate a certificate for the public key
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca cert-pub --type issuer \
+        --bin wallet_ca cert-pub --type pid-issuer \
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
@@ -386,6 +386,17 @@ function generate_pid_issuer_key_pair {
     # Convert the PEM certificate to DER format
     openssl x509 -in "${TARGET_DIR}/pid_issuer/$1.crt.pem" \
         -outform DER -out "${TARGET_DIR}/pid_issuer/$1.crt.der"
+}
+
+# Generate an EC private key for OpenID4VCI credential request encryption.
+function generate_credential_request_encryption_private_key {
+    echo -e "${INFO}Generating ${1}/${2:-$1} credential request encryption private key${NC}"
+
+    openssl ecparam -genkey -name prime256v1 -noout \
+        -out "${TARGET_DIR}/${1}/${2:-$1}_credential_request_encryption.ec.key" > /dev/null
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+        -in "${TARGET_DIR}/${1}/${2:-$1}_credential_request_encryption.ec.key" \
+        -out "${TARGET_DIR}/${1}/${2:-$1}_credential_request_encryption.key.der" -nocrypt
 }
 
 # Generate an EC key pair for the WIA

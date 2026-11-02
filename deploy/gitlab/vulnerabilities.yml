@@ -59,22 +59,7 @@ osv-scanner:
   before_script:
     - |
       BASIC_AUTH="${HARBOR_ROBOT_NAME}:$(base64 --decode <<< ${HARBOR_ROBOT_SECRET})"
-      BUILD_IMAGES=(
-      "nl-wallet-demo-relying-party"
-      "nl-wallet-demo-issuer"
-      "nl-wallet-provider-migrations"
-      "nl-audit-log-migrations"
-      "nl-wallet-provider"
-      "nl-wallet-verification-server-migrations"
-      "nl-wallet-verification-server"
-      "nl-wallet-issuance-server-migrations"
-      "nl-wallet-issuance-server"
-      "nl-wallet-pacf-issuance-server-migrations"
-      "nl-wallet-pacf-issuance-server"
-      "nl-wallet-pid-issuer-migrations"
-      "nl-wallet-pid-issuer"
-      "nl-wallet-gba-hc-converter"
-      )
+      mapfile -t BUILD_IMAGES < deploy/build-images.txt
       CI_IMAGES=(
       "nl-wallet-app-builder-ci-android-emulator"
       "nl-wallet-app-builder-ci-playwright"
@@ -147,6 +132,9 @@ trivy-publish:
     - job: build-demo-issuer-image
       artifacts: false
       optional: true
+    - job: build-demo-index-image
+      artifacts: false
+      optional: true
     - job: build-verification-server-image
       artifacts: false
       optional: true
@@ -162,10 +150,13 @@ trivy-publish:
     - job: build-pacf-issuance-server-image
       artifacts: false
       optional: true
+    - job: build-pacf-issuance-server-migrations-image
+      artifacts: false
+      optional: true
     - job: build-acf-demo-issuer-image
       artifacts: false
       optional: true
-    - job: build-pacf-issuance-server-migrations-image
+    - job: build-acf-demo-issuer-migrations-image
       artifacts: false
       optional: true
     - job: build-pid-issuer-image
@@ -178,6 +169,18 @@ trivy-publish:
       artifacts: false
       optional: true
     - job: build-admin-portal-image
+      artifacts: false
+      optional: true
+    - job: build-gba-hc-converter-image
+      artifacts: false
+      optional: true
+    - job: build-gba-fetch-image
+      artifacts: false
+      optional: true
+    - job: build-gba-fetch-frontend-image
+      artifacts: false
+      optional: true
+    - job: build-update-policy-server-image
       artifacts: false
       optional: true
   script:

@@ -295,11 +295,6 @@ visible glyph is small; pending a UX decision.
 On `CardHistory` (iOS) the activity rows are not a list and a duplicate empty
 overlay `Button` sits over them; pending dev investigation.
 
-### InvalidIssuanceUlErrorDetails "Scrim" node exposed to AT (descriptive-headings-labels) — PVW-6339
-
-On `InvalidIssuanceUlErrorDetails` (iOS) a background scrim is exposed with the
-meaningless name "Scrim"; pending investigation of the element.
-
 ### DigiD authenticating — live status not exposed (control-role-state) — PVW-6340
 
 On `PersonalizeAuthenticatingWithDigid` (iOS) no live status/progress is exposed

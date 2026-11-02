@@ -442,6 +442,12 @@ export PID_ISSUER_WRPAC_KEY
 PID_ISSUER_WRPAC_CRT=$(< "${TARGET_DIR}/pid_issuer/wrpac.crt.der" ${BASE64})
 export PID_ISSUER_WRPAC_CRT
 
+# Generate pid issuer credential request encryption private key
+generate_credential_request_encryption_private_key pid_issuer
+
+PID_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/pid_issuer/pid_issuer_credential_request_encryption.key.der" ${BASE64})
+export PID_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
+
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
 generate_demo_relying_party_key_pair mijn_amsterdam
@@ -492,6 +498,16 @@ export DEMO_RELYING_PARTY_CRT_JOB_FINDER
 generate_demo_relying_party_disclosure_registration_certificate job_finder 4
 DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.wrprc")
 export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_JOB_FINDER
+
+# Generate relying party key and cert.
+generate_demo_relying_party_key_pair insurance
+DEMO_RELYING_PARTY_KEY_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/insurance.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_INSURANCE
+DEMO_RELYING_PARTY_CRT_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/insurance.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_INSURANCE
+generate_demo_relying_party_disclosure_registration_certificate insurance 12
+DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_INSURANCE=$(< "${TARGET_DIR}/demo_relying_party/insurance.wrprc")
+export DEMO_RELYING_PARTY_REGISTRATION_CERTIFICATE_INSURANCE
 
 # Compute the AKI of the issuer CA from the public key in its self-signed certificate.
 ISSUER_CA_AKI=$(openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | base64_url_encode)
@@ -615,6 +631,20 @@ generate_issuance_registration_certificate pid 7 \
 PID_ISSUER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/pid_issuer/issuance.wrprc")
 export PID_ISSUER_REGISTRATION_CERTIFICATE
 
+# Generate credential request encryption private keys for each of the demo issuers
+generate_credential_request_encryption_private_key demo_issuer issuance_server
+generate_credential_request_encryption_private_key demo_issuer acf_demo_issuer
+generate_credential_request_encryption_private_key demo_issuer pacf_issuance_server
+
+ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/issuance_server_credential_request_encryption.key.der" ${BASE64})
+export ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
+
+ACF_DEMO_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/acf_demo_issuer_credential_request_encryption.key.der" ${BASE64})
+export ACF_DEMO_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
+
+PACF_ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/pacf_issuance_server_credential_request_encryption.key.der" ${BASE64})
+export PACF_ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
+
 # The shared demo issuance services have their own identities, separate from the demo organizations.
 generate_demo_issuer_issuance_key_pair issuance_server wrpac
 ISSUANCE_SERVER_WRPAC_KEY=$(< "${TARGET_DIR}/demo_issuer/issuance_server.wrpac.key.der" ${BASE64})
@@ -696,12 +726,12 @@ mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/acf_demo_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wrprc"
 
-# All twelve demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
+# All thirteen demo WRPRCs are valid. The TTL is a cache hint and does not expire the token.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca status-list \
     --tsl-key-file "${TARGET_DIR}/wrprc_tsl.key.pem" \
     --tsl-crt-file "${TARGET_DIR}/wrprc_tsl.crt.pem" \
     --uri "${WRPRC_STATUS_LIST_URI}" \
-    --status valid valid valid valid valid valid valid valid valid valid valid valid \
+    --status valid valid valid valid valid valid valid valid valid valid valid valid valid \
     --ttl-seconds 3600 \
     > "${WALLET_CORE_DIR}/target/status-lists/wrprc/1.jwt"
 

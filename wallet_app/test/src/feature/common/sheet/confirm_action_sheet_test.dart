@@ -131,5 +131,65 @@ void main() {
       expect(cancelPressed, isTrue);
       expect(confirmPressed, isTrue);
     });
+
+    testWidgets('show resolves to true when confirm is pressed', (tester) async {
+      bool? confirmed;
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () async {
+                confirmed = await ConfirmActionSheet.show(
+                  context,
+                  title: 'T',
+                  description: 'D',
+                  confirmButton: const ConfirmSheetButtonStyle(cta: 'ConfirmCTA'),
+                  cancelButton: const ConfirmSheetButtonStyle(cta: 'CancelCTA'),
+                );
+              },
+              child: const Text('Show Sheet'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Sheet'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ConfirmCTA'));
+      await tester.pumpAndSettle();
+
+      expect(confirmed, isTrue);
+      expect(find.text('T'), findsNothing);
+    });
+
+    testWidgets('show resolves to false when cancel is pressed', (tester) async {
+      bool? confirmed;
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () async {
+                confirmed = await ConfirmActionSheet.show(
+                  context,
+                  title: 'T',
+                  description: 'D',
+                  confirmButton: const ConfirmSheetButtonStyle(cta: 'ConfirmCTA'),
+                  cancelButton: const ConfirmSheetButtonStyle(cta: 'CancelCTA'),
+                );
+              },
+              child: const Text('Show Sheet'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Sheet'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('CancelCTA'));
+      await tester.pumpAndSettle();
+
+      expect(confirmed, isFalse);
+      expect(find.text('T'), findsNothing);
+    });
   });
 }

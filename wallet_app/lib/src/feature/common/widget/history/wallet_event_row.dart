@@ -8,10 +8,12 @@ import '../../../../util/formatter/wallet_event_title_formatter.dart';
 import '../../../../util/mapper/event/wallet_event_status_color_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_icon_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_text_mapper.dart';
+import '../../../../wallet_assets.dart';
 import '../card/wallet_card_item.dart';
 import '../menu_item.dart';
 
 const _kThumbnailSize = 40.0;
+const _kInteractionIconSize = 21.0;
 
 class WalletEventRow extends StatelessWidget {
   final WalletEvent event;
@@ -46,22 +48,17 @@ class WalletEventRow extends StatelessWidget {
       ),
       underline: Text.rich(formattedTime.toTextSpan(context)),
       largeIcon: true,
-      leftIcon: thumbnail == null ? null : ExcludeSemantics(child: thumbnail),
+      leftIcon: ExcludeSemantics(child: thumbnail),
       errorIcon: errorStatusIcon == null ? null : Icon(errorStatusIcon),
       onPressed: onPressed,
     );
   }
 
-  /// For card related operations (issued/renewed/expired/deleted) show the card as a thumbnail.
-  Widget? _buildThumbnail(BuildContext context, WalletEvent event) {
-    final card = switch (event) {
-      DeletionEvent() => event.card,
-      IssuanceEvent() => event.card,
-      _ => null,
-    };
-
-    if (card != null) {
-      return SizedBox(
+  /// For card related operations (issued/renewed/expired/deleted) show the card as a thumbnail,
+  /// otherwise show the interaction type, as the registration certificate provides no organization logo.
+  Widget _buildThumbnail(BuildContext context, WalletEvent event) {
+    return switch (event) {
+      DeletionEvent(:final card) || IssuanceEvent(:final card) => SizedBox(
         width: _kThumbnailSize,
         child: WalletCardItem.fromWalletCard(
           context,
@@ -69,9 +66,38 @@ class WalletEventRow extends StatelessWidget {
           scaleText: false,
           showText: false,
         ),
-      );
-    }
+      ),
+      DisclosureEvent(type: DisclosureType.login) => _buildInteractionTypeIcon(
+        context,
+        const Icon(Icons.key_outlined),
+      ),
+      DisclosureEvent(type: DisclosureType.regular) => _buildInteractionTypeIcon(
+        context,
+        const ImageIcon(AssetImage(WalletAssets.icon_disclose)),
+      ),
+      SignEvent() => _buildInteractionTypeIcon(
+        context,
+        const Icon(Icons.handshake_outlined),
+      ),
+    };
+  }
 
-    return null;
+  Widget _buildInteractionTypeIcon(BuildContext context, Widget icon) {
+    return Container(
+      width: _kThumbnailSize,
+      height: _kThumbnailSize,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: context.colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: IconTheme(
+        data: IconThemeData(
+          size: _kInteractionIconSize,
+          color: context.colorScheme.primary,
+        ),
+        child: icon,
+      ),
+    );
   }
 }

@@ -52,9 +52,8 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watchEffect } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { usePageTitle } from '@/composables/pageTitle.ts'
-import { useAuth } from '@/composables/authentication.ts'
 import { useNavigation } from '@/composables/navigation.ts'
 import TaskStepHeader from '@/components/create-task/TaskStepHeader.vue'
 import TaskWizardFooter from '@/components/create-task/TaskWizardFooter.vue'
@@ -75,10 +74,8 @@ const STEP_ORDER: WizardStep[] = ['intro', 'reason', 'check', 'done']
 const NUMBERED_STEPS: WizardStep[] = ['intro', 'reason', 'check']
 
 const route = useRoute()
-const router = useRouter()
 const { setPageTitle, resetPageTitle } = usePageTitle()
-const { loggedInUser } = useAuth()
-const { goBackOrHome } = useNavigation()
+const { goBackOrHome, goHome } = useNavigation()
 
 const step = ref<WizardStep>('intro')
 const reason = ref('')
@@ -115,10 +112,6 @@ watchEffect(() => {
 })
 onBeforeUnmount(resetPageTitle)
 
-function goHome() {
-  router.push({ name: 'home' })
-}
-
 function goToPreviousStep() {
   taskCreationFailed.value = false
   step.value = STEP_ORDER[STEP_ORDER.indexOf(step.value) - 1]!
@@ -129,11 +122,7 @@ async function handleNext() {
     if (isCreatingTask.value) return
     isCreatingTask.value = true
     try {
-      const task = await createTask(
-        type.value,
-        loggedInUser.value?.displayName ?? 'Onbekend',
-        reason.value,
-      )
+      const task = await createTask(type.value, reason.value)
       taskId.value = task.id
       taskCreationFailed.value = false
       step.value = 'done'

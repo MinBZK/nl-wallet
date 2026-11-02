@@ -42,6 +42,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WalletUserStateQueryResult;
 use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::PersistenceError;
 
@@ -432,6 +433,34 @@ where
     T: PersistenceConnection<S>,
 {
     find_wallet_user_by_condition(db, wallet_user::Column::WalletId.eq(wallet_id.as_ref())).await
+}
+
+pub async fn find_wallet_user_state_by_wallet_id<S, T>(
+    db: &T,
+    wallet_id: &WalletId,
+) -> Result<WalletUserStateQueryResult>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let state = wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::State)
+        .filter(wallet_user::Column::WalletId.eq(wallet_id.as_ref()))
+        .into_tuple::<String>()
+        .one(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?;
+
+    match state {
+        Some(state) => {
+            let state: WalletUserState = state
+                .parse()
+                .expect("parsing the wallet user state from the database should always succeed");
+            Ok(QueryResult::Found(Box::new(state)))
+        }
+        None => Ok(QueryResult::NotFound),
+    }
 }
 
 pub async fn find_wallet_user_id_by_wallet_ids<S, T>(
@@ -933,12 +962,12 @@ pub async fn revoke_wallets<S, T>(
     wallet_user_ids: Vec<Uuid>,
     revocation_reason: RevocationReason,
     revocation_date_time: DateTime<Utc>,
-) -> Result<()>
+) -> Result<u64>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user::Entity::update_many()
+    let result = wallet_user::Entity::update_many()
         .col_expr(
             wallet_user::Column::State,
             Expr::value(WalletUserState::Revoked.to_string()),
@@ -962,5 +991,5 @@ where
         .await
         .map_err(PersistenceError::Execution)?;
 
-    Ok(())
+    Ok(result.rows_affected)
 }

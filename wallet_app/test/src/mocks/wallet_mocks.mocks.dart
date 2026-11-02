@@ -2523,6 +2523,12 @@ class MockAppEventCoordinator extends _i1.Mock implements _i49.AppEventCoordinat
   );
 
   @override
+  void onDashboardHidden() => super.noSuchMethod(
+    Invocation.method(#onDashboardHidden, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void onWalletUnlocked() => super.noSuchMethod(
     Invocation.method(#onWalletUnlocked, []),
     returnValueForMissingStub: null,

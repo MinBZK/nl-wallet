@@ -1,5 +1,5 @@
 <template>
-  <div class="table-wrap">
+  <div class="table-wrap" role="region" aria-label="Taken" tabindex="0">
     <div class="table-inner">
       <table class="tasks-table">
         <TasksTableHeader :columns="variant === 'history' ? HISTORY_COLUMNS : OPEN_COLUMNS" />

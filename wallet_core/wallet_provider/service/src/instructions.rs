@@ -1411,6 +1411,7 @@ mod tests {
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevocationRegistration;
+    use wallet_provider_domain::model::wallet_user::RevokedWalletUsers;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::model::wallet_user::WithKid;
@@ -2007,7 +2008,10 @@ mod tests {
             .times(2)
             .returning(|_, _, reason, _| {
                 assert_eq!(reason, RevocationReason::AdminRequest);
-                Ok(vec![])
+                Ok(RevokedWalletUsers {
+                    revoked_count: 1,
+                    wia_ids: vec![],
+                })
             });
 
         let mut user_state = user_state_with_ca(wallet_user_repo, wrapping_kid, &issuer_ca).await;
@@ -2423,9 +2427,12 @@ mod tests {
         wallet_user_repo
             .expect_recovery_code_is_denied()
             .returning(|_, _| Ok(true));
-        wallet_user_repo
-            .expect_revoke_wallet_users()
-            .returning(|_, _, _, _| Ok(vec![]));
+        wallet_user_repo.expect_revoke_wallet_users().returning(|_, _, _, _| {
+            Ok(RevokedWalletUsers {
+                revoked_count: 1,
+                wia_ids: vec![],
+            })
+        });
 
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         let (_, recovery_code_disclosure) = mock::recovery_code_sd_jwt(&issuer_ca);

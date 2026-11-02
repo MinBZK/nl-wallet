@@ -22,6 +22,7 @@ use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate;
 use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateProfile;
 use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use http_utils::urls::HttpsUri;
@@ -42,6 +43,7 @@ use serde_json::Value;
 use time::OffsetDateTime;
 use token_status_list::status_list::StatusList as TokenStatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::status_list_token::StatusListToken;
 use url::Url;
 use utils::built_info::version_string;
@@ -70,8 +72,10 @@ struct Cli {
 
 #[derive(Clone, Copy, ValueEnum)]
 enum CertType {
-    /// Mdoc/mdl issuer certificate
+    /// Mdoc/SD-JWT issuer certificate for attestations other than PID
     Issuer,
+    /// Mdoc/SD-JWT PID issuer certificate
+    PidIssuer,
     /// Token Status List signing certificate
     Tsl,
     /// Wallet Issuer Authentication certificate
@@ -420,17 +424,18 @@ impl Command {
         ca_issuers: Vec<Url>,
         san_uris: Vec<HttpsUri>,
     ) -> CertificateConfiguration {
-        let usage = match cert_type {
-            CertType::Issuer => Some(CertificateUsage::Mdl),
-            CertType::Tsl => Some(CertificateUsage::StatusListSigning),
-            CertType::Wia => Some(CertificateUsage::Wia),
-            CertType::KeyAttestation => Some(CertificateUsage::KeyAttestation),
+        let profile = match cert_type {
+            CertType::Issuer => Some(CertificateProfile::Issuer),
+            CertType::PidIssuer => Some(CertificateProfile::PidIssuer),
+            CertType::Tsl => Some(CertificateProfile::StatusListSigning),
+            CertType::Wia => Some(CertificateProfile::Wia),
+            CertType::KeyAttestation => Some(CertificateProfile::KeyAttestation),
             CertType::Wrpac | CertType::Wrprc => None,
         };
         let subject_alt_names = san_uris.into_iter().map(Into::into).collect();
 
         CertificateConfiguration {
-            usage,
+            profile,
             crl_distribution_points,
             ca_issuers,
             subject_alt_names,
@@ -556,7 +561,11 @@ impl Command {
                 let access_subject = RelyingParty::try_from(access_certificate.to_distinguished_name()?)?;
                 let payload: Value = serde_json::from_reader(payload_file)?;
                 let parsed_payload = serde_json::from_value::<ParsedRegistrationCertificate>(payload.clone())?;
-                parsed_payload.validate_expiry(Utc::now())?;
+                if let Some(expiration) = parsed_payload.payload().exp
+                    && Utc::now() >= expiration
+                {
+                    anyhow::bail!("registration certificate expired at {expiration}");
+                }
                 parsed_payload.validate_binding(&access_subject)?;
 
                 let runtime = tokio::runtime::Builder::new_current_thread().build()?;
@@ -605,12 +614,13 @@ impl Command {
                 let ttl = ttl_seconds.map(|seconds| StdDuration::from_secs(seconds.get()));
 
                 let runtime = tokio::runtime::Builder::new_current_thread().build()?;
-                let token = runtime.block_on(
+                let token = runtime.block_on(StatusListJwt::sign(
                     StatusListToken::builder(uri, status_list.pack())
                         .exp(expiration)
                         .ttl(ttl)
-                        .sign(&signing_key_pair),
-                )?;
+                        .build(&TimeGenerator),
+                    &signing_key_pair,
+                ))?;
 
                 println!("{}", token.as_ref().serialization());
                 Ok(())

@@ -31,9 +31,10 @@ describe('App', () => {
     expect(wrapper.text()).toContain('NL Wallet')
   })
 
-  it('renders the home view on the root route', async () => {
+  it('redirects the root route to the open tasks view', async () => {
     const wrapper = await mountAt('/')
-    expect(wrapper.text()).toContain('Home')
+    expect(router.currentRoute.value.name).toBe('open-tasks')
+    expect(wrapper.text()).toContain('Openstaande taken')
   })
 
   it('renders the open tasks view with its pagination footer', async () => {

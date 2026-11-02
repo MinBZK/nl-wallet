@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
+import 'package:wallet/src/feature/common/widget/card/wallet_card_item.dart';
 import 'package:wallet/src/feature/common/widget/history/wallet_event_row.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
+import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
@@ -142,6 +144,21 @@ void main() {
     );
 
     testGoldens(
+      'dark wallet_event interaction success',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.disclosureEvent,
+            onPressed: () {},
+          ),
+          brightness: Brightness.dark,
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/dark.interaction.success');
+      },
+    );
+
+    testGoldens(
       'light wallet_event interaction failed',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
@@ -152,6 +169,35 @@ void main() {
           surfaceSize: kGoldenSize,
         );
         await screenMatchesGolden('wallet_event_row/light.interaction.failed');
+      },
+    );
+
+    testGoldens(
+      'light wallet_event login success',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.loginEvent,
+            onPressed: () {},
+          ),
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/light.login.success');
+      },
+    );
+
+    testGoldens(
+      'dark wallet_event login success',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.loginEvent,
+            onPressed: () {},
+          ),
+          brightness: Brightness.dark,
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/dark.login.success');
       },
     );
 
@@ -231,6 +277,22 @@ void main() {
         await screenMatchesGolden('wallet_event_row/light.signing.success');
       },
     );
+
+    testGoldens(
+      'dark wallet_event signing success',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.signEvent,
+            onPressed: () {},
+          ),
+          brightness: Brightness.dark,
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/dark.signing.success');
+      },
+    );
+
     testGoldens(
       'light wallet_event signing rejected',
       (tester) async {
@@ -262,6 +324,64 @@ void main() {
 
       // The row title for a deletion event is the title of the deleted card.
       expect(find.text(WalletMockData.deletionEvent.card.title.testValue), findsOneWidget);
+    });
+
+    for (final MapEntry(key: outcome, value: event) in {
+      'succeeded': WalletMockData.disclosureEvent,
+      'possibly failed': WalletMockData.failedDisclosureEvent,
+      'failed': WalletMockData.failedDisclosureEventNothingShared,
+      'was stopped': WalletMockData.cancelledDisclosureEvent,
+    }.entries) {
+      testWidgets('should show the share icon when sharing $outcome', (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: event,
+            onPressed: () {},
+          ),
+        );
+
+        expect(
+          find.byWidgetPredicate(
+            (widget) => widget is ImageIcon && widget.image == const AssetImage(WalletAssets.icon_disclose),
+          ),
+          findsOneWidget,
+        );
+      });
+    }
+
+    for (final event in [WalletMockData.loginEvent, WalletMockData.failedLoginEvent]) {
+      testWidgets('should show the key icon when the login status is ${event.status.name}', (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: event,
+            onPressed: () {},
+          ),
+        );
+
+        expect(find.byIcon(Icons.key_outlined), findsOneWidget);
+      });
+    }
+
+    testWidgets('should show the handshake icon when the event is a sign event', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        WalletEventRow(
+          event: WalletMockData.signEvent,
+          onPressed: () {},
+        ),
+      );
+
+      expect(find.byIcon(Icons.handshake_outlined), findsOneWidget);
+    });
+
+    testWidgets('should show the card thumbnail when the event is a card event', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        WalletEventRow(
+          event: WalletMockData.issuanceEvent,
+          onPressed: () {},
+        ),
+      );
+
+      expect(find.byType(WalletCardItem), findsOneWidget);
     });
 
     testWidgets('onPressed is triggered', (tester) async {

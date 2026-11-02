@@ -24,7 +24,7 @@ pub(crate) fn cbor_deserialize<T: DeserializeOwned, R: std::io::Read>(reader: R)
     Ok(ciborium::de::from_reader(reader)?)
 }
 
-pub(crate) fn cbor_serialize<T: Serialize>(value: &T) -> Result<Vec<u8>, CborError> {
+pub fn cbor_serialize<T: Serialize>(value: &T) -> Result<Vec<u8>, CborError> {
     let mut bytes = Vec::new();
     ciborium::ser::into_writer(value, &mut bytes)?;
     Ok(bytes)

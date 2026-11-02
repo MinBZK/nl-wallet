@@ -8,6 +8,8 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
 
+use cose::CborIndexedFields;
+use cose::CborIntMap;
 use crypto::utils::sha256_into_vec;
 use http_utils::urls::BaseUrl;
 use mdoc_derive::CborIndexedFields;
@@ -25,8 +27,6 @@ use crate::iso::disclosure::*;
 use crate::utils::cose::CoseKey;
 use crate::utils::serialization;
 use crate::utils::serialization::CborError;
-use crate::utils::serialization::CborIndexedFields;
-use crate::utils::serialization::CborIntMap;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::DeviceAuthenticationString;
 use crate::utils::serialization::OpenID4VPHandoverString;

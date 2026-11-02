@@ -1,3 +1,4 @@
+use crypto::AsPublicKeyRef;
 use crypto::PublicKey;
 use jsonwebtoken::jwk::Jwk;
 use serde::Deserialize;
@@ -19,7 +20,7 @@ pub enum ConfirmationClaim {
 }
 
 impl ConfirmationClaim {
-    pub fn try_from_public_key(pubkey: &PublicKey) -> Result<Self, JwkConversionError> {
+    pub fn try_from_public_key(pubkey: &impl AsPublicKeyRef) -> Result<Self, JwkConversionError> {
         Ok(Self::Jwk(jwk_from_public_key(pubkey)?))
     }
 

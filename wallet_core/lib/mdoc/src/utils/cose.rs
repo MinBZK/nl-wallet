@@ -6,10 +6,7 @@ pub use ::cose::COSE_X5CHAIN_HEADER_LABEL;
 pub use ::cose::Cose;
 pub use ::cose::CoseError;
 pub use ::cose::CoseKey;
-pub use ::cose::CoseKeyConversionError;
 pub use ::cose::TypedCose;
-pub use ::cose::header_with_x5chain;
-pub use ::cose::sign_cose;
 use coset::CoseMac0;
 use coset::CoseMac0Builder;
 use coset::CoseSign1;
@@ -46,11 +43,10 @@ fn signatures_data_and_header(payloads: &[&[u8]]) -> (Vec<Vec<u8>>, ProtectedHea
     (signatures_data, protected_header)
 }
 
-pub async fn sign_coses<K: CredentialEcdsaKey>(
+pub async fn sign_coses_without_payload<K: CredentialEcdsaKey>(
     keys_and_challenges: Vec<(K, &[u8])>,
     wscd: &impl DisclosureWscd<Key = K>,
     unprotected_header: Header,
-    include_payload: bool,
 ) -> Result<Vec<CoseSign1>, CoseError> {
     let (keys, challenges): (Vec<_>, Vec<_>) = keys_and_challenges.into_iter().unzip();
     let (signatures_data, protected_header) = signatures_data_and_header(&challenges);
@@ -76,11 +72,10 @@ pub async fn sign_coses<K: CredentialEcdsaKey>(
 
     let signed = result
         .into_iter()
-        .zip(challenges)
-        .map(|(signature, payload)| {
+        .map(|signature| {
             Ok(CoseSign1 {
                 signature: signature.first().ok_or(CoseError::SignatureMissing)?.to_vec(),
-                payload: include_payload.then(|| payload.to_vec()),
+                payload: None,
                 protected: protected_header.clone(),
                 unprotected: unprotected_header.clone(),
             })
@@ -158,6 +153,7 @@ mod tests {
     use std::assert_matches;
 
     use coset::Header;
+    use crypto::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::DisclosureMockRemoteWscdError;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -174,7 +170,7 @@ mod tests {
     use super::ClonePayload;
     use super::CoseError;
     use super::TypedCose;
-    use super::sign_coses;
+    use super::sign_coses_without_payload;
 
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     struct ToyMessage {
@@ -190,14 +186,15 @@ mod tests {
             string: "Hello, world!".to_owned(),
         };
 
-        let cose = TypedCose::sign(&payload, Header::default(), &key, true).await.unwrap();
+        let cose = TypedCose::sign(&payload, Header::default(), &key).await.unwrap();
         let payload_bytes = cose.as_ref().payload.clone().unwrap();
 
         let without_payload = cose.clone_without_payload();
         assert!(without_payload.as_ref().payload.is_none());
 
         let with_payload = without_payload.clone_with_payload(payload_bytes);
-        assert_eq!(with_payload.verify_and_parse(key.verifying_key()).unwrap(), payload);
+        let public_key = PublicKey::from(*key.verifying_key());
+        assert_eq!(with_payload.verify_and_parse(&public_key).unwrap(), payload);
     }
 
     /// A WSCD that returns a fixed number of signatures, regardless of how many were requested. Signatures are dropped
@@ -230,8 +227,8 @@ mod tests {
     #[case::too_many(3)]
     #[tokio::test]
     async fn test_sign_coses_error_incorrect_signature_count(#[case] signature_count: usize) {
-        // When the WSCD returns a different number of signatures than requested, `sign_coses()` should result in an
-        // error.
+        // When the WSCD returns a different number of signatures than requested, `sign_coses_without_payload()`
+        // should result in an error.
         let wscd = FixedSignatureCountWscd {
             wscd: DisclosureMockRemoteWscd::default(),
             signature_count,
@@ -241,7 +238,7 @@ mod tests {
             .map(|key| (key, b"challenge".as_slice()))
             .collect_vec();
 
-        let error = sign_coses(keys_and_challenges, &wscd, Header::default(), true)
+        let error = sign_coses_without_payload(keys_and_challenges, &wscd, Header::default())
             .await
             .expect_err("signing COSEs should not succeed");
 

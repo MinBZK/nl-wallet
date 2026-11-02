@@ -33,6 +33,9 @@ class AppEventCoordinator implements AppEventListener {
   void onDashboardShown() => _listeners.forEach((it) => it.onDashboardShown());
 
   @override
+  void onDashboardHidden() => _listeners.forEach((it) => it.onDashboardHidden());
+
+  @override
   void onWalletUnlocked() => _listeners.forEach((it) => it.onWalletUnlocked());
 
   @override

@@ -6,9 +6,8 @@ import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
 import 'package:wallet/src/feature/history/detail/history_detail_screen.dart';
 import 'package:wallet/src/feature/history/detail/widget/page/history_detail_deletion_page.dart';
-import 'package:wallet/src/feature/history/detail/widget/page/history_detail_disclose_page.dart';
+import 'package:wallet/src/feature/history/detail/widget/page/history_detail_disclosure_page.dart';
 import 'package:wallet/src/feature/history/detail/widget/page/history_detail_issue_page.dart';
-import 'package:wallet/src/feature/history/detail/widget/page/history_detail_login_page.dart';
 import 'package:wallet/src/feature/history/detail/widget/page/history_detail_sign_page.dart';
 
 import '../../../../wallet_app_test_widget.dart';
@@ -242,7 +241,7 @@ void main() {
       );
       final l10n = await TestUtils.englishLocalizations;
       //sharedAttributesCardTitle
-      expect(find.byType(HistoryDetailDisclosePage), findsOneWidget);
+      expect(find.byType(HistoryDetailDisclosurePage), findsOneWidget);
       expect(find.textContaining(WalletMockData.organization.displayName), findsAtLeast(1));
       expect(find.text(WalletMockData.disclosureEvent.purpose.testValue), findsOneWidget);
       final count = WalletMockData.disclosureEvent.cards.first.attributes.length.toString();
@@ -301,7 +300,7 @@ void main() {
 
       final l10n = await TestUtils.englishLocalizations;
       //sharedAttributesCardTitle
-      expect(find.byType(HistoryDetailLoginPage), findsOneWidget);
+      expect(find.byType(HistoryDetailDisclosurePage), findsOneWidget);
       expect(find.textContaining(WalletMockData.organization.displayName), findsAtLeast(1));
       expect(find.text(WalletMockData.loginEvent.purpose.testValue), findsOneWidget);
       final count = WalletMockData.loginEvent.cards.first.attributes.length.toString();

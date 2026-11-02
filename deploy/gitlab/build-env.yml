@@ -24,12 +24,17 @@ build-env-ont:
     - !reference [.on-schedule-nightly-performance-test, rules]
     - !reference [.default-or-merge-request, rules]
 
+# Keep in sync with wallet-config-*, scripts/run-*-env.sh read both from the same pipeline
 build-env-demo:
   extends: .build-env
+  artifacts:
+    expire_in: 3 month
   rules: !reference [.on-demo-build, rules]
 
 build-env-pub:
   extends: .build-env
+  artifacts:
+    expire_in: 3 month
   rules: !reference [.on-pub-build, rules]
 
 .sentry-env:

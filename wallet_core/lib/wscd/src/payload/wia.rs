@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::AsPublicKeyRef;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
@@ -112,7 +112,7 @@ impl JwtTyp for WiaClaims {
 impl WiaClaims {
     #[expect(clippy::too_many_arguments, reason = "constructor")]
     pub fn new(
-        holder_pubkey: &PublicKey,
+        holder_pubkey: &impl AsPublicKeyRef,
         iss: String,
         sub: String,
         exp: DateTimeSeconds,
@@ -243,7 +243,8 @@ mod tests {
     use chrono::Duration;
     use chrono::TimeDelta;
     use chrono::Utc;
-    use crypto::PublicKey;
+    use crypto::AsPublicKeyRef;
+    use crypto::PublicKeyRef;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -285,7 +286,7 @@ mod tests {
 
     fn make_wia(
         wia_keypair: &KeyPair,
-        holder_pubkey: &PublicKey,
+        holder_pubkey: &impl AsPublicKeyRef,
         time: &impl Generator<DateTime<Utc>>,
     ) -> UnverifiedJwt<WiaClaims, JadesbbHeader> {
         let wia_claims = WiaClaims::new(
@@ -328,7 +329,7 @@ mod tests {
         WiaDisclosure::new(
             make_wia(
                 &wia_keypair,
-                &PublicKey::from(*holder_key.verifying_key()),
+                &PublicKeyRef::from(holder_key.verifying_key()),
                 &MockTimeGenerator::default(),
             ),
             make_pop(holder_key, nonce, AUD),
@@ -352,7 +353,7 @@ mod tests {
         let disclosure = WiaDisclosure::new(
             make_wia(
                 &wia_keypair,
-                &PublicKey::from(*holder_key.verifying_key()),
+                &PublicKeyRef::from(holder_key.verifying_key()),
                 &MockTimeGenerator::default(),
             ),
             make_pop(&wrong_key, None, AUD),
@@ -369,7 +370,7 @@ mod tests {
         let disclosure = WiaDisclosure::new(
             make_wia(
                 &wia_keypair,
-                &PublicKey::from(*holder_key.verifying_key()),
+                &PublicKeyRef::from(holder_key.verifying_key()),
                 &MockTimeGenerator::default(),
             ),
             make_pop(&holder_key, None, "https://wrong.example.com/"),
@@ -395,7 +396,7 @@ mod tests {
         let disclosure = WiaDisclosure::new(
             make_wia(
                 &wia_keypair,
-                &PublicKey::from(*holder_key.verifying_key()),
+                &PublicKeyRef::from(holder_key.verifying_key()),
                 &MockTimeGenerator::new(Utc::now() + TimeDelta::weeks(1)), // WIA will be valid in a week from now
             ),
             make_pop(&holder_key, None, AUD),

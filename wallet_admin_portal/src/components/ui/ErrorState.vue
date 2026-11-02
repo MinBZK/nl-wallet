@@ -9,7 +9,7 @@
       </div>
     </div>
 
-    <AppButton @click="emit('retry')">Probeer opnieuw</AppButton>
+    <AppButton @click="emit('retry')">{{ actionLabel }}</AppButton>
   </div>
 </template>
 
@@ -20,10 +20,12 @@ withDefaults(
   defineProps<{
     title?: string
     description?: string
+    actionLabel?: string
   }>(),
   {
     title: 'Sorry, er gaat iets mis',
     description: 'Dit kan verschillende redenen hebben. Probeer het opnieuw.',
+    actionLabel: 'Probeer opnieuw',
   },
 )
 
@@ -33,11 +35,14 @@ const emit = defineEmits<{
 </script>
 
 <style scoped>
+.error-state {
+  width: min(var(--width-content-default), 100%);
+}
+
 .error-content {
   display: flex;
   flex-direction: column;
   align-items: start;
-  width: min(var(--width-content-default), 100%);
 }
 
 h1 {

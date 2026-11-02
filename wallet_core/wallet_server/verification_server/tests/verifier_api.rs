@@ -21,7 +21,7 @@ use attestation_types::pid_constants::pid_attestation_type;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
 use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::server_keys::KeyPair;
@@ -838,7 +838,7 @@ fn prepare_example_credential_payload(
     let payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
         payload_preview,
         Utc::now(),
-        &PublicKey::from(*holder_privkey.verifying_key()),
+        &PublicKeyRef::from(holder_privkey.verifying_key()),
         Some(Integrity::from("")),
         Some(StatusListClaim::new_mock()),
     )

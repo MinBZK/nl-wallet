@@ -17,9 +17,9 @@ use url::Url;
 use utils::generator::Generator;
 
 use crate::status_list::StatusType;
-use crate::status_list_token::StatusListClaims;
-use crate::status_list_token::StatusListToken;
-use crate::status_list_token::verification::StatusListTokenVerificationError;
+use crate::status_list_jwt::StatusListJwt;
+use crate::status_list_jwt::verification::StatusListJwtVerificationError;
+use crate::status_list_token::StatusListTokenClaims;
 use crate::verification::client::StatusListClient;
 use crate::verification::client::StatusListClientError;
 
@@ -38,7 +38,7 @@ pub enum StatusListVerificationError {
     Networking(#[from] Arc<StatusListClientError>),
 
     #[error("status list token verification error: {0}")]
-    Verification(#[from] Arc<StatusListTokenVerificationError>),
+    Verification(#[from] Arc<StatusListJwtVerificationError>),
 }
 
 #[derive(Debug, Clone)]
@@ -49,7 +49,7 @@ struct CacheValidity {
 
 #[derive(Debug, Clone)]
 struct CachedToken {
-    token: StatusListToken,
+    token: StatusListJwt,
     fetched_at: Instant,
     // Only use verified claims to determine retention. A failed verification uses the shorter error TTL.
     cache_validity: Option<CacheValidity>,
@@ -166,7 +166,7 @@ where
         url: Url,
         issuer_trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<StatusListClaims, StatusListVerificationError> {
+    ) -> Result<StatusListTokenClaims, StatusListVerificationError> {
         loop {
             let mut verified_claims = None;
             let cached = self
@@ -261,7 +261,7 @@ mod test {
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 
-    use crate::status_list_token::mock::create_status_list_token;
+    use crate::status_list_jwt::mock::create_status_list_jwt;
     use crate::verification::client::StatusListClientError;
     use crate::verification::client::mock::MockStatusListClient;
     use crate::verification::client::mock::StatusListClientStub;
@@ -398,7 +398,7 @@ mod test {
         let ca = Ca::generate_mock();
         let other_ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
-        let (_, _, token) = create_status_list_token(&keypair, None, None).now_or_never().unwrap();
+        let (_, _, token) = create_status_list_jwt(&keypair, None, None).now_or_never().unwrap();
         let mut cases = [
             (
                 TrustAnchors::try_from(vec![ca.certificate().to_vec(), other_ca.certificate().to_vec()]).unwrap(),
@@ -458,7 +458,7 @@ mod test {
                 },
             )
             .unwrap();
-        let (_, _, token) = create_status_list_token(&keypair, token_expiry.then_some(expires.timestamp()), None)
+        let (_, _, token) = create_status_list_jwt(&keypair, token_expiry.then_some(expires.timestamp()), None)
             .now_or_never()
             .unwrap();
         let uri: Url = "https://example.com/statuslists/1".parse().unwrap();
@@ -521,9 +521,7 @@ mod test {
     fn test_honor_token_ttl_after_untrusted_fetch() {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
-        let (_, _, token) = create_status_list_token(&keypair, None, Some(0))
-            .now_or_never()
-            .unwrap();
+        let (_, _, token) = create_status_list_jwt(&keypair, None, Some(0)).now_or_never().unwrap();
         let uri: Url = "https://example.com/statuslists/1".parse().unwrap();
         let mut client = MockStatusListClient::new();
         client

@@ -13,6 +13,9 @@ abstract class AppEventListener {
   /// Called whenever the dashboard is shown.
   FutureOr<void> onDashboardShown() {}
 
+  /// Called whenever the dashboard is no longer shown, e.g. because another screen covers it or the wallet locked.
+  FutureOr<void> onDashboardHidden() {}
+
   /// Called whenever the core exposes any error
   FutureOr<void> onCoreError(CoreError error) {}
 }

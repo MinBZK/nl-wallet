@@ -11,7 +11,7 @@ use p256::SecretKey;
 use crate::errors::Result;
 use crate::iso::*;
 use crate::utils::cose::ClonePayload;
-use crate::utils::cose::sign_coses;
+use crate::utils::cose::sign_coses_without_payload;
 use crate::utils::crypto::dh_hmac_key;
 use crate::utils::serialization::TaggedBytes;
 use crate::utils::serialization::cbor_serialize;
@@ -22,7 +22,7 @@ impl DeviceSigned {
         K: CredentialEcdsaKey,
         W: DisclosureWscd<Key = K>,
     {
-        let coses = sign_coses(keys_and_challenges, wscd, Header::default(), false).await?;
+        let coses = sign_coses_without_payload(keys_and_challenges, wscd, Header::default()).await?;
 
         let signed = coses
             .into_iter()

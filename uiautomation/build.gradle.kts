@@ -52,13 +52,6 @@ tasks.register<Test>("smokeTest") {
     }
 }
 
-tasks.register<Test>("smokeTestIOS") {
-    useJUnitPlatform {
-        includeTags("smokeIOS")
-        exclude("suite/**")
-    }
-}
-
 tasks.register<Test>("testEnglish") {
     useJUnitPlatform {
         includeTags("english")

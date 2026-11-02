@@ -44,19 +44,22 @@ class OsVersionText extends StatelessWidget {
   }
 
   Widget _buildOsVersionText(BuildContext context, String? versionName) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: context.l10n.generalOsVersionText,
-            style: prefixTextStyle ?? context.textTheme.bodyMedium,
-          ),
-          alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
-          TextSpan(
-            text: versionName ?? '-',
-            style: valueTextStyle ?? context.textTheme.bodyMedium,
-          ),
-        ],
+    return Semantics(
+      container: true /* keeps sibling rows from merging into a single announcement */,
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: context.l10n.generalOsVersionText,
+              style: prefixTextStyle ?? context.textTheme.bodyMedium,
+            ),
+            alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
+            TextSpan(
+              text: versionName ?? '-',
+              style: valueTextStyle ?? context.textTheme.bodyMedium,
+            ),
+          ],
+        ),
       ),
     );
   }

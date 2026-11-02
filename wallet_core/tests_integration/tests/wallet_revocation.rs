@@ -16,7 +16,7 @@ use serial_test::serial;
 use tempfile::TempDir;
 use tests_integration::common::*;
 use token_status_list::status_list::StatusType;
-use token_status_list::status_list_token::StatusListToken;
+use token_status_list::status_list_jwt::StatusListJwt;
 use url::Url;
 use utils::generator::TimeGenerator;
 use wallet::AccountRevokedData;
@@ -453,7 +453,7 @@ async fn fetch_key_storage_revocation_status(
         .text()
         .await
         .unwrap()
-        .parse::<StatusListToken>()
+        .parse::<StatusListJwt>()
         .unwrap()
         .parse_and_verify(wptl_trust_anchors, url, &TimeGenerator)
         .unwrap()

@@ -119,5 +119,42 @@ void main() {
 
       verify(navigationService.showDialog(.requestNotificationPermission)).called(1);
     });
+
+    test('should not show the permission sheet when the dashboard is hidden during the delay', () async {
+      when(notificationRepository.getShowNotificationRequestFlag()).thenAnswer((_) async => true);
+      when(checkPermissionUseCase.invoke(any)).thenAnswer(
+        (_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false),
+      );
+
+      fakeAsync((async) {
+        listener.onDashboardShown();
+        async.elapse(const Duration(seconds: 1));
+        listener.onDashboardHidden();
+        async.elapse(const Duration(seconds: 1));
+      });
+
+      // The flag is kept, so the sheet is shown on the next dashboard visit instead.
+      verifyNever(notificationRepository.setShowNotificationRequestFlag(showNotificationRequest: false));
+      verifyNever(navigationService.showDialog(any));
+    });
+
+    test('should show the permission sheet when the dashboard is shown again during the delay', () async {
+      when(notificationRepository.getShowNotificationRequestFlag()).thenAnswer((_) async => true);
+      when(checkPermissionUseCase.invoke(any)).thenAnswer(
+        (_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false),
+      );
+
+      fakeAsync((async) {
+        listener.onDashboardShown();
+        async.elapse(const Duration(milliseconds: 500));
+        listener.onDashboardHidden();
+        async.elapse(const Duration(milliseconds: 500));
+        listener.onDashboardShown();
+        async.elapse(const Duration(seconds: 1));
+      });
+
+      verify(notificationRepository.setShowNotificationRequestFlag(showNotificationRequest: false)).called(1);
+      verify(navigationService.showDialog(.requestNotificationPermission)).called(1);
+    });
   });
 }

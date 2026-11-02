@@ -874,6 +874,15 @@ open class MobileActions {
         }
     }
 
+    fun elementContainingTextWithSiblingVisible(partialText: String, partialSiblingText: String): Boolean {
+        return try {
+            findElementByPartialTextAndPartialSiblingText(partialText, partialSiblingText).isDisplayed
+        } catch (e: Exception) {
+            println("Element not found or error occurred: ${e.message}")
+            false
+        }
+    }
+
     fun openApp() {
         val driver = when (platform()) {
             Platform.ANDROID -> driver as AndroidDriver

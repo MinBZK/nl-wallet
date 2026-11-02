@@ -3,6 +3,7 @@
     <AppSidebar class="area-sidebar" />
     <main class="area-main">
       <TopHeader
+        v-if="!route.meta.hideHeader"
         :show-create-task-button="!!loggedInUser?.canCreateTask && !route.meta.hideCreateTaskButton"
       />
       <div class="area-content">

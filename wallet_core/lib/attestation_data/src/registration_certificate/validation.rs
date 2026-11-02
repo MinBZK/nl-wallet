@@ -1,6 +1,4 @@
-use chrono::DateTime;
 use chrono::Months;
-use chrono::Utc;
 use dcql::CredentialQueryFormat;
 use language_tags::LanguageTag;
 use serde::Deserialize;
@@ -135,8 +133,6 @@ pub enum RegistrationCertificateValidationError {
         #[source]
         source: CredentialSetValidationError,
     },
-    #[error("registration certificate expired at {expiration}")]
-    Expired { expiration: DateTime<Utc> },
     #[error("registration certificate expiration is later than 12 months after issuance")]
     ExpirationTooLate,
     #[error("policy_id does not contain the WRPRC policy identifier")]
@@ -370,16 +366,6 @@ impl ParsedRegistrationCertificate {
         }
 
         Ok(BoundRegistrationCertificate(self))
-    }
-
-    pub fn validate_expiry(&self, now: DateTime<Utc>) -> Result<(), RegistrationCertificateValidationError> {
-        if let Some(expiration) = self.payload().exp
-            && now >= expiration
-        {
-            return Err(RegistrationCertificateValidationError::Expired { expiration });
-        }
-
-        Ok(())
     }
 }
 
@@ -658,15 +644,11 @@ mod tests {
     #[test]
     fn validate_expiration_window() {
         let issued_at = Utc.with_ymd_and_hms(2024, 2, 29, 12, 0, 0).unwrap();
-        let now = Utc.with_ymd_and_hms(2025, 2, 28, 11, 59, 59).unwrap();
 
         let mut valid = valid_payload();
         valid.iat = issued_at;
         valid.exp = Some(Utc.with_ymd_and_hms(2025, 2, 28, 12, 0, 0).unwrap());
-        ParsedRegistrationCertificate::try_from(valid)
-            .unwrap()
-            .validate_expiry(now)
-            .unwrap();
+        ParsedRegistrationCertificate::try_from(valid).unwrap();
 
         let mut too_late = valid_payload();
         too_late.iat = issued_at;
@@ -674,16 +656,6 @@ mod tests {
         assert_matches!(
             ParsedRegistrationCertificate::try_from(too_late),
             Err(RegistrationCertificateValidationError::ExpirationTooLate)
-        );
-
-        let mut expired = valid_payload();
-        expired.iat = issued_at;
-        expired.exp = Some(now);
-        assert_matches!(
-            ParsedRegistrationCertificate::try_from(expired)
-                .unwrap()
-                .validate_expiry(now),
-            Err(RegistrationCertificateValidationError::Expired { .. })
         );
     }
 

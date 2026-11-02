@@ -55,10 +55,6 @@ class MenuTests : TestBase() {
 
         Thread.sleep(SCREEN_TRANSITION_MILLIS)
         menuScreen.clickBottomBackButton()
-        menuScreen.clickFeedbackButton()
-
-        Thread.sleep(SCREEN_TRANSITION_MILLIS)
-        menuScreen.clickBottomBackButton()
 
         menuScreen.clickAboutButton()
         Thread.sleep(SCREEN_TRANSITION_MILLIS)

@@ -57,6 +57,8 @@ pub mod crl;
 mod dn;
 mod key_identifier;
 #[cfg(any(test, feature = "generate"))]
+mod profile;
+#[cfg(any(test, feature = "generate"))]
 mod san;
 mod usage;
 
@@ -65,6 +67,8 @@ pub use config::CertificateConfiguration;
 pub use dn::DistinguishedName;
 pub use dn::DistinguishedNameError;
 pub use key_identifier::KeyIdentifier;
+#[cfg(any(test, feature = "generate"))]
+pub use profile::CertificateProfile;
 #[cfg(any(test, feature = "generate"))]
 pub use san::SubjectAltNameUri;
 pub use usage::CertificateUsage;
@@ -605,18 +609,19 @@ mod tests {
     }
 
     #[rstest]
-    #[case::issuer(Some(CertificateUsage::Mdl), Some(0b0000_0001))]
-    #[case::status_list(Some(CertificateUsage::StatusListSigning), Some(0b0000_0001))]
-    #[case::wia(Some(CertificateUsage::Wia), Some(0b0000_0001))]
-    #[case::wia(Some(CertificateUsage::KeyAttestation), Some(0b0000_0001))]
+    #[case::pid_issuer(Some(CertificateProfile::PidIssuer), Some(0b0000_0001))]
+    #[case::issuer(Some(CertificateProfile::Issuer), Some(0b0000_0001))]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), Some(0b0000_0001))]
+    #[case::wia(Some(CertificateProfile::Wia), Some(0b0000_0001))]
+    #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some(0b0000_0001))]
     #[case::without_eku(None, None)]
-    fn generated_leaf_key_usage(#[case] usage: Option<CertificateUsage>, #[case] expected_flags: Option<u16>) {
+    fn generated_leaf_key_usage(#[case] profile: Option<CertificateProfile>, #[case] expected_flags: Option<u16>) {
         let ca = Ca::generate_mock();
         let key_pair = ca
             .generate_key_pair(
                 DistinguishedName::create_mock("signer"),
                 CertificateConfiguration {
-                    usage,
+                    profile,
                     ..Default::default()
                 },
             )
@@ -637,19 +642,20 @@ mod tests {
     #[rstest]
     fn generated_leaf_subject_key_identifier(
         #[values(
-            Some(CertificateUsage::Mdl),
-            Some(CertificateUsage::StatusListSigning),
-            Some(CertificateUsage::Wia),
-            Some(CertificateUsage::KeyAttestation),
+            Some(CertificateProfile::PidIssuer),
+            Some(CertificateProfile::Issuer),
+            Some(CertificateProfile::StatusListSigning),
+            Some(CertificateProfile::Wia),
+            Some(CertificateProfile::KeyAttestation),
             None
         )]
-        usage: Option<CertificateUsage>,
+        profile: Option<CertificateProfile>,
         #[values(false, true)] from_public_key: bool,
     ) {
         let ca = Ca::generate_mock();
         let distinguished_name = DistinguishedName::create_mock("signer");
         let configuration = CertificateConfiguration {
-            usage,
+            profile,
             ..Default::default()
         };
         let certificate = if from_public_key {
@@ -685,7 +691,12 @@ mod tests {
         assert!(x509_cert.basic_constraints().unwrap().is_none());
 
         certificate
-            .verify(usage, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .verify(
+                profile.map(CertificateProfile::usage),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
             .expect("leaf must verify against the CA");
     }
 
@@ -716,21 +727,31 @@ mod tests {
     }
 
     #[rstest]
-    #[case::issuer(Some(CertificateUsage::Mdl), None)]
-    #[case::status_list(Some(CertificateUsage::StatusListSigning), None)]
-    #[case::wia(Some(CertificateUsage::Wia), Some("2.25.150580842064059311066423755779195795505"))]
+    #[case::pid_issuer(
+        Some(CertificateProfile::PidIssuer),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::issuer(
+        Some(CertificateProfile::Issuer),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), None)]
+    #[case::wia(Some(CertificateProfile::Wia), Some("2.25.150580842064059311066423755779195795505"))]
     #[case::key_attestation(
-        Some(CertificateUsage::KeyAttestation),
+        Some(CertificateProfile::KeyAttestation),
         Some("2.25.150580842064059311066423755779195795505")
     )]
     #[case::without_eku(None, None)]
-    fn generated_leaf_certificate_policies(#[case] usage: Option<CertificateUsage>, #[case] expected: Option<&str>) {
+    fn generated_leaf_certificate_policies(
+        #[case] profile: Option<CertificateProfile>,
+        #[case] expected: Option<&str>,
+    ) {
         let ca = Ca::generate_mock();
         let key_pair = ca
             .generate_key_pair(
                 DistinguishedName::create_mock("signer"),
                 CertificateConfiguration {
-                    usage,
+                    profile,
                     ..Default::default()
                 },
             )
@@ -761,7 +782,12 @@ mod tests {
 
         key_pair
             .certificate()
-            .verify(usage, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .verify(
+                profile.map(CertificateProfile::usage),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
             .expect("leaf must verify against the CA");
     }
 
@@ -839,18 +865,22 @@ mod tests {
     }
 
     #[rstest]
-    #[case::issuer(Some(CertificateUsage::Mdl), None)]
-    #[case::status_list(Some(CertificateUsage::StatusListSigning), None)]
-    #[case::wia(Some(CertificateUsage::Wia), Some("0.4.0.194126.1.2"))]
-    #[case::key_attestation(Some(CertificateUsage::KeyAttestation), Some("0.4.0.194126.1.2"))]
+    #[case::pid_issuer(Some(CertificateProfile::PidIssuer), Some("0.4.0.194126.1.1"))]
+    #[case::issuer(Some(CertificateProfile::Issuer), None)]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), None)]
+    #[case::wia(Some(CertificateProfile::Wia), Some("0.4.0.194126.1.2"))]
+    #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some("0.4.0.194126.1.2"))]
     #[case::without_eku(None, None)]
-    fn generated_leaf_qc_statements(#[case] usage: Option<CertificateUsage>, #[case] expected_qc_type: Option<&str>) {
+    fn generated_leaf_qc_statements(
+        #[case] profile: Option<CertificateProfile>,
+        #[case] expected_qc_type: Option<&str>,
+    ) {
         let ca = Ca::generate_mock();
         let key_pair = ca
             .generate_key_pair(
                 DistinguishedName::create_mock("signer"),
                 CertificateConfiguration {
-                    usage,
+                    profile,
                     ..Default::default()
                 },
             )
@@ -882,7 +912,12 @@ mod tests {
 
         key_pair
             .certificate()
-            .verify(usage, &[], &TimeGenerator, &ca.to_trust_anchors())
+            .verify(
+                profile.map(CertificateProfile::usage),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
             .expect("leaf must verify against the CA");
     }
 
@@ -893,7 +928,7 @@ mod tests {
         let key_pair = ca
             .generate_key_pair(
                 DistinguishedName::create_mock("mycert"),
-                CertificateConfiguration::with_usage(CertificateUsage::Wia),
+                CertificateConfiguration::with_profile(CertificateProfile::Wia),
             )
             .unwrap();
 

@@ -30,7 +30,9 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::AsPublicKeyRef;
 use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
@@ -564,21 +566,22 @@ impl<'a> CertificateSigningKeysByKid<'a> {
 #[error("public key expired: {0}")]
 pub struct KeyExpired(DateTime<Utc>);
 
-impl<'a> PublicKeyByKid for CertificateSigningKeysByKid<'a> {
+impl<'a> PublicKeyByKid<'a> for CertificateSigningKeysByKid<'a> {
+    type Key = PublicKeyRef<'a>;
     type Error = KeyExpired;
 
-    fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
+    fn find(&self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
         let kid = match Kid::try_from(kid) {
             Ok(kid) => kid,
             Err(_) => return Ok(None),
         };
 
         if kid == self.current.kid {
-            return Ok(Some(self.current.public_key.clone()));
+            return Ok(Some(self.current.public_key.as_public_key_ref()));
         }
 
         match self.previous.get(&kid) {
-            Some(key) if key.exp > self.now => Ok(Some(key.certificate_public_key.clone())),
+            Some(key) if key.exp > self.now => Ok(Some(key.certificate_public_key.as_public_key_ref())),
             Some(key) => Err(KeyExpired(key.exp)),
             None => Ok(None),
         }
@@ -2187,7 +2190,7 @@ pub mod mock {
         let issuer_key = issuer_ca.generate_issuer_mock().unwrap();
         let holder_key = SigningKey::generate();
         let sd_jwt =
-            SignedSdJwt::pid_example(&issuer_key, &PublicKey::from(*holder_key.verifying_key())).into_verified();
+            SignedSdJwt::pid_example(&issuer_key, &PublicKeyRef::from(holder_key.verifying_key())).into_verified();
 
         let sd_jwt = sd_jwt
             .into_presentation_builder()
@@ -2223,6 +2226,7 @@ mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::PublicKey;
+    use crypto::PublicKeyRef;
     use crypto::keys::EcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -2701,7 +2705,7 @@ mod tests {
             .expect("should return instruction result");
 
         let new_certificate = new_certificate_result
-            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&PublicKeyRef::from(instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result")
             .1
             .result;
@@ -2725,7 +2729,7 @@ mod tests {
         let (_, cert_data) = cert
             .parse_and_verify_with_sub_by_kid(&HashMap::from([(
                 setup.signing_key.kid().to_owned(),
-                PublicKey::from(*setup.signing_key.verifying_key()),
+                PublicKeyRef::from(setup.signing_key.verifying_key()),
             )]))
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
@@ -3338,7 +3342,7 @@ mod tests {
         .expect("should return unit instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&PublicKeyRef::from(instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
     }
 
@@ -3457,7 +3461,7 @@ mod tests {
             .expect("should return instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&PublicKeyRef::from(instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
 
         user_state.repositories = WalletUserTestRepo {
@@ -3639,7 +3643,7 @@ mod tests {
             .expect("should return instruction result for old pin");
 
         instruction_result
-            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&PublicKeyRef::from(instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
 
         // Check that checking the PIN with the new certificate now fails
