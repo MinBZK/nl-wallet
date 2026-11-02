@@ -1331,19 +1331,31 @@ mod tests {
         .unwrap()
         .expect("decrypting and verifying VPDisclosureSession authorization response should succeed");
 
-        // The response should contain exactly one attestation of each format.
+        // The response should contain exactly one attestation for each credential query,
+        // in the format that was requested by that query.
         let disclosed_formats = disclosed_attestations
             .iter()
-            .flat_map(|attestations| attestations.attestations.iter())
-            .map(|attestation| match attestation.attributes {
-                DisclosedAttributes::MsoMdoc(_) => Format::MsoMdoc,
-                DisclosedAttributes::SdJwt(_) => Format::SdJwt,
-            })
-            .collect_vec();
+            .map(|attestations| {
+                let formats = attestations
+                    .attestations
+                    .iter()
+                    .map(|attestation| match attestation.attributes {
+                        DisclosedAttributes::MsoMdoc(_) => Format::MsoMdoc,
+                        DisclosedAttributes::SdJwt(_) => Format::SdJwt,
+                    })
+                    .collect_vec();
 
-        assert_eq!(disclosed_formats.len(), 2);
-        assert!(disclosed_formats.contains(&Format::MsoMdoc));
-        assert!(disclosed_formats.contains(&Format::SdJwt));
+                (attestations.id.clone(), formats)
+            })
+            .collect::<HashMap<_, _>>();
+
+        assert_eq!(
+            disclosed_formats,
+            HashMap::from([
+                ("mdoc_pid_example".try_into().unwrap(), vec![Format::MsoMdoc]),
+                ("sd_jwt_pid_example".try_into().unwrap(), vec![Format::SdJwt]),
+            ])
+        );
     }
 
     #[rstest]
