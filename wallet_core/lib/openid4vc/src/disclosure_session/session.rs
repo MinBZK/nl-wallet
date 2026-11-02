@@ -107,7 +107,7 @@ where
         //                  of the attributes to be disclosed. This type then provides the canonical method of creating
         //                  intermediate types of the attestations that contain a subset of the attributes.
 
-        if let Err(error) = check_attestation_formats(&self.auth_request.credential_requests, &attestations) {
+        if let Err(error) = attestations.check_against_credential_requests(&self.auth_request.credential_requests) {
             return Err((
                 Box::new(self),
                 DisclosureError::before_sharing(VpSessionError::Client(error)),
@@ -225,30 +225,6 @@ where
 
         Ok(redirect_uri)
     }
-}
-
-/// Check that each credential query for which attestations are provided is present in the credential requests, and that
-/// those attestations have the format requested in that credential query.
-fn check_attestation_formats(
-    credential_requests: &NormalizedCredentialRequests,
-    attestations: &NonEmptyDisclosableAttestations,
-) -> Result<(), VpClientError> {
-    for (id, attestations) in attestations.as_ref() {
-        let request = credential_requests
-            .as_ref()
-            .iter()
-            .find(|request| request.id() == id)
-            .ok_or(VpClientError::UnknownCredentialQuery)?;
-
-        if request.format() != attestations.format() {
-            return Err(VpClientError::AttestationFormatMismatch {
-                requested: request.format(),
-                provided: attestations.format(),
-            });
-        }
-    }
-
-    Ok(())
 }
 
 /// Lay out the attestations for all credential queries in a single linear list, have them all signed in one operation

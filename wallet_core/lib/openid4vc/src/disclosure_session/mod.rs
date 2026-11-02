@@ -82,6 +82,32 @@ impl DisclosableAttestations {
 )]
 pub struct NonEmptyDisclosableAttestations(HashMap<CredentialQueryIdentifier, DisclosableAttestations>);
 
+impl NonEmptyDisclosableAttestations {
+    /// Check that each credential query for which attestations are provided is present in the credential requests,
+    /// and that those attestations have the format requested in that credential query.
+    fn check_against_credential_requests(
+        &self,
+        credential_requests: &NormalizedCredentialRequests,
+    ) -> Result<(), VpClientError> {
+        for (id, attestations) in self.as_ref() {
+            let request = credential_requests
+                .as_ref()
+                .iter()
+                .find(|request| request.id() == id)
+                .ok_or(VpClientError::UnknownCredentialQuery)?;
+
+            if request.format() != attestations.format() {
+                return Err(VpClientError::AttestationFormatMismatch {
+                    requested: request.format(),
+                    provided: attestations.format(),
+                });
+            }
+        }
+
+        Ok(())
+    }
+}
+
 pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;
     /// The identifiers of each [`NormalizedCredentialRequest`] returned are guaranteed to be unique.
