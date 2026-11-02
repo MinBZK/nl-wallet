@@ -662,9 +662,9 @@ impl<T> SignedJwt<T, HeaderWithKid>
 where
     T: Serialize + JwtTyp,
 {
-    pub async fn sign_with_kid<K: EcdsaKey + KeyWithKid>(payload: T, privkey: &K) -> Result<Self, JwtSignError> {
+    pub async fn sign_with_kid<K: EcdsaKey + KeyWithKid>(payload: &T, privkey: &K) -> Result<Self, JwtSignError> {
         let header = HeaderWithKid::from_kid(privkey.kid().to_string());
-        SignedJwt::sign_with_header(header, &payload, privkey).await
+        SignedJwt::sign_with_header(header, payload, privkey).await
     }
 }
 
@@ -1180,7 +1180,7 @@ where
         privkey: &K,
     ) -> Result<Self, JwtSignError> {
         let claims = PayloadWithSub::new(payload);
-        SignedJwt::sign_with_kid(claims, privkey).await.map(Into::into)
+        SignedJwt::sign_with_kid(&claims, privkey).await.map(Into::into)
     }
 }
 
@@ -1980,7 +1980,7 @@ mod tests {
         let jwks = JwkSet { keys: vec![jwk] };
 
         let payload = ToyMessage::default();
-        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_kid(payload.clone(), &signing_key)
+        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_kid(&payload, &signing_key)
             .await
             .unwrap()
             .into_unverified();
