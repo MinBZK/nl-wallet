@@ -1461,7 +1461,7 @@ mod tests {
                         let attributes = disclosable_attestations
                             .as_ref()
                             .iter()
-                            .map(|(id, attestations)| {
+                            .filter_map(|(id, attestations)| {
                                 let DisclosableAttestations::MsoMdoc(partial_mdocs) = attestations else {
                                     return None;
                                 };
@@ -1475,7 +1475,7 @@ mod tests {
 
                                 Some((id.as_ref(), attributes))
                             })
-                            .collect::<Option<HashMap<_, _>>>();
+                            .collect::<HashMap<_, _>>();
 
                         let expected_attributes = HashMap::from([
                             (
@@ -1506,13 +1506,14 @@ mod tests {
                             ),
                         ]);
 
-                        attributes == Some(expected_attributes)
+                        disclosable_attestations.as_ref().len() == expected_attributes.len()
+                            && attributes == expected_attributes
                     }
                     Format::SdJwt => {
                         let attributes = disclosable_attestations
                             .as_ref()
                             .iter()
-                            .map(|(id, attestations)| {
+                            .filter_map(|(id, attestations)| {
                                 let DisclosableAttestations::SdJwt(presentations) = attestations else {
                                     return None;
                                 };
@@ -1536,7 +1537,7 @@ mod tests {
 
                                 Some((id.as_ref(), attributes))
                             })
-                            .collect::<Option<HashMap<_, _>>>();
+                            .collect::<HashMap<_, _>>();
 
                         let expected_attributes = HashMap::from([
                             (
@@ -1561,7 +1562,8 @@ mod tests {
                             ),
                         ]);
 
-                        attributes == Some(expected_attributes)
+                        disclosable_attestations.as_ref().len() == expected_attributes.len()
+                            && attributes == expected_attributes
                     }
                 }
             })
