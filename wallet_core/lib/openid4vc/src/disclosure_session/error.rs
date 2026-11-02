@@ -58,8 +58,6 @@ pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[source] VpMessageClientError),
 
-    // The credential query identifier is not included in this error and the next one, since it is privacy-sensitive
-    // and since `impossible` errors get reported.
     #[error("attestations provided for unknown credential query")]
     #[category(impossible)]
     UnknownCredentialQuery,
