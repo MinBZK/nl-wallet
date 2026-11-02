@@ -104,7 +104,7 @@ where
         time.generate()
     };
 
-    let wia_ids = user_state
+    let revoked = user_state
         .repositories
         .revoke_wallet_users(&tx, vec![wallet_user.id], revocation_reason, revocation_date_time)
         .await?;
@@ -114,7 +114,7 @@ where
 
     user_state
         .wia_status_list
-        .revoke_attestation_batches(wia_ids)
+        .revoke_attestation_batches(revoked.wia_ids)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
@@ -160,7 +160,7 @@ where
         .await?;
 
     let found_wallet_count = wallet_user_ids.len();
-    let wia_ids = user_state
+    let revoked = user_state
         .repositories
         .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
         .await?;
@@ -170,13 +170,14 @@ where
 
     user_state
         .wia_status_list
-        .revoke_attestation_batches(wia_ids)
+        .revoke_attestation_batches(revoked.wia_ids)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
     Ok(found_wallet_count)
 }
 
+// TODO(PVW-6179) Remove once the admin-portal is complete.
 #[audited]
 pub async fn revoke_wallets_by_wallet_id<T, R, F, H>(
     #[audit] wallet_ids: &HashSet<WalletId>,
@@ -188,9 +189,23 @@ where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
-    let revocation_reason = RevocationReason::AdminRequest;
-    let revocation_date_time = time.generate();
+    system_revoke_wallets_by_wallet_id(wallet_ids, user_state, time).await?;
 
+    Ok(())
+}
+
+/// Revokes the wallets with the given IDs and commits the transaction, then revokes their WIAs in the status list.
+/// Fails with [`RevocationError::WalletIdsNotFound`] without revoking anything if any of the wallet IDs do not exist.
+/// Returns the number of wallets revoked by this call, excluding those that were already revoked.
+pub(crate) async fn system_revoke_wallets_by_wallet_id<T, R, F, H>(
+    wallet_ids: &HashSet<WalletId>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
+    time: &impl Generator<DateTime<Utc>>,
+) -> Result<u64, RevocationError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+{
     let tx = user_state.repositories.begin_transaction().await?;
 
     let found_wallets = user_state
@@ -206,28 +221,27 @@ where
         return Err(RevocationError::WalletIdsNotFound(not_found_ids));
     }
 
-    // revoke all users
-    let wia_ids = user_state
+    let revoked = user_state
         .repositories
         .revoke_wallet_users(
             &tx,
             found_wallets.into_values().collect_vec(),
-            revocation_reason,
-            revocation_date_time,
+            RevocationReason::AdminRequest,
+            time.generate(),
         )
         .await?;
 
     // Commit transaction before updating status list
     tx.commit().await?;
 
-    // Revoke WIA attestations of all successfully revoked wallets
+    // Revoke WIA attestations of all revoked wallets
     user_state
         .wia_status_list
-        .revoke_attestation_batches(wia_ids)
+        .revoke_attestation_batches(revoked.wia_ids)
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
-    Ok(())
+    Ok(revoked.revoked_count)
 }
 
 #[audited]

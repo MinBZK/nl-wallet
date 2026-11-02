@@ -1,22 +1,14 @@
-//! HTTP layer for the Admin Portal's OIDC login flow. The actual OIDC/session logic lives in
-//! [`wallet_provider_service::admin_portal::AdminPortalService`]; this module only wires it up to
-//! axum: routing, query/cookie extraction and turning results into redirects or JSON responses.
-//!
-//! `/auth/login` redirects to Keycloak (with PKCE), `/auth/callback` exchanges the resulting
-//! authorization code for tokens and starts a server-side session, `/auth/logout` ends both the
-//! local session and the Keycloak SSO session, and `/api/me` reports the logged-in user to the
-//! SPA based on the session cookie.
-
 use std::sync::Arc;
 
 use audit_log::model::DbAuditLog;
-use audit_log::repository::AuditLogRepository;
+use audit_log::repository::PostgresAuditLogRepository;
 use axum::Json;
 use axum::Router;
 use axum::extract::FromRequestParts;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
+use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
 use axum::http::request::Parts;
 use axum::response::IntoResponse;
@@ -35,28 +27,30 @@ use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Value as JsonValue;
 use tracing::warn;
 use url::Url;
 use utils::generator::TimeGenerator;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
+use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
-use wallet_provider_domain::model::admin_task::TaskType;
-use wallet_provider_domain::repository::AdminPortalSessionRepository;
-use wallet_provider_domain::repository::AdminTaskRepository;
+use wallet_provider_domain::model::wallet_user::WalletId;
+use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::admin_portal::AdminPortalConfig;
 use wallet_provider_service::admin_portal::AdminPortalService;
 use wallet_provider_service::admin_portal::LoggedInUser;
+use wallet_provider_service::admin_portal::UuidV7Generator;
 use wallet_provider_service::admin_portal::task::CreateTaskError;
+use wallet_provider_service::admin_portal::task::ExecuteTaskError;
 use wallet_provider_service::admin_portal::task::ListTasksError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
-use wallet_provider_service::admin_portal::task::TaskService;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
+use wallet_provider_service::admin_portal::wallet_lookup::GetWalletRevocationStateError;
+use wallet_provider_service::admin_portal::wallet_lookup::WalletRevocationState;
 
-use crate::router_state::UuidV7Generator;
+use crate::router_state::ProductionUserState;
 use crate::settings::AdminPortalSettings;
 
 const SESSION_ID_COOKIE: &str = "sid";
@@ -64,51 +58,73 @@ const SESSION_ID_COOKIE: &str = "sid";
 /// Failure of a `/tasks` endpoint, mapped to the matching HTTP status code.
 #[derive(Debug)]
 enum TaskApiError {
+    InvalidRequest(JsonRejection),
     Create(CreateTaskError),
     Withdraw(WithdrawTaskError),
     Review(ReviewTaskError),
     List(ListTasksError),
+    Execution(ExecuteTaskError),
 }
 
 impl IntoResponse for TaskApiError {
     fn into_response(self) -> Response {
         warn!("task endpoint failed: {self:?}");
         let status = match self {
-            Self::Create(CreateTaskError::UnknownTaskType(_)) => StatusCode::BAD_REQUEST,
+            // Report why the request could not be parsed, e.g. an unknown task type or invalid task parameters.
+            Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
             Self::Create(CreateTaskError::MissingPrivilege(_)) | Self::Review(ReviewTaskError::MissingPrivilege(_)) => {
                 StatusCode::FORBIDDEN
             }
-            Self::Withdraw(WithdrawTaskError::NotFound(_)) | Self::Review(ReviewTaskError::NotFound(_)) => {
-                StatusCode::NOT_FOUND
-            }
-            Self::Withdraw(WithdrawTaskError::InvalidState) | Self::Review(ReviewTaskError::InvalidState) => {
-                StatusCode::CONFLICT
-            }
+            // The request references wallet IDs that do not exist; this is a client error, not a missing resource.
+            Self::Create(CreateTaskError::WalletIdsNotFound(_)) => StatusCode::BAD_REQUEST,
+            Self::Withdraw(WithdrawTaskError::NotFound(_))
+            | Self::Review(ReviewTaskError::NotFound(_))
+            | Self::Execution(ExecuteTaskError::NotFound(_)) => StatusCode::NOT_FOUND,
+            Self::Withdraw(WithdrawTaskError::InvalidState)
+            | Self::Review(ReviewTaskError::InvalidState)
+            | Self::Execution(ExecuteTaskError::InvalidState) => StatusCode::CONFLICT,
             Self::Create(CreateTaskError::Storage(_) | CreateTaskError::AuditLog(_))
             | Self::Withdraw(WithdrawTaskError::Storage(_) | WithdrawTaskError::AuditLog(_))
             | Self::Review(ReviewTaskError::Storage(_) | ReviewTaskError::AuditLog(_))
-            | Self::List(ListTasksError::Storage(_) | ListTasksError::AuditLog(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+            | Self::List(ListTasksError::Storage(_) | ListTasksError::AuditLog(_))
+            | Self::Execution(ExecuteTaskError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         status.into_response()
     }
 }
 
-pub struct AdminPortalState<R, AR> {
-    service: AdminPortalService<R>,
-    tasks: TaskService<R, TimeGenerator, UuidV7Generator>,
-    public_url: BaseUrl,
-    audit_log: DbAuditLog<AR, UuidV7Generator>,
+/// Failure of a `/wallets` endpoint, mapped to the matching HTTP status code.
+#[derive(Debug)]
+enum WalletApiError {
+    Check(GetWalletRevocationStateError),
 }
 
-impl<R, AR> AdminPortalState<R, AR> {
+impl IntoResponse for WalletApiError {
+    fn into_response(self) -> Response {
+        warn!("wallet endpoint failed: {self:?}");
+        let status = match self {
+            Self::Check(GetWalletRevocationStateError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
+            Self::Check(GetWalletRevocationStateError::NotFound(_)) => StatusCode::NOT_FOUND,
+            Self::Check(GetWalletRevocationStateError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        status.into_response()
+    }
+}
+
+pub struct AdminPortalState {
+    service: AdminPortalService<Repositories, TimeGenerator, UuidV7Generator>,
+    user_state: Arc<ProductionUserState>,
+    public_url: BaseUrl,
+    audit_log: DbAuditLog<PostgresAuditLogRepository, UuidV7Generator>,
+}
+
+impl AdminPortalState {
     pub fn try_new(
         settings: AdminPortalSettings,
-        repository: R,
-        audit_log: DbAuditLog<AR, UuidV7Generator>,
-    ) -> Result<Self, reqwest::Error>
-    where
-        R: Clone,
-    {
+        repository: Repositories,
+        audit_log: DbAuditLog<PostgresAuditLogRepository, UuidV7Generator>,
+        user_state: Arc<ProductionUserState>,
+    ) -> Result<Self, reqwest::Error> {
         let certs = settings
             .keycloak_trust_anchors
             .into_iter()
@@ -125,13 +141,14 @@ impl<R, AR> AdminPortalState<R, AR> {
                 login_attempt_ttl: settings.login_attempt_ttl,
             },
             client,
-            repository.clone(),
+            repository,
+            TimeGenerator,
+            UuidV7Generator,
         );
-        let tasks = TaskService::new(repository, TimeGenerator, UuidV7Generator);
 
         Ok(Self {
             service,
-            tasks,
+            user_state,
             public_url: settings.public_url,
             audit_log,
         })
@@ -143,11 +160,7 @@ impl<R, AR> AdminPortalState<R, AR> {
 }
 
 // TODO (PVW-6427): Add CSRF protection
-pub fn router<R, AR>(state: Arc<AdminPortalState<R, AR>>) -> Router
-where
-    R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
-    AR: AuditLogRepository + Send + Sync + 'static,
-{
+pub fn router(state: Arc<AdminPortalState>) -> Router {
     Router::new()
         .route("/auth/login", get(login))
         .route("/auth/callback", get(callback))
@@ -160,6 +173,7 @@ where
                 .route("/{task_id}/withdraw", post(withdraw_task))
                 .route("/{task_id}/review", post(review_task)),
         )
+        .route("/wallets/{wallet_id}", get(check_wallet))
         .with_state(state)
 }
 
@@ -177,7 +191,7 @@ fn session_cookie(session_id: String) -> Cookie<'static> {
 
 /// Redirects to the frontend's error page, so it can show the user a proper error message
 /// instead of the SPA rendering a blank page or the browser rendering a raw JSON error.
-fn error_redirect<R, AR>(state: &AdminPortalState<R, AR>, reason: &str) -> Response {
+fn error_redirect(state: &AdminPortalState, reason: &str) -> Response {
     let mut url = state.frontend_url("/error");
     url.query_pairs_mut().append_pair("reason", reason);
 
@@ -189,11 +203,7 @@ struct LoginQuery {
     login_hint: Option<String>,
 }
 
-async fn login<R, AR>(State(state): State<Arc<AdminPortalState<R, AR>>>, Query(query): Query<LoginQuery>) -> Response
-where
-    R: AdminPortalSessionRepository + Send + Sync + 'static,
-    AR: Send + Sync + 'static,
-{
+async fn login(State(state): State<Arc<AdminPortalState>>, Query(query): Query<LoginQuery>) -> Response {
     match state.service.authorization_url(query.login_hint.as_deref()).await {
         Ok(auth_url) => Redirect::to(auth_url.as_str()).into_response(),
         Err(error) => {
@@ -210,15 +220,11 @@ struct CallbackQuery {
     error: Option<String>,
 }
 
-async fn callback<R, AR>(
-    State(state): State<Arc<AdminPortalState<R, AR>>>,
+async fn callback(
+    State(state): State<Arc<AdminPortalState>>,
     cookie_jar: CookieJar,
     Query(query): Query<CallbackQuery>,
-) -> Response
-where
-    R: AdminPortalSessionRepository + Send + Sync + 'static,
-    AR: Send + Sync + 'static,
-{
+) -> Response {
     let session_id = cookie_jar
         .get(SESSION_ID_COOKIE)
         .map(|cookie| cookie.value().to_string());
@@ -245,11 +251,7 @@ where
     (jar, Redirect::to(entry_url.as_str())).into_response()
 }
 
-async fn logout<R, AR>(State(state): State<Arc<AdminPortalState<R, AR>>>, cookie_jar: CookieJar) -> Response
-where
-    R: AdminPortalSessionRepository + Send + Sync + 'static,
-    AR: Send + Sync + 'static,
-{
+async fn logout(State(state): State<Arc<AdminPortalState>>, cookie_jar: CookieJar) -> Response {
     let session_id = cookie_jar
         .get(SESSION_ID_COOKIE)
         .map(|cookie| cookie.value().to_string());
@@ -298,17 +300,10 @@ async fn me(AuthenticatedAdminUser(user): AuthenticatedAdminUser) -> Response {
 #[derive(Debug)]
 pub struct AuthenticatedAdminUser(pub LoggedInUser);
 
-impl<R, AR> FromRequestParts<Arc<AdminPortalState<R, AR>>> for AuthenticatedAdminUser
-where
-    R: AdminPortalSessionRepository + Send + Sync + 'static,
-    AR: AuditLogRepository + Send + Sync + 'static,
-{
+impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminUser {
     type Rejection = Response;
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &Arc<AdminPortalState<R, AR>>,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<AdminPortalState>) -> Result<Self, Self::Rejection> {
         let cookie_jar = CookieJar::from_headers(&parts.headers);
 
         // Retrieve the session_id from the cookie, note that we don't need to touch the cookie's `max_age`, as it is a
@@ -332,10 +327,16 @@ where
 #[cfg_attr(feature = "web_test", derive(Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateTaskRequest {
-    pub task_type: String,
-    #[serde(default = "serde_json::Map::new")]
-    pub task_parameters: serde_json::Map<String, serde_json::Value>,
+    #[serde(flatten)]
+    pub payload: TaskPayload,
     pub task_reason: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "web_test", derive(Serialize))]
+#[serde(rename_all = "camelCase")]
+pub struct WithdrawTaskRequest {
+    pub withdrawal_comment: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -353,17 +354,18 @@ pub struct TaskResponse {
     pub task_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub created_by: String,
-    pub task_type: TaskType,
-    pub task_parameters: JsonValue,
+    #[serde(flatten)]
+    pub payload: TaskPayload,
     pub task_reason: String,
     pub status: TaskStatus,
+    pub withdrawal_comment: Option<String>,
     pub withdrawn_at: Option<DateTime<Utc>>,
     pub reviewed_at: Option<DateTime<Utc>>,
     pub reviewed_by: Option<String>,
     pub review_comment: Option<String>,
     pub executed_at: Option<DateTime<Utc>>,
-    pub execution_result: Option<String>,
-    pub execution_result_details: Option<JsonValue>,
+    pub execution_successful: Option<bool>,
+    pub execution_details: Option<String>,
 }
 
 impl From<AdminTask> for TaskResponse {
@@ -372,37 +374,34 @@ impl From<AdminTask> for TaskResponse {
             task_id: task.id,
             created_at: task.created_at,
             created_by: task.created_by_display_name,
-            task_type: task.task_type,
-            task_parameters: task.task_parameters,
+            payload: task.payload,
             task_reason: task.task_reason,
             status: task.status,
+            withdrawal_comment: task.withdrawal_comment,
             withdrawn_at: task.withdrawn_at,
             reviewed_at: task.reviewed_at,
             reviewed_by: task.reviewed_by_display_name,
             review_comment: task.review_comment,
             executed_at: task.executed_at,
-            execution_result: task.execution_result,
-            execution_result_details: task.execution_result_details,
+            execution_successful: task.execution_successful,
+            execution_details: task.execution_details,
         }
     }
 }
 
-async fn create_task<R, AR>(
-    State(state): State<Arc<AdminPortalState<R, AR>>>,
+async fn create_task(
+    State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
-    Json(payload): Json<CreateTaskRequest>,
-) -> Result<impl IntoResponse, TaskApiError>
-where
-    R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
-    AR: AuditLogRepository + Send + Sync + 'static,
-{
+    request: Result<Json<CreateTaskRequest>, JsonRejection>,
+) -> Result<impl IntoResponse, TaskApiError> {
+    let Json(request) = request.map_err(TaskApiError::InvalidRequest)?;
     let task = state
-        .tasks
+        .service
         .create_task(
-            &payload.task_type,
-            &JsonValue::Object(payload.task_parameters),
-            &payload.task_reason,
+            &request.payload,
+            &request.task_reason,
             &user,
+            &state.user_state,
             &state.audit_log,
         )
         .await
@@ -411,36 +410,29 @@ where
     Ok((StatusCode::CREATED, Json(TaskResponse::from(task))))
 }
 
-async fn withdraw_task<R, AR>(
-    State(state): State<Arc<AdminPortalState<R, AR>>>,
+async fn withdraw_task(
+    State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Path(task_id): Path<Uuid>,
-) -> Result<Json<TaskResponse>, TaskApiError>
-where
-    R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
-    AR: AuditLogRepository + Send + Sync + 'static,
-{
+    Json(payload): Json<WithdrawTaskRequest>,
+) -> Result<Json<TaskResponse>, TaskApiError> {
     let task = state
-        .tasks
-        .withdraw_task(task_id, &user, &state.audit_log)
+        .service
+        .withdraw_task(task_id, &payload.withdrawal_comment, &user, &state.audit_log)
         .await
         .map_err(TaskApiError::Withdraw)?;
 
     Ok(Json(TaskResponse::from(task)))
 }
 
-async fn review_task<R, AR>(
-    State(state): State<Arc<AdminPortalState<R, AR>>>,
+async fn review_task(
+    State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Path(task_id): Path<Uuid>,
     Json(payload): Json<ReviewTaskRequest>,
-) -> Result<Json<TaskResponse>, TaskApiError>
-where
-    R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
-    AR: AuditLogRepository + Send + Sync + 'static,
-{
+) -> Result<Json<TaskResponse>, TaskApiError> {
     let task = state
-        .tasks
+        .service
         .review_task(
             task_id,
             payload.verdict,
@@ -451,6 +443,12 @@ where
         .await
         .map_err(TaskApiError::Review)?;
 
+    let task = state
+        .service
+        .execute_task(task.id, &user, &state.user_state, &state.audit_log)
+        .await
+        .map_err(TaskApiError::Execution)?;
+
     Ok(Json(TaskResponse::from(task)))
 }
 
@@ -459,17 +457,13 @@ struct ListTasksQuery {
     view: TaskListViewKind,
 }
 
-async fn list_tasks<R, AR>(
-    State(state): State<Arc<AdminPortalState<R, AR>>>,
+async fn list_tasks(
+    State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Query(query): Query<ListTasksQuery>,
-) -> Result<Json<Vec<TaskResponse>>, TaskApiError>
-where
-    R: AdminPortalSessionRepository + AdminTaskRepository + Send + Sync + 'static,
-    AR: AuditLogRepository + Send + Sync + 'static,
-{
+) -> Result<Json<Vec<TaskResponse>>, TaskApiError> {
     let tasks = state
-        .tasks
+        .service
         .list_tasks(query.view, &user, &state.audit_log)
         .await
         .map_err(TaskApiError::List)?;
@@ -477,78 +471,53 @@ where
     Ok(Json(tasks.into_iter().map(TaskResponse::from).collect_vec()))
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(feature = "web_test", derive(Deserialize))]
+#[serde(rename_all = "camelCase")]
+pub struct CheckWalletResponse {
+    pub status: WalletRevocationState,
+}
+
+async fn check_wallet(
+    State(state): State<Arc<AdminPortalState>>,
+    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    Path(wallet_id): Path<WalletId>,
+) -> Result<Json<CheckWalletResponse>, WalletApiError> {
+    let status = state
+        .service
+        .get_wallet_revocation_state(&wallet_id, &user, &state.user_state)
+        .await
+        .map_err(WalletApiError::Check)?;
+
+    Ok(Json(CheckWalletResponse { status }))
+}
+
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::sync::Mutex;
-    use std::time::Duration;
+    use std::collections::HashSet;
 
-    use audit_log::model::DbAuditLog;
-    use audit_log::repository::mock::NoopAuditLogRepository;
-    use axum::body::Body;
-    use axum::body::to_bytes;
-    use axum::http::Request;
-    use axum::http::StatusCode;
-    use axum::http::header;
-    use chrono::DateTime;
-    use chrono::TimeDelta;
-    use chrono::Utc;
-    use crypto::utils::random_string;
-    use http_utils::reqwest::test::get_test_trust_anchor;
-    use serde_json::Value;
-    use serde_json::json;
-    use tower::ServiceExt;
-    use utils::generator::TimeGenerator;
+    use axum::extract::rejection::MissingJsonContentType;
+    use rstest::rstest;
     use utils::vec_nonempty;
-    use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
-    use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
-    use wallet_provider_domain::model::admin_task::AdminTaskCreate;
-    use wallet_provider_domain::model::admin_task::AdminTaskReview;
-    use wallet_provider_domain::model::admin_task::TaskListView;
-    use wallet_provider_domain::repository::AdminPortalSessionRepository;
-    use wallet_provider_domain::repository::Committable;
+    use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
+    use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::repository::PersistenceError;
-    use wallet_provider_domain::repository::TransactionStarter;
 
     use super::*;
-    use crate::router_state::UuidV7Generator;
 
-    #[derive(Clone)]
-    struct ConstLoggedInUser {
-        user_id: &'static str,
-        display_name: &'static str,
-        privileges: &'static [TaskType],
+    fn storage_error() -> PersistenceError {
+        PersistenceError::NoRowsUpdated
     }
 
-    impl From<&ConstLoggedInUser> for LoggedInUser {
-        fn from(source: &ConstLoggedInUser) -> LoggedInUser {
-            LoggedInUser {
-                user_id: source.user_id.to_owned(),
-                display_name: source.display_name.to_owned(),
-                privileges: source.privileges.iter().map(ToString::to_string).collect(),
-            }
-        }
+    fn audit_log_error() -> Box<dyn std::error::Error + Send + Sync> {
+        Box::new(PersistenceError::NoRowsUpdated)
     }
 
-    /// Builds a [`LoggedInUser`] from `user`, replacing its privileges with just `task_type`.
-    fn with_privilege(user: &ConstLoggedInUser, task_type: TaskType) -> LoggedInUser {
-        LoggedInUser {
-            privileges: vec![task_type.to_string()],
-            ..user.into()
-        }
+    fn revoke_wallet_payload() -> TaskPayload {
+        TaskPayload::RevokeWallet(RevokeWalletParameters {
+            wallet_ids: vec_nonempty!["wallet-1".to_string().into()].into(),
+        })
     }
-
-    const ALICE: ConstLoggedInUser = ConstLoggedInUser {
-        user_id: "alice",
-        display_name: "Alice",
-        privileges: &[],
-    };
-
-    const BOB: ConstLoggedInUser = ConstLoggedInUser {
-        user_id: "bob",
-        display_name: "Bob",
-        privileges: &[],
-    };
 
     #[test]
     fn session_cookie_is_secure_http_only_strict_and_session_only() {
@@ -563,354 +532,187 @@ mod tests {
         assert_eq!(cookie.max_age(), None);
     }
 
-    /// A minimal in-memory [`AdminPortalSessionRepository`], so the HTTP layer can be tested without a database.
-    #[derive(Clone, Default)]
-    struct InMemoryRepository {
-        sessions: Arc<Mutex<HashMap<String, AdminPortalUserSession>>>,
-        tasks: Arc<Mutex<HashMap<Uuid, AdminTask>>>,
-        errors: bool,
+    #[test]
+    fn task_response_maps_display_names_not_user_ids() {
+        let task = AdminTask {
+            id: Uuid::new_v4(),
+            created_at: Utc::now(),
+            created_by_user_id: "user-1".to_string(),
+            created_by_display_name: "User One".to_string(),
+            payload: revoke_wallet_payload(),
+            task_reason: "reason".to_string(),
+            status: TaskStatus::Created,
+            withdrawal_comment: None,
+            withdrawn_at: None,
+            reviewed_at: None,
+            reviewed_by_user_id: None,
+            reviewed_by_display_name: None,
+            review_comment: None,
+            executed_at: None,
+            execution_successful: None,
+            execution_details: None,
+        };
+
+        let response = TaskResponse::from(task);
+
+        assert_eq!(response.created_by, "User One");
     }
 
-    impl InMemoryRepository {
-        fn set_errors(&mut self, errors: bool) {
-            self.errors = errors;
-        }
-
-        fn handle_error(&self) -> Result<(), PersistenceError> {
-            if self.errors {
-                Err(PersistenceError::NoRowsUpdated)
-            } else {
-                Ok(())
-            }
-        }
+    #[rstest]
+    #[case::invalid_request(
+        TaskApiError::InvalidRequest(JsonRejection::MissingJsonContentType(MissingJsonContentType::default())),
+        StatusCode::BAD_REQUEST
+    )]
+    #[case::create_missing_privilege(
+        TaskApiError::Create(CreateTaskError::MissingPrivilege(TaskType::RevokeWallet)),
+        StatusCode::FORBIDDEN
+    )]
+    #[case::create_wallet_ids_not_found(
+        TaskApiError::Create(CreateTaskError::WalletIdsNotFound(HashSet::from([WalletId::from(
+            "wallet-1".to_string()
+        )]))),
+        StatusCode::BAD_REQUEST
+    )]
+    #[case::create_storage(
+        TaskApiError::Create(CreateTaskError::Storage(storage_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    #[case::create_audit_log(
+        TaskApiError::Create(CreateTaskError::AuditLog(audit_log_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    #[case::withdraw_not_found(
+        TaskApiError::Withdraw(WithdrawTaskError::NotFound(Uuid::new_v4())),
+        StatusCode::NOT_FOUND
+    )]
+    #[case::withdraw_invalid_state(TaskApiError::Withdraw(WithdrawTaskError::InvalidState), StatusCode::CONFLICT)]
+    #[case::withdraw_storage(
+        TaskApiError::Withdraw(WithdrawTaskError::Storage(storage_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    #[case::withdraw_audit_log(
+        TaskApiError::Withdraw(WithdrawTaskError::AuditLog(audit_log_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    #[case::review_not_found(
+        TaskApiError::Review(ReviewTaskError::NotFound(Uuid::new_v4())),
+        StatusCode::NOT_FOUND
+    )]
+    #[case::review_missing_privilege(
+        TaskApiError::Review(ReviewTaskError::MissingPrivilege(TaskType::RevokeWallet)),
+        StatusCode::FORBIDDEN
+    )]
+    #[case::review_invalid_state(TaskApiError::Review(ReviewTaskError::InvalidState), StatusCode::CONFLICT)]
+    #[case::review_storage(
+        TaskApiError::Review(ReviewTaskError::Storage(storage_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    #[case::review_audit_log(
+        TaskApiError::Review(ReviewTaskError::AuditLog(audit_log_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    #[case::list_storage(
+        TaskApiError::List(ListTasksError::Storage(storage_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    #[case::list_audit_log(
+        TaskApiError::List(ListTasksError::AuditLog(audit_log_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    #[case::execution_not_found(
+        TaskApiError::Execution(ExecuteTaskError::NotFound(Uuid::new_v4())),
+        StatusCode::NOT_FOUND
+    )]
+    #[case::execution_invalid_state(TaskApiError::Execution(ExecuteTaskError::InvalidState), StatusCode::CONFLICT)]
+    #[case::execution_storage(
+        TaskApiError::Execution(ExecuteTaskError::Storage(storage_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    fn task_api_error_status_codes(#[case] error: TaskApiError, #[case] status: StatusCode) {
+        assert_eq!(error.into_response().status(), status);
     }
 
-    impl AdminPortalSessionRepository for InMemoryRepository {
-        async fn insert_login_attempt(
-            &self,
-            _state: String,
-            _login_attempt: AdminPortalLoginAttempt,
-        ) -> Result<(), PersistenceError> {
-            self.handle_error()?;
-            Ok(())
-        }
+    #[rstest]
+    #[case::missing_privilege(
+        WalletApiError::Check(GetWalletRevocationStateError::MissingPrivilege(TaskType::RevokeWallet)),
+        StatusCode::FORBIDDEN
+    )]
+    #[case::not_found(
+        WalletApiError::Check(GetWalletRevocationStateError::NotFound(WalletId::from("wallet-1".to_string()))),
+        StatusCode::NOT_FOUND
+    )]
+    #[case::storage(
+        WalletApiError::Check(GetWalletRevocationStateError::Storage(storage_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    fn wallet_api_error_status_codes(#[case] error: WalletApiError, #[case] status: StatusCode) {
+        assert_eq!(error.into_response().status(), status);
+    }
+}
 
-        async fn take_login_attempt(&self, _state: &str) -> Result<Option<AdminPortalLoginAttempt>, PersistenceError> {
-            self.handle_error()?;
-            Ok(None)
-        }
+#[cfg(all(test, feature = "db_test", feature = "hsm_test"))]
+mod http_tests {
+    use axum::body::Body;
+    use axum::body::to_bytes;
+    use axum::http::Request;
+    use axum::http::header;
+    use chrono::TimeDelta;
+    use crypto::utils::random_string;
+    use serde_json::Value;
+    use serde_json::json;
+    use tower::ServiceExt;
+    use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_task::TaskType;
+    use wallet_provider_domain::repository::AdminPortalRepository;
 
-        async fn cleanup_expired_login_attempts(&self, _created_before: DateTime<Utc>) -> Result<(), PersistenceError> {
-            self.handle_error()?;
-            Ok(())
-        }
+    use super::*;
+    use crate::test_support::TestState;
+    use crate::test_support::setup_state;
 
-        async fn insert_user_session(
-            &self,
-            session_id: String,
-            session: AdminPortalUserSession,
-        ) -> Result<(), PersistenceError> {
-            self.handle_error()?;
-            self.sessions.lock().unwrap().insert(session_id, session);
-            Ok(())
-        }
-
-        async fn fetch_user_session(
-            &self,
-            session_id: &str,
-            now: DateTime<Utc>,
-            new_expires_at: Option<DateTime<Utc>>,
-        ) -> Result<Option<AdminPortalUserSession>, PersistenceError> {
-            self.handle_error()?;
-            let mut sessions = self.sessions.lock().unwrap();
-            let Some(session) = sessions.get_mut(session_id) else {
-                return Ok(None);
-            };
-            if session.expires_at <= now {
-                return Ok(None);
-            }
-            if let Some(new_expires_at) = new_expires_at {
-                session.expires_at = new_expires_at;
-            }
-            Ok(Some(session.clone()))
-        }
-
-        async fn take_user_session(
-            &self,
-            session_id: &str,
-        ) -> Result<Option<AdminPortalUserSession>, PersistenceError> {
-            self.handle_error()?;
-            Ok(self.sessions.lock().unwrap().remove(session_id))
-        }
-
-        async fn cleanup_expired_user_sessions(&self, _now: DateTime<Utc>) -> Result<(), PersistenceError> {
-            self.handle_error()?;
-            Ok(())
-        }
+    async fn setup_state_with_database_errors() -> TestState {
+        let state = setup_state().await;
+        state.repositories.as_ref().to_connection().close().await.unwrap();
+        state
     }
 
-    struct InMemoryTransaction;
-
-    impl Committable for InMemoryTransaction {
-        async fn commit(self) -> Result<(), PersistenceError> {
-            Ok(())
-        }
-    }
-
-    impl TransactionStarter for InMemoryRepository {
-        type TransactionType = InMemoryTransaction;
-
-        async fn begin_transaction(&self) -> Result<InMemoryTransaction, PersistenceError> {
-            self.handle_error()?;
-            Ok(InMemoryTransaction)
-        }
-    }
-
-    impl AdminTaskRepository for InMemoryRepository {
-        async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError> {
-            self.handle_error()?;
-            let task: AdminTask = task.into();
-            self.tasks.lock().unwrap().insert(task.id, task.clone());
-            Ok(task)
-        }
-
-        async fn find_task_by_id(&self, task_id: Uuid) -> Result<Option<AdminTask>, PersistenceError> {
-            self.handle_error()?;
-            Ok(self.tasks.lock().unwrap().get(&task_id).cloned())
-        }
-
-        async fn find_task_by_id_for_update(
-            &self,
-            _transaction: &InMemoryTransaction,
-            task_id: Uuid,
-        ) -> Result<Option<AdminTask>, PersistenceError> {
-            self.find_task_by_id(task_id).await
-        }
-
-        async fn withdraw_task(
-            &self,
-            _transaction: &InMemoryTransaction,
-            task_id: Uuid,
-            now: DateTime<Utc>,
-        ) -> Result<Option<AdminTask>, PersistenceError> {
-            self.handle_error()?;
-            let mut tasks = self.tasks.lock().unwrap();
-            let Some(task) = tasks.get_mut(&task_id) else {
-                return Ok(None);
-            };
-            if task.status != TaskStatus::Created {
-                return Ok(None);
-            }
-            task.status = TaskStatus::Withdrawn;
-            task.withdrawn_at = Some(now);
-            Ok(Some(task.clone()))
-        }
-
-        async fn review_task(
-            &self,
-            _transaction: &InMemoryTransaction,
-            review: AdminTaskReview,
-        ) -> Result<Option<AdminTask>, PersistenceError> {
-            self.handle_error()?;
-            let AdminTaskReview {
-                id,
-                reviewed_at,
-                reviewed_by_user_id,
-                reviewed_by_display_name,
-                review_comment,
-                review_verdict,
-            } = review;
-
-            let mut tasks = self.tasks.lock().unwrap();
-            let task: &mut AdminTask = match tasks.get_mut(&id) {
-                Some(task) => task,
-                None => return Ok(None),
-            };
-
-            if task.status != TaskStatus::Created {
-                return Ok(None);
-            }
-            task.reviewed_at = Some(reviewed_at);
-            task.reviewed_by_user_id = Some(reviewed_by_user_id);
-            task.reviewed_by_display_name = Some(reviewed_by_display_name);
-            task.review_comment = Some(review_comment);
-            task.status = review_verdict.resulting_status();
-
-            Ok(Some(task.clone()))
-        }
-
-        async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError> {
-            self.handle_error()?;
-            let tasks = self.tasks.lock().unwrap();
-            let mut matching: Vec<AdminTask> = tasks
-                .values()
-                .filter(|task| match &view {
-                    TaskListView::Open { user_id } => {
-                        task.created_by_user_id == *user_id && task.status == TaskStatus::Created
-                    }
-                    TaskListView::History { user_id } => {
-                        (task.created_by_user_id == *user_id || task.reviewed_by_user_id.as_deref() == Some(user_id))
-                            && task.status != TaskStatus::Created
-                    }
-                    TaskListView::Reviewable {
-                        user_id,
-                        authorized_task_types,
-                    } => {
-                        task.status == TaskStatus::Created
-                            && task.created_by_user_id != *user_id
-                            && authorized_task_types.contains(&task.task_type)
-                    }
-                })
-                .cloned()
-                .collect();
-            matching.sort_by_key(|task| task.created_at);
-            Ok(matching)
-        }
-    }
-
-    fn setup_state() -> Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>> {
-        setup_state_with_repository(InMemoryRepository::default())
-    }
-
-    fn setup_state_with_database_errors() -> Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>> {
-        let mut session_repository = InMemoryRepository::default();
-        session_repository.set_errors(true);
-
-        setup_state_with_repository(session_repository)
-    }
-
-    fn setup_state_with_repository(
-        repository: InMemoryRepository,
-    ) -> Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>> {
-        Arc::new(
-            AdminPortalState::try_new(
-                AdminPortalSettings {
-                    // .invalid is reserved by the IETF and will never resolve
-                    keycloak_url: "https://keycloak.invalid".parse().unwrap(),
-                    keycloak_realm: "test-realm".to_string(),
-                    keycloak_client_id: "test-client".to_string(),
-                    public_url: "https://portal.example.org/".parse().unwrap(),
-                    keycloak_trust_anchors: vec_nonempty![get_test_trust_anchor()],
-                    session_ttl: Duration::from_mins(15),
-                    login_attempt_ttl: Duration::from_mins(10),
-                },
-                repository,
-                DbAuditLog {
-                    repository: NoopAuditLogRepository,
-                    time_generator: TimeGenerator,
-                    uuid_generator: UuidV7Generator,
+    async fn setup_state_with_valid_user() -> (TestState, CookieJar) {
+        let state = setup_state().await;
+        let session_id = random_string(12);
+        state
+            .repositories
+            .insert_user_session(
+                session_id.clone(),
+                AdminPortalUserSession {
+                    user_id: "user_id".to_string(),
+                    display_name: "Jane Doe".to_string(),
+                    roles: vec!["privilege_admin".to_string(), "offline_access".to_string()],
+                    id_token: "the-id-token".to_string(),
+                    expires_at: Utc::now() + TimeDelta::minutes(5),
                 },
             )
-            .unwrap(),
-        )
-    }
-
-    fn setup_state_with_valid_user() -> (
-        Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>>,
-        CookieJar,
-    ) {
-        setup_state_with_valid_user_and_repository(InMemoryRepository::default())
-    }
-
-    fn setup_state_with_valid_user_and_repository(
-        repository: InMemoryRepository,
-    ) -> (
-        Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>>,
-        CookieJar,
-    ) {
-        let session_id = random_string(12);
-        repository.sessions.lock().unwrap().insert(
-            session_id.clone(),
-            AdminPortalUserSession {
-                user_id: "user_id".to_string(),
-                display_name: "Jane Doe".to_string(),
-                roles: vec!["privilege_admin".to_string(), "offline_access".to_string()],
-                id_token: "the-id-token".to_string(),
-                expires_at: Utc::now() + TimeDelta::minutes(5),
-            },
-        );
-        let state = setup_state_with_repository(repository);
+            .await
+            .unwrap();
         let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, session_id));
-
         (state, jar)
     }
 
-    fn setup_state_with_valid_user_and_task(
-        task_id: Uuid,
-        task_type: TaskType,
-        user: &ConstLoggedInUser,
-    ) -> (
-        Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>>,
-        CookieJar,
-    ) {
-        let LoggedInUser {
-            user_id,
-            display_name,
-            privileges,
-        } = user.into();
-        let session_id = random_string(12);
-        let repository = InMemoryRepository::default();
-        repository.tasks.lock().unwrap().insert(
-            task_id,
-            AdminTaskCreate {
-                id: task_id,
-                created_at: Utc::now(),
-                created_by_user_id: user_id.clone(),
-                created_by_display_name: display_name.clone(),
-                task_type,
-                task_parameters: json!({}),
-                task_reason: "because reasons".to_owned(),
-            }
-            .into(),
-        );
-        repository.sessions.lock().unwrap().insert(
-            session_id.clone(),
-            AdminPortalUserSession {
-                user_id,
-                display_name,
-                roles: privileges,
-                id_token: "the-id-token".to_string(),
-                expires_at: Utc::now() + TimeDelta::minutes(5),
-            },
-        );
-        let state = setup_state_with_repository(repository);
-        let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, session_id));
-
-        (state, jar)
-    }
-
-    /// Calls the `list_tasks` handler as `user`, asserts it succeeds, and returns the decoded task list.
-    async fn list_tasks_for(
-        state: Arc<AdminPortalState<InMemoryRepository, NoopAuditLogRepository>>,
-        user: LoggedInUser,
-        view: TaskListViewKind,
-    ) -> Vec<Value> {
-        let response = list_tasks(
-            State(state),
-            AuthenticatedAdminUser(user),
-            Query(ListTasksQuery { view }),
-        )
-        .await
-        .into_response();
-        assert_eq!(response.status(), StatusCode::OK);
-        json_body(response).await
-    }
-
-    #[tokio::test]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn login_reports_server_error_when_oidc_provider_is_unreachable() {
-        let state = setup_state();
+        let state = setup_state().await;
 
-        let response = login(State(state), Query(LoginQuery { login_hint: None })).await;
+        let response = login(State(Arc::clone(&state)), Query(LoginQuery { login_hint: None })).await;
 
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    #[tokio::test]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn callback_without_state_redirects_to_frontend_error_page() {
-        let state = setup_state();
+        let state = setup_state().await;
 
         let response = callback(
-            State(state),
+            State(Arc::clone(&state)),
             CookieJar::new(),
             Query(CallbackQuery {
                 state: None,
@@ -927,12 +729,13 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn callback_without_state_but_with_session_redirects_to_frontend_entry() {
-        let (state, jar) = setup_state_with_valid_user();
+        let (state, jar) = setup_state_with_valid_user().await;
 
         let response = callback(
-            State(state),
+            State(Arc::clone(&state)),
             jar,
             Query(CallbackQuery {
                 state: Some("unknown-state".to_string()),
@@ -949,11 +752,12 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn logout_without_session_cookie_redirects_to_frontend_entry() {
-        let state = setup_state();
+        let state = setup_state().await;
 
-        let response = logout(State(state), CookieJar::new()).await;
+        let response = logout(State(Arc::clone(&state)), CookieJar::new()).await;
 
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
         assert_eq!(
@@ -962,17 +766,21 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn logout_redirects_to_error_page_for_database_errors() {
-        let state = setup_state_with_database_errors();
+        let state = setup_state_with_database_errors().await;
         let cookie_jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "my_session"));
 
-        let response = logout(State(state), cookie_jar).await;
+        let response = logout(State(Arc::clone(&state)), cookie_jar).await;
 
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
-        assert_eq!(
-            response.headers().get(header::LOCATION).unwrap(),
-            "https://portal.example.org/error?reason=no+rows+were+updated"
+        let location = Url::parse(response.headers().get(header::LOCATION).unwrap().to_str().unwrap()).unwrap();
+        assert_eq!(location.path(), "/error");
+        assert!(
+            location
+                .query_pairs()
+                .any(|(key, value)| key == "reason" && !value.is_empty())
         );
     }
 
@@ -992,9 +800,10 @@ mod tests {
         serde_json::from_slice(&body).unwrap()
     }
 
-    #[tokio::test]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn authenticated_admin_user_without_session_cookie_is_rejected_with_401() {
-        let state = setup_state();
+        let state = setup_state().await;
         let mut parts = request_parts(&CookieJar::new());
 
         let response = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
@@ -1004,9 +813,10 @@ mod tests {
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 
-    #[tokio::test]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn authenticated_admin_user_with_unknown_session_cookie_is_rejected_with_401() {
-        let state = setup_state();
+        let state = setup_state().await;
         let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "unknown-session"));
         let mut parts = request_parts(&jar);
 
@@ -1017,9 +827,10 @@ mod tests {
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 
-    #[tokio::test]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn authenticated_admin_user_reports_server_error_for_database_errors() {
-        let state = setup_state_with_database_errors();
+        let state = setup_state_with_database_errors().await;
         let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, "my-session"));
         let mut parts = request_parts(&jar);
 
@@ -1030,11 +841,11 @@ mod tests {
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    #[tokio::test]
-    async fn authenticated_admin_user_with_valid_session_cookie_is_extracted() {
-        let (state, jar) = setup_state_with_valid_user();
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn me_with_valid_session_reports_logged_in_user() {
+        let (state, jar) = setup_state_with_valid_user().await;
         let mut parts = request_parts(&jar);
-
         let AuthenticatedAdminUser(user) = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
             .await
             .expect("valid session should be extracted");
@@ -1042,17 +853,8 @@ mod tests {
         assert_eq!(user.user_id, "user_id");
         assert_eq!(user.display_name, "Jane Doe");
         assert_eq!(user.privileges, vec!["admin"]);
-    }
 
-    #[tokio::test]
-    async fn me_with_valid_session_reports_logged_in_user() {
-        let (state, jar) = setup_state_with_valid_user();
-        let mut parts = request_parts(&jar);
-        let user = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
-            .await
-            .expect("valid session should be extracted");
-
-        let response = me(user).await;
+        let response = me(AuthenticatedAdminUser(user)).await;
 
         assert_eq!(response.status(), StatusCode::OK);
         assert!(!response.headers().contains_key(header::SET_COOKIE));
@@ -1063,316 +865,90 @@ mod tests {
         );
     }
 
-    #[test]
-    fn task_response_maps_display_names_not_user_ids() {
-        let task = AdminTask {
-            id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            created_by_user_id: "user-1".to_string(),
-            created_by_display_name: "User One".to_string(),
-            task_type: TaskType::RevokeWallet,
-            task_parameters: serde_json::json!({}),
-            task_reason: "reason".to_string(),
-            status: TaskStatus::Created,
-            withdrawn_at: None,
-            reviewed_at: None,
-            reviewed_by_user_id: None,
-            reviewed_by_display_name: None,
-            review_comment: None,
-            executed_at: None,
-            execution_result: None,
-            execution_result_details: None,
-        };
-
-        let response = TaskResponse::from(task);
-
-        assert_eq!(response.created_by, "User One");
-    }
-
-    #[test]
-    fn withdraw_task_error_status_codes() {
-        for (error, status) in [
-            (WithdrawTaskError::NotFound(Uuid::new_v4()), StatusCode::NOT_FOUND),
-            (WithdrawTaskError::InvalidState, StatusCode::CONFLICT),
-            (
-                WithdrawTaskError::Storage(PersistenceError::NoRowsUpdated),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ),
-            (
-                WithdrawTaskError::AuditLog(Box::new(PersistenceError::NoRowsUpdated)),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ),
-        ] {
-            assert_eq!(TaskApiError::Withdraw(error).into_response().status(), status);
-        }
-    }
-
     #[rstest::rstest]
-    #[case::missing_session(None)]
-    #[case::unknown_session(Some("unknown-session"))]
-    #[tokio::test]
-    async fn withdrawal_requires_authentication(#[case] session: Option<&str>) {
-        let mut request = Request::builder()
-            .method("POST")
-            .uri(format!("/tasks/{}/withdraw", Uuid::new_v4()));
-        if let Some(session) = session {
-            request = request.header(header::COOKIE, format!("sid={session}"));
-        }
-        let response = router(setup_state())
-            .oneshot(request.body(Body::empty()).unwrap())
-            .await
-            .unwrap();
+    #[case::create("POST", "/tasks")]
+    #[case::list("GET", "/tasks?view=open")]
+    #[case::withdraw("POST", "/tasks/00000000-0000-0000-0000-000000000000/withdraw")]
+    #[case::review("POST", "/tasks/00000000-0000-0000-0000-000000000000/review")]
+    #[case::check_wallet("GET", "/wallets/wallet-1")]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn admin_portal_routes_require_authentication(#[case] method: &str, #[case] uri: &str) {
+        let state = setup_state().await;
+        let request = Request::builder().method(method).uri(uri).body(Body::empty()).unwrap();
+
+        let response = router(Arc::clone(&state)).oneshot(request).await.unwrap();
+
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 
+    async fn create_task_from_body(body: Value) -> Response {
+        let state = setup_state().await;
+        create_task(
+            State(Arc::clone(&state)),
+            AuthenticatedAdminUser(LoggedInUser {
+                user_id: "alice".to_owned(),
+                display_name: "Alice".to_owned(),
+                privileges: vec![TaskType::RevokeWallet.to_string()],
+            }),
+            Json::from_bytes(&serde_json::to_vec(&body).unwrap()),
+        )
+        .await
+        .into_response()
+    }
+
     #[rstest::rstest]
-    #[case::not_found(false, "user_id", TaskStatus::Created, StatusCode::NOT_FOUND)]
-    #[case::wrong_owner(true, "other-user", TaskStatus::Created, StatusCode::CONFLICT)]
-    #[case::already_approved(true, "user_id", TaskStatus::Approved, StatusCode::CONFLICT)]
-    #[case::success(true, "user_id", TaskStatus::Created, StatusCode::OK)]
-    #[tokio::test]
-    async fn withdrawal_endpoint(
-        #[case] exists: bool,
-        #[case] owner: &str,
-        #[case] status: TaskStatus,
-        #[case] expected_status: StatusCode,
-    ) {
-        let repository = InMemoryRepository::default();
-        let (state, jar) = setup_state_with_valid_user_and_repository(repository.clone());
-        let id = Uuid::new_v4();
-        if exists {
-            repository
-                .insert_task(AdminTaskCreate {
-                    id,
-                    created_at: Utc::now(),
-                    created_by_user_id: owner.to_string(),
-                    created_by_display_name: "Jane Doe".to_string(),
-                    task_type: TaskType::RevokeWallet,
-                    task_parameters: serde_json::json!({}),
-                    task_reason: "reason".to_string(),
-                })
-                .await
-                .unwrap();
-            if status != TaskStatus::Created {
-                // Seed the existing status for cases where the task has already been reviewed.
-                repository.tasks.lock().unwrap().get_mut(&id).unwrap().status = status;
-            }
-        }
-        let request = Request::builder()
-            .method("POST")
-            .uri(format!("/tasks/{id}/withdraw"))
-            .header(
-                header::COOKIE,
-                format!("sid={}", jar.get(SESSION_ID_COOKIE).unwrap().value()),
-            )
-            .body(Body::empty())
-            .unwrap();
-        let app = router(state);
-        let response = app.clone().oneshot(request).await.unwrap();
-        assert_eq!(response.status(), expected_status);
-        if expected_status == StatusCode::OK {
-            let task: Value = json_body(response).await;
-            assert_eq!(task["taskId"], id.to_string());
-            assert_eq!(task["status"], "withdrawn");
-            assert_eq!(task["createdBy"], "Jane Doe");
-            for field in ["executedAt", "executionResult", "executionResultDetails"] {
-                assert!(task[field].is_null());
-            }
-            let request = Request::builder()
-                .method("POST")
-                .uri(format!("/tasks/{id}/withdraw"))
-                .header(
-                    header::COOKIE,
-                    format!("sid={}", jar.get(SESSION_ID_COOKIE).unwrap().value()),
-                )
-                .body(Body::empty())
-                .unwrap();
-            let response = app.oneshot(request).await.unwrap();
-            assert_eq!(response.status(), StatusCode::OK);
-            assert_eq!(json_body::<Value>(response).await, task);
-        }
+    #[case::missing_task_reason(json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1"]}}))]
+    #[case::not_an_object(json!("revoke_wallet"))]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn create_task_rejects_invalid_request_with_bad_request(#[case] body: Value) {
+        let response = create_task_from_body(body).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
-    #[tokio::test]
-    async fn review_task_returns_server_error_when_database_fails() {
-        let state = setup_state_with_database_errors();
-        let user = AuthenticatedAdminUser(LoggedInUser {
-            user_id: "user_id".to_owned(),
-            display_name: "User Id".to_owned(),
-            privileges: vec![],
-        });
-        let result = review_task(
-            State(state),
-            user,
-            Path(Uuid::new_v4()),
-            Json(ReviewTaskRequest {
-                verdict: ReviewVerdict::Approve,
-                review_comment: "Good Job!".to_owned(),
-            }),
-        )
-        .await
-        .into_response();
-        assert_eq!(result.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    }
-
-    #[tokio::test]
-    async fn review_task_not_found() {
-        let (state, _) = setup_state_with_valid_user();
-        let user = AuthenticatedAdminUser((&ALICE).into());
-        let result = review_task(
-            State(state),
-            user,
-            Path(Uuid::new_v4()),
-            Json(ReviewTaskRequest {
-                verdict: ReviewVerdict::Approve,
-                review_comment: "Good Job!".to_owned(),
-            }),
-        )
-        .await
-        .into_response();
-        assert_eq!(result.status(), StatusCode::NOT_FOUND);
-    }
-
-    #[tokio::test]
-    async fn review_task_fails_for_same_user() {
-        let task_id = Uuid::new_v4();
-        let task_type = TaskType::RevokeWallet;
-        let (state, _) = setup_state_with_valid_user_and_task(task_id, task_type, &ALICE);
-        let reviewer_user_alice = AuthenticatedAdminUser(with_privilege(&ALICE, task_type));
-        let result = review_task(
-            State(state),
-            reviewer_user_alice,
-            Path(task_id),
-            Json(ReviewTaskRequest {
-                verdict: ReviewVerdict::Approve,
-                review_comment: "Good Job!".to_owned(),
-            }),
-        )
-        .await
-        .into_response();
-        assert_eq!(result.status(), StatusCode::CONFLICT);
-    }
-
-    #[tokio::test]
-    async fn review_task_fails_for_other_user_without_correct_privilege() {
-        let task_id = Uuid::new_v4();
-        let (state, _) = setup_state_with_valid_user_and_task(task_id, TaskType::RevokeWallet, &ALICE);
-        let reviewer_user = AuthenticatedAdminUser(with_privilege(&BOB, TaskType::BlockUser));
-        let result = review_task(
-            State(state),
-            reviewer_user,
-            Path(task_id),
-            Json(ReviewTaskRequest {
-                verdict: ReviewVerdict::Approve,
-                review_comment: "Good Job!".to_owned(),
-            }),
-        )
-        .await
-        .into_response();
-        assert_eq!(result.status(), StatusCode::FORBIDDEN);
-    }
-
-    #[tokio::test]
-    async fn review_task_succeeds_for_other_user_with_correct_privilege() {
-        let task_id = Uuid::new_v4();
-        let task_type = TaskType::RevokeWallet;
-        let (state, _) = setup_state_with_valid_user_and_task(task_id, task_type, &ALICE);
-        let reviewer_user = AuthenticatedAdminUser(with_privilege(&BOB, task_type));
-        let result = review_task(
-            State(state),
-            reviewer_user,
-            Path(task_id),
-            Json(ReviewTaskRequest {
-                verdict: ReviewVerdict::Approve,
-                review_comment: "Good Job!".to_owned(),
-            }),
-        )
-        .await
-        .into_response();
-        assert_eq!(result.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn list_tasks_requires_authentication() {
-        let request = Request::builder()
-            .method("GET")
-            .uri("/tasks?view=open")
-            .body(Body::empty())
-            .unwrap();
-        let response = router(setup_state()).oneshot(request).await.unwrap();
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-    }
-
-    #[tokio::test]
-    async fn list_tasks_returns_server_error_when_database_fails() {
-        let state = setup_state_with_database_errors();
-        let user = AuthenticatedAdminUser((&ALICE).into());
-
-        let result = list_tasks(
-            State(state),
-            user,
-            Query(ListTasksQuery {
-                view: TaskListViewKind::Open,
-            }),
-        )
-        .await
-        .into_response();
-
-        assert_eq!(result.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    }
-
-    #[tokio::test]
-    async fn list_tasks_open_returns_only_callers_own_created_tasks() {
-        let task_id = Uuid::new_v4();
-        let (state, _) = setup_state_with_valid_user_and_task(task_id, TaskType::RevokeWallet, &ALICE);
-
-        let tasks = list_tasks_for(state.clone(), (&ALICE).into(), TaskListViewKind::Open).await;
-        assert_eq!(tasks.len(), 1);
-        assert_eq!(tasks[0]["taskId"], task_id.to_string());
-
-        let tasks = list_tasks_for(state, (&BOB).into(), TaskListViewKind::Open).await;
-        assert!(tasks.is_empty());
-    }
-
-    #[tokio::test]
-    async fn list_tasks_reviewable_filters_by_privilege_and_excludes_own_tasks() {
-        let task_id = Uuid::new_v4();
-        let (state, _) = setup_state_with_valid_user_and_task(task_id, TaskType::RevokeWallet, &ALICE);
-
-        // Bob has the matching privilege and didn't create the task: it shows up.
-        let tasks = list_tasks_for(
-            state.clone(),
-            with_privilege(&BOB, TaskType::RevokeWallet),
-            TaskListViewKind::Reviewable,
-        )
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn create_task_rejects_unknown_wallet_ids_with_bad_request() {
+        let response = create_task_from_body(json!({
+            "taskType": "revoke_wallet",
+            "taskParameters": {"walletIds": ["wallet-1"]},
+            "taskReason": "because",
+        }))
         .await;
-        assert_eq!(tasks.len(), 1);
 
-        // Bob without the matching privilege sees nothing.
-        let tasks = list_tasks_for(
-            state.clone(),
-            with_privilege(&BOB, TaskType::BlockUser),
-            TaskListViewKind::Reviewable,
-        )
-        .await;
-        assert!(tasks.is_empty());
-
-        // Alice, the creator, never sees her own task in this view, even with the privilege.
-        let tasks = list_tasks_for(
-            state,
-            with_privilege(&ALICE, TaskType::RevokeWallet),
-            TaskListViewKind::Reviewable,
-        )
-        .await;
-        assert!(tasks.is_empty());
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
-    #[tokio::test]
-    async fn list_tasks_history_excludes_still_open_tasks() {
-        let task_id = Uuid::new_v4();
-        let (state, _) = setup_state_with_valid_user_and_task(task_id, TaskType::RevokeWallet, &ALICE);
+    async fn check_wallet_with(wallet_id: &str, privileges: Vec<String>) -> Response {
+        let state = setup_state().await;
+        check_wallet(
+            State(Arc::clone(&state)),
+            AuthenticatedAdminUser(LoggedInUser {
+                user_id: "alice".to_owned(),
+                display_name: "Alice".to_owned(),
+                privileges,
+            }),
+            Path(WalletId::from(wallet_id.to_string())),
+        )
+        .await
+        .into_response()
+    }
 
-        let tasks = list_tasks_for(state, (&ALICE).into(), TaskListViewKind::History).await;
-        assert!(tasks.is_empty());
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn check_wallet_rejects_missing_privilege_with_forbidden() {
+        let response = check_wallet_with("wallet-1", vec![]).await;
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn check_wallet_reports_unknown_wallet_with_not_found() {
+        let response = check_wallet_with("wallet-1", vec![TaskType::RevokeWallet.to_string()]).await;
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 }

@@ -21,7 +21,7 @@ required-features = ["hsm_test"]
 [[test]]
 name = "admin_portal_tasks"
 path = "tests/admin_portal_tasks.rs"
-required-features = ["db_test", "web_test"]
+required-features = ["db_test", "web_test", "hsm_test", "test_support"]
 
 [features]
 default = []
@@ -48,6 +48,16 @@ hsm_test = ["dep:rand_core", "dep:serial_test", "hsm/test"]
 db_test = ["dep:db_test", "tokio/macros", "wallet_provider_persistence/db_test"]
 # Include web related features, like request serialization and response deserialization
 web_test = ["db_test"]
+# Expose the `test_support` module for setting up a fully wired admin portal state in tests
+test_support = [
+    "db_test",
+    "hsm_test",
+    "dep:tempfile",
+    "crypto/generate",
+    "crypto/mock",
+    "http_utils/test",
+    "wallet_provider_persistence/test",
+]
 
 [dependencies]
 axum.workspace = true
@@ -85,6 +95,7 @@ utoipa-axum.workspace = true
 
 rand_core = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
 
 android_attest.path = "../lib/android_attest"
@@ -104,10 +115,10 @@ wallet_provider_persistence.path = "persistence"
 wallet_provider_service.path = "service"
 wscd.path = "../lib/wscd"
 
-token_status_list = { path = "../lib/token_status_list", optional = true }
+token_status_list.path = "../lib/token_status_list"
 
 [dev-dependencies]
-audit_log = { path = "audit_log", features = ["mock"] }
+crypto = { path = "../lib/crypto", features = ["generate", "mock"] }
 rstest.workspace = true
 tempfile.workspace = true
 tower = { workspace = true, features = ["util"] }
