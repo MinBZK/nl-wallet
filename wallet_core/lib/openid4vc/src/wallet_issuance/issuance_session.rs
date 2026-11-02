@@ -1104,7 +1104,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .get(&offered_credential.config_id)
             .expect("`IssuanceState::metadata` has an entry for every offered configuration");
 
-        let (credential_copies, first_credential_payload, extended_attestation_types, issued_metadata) =
+        let (credential_copies, credential_payloads, extended_attestation_types, issued_metadata) =
             match (offered_credential.format, offered_metadata) {
                 (Format::SdJwt, metadata @ OfferedCredentialMetadata::TypeMetadata { normalized, raw }) => {
                     let (sd_jwts, credential_payloads) = credentials.into_issued_sd_jwts(
@@ -1122,7 +1122,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     // extended attestation types.
                     (
                         IssuedCredentialCopies::SdJwt(sd_jwts),
-                        credential_payloads.into_first(),
+                        credential_payloads,
                         normalized.extended_vcts().map(String::from).collect(),
                         IssuedCredentialMetadata::TypeMetadata {
                             verified: verified_metadata,
@@ -1140,7 +1140,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
                     (
                         IssuedCredentialCopies::SdJwt(sd_jwts),
-                        credential_payloads.into_first(),
+                        credential_payloads,
                         Vec::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
                     )
@@ -1155,7 +1155,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
                     (
                         IssuedCredentialCopies::Mdoc(mdocs),
-                        credential_payloads.into_first(),
+                        credential_payloads,
                         Vec::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
                     )
@@ -1178,8 +1178,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 }
             };
 
-        // TODO (PVW-6364): Only the payload of the first copy is used below. Without previews, all copies should be
-        //                  checked that they are identical.
+        let first_credential_payload = verify_copies_consistency(credential_payloads)?;
+
         let credential_with_metadata = CredentialWithMetadata::new(
             credential_copies,
             first_credential_payload.previewable_payload.attestation_type,
@@ -1520,6 +1520,33 @@ fn verify_metadata_integrity<'a>(
         .map_err(WalletIssuanceError::MetadataIntegrityVerification)?;
 
     Ok(verified_metadata)
+}
+
+/// Verify that all copies are equal and return the first.
+///
+/// The following fields are not required to be identical:
+/// - `iat`: may be randomized or rounded for unlinkability.
+/// - `cnf`: each copy is bound to a distinct holder key.
+/// - `status`: each copy may have its own status list entry, so it can be revoked separately.
+fn verify_copies_consistency(
+    credential_payloads: VecNonEmpty<CredentialPayload>,
+) -> Result<CredentialPayload, WalletIssuanceError> {
+    let (first, rest) = credential_payloads.split_first();
+    let CredentialPayload {
+        previewable_payload: first_previewable_payload,
+        vct_integrity: first_vct_integrity,
+        issued_at: _,
+        confirmation_key: _,
+        status: _,
+    } = first;
+
+    if rest.iter().any(|payload| {
+        payload.previewable_payload != *first_previewable_payload || payload.vct_integrity != *first_vct_integrity
+    }) {
+        return Err(WalletIssuanceError::CredentialCopiesInconsistent);
+    }
+
+    Ok(credential_payloads.into_first())
 }
 
 #[cfg(test)]
@@ -2798,6 +2825,7 @@ mod tests {
         sd_jwt_previewable_payload: PreviewableCredentialPayload,
         normalized_metadata: NormalizedTypeMetadata,
         pub first_metadata_integrity_random: bool,
+        pub first_copy_expires_later: bool,
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -2915,6 +2943,7 @@ mod tests {
                 credential_request_decrypter,
                 metadata_integrity,
                 first_metadata_integrity_random: false,
+                first_copy_expires_later: false,
                 mdoc_previewable_payload,
                 sd_jwt_previewable_payload,
                 normalized_metadata,
@@ -2994,8 +3023,15 @@ mod tests {
                         }
                     });
 
+                    let mut previewable_payload = previewable_payload.clone();
+                    if self.first_copy_expires_later && index == 0 {
+                        previewable_payload.expires = previewable_payload
+                            .expires
+                            .map(|expires| (*expires.as_ref() + chrono::Duration::days(1)).into());
+                    }
+
                     CredentialPayload::from_previewable_credential_payload_unvalidated(
-                        previewable_payload.clone(),
+                        previewable_payload,
                         Utc::now(),
                         holder_pubkey,
                         metadata_integrity,
@@ -3538,6 +3574,116 @@ mod tests {
         .expect_err("accepting issuance should not succeed");
 
         assert_matches!(error, WalletIssuanceError::MetadataIntegrityInconsistent);
+    }
+
+    #[rstest]
+    fn test_accept_issuance_error_credential_copies_inconsistent(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+    ) {
+        let (mut signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
+            HashMap::from([("credential_id".to_string().into(), format)]),
+            SdJwtMetadataUsage::TypeMetadata,
+            false,
+        );
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
+
+        // Have the first copy expire later than the others. Without previews, only the consistency check catches this.
+        signer.first_copy_expires_later = true;
+
+        let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
+
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            move |_url, credential_request, _dpop_header, _access_token_header| {
+                Ok(signer.response_from_request(&credential_request))
+            },
+        );
+
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), None, true, false),
+        }
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
+    }
+
+    fn example_credential_payload() -> CredentialPayload {
+        CredentialPayload::from_previewable_credential_payload_unvalidated(
+            PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default()),
+            Utc::now(),
+            &PublicKey::from(*SigningKey::generate().verifying_key()),
+            Some(Integrity::from(crypto::utils::random_bytes(32))),
+            Some(StatusListClaim::new_mock()),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn test_verify_copies_consistency() {
+        let first = example_credential_payload();
+
+        // Copies may differ in issuance time, holder key and status.
+        let other = CredentialPayload {
+            issued_at: (Utc::now() - chrono::Duration::hours(1)).into(),
+            confirmation_key: example_credential_payload().confirmation_key,
+            status: None,
+            ..first.clone()
+        };
+
+        let consistent = verify_copies_consistency(vec_nonempty![first.clone(), other.clone(), other])
+            .expect("copies should be consistent");
+
+        assert_eq!(consistent, first);
+    }
+
+    #[test]
+    fn test_verify_copies_consistency_single_copy() {
+        let first = example_credential_payload();
+
+        let consistent = verify_copies_consistency(vec_nonempty![first.clone()]).expect("copy should be consistent");
+
+        assert_eq!(consistent, first);
+    }
+
+    #[rstest]
+    #[case::attributes(|payload: &mut CredentialPayload| {
+        payload.previewable_payload.attributes =
+            Attributes::example([(["family_name"], Attribute::Text(String::from("De Vries")))]);
+    })]
+    #[case::attestation_type(|payload: &mut CredentialPayload| {
+        payload.previewable_payload.attestation_type = String::from("other.attestation_type");
+    })]
+    #[case::expires(|payload: &mut CredentialPayload| {
+        payload.previewable_payload.expires = None;
+    })]
+    #[case::not_before(|payload: &mut CredentialPayload| {
+        payload.previewable_payload.not_before = None;
+    })]
+    #[case::vct_integrity(|payload: &mut CredentialPayload| {
+        payload.vct_integrity = Some(Integrity::from(crypto::utils::random_bytes(32)));
+    })]
+    fn test_verify_copies_consistency_error(
+        #[case] modify: fn(&mut CredentialPayload),
+        #[values(1, 2)] inconsistent_index: usize,
+    ) {
+        let first = example_credential_payload();
+        let mut payloads = vec![first.clone(), first.clone(), first];
+        modify(&mut payloads[inconsistent_index]);
+
+        let error =
+            verify_copies_consistency(payloads.try_into().unwrap()).expect_err("copies should not be consistent");
+
+        assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
     }
 
     #[test]

@@ -266,13 +266,17 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     MetadataIntegrityMissing,
 
+    #[error("type metadata integrity did not verify correctly: {0}")]
+    #[category(critical)]
+    MetadataIntegrityVerification(#[source] TypeMetadataChainError),
+
     #[error("metadata integrity digest contained is not consistent across credential copies")]
     #[category(critical)]
     MetadataIntegrityInconsistent,
 
-    #[error("type metadata integrity did not verify correctly: {0}")]
+    #[error("credential copies are inconsistent")]
     #[category(critical)]
-    MetadataIntegrityVerification(#[source] TypeMetadataChainError),
+    CredentialCopiesInconsistent,
 
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
