@@ -16,6 +16,7 @@ use sd_jwt::sd_jwt::DecodedSdJwt;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use token_status_list::verification::verifier::RevocationStatus;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
@@ -186,15 +187,13 @@ impl StoredAttestationCopy {
     /// (Note that if an AKI is checked against a certificate that has no AKI, this is not a match.)
     pub fn matches_any_aki(&self, aki: &[KeyIdentifier]) -> bool {
         let certificate_chain = match &self.attestation.data {
-            StoredAttestation::MsoMdoc(mdoc) => &mdoc
-                .issuer_certificate_chain()
-                .expect("stored mdoc should have a valid certificate"),
+            StoredAttestation::MsoMdoc(mdoc) => mdoc.issuer_certificate_chain(),
             StoredAttestation::SdJwt(sd_jwt) => sd_jwt.sd_jwt().issuer_certificate_chain(),
         };
 
         aki.is_empty()
             || aki.iter().any(|key_id| {
-                certificate_chain.iter().any(|cert| {
+                certificate_chain.nonempty_iter().any(|cert| {
                     cert.authority_key_id()
                         .is_some_and(|cert_key_id| cert_key_id == *key_id)
                 })

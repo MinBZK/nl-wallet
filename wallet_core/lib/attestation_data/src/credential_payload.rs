@@ -462,7 +462,7 @@ struct SplitMdocCredential {
 
 impl SplitMdocCredential {
     fn from_mdoc(mdoc: Mdoc) -> Result<Self, PreviewableCredentialPayloadFromMdocError> {
-        let (mso, issuer_signed) = mdoc.into_components();
+        let (mso, issuer_signed, ..) = mdoc.into_components();
         let attributes = issuer_signed.into_entries_by_namespace();
         let attestation_type = mso.doc_type;
         let attributes = Attributes::from_mdoc_attributes(attributes)

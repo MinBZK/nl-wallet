@@ -646,7 +646,7 @@ pub fn mock_issuance_session(
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata),
                     ) => {
                         let key_identifier = stored_attestation.key_identifier;
-                        let (mso, _) = mdoc.clone().into_components();
+                        let (mso, ..) = mdoc.clone().into_components();
 
                         let exp = Some((&mso.validity_info.valid_until).try_into().unwrap());
                         let nbf = Some((&mso.validity_info.valid_from).try_into().unwrap());

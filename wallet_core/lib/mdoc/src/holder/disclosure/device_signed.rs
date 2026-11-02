@@ -102,7 +102,7 @@ mod tests {
         )
         .unwrap();
 
-        let (mso, issuer_signed) = mdoc.into_components();
+        let (mso, issuer_signed, ..) = mdoc.into_components();
         let document = Document {
             doc_type: mso.doc_type,
             issuer_signed,

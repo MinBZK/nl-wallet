@@ -22,6 +22,8 @@ pub struct Mdoc {
     mso: MobileSecurityObject,
 
     issuer_signed: IssuerSigned,
+
+    issuer_certificate_chain: VecNonEmpty<BorrowingCertificate>,
 }
 
 impl Mdoc {
@@ -41,7 +43,13 @@ impl Mdoc {
             supported_algorithms,
         )?;
 
-        let mdoc = Mdoc { mso, issuer_signed };
+        let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain()?;
+
+        let mdoc = Mdoc {
+            mso,
+            issuer_signed,
+            issuer_certificate_chain,
+        };
 
         Ok(mdoc)
     }
@@ -50,7 +58,13 @@ impl Mdoc {
     pub fn dangerous_parse_unverified(issuer_signed: IssuerSigned) -> Result<Self, CoseError> {
         let TaggedBytes(mso) = issuer_signed.issuer_auth.dangerous_parse_unverified()?;
 
-        let mdoc = Self { mso, issuer_signed };
+        let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain()?;
+
+        let mdoc = Self {
+            mso,
+            issuer_signed,
+            issuer_certificate_chain,
+        };
 
         Ok(mdoc)
     }
@@ -67,14 +81,22 @@ impl Mdoc {
         self.issuer_signed
     }
 
-    pub fn into_components(self) -> (MobileSecurityObject, IssuerSigned) {
-        let Self { mso, issuer_signed } = self;
+    pub fn into_components(self) -> (MobileSecurityObject, IssuerSigned, VecNonEmpty<BorrowingCertificate>) {
+        let Self {
+            mso,
+            issuer_signed,
+            issuer_certificate_chain,
+        } = self;
 
-        (mso, issuer_signed)
+        (mso, issuer_signed, issuer_certificate_chain)
     }
 
-    pub fn issuer_certificate_chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
-        self.issuer_signed.issuer_auth.x5chain()
+    pub fn issuer_certificate_chain(&self) -> &VecNonEmpty<BorrowingCertificate> {
+        &self.issuer_certificate_chain
+    }
+
+    pub fn issuer_leaf_certificate(&self) -> &BorrowingCertificate {
+        self.issuer_certificate_chain().first()
     }
 }
 
@@ -105,7 +127,13 @@ mod test {
 
     impl Mdoc {
         pub fn new_unverified(mso: MobileSecurityObject, issuer_signed: IssuerSigned) -> Self {
-            Self { mso, issuer_signed }
+            let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain().unwrap();
+
+            Self {
+                mso,
+                issuer_signed,
+                issuer_certificate_chain,
+            }
         }
 
         pub async fn new_unverified_from_data(
