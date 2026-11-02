@@ -2322,7 +2322,8 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
         let mut var_backgroundLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_pidAttestations = <Vec<crate::models::config::PidAttestation>>::sse_decode(deserializer);
         let mut var_staticAssetsBaseUrl = <String>::sse_decode(deserializer);
-        let mut var_maintenanceWindow = <Option<(String, String)>>::sse_decode(deserializer);
+        let mut var_maintenanceWindow =
+            <Option<crate::models::config::FlutterMaintenanceWindow>>::sse_decode(deserializer);
         let mut var_version = <String>::sse_decode(deserializer);
         let mut var_environment = <String>::sse_decode(deserializer);
         return crate::models::config::FlutterConfiguration {
@@ -2334,6 +2335,18 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
             maintenance_window: var_maintenanceWindow,
             version: var_version,
             environment: var_environment,
+        };
+    }
+}
+
+impl SseDecode for crate::models::config::FlutterMaintenanceWindow {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_start = <String>::sse_decode(deserializer);
+        let mut var_end = <String>::sse_decode(deserializer);
+        return crate::models::config::FlutterMaintenanceWindow {
+            start: var_start,
+            end: var_end,
         };
     }
 }
@@ -2799,6 +2812,19 @@ impl SseDecode for Option<bool> {
     }
 }
 
+impl SseDecode for Option<crate::models::config::FlutterMaintenanceWindow> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::models::config::FlutterMaintenanceWindow>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::models::image::Image> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2815,17 +2841,6 @@ impl SseDecode for Option<crate::models::image::ImageWithMetadata> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<crate::models::image::ImageWithMetadata>::sse_decode(deserializer));
-        } else {
-            return None;
-        }
-    }
-}
-
-impl SseDecode for Option<(String, String)> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(<(String, String)>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -2972,15 +2987,6 @@ impl SseDecode for (String, Box<crate::models::attestation::AttributeValue>) {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_field0 = <String>::sse_decode(deserializer);
         let mut var_field1 = <Box<crate::models::attestation::AttributeValue>>::sse_decode(deserializer);
-        return (var_field0, var_field1);
-    }
-}
-
-impl SseDecode for (String, String) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_field0 = <String>::sse_decode(deserializer);
-        let mut var_field1 = <String>::sse_decode(deserializer);
         return (var_field0, var_field1);
     }
 }
@@ -3790,6 +3796,24 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::config::FlutterConfigurati
     for crate::models::config::FlutterConfiguration
 {
     fn into_into_dart(self) -> crate::models::config::FlutterConfiguration {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::config::FlutterMaintenanceWindow {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.start.into_into_dart().into_dart(),
+            self.end.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::config::FlutterMaintenanceWindow {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::config::FlutterMaintenanceWindow>
+    for crate::models::config::FlutterMaintenanceWindow
+{
+    fn into_into_dart(self) -> crate::models::config::FlutterMaintenanceWindow {
         self
     }
 }
@@ -4888,9 +4912,17 @@ impl SseEncode for crate::models::config::FlutterConfiguration {
         <u16>::sse_encode(self.background_lock_timeout, serializer);
         <Vec<crate::models::config::PidAttestation>>::sse_encode(self.pid_attestations, serializer);
         <String>::sse_encode(self.static_assets_base_url, serializer);
-        <Option<(String, String)>>::sse_encode(self.maintenance_window, serializer);
+        <Option<crate::models::config::FlutterMaintenanceWindow>>::sse_encode(self.maintenance_window, serializer);
         <String>::sse_encode(self.version, serializer);
         <String>::sse_encode(self.environment, serializer);
+    }
+}
+
+impl SseEncode for crate::models::config::FlutterMaintenanceWindow {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.start, serializer);
+        <String>::sse_encode(self.end, serializer);
     }
 }
 
@@ -5290,6 +5322,16 @@ impl SseEncode for Option<bool> {
     }
 }
 
+impl SseEncode for Option<crate::models::config::FlutterMaintenanceWindow> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::models::config::FlutterMaintenanceWindow>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::models::image::Image> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5306,16 +5348,6 @@ impl SseEncode for Option<crate::models::image::ImageWithMetadata> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::models::image::ImageWithMetadata>::sse_encode(value, serializer);
-        }
-    }
-}
-
-impl SseEncode for Option<(String, String)> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <(String, String)>::sse_encode(value, serializer);
         }
     }
 }
@@ -5440,14 +5472,6 @@ impl SseEncode for (String, Box<crate::models::attestation::AttributeValue>) {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.0, serializer);
         <Box<crate::models::attestation::AttributeValue>>::sse_encode(self.1, serializer);
-    }
-}
-
-impl SseEncode for (String, String) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.0, serializer);
-        <String>::sse_encode(self.1, serializer);
     }
 }
 
@@ -6096,6 +6120,13 @@ mod io {
             unsafe { *flutter_rust_bridge::for_generated::box_from_leak_ptr(self) }
         }
     }
+    impl CstDecode<crate::models::config::FlutterMaintenanceWindow> for *mut wire_cst_flutter_maintenance_window {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::config::FlutterMaintenanceWindow {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::config::FlutterMaintenanceWindow>::cst_decode(*wrap).into()
+        }
+    }
     impl CstDecode<crate::models::image::Image> for *mut wire_cst_image {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::image::Image {
@@ -6115,13 +6146,6 @@ mod io {
         fn cst_decode(self) -> crate::models::organization::Organization {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
             CstDecode::<crate::models::organization::Organization>::cst_decode(*wrap).into()
-        }
-    }
-    impl CstDecode<(String, String)> for *mut wire_cst_record_string_string {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> (String, String) {
-            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
-            CstDecode::<(String, String)>::cst_decode(*wrap).into()
         }
     }
     impl CstDecode<crate::models::attestation::RenderingMetadata> for *mut wire_cst_rendering_metadata {
@@ -6246,6 +6270,15 @@ mod io {
                 maintenance_window: self.maintenance_window.cst_decode(),
                 version: self.version.cst_decode(),
                 environment: self.environment.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::config::FlutterMaintenanceWindow> for wire_cst_flutter_maintenance_window {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::config::FlutterMaintenanceWindow {
+            crate::models::config::FlutterMaintenanceWindow {
+                start: self.start.cst_decode(),
+                end: self.end.cst_decode(),
             }
         }
     }
@@ -6638,12 +6671,6 @@ mod io {
     {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> (String, Box<crate::models::attestation::AttributeValue>) {
-            (self.field0.cst_decode(), self.field1.cst_decode())
-        }
-    }
-    impl CstDecode<(String, String)> for wire_cst_record_string_string {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> (String, String) {
             (self.field0.cst_decode(), self.field1.cst_decode())
         }
     }
@@ -7050,6 +7077,19 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_flutter_maintenance_window {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                start: core::ptr::null_mut(),
+                end: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_flutter_maintenance_window {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
     impl NewWithNullPtr for wire_cst_flutter_version_state {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -7222,19 +7262,6 @@ mod io {
         }
     }
     impl Default for wire_cst_record_string_box_attribute_value {
-        fn default() -> Self {
-            Self::new_with_null_ptr()
-        }
-    }
-    impl NewWithNullPtr for wire_cst_record_string_string {
-        fn new_with_null_ptr() -> Self {
-            Self {
-                field0: core::ptr::null_mut(),
-                field1: core::ptr::null_mut(),
-            }
-        }
-    }
-    impl Default for wire_cst_record_string_string {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -7836,6 +7863,12 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_flutter_maintenance_window(
+    ) -> *mut wire_cst_flutter_maintenance_window {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_flutter_maintenance_window::new_with_null_ptr())
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_image() -> *mut wire_cst_image {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_image::new_with_null_ptr())
     }
@@ -7849,12 +7882,6 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_organization() -> *mut wire_cst_organization {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_organization::new_with_null_ptr())
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_record_string_string() -> *mut wire_cst_record_string_string
-    {
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_record_string_string::new_with_null_ptr())
     }
 
     #[unsafe(no_mangle)]
@@ -8321,9 +8348,15 @@ mod io {
         background_lock_timeout: u16,
         pid_attestations: *mut wire_cst_list_pid_attestation,
         static_assets_base_url: *mut wire_cst_list_prim_u_8_strict,
-        maintenance_window: *mut wire_cst_record_string_string,
+        maintenance_window: *mut wire_cst_flutter_maintenance_window,
         version: *mut wire_cst_list_prim_u_8_strict,
         environment: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_flutter_maintenance_window {
+        start: *mut wire_cst_list_prim_u_8_strict,
+        end: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -8644,12 +8677,6 @@ mod io {
     pub struct wire_cst_record_string_box_attribute_value {
         field0: *mut wire_cst_list_prim_u_8_strict,
         field1: *mut wire_cst_attribute_value,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    pub struct wire_cst_record_string_string {
-        field0: *mut wire_cst_list_prim_u_8_strict,
-        field1: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

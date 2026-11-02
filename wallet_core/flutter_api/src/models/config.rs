@@ -9,7 +9,7 @@ pub struct FlutterConfiguration {
     pub background_lock_timeout: u16,
     pub pid_attestations: Vec<PidAttestation>,
     pub static_assets_base_url: String,
-    pub maintenance_window: Option<(String, String)>,
+    pub maintenance_window: Option<FlutterMaintenanceWindow>,
     pub version: String,
     pub environment: String,
 }
@@ -22,16 +22,23 @@ impl From<&WalletConfiguration> for FlutterConfiguration {
             background_lock_timeout: value.lock_timeouts.background_timeout,
             pid_attestations: PidAttestation::pid_attestations_from_config(value.pid_attributes.clone()),
             static_assets_base_url: value.static_assets_base_url.to_string(),
-            maintenance_window: value.maintenance_window.as_ref().map(|window| {
-                (
-                    window.start.to_rfc3339_opts(SecondsFormat::Secs, true),
-                    window.end.to_rfc3339_opts(SecondsFormat::Secs, true),
-                )
-            }),
+            maintenance_window: value
+                .maintenance_window
+                .as_ref()
+                .map(|window| FlutterMaintenanceWindow {
+                    start: window.start.to_rfc3339_opts(SecondsFormat::Secs, true),
+                    end: window.end.to_rfc3339_opts(SecondsFormat::Secs, true),
+                }),
             version: value.version.to_string(),
             environment: value.environment.clone(),
         }
     }
+}
+
+// A struct rather than a tuple, as flutter_rust_bridge generates a broken Dart decoder for `Option<(String, String)>`.
+pub struct FlutterMaintenanceWindow {
+    pub start: String,
+    pub end: String,
 }
 
 pub struct PidAttestation {
