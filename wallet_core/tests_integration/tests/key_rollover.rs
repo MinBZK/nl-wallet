@@ -11,6 +11,7 @@ use hsm::test::HsmSetup;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use serial_test::serial;
+use tempfile::TempDir;
 use tests_integration::common::*;
 use utils::vec_at_least::VecNonEmpty;
 use wallet::Pin;
@@ -26,6 +27,7 @@ use wallet_provider_domain::keys::Kid;
 async fn setup_key_rollover_env() -> (
     DbSetup,
     HsmSetup,
+    TempDir,
     MockDeviceConfig,
     u16,
     ReqwestTrustAnchor,
@@ -35,6 +37,7 @@ async fn setup_key_rollover_env() -> (
 ) {
     let db_setup = DbSetup::create().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let mock_device_config = MockDeviceConfig::generate();
 
     // Start the update policy server (needed for the wallet to work)
@@ -53,6 +56,7 @@ async fn setup_key_rollover_env() -> (
     (
         db_setup,
         hsm_setup,
+        tempdir,
         mock_device_config,
         ups_port,
         ups_root_ca,
@@ -80,7 +84,7 @@ async fn setup_key_rollover_env() -> (
 #[serial(hsm)]
 async fn test_instruction_result_key_rollover() {
     // Don't drop `_db_setup` and `_hsm_setup`
-    let (_db_setup, _hsm_setup, mock_device_config, ups_port, ups_root_ca, mut wp_settings, wp_root_ca, hsm) =
+    let (_db_setup, _hsm_setup, tempdir, mock_device_config, ups_port, ups_root_ca, mut wp_settings, wp_root_ca, hsm) =
         setup_key_rollover_env().await;
 
     // Retrieve both instruction result public keys from the HSM
@@ -111,6 +115,7 @@ async fn test_instruction_result_key_rollover() {
         config_server_config,
         wallet_config.clone(),
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
 
@@ -223,7 +228,7 @@ fn certificate_public_key(key: DerVerifyingKey, used_from: chrono::DateTime<Utc>
 #[serial(hsm)]
 async fn test_certificate_key_rollover() {
     // Don't drop `_db_setup` and `_hsm_setup`
-    let (_db_setup, _hsm_setup, mock_device_config, ups_port, ups_root_ca, mut wp_settings, wp_root_ca, hsm) =
+    let (_db_setup, _hsm_setup, tempdir, mock_device_config, ups_port, ups_root_ca, mut wp_settings, wp_root_ca, hsm) =
         setup_key_rollover_env().await;
 
     // Retrieve both certificate public keys from the HSM
@@ -258,6 +263,7 @@ async fn test_certificate_key_rollover() {
         config_server_config,
         wallet_config.clone(),
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
 

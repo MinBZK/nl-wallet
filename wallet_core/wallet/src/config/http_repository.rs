@@ -27,12 +27,9 @@ pub struct HttpConfigurationRepository<B> {
 }
 
 impl<B> HttpConfigurationRepository<B> {
-    pub fn new(signing_public_key: JwtDecodingKey, storage_path: PathBuf, initial_config: WalletConfiguration) -> Self {
+    pub fn new(signing_public_key: JwtDecodingKey, etag_path: PathBuf, initial_config: WalletConfiguration) -> Self {
         Self {
-            client: EtagHttpClient::new(
-                "wallet-config".parse().expect("should be a valid filename"),
-                storage_path,
-            ),
+            client: EtagHttpClient::new("wallet-config".parse().expect("should be a valid filename"), etag_path),
             signing_public_key,
             config: RwLock::new((Arc::new(initial_config), None)),
         }

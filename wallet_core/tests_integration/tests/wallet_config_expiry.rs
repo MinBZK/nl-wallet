@@ -114,7 +114,7 @@ async fn test_expired_configuration_is_rejected() {
     let storage_dir = tempfile::tempdir().unwrap();
     let repository = HttpConfigurationRepository::new(
         PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
-        storage_dir.path().to_path_buf(),
+        storage_dir.path().join("wallet-config.jwt"),
         embedded_config,
     );
 
@@ -163,7 +163,7 @@ async fn test_expiry_is_reported_and_cleared() {
 
     // Since the server has nothing valid to offer, the wallet should report that it is stuck with an expired
     // configuration.
-    time::timeout(Duration::from_secs(30), async {
+    time::timeout(Duration::from_secs(10), async {
         while !repository.config_expired() {
             notifier.notified().await;
         }
@@ -175,7 +175,7 @@ async fn test_expiry_is_reported_and_cleared() {
     // off between attempts to replace an expired configuration.
     server.serve(&wallet_config(TimeDelta::hours(1), 3)).await;
 
-    time::timeout(Duration::from_secs(60), async {
+    time::timeout(Duration::from_secs(10), async {
         while repository.config_expired() {
             notifier.notified().await;
         }

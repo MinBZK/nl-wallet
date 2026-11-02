@@ -70,11 +70,10 @@ async fn test_wallet_config() {
     };
 
     let storage_dir = tempfile::tempdir().unwrap();
-    let etag_file = storage_dir.path().join("wallet-config.etag");
-
+    let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
         PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
-        storage_dir.path().to_path_buf(),
+        etag_path.clone(),
         default_wallet_config(),
     );
 
@@ -85,7 +84,7 @@ async fn test_wallet_config() {
     assert_matches!(result, RepositoryUpdateState::Updated { .. });
     assert_ne!(before.lock_timeouts, after.lock_timeouts);
 
-    let content = fs::read(etag_file.as_path()).await.unwrap();
+    let content = fs::read(&etag_path).await.unwrap();
     let header_value = HeaderValue::from_bytes(&content).unwrap();
 
     let quoted_hash_regex = regex!(r#"".+""#);
@@ -117,9 +116,10 @@ async fn test_wallet_config_stale() {
     };
 
     let storage_dir = tempfile::tempdir().unwrap();
+    let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
         PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
-        storage_dir.path().to_path_buf(),
+        etag_path,
         default_wallet_config(),
     );
 
@@ -164,9 +164,10 @@ async fn test_wallet_config_signature_verification_failed() {
     };
 
     let storage_dir = tempfile::tempdir().unwrap();
+    let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
         PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
-        storage_dir.path().to_path_buf(),
+        etag_path,
         default_wallet_config(),
     );
 
@@ -201,9 +202,10 @@ async fn test_wallet_config_rejected_etag_not_stored() {
     };
 
     let storage_dir = tempfile::tempdir().unwrap();
+    let etag_path = storage_dir.path().join("config.etag");
     let rejecting_http_config = HttpConfigurationRepository::new(
         PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
-        storage_dir.path().to_path_buf(),
+        etag_path.clone(),
         default_wallet_config(),
     );
 
@@ -222,7 +224,7 @@ async fn test_wallet_config_rejected_etag_not_stored() {
     // receive and apply that configuration.
     let accepting_http_config = HttpConfigurationRepository::new(
         PublicKeyRef::from(signing_key.verifying_key()).into(),
-        storage_dir.path().to_path_buf(),
+        etag_path.clone(),
         default_wallet_config(),
     );
 

@@ -71,7 +71,7 @@ async fn main() {
 
     let config_repository = HttpConfigurationRepository::new(
         PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
-        temp_path.to_path_buf(),
+        temp_path.join("config.etag"),
         wallet_config,
     );
 

@@ -28,6 +28,10 @@ fn path_for_config_file(storage_path: &Path) -> PathBuf {
     storage_path.join("configuration.jwt")
 }
 
+pub fn path_for_config_etag(storage_path: &Path) -> PathBuf {
+    storage_path.join("configuration.etag")
+}
+
 #[cfg(test)]
 mod tests {
     use jwt::SignedJwt;

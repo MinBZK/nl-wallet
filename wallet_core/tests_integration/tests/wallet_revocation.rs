@@ -13,7 +13,6 @@ use sea_orm::PaginatorTrait;
 use sea_orm::QueryOrder;
 use serde_json::json;
 use serial_test::serial;
-use tempfile::TempDir;
 use tests_integration::common::*;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_jwt::StatusListJwt;
@@ -40,6 +39,7 @@ use wallet_provider_persistence::test::clear_flags_dropper;
 async fn test_revoke_wallet_by_revocation_code() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
     let (
@@ -52,12 +52,11 @@ async fn test_revoke_wallet_by_revocation_code() {
         audit_log_connection,
     ) = setup_revocation_env(&db_setup, &hsm_setup, false).await;
 
-    let dir = TempDir::new().unwrap();
     let wallet = setup_file_wallet(
         config_server_config,
         wallet_config,
         mock_device_config.apple_key_holder(),
-        dir.path().to_path_buf(),
+        tempdir.path().to_path_buf(),
     )
     .await;
     let wallet = do_wallet_registration(wallet, pin.clone()).await;
@@ -103,6 +102,7 @@ async fn test_revoke_wallet_by_revocation_code() {
 async fn test_revoke_wallets_by_id() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
     let (
@@ -119,6 +119,7 @@ async fn test_revoke_wallets_by_id() {
         config_server_config,
         wallet_config,
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
     let wallet = do_wallet_registration(wallet, pin.clone()).await;
@@ -156,6 +157,7 @@ async fn test_revoke_wallets_by_id() {
 async fn test_revoke_wallets_by_recovery_code() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
     let (
@@ -172,6 +174,7 @@ async fn test_revoke_wallets_by_recovery_code() {
         config_server_config.clone(),
         wallet_config.clone(),
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
     let wallet = do_wallet_registration(wallet, pin.clone()).await;
@@ -214,6 +217,7 @@ async fn test_revoke_wallets_by_recovery_code() {
         config_server_config,
         wallet_config,
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
@@ -248,6 +252,7 @@ async fn test_revoke_wallets_by_recovery_code() {
 async fn test_revoke_wallet_solution() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let _clear_flags = clear_flags_dropper(&db_setup);
     let pin: Pin = "112233".into();
 
@@ -267,6 +272,7 @@ async fn test_revoke_wallet_solution() {
         config_server_config.clone(),
         wallet_config.clone(),
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
     let wallet = do_wallet_registration(wallet, pin.clone()).await;
@@ -298,6 +304,7 @@ async fn test_revoke_wallet_solution() {
         config_server_config,
         wallet_config,
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
     let err = wallet.register(pin).await.expect_err("Could still register");
@@ -314,6 +321,7 @@ async fn test_revoke_wallet_solution() {
 async fn test_revoke_wallet_solution_not_enabled() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let _clear_flags = clear_flags_dropper(&db_setup);
     let pin: Pin = "112233".into();
 
@@ -332,6 +340,7 @@ async fn test_revoke_wallet_solution_not_enabled() {
         config_server_config.clone(),
         wallet_config.clone(),
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
     let wallet = do_wallet_registration(wallet, pin.clone()).await;

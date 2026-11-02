@@ -26,6 +26,7 @@ use crypto::PublicKeyRef;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::utils::random_string;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use ctor::ctor;
@@ -85,6 +86,7 @@ use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
+use tempfile::TempDir;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use tokio::net::TcpListener;
 use tokio::time;
@@ -185,11 +187,13 @@ pub type WalletWithStorage = Wallet<
 pub async fn setup_wallet_and_default_env(
     db_setup: &DbSetup,
     hsm_setup: &HsmSetup,
+    tempdir: &TempDir,
     vendor: WalletDeviceVendor,
 ) -> (WalletWithStorage, DisclosureUrls, IssuerData) {
     setup_wallet_and_env(
         db_setup,
         hsm_setup,
+        tempdir,
         vendor,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
@@ -569,11 +573,15 @@ pub async fn setup_file_wallet(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
-    path: PathBuf,
+    temp_path: PathBuf,
 ) -> WalletWithStorage {
-    setup_wallet(config_server_config, wallet_config, key_holder, async move || {
-        MockHardwareDatabaseStorage::open_file(path).await
-    })
+    setup_wallet(
+        config_server_config,
+        wallet_config,
+        key_holder,
+        &temp_path.clone(),
+        async move || MockHardwareDatabaseStorage::open_file(temp_path).await,
+    )
     .await
 }
 
@@ -582,8 +590,9 @@ pub async fn setup_in_memory_wallet(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
+    temp_path: impl AsRef<Path>,
 ) -> WalletWithStorage {
-    setup_wallet(config_server_config, wallet_config, key_holder, async || {
+    setup_wallet(config_server_config, wallet_config, key_holder, temp_path, async || {
         MockHardwareDatabaseStorage::open_in_memory().await
     })
     .await
@@ -594,6 +603,7 @@ pub async fn setup_wallet<F>(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
+    temp_path: impl AsRef<Path>,
     storage_generator: F,
 ) -> WalletWithStorage
 where
@@ -605,9 +615,10 @@ where
     crl_distribution_point.set_port(Some(static_settings.crl_port)).unwrap();
     crl_distribution_point.set_path("/wrpac.crl.der");
 
+    let etag_path = temp_path.as_ref().join(format!("{}.etag", random_string(10)));
     let config_repository = HttpConfigurationRepository::new(
         PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
-        tempfile::tempdir().unwrap().keep(),
+        etag_path,
         wallet_config,
     );
 
@@ -652,6 +663,7 @@ where
 pub async fn setup_wallet_and_env(
     db_setup: &DbSetup,
     hsm_setup: &HsmSetup,
+    tempdir: &TempDir,
     vendor: WalletDeviceVendor,
     ups_config: (UpsSettings, ReqwestTrustAnchor),
     wp_config: (WpSettings, ReqwestTrustAnchor),
@@ -679,7 +691,7 @@ pub async fn setup_wallet_and_env(
         WalletDeviceVendor::Google => mock_device_config.google_key_holder(),
     };
 
-    let wallet = setup_in_memory_wallet(config_server_config, wallet_config, key_holder).await;
+    let wallet = setup_in_memory_wallet(config_server_config, wallet_config, key_holder, &tempdir).await;
 
     (wallet, verifier_server_urls, issuer_data)
 }
@@ -690,6 +702,7 @@ pub async fn setup_wallet_and_env(
 pub async fn setup_wallet_env(
     db_setup: &DbSetup,
     hsm_setup: &HsmSetup,
+    tempdir: &TempDir,
     vendor: WalletDeviceVendor,
 ) -> WalletWithStorage {
     let mock_device_config = MockDeviceConfig::generate();
@@ -717,7 +730,7 @@ pub async fn setup_wallet_env(
         WalletDeviceVendor::Google => mock_device_config.google_key_holder(),
     };
 
-    setup_in_memory_wallet(config_server_config, wallet_config, key_holder).await
+    setup_in_memory_wallet(config_server_config, wallet_config, key_holder, tempdir).await
 }
 
 /// Start just the pre-authorized-code issuer (`pacf_issuance_server`). Its keys are software-backed, so
