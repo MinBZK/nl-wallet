@@ -67,6 +67,12 @@ pub trait WalletUserRepository {
         recovery_code: &RecoveryCode,
     ) -> Result<Vec<Uuid>>;
 
+    async fn find_wallet_user_states_by_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &RecoveryCode,
+    ) -> Result<Vec<WalletUserState>>;
+
     async fn clear_instruction_challenge(
         &self,
         transaction: &Self::TransactionType,
@@ -359,6 +365,14 @@ pub mod mock {
             _recovery_code: &RecoveryCode,
         ) -> Result<Vec<Uuid>> {
             Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
+        }
+
+        async fn find_wallet_user_states_by_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &RecoveryCode,
+        ) -> Result<Vec<WalletUserState>> {
+            Ok(vec![WalletUserState::Active])
         }
 
         async fn clear_instruction_challenge(

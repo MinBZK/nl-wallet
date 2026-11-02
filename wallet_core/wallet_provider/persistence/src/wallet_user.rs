@@ -511,6 +511,33 @@ where
         .map_err(PersistenceError::Execution)
 }
 
+pub async fn find_wallet_user_states_by_recovery_code<S, T>(
+    db: &T,
+    recovery_code: &RecoveryCode,
+) -> Result<Vec<WalletUserState>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let states = wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::State)
+        .filter(wallet_user::Column::RecoveryCode.eq(recovery_code.as_ref()))
+        .into_tuple::<String>()
+        .all(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?;
+
+    Ok(states
+        .into_iter()
+        .map(|state| {
+            state
+                .parse()
+                .expect("parsing the wallet user state from the database should always succeed")
+        })
+        .collect())
+}
+
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &WalletId) -> Result<()>
 where
     S: ConnectionTrait,

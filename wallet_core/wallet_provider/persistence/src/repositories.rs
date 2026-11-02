@@ -258,6 +258,15 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_wallet_user_states_by_recovery_code(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &RecoveryCode,
+    ) -> Result<Vec<WalletUserState>, PersistenceError> {
+        wallet_user::find_wallet_user_states_by_recovery_code(transaction, recovery_code).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn clear_instruction_challenge(
         &self,
         transaction: &Self::TransactionType,
@@ -873,6 +882,12 @@ pub mod mock {
                 recovery_code: &RecoveryCode,
             ) -> Result<Vec<Uuid>, PersistenceError>;
 
+            async fn find_wallet_user_states_by_recovery_code(
+                &self,
+                transaction: &MockTransaction,
+                recovery_code: &RecoveryCode,
+            ) -> Result<Vec<WalletUserState>, PersistenceError>;
+
             async fn register_unsuccessful_pin_entry(
                 &self,
                 transaction: &MockTransaction,
@@ -1264,6 +1279,14 @@ pub mod mock {
             _recovery_code: &RecoveryCode,
         ) -> Result<Vec<Uuid>, PersistenceError> {
             Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
+        }
+
+        async fn find_wallet_user_states_by_recovery_code(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &RecoveryCode,
+        ) -> Result<Vec<WalletUserState>, PersistenceError> {
+            Ok(vec![WalletUserState::Active])
         }
 
         async fn clear_instruction_challenge(
