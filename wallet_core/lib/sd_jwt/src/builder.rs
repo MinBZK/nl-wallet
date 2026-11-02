@@ -94,7 +94,7 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 /// # Example:
 /// ```
 /// # use attestation_types::claim_path::ClaimPath;
-/// # use crypto::PublicKey;
+/// # use crypto::PublicKeyRef;
 /// # use chrono::Utc;
 /// # use crypto::server_keys::generate::Ca;
 /// # use jwt::confirmation::ConfirmationClaim;
@@ -108,7 +108,7 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 /// let holder_key = SigningKey::generate();
 /// let claims = SdJwtVcClaims {
 ///     _sd_alg: None,
-///     cnf: ConfirmationClaim::try_from_public_key(&PublicKey::from(*holder_key.verifying_key()))?,
+///     cnf: ConfirmationClaim::try_from_public_key(&PublicKeyRef::from(holder_key.verifying_key()))?,
 ///     vct: "urn:example:vct".into(),
 ///     vct_integrity: None,
 ///     iat: DateTimeSeconds::from(Utc::now()),
@@ -162,7 +162,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// ```
     /// # use attestation_types::claim_path::ClaimPath;
     /// # use chrono::Utc;
-    /// # use crypto::PublicKey;
+    /// # use crypto::PublicKeyRef;
     /// # use jwt::confirmation::ConfirmationClaim;
     /// # use p256::ecdsa::SigningKey;
     /// # use p256::elliptic_curve::Generate;
@@ -174,7 +174,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///
     /// let builder = SdJwtBuilder::new(SdJwtVcClaims {
     ///     _sd_alg: None,
-    ///     cnf: ConfirmationClaim::try_from_public_key(&PublicKey::from(*SigningKey::generate().verifying_key()))?,
+    ///     cnf: ConfirmationClaim::try_from_public_key(&PublicKeyRef::from(SigningKey::generate().verifying_key()))?,
     ///     vct: "com:example:vct".into(),
     ///     vct_integrity: None,
     ///     iat: DateTimeSeconds::from(Utc::now()),
@@ -237,7 +237,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
 #[cfg(feature = "examples")]
 mod examples {
     use attestation_types::claim_path::ClaimPath;
-    use crypto::PublicKey;
+    use crypto::AsPublicKeyRef;
     use crypto::server_keys::KeyPair;
     use futures::FutureExt;
     use utils::generator::mock::MockTimeGenerator;
@@ -248,7 +248,7 @@ mod examples {
     use crate::sd_jwt::SdJwtVcClaims;
 
     impl SignedSdJwt {
-        pub fn pid_example(issuer_keypair: &KeyPair, holder_pubkey: &PublicKey) -> Self {
+        pub fn pid_example(issuer_keypair: &KeyPair, holder_pubkey: &impl AsPublicKeyRef) -> Self {
             let claims = SdJwtVcClaims::pid_example(holder_pubkey, &MockTimeGenerator::default());
 
             // issuer signs SD-JWT

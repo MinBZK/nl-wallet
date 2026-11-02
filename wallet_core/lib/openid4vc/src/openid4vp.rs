@@ -1156,6 +1156,7 @@ mod tests {
     use base64::prelude::*;
     use coset::iana;
     use crypto::PublicKey;
+    use crypto::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
@@ -2841,7 +2842,7 @@ mod tests {
         let sd_jwt_holder_key = MockRemoteEcdsaKey::new_random("sd_jwt".to_string());
         let verified_sd_jwt = SignedSdJwt::pid_example(
             &sd_jwt_issuer_key_pair,
-            &PublicKey::from(*sd_jwt_holder_key.verifying_key()),
+            &PublicKeyRef::from(sd_jwt_holder_key.verifying_key()),
         )
         .into_verified();
         let unsigned_presentation = verified_sd_jwt

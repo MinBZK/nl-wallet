@@ -21,7 +21,7 @@ use cose::TypedCose;
 use coset::CoseSign1;
 use coset::TaggedCborSerializable;
 use crypto::EcdsaKey;
-use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
@@ -217,7 +217,7 @@ async fn assert_published_list(
     let (header, jwt_claims) = status_list_jwt
         .as_ref()
         .parse_and_verify(
-            JwtDecodingKey::from(&PublicKey::from(verifying_key)),
+            JwtDecodingKey::from(PublicKeyRef::from(&verifying_key)),
             &*ESP256_ONLY_VALIDATION,
         )
         .unwrap();

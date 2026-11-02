@@ -8,6 +8,7 @@ use crypto::PublicKey;
 use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use jwt::Header;
+use jwt::JwtDecodingKey;
 use jwt::JwtTyp;
 use jwt::confirmation::ConfirmationClaim;
 use jwt::jwk::Jwk;
@@ -98,7 +99,7 @@ impl VerifiedSdJwt {
         SIMPLE_STRUCTURED_SD_JWT
             .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
             .unwrap()
-            .into_verified(&examples_sd_jwt_public_key().into())
+            .into_verified(&JwtDecodingKey::from(&examples_sd_jwt_public_key()))
             .unwrap()
     }
 
@@ -106,7 +107,7 @@ impl VerifiedSdJwt {
         COMPLEX_STRUCTURED_SD_JWT
             .parse::<UnverifiedSdJwt<SdJwtExampleClaims, Header>>()
             .unwrap()
-            .into_verified(&examples_sd_jwt_public_key().into())
+            .into_verified(&JwtDecodingKey::from(&examples_sd_jwt_public_key()))
             .unwrap()
     }
 
@@ -114,7 +115,7 @@ impl VerifiedSdJwt {
         SD_JWT_VC
             .parse::<UnverifiedSdJwt<SdJwtVcClaims, Header>>()
             .unwrap()
-            .into_verified(&examples_sd_jwt_public_key().into())
+            .into_verified(&JwtDecodingKey::from(&examples_sd_jwt_public_key()))
             .unwrap()
     }
 }
