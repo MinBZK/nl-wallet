@@ -58,6 +58,7 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureTrustAnchors;
 use openid4vc::disclosure_session::DisclosureUriSource;
+use openid4vc::disclosure_session::NonEmptyDisclosableAttestations;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureSession;
@@ -245,6 +246,28 @@ async fn disclosure_jwe(
     .unwrap()
 }
 
+fn to_disclosable_attestations(
+    test_credentials: &TestCredentials,
+    format: Format,
+    issuer_keypair: &KeyPair,
+    wscd: &DisclosureMockRemoteWscd,
+) -> NonEmptyDisclosableAttestations {
+    let attestations: HashMap<_, _> = match format {
+        Format::MsoMdoc => test_credentials
+            .to_partial_mdocs(issuer_keypair, wscd)
+            .into_iter()
+            .map(|(id, partial_mdocs)| (id, DisclosableAttestations::MsoMdoc(partial_mdocs)))
+            .collect(),
+        Format::SdJwt => test_credentials
+            .to_unsigned_sd_jwt_presentations(issuer_keypair, wscd)
+            .into_iter()
+            .map(|(id, presentations)| (id, DisclosableAttestations::SdJwt(presentations)))
+            .collect(),
+    };
+
+    attestations.try_into().unwrap()
+}
+
 #[rstest]
 #[case(nl_pid_credentials_all())]
 #[case(nl_pid_address_credentials_all())]
@@ -264,14 +287,7 @@ async fn disclosure_using_message_client(
 
     // Initialize the "wallet"
     let wscd = DisclosureMockRemoteWscd::default();
-    let disclosable_attestations = match format {
-        Format::MsoMdoc => DisclosableAttestations::MsoMdoc(test_credentials.to_partial_mdocs(&issuer_keypair, &wscd)),
-        Format::SdJwt => {
-            DisclosableAttestations::SdJwt(test_credentials.to_unsigned_sd_jwt_presentations(&issuer_keypair, &wscd))
-        }
-    }
-    .try_into()
-    .unwrap();
+    let disclosable_attestations = to_disclosable_attestations(&test_credentials, format, &issuer_keypair, &wscd);
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(
@@ -562,14 +578,7 @@ async fn test_client_and_server(
         .unwrap();
 
     // Finish the disclosure.
-    let disclosable_attestations = match format {
-        Format::MsoMdoc => DisclosableAttestations::MsoMdoc(test_credentials.to_partial_mdocs(&issuer_keypair, &wscd)),
-        Format::SdJwt => {
-            DisclosableAttestations::SdJwt(test_credentials.to_unsigned_sd_jwt_presentations(&issuer_keypair, &wscd))
-        }
-    }
-    .try_into()
-    .unwrap();
+    let disclosable_attestations = to_disclosable_attestations(&test_credentials, format, &issuer_keypair, &wscd);
     let redirect_uri = session
         .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
         .await
@@ -721,8 +730,8 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     assert_matches!(status_response, StatusResponse::Cancelled);
 
     // Disclosing attributes at this point should result in an error.
-    let presentations = test_credentials.to_unsigned_sd_jwt_presentations(&issuer_keypair, &wscd);
-    let disclosable_attestations = DisclosableAttestations::SdJwt(presentations).try_into().unwrap();
+    let disclosable_attestations =
+        to_disclosable_attestations(&test_credentials, Format::SdJwt, &issuer_keypair, &wscd);
     let (_session, error) = session
         .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
         .await
@@ -773,8 +782,8 @@ async fn test_wallet_initiated_usecase_verifier() {
     .unwrap();
 
     // Do the disclosure
-    let presentations = test_credentials.to_unsigned_sd_jwt_presentations(&issuer_keypair, &wscd);
-    let disclosable_attestations = DisclosableAttestations::SdJwt(presentations).try_into().unwrap();
+    let disclosable_attestations =
+        to_disclosable_attestations(&test_credentials, Format::SdJwt, &issuer_keypair, &wscd);
     session
         .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
         .await
@@ -978,8 +987,8 @@ async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
     .unwrap();
 
     // Do the disclosure
-    let presentations = test_credentials.to_unsigned_sd_jwt_presentations(&issuer_keypair, &wscd);
-    let disclosable_attestations = DisclosableAttestations::SdJwt(presentations).try_into().unwrap();
+    let disclosable_attestations =
+        to_disclosable_attestations(&test_credentials, Format::SdJwt, &issuer_keypair, &wscd);
     session
         .disclose(disclosable_attestations, &wscd, &MockTimeGenerator::default())
         .await

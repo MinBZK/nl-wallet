@@ -19,7 +19,6 @@ use futures::future::try_join_all;
 use http_utils::client::TlsPinningConfig;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
-use itertools::Either;
 use itertools::Itertools;
 use jwt::error::JwtSignError;
 use mdoc::utils::cose::CoseError;
@@ -873,33 +872,29 @@ where
             return Err(DisclosureError::IncrementUsageCount(error));
         }
 
-        // Gather both partial mdocs or SD-JWT presentations by cloning the attestations
+        // Gather the partial mdocs and SD-JWT presentations by cloning the attestations
         // held in the session, as disclosing attestations needs to be retryable.
-        let (partial_mdocs, sd_jwt_presentations): (HashMap<_, _>, HashMap<_, _>) =
-            attestations.iter().partition_map(|(id, attestation)| {
+        let disclosable_attestations = attestations
+            .iter()
+            .map(|(id, attestation)| {
                 let WithKeyIdentifier { key_identifier, data } = attestation.partial_attestation();
-                match data {
-                    PartialAttestation::MsoMdoc(partial_mdoc) => Either::Left((
-                        (*id).clone(),
-                        vec_nonempty![(partial_mdoc.as_ref().clone(), key_identifier.clone())],
-                    )),
+                let disclosable = match data {
+                    PartialAttestation::MsoMdoc(partial_mdoc) => DisclosableAttestations::MsoMdoc(vec_nonempty![(
+                        partial_mdoc.as_ref().clone(),
+                        key_identifier.clone()
+                    )]),
                     PartialAttestation::SdJwt(sd_jwt) => {
-                        Either::Right(((*id).clone(), vec_nonempty![(*sd_jwt.clone(), key_identifier.clone())]))
+                        DisclosableAttestations::SdJwt(vec_nonempty![(*sd_jwt.clone(), key_identifier.clone())])
                     }
-                }
-            });
+                };
 
-        // This should result in either all partial mdocs or all SD-JWT presentations, which is guaranteed by the logic
-        // in `VpDisclosureSession`, which rejects DCQL requests with a mix of formats. Additionally, there will be at
-        // least one partial mdoc or SD-JWT presentation, which is guaranteed by `NormalizedCredentialRequests` and the
-        // logic in `start_disclosure()`.
-        let partial_mdocs_result = DisclosableAttestations::MsoMdoc(partial_mdocs).try_into();
-        let sd_jwt_presentations_result = DisclosableAttestations::SdJwt(sd_jwt_presentations).try_into();
-        let disclosable_attestations = match (partial_mdocs_result, sd_jwt_presentations_result) {
-            (Ok(partial_mdocs), Err(_)) => partial_mdocs,
-            (Err(_), Ok(sd_jwt_presentations)) => sd_jwt_presentations,
-            (_, _) => panic!("VpDisclosureClient should not allow requesting a mix of formats"),
-        };
+                ((*id).clone(), disclosable)
+            })
+            .collect::<HashMap<_, _>>()
+            .try_into()
+            // There will be at least one attestation, which is guaranteed by
+            // `NormalizedCredentialRequests` and the logic in `start_disclosure()`.
+            .expect("disclosure session should contain at least one attestation");
 
         // Actually perform disclosure, casting any `InstructionError` that occurs during signing
         // to `RemoteEcdsaKeyError::Instruction`.
@@ -1461,11 +1456,16 @@ mod tests {
             .expect_disclose()
             .withf(move |disclosable_attestations| {
                 // Make sure that the correct set of attributes is disclosed.
-                match (requested_format, disclosable_attestations.as_ref()) {
-                    (Format::MsoMdoc, DisclosableAttestations::MsoMdoc(partial_mdocs)) => {
-                        let attributes = partial_mdocs
+                match requested_format {
+                    Format::MsoMdoc => {
+                        let attributes = disclosable_attestations
+                            .as_ref()
                             .iter()
-                            .map(|(id, partial_mdocs)| {
+                            .filter_map(|(id, attestations)| {
+                                let DisclosableAttestations::MsoMdoc(partial_mdocs) = attestations else {
+                                    return None;
+                                };
+
                                 let attributes = partial_mdocs
                                     .iter()
                                     .map(|(partial_mdoc, _)| {
@@ -1473,7 +1473,7 @@ mod tests {
                                     })
                                     .collect_vec();
 
-                                (id.as_ref(), attributes)
+                                Some((id.as_ref(), attributes))
                             })
                             .collect::<HashMap<_, _>>();
 
@@ -1506,12 +1506,18 @@ mod tests {
                             ),
                         ]);
 
-                        attributes == expected_attributes
+                        disclosable_attestations.as_ref().len() == expected_attributes.len()
+                            && attributes == expected_attributes
                     }
-                    (Format::SdJwt, DisclosableAttestations::SdJwt(sd_jwt_presentations)) => {
-                        let attributes = sd_jwt_presentations
+                    Format::SdJwt => {
+                        let attributes = disclosable_attestations
+                            .as_ref()
                             .iter()
-                            .map(|(id, presentations)| {
+                            .filter_map(|(id, attestations)| {
+                                let DisclosableAttestations::SdJwt(presentations) = attestations else {
+                                    return None;
+                                };
+
                                 let attributes = presentations
                                     .iter()
                                     .map(|(presentation, _)| {
@@ -1529,7 +1535,7 @@ mod tests {
                                     })
                                     .collect_vec();
 
-                                (id.as_ref(), attributes)
+                                Some((id.as_ref(), attributes))
                             })
                             .collect::<HashMap<_, _>>();
 
@@ -1556,9 +1562,9 @@ mod tests {
                             ),
                         ]);
 
-                        attributes == expected_attributes
+                        disclosable_attestations.as_ref().len() == expected_attributes.len()
+                            && attributes == expected_attributes
                     }
-                    _ => false,
                 }
             })
             .times(1)

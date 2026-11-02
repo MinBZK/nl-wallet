@@ -62,6 +62,14 @@ pub async fn sign_coses_without_payload<K: CredentialEcdsaKey>(
         .await
         .map_err(|error| CoseError::Signing(error.into()))?;
 
+    // Make sure we received the correct number of signatures.
+    if result.len() != challenges.len() {
+        return Err(CoseError::IncorrectSignatureCount {
+            expected: challenges.len(),
+            received: result.len(),
+        });
+    }
+
     let signed = result
         .into_iter()
         .map(|signature| {
@@ -142,15 +150,27 @@ impl ClonePayload for CoseMac0 {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use coset::Header;
     use crypto::PublicKey;
+    use crypto::mock_remote::DisclosureMockRemoteWscd;
+    use crypto::mock_remote::DisclosureMockRemoteWscdError;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::wscd::DisclosureWscd;
+    use itertools::Itertools;
+    use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
+    use rstest::rstest;
     use serde::Deserialize;
     use serde::Serialize;
 
     use super::ClonePayload;
+    use super::CoseError;
     use super::TypedCose;
+    use super::sign_coses_without_payload;
 
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     struct ToyMessage {
@@ -175,5 +195,54 @@ mod tests {
         let with_payload = without_payload.clone_with_payload(payload_bytes);
         let public_key = PublicKey::from(*key.verifying_key());
         assert_eq!(with_payload.verify_and_parse(&public_key).unwrap(), payload);
+    }
+
+    /// A WSCD that returns a fixed number of signatures, regardless of how many were requested. Signatures are dropped
+    /// or repeated as necessary.
+    struct FixedSignatureCountWscd {
+        wscd: DisclosureMockRemoteWscd,
+        signature_count: usize,
+    }
+
+    impl DisclosureWscd for FixedSignatureCountWscd {
+        type Key = MockRemoteEcdsaKey;
+        type Error = DisclosureMockRemoteWscdError;
+
+        fn new_key<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+            self.wscd.new_key(identifier, public_key)
+        }
+
+        async fn sign(
+            &self,
+            messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
+        ) -> Result<Vec<Vec<Signature>>, Self::Error> {
+            let signatures = self.wscd.sign(messages_and_keys).await?;
+
+            Ok(signatures.into_iter().cycle().take(self.signature_count).collect())
+        }
+    }
+
+    #[rstest]
+    #[case::too_few(1)]
+    #[case::too_many(3)]
+    #[tokio::test]
+    async fn test_sign_coses_error_incorrect_signature_count(#[case] signature_count: usize) {
+        let wscd = FixedSignatureCountWscd {
+            wscd: DisclosureMockRemoteWscd::default(),
+            signature_count,
+        };
+        let keys_and_challenges = [wscd.wscd.create_random_key(), wscd.wscd.create_random_key()]
+            .into_iter()
+            .map(|key| (key, b"challenge".as_slice()))
+            .collect_vec();
+
+        let error = sign_coses_without_payload(keys_and_challenges, &wscd, Header::default())
+            .await
+            .expect_err("signing COSEs should not succeed");
+
+        assert_matches!(
+            error,
+            CoseError::IncorrectSignatureCount { expected: 2, received } if received == signature_count
+        );
     }
 }
