@@ -11,7 +11,7 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(jdkVersion = 21)
+    jvmToolchain(jdkVersion = 25)
 }
 
 val browserstackAgent = configurations.create("browserstackAgent")
