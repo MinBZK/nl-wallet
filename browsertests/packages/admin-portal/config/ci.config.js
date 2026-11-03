@@ -9,7 +9,7 @@ const screenSizes = [
 
 const browsers = ["chromium", "webkit"]
 
-const projects = []
+const projects = [{ name: "setup", testMatch: /auth\.setup\.js/ }]
 
 browsers.forEach((browserName) => {
   screenSizes.forEach((screen) => {
@@ -28,6 +28,7 @@ browsers.forEach((browserName) => {
 
     projects.push({
       name: `${browserName}-${screen.name}`,
+      dependencies: ["setup"],
       use: {
         browserName,
         viewport: { width: screen.width, height: screen.height },

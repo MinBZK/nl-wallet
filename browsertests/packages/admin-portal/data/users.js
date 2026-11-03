@@ -1,5 +1,12 @@
 import process from "node:process"
 
+export const TASK_ACTION_LABELS = {
+  revoke_wallet: "Wallet intrekken",
+  block_user: "Gebruiker blokkeren",
+  unblock_user: "Gebruiker deblokkeren",
+  revoke_solution: "Alle wallets intrekken",
+}
+
 export const USERS = {
   operator: {
     username: "administrator",
@@ -8,7 +15,7 @@ export const USERS = {
     role: "Beheerder",
     nav: { openTasks: true, myTasks: true, history: true },
     canCreateTask: true,
-    taskActions: ["Wallet intrekken", "Gebruiker blokkeren", "Gebruiker deblokkeren"],
+    taskActions: ["revoke_wallet", "block_user", "unblock_user"],
   },
   teamlead: {
     username: "manager",
@@ -26,6 +33,6 @@ export const USERS = {
     role: "Superuser",
     nav: { openTasks: true, myTasks: true, history: true },
     canCreateTask: true,
-    taskActions: ["Alle wallets intrekken"],
+    taskActions: ["revoke_solution"],
   },
 }
