@@ -9,9 +9,8 @@ use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmptyUnique;
 use uuid::Uuid;
 
-use crate::model::wallet_user::RecoveryCode;
-
 use super::wallet_user::WalletId;
+use crate::model::wallet_user::RecoveryCode;
 
 /// Administrator action that can be proposed and reviewed in the admin_portal, together with its parameters.
 ///

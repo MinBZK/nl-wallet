@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::error::Error;
 
@@ -12,6 +13,7 @@ use hsm::service::HsmError;
 use itertools::Itertools;
 use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmptyUnique;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
@@ -175,6 +177,57 @@ where
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
     Ok(found_wallet_count)
+}
+
+/// Denies all `recovery_codes` and revokes the wallets that have them, in one transaction, then revokes their WIAs in
+/// the status list with a single call. Fails without revoking anything if the database fails. Returns the number of
+/// wallets found per recovery code, including those that were already revoked, or 0 for codes that have no wallets.
+pub async fn system_revoke_wallets_by_recovery_code_list<T, R, F, H>(
+    recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
+    time: &impl Generator<DateTime<Utc>>,
+) -> Result<HashMap<RecoveryCode, usize>, RevocationError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+{
+    let revocation_reason = RevocationReason::AdminRequest;
+    let revocation_date_time = time.generate();
+
+    let tx = user_state.repositories.begin_transaction().await?;
+
+    user_state
+        .repositories
+        .deny_recovery_codes(&tx, recovery_codes.as_slice())
+        .await?;
+
+    let found_wallet_user_ids = user_state
+        .repositories
+        .find_wallet_user_ids_by_recovery_codes(&tx, recovery_codes.as_slice())
+        .await?;
+
+    let found_wallet_counts = found_wallet_user_ids
+        .iter()
+        .map(|(recovery_code, wallet_user_ids)| (recovery_code.clone(), wallet_user_ids.len()))
+        .collect();
+
+    let wallet_user_ids = found_wallet_user_ids.into_values().flatten().collect();
+
+    let revoked = user_state
+        .repositories
+        .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
+        .await?;
+
+    // Commit transaction before updating status list
+    tx.commit().await?;
+
+    user_state
+        .wia_status_list
+        .revoke_attestation_batches(revoked.wia_ids)
+        .await
+        .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
+
+    Ok(found_wallet_counts)
 }
 
 // TODO(PVW-6179) Remove once the admin-portal is complete.

@@ -400,9 +400,9 @@ where
                 }
             }
             TaskPayload::BlockUser(block_user_parameters) => {
-                let recovery_codes = block_user_parameters.recovery_codes.as_slice();
+                let recovery_codes = &block_user_parameters.recovery_codes;
                 match block_users(task.id, approver, recovery_codes, user_state, &self.time, audit_log).await {
-                    Ok(revoked_count) => (true, format!("revoked {revoked_count} wallet(s)")),
+                    Ok(found_wallet_counts) => (true, format!("denied {} recovery code(s)", found_wallet_counts.len())),
                     Err(error) => (false, error.to_string()),
                 }
             }
@@ -694,13 +694,18 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_deny_recovery_code()
+            .expect_deny_recovery_codes()
             .times(1)
             .returning(|_, _| Ok(()));
         wallet_user_repo
-            .expect_find_wallet_user_ids_by_recovery_code()
+            .expect_find_wallet_user_ids_by_recovery_codes()
             .times(1)
-            .returning(move |_, _| Ok((0..wallet_count).map(|_| Uuid::new_v4()).collect()));
+            .returning(move |_, recovery_codes| {
+                Ok(recovery_codes
+                    .iter()
+                    .map(|code| (code.clone(), (0..wallet_count).map(|_| Uuid::new_v4()).collect()))
+                    .collect())
+            });
         wallet_user_repo
             .expect_revoke_wallet_users()
             .times(1)
@@ -1186,7 +1191,11 @@ mod tests {
     async fn execute_task_stores_block_user_result(now: DateTime<Utc>, task_id: Uuid) {
         let approved = AdminTask {
             payload: TaskPayload::BlockUser(BlockUserParameters {
-                recovery_codes: vec_nonempty![RecoveryCode::from("recovery-code".to_string())].into(),
+                recovery_codes: vec_nonempty![
+                    RecoveryCode::from("recovery-code-1".to_string()),
+                    RecoveryCode::from("recovery-code-2".to_string())
+                ]
+                .into(),
             }),
             ..task_in(State::Approved, task_id)
         };
@@ -1201,7 +1210,7 @@ mod tests {
             .expect("task should be executed");
 
         assert_eq!(executed.execution_successful, Some(true));
-        assert_eq!(executed.execution_details.as_deref(), Some("revoked 2 wallet(s)"));
+        assert_eq!(executed.execution_details.as_deref(), Some("denied 2 recovery code(s)"));
     }
 
     #[rstest]

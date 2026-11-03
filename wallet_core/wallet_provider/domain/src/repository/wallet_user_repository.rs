@@ -67,6 +67,14 @@ pub trait WalletUserRepository {
         recovery_code: &RecoveryCode,
     ) -> Result<Vec<Uuid>>;
 
+    /// Returns the wallet user IDs per recovery code. The map contains an entry for every requested recovery code, with
+    /// an empty `Vec` for codes without wallet users.
+    async fn find_wallet_user_ids_by_recovery_codes(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_codes: &[RecoveryCode],
+    ) -> Result<HashMap<RecoveryCode, Vec<Uuid>>>;
+
     async fn find_wallet_user_states_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
@@ -268,6 +276,12 @@ pub trait WalletUserRepository {
 
     async fn deny_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: RecoveryCode) -> Result<()>;
 
+    async fn deny_recovery_codes(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_codes: &[RecoveryCode],
+    ) -> Result<()>;
+
     async fn recovery_code_is_denied(
         &self,
         transaction: &Self::TransactionType,
@@ -365,6 +379,17 @@ pub mod mock {
             _recovery_code: &RecoveryCode,
         ) -> Result<Vec<Uuid>> {
             Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
+        }
+
+        async fn find_wallet_user_ids_by_recovery_codes(
+            &self,
+            _transaction: &Self::TransactionType,
+            recovery_codes: &[RecoveryCode],
+        ) -> Result<HashMap<RecoveryCode, Vec<Uuid>>> {
+            Ok(recovery_codes
+                .iter()
+                .map(|code| (code.clone(), vec![uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")]))
+                .collect())
         }
 
         async fn find_wallet_user_states_by_recovery_code(
@@ -648,6 +673,14 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: RecoveryCode,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn deny_recovery_codes(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_codes: &[RecoveryCode],
         ) -> Result<()> {
             Ok(())
         }

@@ -258,6 +258,15 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_wallet_user_ids_by_recovery_codes(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_codes: &[RecoveryCode],
+    ) -> Result<HashMap<RecoveryCode, Vec<Uuid>>, PersistenceError> {
+        wallet_user::find_wallet_user_ids_by_recovery_codes(transaction, recovery_codes).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn find_wallet_user_states_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
@@ -669,6 +678,15 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn deny_recovery_codes(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_codes: &[RecoveryCode],
+    ) -> Result<(), PersistenceError> {
+        recovery_code::insert_many(transaction, recovery_codes).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn recovery_code_is_denied(
         &self,
         transaction: &Self::TransactionType,
@@ -881,6 +899,12 @@ pub mod mock {
                 transaction: &MockTransaction,
                 recovery_code: &RecoveryCode,
             ) -> Result<Vec<Uuid>, PersistenceError>;
+
+            async fn find_wallet_user_ids_by_recovery_codes(
+                &self,
+                transaction: &MockTransaction,
+                recovery_codes: &[RecoveryCode],
+            ) -> Result<HashMap<RecoveryCode, Vec<Uuid>>, PersistenceError>;
 
             async fn find_wallet_user_states_by_recovery_code(
                 &self,
@@ -1110,6 +1134,12 @@ pub mod mock {
                 recovery_code: RecoveryCode,
             ) -> Result<(), PersistenceError>;
 
+            async fn deny_recovery_codes(
+                &self,
+                transaction: &MockTransaction,
+                recovery_codes: &[RecoveryCode],
+            ) -> Result<(), PersistenceError>;
+
             async fn recovery_code_is_denied(
                 &self,
                 transaction: &MockTransaction,
@@ -1279,6 +1309,17 @@ pub mod mock {
             _recovery_code: &RecoveryCode,
         ) -> Result<Vec<Uuid>, PersistenceError> {
             Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
+        }
+
+        async fn find_wallet_user_ids_by_recovery_codes(
+            &self,
+            _transaction: &Self::TransactionType,
+            recovery_codes: &[RecoveryCode],
+        ) -> Result<HashMap<RecoveryCode, Vec<Uuid>>, PersistenceError> {
+            Ok(recovery_codes
+                .iter()
+                .map(|code| (code.clone(), vec![uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")]))
+                .collect())
         }
 
         async fn find_wallet_user_states_by_recovery_code(
@@ -1591,6 +1632,14 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: RecoveryCode,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn deny_recovery_codes(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_codes: &[RecoveryCode],
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

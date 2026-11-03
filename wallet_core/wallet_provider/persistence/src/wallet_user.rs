@@ -511,6 +511,43 @@ where
         .map_err(PersistenceError::Execution)
 }
 
+/// Returns the wallet user IDs per recovery code. The map contains an entry for every requested recovery code, with an
+/// empty `Vec` for codes without wallet users.
+pub async fn find_wallet_user_ids_by_recovery_codes<S, T>(
+    db: &T,
+    recovery_codes: &[RecoveryCode],
+) -> Result<HashMap<RecoveryCode, Vec<Uuid>>>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let rows = wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::Id)
+        .column(wallet_user::Column::RecoveryCode)
+        .filter(wallet_user::Column::RecoveryCode.is_in(recovery_codes.iter().map(|code| code.as_ref().clone())))
+        .into_tuple::<(Uuid, String)>()
+        .all(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?;
+
+    // Prepare result map, to ensure all requested recovery_codes are present
+    let wallet_user_ids = recovery_codes
+        .iter()
+        .map(|recovery_code| (recovery_code.clone(), Vec::new()))
+        .collect::<HashMap<RecoveryCode, Vec<Uuid>>>();
+
+    // Fill the map based on the query results
+    let wallet_user_ids = rows
+        .into_iter()
+        .fold(wallet_user_ids, |mut acc, (wallet_user_id, recovery_code)| {
+            acc.entry(recovery_code.into()).or_default().push(wallet_user_id);
+            acc
+        });
+
+    Ok(wallet_user_ids)
+}
+
 pub async fn find_wallet_user_states_by_recovery_code<S, T>(
     db: &T,
     recovery_code: &RecoveryCode,

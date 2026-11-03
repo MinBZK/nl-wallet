@@ -14,18 +14,52 @@ use wallet_provider_domain::repository::PersistenceError;
 use crate::PersistenceConnection;
 use crate::entity::recovery_code;
 
+fn insert_model(recovery_code: RecoveryCode) -> recovery_code::ActiveModel {
+    recovery_code::ActiveModel {
+        id: NotSet,
+        recovery_code: Set(recovery_code.into()),
+        is_denied: Set(true),
+    }
+}
+
 pub async fn insert<S, T>(db: &T, recovery_code: RecoveryCode) -> Result<(), PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let model = recovery_code::ActiveModel {
-        id: NotSet,
-        recovery_code: Set(recovery_code.into()),
-        is_denied: Set(true),
-    };
+    let model = insert_model(recovery_code);
 
     recovery_code::Entity::insert(model)
+        .on_conflict(
+            OnConflict::column(recovery_code::Column::RecoveryCode)
+                .update_column(recovery_code::Column::IsDenied)
+                .to_owned(),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?;
+
+    Ok(())
+}
+
+/// Denies all `recovery_codes` in one statement. Codes are inserted in sorted order, so concurrent batches lock rows in
+/// the same order.
+pub async fn insert_many<S, T>(db: &T, recovery_codes: &[RecoveryCode]) -> Result<(), PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    if recovery_codes.is_empty() {
+        return Ok(());
+    }
+
+    // Sort recovery codes, so concurrent batches lock rows in the same order.
+    let mut sorted = recovery_codes.to_vec();
+    sorted.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+
+    let models = sorted.into_iter().map(insert_model);
+
+    recovery_code::Entity::insert_many(models)
         .on_conflict(
             OnConflict::column(recovery_code::Column::RecoveryCode)
                 .update_column(recovery_code::Column::IsDenied)
