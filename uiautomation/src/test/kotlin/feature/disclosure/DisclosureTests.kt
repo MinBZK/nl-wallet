@@ -90,7 +90,6 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC15 Share data flow, Opening a bank account. MDOC")
-    @Tags(Tag("a11yBatch1"))
     fun verifyDisclosureCreateAccountXyzBankMdoc(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -167,7 +166,7 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC18 LTC25 RP Login flow, MDOC")
-    @Tags(Tag("smoke"), Tag("a11yBatch1"))
+    @Tags(Tag("smoke"))
     fun verifyDisclosureLoginMdoc(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -275,7 +274,6 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC10 Wallet does not contain requested attributes")
-    @Tags(Tag("a11yBatch1"))
     fun verifyDisclosureCreateAccountMonkeyBike(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)

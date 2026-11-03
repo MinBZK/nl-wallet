@@ -78,6 +78,7 @@ class UniversalLinkTests : TestBase() {
         dashboardScreen.closeApp()
         dashboardScreen.openLink(issuanceUniversalLink)
         pinScreen.enterPin(DEFAULT_PIN)
+        dashboardScreen.dismissNotificationsDrawer()
 
         assertTrue(
             disclosureForIssuanceScreen.organizationNameVisible(
@@ -92,6 +93,8 @@ class UniversalLinkTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         dashboardScreen.openLink(expiredDisclosureUniversalLinkFromCameraApp)
+        dashboardScreen.dismissNotificationsDrawer()
+
         assertAll(
             { assertTrue(scanWithWalletDialog.visible(), "scan with wallet dialog is not visible") },
             { assertTrue(scanWithWalletDialog.scanWithWalletDialogBodyVisible(), "scan with wallet dialog subtitle is not visible") },

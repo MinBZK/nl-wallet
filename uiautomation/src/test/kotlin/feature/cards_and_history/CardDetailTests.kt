@@ -46,7 +46,6 @@ class CardDetailTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC25 Show Card Details")
-    @Tags(Tag("a11yBatch1"))
     fun verifyCardDetailScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertAll(
