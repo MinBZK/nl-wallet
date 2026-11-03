@@ -812,27 +812,20 @@ open class MobileActions {
         }
     }
 
-    private fun findElementByText(text: String, timeoutInSeconds: Long = 5): WebElement {
-        val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
-        return when (platform()) {
-            Platform.ANDROID -> {
-                val quotedText = quoteForAndroid(text)
-                wait.until(
-                    ExpectedConditions.presenceOfElementLocated(
-                        AppiumBy.androidUIAutomator("new UiSelector().description($quotedText)")
-                    )
-                )
-            }
-            Platform.IOS -> {
-                val quotedText = quoteForIosPredicate(text)
-                wait.until(
-                    ExpectedConditions.presenceOfElementLocated(
-                        AppiumBy.iOSNsPredicateString("name == $quotedText")
-                    )
-                )
-            }
-        }
+    private fun textLocator(text: String): By = when (platform()) {
+        Platform.ANDROID -> AppiumBy.androidUIAutomator("new UiSelector().description(${quoteForAndroid(text)})")
+        Platform.IOS -> AppiumBy.iOSNsPredicateString("name == ${quoteForIosPredicate(text)}")
     }
+
+    private fun findElementByText(text: String, timeoutInSeconds: Long = 5): WebElement =
+        WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+            .until(ExpectedConditions.presenceOfElementLocated(textLocator(text)))
+
+    fun waitUntilTextGone(text: String, timeoutInSeconds: Long = 5) {
+        WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+            .until(ExpectedConditions.invisibilityOfElementLocated(textLocator(text)))
+    }
+
 
     private fun findElementByDescendantElementText(
         descendantElementText: String,
