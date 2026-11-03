@@ -5,7 +5,6 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../page/terminal_page.dart';
 import '../widget/button/confirm/confirm_buttons.dart';
-import '../widget/button/icon/help_icon_button.dart';
 import '../widget/button/primary_button.dart';
 import '../widget/page_illustration.dart';
 import '../widget/text/title_text.dart';
@@ -13,7 +12,7 @@ import '../widget/wallet_app_bar.dart';
 
 /// A screen that displays a [TerminalPage] within a [Scaffold].
 ///
-/// It includes a [WalletAppBar], optionally with a [HelpIconButton].
+/// It includes a [WalletAppBar].
 /// This is typically used as the final screen in a flow to show status
 /// (success, error, etc.) and provide next steps.
 class TerminalScreen extends StatelessWidget {
@@ -45,9 +44,6 @@ class TerminalScreen extends StatelessWidget {
   /// This is passed to the underlying [TerminalPage] and is ignored in landscape mode.
   final bool preferVerticalButtonLayout;
 
-  /// Whether the [HelpIconButton] is shown in the app bar.
-  final bool showHelpButton;
-
   const TerminalScreen({
     required this.title,
     required this.description,
@@ -55,7 +51,6 @@ class TerminalScreen extends StatelessWidget {
     this.secondaryButton,
     required this.illustration,
     this.preferVerticalButtonLayout = false,
-    this.showHelpButton = true,
     super.key,
   });
 
@@ -65,7 +60,6 @@ class TerminalScreen extends StatelessWidget {
       appBar: WalletAppBar(
         title: TitleText(title),
         automaticallyImplyLeading: false,
-        actions: [if (showHelpButton) const HelpIconButton()],
       ),
       body: TerminalPage(
         title: title,
@@ -103,7 +97,6 @@ class TerminalScreen extends StatelessWidget {
           ),
       secondaryButton: config.secondaryButton,
       preferVerticalButtonLayout: config.preferVerticalButtonLayout,
-      showHelpButton: config.showHelpButton,
     );
     final route = secured
         ? SecuredPageRoute(builder: (c) => terminalScreen)
@@ -140,9 +133,6 @@ class TerminalScreenConfig {
   /// This is ignored in landscape mode.
   final bool preferVerticalButtonLayout;
 
-  /// Whether the [HelpIconButton] is shown in the app bar.
-  final bool showHelpButton;
-
   TerminalScreenConfig({
     required this.title,
     required this.description,
@@ -150,6 +140,5 @@ class TerminalScreenConfig {
     this.secondaryButton,
     required this.illustration,
     this.preferVerticalButtonLayout = false,
-    this.showHelpButton = true,
   });
 }

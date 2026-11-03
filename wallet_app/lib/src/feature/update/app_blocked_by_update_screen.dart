@@ -9,7 +9,6 @@ import '../../util/launch_util.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/page_illustration.dart';
@@ -30,7 +29,6 @@ class AppBlockedByUpdateScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         title: TitleText(context.l10n.appBlockedByUpdateScreenTitle),
-        actions: const [HelpIconButton()],
         automaticallyImplyLeading: true,
       ),
       body: SafeArea(

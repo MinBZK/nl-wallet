@@ -19,7 +19,6 @@ import '../../wallet_constants.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/animation_control_icon_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
@@ -108,7 +107,6 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             leading: _buildBackButton(),
             automaticallyImplyLeading: false,
             actions: [
-              const HelpIconButton(),
               if (_showSkipSetupButton) _buildSkipSetupButton(),
             ],
             fadeInTitleOnScroll: false,

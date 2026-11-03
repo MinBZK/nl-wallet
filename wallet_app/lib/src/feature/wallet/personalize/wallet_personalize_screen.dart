@@ -24,7 +24,6 @@ import '../../common/page/generic_loading_page.dart';
 import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
-import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
@@ -349,11 +348,9 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final state = context.watch<WalletPersonalizeBloc>().state;
-    bool showHelpButton = false;
     String title = '';
     switch (state) {
       case WalletPersonalizeInitial():
-        showHelpButton = true;
         title = context.l10n.walletPersonalizeIntroPageTitle;
       case WalletPersonalizeCheckData():
         title = context.l10n.walletPersonalizeCheckDataOfferingPageTitle;
@@ -380,9 +377,6 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
       progress: state.stepperProgress,
       automaticallyImplyLeading: false,
       leading: _buildBackButton(context),
-      actions: [
-        if (showHelpButton) const HelpIconButton(),
-      ],
     );
   }
 

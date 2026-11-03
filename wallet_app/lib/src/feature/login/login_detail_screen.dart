@@ -10,7 +10,6 @@ import '../../wallet_constants.dart';
 import '../check_attributes/check_attributes_screen.dart';
 import '../common/builder/request_detail_common_builders.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/card/shared_attributes_card.dart';
 import '../common/widget/divider_side.dart';
 import '../common/widget/menu_item.dart';
@@ -53,7 +52,6 @@ class LoginDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         title: TitleText(context.l10n.loginDetailScreenTitle(organization.displayName)),
-        actions: const [HelpIconButton()],
       ),
       body: SafeArea(
         child: Column(
