@@ -97,11 +97,6 @@ tasks.withType<Test>().configureEach {
         (System.getProperty(name) ?: System.getenv(name))?.let { environment(name, it) }
     }
 
-    val toolchains = project.extensions.getByType(JavaToolchainService::class.java)
-    javaLauncher.set(toolchains.launcherFor {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    })
-
     if (System.getProperty("test.config.remote", "false").toBoolean()) {
         val agentProvider = CommandLineArgumentProvider {
             val jar = configurations[browserstackAgent.name].files.first {
