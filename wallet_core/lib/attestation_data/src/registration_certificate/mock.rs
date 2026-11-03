@@ -4,6 +4,9 @@ use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateProfile;
+use crypto::x509::DistinguishedName;
 use dcql::ClaimsSelection;
 use dcql::CredentialQuery;
 use dcql::Query;
@@ -222,7 +225,12 @@ impl MockRegistrationCertificateAuthority {
     pub fn new_with_status(status: StatusType) -> Self {
         let ca = Ca::generate_mock();
         let trust_anchors = ca.to_trust_anchors();
-        let status_list_key_pair = ca.generate_issuer_status_list_mock().unwrap();
+        let status_list_key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("Mock status list signer"),
+                CertificateConfiguration::with_profile(CertificateProfile::StatusListSigning),
+            )
+            .unwrap();
         let mut status_list = StatusList::new(10);
         if status != StatusType::Valid {
             assert_eq!(status_list.insert(0, status), None);

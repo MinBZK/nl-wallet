@@ -146,7 +146,7 @@ async fn wallet_server_settings_and_listener(
     let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
     let wrpac_trust_anchors = wrpac_ca.to_trust_anchors();
 
-    // Set up the use case, based on RP CA and reader registration.
+    // Set up the use case with a WRPAC and a bound WRPRC.
     let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&wrpac_ca);
     let registration_certificate =
