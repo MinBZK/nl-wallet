@@ -31,6 +31,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use super::AdminPortalService;
 use super::LoggedInUser;
 use crate::account_server::UserState;
+use crate::admin_portal::execution::block_users;
 use crate::admin_portal::execution::revoke_wallets;
 
 #[derive(Debug, thiserror::Error)]
@@ -398,8 +399,12 @@ where
                     Err(error) => (false, error.to_string()),
                 }
             }
-            TaskPayload::BlockUser(_block_user_parameters) => {
-                todo!("PVW-6176")
+            TaskPayload::BlockUser(block_user_parameters) => {
+                let recovery_codes = block_user_parameters.recovery_codes.as_slice();
+                match block_users(task.id, approver, recovery_codes, user_state, &self.time, audit_log).await {
+                    Ok(revoked_count) => (true, format!("revoked {revoked_count} wallet(s)")),
+                    Err(error) => (false, error.to_string()),
+                }
             }
             TaskPayload::UnblockUser {} => todo!("PVW-6177"),
             TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
@@ -473,9 +478,11 @@ mod tests {
     use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::vec_nonempty;
     use uuid::Uuid;
+    use wallet_provider_domain::model::admin_task::BlockUserParameters;
     use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
     use wallet_provider_domain::model::admin_task::TaskStatus;
     use wallet_provider_domain::model::admin_task::TaskType;
+    use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevokedWalletUsers;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockAdminPortalRepository;
@@ -672,6 +679,34 @@ mod tests {
             .returning(move |_, wallet_user_ids, _, _| {
                 Ok(RevokedWalletUsers {
                     revoked_count: revoked_count.unwrap_or(wallet_user_ids.len() as u64),
+                    wia_ids: vec![],
+                })
+            });
+        wallet_user_repo
+    }
+
+    /// Returns a repository that denies one recovery code and finds `wallet_count` wallets with it.
+    fn wallet_user_repository_with_recovery_code_revocation(
+        wallet_count: usize,
+    ) -> MockTransactionalWalletUserRepository {
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_deny_recovery_code()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        wallet_user_repo
+            .expect_find_wallet_user_ids_by_recovery_code()
+            .times(1)
+            .returning(move |_, _| Ok((0..wallet_count).map(|_| Uuid::new_v4()).collect()));
+        wallet_user_repo
+            .expect_revoke_wallet_users()
+            .times(1)
+            .returning(move |_, wallet_user_ids, _, _| {
+                Ok(RevokedWalletUsers {
+                    revoked_count: wallet_user_ids.len() as u64,
                     wia_ids: vec![],
                 })
             });
@@ -1144,6 +1179,29 @@ mod tests {
         assert_eq!(executed.executed_at, Some(now));
         assert_eq!(executed.execution_successful, Some(expected_successful));
         assert!(executed.execution_details.unwrap().contains(expected_details));
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn execute_task_stores_block_user_result(now: DateTime<Utc>, task_id: Uuid) {
+        let approved = AdminTask {
+            payload: TaskPayload::BlockUser(BlockUserParameters {
+                recovery_codes: vec_nonempty![RecoveryCode::from("recovery-code".to_string())].into(),
+            }),
+            ..task_in(State::Approved, task_id)
+        };
+        let mut repository = MockAdminPortalRepository::new();
+        expect_transaction(&mut repository);
+        expect_find_task(&mut repository, task_id, Some(approved.clone()));
+        expect_store_execution_result(&mut repository, approved, now);
+
+        let user_repo = wallet_user_repository_with_recovery_code_revocation(2);
+        let executed = execute(repository, user_repo, now, task_id)
+            .await
+            .expect("task should be executed");
+
+        assert_eq!(executed.execution_successful, Some(true));
+        assert_eq!(executed.execution_details.as_deref(), Some("revoked 2 wallet(s)"));
     }
 
     #[rstest]
