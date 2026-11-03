@@ -1187,6 +1187,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             };
 
         let first_credential_payload = verify_copies_consistency(credential_payloads)?;
+        verify_issuer_leaf_certificates_consistency(&credential_copies)?;
 
         let credential_with_metadata = CredentialWithMetadata::new(
             credential_copies,
@@ -1539,12 +1540,26 @@ fn verify_copies_consistency(
     Ok(credential_payloads.into_first())
 }
 
+/// Verifies that all copies of the credential have the same issuer leaf certificates.
+fn verify_issuer_leaf_certificates_consistency(
+    credential_copies: &IssuedCredentialCopies,
+) -> Result<(), WalletIssuanceError> {
+    let issuer_leaf_certificates = credential_copies.issuer_leaf_certificates();
+    let (first, rest) = issuer_leaf_certificates.split_first();
+    if rest.iter().any(|cert| first != cert) {
+        return Err(WalletIssuanceError::CredentialCopiesInconsistent);
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
     use std::borrow::Cow;
     use std::convert::Infallible;
     use std::num::NonZeroU8;
+    use std::sync::Arc;
     use std::time::Duration;
     use std::vec;
 
@@ -2806,6 +2821,8 @@ mod tests {
         formats_by_credential_id: HashMap<CredentialId, Format>,
         pub issuer_trust_anchors: TrustAnchors,
         issuer_key: KeyPair,
+        #[debug(skip)]
+        issuer_ca: Arc<Ca>,
         credential_request_decrypter: Option<JweDecrypter>,
         metadata_integrity: Integrity,
         /// mdoc attributes, namespaced (namespace, element).
@@ -2816,6 +2833,9 @@ mod tests {
         normalized_metadata: NormalizedTypeMetadata,
         pub random_metadata_integrity_index: Option<usize>,
         pub first_copy_expires_later: bool,
+
+        /// If set, the copy at this index is signed with this key instead of `issuer_key`.
+        other_issuer_key: Option<(usize, KeyPair)>,
     }
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -2930,16 +2950,24 @@ mod tests {
                 formats_by_credential_id,
                 issuer_trust_anchors,
                 issuer_key,
+                issuer_ca: Arc::new(ca),
                 credential_request_decrypter,
                 metadata_integrity,
                 random_metadata_integrity_index: None,
                 first_copy_expires_later: false,
+                other_issuer_key: None,
                 mdoc_previewable_payload,
                 sd_jwt_previewable_payload,
                 normalized_metadata,
             };
 
             (signer, credential_request_encrypter, previews, metadata)
+        }
+
+        /// Sign the copy at `index` with another key pair issued by the same CA, i.e. with a different leaf
+        /// certificate than the other copies.
+        pub fn sign_copy_with_other_issuer_key(&mut self, index: usize) {
+            self.other_issuer_key = Some((index, self.issuer_ca.generate_pid_issuer_mock().unwrap()));
         }
 
         pub fn response_from_request<'a>(&self, request: &CredentialRequestBody<'a>) -> CredentialResponse {
@@ -3028,14 +3056,20 @@ mod tests {
                         Some(StatusListClaim::new_mock()),
                     )
                     .unwrap()
-                });
+                })
+                .enumerate();
+
+            let issuer_key_for_index = |index: usize| match &self.other_issuer_key {
+                Some((other_index, other_issuer_key)) if *other_index == index => other_issuer_key,
+                _ => &self.issuer_key,
+            };
 
             let credentials = match format {
                 Format::MsoMdoc => {
                     let mdoc_credentials = credential_payloads
-                        .map(|credential_payload| {
+                        .map(|(index, credential_payload)| {
                             let (issuer_signed, _) = credential_payload
-                                .into_signed_mdoc(&self.issuer_key)
+                                .into_signed_mdoc(issuer_key_for_index(index))
                                 .now_or_never()
                                 .unwrap()
                                 .unwrap();
@@ -3050,9 +3084,9 @@ mod tests {
                 }
                 Format::SdJwt => {
                     let sd_jwt_credentials = credential_payloads
-                        .map(|credential_payload| {
+                        .map(|(index, credential_payload)| {
                             let unverified_sd_jwt = credential_payload
-                                .into_signed_sd_jwt(Some(&self.normalized_metadata), &self.issuer_key)
+                                .into_signed_sd_jwt(Some(&self.normalized_metadata), issuer_key_for_index(index))
                                 .now_or_never()
                                 .unwrap()
                                 .unwrap()
@@ -3644,6 +3678,150 @@ mod tests {
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
+    }
+
+    #[rstest]
+    fn test_accept_issuance_error_issuer_leaf_certificates_inconsistent(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+        #[values(0, 1, 3)] other_issuer_key_index: usize,
+    ) {
+        let (mut signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
+            HashMap::from([("credential_id".to_string().into(), format)]),
+            SdJwtMetadataUsage::TypeMetadata,
+            false,
+        );
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
+
+        // Sign one copy with a different leaf certificate. Every certificate is issued by the same trusted CA and the
+        // payloads are identical, so only the issuer leaf certificate consistency check catches this.
+        signer.sign_copy_with_other_issuer_key(other_issuer_key_index);
+
+        let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
+
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            move |_url, credential_request, _dpop_header, _access_token_header| {
+                Ok(signer.response_from_request(&credential_request))
+            },
+        );
+
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), None, true, false),
+        }
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
+    }
+
+    /// Issue a copy of an example credential for each of the issuer keys, all verified against the trust anchors of
+    /// `ca`.
+    fn issued_credential_copies(format: Format, ca: &Ca, issuer_keys: &[&KeyPair]) -> IssuedCredentialCopies {
+        let trust_anchors = TrustAnchors::try_from_trust_anchors([ca.to_borrowing_trust_anchor()]).unwrap();
+
+        match format {
+            Format::MsoMdoc => IssuedCredentialCopies::Mdoc(
+                issuer_keys
+                    .iter()
+                    .map(|issuer_key| {
+                        // An mdoc lays its attributes out in a name space, unlike the example SD-JWT payload.
+                        let (issuer_signed, _) = CredentialPayload::from_previewable_credential_payload_unvalidated(
+                            PreviewableCredentialPayload::example_family_name_mdoc(&MockTimeGenerator::default()),
+                            Utc::now(),
+                            &PublicKey::from(*SigningKey::generate().verifying_key()),
+                            None,
+                            Some(StatusListClaim::new_mock()),
+                        )
+                        .unwrap()
+                        .into_signed_mdoc(issuer_key)
+                        .now_or_never()
+                        .unwrap()
+                        .unwrap();
+
+                        MdocCopy {
+                            key_identifier: String::from("key_identifier"),
+                            mdoc: Mdoc::new(issuer_signed, &MockTimeGenerator::default(), &trust_anchors).unwrap(),
+                        }
+                    })
+                    .collect_vec()
+                    .try_into()
+                    .unwrap(),
+            ),
+            Format::SdJwt => {
+                let payload = example_credential_payload();
+                let type_metadata =
+                    TypeMetadata::example_with_claim_name(&payload.previewable_payload.attestation_type, "family_name");
+                let (attestation_type, _, metadata_documents) =
+                    TypeMetadataDocuments::from_single_example(type_metadata);
+                let (normalized_metadata, _) = metadata_documents.into_normalized(&attestation_type).unwrap();
+
+                IssuedCredentialCopies::SdJwt(
+                    issuer_keys
+                        .iter()
+                        .map(|issuer_key| {
+                            let sd_jwt = example_credential_payload()
+                                .into_signed_sd_jwt(Some(&normalized_metadata), issuer_key)
+                                .now_or_never()
+                                .unwrap()
+                                .unwrap();
+
+                            SdJwtCopy {
+                                key_identifier: String::from("key_identifier"),
+                                sd_jwt: sd_jwt
+                                    .into_unverified()
+                                    .into_verified_against_trust_anchors(&trust_anchors, &MockTimeGenerator::default())
+                                    .and_then(DecodedSdJwt::try_from)
+                                    .unwrap(),
+                            }
+                        })
+                        .collect_vec()
+                        .try_into()
+                        .unwrap(),
+                )
+            }
+        }
+    }
+
+    #[rstest]
+    fn test_verify_issuer_leaf_certificates_consistency(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+        #[values(1, 3)] copy_count: usize,
+    ) {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = ca.generate_pid_issuer_mock().unwrap();
+
+        let copies = issued_credential_copies(format, &ca, &vec![&issuer_key; copy_count]);
+
+        verify_issuer_leaf_certificates_consistency(&copies).expect("issuer leaf certificates should be consistent");
+    }
+
+    #[rstest]
+    fn test_verify_issuer_leaf_certificates_consistency_error(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+        #[values(1, 2)] other_index: usize,
+    ) {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = ca.generate_pid_issuer_mock().unwrap();
+        let other_issuer_key = ca.generate_pid_issuer_mock().unwrap();
+
+        let mut issuer_keys = vec![&issuer_key; 3];
+        issuer_keys[other_index] = &other_issuer_key;
+
+        let copies = issued_credential_copies(format, &ca, &issuer_keys);
+
+        let error = verify_issuer_leaf_certificates_consistency(&copies)
+            .expect_err("issuer leaf certificates should not be consistent");
 
         assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
     }

@@ -1,5 +1,7 @@
 use attestation_types::credential_format::Format;
+use crypto::x509::BorrowingCertificate;
 use mdoc::holder::Mdoc;
+use nonempty_collections::NonEmptyIterator;
 use sd_jwt::sd_jwt::DecodedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
@@ -86,6 +88,19 @@ impl IssuedCredentialCopies {
         match self {
             IssuedCredentialCopies::Mdoc(_) => Format::MsoMdoc,
             IssuedCredentialCopies::SdJwt(_) => Format::SdJwt,
+        }
+    }
+
+    pub fn issuer_leaf_certificates(&self) -> VecNonEmpty<&BorrowingCertificate> {
+        match self {
+            IssuedCredentialCopies::Mdoc(copies) => copies
+                .nonempty_iter()
+                .map(|copy| copy.mdoc.issuer_leaf_certificate())
+                .collect(),
+            IssuedCredentialCopies::SdJwt(copies) => copies
+                .nonempty_iter()
+                .map(|copy| copy.sd_jwt.sd_jwt().issuer_leaf_certificate())
+                .collect(),
         }
     }
 }
