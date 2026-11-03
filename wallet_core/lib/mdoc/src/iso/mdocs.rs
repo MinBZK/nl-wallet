@@ -524,7 +524,10 @@ pub struct IssuerSignedItem {
     pub element_value: DataElementValue,
 }
 
-pub const ATTR_RANDOM_LENGTH: usize = 32;
+// From ISO/IEC 18013-5:2021, Section 9.1.2.5:
+// > Each Issuersigneditem shall contain an unpredictable random or pseudorandom value. This value [...] shall have a
+// > minimum length of 16 bytes.
+pub const ATTR_RANDOM_LENGTH: usize = 16;
 
 impl IssuerSignedItem {
     /// Generate a new `IssuerSignedItem` including a new `random`.
