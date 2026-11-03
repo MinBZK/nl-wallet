@@ -32,12 +32,12 @@ class UpdateNotificationDialog extends StatelessWidget {
           },
         ),
         TextButton(
+          onPressed: StoreRedirect.redirect,
           child: Text.rich(
             (Platform.isIOS ? context.l10n.generalToAppStoreCta : context.l10n.generalToPlayStoreCta)
                 .toUpperCase()
                 .toTextSpan(context),
           ),
-          onPressed: () => StoreRedirect.redirect,
         ),
       ],
     );
