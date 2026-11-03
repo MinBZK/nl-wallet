@@ -472,9 +472,12 @@ open class MobileActions {
         switchToNativeContext()
         when (platform()) {
             Platform.ANDROID -> {
-                WebDriverWait(driver, Duration.ofMillis(timeoutMillis))
-                    .until(ExpectedConditions.elementToBeClickable(AppiumBy.id("com.android.chrome:id/positive_button")))
-                    .click()
+                val androidDriver = driver as AndroidDriver
+                val openButton = AppiumBy.id("com.android.chrome:id/positive_button")
+                WebDriverWait(driver, Duration.ofMillis(timeoutMillis)).until {
+                    androidDriver.currentPackage == testConfig.appIdentifier || driver.findElements(openButton).isNotEmpty()
+                }
+                driver.findElements(openButton).firstOrNull()?.click()
             }
             Platform.IOS -> {
                 val autoAcceptAlerts = EnvironmentUtil.getVar("IOS_ACCEPT_ALERTS").toBooleanStrictOrNull() ?: true
