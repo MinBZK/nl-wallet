@@ -2,14 +2,16 @@ minimumReleaseAge: 10080
 minimumReleaseAgeStrict: true
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeExclude:
-  - nanoid@3.3.18
-  - source-map-js@1.2.2
-  - happy-dom@21.0.4
-  - fast-uri@3.1.9
+  - minimatch@11.0.1 || 11.0.4
+  - glob@14.0.2 || 14.0.3
+  - path-scurry@3.0.0
+  - '@isaacs/nonrecursive-glob-match@1.0.3'
 overrides:
   '@vitest/mocker@>=2.1.0-beta.7 <4.1.12': 4.1.12
   '@vitest/mocker@>=4.1.11 <4.1.12': 4.1.12
   fast-uri@>=3.0.0 <3.1.9: 3.1.9
-  follow-redirects@>=1.16.0 <1.16.1: 1.16.1
+  follow-redirects@>=1.16.0 <=1.16.1: ^1.16.2
+  glob@>=9.0.0 <=14.0.1: ^14.0.2
   happy-dom@>=17.0.0 <=21.0.3: 21.0.4
+  minimatch@<11.0.1: ^11.0.1
   vite@>=8.3.0 <=8.3.2: 8.3.3

@@ -2,12 +2,16 @@ minimumReleaseAge: 10080
 minimumReleaseAgeStrict: true
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeExclude:
-  - handlebars@4.7.10
-  - markdown-it@14.3.3
+  - minimatch@11.0.1 || 11.0.4
+  - glob@14.0.2 || 14.0.3
+  - path-scurry@3.0.0
+  - '@isaacs/nonrecursive-glob-match@1.0.3'
 overrides:
   dompurify@<=3.4.16: 3.4.17
   dompurify@>=3.4.4 <=3.4.16: 3.4.17
-  follow-redirects@>=1.16.0 <1.16.1: 1.16.1
+  follow-redirects@>=1.16.0 <=1.16.1: ^1.16.2
+  glob@>=9.0.0 <=14.0.1: ^14.0.2
   handlebars@>=4.0.0 <=4.7.9: ^4.7.10
   markdown-it@<14.3.3: 14.3.3
   markdown-it@>=14.1.0 <14.3.3: 14.3.3
+  minimatch@<11.0.1: ^11.0.1

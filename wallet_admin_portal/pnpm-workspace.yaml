@@ -2,11 +2,15 @@ minimumReleaseAge: 10080
 minimumReleaseAgeStrict: true
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeExclude:
-  - nanoid@3.3.18
-  - source-map-js@1.2.2
+  - minimatch@11.0.1 || 11.0.4
+  - glob@14.0.2 || 14.0.3
+  - path-scurry@3.0.0
+  - '@isaacs/nonrecursive-glob-match@1.0.3'
 overrides:
   '@vitest/mocker@>=2.1.0-beta.7 <4.1.12': 4.1.12
   '@vitest/mocker@>=4.1.11 <4.1.12': 4.1.12
+  glob@>=9.0.0 <=14.0.1: ^14.0.2
+  minimatch@<11.0.1: ^11.0.1
   nanoid@<3.3.18: ^3.3.18
   tinypool@<2.1.2: ^2.1.2
   tinypool@<=2.1.0: ^2.1.1
