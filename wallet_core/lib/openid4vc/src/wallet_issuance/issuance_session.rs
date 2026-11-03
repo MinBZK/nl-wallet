@@ -1111,7 +1111,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     let (sd_jwts, credential_payloads) = credentials.into_issued_sd_jwts(
                         key_ids_and_public_keys,
                         metadata,
-                        credential_preview,
                         trust_anchors.issuer_trust_anchors,
                     )?;
 
@@ -1142,7 +1141,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     let (sd_jwts, credential_payloads) = credentials.into_issued_sd_jwts(
                         key_ids_and_public_keys,
                         metadata,
-                        credential_preview,
                         trust_anchors.issuer_trust_anchors,
                     )?;
 
@@ -1154,12 +1152,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     )
                 }
                 (Format::MsoMdoc, OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
-                    let (mdocs, credential_payloads) = credentials.into_issued_mdocs(
-                        key_ids_and_public_keys,
-                        credential_preview,
-                        credential_metadata,
-                        trust_anchors.issuer_trust_anchors,
-                    )?;
+                    let (mdocs, credential_payloads) =
+                        credentials.into_issued_mdocs(key_ids_and_public_keys, trust_anchors.issuer_trust_anchors)?;
 
                     (
                         IssuedCredentialCopies::Mdoc(mdocs),
@@ -1188,6 +1182,12 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let first_credential_payload = verify_copies_consistency(credential_payloads)?;
         verify_issuer_leaf_certificates_consistency(&credential_copies)?;
+
+        // All copies are equal at this point, so it suffices to check the first one against the metadata and preview.
+        validate_attributes(&first_credential_payload, offered_metadata)?;
+        if let Some(preview) = credential_preview {
+            verify_preview(&first_credential_payload, preview)?;
+        }
 
         let credential_with_metadata = CredentialWithMetadata::new(
             credential_copies,
@@ -1320,8 +1320,6 @@ impl Credentials {
     fn into_issued_mdocs(
         self,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
-        preview: Option<&PreviewableCredentialPayload>,
-        credential_metadata: &CredentialMetadata,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<(VecNonEmpty<MdocCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
         let Self::MsoMdoc(mdoc_credentials) = self else {
@@ -1366,7 +1364,7 @@ impl Credentials {
 
                 let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone())?;
 
-                Self::validate_credential(preview, &public_key, &issued_credential_payload, credential_metadata)?;
+                Self::validate_confirmation_key(&public_key, &issued_credential_payload)?;
 
                 Ok((MdocCopy { key_identifier, mdoc }, issued_credential_payload))
             })
@@ -1383,7 +1381,6 @@ impl Credentials {
         self,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         metadata: &OfferedCredentialMetadata,
-        preview: Option<&PreviewableCredentialPayload>,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<(VecNonEmpty<SdJwtCopy>, VecNonEmpty<CredentialPayload>), WalletIssuanceError> {
         let Self::SdJwt(sd_jwt_credentials) = self else {
@@ -1419,7 +1416,7 @@ impl Credentials {
                     Self::verify_selective_disclosability(sd_jwt.sd_jwt(), issued_claims, normalized)?;
                 }
 
-                Self::validate_credential(preview, &public_key, &issued_credential_payload, metadata)?;
+                Self::validate_confirmation_key(&public_key, &issued_credential_payload)?;
 
                 Ok((SdJwtCopy { key_identifier, sd_jwt }, issued_credential_payload))
             })
@@ -1430,33 +1427,13 @@ impl Credentials {
         Ok(sd_jwts_and_payloads)
     }
 
-    fn validate_credential(
-        preview: Option<&PreviewableCredentialPayload>,
+    fn validate_confirmation_key(
         holder_pubkey: &PublicKey,
         credential_payload: &CredentialPayload,
-        metadata: &impl AttestationClaims,
     ) -> Result<(), WalletIssuanceError> {
         if credential_payload.confirmation_key.try_to_public_key()? != *holder_pubkey {
             return Err(WalletIssuanceError::PublicKeyMismatch);
         }
-
-        if let Some(preview) = preview {
-            // Check that the credential contains exactly the attributes the issuer said it would have.
-            if credential_payload.previewable_payload != *preview {
-                return Err(WalletIssuanceError::IssuedCredentialMismatch {
-                    actual: Box::new(credential_payload.previewable_payload.clone()),
-                    expected: Box::new(preview.clone()),
-                });
-            }
-        }
-
-        // Check that those attributes are the ones described by the metadata of the credential configuration. Note
-        // that this covers the attributes of the preview as well, as the two are equal at this point.
-        credential_payload
-            .previewable_payload
-            .attributes
-            .validate(metadata)
-            .map_err(WalletIssuanceError::AttributesVerification)?;
 
         Ok(())
     }
@@ -1476,7 +1453,7 @@ impl Credentials {
 
         // Iterate over the issued_claims, validating each element in the path against the metadata.
         // This implementation will ignore any (optional) claims that do exist in the metadata but are not issued.
-        // Validating whether all required claims are issued is done by `validate_credential`.
+        // Validating whether all required claims are issued is done by `validate_attributes`.
         // This will also prevent traversing and decoding the same disclosures several times for nested disclosures.
         for issued_claim in issued_claims {
             Self::verify_claim_selective_disclosability(sd_jwt, issued_claim.as_slice(), &sd_metadata)?;
@@ -1548,6 +1525,35 @@ fn verify_issuer_leaf_certificates_consistency(
     let (first, rest) = issuer_leaf_certificates.split_first();
     if rest.iter().any(|cert| first != cert) {
         return Err(WalletIssuanceError::CredentialCopiesInconsistent);
+    }
+
+    Ok(())
+}
+
+/// Verifies that the attributes of the issued credential are those described by the metadata of the credential
+/// configuration, i.e. that all mandatory claims are present and that no undescribed attributes occur.
+fn validate_attributes(
+    payload: &CredentialPayload,
+    metadata: &impl AttestationClaims,
+) -> Result<(), WalletIssuanceError> {
+    payload
+        .previewable_payload
+        .attributes
+        .validate(metadata)
+        .map_err(WalletIssuanceError::AttributesVerification)
+}
+
+/// Verifies that the issued credential matches the preview the issuer announced, i.e. that it contains exactly the
+/// attributes and validity information the issuer said it would have.
+fn verify_preview(
+    credential_payload: &CredentialPayload,
+    preview: &PreviewableCredentialPayload,
+) -> Result<(), WalletIssuanceError> {
+    if credential_payload.previewable_payload != *preview {
+        return Err(WalletIssuanceError::IssuedCredentialMismatch {
+            actual: Box::new(credential_payload.previewable_payload.clone()),
+            expected: Box::new(preview.clone()),
+        });
     }
 
     Ok(())
@@ -3725,6 +3731,65 @@ mod tests {
         assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
     }
 
+    #[rstest]
+    fn test_accept_issuance_error_attributes_verification(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
+        let mut mdoc_payload = PreviewableCredentialPayload::example_family_name_mdoc(&MockTimeGenerator::default());
+        let mut sd_jwt_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
+
+        // Issue (and announce) an attribute that the metadata does not describe, so that only the attributes check
+        // can reject the credential.
+        let attestation_type = mdoc_payload.attestation_type.clone();
+        mdoc_payload.attributes = Attributes::example([
+            (
+                [attestation_type.as_str(), "family_name"],
+                Attribute::Text(String::from("De Bruijn")),
+            ),
+            ([attestation_type.as_str(), "undescribed"], Attribute::Bool(true)),
+        ]);
+        sd_jwt_payload.attributes = Attributes::example([
+            (["family_name"], Attribute::Text(String::from("De Bruijn"))),
+            (["undescribed"], Attribute::Bool(true)),
+        ]);
+
+        let type_metadata = TypeMetadata::example_with_claim_name(&sd_jwt_payload.attestation_type, "family_name");
+
+        let (signer, _encrypter, previews, metadata) = MockCredentialSigner::from_metadata_and_preview(
+            HashMap::from([("credential_id".to_string().into(), format)]),
+            type_metadata,
+            mdoc_payload,
+            sd_jwt_payload,
+            SdJwtMetadataUsage::TypeMetadata,
+            false,
+        );
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
+
+        let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
+
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            move |_url, credential_request, _dpop_header, _access_token_header| {
+                Ok(signer.response_from_request(&credential_request))
+            },
+        );
+
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), None, true, true),
+        }
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(error, WalletIssuanceError::AttributesVerification(_));
+    }
+
     /// Issue a copy of an example credential for each of the issuer keys, all verified against the trust anchors of
     /// `ca`.
     fn issued_credential_copies(format: Format, ca: &Ca, issuer_keys: &[&KeyPair]) -> IssuedCredentialCopies {
@@ -3751,7 +3816,13 @@ mod tests {
 
                         MdocCopy {
                             key_identifier: String::from("key_identifier"),
-                            mdoc: Mdoc::new(issuer_signed, &MockTimeGenerator::default(), &trust_anchors).unwrap(),
+                            mdoc: Mdoc::new(
+                                issuer_signed,
+                                &MockTimeGenerator::default(),
+                                &trust_anchors,
+                                SUPPORTED_MDOC_ISSUER_ALGORITHMS,
+                            )
+                            .unwrap(),
                         }
                     })
                     .collect_vec()
@@ -3853,6 +3924,64 @@ mod tests {
             .expect("copies should be consistent");
 
         assert_eq!(consistent, first);
+    }
+
+    fn normalized_metadata_with_claim(attestation_type: &str, claim_name: &str) -> NormalizedTypeMetadata {
+        let type_metadata = TypeMetadata::example_with_claim_name(attestation_type, claim_name);
+        let (attestation_type, _, metadata_documents) = TypeMetadataDocuments::from_single_example(type_metadata);
+
+        metadata_documents.into_normalized(&attestation_type).unwrap().0
+    }
+
+    #[test]
+    fn test_validate_attributes() {
+        let payload = example_credential_payload();
+        let metadata = normalized_metadata_with_claim(&payload.previewable_payload.attestation_type, "family_name");
+
+        validate_attributes(&payload, &metadata).expect("attributes should match metadata");
+    }
+
+    #[test]
+    fn test_validate_attributes_error() {
+        let payload = example_credential_payload();
+
+        // The metadata does not describe the `family_name` attribute of the payload.
+        let metadata = normalized_metadata_with_claim(&payload.previewable_payload.attestation_type, "other_name");
+
+        let error = validate_attributes(&payload, &metadata).expect_err("attributes should not match metadata");
+
+        assert_matches!(error, WalletIssuanceError::AttributesVerification(_));
+    }
+
+    #[test]
+    fn test_verify_preview() {
+        let payload = example_credential_payload();
+        let preview = payload.previewable_payload.clone();
+
+        verify_preview(&payload, &preview).expect("payload should match preview");
+    }
+
+    #[rstest]
+    #[case::attributes(|preview: &mut PreviewableCredentialPayload| {
+        preview.attributes = Attributes::example([(["family_name"], Attribute::Text(String::from("De Vries")))]);
+    })]
+    #[case::attestation_type(|preview: &mut PreviewableCredentialPayload| {
+        preview.attestation_type = String::from("other.attestation_type");
+    })]
+    #[case::expires(|preview: &mut PreviewableCredentialPayload| {
+        preview.expires = None;
+    })]
+    #[case::not_before(|preview: &mut PreviewableCredentialPayload| {
+        preview.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
+    })]
+    fn test_verify_preview_error(#[case] modify: fn(&mut PreviewableCredentialPayload)) {
+        let payload = example_credential_payload();
+        let mut preview = payload.previewable_payload.clone();
+        modify(&mut preview);
+
+        let error = verify_preview(&payload, &preview).expect_err("payload should not match preview");
+
+        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
     #[test]
@@ -3981,15 +4110,9 @@ mod tests {
     fn mock_credential_response_credential(
         format: Format,
         sd_jwt_uses_credential_metadata: SdJwtMetadataUsage,
-    ) -> (
-        Credentials,
-        PreviewableCredentialPayload,
-        OfferedCredentialMetadata,
-        PublicKey,
-        TrustAnchors,
-    ) {
+    ) -> (Credentials, OfferedCredentialMetadata, PublicKey, TrustAnchors) {
         let credential_id: CredentialId = "credential_id".to_string().into();
-        let (signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
+        let (signer, _encrypter, _previews, metadata) = MockCredentialSigner::new(
             HashMap::from([(credential_id.clone(), format)]),
             sd_jwt_uses_credential_metadata,
             false,
@@ -4001,71 +4124,50 @@ mod tests {
             .into_immediate_credentials()
             .unwrap();
 
-        let preview = previews.into_iter().exactly_one().unwrap().credential_payload;
         let metadata = metadata
             .into_iter()
             .exactly_one()
             .expect("a single format is described by a single credential configuration")
             .1;
 
-        (
-            credentials,
-            preview,
-            metadata,
-            holder_pubkey,
-            signer.issuer_trust_anchors,
-        )
+        (credentials, metadata, holder_pubkey, signer.issuer_trust_anchors)
     }
 
-    /// Convert issued credentials using the provided metadata and, if the issuer provided one, preview.
+    /// Convert issued credentials using the provided metadata.
     fn test_convert_credentials_into_issued_credential(
         credentials: Credentials,
         key_identifiers_and_public_keys: VecNonEmpty<(String, PublicKey)>,
         metadata: &OfferedCredentialMetadata,
-        preview: Option<&PreviewableCredentialPayload>,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<(), WalletIssuanceError> {
         match (&credentials, metadata) {
-            (Credentials::MsoMdoc(_), OfferedCredentialMetadata::CredentialMetadata(credential_metadata)) => {
-                credentials
-                    .into_issued_mdocs(
-                        key_identifiers_and_public_keys,
-                        preview,
-                        credential_metadata,
-                        issuer_trust_anchors,
-                    )
-                    .map(|_| ())
-            }
+            (Credentials::MsoMdoc(_), OfferedCredentialMetadata::CredentialMetadata(_)) => credentials
+                .into_issued_mdocs(key_identifiers_and_public_keys, issuer_trust_anchors)
+                .map(|_| ()),
             (Credentials::SdJwt(_), metadata) => credentials
-                .into_issued_sd_jwts(key_identifiers_and_public_keys, metadata, preview, issuer_trust_anchors)
+                .into_issued_sd_jwts(key_identifiers_and_public_keys, metadata, issuer_trust_anchors)
                 .map(|_| ()),
             _ => panic!("illegal credential format and metadata combination"),
         }
     }
 
     #[rstest]
-    fn test_credential_response_into_credential(
-        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
-        #[values(true, false)] has_preview: bool,
-    ) {
-        let (credentials, preview_data, metadata, holder_public_key, trust_anchor) =
+    fn test_credential_response_into_credential(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
+        let (credentials, metadata, holder_public_key, trust_anchor) =
             mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
 
         test_convert_credentials_into_issued_credential(
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            has_preview.then_some(&preview_data),
             &trust_anchor,
         )
         .expect("should be able to convert CredentialResponse into Mdoc");
     }
 
-    #[rstest]
-    fn test_credential_response_into_credential_with_sd_jwt_credential_metadata_fallback(
-        #[values(true, false)] has_preview: bool,
-    ) {
-        let (credentials, preview_data, metadata, holder_public_key, trust_anchor) =
+    #[test]
+    fn test_credential_response_into_credential_with_sd_jwt_credential_metadata_fallback() {
+        let (credentials, metadata, holder_public_key, trust_anchor) =
             mock_credential_response_credential(Format::SdJwt, SdJwtMetadataUsage::CredentialMetadata);
 
         assert_matches!(metadata, OfferedCredentialMetadata::CredentialMetadata(_));
@@ -4074,15 +4176,14 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            has_preview.then_some(&preview_data),
             &trust_anchor,
         )
         .expect("should be able to convert CredentialResponse into SD-JWT described by Credential Metadata");
     }
 
-    #[rstest]
-    fn test_credential_response_into_mdoc_attribute_random_length_error(#[values(true, false)] has_preview: bool) {
-        let (credentials, preview_data, metadata, holder_public_key, trust_anchor) =
+    #[test]
+    fn test_credential_response_into_mdoc_attribute_random_length_error() {
+        let (credentials, metadata, holder_public_key, trust_anchor) =
             mock_credential_response_credential(Format::MsoMdoc, SdJwtMetadataUsage::CredentialMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` from a response
@@ -4117,7 +4218,6 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            has_preview.then_some(&preview_data),
             &trust_anchor,
         )
         .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -4125,9 +4225,9 @@ mod tests {
         assert_matches!(error, WalletIssuanceError::AttributeRandomLength(5, ATTR_RANDOM_LENGTH));
     }
 
-    #[rstest]
-    fn test_credential_response_into_sd_jwt_sd_jwt_verification_error(#[values(true, false)] has_preview: bool) {
-        let (credentials, preview, metadata, holder_public_key, _) =
+    #[test]
+    fn test_credential_response_into_sd_jwt_sd_jwt_verification_error() {
+        let (credentials, metadata, holder_public_key, _) =
             mock_credential_response_credential(Format::SdJwt, SdJwtMetadataUsage::TypeMetadata);
 
         // Converting a `CredentialResponse` into an SD-JWT credential that
@@ -4136,7 +4236,6 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            has_preview.then_some(&preview),
             &TrustAnchors::empty(),
         )
         .expect_err("should not be able to convert CredentialResponse into SD-JWT");
@@ -4147,9 +4246,8 @@ mod tests {
     #[rstest]
     fn test_credential_response_into_mdoc_public_key_mismatch_error(
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
-        #[values(true, false)] has_preview: bool,
     ) {
-        let (credentials, preview_data, metadata, _, trust_anchor) =
+        let (credentials, metadata, _, trust_anchor) =
             mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
@@ -4159,7 +4257,6 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), other_public_key)],
             &metadata,
-            has_preview.then_some(&preview_data),
             &trust_anchor,
         )
         .expect_err("should not be able to convert CredentialResponse into credential");
@@ -4167,9 +4264,9 @@ mod tests {
         assert_matches!(error, WalletIssuanceError::PublicKeyMismatch);
     }
 
-    #[rstest]
-    fn test_credential_response_into_mdoc_mdoc_verification_error(#[values(true, false)] has_preview: bool) {
-        let (credentials, preview, metadata, holder_public_key, _) =
+    #[test]
+    fn test_credential_response_into_mdoc_mdoc_verification_error() {
+        let (credentials, metadata, holder_public_key, _) =
             mock_credential_response_credential(Format::MsoMdoc, SdJwtMetadataUsage::CredentialMetadata);
 
         // Converting a `CredentialResponse` into an `Mdoc` that is
@@ -4178,7 +4275,6 @@ mod tests {
             credentials,
             vec_nonempty![("key_id".to_string(), holder_public_key)],
             &metadata,
-            has_preview.then_some(&preview),
             &TrustAnchors::empty(),
         )
         .expect_err("should not be able to convert CredentialResponse into Mdoc");
@@ -4186,77 +4282,63 @@ mod tests {
         assert_matches!(error, WalletIssuanceError::MdocVerification(_));
     }
 
-    #[test]
-    fn test_credential_response_into_mdoc_issued_attributes_mismatch_error() {
-        let (credentials, mut preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(Format::MsoMdoc, SdJwtMetadataUsage::CredentialMetadata);
-
-        // Converting a `CredentialResponse` into an `Mdoc` with different attributes
-        // in the preview than are contained within the response should fail. Note that these stay laid out in the
-        // mdoc name space, so that the extra attribute is the only difference.
-        preview.attributes = Attributes::example([
-            ([PID_ATTESTATION_TYPE, "new"], Attribute::Bool(true)),
-            (
-                [PID_ATTESTATION_TYPE, "family_name"],
-                Attribute::Text(String::from("De Bruijn")),
-            ),
-        ]);
-
-        let error = test_convert_credentials_into_issued_credential(
-            credentials,
-            vec_nonempty![("key_id".to_string(), holder_public_key)],
-            &metadata,
-            Some(&preview),
-            &trust_anchor,
-        )
-        .expect_err("should not be able to convert CredentialResponse into Mdoc");
-
-        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
-    }
-
     #[rstest]
-    fn test_credential_response_into_mdoc_issued_doctype_mismatch_error(
-        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
-    ) {
-        let (credentials, mut preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
-
-        // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
-        // within the response should fail.
+    #[case::attributes(|preview: &mut PreviewableCredentialPayload, format: Format| {
+        let attestation_type = preview.attestation_type.clone();
+        preview.attributes = match format {
+            Format::MsoMdoc => Attributes::example([
+                ([attestation_type.as_str(), "new"], Attribute::Bool(true)),
+                ([attestation_type.as_str(), "family_name"], Attribute::Text(String::from("De Bruijn"))),
+            ]),
+            Format::SdJwt => Attributes::example([
+                (["new"], Attribute::Bool(true)),
+                (["family_name"], Attribute::Text(String::from("De Bruijn"))),
+            ]),
+        };
+    })]
+    #[case::attestation_type(|preview: &mut PreviewableCredentialPayload, _format: Format| {
         preview.attestation_type = String::from("other.attestation_type");
-
-        let error = test_convert_credentials_into_issued_credential(
-            credentials,
-            vec_nonempty![("key_id".to_string(), holder_public_key)],
-            &metadata,
-            Some(&preview),
-            &trust_anchor,
-        )
-        .expect_err("should not be able to convert CredentialResponse into Mdoc");
-
-        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
-    }
-
-    #[rstest]
-    fn test_credential_response_into_mdoc_issued_validity_info_mismatch_error(
+    })]
+    #[case::not_before(|preview: &mut PreviewableCredentialPayload, _format: Format| {
+        preview.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
+    })]
+    fn test_accept_issuance_error_issued_credential_mismatch(
+        #[case] modify_preview: fn(&mut PreviewableCredentialPayload, Format),
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
     ) {
-        let (credentials, mut preview, metadata, holder_public_key, trust_anchor) =
-            mock_credential_response_credential(format, SdJwtMetadataUsage::TypeMetadata);
+        let (signer, _encrypter, mut previews, metadata) = MockCredentialSigner::new(
+            HashMap::from([("credential_id".to_string().into(), format)]),
+            SdJwtMetadataUsage::TypeMetadata,
+            false,
+        );
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
-        // Converting a `CredentialResponse` into an `Mdoc` with different expiration information in the preview than
-        // contained within the response should fail.
+        // The issuer announces a preview that differs from the credential it ends up issuing.
+        modify_preview(&mut previews[0].credential_payload, format);
 
-        preview.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
+        let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
 
-        let error = test_convert_credentials_into_issued_credential(
-            credentials,
-            vec_nonempty![("key_id".to_string(), holder_public_key)],
-            &metadata,
-            Some(&preview),
-            &trust_anchor,
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            move |_url, credential_request, _dpop_header, _access_token_header| {
+                Ok(signer.response_from_request(&credential_request))
+            },
+        );
+
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), None, true, true),
+        }
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
         )
-        .expect_err("should not be able to convert CredentialResponse into Mdoc");
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
 
         assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
