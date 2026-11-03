@@ -13,6 +13,7 @@ import helper.OrganizationMetadataHelper
 import helper.TasDataHelper
 import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
+import io.appium.java_client.Setting
 import io.appium.java_client.android.AndroidDriver
 import io.appium.java_client.ios.IOSDriver
 import org.openqa.selenium.By
@@ -826,6 +827,16 @@ open class MobileActions {
             .until(ExpectedConditions.invisibilityOfElementLocated(textLocator(text)))
     }
 
+    fun <T> withoutWaitForIdle(block: () -> T): T {
+        val androidDriver = driver as? AndroidDriver ?: return block()
+        val previous = androidDriver.settings[Setting.WAIT_FOR_IDLE_TIMEOUT.toString()] ?: 10000
+        androidDriver.setSetting(Setting.WAIT_FOR_IDLE_TIMEOUT, 0)
+        try {
+            return block()
+        } finally {
+            androidDriver.setSetting(Setting.WAIT_FOR_IDLE_TIMEOUT, previous)
+        }
+    }
 
     private fun findElementByDescendantElementText(
         descendantElementText: String,
