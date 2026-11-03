@@ -5,8 +5,10 @@ export default defineConfig({
   testDir: "../tests",
   reporter: [["list"], ["junit", { outputFile: "../test-results/results.xml" }]],
   projects: [
+    { name: "setup", testMatch: /auth\.setup\.js/ },
     {
       name: "chromium-desktop",
+      dependencies: ["setup"],
       use: {
         browserName: "chromium",
         viewport: { width: 1920, height: 1080 },

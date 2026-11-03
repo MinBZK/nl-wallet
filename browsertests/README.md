@@ -8,10 +8,12 @@ is a pnpm workspace with one package per surface under [`packages/`](packages/):
 | [`wallet-web`](packages/wallet-web)               | `DEMO_INDEX_URL`        |
 | [`revocation-portal`](packages/revocation-portal) | `REVOCATION_PORTAL_URL` |
 | [`fallback-pages`](packages/fallback-pages)       | `UNIVERSAL_LINK_BASE`   |
+| [`admin-portal`](packages/admin-portal)           | `ADMIN_PORTAL_URL`      |
 
 Each `wallet-web` and `revocation-portal` test performs both an
 [axe-core](https://github.com/dequelabs/axe-core) accessibility check (WCAG 2.1
-A/AA) and a visual snapshot assertion. `fallback-pages` does neither.
+A/AA) and a visual snapshot assertion. `admin-portal` runs the accessibility
+check only, and `fallback-pages` does neither.
 
 ## Prerequisites
 
@@ -66,6 +68,60 @@ DEMO_INDEX_URL="" pnpm run test:local
 cd packages/revocation-portal
 REVOCATION_PORTAL_URL="" pnpm run test:local
 ```
+
+### admin-portal
+
+Needs the base URL plus a password per test user, because every test signs in
+through KeyCloak:
+
+| Env var                 | Value                                            |
+| ----------------------- | ------------------------------------------------ |
+| `ADMIN_PORTAL_URL`      | Base URL of the portal                           |
+| `AP_OPERATOR_PASSWORD`  | Password of the `administrator` user (Beheerder) |
+| `AP_TEAMLEAD_PASSWORD`  | Password of the `manager` user (Teamleider)      |
+| `AP_SUPERUSER_PASSWORD` | Password of the `destroyer` user (Superuser)     |
+
+```bash
+cd packages/admin-portal
+ADMIN_PORTAL_URL="http://localhost:5173" \
+  AP_OPERATOR_PASSWORD="administrator" \
+  AP_TEAMLEAD_PASSWORD="manager" \
+  AP_SUPERUSER_PASSWORD="destroyer" \
+  pnpm run test:local
+```
+
+A `setup` project ([`auth.setup.js`](packages/admin-portal/tests/auth.setup.js))
+signs each user in once and stores the session under `playwright/.auth/`, which
+the browser projects reuse through `storageState`. The tests that cover signing
+in, signing out and rejecting bad credentials log in for real instead. Note that
+the portal session has an absolute 15-minute expiry
+(`admin_portal.session_ttl_in_ms`) that requests do not extend, so a run lasting
+longer than that outlives its stored sessions.
+
+Those three users are seeded by
+[`realm.json`](../scripts/devenv/keycloak/import/realm.json), which gives each
+one its own username as password. In CI the passwords come from the
+`nl-wallet-keycloak-passwords` secret instead — see
+[`automation-tests.yml`](../deploy/gitlab/automation-tests.yml).
+
+Serving the portal locally takes three processes, the last two in their own
+shell:
+
+```bash
+scripts/start-devenv.sh kc     # KeyCloak, from the repo root
+cd wallet_admin_portal
+pnpm mock:auth-server          # backend (BFF) mock on :3000
+pnpm dev                       # SPA on :5173
+```
+
+What the tests assert per user — display name, role, sidebar entries and the
+task actions they may create — lives in
+[`data/users.js`](packages/admin-portal/data/users.js) and has to match the
+privileges KeyCloak grants them.
+
+Two axe rules (`select-name` and `scrollable-region-focusable`) are disabled in
+[`AdminPortal.test.js`](packages/admin-portal/tests/AdminPortal.test.js) for
+known portal defects; re-enable each one as its issue is fixed.
 
 ### Useful flags
 
