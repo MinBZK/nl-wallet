@@ -1,28 +1,3 @@
-test-ios:
-  extends: [.env-macos-runner, .ruby-cache-macos]
-  rules: !reference [.default-or-merge-request, rules]
-  stage: test
-  needs: []
-  artifacts:
-    name: test-ios
-    when: always
-    reports:
-      coverage_report:
-        path: fastlane/test_output/cobertura.xml
-        coverage_format: cobertura
-      junit: fastlane/test_output/report.junit
-    paths:
-      - "fastlane/test_output/*"
-      - "wallet_core/wallet/platform_support/ios/*.xcactivitylog"
-      - "wallet_core/wallet/platform_support/ios/compile_platform_support.log"
-  script:
-    - bundle install
-    - bundle exec fastlane ios test
-  after_script:
-    - deploy/bin/store-artifact.sh fastlane/test_output/report.junit qt/quality-time/junit-results/ios.xml
-    - deploy/bin/store-artifact.sh fastlane/test_output/cobertura.xml qt/quality-time/ios-cobertura.xml
-    - find $HOME/Library/Developer/Xcode/DerivedData/PlatformSupport-* -name '*.xcactivitylog' -print0 | xargs -0 -I{} cp {} wallet_core/wallet/platform_support/ios/
-
 ### iOS Building
 .build-ios-app:
   extends: [.sentry-env, .env-k8s, .env-macos-runner, .ruby-cache-macos]
@@ -37,8 +12,6 @@ test-ios:
     - job: test-rust
       artifacts: false
     - job: test-rust-doctest
-      artifacts: false
-    - job: test-ios
       artifacts: false
     - job: test-rust-compilation-ios
       artifacts: false

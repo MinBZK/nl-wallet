@@ -1,12 +1,11 @@
 test-ios-platform-support-device:
   extends: [.automation-tests-macos-devices, .install-ios-signing]
+  stage: test
   resource_group: real-device-automation-tests
   needs:
     - job: automation-tests-load-device-config
       artifacts: true
-  rules:
-    - !reference [.on-schedule-automation, rules]
-    - !reference [.merge-request-manual, rules]
+  rules: !reference [.default-or-merge-request, rules]
   before_script:
     - !reference [.install-ios-signing, before_script]
   script:
@@ -14,6 +13,8 @@ test-ios-platform-support-device:
   after_script:
     - deploy/bin/store-artifact.sh fastlane/test_output/platform-support-device.junit
       qt/quality-time/junit-results/ios-device.xml
+    - deploy/bin/store-artifact.sh fastlane/test_output/device-coverage/cobertura.xml
+      qt/quality-time/ios-device-cobertura.xml
   artifacts:
     name: platform-support-ios-device
     when: always
@@ -21,6 +22,7 @@ test-ios-platform-support-device:
       - fastlane/test_output/platform-support-device.junit
       - fastlane/test_output/platform-support-device.log
       - fastlane/test_output/PlatformSupportDevice.xcresult
+      - fastlane/test_output/device-coverage
     reports:
       junit: fastlane/test_output/platform-support-device.junit
   variables:
@@ -30,13 +32,12 @@ test-ios-platform-support-device:
 
 test-android-platform-support-device:
   extends: .automation-tests-macos-android-devices
+  stage: test
   resource_group: real-device-automation-tests
   needs:
     - job: automation-tests-load-device-config
       artifacts: true
-  rules:
-    - !reference [.on-schedule-automation, rules]
-    - !reference [.merge-request-manual, rules]
+  rules: !reference [.default-or-merge-request, rules]
   before_script:
     - export PATH="$ANDROID_HOME/platform-tools:$HOME/.cargo/bin:$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
     - bundle install
@@ -45,9 +46,18 @@ test-android-platform-support-device:
       { echo "ANDROID_SERIAL is empty, check android_1_udid in the nl-wallet-macmini secret"; exit 1; }
     - adb -s "${ANDROID_SERIAL}" shell svc bluetooth enable
     - bundle exec fastlane android test_platform_support_device
-  after_script: >
-    deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/android-device.zip
-    wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml
+  after_script:
+    - >
+      deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/android-device.zip
+      wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml
+    - COVERAGE=wallet_core/wallet/platform_support/android/build/reports/coverage
+    # Move the report out of the path the emulator job uses, so that both are present when
+    # sonar-android collects the artifacts of both jobs and globs for them.
+    - mv "$COVERAGE/androidTest" "$COVERAGE/androidTest-device"
+    - >
+      deploy/bin/store-artifact.sh
+      "$COVERAGE/androidTest-device/debug/connected/cobertura.xml"
+      qt/quality-time/android-device-cobertura.xml
   artifacts:
     name: platform-support-android-device
     when: always
