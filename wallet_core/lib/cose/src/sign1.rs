@@ -39,6 +39,14 @@ pub const COSE_TYP_HEADER_LABEL: i64 = 16;
 
 pub trait CoseTyp {
     const TYP: &'static str;
+
+    fn is_valid_typ(header_typ: Option<&Value>) -> Result<(), CoseError> {
+        // The `typ` header contains a media type, which is case-insensitive and consists of ASCII characters only.
+        match header_typ {
+            Some(Value::Text(typ)) if typ.eq_ignore_ascii_case(Self::TYP) => Ok(()),
+            header_typ => Err(CoseError::UnexpectedTyp(Self::TYP, header_typ.cloned())),
+        }
+    }
 }
 
 impl<T: CoseTyp> CoseTyp for CborIntMap<T> {
@@ -158,8 +166,13 @@ impl<T> TypedCose<CoseSign1, T> {
     }
 
     /// Get the certificate chain from the unprotected `x5chain` header parameter.
-    pub fn x5chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
+    pub fn unprotected_x5chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
         x5chain_from_header(&self.as_ref().unprotected)
+    }
+
+    /// Get the certificate chain from the protected `x5chain` header parameter.
+    pub fn protected_x5chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
+        x5chain_from_header(self.protected_header())
     }
 
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.
@@ -178,7 +191,39 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
-        let x5chain = self.x5chain()?;
+        let x5chain = self.unprotected_x5chain()?;
+
+        self.verify_with_x5chain(&x5chain, trust_anchors, time, certificate_usage)
+    }
+
+    /// Verify the certificate path from the protected `x5chain` header and the COSE signature, enforce
+    /// [`CoseTyp::TYP`] on the protected `typ` header, then deserialize the authenticated payload. This is the
+    /// counterpart of [`Self::sign_with_typ_and_certificate`].
+    ///
+    /// Requiring a protected `x5chain` integrity protects the end-entity certificate, as RFC 9360 requires and as ISO
+    /// 18013-5 (second edition, 12.3.6.3) requires for the MSO revocation list. Note that this differs from mdoc
+    /// `IssuerAuth`, which ISO 18013-5 puts in the unprotected header.
+    ///
+    /// Configured trust anchors present among the intermediate certificates are ignored. The leaf certificate
+    /// must not itself be a trust anchor.
+    pub fn verify_with_typ_against_trust_anchors(
+        &self,
+        trust_anchors: &TrustAnchors,
+        time: &impl Generator<DateTime<Utc>>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
+    ) -> Result<T, CoseError>
+    where
+        T: DeserializeOwned + CoseTyp,
+    {
+        let typ = self
+            .protected_header()
+            .rest
+            .iter()
+            .find(|(label, _)| label == &Label::Int(COSE_TYP_HEADER_LABEL))
+            .map(|(_, value)| value);
+        T::is_valid_typ(typ)?;
+
+        let x5chain = self.protected_x5chain()?;
 
         self.verify_with_x5chain(&x5chain, trust_anchors, time, certificate_usage)
     }
@@ -198,7 +243,7 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
-        let x5chain = self.x5chain()?;
+        let x5chain = self.unprotected_x5chain()?;
 
         self.verify_against_trust_anchors_with_chain_and_crl(
             x5chain,
@@ -301,4 +346,110 @@ async fn sign_cose_with_headers(
         protected: protected_header,
         unprotected: unprotected_header,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::assert_matches;
+
+    use crypto::server_keys::generate::Ca;
+    use serde::Deserialize;
+    use utils::generator::TimeGenerator;
+
+    use super::*;
+
+    const TOY_TYP: &str = "application/toy+cwt";
+
+    #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+    struct ToyMessage {
+        string: String,
+    }
+
+    impl CoseTyp for ToyMessage {
+        const TYP: &'static str = TOY_TYP;
+    }
+
+    fn toy_message() -> ToyMessage {
+        ToyMessage {
+            string: "Hello, World!".to_owned(),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_protected_and_unprotected_x5chain() {
+        let ca = Ca::generate_mock();
+        let key_pair = ca.generate_issuer_status_list_mock().unwrap();
+
+        let cose = TypedCose::sign_with_typ_and_certificate(&toy_message(), &key_pair)
+            .await
+            .unwrap();
+
+        assert_eq!(cose.protected_x5chain().unwrap().first(), key_pair.certificate());
+        assert_matches!(
+            cose.unprotected_x5chain(),
+            Err(CoseError::MissingLabel(Label::Int(COSE_X5CHAIN_HEADER_LABEL)))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_verify_with_typ_against_trust_anchors_verifies_sign_with_typ_and_certificate() {
+        let ca = Ca::generate_mock();
+        let key_pair = ca.generate_issuer_status_list_mock().unwrap();
+
+        let cose = TypedCose::sign_with_typ_and_certificate(&toy_message(), &key_pair)
+            .await
+            .unwrap();
+        let payload = cose
+            .verify_with_typ_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None)
+            .unwrap();
+
+        assert_eq!(payload, toy_message());
+    }
+
+    #[tokio::test]
+    async fn test_verify_with_typ_against_trust_anchors_rejects_unexpected_typ() {
+        let ca = Ca::generate_mock();
+        let key_pair = ca.generate_issuer_status_list_mock().unwrap();
+
+        let mut protected_header = header_with_x5chain(&vec_nonempty![key_pair.certificate()]);
+        protected_header.rest.push((
+            Label::Int(COSE_TYP_HEADER_LABEL),
+            Value::Text("application/other+cwt".to_owned()),
+        ));
+        protected_header.alg = Some(coset::Algorithm::Assigned(iana::Algorithm::ES256));
+
+        let cose =
+            TypedCose::sign_with_protected_header(&toy_message(), protected_header, Header::default(), &key_pair)
+                .await
+                .unwrap();
+
+        let error = cose
+            .verify_with_typ_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None)
+            .unwrap_err();
+
+        assert_matches!(error, CoseError::UnexpectedTyp(TOY_TYP, Some(Value::Text(typ))) if typ == "application/other+cwt");
+    }
+
+    #[tokio::test]
+    async fn test_verify_with_typ_against_trust_anchors_requires_protected_x5chain() {
+        let ca = Ca::generate_mock();
+        let key_pair = ca.generate_issuer_status_list_mock().unwrap();
+
+        let mut protected_header = Header::default();
+        protected_header
+            .rest
+            .push((Label::Int(COSE_TYP_HEADER_LABEL), Value::Text(TOY_TYP.to_owned())));
+        protected_header.alg = Some(coset::Algorithm::Assigned(iana::Algorithm::ES256));
+        let unprotected_header = header_with_x5chain(&vec_nonempty![key_pair.certificate()]);
+        let cose =
+            TypedCose::sign_with_protected_header(&toy_message(), protected_header, unprotected_header, &key_pair)
+                .await
+                .unwrap();
+
+        let error = cose
+            .verify_with_typ_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None)
+            .unwrap_err();
+
+        assert_matches!(error, CoseError::MissingLabel(Label::Int(COSE_X5CHAIN_HEADER_LABEL)));
+    }
 }

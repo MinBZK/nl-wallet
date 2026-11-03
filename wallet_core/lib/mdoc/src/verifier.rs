@@ -283,7 +283,7 @@ impl IssuerSigned {
             .transpose()?
             .unwrap_or_default();
 
-        let signing_cert = self.issuer_auth.x5chain()?.into_first();
+        let signing_cert = self.issuer_auth.unprotected_x5chain()?.into_first();
         let ca_cns = signing_cert
             .issuer_common_names()
             .map_err(Error::CertificateNameError)?;
@@ -404,7 +404,7 @@ impl Document {
         }
         debug!("signature valid");
 
-        let issuer_certificate = &self.issuer_signed.issuer_auth.x5chain()?.into_first();
+        let issuer_certificate = &self.issuer_signed.issuer_auth.unprotected_x5chain()?.into_first();
 
         let revocation_status = match &mso.status {
             Some(MdocStatus::StatusList(status_list_claim)) => {

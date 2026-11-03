@@ -1182,10 +1182,7 @@ pub trait JwtTyp {
     fn is_valid_typ(header_typ: Option<&str>) -> Result<(), JwtVerifyError> {
         // The `typ` header contains a media type, which is case-insensitive and consists of ASCII characters only.
         if header_typ.is_none_or(|typ| !typ.eq_ignore_ascii_case(Self::TYP)) {
-            return Err(JwtVerifyError::UnexpectedTyp(
-                Self::TYP.to_owned(),
-                header_typ.map(str::to_owned),
-            ));
+            return Err(JwtVerifyError::UnexpectedTyp(Self::TYP, header_typ.map(str::to_owned)));
         }
         Ok(())
     }

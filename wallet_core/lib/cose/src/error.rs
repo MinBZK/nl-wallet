@@ -26,6 +26,10 @@ pub enum CoseError {
     #[category(pd)]
     UnsupportedAlgorithm(coset::Algorithm),
 
+    #[error("unexpected type: expected {0}, found {1:?}")]
+    #[category(pd)]
+    UnexpectedTyp(&'static str, Option<ciborium::Value>),
+
     #[error("mismatch between COSE algorithm and public key: {0:?}")]
     #[category(pd)]
     MismatchAlgorithmWithPublicKey(iana::Algorithm),
@@ -94,6 +98,10 @@ mod tests {
         for error in [
             CoseError::MissingLabel(Label::Text("personal data".to_owned())),
             CoseError::UnsupportedAlgorithm(coset::Algorithm::Text("personal data".to_owned())),
+            CoseError::UnexpectedTyp(
+                "application/statuslist+cwt",
+                Some(ciborium::Value::Text("application/statuslist+jwt".to_owned())),
+            ),
         ] {
             assert_eq!(error.category(), Category::PersonalData);
         }
