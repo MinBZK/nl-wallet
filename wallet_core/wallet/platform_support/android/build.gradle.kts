@@ -115,8 +115,7 @@ android {
     }
 }
 
-// Standalone uses built-in Kotlin, in the app Flutter applies KGP
-extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension> {
+kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
         freeCompilerArgs = listOf("-Xstring-concat=inline")
@@ -224,7 +223,7 @@ mapOf(
     BuildMode.Profile to BuildOptions(args=listOf("--locked", "--release")),
     BuildMode.Release to BuildOptions(args=listOf("--locked", "--release")),
 ).forEach { (buildMode, options) ->
-    tasks.named { it == "compile${buildMode}Kotlin" }.configureEach {
+    tasks.named { it in setOf("compile${buildMode}Kotlin", "extract${buildMode}Annotations") }.configureEach {
         dependsOn("cargoBuildNativeBindings")
     }
 
