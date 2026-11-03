@@ -4,7 +4,7 @@ use std::str;
 
 use aes_gcm::Aes256Gcm;
 use base64::prelude::*;
-use crypto::SymmetricKey;
+use crypto::keys::SymmetricKey;
 use http::header;
 use http_utils::reqwest::tls_pinned_client_builder;
 use http_utils::urls::BaseUrl;

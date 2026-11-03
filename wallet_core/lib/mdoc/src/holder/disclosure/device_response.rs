@@ -1,4 +1,4 @@
-use crypto::CredentialEcdsaKey;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use itertools::Itertools;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -114,7 +114,7 @@ impl DeviceResponse {
 
 #[cfg(test)]
 mod tests {
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;

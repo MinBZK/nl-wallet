@@ -43,7 +43,7 @@ use std::sync::LazyLock;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
-use crypto::PublicKey;
+use crypto::keys::PublicKey;
 use crypto::utils::random_string;
 use derive_more::AsRef;
 use derive_more::Display;
@@ -249,7 +249,7 @@ mod tests {
     use std::assert_matches;
 
     use base64::prelude::*;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use jwt::Header;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;

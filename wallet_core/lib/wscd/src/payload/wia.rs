@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::AsPublicKeyRef;
+use crypto::keys::AsPublicKeyRef;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
@@ -243,8 +243,8 @@ mod tests {
     use chrono::Duration;
     use chrono::TimeDelta;
     use chrono::Utc;
-    use crypto::AsPublicKeyRef;
-    use crypto::PublicKeyRef;
+    use crypto::keys::AsPublicKeyRef;
+    use crypto::keys::PublicKeyRef;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;

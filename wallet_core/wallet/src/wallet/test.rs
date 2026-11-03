@@ -29,7 +29,7 @@ use attestation_types::pid_constants::pid_attestation_type;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKeyRef;
+use crypto::keys::PublicKeyRef;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;

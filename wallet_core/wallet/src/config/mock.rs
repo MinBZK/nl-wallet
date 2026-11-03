@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crypto::EcdsaKey;
+use crypto::keys::EcdsaKey;
 use jwt::KeyWithKid;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;

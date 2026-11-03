@@ -7,7 +7,7 @@ use coset::Header;
 use coset::Label;
 use coset::ProtectedHeader;
 use coset::iana;
-use crypto::PublicKey;
+use crypto::keys::PublicKey;
 use derive_more::AsMut;
 use derive_more::AsRef;
 use p256::ecdsa::signature::Verifier as _;

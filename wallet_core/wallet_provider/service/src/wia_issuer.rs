@@ -2,7 +2,7 @@ use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
-use crypto::PublicKeyRef;
+use crypto::keys::PublicKeyRef;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::x509::CertificateNameError;

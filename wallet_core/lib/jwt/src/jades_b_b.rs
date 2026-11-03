@@ -1,6 +1,6 @@
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::EcdsaKey;
+use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;

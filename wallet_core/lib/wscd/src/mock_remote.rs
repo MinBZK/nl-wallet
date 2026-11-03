@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::keys::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;

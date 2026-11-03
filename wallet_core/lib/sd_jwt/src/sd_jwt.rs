@@ -10,9 +10,9 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::CredentialEcdsaKey;
-use crypto::EcdsaKey;
-use crypto::PublicKey;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::EcdsaKey;
+use crypto::keys::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
@@ -855,8 +855,8 @@ mod examples {
     use chrono::DateTime;
     use chrono::Days;
     use chrono::Utc;
-    use crypto::AsPublicKeyRef;
-    use crypto::PublicKeyRef;
+    use crypto::keys::AsPublicKeyRef;
+    use crypto::keys::PublicKeyRef;
     use jwt::confirmation::ConfirmationClaim;
     use p256::ecdsa::VerifyingKey;
     use serde_json::Value;
@@ -914,7 +914,7 @@ mod test {
     use std::time::Duration;
 
     use chrono::DateTime;
-    use crypto::PublicKeyRef;
+    use crypto::keys::PublicKeyRef;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::Itertools;

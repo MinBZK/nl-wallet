@@ -18,7 +18,7 @@ use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
 use attestation_types::pid_constants::PID_RESIDENT_STREET;
 use attestation_types::status_claim::StatusClaim;
 use chrono::Utc;
-use crypto::PublicKeyRef;
+use crypto::keys::PublicKeyRef;
 use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use dcql::CredentialQueryIdentifier;

@@ -47,8 +47,8 @@ use x509_parser::x509::X509Name;
 use yoke::Yoke;
 use yoke::Yokeable;
 
-use crate::PublicKey;
-use crate::PublicKeyError;
+use crate::keys::PublicKey;
+use crate::keys::PublicKeyError;
 use crate::trust_anchor::TrustAnchors;
 
 #[cfg(any(test, feature = "generate"))]

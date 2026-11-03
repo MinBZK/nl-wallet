@@ -1,5 +1,5 @@
-use crypto::AsPublicKeyRef;
-use crypto::PublicKey;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::PublicKey;
 use jsonwebtoken::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;

@@ -2,8 +2,8 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::num::NonZeroU8;
 
-use crypto::WithVerifyingKey;
 use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::WithVerifyingKey;
 use crypto::p256_der::DerSignature;
 use crypto::utils::sha256;
 use crypto::wscd::DisclosureWscd;

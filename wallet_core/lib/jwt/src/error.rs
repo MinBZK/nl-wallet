@@ -1,5 +1,5 @@
-use crypto::PublicKey;
-use crypto::PublicKeyError;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyError;
 use crypto::x509::CertificateParseError;
 use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;

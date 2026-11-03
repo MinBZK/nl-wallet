@@ -1155,8 +1155,8 @@ mod tests {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use base64::prelude::*;
     use coset::iana;
-    use crypto::PublicKey;
-    use crypto::PublicKeyRef;
+    use crypto::keys::PublicKey;
+    use crypto::keys::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;

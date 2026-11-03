@@ -2,7 +2,7 @@ use std::num::NonZeroUsize;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::keys::PublicKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::p256_der::DerSignature;
 use futures::future;
@@ -854,7 +854,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
         let pubkey = verified_sd_jwt
             .holder_pubkey()
             .expect("holder pubkey should be a valid JWK");
-        let crypto::PublicKey::ESP256(key) = pubkey else {
+        let crypto::keys::PublicKey::ESP256(key) = pubkey else {
             return Err(InstructionError::UnsupportedHolderPublicKey(Box::new(pubkey)));
         };
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;

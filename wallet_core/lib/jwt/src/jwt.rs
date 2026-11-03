@@ -9,11 +9,11 @@ use std::time::Duration;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::AsPublicKeyRef;
-use crypto::CredentialEcdsaKey;
-use crypto::PublicKey;
-use crypto::PublicKeyRef;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyRef;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
@@ -533,7 +533,7 @@ where
 ///
 /// # Example
 /// ```
-/// # use crypto::PublicKeyRef;
+/// # use crypto::keys::PublicKeyRef;
 /// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -771,7 +771,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// # Examples
 /// From an `UnverifiedJwt`:
 /// ```
-/// # use crypto::PublicKeyRef;
+/// # use crypto::keys::PublicKeyRef;
 /// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -1379,7 +1379,7 @@ mod tests {
 
     use ::axum::response::IntoResponse;
     use chrono::TimeDelta;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;

@@ -371,7 +371,7 @@ mod tests {
     use std::time::Duration;
 
     use chrono::Utc;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;

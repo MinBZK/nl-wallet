@@ -5,7 +5,7 @@ use attestation_data::organization::Organization;
 use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::CredentialEcdsaKey;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use dcql::CredentialQueryIdentifier;

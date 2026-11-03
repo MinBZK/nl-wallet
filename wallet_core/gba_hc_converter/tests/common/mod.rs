@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use aes_gcm::Aes256Gcm;
 use aes_gcm::KeyInit;
 use aes_gcm::aead::OsRng;
-use crypto::SymmetricKey;
+use crypto::keys::SymmetricKey;
 use gba_hc_converter::gba::encryption::HmacSha256;
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use tempfile::TempDir;

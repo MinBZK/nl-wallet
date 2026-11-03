@@ -5,7 +5,7 @@ use axum::Router;
 #[cfg(feature = "test_api")]
 use axum::extract::Path;
 use axum::extract::State;
-use crypto::EcdsaKeySend;
+use crypto::keys::EcdsaKeySend;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use token_status_list::status_list_service::RevocationError;

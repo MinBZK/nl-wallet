@@ -2,8 +2,8 @@ use std::convert::Infallible;
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use crypto::PublicKey;
-use crypto::PublicKeyRef;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyRef;
 use crypto::p256_der::DerVerifyingKey;
 use jwt::Algorithm;
 use jwt::JwtValidation;

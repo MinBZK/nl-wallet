@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use attestation_types::claim_path::ClaimPath;
-use crypto::PublicKeyRef;
+use crypto::keys::PublicKeyRef;
 use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::KeyPair;

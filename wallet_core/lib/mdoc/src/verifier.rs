@@ -4,7 +4,7 @@ use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use coset::iana;
-use crypto::PublicKey;
+use crypto::keys::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use crypto::x509::KeyIdentifier;

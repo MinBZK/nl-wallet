@@ -4,7 +4,7 @@ use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::keys::PublicKey;
 use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use jwt::Header;

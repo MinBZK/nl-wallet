@@ -12,7 +12,7 @@ use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::keys::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
 use futures::TryFutureExt;

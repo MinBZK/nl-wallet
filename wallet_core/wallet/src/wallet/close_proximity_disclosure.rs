@@ -18,7 +18,7 @@ use attestation_data::x509::RelyingPartyError;
 use chrono::DateTime;
 use chrono::Utc;
 use ciborium::value::Value;
-use crypto::CredentialEcdsaKey;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::CertificateVerifyError;
 use crypto::x509::DistinguishedNameError;
@@ -1043,7 +1043,7 @@ mod tests {
     use chrono::Utc;
     use ciborium::value::Value;
     use cose::wrprc_cwt::WrprcCwtError;
-    use crypto::WithVerifyingKey;
+    use crypto::keys::WithVerifyingKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;

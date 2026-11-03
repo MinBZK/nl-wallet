@@ -11,5 +11,3 @@ pub mod x509;
 pub mod examples;
 #[cfg(feature = "mock")]
 pub mod mock_remote;
-
-pub use keys::*;

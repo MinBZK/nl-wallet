@@ -237,7 +237,7 @@ pub struct AppleAssertion(Vec<u8>);
 ///
 /// # Example
 /// ```rust
-/// use crypto::SymmetricKey;
+/// use crypto::keys::SymmetricKey;
 ///
 /// let key_bytes = vec![0x01, 0x02, 0x03, 0x04];
 /// let symmetric_key: SymmetricKey = key_bytes.into();
@@ -292,8 +292,8 @@ mod tests {
     use rsa::pkcs8::DecodePrivateKey;
     use rstest::rstest;
 
-    use crate::PublicKey;
-    use crate::PublicKeyError;
+    use crate::keys::PublicKey;
+    use crate::keys::PublicKeyError;
 
     fn hash(key: &PublicKey) -> u64 {
         let mut hasher = DefaultHasher::new();
