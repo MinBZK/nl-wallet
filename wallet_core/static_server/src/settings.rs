@@ -26,6 +26,7 @@ pub struct Settings {
     pub wallet_config_jwt: VerifiedJwt<WalletConfiguration, HeaderWithKid>,
     pub wua_publish_dir: PublishDir,
     pub wrprc_publish_dir: PublishDir,
+    pub videos_dir: Option<PathBuf>,
 }
 
 impl Settings {
