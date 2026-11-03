@@ -18,6 +18,37 @@ emitted with `id` (the axe-analogous rule id), `impact`
 Rules tagged `best-practice` run **by default** and are excluded only with
 `--no-best-practice`.
 
+## Axe rule catalog
+
+Every rule object the report emits — in `violations`, `incomplete`, `passes`,
+or `inapplicable` — carries axe's `description` and `help` strings alongside the
+`id`/`tags`/`impact` from the rule's own section below. This table is the source
+of those two strings; `helpUrl` is always
+`https://dequeuniversity.com/rules/axe/4.12/<id>?application=axeAPI`.
+
+| id | description | help |
+|----|-------------|------|
+| `image-alt` | Ensure informative images and image buttons have an accessible name | Images must have an accessible name |
+| `label` | Ensure form elements have labels | Form elements must have labels |
+| `structure` | Ensure information and relationships conveyed visually are exposed programmatically | Visual structure and relationships must be available to assistive technology |
+| `reading-order` | Ensure the page-source order matches the meaningful reading order | Elements must be exposed in a meaningful sequence |
+| `sensory-characteristics` | Ensure instructions do not rely solely on sensory characteristics such as shape, size, or position | Instructions must not rely on sensory characteristics alone |
+| `identify-input-purpose` | Ensure inputs collecting user information declare their autofill purpose | Input purpose must be programmatically identifiable |
+| `use-of-color` | Ensure colour is not the only visual means of conveying information | Colour must not be the only means of conveying information |
+| `color-contrast` | Ensure the contrast between foreground and background colours meets WCAG 2 AA minimum contrast ratio thresholds | Elements must meet minimum colour contrast ratio thresholds |
+| `image-of-text` | Ensure live text is used instead of images of text | Text must not be presented as an image of text |
+| `non-text-contrast` | Ensure UI components and meaningful graphics have sufficient contrast against adjacent colours | Non-text elements must have sufficient contrast |
+| `screen-title` | Ensure each screen has a title that describes its topic or purpose | Screens must have a descriptive title |
+| `link-name` | Ensure links have discernible, descriptive text | Links must have discernible text |
+| `descriptive-headings-labels` | Ensure headings and labels describe their topic or purpose | Headings and labels must be descriptive |
+| `label-in-name` | Ensure a control's accessible name contains its visible label text | Visible label text must be contained in the accessible name |
+| `error-identification` | Ensure input errors are identified to the user in text | Input errors must be identified in text |
+| `error-suggestion` | Ensure a correction suggestion is provided for input errors when known | Input errors must offer a correction suggestion when one is known |
+| `button-name` | Ensure buttons have discernible text | Buttons must have discernible text |
+| `control-role-state` | Ensure interactive controls expose their role and current state | Controls must expose their name, role, and state |
+| `target-size` | Ensure touch targets are large enough to activate reliably | Touch targets must be at least 48x48 dp (44x44 pt on iOS) |
+| `touch-target-spacing` | Ensure adjacent touch targets have enough spacing to avoid mis-taps | Adjacent touch targets must have sufficient spacing |
+
 ## Reporting bias — aggressive
 
 This scan is tuned for **recall over precision**: it is better to raise a

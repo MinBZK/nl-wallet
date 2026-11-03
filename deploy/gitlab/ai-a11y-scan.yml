@@ -26,6 +26,10 @@ ai-a11y-scan:
     GIT_DEPTH: 0
     SCAN_MODEL: "claude-sonnet-4-6"
     CLAUDE_CODE_MAX_TURNS: "150"
+    # A11Y-REPORT.json now carries all four axe buckets (passes/inapplicable
+    # included) for every screen, so writing it is a large tool call. Claude
+    # Code caps a single response at 32000 output tokens by default.
+    CLAUDE_CODE_MAX_OUTPUT_TOKENS: "64000"
     # Headless `claude -p` ends the session as soon as the model stops for input,
     # so a turn that ends with a clarifying question produces no report. This
     # system-prompt append forbids that: the agent must run to completion without
@@ -99,6 +103,7 @@ ai-a11y-scan:
     - claude -p "/a11y-scan captures" --model "${SCAN_MODEL}" --verbose --append-system-prompt "$NONINTERACTIVE"
     # Gate on the report being complete
     - ./validate-report.sh A11Y-REPORT.json captures
+    - test -f A11Y-REPORT.meta.json || { echo "No A11Y-REPORT.meta.json (report generation did not finish)"; exit 1; }
     - test -f A11Y-REPORT.md || { echo "No A11Y-REPORT.md (report generation did not finish)"; exit 1; }
     # Publish the axe-form report to MinIO for downstream tooling. store-artifact.sh
     # tags it with the commit sha and only uploads on the default branch, matching
@@ -110,4 +115,5 @@ ai-a11y-scan:
     expire_in: 30 days
     paths:
       - deploy/qa-util/ai-a11y-scan/A11Y-REPORT.json
+      - deploy/qa-util/ai-a11y-scan/A11Y-REPORT.meta.json
       - deploy/qa-util/ai-a11y-scan/A11Y-REPORT.md

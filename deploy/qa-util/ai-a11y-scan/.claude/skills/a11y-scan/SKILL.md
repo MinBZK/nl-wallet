@@ -4,8 +4,10 @@ description: >-
   AI accessibility scan of NL Wallet screen captures against WCAG 2.1 AA.
   Reads a folder of Appium page-source XML + screenshot pairs (one per
   screen/platform), spawns one review subagent per screen, applies the
-  false-positive suppression file, and writes an axe-form A11Y-REPORT.json +
-  .md. Read-only — it inspects captures, never builds or drives the app. Use
+  false-positive suppression file, and writes a raw axe-core A11Y-REPORT.json
+  (a bare array of result objects, drop-in for axe tooling) alongside an
+  A11Y-REPORT.meta.json sidecar and a human-readable A11Y-REPORT.md.
+  Read-only — it inspects captures, never builds or drives the app. Use
   when asked to "scan for accessibility issues", "run the a11y scan", "check
   WCAG on these screens", or to process captures from captureA11ySnapshot.
 argument-hint: "<captures-dir> [--platform android|ios] [--screen <name>] [--no-best-practice] [--fp-rules <file>] [--no-suppress] [--single]"
@@ -34,8 +36,12 @@ allowed-tools:
 # /a11y-scan
 
 Accessibility review of NL Wallet screen captures against **WCAG 2.1 AA**.
-Produces `A11Y-REPORT.json` — a wrapper holding one [axe-core](https://github.com/dequelabs/axe-core)
-result object per screen — plus a human-readable `A11Y-REPORT.md`.
+Produces `A11Y-REPORT.json` — a **raw [axe-core](https://github.com/dequelabs/axe-core)
+report**: a bare JSON array of result objects, one per screen, byte-compatible
+with axe's own output so it drops straight into axe report tooling. The scan's
+own metadata that axe has no place for — capture provenance, the suppression
+list, and the run summary — lives in a sibling `A11Y-REPORT.meta.json`, and a
+human-readable `A11Y-REPORT.md` accompanies both.
 
 **No app execution.** This skill reads the page-source XML and screenshots the
 e2e tests already collected and reasons about them. It never builds, launches,
@@ -172,7 +178,9 @@ For contrast findings, read the actual foreground and background colours from
 the pixels around the text/component in the screenshot and compute the ratio.
 Never invent a ratio you did not derive from the image.
 
-OUTPUT — one XML block per finding, nothing else:
+OUTPUT — findings first, then exactly one <coverage> block, nothing else.
+
+A) One <finding> block per violation and per incomplete:
 
 <finding>
 <rule_id>{axe-analogous id from the ruleset, e.g. image-alt | label | structure | reading-order | sensory-characteristics | identify-input-purpose | use-of-color | color-contrast | image-of-text | non-text-contrast | screen-title | link-name | descriptive-headings-labels | label-in-name | error-identification | error-suggestion | button-name | control-role-state | target-size}</rule_id>
@@ -188,19 +196,53 @@ OUTPUT — one XML block per finding, nothing else:
 <confidence>{0.0-1.0}</confidence>
 </finding>
 
-If the screen has no issues after a thorough pass, emit one <finding> with
-rule_id=none and a one-line note of what was reviewed.
+B) Exactly one <coverage> block that accounts for EVERY active rule id on this
+screen. A real axe run reports each rule as violations / incomplete / passes /
+inapplicable; this block supplies the pass and inapplicable dispositions so the
+collator can build those two buckets (the finding blocks above already cover
+violations and incomplete). Every active rule id must appear in exactly one
+place: a <finding> above, a `pass:` line, or the `inapplicable:` list — never
+more than one, never omitted.
+
+- `pass:` — the rule applies to this screen (at least one in-scope element is
+  the kind the rule governs) and every such element satisfies it. Give one
+  representative passing element per line. If you cannot name a concrete
+  passing element, the rule is `inapplicable`, not a pass.
+- `inapplicable:` — the screen has no element the rule governs (e.g. `label` on
+  a screen with no input, `error-identification` with no visible error state).
+
+<coverage>
+pass:
+  {rule_id} | {target locator} | {page-source element snippet, one node} | {one line: why it satisfies the rule}
+  ...
+inapplicable:
+  {rule_id}
+  ...
+</coverage>
+
+A clean screen (no violations, no incompletes) therefore emits zero <finding>
+blocks and a <coverage> block whose `pass:`/`inapplicable:` lists together name
+every active rule.
 ```
 
 ## Step 3 — Collate
 
-1. Collect every `<finding>` block from all subagents. Drop `rule_id=none`
-   placeholders (but keep a note that the screen was clean).
+1. Collect every `<finding>` and the one `<coverage>` block from each subagent.
 2. **Light dedupe within a screen:** if two findings share the same `rule_id`
    and the same `target`, keep the one with the longer description.
-3. Group findings by screen (`{screen}.{platform}`). Split each screen's
-   findings into `violations` (status=violation) and `incomplete`
-   (status=incomplete).
+3. Group by screen (`{screen}.{platform}`). For each screen, bucket every active
+   rule into exactly one of the four axe lists, so the four together account for
+   the whole active rule set on that screen:
+   - **violations** — findings with `status=violation`.
+   - **incomplete** — findings with `status=incomplete`.
+   - **passes** — rules named on a `pass:` line (with their representative node).
+   - **inapplicable** — rules named in the `inapplicable:` list.
+   A rule that shows up in a finding is never also emitted as a pass or
+   inapplicable. If a subagent left an active rule out of all four, treat it as
+   `inapplicable` for that screen (and note the gap in the hand-back) rather than
+   dropping it — the report must cover every active rule on every screen, the
+   way axe does. Best-practice rules are part of the active set only when they
+   are enabled; when `--no-best-practice` is given they appear in no bucket.
 
 ## Step 4 — Suppress false positives (skip with `--no-suppress`)
 
@@ -231,72 +273,250 @@ Respond ONLY with lines:
 Omit findings that are not suppressed. No prose.
 ```
 
-3. Move each suppressed finding out of `violations` into a top-level
-   `suppressed[]` entry recording the finding, the matched rule number, and the
-   reason. `violations` keeps only what survived.
+3. Move each suppressed finding out of its screen's `violations` and record it
+   in the **meta sidecar's** `suppressed[]` (Step 5) with the finding, the
+   matched rule number, and the reason. The axe `A11Y-REPORT.json` has no place
+   for a suppression list, so a suppressed finding simply does not appear in any
+   result object's `violations`; the record lives only in `A11Y-REPORT.meta.json`.
+   A suppressed rule does **not** migrate to `passes`/`inapplicable` — it was a
+   real match, just an accepted one.
 
-## Step 5 — Build the axe-form report
+## Step 5 — Build the report
 
-Assign stable ids `A-001`, `A-002`, … across all surviving findings ordered by
-(impact desc: critical>serious>moderate>minor, then screen, then rule_id).
+Two JSON files plus the Markdown. `A11Y-REPORT.json` is a **verbatim axe-core
+report** — a bare JSON array of result objects, one per screen, identical in
+shape to what `axe.run()` serialises — so downstream axe tooling ingests it with
+no translation. Everything the scan adds that axe has no slot for goes in the
+`A11Y-REPORT.meta.json` sidecar.
 
-Build one **axe result object per screen** and wrap them:
+Assign stable ids `A-001`, `A-002`, … across all surviving violations/incomplete
+findings ordered by (impact desc: critical>serious>moderate>minor, then screen,
+then rule_id) — these ids are used in the Markdown and the meta sidecar, not in
+the axe JSON (axe has no per-finding id field).
 
-**`A11Y-REPORT.json`** (written to this component's root)
+**Write each file in its own step, as the sole substantial content of that
+response.** Populating all four axe buckets for every screen makes
+`A11Y-REPORT.json` large, and a single response is capped at a fixed output-token
+budget (`CLAUDE_CODE_MAX_OUTPUT_TOKENS`, 32000 by default — CI raises it). So:
+one Write call for `A11Y-REPORT.json`, a separate one for `A11Y-REPORT.meta.json`,
+a separate one for `A11Y-REPORT.md`; never emit a file's contents as prose in
+addition to Writing it, and keep the Step 6 hand-back a short summary, not a
+paste of the report. If the array is so large that even its own Write would
+exceed the budget, write the opening `[`, then append result objects in batches
+with Edit across several responses, closing with `]` — each response stays under
+the cap. The report still ends up byte-identical; only the number of write steps
+changes.
+
+### `A11Y-REPORT.json` — the axe array (written to this component's root)
+
+A JSON **array** (not an object). One result object per screen capture, in
+capture order. Match axe exactly: object keys and node keys are emitted in the
+alphabetical order shown, and the engine/runner/toolOptions values are fixed
+literals so the file is indistinguishable from an axe run.
+
+```json
+[
+  {
+    "inapplicable": [
+      {
+        "description": "Ensure form elements have labels",
+        "help": "Form elements must have labels",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/label?application=axeAPI",
+        "id": "label",
+        "impact": null,
+        "nodes": [],
+        "tags": ["cat.forms", "wcag2a", "wcag131", "wcag332", "wcag412", "wcag21aa"]
+      }
+    ],
+    "incomplete": [
+      {
+        "description": "Ensure the contrast between foreground and background colours meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum colour contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "all": [],
+            "any": [
+              {
+                "data": { "fgColor": null, "bgColor": null, "contrastRatio": null, "expectedContrastRatio": "4.5:1", "fontSize": "normal" },
+                "id": "color-contrast",
+                "impact": "serious",
+                "message": "Unable to sample a reliable contrast ratio — text sits on a gradient background",
+                "relatedNodes": []
+              }
+            ],
+            "failureSummary": "Needs manual verification:\n  Contrast could not be measured from the screenshot (gradient background) — check on device",
+            "html": "<page-source element snippet>",
+            "impact": "serious",
+            "none": [],
+            "target": ["~onboarding_subtitle"]
+          }
+        ],
+        "tags": ["cat.color", "wcag2aa", "wcag143", "wcag21aa"]
+      }
+    ],
+    "passes": [
+      {
+        "description": "Ensure buttons have discernible text",
+        "help": "Buttons must have discernible text",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/button-name?application=axeAPI",
+        "id": "button-name",
+        "impact": null,
+        "nodes": [
+          {
+            "all": [],
+            "any": [
+              { "data": null, "id": "button-name", "impact": "critical", "message": "Element has an accessible name (\"Continue\")", "relatedNodes": [] }
+            ],
+            "html": "<node content-desc=\"Continue\" clickable=\"true\" .../>",
+            "impact": null,
+            "none": [],
+            "target": ["~continue_button"]
+          }
+        ],
+        "tags": ["cat.name-role-value", "wcag2a", "wcag412", "wcag21aa"]
+      }
+    ],
+    "testEngine": { "name": "axe-core", "version": "4.12.1" },
+    "testEnvironment": {
+      "orientationAngle": 0,
+      "orientationType": "portrait-primary",
+      "userAgent": "NL Wallet android app on OnePlus 12R (Android 14)",
+      "windowHeight": 2780,
+      "windowWidth": 1264
+    },
+    "testRunner": { "name": "axe" },
+    "timestamp": "<iso8601, ms + Z, e.g. 2026-10-06T05:41:05.529Z>",
+    "toolOptions": { "reporter": "v1" },
+    "url": "<screen>@android",
+    "violations": [
+      {
+        "description": "Ensure the contrast between foreground and background colours meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum colour contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.12/color-contrast?application=axeAPI",
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "all": [],
+            "any": [
+              {
+                "data": { "fgColor": "#6e6e6e", "bgColor": "#ffffff", "contrastRatio": 2.9, "expectedContrastRatio": "4.5:1", "fontSize": "normal" },
+                "id": "color-contrast",
+                "impact": "serious",
+                "message": "Element has insufficient colour contrast of 2.9 (foreground #6e6e6e, background #ffffff, expected 4.5:1)",
+                "relatedNodes": []
+              }
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient colour contrast of 2.9 (foreground #6e6e6e, background #ffffff, expected 4.5:1)",
+            "html": "<node text=\"Enter your PIN\" .../>",
+            "impact": "serious",
+            "none": [],
+            "target": ["~pin_header_title"]
+          }
+        ],
+        "tags": ["cat.color", "wcag2aa", "wcag143", "wcag21aa"]
+      }
+    ]
+  }
+]
+```
+
+**Per result object** — exactly these ten keys, alphabetical:
+
+- `inapplicable`, `incomplete`, `passes`, `violations` — the four rule buckets
+  from Step 3. Each entry is a **rule object** (below). `incomplete`/`violations`
+  carry the rules that fired on this screen; `passes`/`inapplicable` carry the
+  rest of the active set, so the four lists together cover every active rule.
+- `testEngine` — the fixed literal `{ "name": "axe-core", "version": "4.12.1" }`.
+- `testEnvironment` — the five browser-env keys axe emits, filled from the
+  platform's `<platform>.<environment>.device.json`:
+  `orientationAngle` `0`; `orientationType` `"portrait-primary"` (`"landscape-primary"`
+  only if `screen_width` > `screen_height`); `userAgent` a plain native
+  descriptor `"NL Wallet <platform> app on <device_model> (<platform> <platform_version>)"`;
+  `windowHeight`/`windowWidth` the device's `screen_height`/`screen_width`. If no
+  device file is usable, keep all five keys with `windowHeight`/`windowWidth`
+  `null` and a `userAgent` of `"NL Wallet <platform> app"`.
+- `testRunner` — the fixed literal `{ "name": "axe" }`.
+- `timestamp` — ISO-8601 with milliseconds and a `Z`, e.g. `2026-10-06T05:41:05.529Z`.
+- `toolOptions` — the fixed literal `{ "reporter": "v1" }`.
+- `url` — `<screen>@<platform>` (a native screen has no URL; this is axe's `url`
+  slot repurposed as the screen identifier).
+
+**Rule object** — seven keys, alphabetical: `description`, `help`, `helpUrl`,
+`id`, `impact`, `nodes`, `tags`.
+
+- `id`, `tags` come from the rule's entry in `wcag21aa.md`; `description` and
+  `help` from its row in the ruleset's **Axe rule catalog**.
+- `helpUrl` is always `https://dequeuniversity.com/rules/axe/4.12/<id>?application=axeAPI`.
+- `impact` at the **rule level** is the rule's impact for `violations` and
+  `incomplete`, and `null` for `passes` and `inapplicable` (axe does this).
+- `nodes` is `[]` for every `inapplicable` rule; otherwise one node per element.
+
+**Node object** — alphabetical keys `all`, `any`, (`failureSummary`), `html`,
+`impact`, `none`, `target`:
+
+- `target` — a one-element array holding the native locator (Android
+  `resource-id`/`content-desc` or xpath, iOS `name`/type+index) — axe's CSS-
+  selector slot.
+- `html` — the page-source element snippet (there is no DOM HTML).
+- `impact` — the rule's impact on `violations`/`incomplete` nodes; `null` on
+  `passes` nodes.
+- `any` — one **check object** `{ "data", "id", "impact", "message",
+  "relatedNodes" }`: `id` = rule id, `impact` = the rule's impact,
+  `message` = the human sentence, `data` = the machine detail (contrast
+  colours/ratio, target-size dp, …) or `null`, `relatedNodes` = `[]`. `all` and
+  `none` stay `[]`.
+- `failureSummary` — present **only** on `violations` and `incomplete` nodes.
+  Violations start `Fix any of the following:`; incompletes start
+  `Needs manual verification:`. Omit the key entirely on `passes` nodes.
+
+Mapping notes:
+- A suppressed finding appears in **no** result object (it is recorded only in
+  the meta sidecar). Nothing else is dropped silently.
+- Contrast hex is lower-case (`#6e6e6e`), matching axe.
+- Never fabricate a passing node: a `pass` entry must carry a real element the
+  subagent named. A rule with no concrete element is `inapplicable` (empty
+  `nodes`), not a pass.
+
+### `A11Y-REPORT.meta.json` — the sidecar (same directory)
+
+Everything the axe array has no slot for. Written whether or not there are
+findings.
+
+**Use these exact top-level key names — do not rename or restructure them.**
+`validate-report.sh` gates the run on `wcag_version`, `generated_at`,
+`suppressed`, and `summary` (with numeric `summary.screens` and
+`summary.violations`) **by name**, and reads provenance from `capture_sources`.
+Emitting a synonym instead — `schema_version` for `wcag_version`, `provenance`
+for `capture_sources`, `run_options` for `rules_run` — fails the gate or
+silently drops the provenance echo. `wcag_version` is the literal string
+`"wcag21aa"` (the ruleset version), not a schema or format version. You may add
+extra keys (e.g. a `findings` list), but never rename or omit the ones below.
 
 ```json
 {
   "wcag_version": "wcag21aa",
   "generated_at": "<iso8601>",
   "captures_dir": "<captures-dir>",
+  "report": "A11Y-REPORT.json",
   "capture_sources": {
     "scan_commit": "<commit of the job that ran the scan, or \"unknown\">",
     "android": { "commit": "<commit the Android captures came from>", "archive": "<minio path>" },
     "ios": { "commit": "<commit the iOS captures came from>", "archive": "<minio path>" }
   },
   "rules_run": ["image-alt", "button-name", "..."],
-  "results": [
-    {
-      "testEngine": { "name": "nl-wallet-ai-a11y-scan", "version": "1.0.0" },
-      "testRunner": { "name": "claude-code" },
-      "testEnvironment": { "platform": "android", "captureFile": "<screen>.android.xml", "commit": "<that platform's capture commit>" },
-      "timestamp": "<iso8601>",
-      "url": "<screen>@android",
-      "violations": [
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "tags": ["cat.color", "wcag2aa", "wcag143", "wcag21aa"],
-          "description": "Elements must meet minimum colour contrast ratio thresholds",
-          "help": "Text must have a contrast ratio of at least 4.5:1 (3:1 for large text)",
-          "helpUrl": "https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html",
-          "nodes": [
-            {
-              "target": ["~pin_header_title"],
-              "html": "<page-source element snippet>",
-              "impact": "serious",
-              "failureSummary": "Fix any of the following:\n  Element has insufficient colour contrast of 2.9:1 (foreground #6E6E6E, background #FFFFFF, expected 4.5:1)",
-              "any": [
-                { "id": "color-contrast", "data": { "fgColor": "#6E6E6E", "bgColor": "#FFFFFF", "contrastRatio": 2.9, "expectedContrastRatio": "4.5:1", "fontSize": "normal" }, "message": "Element has insufficient colour contrast" }
-              ],
-              "all": [],
-              "none": []
-            }
-          ]
-        }
-      ],
-      "incomplete": [ { "id": "...", "impact": "...", "tags": ["..."], "description": "...", "help": "...", "helpUrl": "...", "nodes": [ { "target": ["..."], "html": "...", "failureSummary": "Needs manual verification: ...", "any": [], "all": [], "none": [] } ] } ],
-      "passes": [],
-      "inapplicable": []
-    }
-  ],
   "suppressed": [
-    { "screen": "<screen>@android", "id": "image-alt", "target": ["..."], "matched_rule": 1, "reason": "..." }
+    { "id": "A-007", "screen": "<screen>@android", "rule": "image-alt", "target": ["..."], "matched_rule": 1, "reason": "..." }
   ],
   "summary": {
     "screens": 0,
     "violations": 0,
     "incomplete": 0,
+    "passes": 0,
+    "inapplicable": 0,
     "suppressed": 0,
     "by_impact": { "critical": 0, "serious": 0, "moderate": 0, "minor": 0 },
     "by_rule": { "color-contrast": 0 }
@@ -304,24 +524,21 @@ Build one **axe result object per screen** and wrap them:
 }
 ```
 
-Notes on the axe mapping for native captures:
-- `nodes[].html` holds the page-source element snippet (there is no DOM HTML).
-- `nodes[].target` holds a native locator (Android `resource-id`/`content-desc`
-  or xpath, iOS `name`/type+index), the analog of a CSS selector.
-- Each finding's check goes in `nodes[].any[]` with `id` = rule id, `data` =
-  the machine-readable detail (contrast colours/ratio, etc.), and `message`.
-  `all`/`none` stay empty. This matches axe's node result shape closely enough
-  for axe report tooling to ingest.
-- `capture_sources` records where the captures came from, and
-  `testEnvironment.commit` repeats that platform's commit on each result so a
-  single result object is self-describing. Keep Android and iOS separate: the
-  two archives are refreshed independently, so one commit for the whole report
-  would be wrong. Use `"unknown"` rather than falling back to `scan_commit`.
-- `passes`/`inapplicable` are left empty — a static capture cannot assert a
-  criterion passed, so unflagged elements are simply not reported.
+- `capture_sources` records where the captures came from (Step 1). Keep Android
+  and iOS separate — the two archives are refreshed independently, so one commit
+  for the whole report would be wrong — and use `"unknown"` rather than falling
+  back to `scan_commit`. This used to live on each result's `testEnvironment`;
+  it now lives here, because the axe result shape has no commit field.
+- `summary.violations` and `summary.incomplete` must equal the counts across the
+  axe array (`violations` is what survived suppression); `summary.suppressed`
+  counts the `suppressed[]` entries. The gate re-counts both from the report and
+  fails on a mismatch, so do not hand-tally — derive these from the buckets you
+  actually wrote.
 
-**`A11Y-REPORT.md`** — a summary line, a per-screen section, and one row per
-finding:
+### `A11Y-REPORT.md` — the human-readable view
+
+A summary line, a per-screen section, and one row per finding:
+
 - Header: `{S} screens → {V} violations ({critical}/{serious}/{moderate}/{minor}), {I} incomplete, {P} suppressed`.
 - Provenance line under the header, one entry per platform present, so a reader
   can tell which build was actually reviewed:
