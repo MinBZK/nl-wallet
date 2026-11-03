@@ -102,8 +102,7 @@ automation-tests-load-device-config:
   stage: init
   rules:
     - !reference [.on-schedule-automation, rules]
-    - !reference [.merge-request, rules]
-    - !reference [.default-branch, rules]
+    - !reference [.default-or-merge-request, rules]
   script:
     - |
       SECRET_JSON=$(kubectl get secret nl-wallet-macmini -o json)

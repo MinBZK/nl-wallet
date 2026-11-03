@@ -17,8 +17,6 @@
       artifacts: false
     - job: test-rust-compilation-android
       artifacts: false
-    - job: test-ios
-      artifacts: false
     - job: test-rust-compilation-ios
       artifacts: false
   trigger:
