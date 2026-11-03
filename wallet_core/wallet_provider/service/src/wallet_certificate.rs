@@ -75,9 +75,9 @@ where
         .map_err(WalletCertificateError::JwtSigning)
 }
 
-async fn parse_claims_and_retrieve_wallet_user<T, R>(
+async fn parse_claims_and_retrieve_wallet_user<'a, T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkeys: &impl PublicKeyByKid,
+    certificate_signing_pubkeys: &'a impl PublicKeyByKid<'a>,
     wallet_user_repository: &R,
     include_blocked: bool,
 ) -> Result<(WalletUser, WalletCertificateClaims, Kid), WalletCertificateError>
@@ -185,9 +185,9 @@ where
 /// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the (verified) wallet
 ///   certificate
 /// - Return the [`WalletUser`].
-pub async fn verify_wallet_certificate<T, R, F, H, P, S>(
+pub async fn verify_wallet_certificate<'a, T, R, F, H, P, S>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkeys: &impl PublicKeyByKid,
+    certificate_signing_pubkeys: &'a impl PublicKeyByKid<'a>,
     pin_pubkey_encryption_kids: &KidPair,
     pin_checks: PinCheckOptions,
     pin_pubkey: P,
@@ -229,9 +229,9 @@ where
 /// - Check that the HW key in the [`WalletUser`] are present in the (verified) wallet certificate
 /// - Returns a tuple of the [`WalletUser`], [`WalletCertificateClaims`] and the [`Kid`] of the key that signed the
 ///   wallet certificate.
-pub async fn parse_and_verify_wallet_cert_using_hw_pubkey<T, R>(
+pub async fn parse_and_verify_wallet_cert_using_hw_pubkey<'a, T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkeys: &impl PublicKeyByKid,
+    certificate_signing_pubkeys: &'a impl PublicKeyByKid<'a>,
     allow_for_blocked_users: bool,
     repositories: &R,
 ) -> Result<(WalletUser, WalletCertificateClaims, Kid), WalletCertificateError>

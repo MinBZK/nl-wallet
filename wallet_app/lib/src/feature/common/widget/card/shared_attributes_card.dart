@@ -212,29 +212,30 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
   }
 
   Widget _buildViewCta(BuildContext context) {
-    return Focus(
-      // Prevents the button from being focused to avoid duplicate focus handling with the parent TextButton
-      canRequestFocus: false,
-      descendantsAreFocusable: false,
-      child: TextButton.icon(
-        onPressed: widget.onPressed,
-        statesController: _statesController,
-        icon: const Icon(Icons.arrow_forward),
-        iconAlignment: IconAlignment.end,
-        label: Semantics(
-          button: true,
-          attributedLabel: context.l10n
-              .sharedAttributesCardCtaSemanticsLabel(widget.card.title.l10nValue(context))
-              .toAttributedString(context),
-          excludeSemantics: true /* exclude semantics from child text */,
-          child: Text.rich(context.l10n.sharedAttributesCardCta.toTextSpan(context)),
-        ),
-        style: context.theme.textButtonTheme.style?.copyWith(
-          backgroundColor: WidgetStateProperty.all(Colors.transparent),
-          minimumSize: const WidgetStatePropertyAll(Size.zero),
-          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-          side: WidgetStateBorderSide.resolveWith((states) => BorderSide.none),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    // The nested button only mirrors the card's pressed/focused styling. Its own semantics node would be a second,
+    // unnamed button inside the card (PVW-6333), so only its label is merged into the card's button node.
+    return Semantics(
+      attributedLabel: context.l10n
+          .sharedAttributesCardCtaSemanticsLabel(widget.card.title.l10nValue(context))
+          .toAttributedString(context),
+      excludeSemantics: true,
+      child: Focus(
+        // Prevents the button from being focused to avoid duplicate focus handling with the parent TextButton
+        canRequestFocus: false,
+        descendantsAreFocusable: false,
+        child: TextButton.icon(
+          onPressed: widget.onPressed,
+          statesController: _statesController,
+          icon: const Icon(Icons.arrow_forward),
+          iconAlignment: IconAlignment.end,
+          label: Text.rich(context.l10n.sharedAttributesCardCta.toTextSpan(context)),
+          style: context.theme.textButtonTheme.style?.copyWith(
+            backgroundColor: WidgetStateProperty.all(Colors.transparent),
+            minimumSize: const WidgetStatePropertyAll(Size.zero),
+            padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+            side: WidgetStateBorderSide.resolveWith((states) => BorderSide.none),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
         ),
       ),
     );

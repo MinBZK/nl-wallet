@@ -1,6 +1,6 @@
 use std::assert_matches;
 
-use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::default_reqwest_client_builder;
 use jwt::SignedJwt;
@@ -73,7 +73,7 @@ async fn test_wallet_config() {
     let etag_file = storage_dir.path().join("wallet-config.etag");
 
     let http_config = HttpConfigurationRepository::new(
-        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
+        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
     );
@@ -118,7 +118,7 @@ async fn test_wallet_config_stale() {
 
     let storage_dir = tempfile::tempdir().unwrap();
     let http_config = HttpConfigurationRepository::new(
-        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
+        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
     );
@@ -165,7 +165,7 @@ async fn test_wallet_config_signature_verification_failed() {
 
     let storage_dir = tempfile::tempdir().unwrap();
     let http_config = HttpConfigurationRepository::new(
-        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
+        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
     );
@@ -202,7 +202,7 @@ async fn test_wallet_config_rejected_etag_not_stored() {
 
     let storage_dir = tempfile::tempdir().unwrap();
     let rejecting_http_config = HttpConfigurationRepository::new(
-        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
+        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
     );
@@ -221,7 +221,7 @@ async fn test_wallet_config_rejected_etag_not_stored() {
     // An app update that accepts the served configuration starts out with the same storage, and should therefore
     // receive and apply that configuration.
     let accepting_http_config = HttpConfigurationRepository::new(
-        PublicKey::from(*signing_key.verifying_key()).into(),
+        PublicKeyRef::from(signing_key.verifying_key()).into(),
         storage_dir.path().to_path_buf(),
         default_wallet_config(),
     );

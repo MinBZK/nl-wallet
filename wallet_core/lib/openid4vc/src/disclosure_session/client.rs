@@ -7,6 +7,7 @@ use crypto::x509::crl::CrlFetcher;
 use crypto::x509::crl::HttpCrlFetcher;
 use dcql::normalized::NormalizedCredentialRequest;
 use http_utils::urls::BaseUrl;
+use itertools::Itertools;
 use oauth::errors::AuthorizationErrorResponse;
 use oauth::errors::ErrorResponse;
 use serde::Deserialize;
@@ -16,8 +17,6 @@ use token_status_list::verification::verifier::RevocationVerifier;
 use tracing::info;
 use tracing::warn;
 use utils::generator::TimeGenerator;
-use utils::single_unique::NonEmptySingleUnique;
-use utils::vec_at_least::NonEmptyIterator;
 
 use super::DisclosureClient;
 use super::DisclosureTrustAnchors;
@@ -243,37 +242,23 @@ where
             (result, _) => result.map_err(VpSessionError::Verifier)?,
         };
 
-        // TODO (PVW-4955): Signing of disclosures using a mix of formats is currently unsupported, because of how we
-        //                  use the `DisclosureWscd` trait. If the credential request contains this, simply terminate
-        //                  the session and return an error. In the future, we should change our use of `DisclosureWscd`
-        //                  to support disclosing both mdoc and SD-JWT credentials in the same response.
-        let Ok(format) = auth_request
-            .credential_requests
-            .nonempty_iter()
-            .map(NormalizedCredentialRequest::format)
-            .single_unique()
-        else {
-            let _ = self
-                .client
-                .terminate(auth_request.response_uri, auth_request.state.clone())
-                .await
-                // If termination results in an error, log it and do not return it.
-                .inspect_err(|error| warn!("failed to send session termination to verifier: {error}"));
-
-            return Err(VpSessionError::Client(VpClientError::MixedFormatCredentialRequest));
-        };
-
-        // Validate that the verifier's vp_formats_supported covers the required format and includes ES256.
+        // Validate that the verifier's vp_formats_supported covers each of the requested formats and includes ES256.
         let vp_formats = &auth_request.client_metadata.vp_formats_supported;
-        let format_supported = match format {
-            Format::MsoMdoc => vp_formats
-                .mso_mdoc
-                .as_ref()
-                .is_some_and(MsoMdocAlgValues::contains_ecdsa_p256),
-            Format::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::contains_es_256),
-        };
+        let unsupported_format = auth_request
+            .credential_requests
+            .as_ref()
+            .iter()
+            .map(NormalizedCredentialRequest::format)
+            .unique()
+            .find(|format| match format {
+                Format::MsoMdoc => !vp_formats
+                    .mso_mdoc
+                    .as_ref()
+                    .is_some_and(MsoMdocAlgValues::contains_ecdsa_p256),
+                Format::SdJwt => !vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::contains_es_256),
+            });
 
-        if !format_supported {
+        if let Some(format) = unsupported_format {
             let error = VpVerifierError::VpFormatsNotSupported(format);
             return Err(VpSessionError::Verifier(
                 self.report_error_back(auth_request.response_uri, auth_request.state, error)
@@ -312,7 +297,7 @@ mod tests {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use base64::prelude::*;
     use cose::wrprc_cwt::SignedWrprcCwt;
-    use crypto::PublicKey;
+    use crypto::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -572,17 +557,17 @@ mod tests {
             Format::MsoMdoc => {
                 let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &attestation_key);
 
-                DisclosableAttestations::MsoMdoc(HashMap::from([(
+                HashMap::from([(
                     "mdoc_pid_example".try_into().unwrap(),
-                    vec_nonempty![(partial_mdoc, "attestation_key".to_string())],
-                )]))
+                    DisclosableAttestations::MsoMdoc(vec_nonempty![(partial_mdoc, "attestation_key".to_string())]),
+                )])
                 .try_into()
                 .unwrap()
             }
             Format::SdJwt => {
                 let issuer_key_pair = ca.generate_issuer_mock().unwrap();
                 let verified_sd_jwt =
-                    SignedSdJwt::pid_example(&issuer_key_pair, &PublicKey::from(*attestation_key.verifying_key()))
+                    SignedSdJwt::pid_example(&issuer_key_pair, &PublicKeyRef::from(attestation_key.verifying_key()))
                         .into_verified();
                 let unsigned_presentation = verified_sd_jwt
                     .into_presentation_builder()
@@ -594,10 +579,13 @@ mod tests {
                     .unwrap()
                     .finish();
 
-                DisclosableAttestations::SdJwt(HashMap::from([(
+                HashMap::from([(
                     "sd_jwt_pid_example".try_into().unwrap(),
-                    vec_nonempty![(unsigned_presentation, "attestation_key".to_string())],
-                )]))
+                    DisclosableAttestations::SdJwt(vec_nonempty![(
+                        unsigned_presentation,
+                        "attestation_key".to_string()
+                    )]),
+                )])
                 .try_into()
                 .unwrap()
             }
@@ -1262,46 +1250,111 @@ mod tests {
     }
 
     #[test]
-    fn test_vp_disclosure_client_start_error_mixed_format_credential_request() {
-        // Calling `VpDisclosureClient::start()` where the Authorization Request contains
-        // a credential request with a mix of requested formats should result in an error.
-        let mdoc_credential_request = NormalizedCredentialRequest::new_mock_mdoc_pid_example();
-        let sd_jwt_credential_request = NormalizedCredentialRequest::new_mock_sd_jwt_pid_example();
-
-        let (error, verifier_session) = start_disclosure_session(
+    fn test_vp_disclosure_client_mixed_formats() {
+        // A credential request with a mix of requested formats should result in an
+        // authorization response that contains attestations of both formats.
+        let (disclosure_session, verifier_session) = start_disclosure_session(
             SessionType::SameDevice,
             DisclosureUriSource::Link,
-            VpRequestUriMethod::POST,
+            VpRequestUriMethod::GET,
             None,
-            vec![mdoc_credential_request, sd_jwt_credential_request]
-                .try_into()
-                .unwrap(),
-            |mut verifier_session| {
-                verifier_session.state = Some("authorization_state".to_string());
-
-                verifier_session
-            },
+            vec![
+                NormalizedCredentialRequest::new_mock_mdoc_pid_example(),
+                NormalizedCredentialRequest::new_mock_sd_jwt_pid_example(),
+            ]
+            .try_into()
+            .unwrap(),
+            std::convert::identity,
         )
-        .expect_err(
-            "starting a new disclosure session with an authorization request that contains a credential request with \
-             a mix of requested formats should not succeed",
-        );
+        .expect("starting a new disclosure session with a mix of requested formats should succeed");
 
-        assert_matches!(
-            *error,
-            VpSessionError::Client(VpClientError::MixedFormatCredentialRequest)
-        );
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let mdoc_key = MockRemoteEcdsaKey::new_random("mdoc_key".to_string());
+        let sd_jwt_key = MockRemoteEcdsaKey::new_random("sd_jwt_key".to_string());
+
+        let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key);
+        let sd_jwt = SignedSdJwt::pid_example(
+            &ca.generate_issuer_mock().unwrap(),
+            &PublicKeyRef::from(sd_jwt_key.verifying_key()),
+        )
+        .into_verified();
+
+        let unsigned_presentation = sd_jwt
+            .into_presentation_builder()
+            .disclose(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
+            .unwrap()
+            .disclose(&vec_nonempty![ClaimPath::SelectByKey("given_name".to_string())])
+            .unwrap()
+            .disclose(&vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())])
+            .unwrap()
+            .finish();
+
+        let attestations = HashMap::from([
+            (
+                "mdoc_pid_example".try_into().unwrap(),
+                DisclosableAttestations::MsoMdoc(vec_nonempty![(partial_mdoc, "mdoc_key".to_string())]),
+            ),
+            (
+                "sd_jwt_pid_example".try_into().unwrap(),
+                DisclosableAttestations::SdJwt(vec_nonempty![(unsigned_presentation, "sd_jwt_key".to_string())]),
+            ),
+        ])
+        .try_into()
+        .unwrap();
+
+        let wscd = DisclosureMockRemoteWscd::new(vec![mdoc_key, sd_jwt_key]);
+        disclosure_session
+            .disclose(attestations, &wscd, &MockTimeGenerator::default())
+            .now_or_never()
+            .unwrap()
+            .expect("disclosing a mix of formats using VpDisclosureSession should succeed");
 
         let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
-        assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
-        // A termination message should be sent to the verifier.
-        let expected_error_code = VpAuthorizationErrorCode::AccessDenied;
-        assert_matches!(
-            &wallet_messages[1],
-            WalletMessage::Error(response)
-                if response.error() == &expected_error_code
-                    && response.state.as_deref() == Some("authorization_state")
+        let WalletMessage::Disclosure(jwe) = &wallet_messages[1] else {
+            panic!("verifier should have received authentication response from holder");
+        };
+
+        let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
+            jwe,
+            &verifier_session.encryption_secret_key,
+            &verifier_session.normalized_auth_request(None),
+            &MockTimeGenerator::default(),
+            &ca.to_trust_anchors(),
+            &ExtendingVctRetrieverStub,
+            &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
+                ca.generate_issuer_status_list_mock().unwrap(),
+            ))),
+            false,
+        )
+        .now_or_never()
+        .unwrap()
+        .expect("decrypting and verifying VPDisclosureSession authorization response should succeed");
+
+        // The response should contain exactly one attestation for each credential query,
+        // in the format that was requested by that query.
+        let disclosed_formats = disclosed_attestations
+            .iter()
+            .map(|attestations| {
+                let formats = attestations
+                    .attestations
+                    .iter()
+                    .map(|attestation| match attestation.attributes {
+                        DisclosedAttributes::MsoMdoc(_) => Format::MsoMdoc,
+                        DisclosedAttributes::SdJwt(_) => Format::SdJwt,
+                    })
+                    .collect_vec();
+
+                (attestations.id.clone(), formats)
+            })
+            .collect::<HashMap<_, _>>();
+
+        assert_eq!(
+            disclosed_formats,
+            HashMap::from([
+                ("mdoc_pid_example".try_into().unwrap(), vec![Format::MsoMdoc]),
+                ("sd_jwt_pid_example".try_into().unwrap(), vec![Format::SdJwt]),
+            ])
         );
     }
 

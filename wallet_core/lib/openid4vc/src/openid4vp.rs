@@ -35,7 +35,6 @@ use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
-use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
 use jwe::error::EcdhPublicJwkError;
@@ -91,7 +90,7 @@ use crate::registration_certificate::RegistrationCertificateError;
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(90);
 const SD_JWT_IAT_WINDOW: Duration = Duration::from_secs(15 * 60);
 
-pub(crate) const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
+const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
     &[EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm];
 
 pub const REGISTRATION_CERTIFICATE_FORMAT: &str = "registration_cert";
@@ -571,9 +570,7 @@ impl NormalizedVpAuthorizationRequest {
             response_uri,
             credential_requests,
             client_metadata: VpClientMetadata {
-                jwks: Jwks {
-                    keys: vec_nonempty![jwk],
-                },
+                jwks: Jwks::new(vec_nonempty![jwk]),
                 vp_formats_supported: VpFormatsSupported {
                     mso_mdoc: Some(MsoMdocAlgValues {
                         issuerauth_alg_values: vec_nonempty![iana::Algorithm::ESP256.into()].into(),
@@ -898,7 +895,7 @@ impl VpAuthorizationResponse {
             encryption_algorithm,
             Some(encryption_nonce.as_bytes()),
             Some(auth_request.nonce.as_ref().as_bytes()),
-            JweCompression::None,
+            None,
         )
     }
 
@@ -1159,6 +1156,7 @@ mod tests {
     use base64::prelude::*;
     use coset::iana;
     use crypto::PublicKey;
+    use crypto::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
@@ -2844,7 +2842,7 @@ mod tests {
         let sd_jwt_holder_key = MockRemoteEcdsaKey::new_random("sd_jwt".to_string());
         let verified_sd_jwt = SignedSdJwt::pid_example(
             &sd_jwt_issuer_key_pair,
-            &PublicKey::from(*sd_jwt_holder_key.verifying_key()),
+            &PublicKeyRef::from(sd_jwt_holder_key.verifying_key()),
         )
         .into_verified();
         let unsigned_presentation = verified_sd_jwt

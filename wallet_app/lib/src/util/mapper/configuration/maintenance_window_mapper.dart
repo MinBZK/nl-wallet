@@ -1,20 +1,21 @@
 import 'package:fimber/fimber.dart';
+import 'package:wallet_core/core.dart' as core;
 
 import '../../../domain/model/configuration/maintenance_window.dart';
 import '../mapper.dart';
 
-class MaintenanceWindowMapper extends Mapper<(String, String)?, MaintenanceWindow?> {
+class MaintenanceWindowMapper extends Mapper<core.FlutterMaintenanceWindow?, MaintenanceWindow?> {
   MaintenanceWindowMapper();
 
   @override
-  MaintenanceWindow? map((String, String)? input) {
+  MaintenanceWindow? map(core.FlutterMaintenanceWindow? input) {
     // Check for absent maintenance window data
     if (input == null) return null;
 
     try {
       // Parse RFC 3339 (ISO 8601) datetime strings to DateTime objects
-      final startDateTime = DateTime.parse(input.$1);
-      final endDateTime = DateTime.parse(input.$2);
+      final startDateTime = DateTime.parse(input.start).toLocal();
+      final endDateTime = DateTime.parse(input.end).toLocal();
 
       // Validate and emit maintenance window
       final window = MaintenanceWindow(

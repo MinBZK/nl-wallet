@@ -15,6 +15,7 @@ use super::errors::PersistenceError;
 use super::transaction::Committable;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::RecoveryCode;
+use crate::model::wallet_user::RevokedWalletUsers;
 use crate::model::wallet_user::TransferSession;
 use crate::model::wallet_user::WalletId;
 use crate::model::wallet_user::WalletUserCreate;
@@ -22,6 +23,7 @@ use crate::model::wallet_user::WalletUserIsRevoked;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
 use crate::model::wallet_user::WalletUserState;
+use crate::model::wallet_user::WalletUserStateQueryResult;
 use crate::model::wallet_user::WithKid;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
@@ -40,6 +42,12 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_id: &WalletId,
     ) -> Result<WalletUserQueryResult>;
+
+    async fn find_wallet_user_state_by_wallet_id(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &WalletId,
+    ) -> Result<WalletUserStateQueryResult>;
 
     async fn find_wallet_user_id_by_wallet_ids(
         &self,
@@ -250,7 +258,7 @@ pub trait WalletUserRepository {
         wallet_user_id: Vec<Uuid>,
         revocation_reason: RevocationReason,
         revocation_date_time: DateTime<Utc>,
-    ) -> Result<Vec<Uuid>>;
+    ) -> Result<RevokedWalletUsers>;
 
     async fn deny_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: RecoveryCode) -> Result<()>;
 
@@ -278,6 +286,7 @@ pub mod mock {
     use super::*;
     use crate::model::QueryResult;
     use crate::model::wallet_user;
+    use crate::model::wallet_user::RevokedWalletUsers;
     use crate::model::wallet_user::WalletId;
     use crate::model::wallet_user::WalletUserQueryResult;
 
@@ -314,6 +323,14 @@ pub mod mock {
             _wallet_id: &WalletId,
         ) -> Result<WalletUserQueryResult> {
             Ok(QueryResult::Found(Box::new(wallet_user::mock::wallet_user_1())))
+        }
+
+        async fn find_wallet_user_state_by_wallet_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &WalletId,
+        ) -> Result<WalletUserStateQueryResult> {
+            Ok(QueryResult::Found(Box::new(wallet_user::mock::wallet_user_1().state)))
         }
 
         async fn find_wallet_user_id_by_wallet_ids(
@@ -603,11 +620,14 @@ pub mod mock {
             _wallet_user_id: Vec<Uuid>,
             _revocation_reason: RevocationReason,
             _revocation_date_time: DateTime<Utc>,
-        ) -> Result<Vec<Uuid>> {
-            Ok(vec![
-                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
-            ])
+        ) -> Result<RevokedWalletUsers> {
+            Ok(RevokedWalletUsers {
+                revoked_count: 2,
+                wia_ids: vec![
+                    uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                    uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+                ],
+            })
         }
 
         async fn deny_recovery_code(

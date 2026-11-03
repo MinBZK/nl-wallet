@@ -22,6 +22,7 @@ use coset::CoseSign1;
 use coset::TaggedCborSerializable;
 use crypto::EcdsaKey;
 use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
@@ -217,7 +218,7 @@ async fn assert_published_list(
     let (header, jwt_claims) = status_list_jwt
         .as_ref()
         .parse_and_verify(
-            JwtDecodingKey::from(&PublicKey::from(verifying_key)),
+            JwtDecodingKey::from(PublicKeyRef::from(&verifying_key)),
             &*ESP256_ONLY_VALIDATION,
         )
         .unwrap();
@@ -229,7 +230,9 @@ async fn assert_published_list(
     let status_list_cwt = TypedCose::<CoseSign1, CborIntMap<StatusListCwtClaims>>::from(
         CoseSign1::from_tagged_slice(&tokio::fs::read(cwt_path).await.unwrap()).unwrap(),
     );
-    let CborIntMap(cwt_claims) = status_list_cwt.verify_and_parse(&verifying_key).unwrap();
+    let CborIntMap(cwt_claims) = status_list_cwt
+        .verify_and_parse(&PublicKey::from(verifying_key))
+        .unwrap();
     let cwt_claims = StatusListTokenClaims::from(cwt_claims);
 
     // Both tokens are signed from the same claims

@@ -1683,13 +1683,18 @@ dependencies = [
  "crypto",
  "derive_more",
  "error_category",
+ "futures",
  "hex-literal",
  "indexmap 2.12.1",
  "p256 0.14.0",
+ "p384 0.14.0",
+ "rand 0.8.6",
  "rand_core 0.9.5",
  "ring",
+ "rsa",
  "rstest",
  "serde",
+ "sha2 0.10.9",
  "strum 0.28.0",
  "thiserror 2.0.17",
  "tokio",
@@ -4511,6 +4516,7 @@ version = "0.7.1-dev"
 dependencies = [
  "attestation_data",
  "attestation_types",
+ "base64 0.22.1",
  "chrono",
  "crypto",
  "db_test",
@@ -4523,6 +4529,7 @@ dependencies = [
  "jwt",
  "oauth",
  "openid4vc",
+ "p256 0.14.0",
  "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
@@ -5355,6 +5362,9 @@ name = "nonempty-collections"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3fc446c90b1fb75a59aeacd45aa8b107a1777c080a719d4e0ae1a8e6ddabae5"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "noop_proc_macro"
@@ -5838,6 +5848,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
+ "jwe",
  "jwt",
  "mediatype",
  "oauth",
@@ -7506,6 +7517,7 @@ dependencies = [
  "pkcs8 0.10.2",
  "rand_core 0.6.4",
  "serde",
+ "sha2 0.10.9",
  "signature 2.2.0",
  "spki 0.7.3",
  "subtle",
@@ -10786,6 +10798,7 @@ dependencies = [
  "p256 0.14.0",
  "rand 0.8.6",
  "regex",
+ "rstest",
  "sea-orm",
  "semver",
  "serde",
@@ -10795,6 +10808,7 @@ dependencies = [
  "thiserror 2.0.17",
  "tracing",
  "trait-variant",
+ "utils",
  "utoipa",
  "uuid",
  "wallet_account",
@@ -10830,6 +10844,7 @@ dependencies = [
  "mockall",
  "p256 0.14.0",
  "rand_core 0.9.5",
+ "rstest",
  "sea-orm",
  "semver",
  "serde",

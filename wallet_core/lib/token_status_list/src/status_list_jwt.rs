@@ -227,7 +227,7 @@ mod test {
 
     use chrono::DateTime;
     use chrono::Days;
-    use crypto::PublicKey;
+    use crypto::PublicKeyRef;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use jwt::ESP256_ONLY_VALIDATION;
@@ -252,7 +252,7 @@ mod test {
         let verified = signed
             .0
             .into_verified(
-                JwtDecodingKey::from(PublicKey::from(*keypair.private_key().verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(keypair.private_key().verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();

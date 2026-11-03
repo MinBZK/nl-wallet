@@ -14,13 +14,18 @@ use attestation_types::credential_kind::CredentialKind;
 use cose::CoseAlgorithmIdentifier;
 use coset::iana;
 use derive_more::AsRef;
+use derive_more::Constructor;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
+use jwe::algorithm::CompressionAlgorithm;
+use jwe::algorithm::EncryptionAlgorithm;
+use jwe::encryption::JwePublicKey;
 use jwk_simple::Algorithm;
 use jwt::JwtTyp;
+use nonempty_collections::NESet;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::issuer_identifier::IssuerUrl;
 use oauth::jose::JwsAlgorithm;
@@ -38,6 +43,7 @@ use serde_with::MapPreventDuplicates;
 use serde_with::TryFromIntoRef;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use strum::VariantArray;
 use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::NonEmptyIterator;
@@ -131,6 +137,58 @@ pub struct IssuerMetadata {
     pub credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
 }
 
+impl IssuerMetadata {
+    pub fn new(
+        credential_issuer: IssuerIdentifier,
+        endpoints: IssuerEndpoints,
+        credential_request_public_key: JwePublicKey,
+        batch_size: Option<AtLeastTwoU64>,
+        registration_certificate: RegistrationCertificateEnvelope,
+        credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+    ) -> Self {
+        Self {
+            credential_issuer,
+            authorization_servers: None,
+            endpoints,
+            credential_request_encryption: Some(CredentialRequestEncryption::new(credential_request_public_key)),
+            credential_response_encryption: None,
+            batch_credential_issuance: batch_size.map(BatchCredentialIssuance::new),
+            display: None,
+            issuer_info: Some(vec_nonempty![IssuerInfo::RegistrationCertificate {
+                data: registration_certificate,
+            }]),
+            credential_configurations_supported,
+        }
+    }
+
+    /// Returns a non-empty slice of authorization servers.
+    pub fn authorization_servers(&self) -> VecNonEmpty<&IssuerIdentifier> {
+        self.authorization_servers
+            .as_ref()
+            .map(|servers| servers.nonempty_iter().collect())
+            .unwrap_or_else(|| {
+                // Per the spec, "If [the authorization_servers] parameter is omitted, the entity
+                // providing the Credential Issuer is also acting as the Authorization Server".
+                vec_nonempty![&self.credential_issuer]
+            })
+    }
+
+    /// Returns the maximum batch size that issuer supports. If it does not support batch issuance, this returns 1.
+    pub fn batch_size(&self) -> NonZeroU64 {
+        self.batch_credential_issuance
+            .map(|batch_issuance| batch_issuance.batch_size.into())
+            .unwrap_or(NonZeroU64::MIN)
+    }
+}
+
+impl WellKnownMetadata for IssuerMetadata {
+    const PATH: &'static str = "openid-credential-issuer";
+
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        &self.credential_issuer
+    }
+}
+
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "format")]
@@ -191,83 +249,100 @@ pub struct IssuerEndpoints {
     pub credential_preview_endpoint: Option<IssuerUrl>,
 }
 
-impl WellKnownMetadata for IssuerMetadata {
-    const PATH: &'static str = "openid-credential-issuer";
-
-    fn issuer_identifier(&self) -> &IssuerIdentifier {
-        &self.credential_issuer
+impl IssuerEndpoints {
+    pub fn new(
+        credential_endpoint: IssuerUrl,
+        nonce_endpoint: IssuerUrl,
+        credential_preview_endpoint: Option<IssuerUrl>,
+    ) -> Self {
+        Self {
+            credential_endpoint,
+            nonce_endpoint: Some(nonce_endpoint),
+            deferred_credential_endpoint: None,
+            notification_endpoint: None,
+            credential_preview_endpoint,
+        }
     }
 }
 
-impl IssuerMetadata {
-    /// Returns a non-empty slice of authorization servers.
-    pub fn authorization_servers(&self) -> VecNonEmpty<&IssuerIdentifier> {
-        self.authorization_servers
-            .as_ref()
-            .map(|servers| servers.nonempty_iter().collect())
-            .unwrap_or_else(|| {
-                // Per the spec, "If [the authorization_servers] parameter is omitted, the entity
-                // providing the Credential Issuer is also acting as the Authorization Server".
-                vec_nonempty![&self.credential_issuer]
-            })
-    }
-
-    /// Returns the maximum batch size that issuer supports. If it does not support batch issuance, this returns 1.
-    pub fn batch_size(&self) -> NonZeroU64 {
-        self.batch_credential_issuance
-            .map(|batch_issuance| batch_issuance.batch_size.into())
-            .unwrap_or(NonZeroU64::MIN)
-    }
-}
-
-// Information about whether the Credential Issuer supports encryption of the Credential Request on top of TLS.
+/// Information about whether the Credential Issuer supports encryption of the Credential Request on top of TLS.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialRequestEncryption {
-    /// A JSON Web Key Set, as defined in [RFC7591], that contains one or more public keys, to be used by the Wallet as
-    /// an input to a key agreement for encryption of the Credential Request. Each JWK in the set MUST have a kid (Key
-    /// ID) parameter that uniquely identifies the key.
-    // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
-    //                  request encryption. Additionally this should check for the presence of `kid` parameters.
+    /// REQUIRED. A JSON Web Key Set, as defined in [RFC7591], that contains one or more public keys, to be used by the
+    /// Wallet as an input to a key agreement for encryption of the Credential Request. Each JWK in the set MUST
+    /// have a kid (Key ID) parameter that uniquely identifies the key.
     pub jwks: Jwks,
 
-    /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
-    /// by the Credential Endpoint to decode the Credential Request from a JWT.
-    pub enc_values_supported: VecNonEmpty<JweEncryptionAlgorithm>,
+    /// REQUIRED. A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518]
+    /// supported by the Credential Endpoint to decode the Credential Request from a JWT.
+    ///
+    /// Note that this uses a `NESet`, which makes more sense semantically than a `Vec`.
+    pub enc_values_supported: NESet<JweEncryptionAlgorithm>,
 
-    /// A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values) [RFC7518]
-    /// supported by the Credential Endpoint to uncompress the Credential Request after decryption. If absent then
-    /// no compression algorithms are supported. The Wallet may use any of the supported compression algorithm to
-    /// compress the Credential Request prior to encryption.
-    pub zip_values_supported: Option<VecNonEmpty<JweCompressionAlgorithm>>,
+    /// OPTIONAL. A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values)
+    /// [RFC7518] supported by the Credential Endpoint to uncompress the Credential Request after decryption. If
+    /// absent then no compression algorithms are supported. The Wallet may use any of the supported compression
+    /// algorithm to compress the Credential Request prior to encryption.
+    ///
+    /// Note that this uses a `HashSet`, which makes more sense semantically than a `Vec`.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub zip_values_supported: HashSet<JweCompressionAlgorithm>,
 
-    /// Boolean value specifying whether the Credential Issuer requires the additional encryption on top of TLS for the
-    /// Credential Requests. If the value is true, the Credential Issuer requires encryption for every Credential
-    /// Request. If the value is false, the Wallet MAY choose whether it encrypts the request or not.
+    /// REQUIRED. Boolean value specifying whether the Credential Issuer requires the additional encryption on top of
+    /// TLS for the Credential Requests. If the value is true, the Credential Issuer requires encryption for every
+    /// Credential Request. If the value is false, the Wallet MAY choose whether it encrypts the request or not.
     pub encryption_required: bool,
+}
+
+impl CredentialRequestEncryption {
+    pub fn new(public_key: JwePublicKey) -> Self {
+        let enc_values_supported = NESet::try_from_set(
+            EncryptionAlgorithm::VARIANTS
+                .iter()
+                .copied()
+                .map(|algorithm| algorithm.into())
+                .collect::<HashSet<_>>(),
+        )
+        .expect("the EncryptionAlgorithm type has at least one variant");
+
+        Self {
+            jwks: Jwks::new(vec_nonempty![public_key.into()]),
+            enc_values_supported,
+            zip_values_supported: HashSet::from([CompressionAlgorithm::Deflate.into()]),
+            encryption_required: true,
+        }
+    }
 }
 
 /// Information about whether the Credential Issuer supports encryption of the Credential Response on top of TLS.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialResponseEncryption {
-    /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (alg values) [RFC7518] supported
-    /// by the Credential Endpoint to encode the Credential Response in a JWT.
-    pub alg_values_supported: VecNonEmpty<Algorithm>,
+    /// REQUIRED. A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (alg values) [RFC7518]
+    /// supported by the Credential Endpoint to encode the Credential Response in a JWT.
+    ///
+    /// Note that this uses a `NESet`, which makes more sense semantically than a `Vec`.
+    pub alg_values_supported: NESet<Algorithm>,
 
-    /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
-    /// by the Credential Endpoint to encode the Credential Response in a JWT
-    pub enc_values_supported: VecNonEmpty<JweEncryptionAlgorithm>,
+    /// REQUIRED. A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518]
+    /// supported by the Credential Endpoint to encode the Credential Response in a JWT
+    ///
+    /// Note that this uses a `NESet`, which makes more sense semantically than a `Vec`.
+    pub enc_values_supported: NESet<JweEncryptionAlgorithm>,
 
-    /// A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values) [RFC7518]
-    /// supported by the Credential Endpoint to compress the Credential Response prior to encryption. If absent
-    /// then compression is not supported.
-    pub zip_values_supported: Option<VecNonEmpty<JweCompressionAlgorithm>>,
+    /// OPTIONAL. A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values)
+    /// [RFC7518] supported by the Credential Endpoint to compress the Credential Response prior to encryption. If
+    /// absent then compression is not supported.
+    ///
+    /// Note that this uses a `HashSet`, which makes more sense semantically than a `Vec`.
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    pub zip_values_supported: HashSet<JweCompressionAlgorithm>,
 
-    /// Boolean value specifying whether the Credential Issuer requires the additional encryption on top of TLS for the
-    /// Credential Response. If the value is true, the Credential Issuer requires encryption for every Credential
-    /// Response and therefore the Wallet MUST provide encryption keys in the Credential Request. If the value is
-    /// false, the Wallet MAY choose whether it provides encryption keys or not.
+    /// REQUIRED. Boolean value specifying whether the Credential Issuer requires the additional encryption on top of
+    /// TLS for the Credential Response. If the value is true, the Credential Issuer requires encryption for every
+    /// Credential Response and therefore the Wallet MUST provide encryption keys in the Credential Request. If the
+    /// value is false, the Wallet MAY choose whether it provides encryption keys or not.
     pub encryption_required: bool,
 }
 
@@ -301,7 +376,7 @@ impl TryFrom<NonZeroU64> for AtLeastTwoU64 {
 /// Endpoint. The presence of this parameter means that the issuer supports more than one key proof in the proofs
 /// parameter in the Credential Request so can issue more than one Verifiable Credential for the same Credential Dataset
 /// in a single request/response.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Constructor)]
 pub struct BatchCredentialIssuance {
     // Integer value specifying the maximum array size for the proofs parameter in a Credential Request. It MUST be 2
     // or greater.
@@ -904,6 +979,7 @@ mod tests {
     use std::assert_matches;
     use std::borrow::Cow;
     use std::collections::HashMap;
+    use std::collections::HashSet;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
@@ -916,6 +992,7 @@ mod tests {
     use coset::iana;
     use crypto::server_keys::generate::Ca;
     use dcql::Query;
+    use jwe::algorithm::CompressionAlgorithm;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;
@@ -1254,13 +1331,9 @@ mod tests {
                     .iter()
                     .eq(&[EncryptionAlgorithm::A128Gcm.into()])
             );
-            assert!(
-                request_encryption
-                    .zip_values_supported
-                    .as_ref()
-                    .map(|values| values.iter())
-                    .unwrap_or_default()
-                    .eq(&[JweCompressionAlgorithm::Deflate])
+            assert_eq!(
+                request_encryption.zip_values_supported,
+                HashSet::from([JweCompressionAlgorithm::Known(CompressionAlgorithm::Deflate)])
             );
             assert!(request_encryption.encryption_required);
         } else {
@@ -1279,16 +1352,12 @@ mod tests {
                 .eq(&[EncryptionAlgorithm::A128Gcm.into()])
         );
         if supports_zip_algorithms {
-            assert!(
-                response_encryption
-                    .zip_values_supported
-                    .as_ref()
-                    .map(|values| values.iter())
-                    .unwrap_or_default()
-                    .eq(&[JweCompressionAlgorithm::Deflate])
+            assert_eq!(
+                response_encryption.zip_values_supported,
+                HashSet::from([JweCompressionAlgorithm::Known(CompressionAlgorithm::Deflate)])
             );
         } else {
-            assert!(response_encryption.zip_values_supported.is_none());
+            assert!(response_encryption.zip_values_supported.is_empty());
         }
         assert_eq!(response_encryption.encryption_required, has_request_encryption);
 

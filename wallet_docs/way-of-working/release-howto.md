@@ -106,7 +106,7 @@ however still a few things we confirm. Most notably:
   `upload-sbom-to-dependency-track` job in pipeline)
 - No blocker or critical Sonar findings (you can check our Sonar instance for
   these findings, ask around for the link if you don't have it)
-- A11y scan that ran on Browserstack are evaluated and actual a11y issues are
+- A11y scan is ran and evaluated and actual a11y issues are
   reported Jira as bugs.
 - Nightly performance test pipeline ran and results accepted
 

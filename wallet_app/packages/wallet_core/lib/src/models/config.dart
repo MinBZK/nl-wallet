@@ -13,7 +13,7 @@ class FlutterConfiguration {
   final int backgroundLockTimeout;
   final List<PidAttestation> pidAttestations;
   final String staticAssetsBaseUrl;
-  final (String, String)? maintenanceWindow;
+  final FlutterMaintenanceWindow? maintenanceWindow;
   final String version;
   final String environment;
 
@@ -52,6 +52,24 @@ class FlutterConfiguration {
           maintenanceWindow == other.maintenanceWindow &&
           version == other.version &&
           environment == other.environment;
+}
+
+class FlutterMaintenanceWindow {
+  final String start;
+  final String end;
+
+  const FlutterMaintenanceWindow({
+    required this.start,
+    required this.end,
+  });
+
+  @override
+  int get hashCode => start.hashCode ^ end.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FlutterMaintenanceWindow && runtimeType == other.runtimeType && start == other.start && end == other.end;
 }
 
 class PidAttestation {

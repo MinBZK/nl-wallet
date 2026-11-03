@@ -55,7 +55,7 @@ decorative illustration element on those introduction screens only; it does
 **not** apply to icons, buttons, or any image that conveys information (e.g.
 status icons, card artwork, QR codes), which must still be labelled.
 
-### 2. Decorative card artwork, DigiD & STOP-sign illustrations (image-alt)
+### 2. Decorative card artwork, DigiD & STOP-sign illustrations (image-alt / image-of-text)
 
 Decorative imagery that duplicates adjacent text is intentionally unlabelled and
 skipped by assistive technology. `image-alt` (WCAG 1.1.1) findings are
@@ -70,6 +70,12 @@ FALSE_POSITIVE for these elements:
   `WalletTransferStoppedByTarget-source`, `WalletTransferStoppedByTarget-target`
   (Android) — the decorative STOP-sign `ImageView` with empty `content-desc`;
   the "Gestopt" heading and body convey the state.
+
+The rasterised "STOP" word inside that STOP-sign illustration is part of the
+decorative image, not information-bearing copy (the "Gestopt" heading and body
+carry the state), so `image-of-text` (WCAG 1.4.5) findings on the STOP-sign
+`ImageView` on those four `WalletTransferStopped*` screens are FALSE_POSITIVE
+too.
 
 Does **not** cover QR codes, which must carry an image role and descriptive name
 (see Known issues).
@@ -120,6 +126,13 @@ component boundaries or active controls:
 - `WalletTransferStoppedBySource-target`,
   `WalletTransferStoppedByTarget-target` (Android) — the "Hulp nodig?" help icon
   on the dark transfer screen.
+- `DashboardWithInsuranceCard`, `DashboardWithDiplomaCard`,
+  `DashboardWithLoyaltyCard`, `DashboardWithMuseumMaandkaartCard` — the coloured
+  card fill against the white page background. The card is decorative brand
+  colour; its title, card number and actions are read from the labelled text
+  nodes it contains, so the fill is not a meaningful UI component boundary that
+  conveys state on its own. Does **not** cover text drawn on the card, which is
+  the `color-contrast` rule (see Rule 3).
 
 ### 5. PIN entry dots not exposed as a field (label / control-role-state)
 
@@ -164,8 +177,10 @@ title / `Header` landmark (the nav menu label is separate). `screen-title` and
 whole-screen `structure` findings are FALSE_POSITIVE for:
 `Dashboard` (Android & iOS — including the "Activiteiten vandaag" /
 "Persoonsgegevens" section headings), `DashboardCards`,
-`DashboardWithLoyaltyCard`. Also `CardData` (iOS) `screen-title` where the
-title is merely truncated because the view is scrolled.
+`DashboardWithLoyaltyCard`, `DashboardWithInsuranceCard`,
+`DashboardWithDiplomaCard`, `DashboardWithMuseumMaandkaartCard`. Also `CardData`
+(iOS) `screen-title` where the title is merely truncated because the view is
+scrolled.
 
 Does **not** cover other screens.
 
@@ -198,6 +213,8 @@ borderline).
 Paired action buttons are intentionally stacked/adjacent by design.
 `touch-target-spacing` findings are FALSE_POSITIVE for:
 `AttributesMissingError` (Android, "Hulp nodig?" / "Sluiten" top bar),
+`CardIssuanceInsuranceWithConsent` (iOS, "Hulp nodig?" / "Sluiten" top bar),
+`DashboardWithInsuranceCard` (iOS, "Scan QR code" / "Hulp nodig?" top bar),
 `InactivityLockWarning` ("UITLOGGEN" / "JA DOORGAAN"),
 `ScanWithWalletDialog` ("SLUITEN" / "SCAN QR-CODE").
 

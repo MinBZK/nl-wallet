@@ -44,7 +44,6 @@ use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::client_auth::AttestationChallenge;
-use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::errors::CredentialErrorCode;
@@ -337,7 +336,7 @@ async fn credential<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Json(credential_request): Json<CredentialRequest>,
+    credential_request_jwe: String,
 ) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
 where
     K: EcdsaKeySend,
@@ -348,7 +347,7 @@ where
     let access_token = authorization_header.into();
     let response = state
         .issuer
-        .process_credential_request(&access_token, dpop, credential_request, &TimeGenerator)
+        .process_credential_request(&access_token, dpop, &credential_request_jwe, &TimeGenerator)
         .await
         .inspect_err(|error| warn!("processing credential request failed: {}", error))?;
 

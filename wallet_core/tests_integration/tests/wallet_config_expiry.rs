@@ -8,7 +8,7 @@ use axum::extract::State;
 use axum::routing::get;
 use chrono::TimeDelta;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::PublicKeyRef;
 use http_utils::client::TlsPinningConfig;
 use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
@@ -113,7 +113,7 @@ async fn test_expired_configuration_is_rejected() {
 
     let storage_dir = tempfile::tempdir().unwrap();
     let repository = HttpConfigurationRepository::new(
-        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
+        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
         storage_dir.path().to_path_buf(),
         embedded_config,
     );

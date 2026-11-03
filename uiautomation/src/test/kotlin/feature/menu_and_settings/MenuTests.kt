@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
@@ -36,7 +34,6 @@ class MenuTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC26 LTC27 Show app & Settings menu")
-    @Tags(Tag("a11yBatch2"))
     fun verifyMenuScreen(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(menuScreen.menuListButtonsVisible(), "menu screen is not visible")

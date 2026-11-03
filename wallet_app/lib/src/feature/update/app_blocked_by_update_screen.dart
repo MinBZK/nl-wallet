@@ -86,7 +86,7 @@ class AppBlockedByUpdateScreen extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.north_east_outlined),
-            onPressed: () => StoreRedirect.redirect,
+            onPressed: StoreRedirect.redirect,
           ),
           secondaryButton: TertiaryButton(
             text: Text.rich(context.l10n.generalNeedHelpCta.toTextSpan(context)),

@@ -18,12 +18,15 @@ use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
 use wallet_provider_domain::model::admin_task::AdminTask;
-use wallet_provider_domain::model::admin_task::AdminTaskCreate;
-use wallet_provider_domain::model::admin_task::AdminTaskReview;
+use wallet_provider_domain::model::admin_task::CreateAdminTask;
+use wallet_provider_domain::model::admin_task::ExecuteAdminTask;
+use wallet_provider_domain::model::admin_task::ReviewAdminTask;
 use wallet_provider_domain::model::admin_task::TaskListView;
+use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
+use wallet_provider_domain::model::wallet_user::RevokedWalletUsers;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
@@ -31,9 +34,9 @@ use wallet_provider_domain::model::wallet_user::WalletUserIsRevoked;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
+use wallet_provider_domain::model::wallet_user::WalletUserStateQueryResult;
 use wallet_provider_domain::model::wallet_user::WithKid;
-use wallet_provider_domain::repository::AdminPortalSessionRepository;
-use wallet_provider_domain::repository::AdminTaskRepository;
+use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletFlagRepository;
@@ -54,7 +57,7 @@ use crate::wallet_user_wia;
 #[derive(Clone, From, AsRef)]
 pub struct Repositories(Db);
 
-impl AdminPortalSessionRepository for Repositories {
+impl AdminPortalRepository for Repositories {
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn insert_login_attempt(
         &self,
@@ -101,6 +104,57 @@ impl AdminPortalSessionRepository for Repositories {
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn cleanup_expired_user_sessions(&self, now: DateTime<Utc>) -> Result<(), PersistenceError> {
         admin_portal_session::cleanup_expired_user_sessions(&self.0, now).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn insert_task(&self, task: CreateAdminTask) -> Result<AdminTask, PersistenceError> {
+        admin_task::insert_task(&self.0, task).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_task_by_id(&self, task_id: Uuid) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::find_task_by_id(&self.0, task_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_task_by_id_for_update(
+        &self,
+        transaction: &Self::TransactionType,
+        task_id: Uuid,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::find_task_by_id_for_update(transaction, task_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn withdraw_task(
+        &self,
+        transaction: &Self::TransactionType,
+        withdrawal: WithdrawAdminTask,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::withdraw_task(transaction, withdrawal).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn review_task(
+        &self,
+        transaction: &Self::TransactionType,
+        review: ReviewAdminTask,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::review_task(transaction, review).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn store_execution_result(
+        &self,
+        transaction: &Self::TransactionType,
+        execution: ExecuteAdminTask,
+    ) -> Result<Option<AdminTask>, PersistenceError> {
+        admin_task::store_execution_result(transaction, execution).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError> {
+        admin_task::list_tasks(&self.0, view).await
     }
 }
 
@@ -166,6 +220,15 @@ impl WalletUserRepository for Repositories {
         wallet_id: &WalletId,
     ) -> Result<WalletUserQueryResult, PersistenceError> {
         wallet_user::find_wallet_user_by_wallet_id(transaction, wallet_id).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_wallet_user_state_by_wallet_id(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &WalletId,
+    ) -> Result<WalletUserStateQueryResult, PersistenceError> {
+        wallet_user::find_wallet_user_state_by_wallet_id(transaction, wallet_id).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -574,16 +637,17 @@ impl WalletUserRepository for Repositories {
         wallet_user_ids: Vec<Uuid>,
         revocation_reason: RevocationReason,
         revocation_date_time: DateTime<Utc>,
-    ) -> Result<Vec<Uuid>, PersistenceError> {
+    ) -> Result<RevokedWalletUsers, PersistenceError> {
         wallet_user_key::delete_all_keys(transaction, wallet_user_ids.clone()).await?;
-        wallet_user::revoke_wallets(
+        let revoked_count = wallet_user::revoke_wallets(
             transaction,
             wallet_user_ids.clone(),
             revocation_reason,
             revocation_date_time,
         )
         .await?;
-        wallet_user_wia::find_wia_ids_for_wallet_users(transaction, wallet_user_ids).await
+        let wia_ids = wallet_user_wia::find_wia_ids_for_wallet_users(transaction, wallet_user_ids).await?;
+        Ok(RevokedWalletUsers { revoked_count, wia_ids })
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -622,51 +686,6 @@ impl WalletUserRepository for Repositories {
     }
 }
 
-impl AdminTaskRepository for Repositories {
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError> {
-        admin_task::insert_task(&self.0, task).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn find_task_by_id(&self, task_id: Uuid) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::find_task_by_id(&self.0, task_id).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn find_task_by_id_for_update(
-        &self,
-        transaction: &Self::TransactionType,
-        task_id: Uuid,
-    ) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::find_task_by_id_for_update(transaction, task_id).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn withdraw_task(
-        &self,
-        transaction: &Self::TransactionType,
-        task_id: Uuid,
-        now: DateTime<Utc>,
-    ) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::withdraw_task(transaction, task_id, now).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn review_task(
-        &self,
-        transaction: &Self::TransactionType,
-        review: AdminTaskReview,
-    ) -> Result<Option<AdminTask>, PersistenceError> {
-        admin_task::review_task(transaction, review).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError> {
-        admin_task::list_tasks(&self.0, view).await
-    }
-}
-
 #[cfg(feature = "mock")]
 pub mod mock {
     use std::collections::HashMap;
@@ -692,14 +711,17 @@ pub mod mock {
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
     use wallet_provider_domain::model::admin_task::AdminTask;
-    use wallet_provider_domain::model::admin_task::AdminTaskCreate;
-    use wallet_provider_domain::model::admin_task::AdminTaskReview;
+    use wallet_provider_domain::model::admin_task::CreateAdminTask;
+    use wallet_provider_domain::model::admin_task::ExecuteAdminTask;
+    use wallet_provider_domain::model::admin_task::ReviewAdminTask;
     use wallet_provider_domain::model::admin_task::TaskListView;
+    use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
     use wallet_provider_domain::model::wallet_flag::WalletFlag;
     use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevocationRegistration;
+    use wallet_provider_domain::model::wallet_user::RevokedWalletUsers;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletId;
     use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -709,11 +731,11 @@ pub mod mock {
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
+    use wallet_provider_domain::model::wallet_user::WalletUserStateQueryResult;
     use wallet_provider_domain::model::wallet_user::WithKid;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_1;
     use wallet_provider_domain::model::wallet_user::mock::wallet_user_with_id;
-    use wallet_provider_domain::repository::AdminPortalSessionRepository;
-    use wallet_provider_domain::repository::AdminTaskRepository;
+    use wallet_provider_domain::repository::AdminPortalRepository;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;
@@ -721,16 +743,16 @@ pub mod mock {
     use wallet_provider_domain::repository::WalletUserRepository;
 
     mockall::mock! {
-        pub AdminTaskRepository {}
+        pub AdminPortalRepository {}
 
-        impl TransactionStarter for AdminTaskRepository {
+        impl TransactionStarter for AdminPortalRepository {
             type TransactionType = MockTransaction;
 
             async fn begin_transaction(&self) -> Result<MockTransaction, PersistenceError>;
         }
 
-        impl AdminTaskRepository for AdminTaskRepository {
-            async fn insert_task(&self, task: AdminTaskCreate) -> Result<AdminTask, PersistenceError>;
+        impl AdminPortalRepository for AdminPortalRepository {
+            async fn insert_task(&self, task: CreateAdminTask) -> Result<AdminTask, PersistenceError>;
 
             async fn find_task_by_id(&self, id: Uuid) -> Result<Option<AdminTask>, PersistenceError>;
 
@@ -743,24 +765,24 @@ pub mod mock {
             async fn withdraw_task(
                 &self,
                 transaction: &MockTransaction,
-                id: Uuid,
-                now: DateTime<Utc>,
+                withdrawal: WithdrawAdminTask,
             ) -> Result<Option<AdminTask>, PersistenceError>;
 
             async fn review_task(
                 &self,
                 transaction: &MockTransaction,
-                review: AdminTaskReview,
+                review: ReviewAdminTask,
+            ) -> Result<Option<AdminTask>, PersistenceError>;
+
+            async fn store_execution_result(
+                &self,
+                transaction: &MockTransaction,
+                execution: ExecuteAdminTask,
             ) -> Result<Option<AdminTask>, PersistenceError>;
 
             async fn list_tasks(&self, view: TaskListView) -> Result<Vec<AdminTask>, PersistenceError>;
-        }
-    }
 
-    mockall::mock! {
-        pub AdminPortalSessionRepository {}
 
-        impl AdminPortalSessionRepository for AdminPortalSessionRepository {
             async fn insert_login_attempt(
                 &self,
                 state: String,
@@ -826,6 +848,12 @@ pub mod mock {
                 transaction: &MockTransaction,
                 wallet_id: &WalletId,
             ) -> Result<WalletUserQueryResult, PersistenceError>;
+
+            async fn find_wallet_user_state_by_wallet_id(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &WalletId,
+            ) -> Result<WalletUserStateQueryResult, PersistenceError>;
 
             async fn find_wallet_user_id_by_wallet_ids(
                 &self,
@@ -1059,7 +1087,7 @@ pub mod mock {
                 wallet_user_id: Vec<Uuid>,
                 revocation_reason: RevocationReason,
                 revocation_date_time: DateTime<Utc>
-            ) -> Result<Vec<Uuid>, PersistenceError>;
+            ) -> Result<RevokedWalletUsers, PersistenceError>;
 
             async fn deny_recovery_code(
                 &self,
@@ -1170,6 +1198,14 @@ pub mod mock {
                 recovery_code: None,
                 recovery_code_is_denied: false,
             })))
+        }
+
+        async fn find_wallet_user_state_by_wallet_id(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &WalletId,
+        ) -> Result<WalletUserStateQueryResult, PersistenceError> {
+            Ok(QueryResult::Found(Box::new(self.state)))
         }
 
         async fn find_wallet_user_id_by_wallet_ids(
@@ -1518,11 +1554,14 @@ pub mod mock {
             _wallet_user_id: Vec<Uuid>,
             _revocation_reason: RevocationReason,
             _revocation_date_time: DateTime<Utc>,
-        ) -> Result<Vec<Uuid>, PersistenceError> {
-            Ok(vec![
-                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
-            ])
+        ) -> Result<RevokedWalletUsers, PersistenceError> {
+            Ok(RevokedWalletUsers {
+                revoked_count: 2,
+                wia_ids: vec![
+                    uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
+                    uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
+                ],
+            })
         }
 
         async fn deny_recovery_code(

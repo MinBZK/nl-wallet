@@ -69,7 +69,6 @@ class UserLocksWalletTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC56 User confirms logout on inactivity prompt, LTC57 User dismisses inactivity prompt")
-    @Tags(Tag("a11yBatch2"))
     fun verifyWarningNotificationBeforeLock(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)

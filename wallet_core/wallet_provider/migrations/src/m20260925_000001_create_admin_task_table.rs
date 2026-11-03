@@ -22,13 +22,14 @@ impl MigrationTrait for Migration {
                     .col(string(AdminTask::TaskReason))
                     .col(string(AdminTask::Status))
                     .col(timestamp_with_time_zone_null(AdminTask::WithdrawnAt))
+                    .col(string_null(AdminTask::WithdrawalComment))
                     .col(timestamp_with_time_zone_null(AdminTask::ReviewedAt))
                     .col(string_null(AdminTask::ReviewedByUserId))
                     .col(string_null(AdminTask::ReviewedByDisplayName))
                     .col(string_null(AdminTask::ReviewComment))
                     .col(timestamp_with_time_zone_null(AdminTask::ExecutedAt))
-                    .col(string_null(AdminTask::ExecutionResult))
-                    .col(json_null(AdminTask::ExecutionResultDetails))
+                    .col(boolean_null(AdminTask::ExecutionSuccessful))
+                    .col(string_null(AdminTask::ExecutionDetails))
                     .to_owned(),
             )
             .await?;
@@ -78,11 +79,12 @@ enum AdminTask {
     TaskReason,
     Status,
     WithdrawnAt,
+    WithdrawalComment,
     ReviewedAt,
     ReviewedByUserId,
     ReviewedByDisplayName,
     ReviewComment,
     ExecutedAt,
-    ExecutionResult,
-    ExecutionResultDetails,
+    ExecutionSuccessful,
+    ExecutionDetails,
 }
