@@ -36,11 +36,19 @@ class OrganizationDetailScreen : MobileActions() {
     fun organizationIdVisible(organizationId: String) =
         elementContainingTextWithSiblingVisible(organizationId, organizationIdLabel)
 
-    fun websiteVisible(webUri: String) = elementContainingTextVisible(webUri)
+    private val websiteLabel = l10n.getString("organizationDetailScreenWebsiteInfo")
+    private val supportLabel = l10n.getString("organizationDetailScreenSupportInfo")
+    private val privacyLabel = l10n.getString("organizationDetailScreenPrivacyInfo")
 
-    fun supportVisible(supportUri: String) = elementContainingTextVisible(supportUri)
+    // The app shows the url without its scheme (UriDisplayFormatter), as the link's value next to the title label.
+    private fun displayUri(uri: String) = uri.replace(Regex("^[a-zA-Z][a-zA-Z0-9+.-]*:(//)?"), "")
 
-    fun privacyStatementVisible(privacyPolicyUri: String) = elementContainingTextVisible(privacyPolicyUri)
+    fun websiteVisible(webUri: String) = elementWithLabelAndValueVisible(websiteLabel, displayUri(webUri))
+
+    fun supportVisible(supportUri: String) = elementWithLabelAndValueVisible(supportLabel, displayUri(supportUri))
+
+    fun privacyStatementVisible(privacyPolicyUri: String) =
+        elementWithLabelAndValueVisible(privacyLabel, displayUri(privacyPolicyUri))
 
     fun clickBackButton() = clickElementWithText(backButton)
 }
