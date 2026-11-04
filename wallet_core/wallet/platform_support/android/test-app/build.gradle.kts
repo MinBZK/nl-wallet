@@ -2,11 +2,10 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace = "nl.rijksoverheid.edi.wallet.platform_support"
+    namespace = "nl.rijksoverheid.edi.wallet.platform_support.test"
     compileSdk = 36
 
     defaultConfig {

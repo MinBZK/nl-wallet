@@ -895,6 +895,12 @@ generate_or_reuse_root_ca "${TARGET_DIR}/static_server" "nl-wallet-static-server
 generate_ssl_key_pair_with_san "${TARGET_DIR}/static_server" static_server "${TARGET_DIR}/static_server/ca.crt.pem" "${TARGET_DIR}/static_server/ca.key.pem"
 
 ln -sf "${TARGET_DIR}/static_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/static.ca.crt.der"
+
+# Make the CA certificate for the static server available inside Android too.
+# This enables things like Exo Player to talk HTTPS without untrusted cert errors.
+mkdir -p "${BASE_DIR}/wallet_app/android/app/src/devenv/res/raw"
+cp "${TARGET_DIR}/static_server/ca.crt.pem" "${BASE_DIR}/wallet_app/android/app/src/devenv/res/raw/devenv_static_ca.pem"
+
 STATIC_SERVER_CA_CRT=$(< "${TARGET_DIR}/static_server/ca.crt.der" ${BASE64})
 export STATIC_SERVER_CA_CRT
 STATIC_SERVER_CERT=$(< "${TARGET_DIR}/static_server/static_server.crt.der" ${BASE64})
