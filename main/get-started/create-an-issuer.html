@@ -672,9 +672,9 @@ organization information shown in the wallet. It is bound to the WRPAC that
 signs issuer metadata. The following example uses the WRPRC CA created by
 <code class="docutils literal notranslate"><span class="pre">scripts/setup-devenv.sh</span></code>; for another environment, arrange the WRPRC and its
 status list with the registration authority trusted by that environment.</p>
-<p>Create separate WRPRC and status-list signing certificates with the same
-subject. Then create a registration payload for the insurance credential, using
-the organization identifier and legal name from the WRPAC above:</p>
+<p>Create WRPRC and status-list signing certificates. Then create a registration
+payload for the insurance credential, using the organization identifier and
+legal name from the WRPAC above:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">WRPRC_CA_DIR</span><span class="o">=</span>scripts/devenv/target
 <span class="nb">export</span><span class="w"> </span><span class="nv">WRPRC_STATUS_LIST_URL</span><span class="o">=</span>https://foocorp.example/wrprc-status-list
 

@@ -408,9 +408,9 @@ signs issuer metadata. The following example uses the WRPRC CA created by
 `scripts/setup-devenv.sh`; for another environment, arrange the WRPRC and its
 status list with the registration authority trusted by that environment.
 
-Create separate WRPRC and status-list signing certificates with the same
-subject. Then create a registration payload for the insurance credential, using
-the organization identifier and legal name from the WRPAC above:
+Create WRPRC and status-list signing certificates. Then create a registration
+payload for the insurance credential, using the organization identifier and
+legal name from the WRPAC above:
 
 ```shell
 export WRPRC_CA_DIR=scripts/devenv/target
