@@ -10,7 +10,9 @@ from run_disclosure_ios_test import Runner
 
 class WalletDisclosureRunnerTests(unittest.TestCase):
     def setUp(self):
-        self.enterContext(patch("run_disclosure_ios_test.print", create=True))
+        print_patch = patch("run_disclosure_ios_test.print", create=True)
+        print_patch.start()
+        self.addCleanup(print_patch.stop)
         self.runner = Runner(
             pathlib.Path(__file__).resolve().parents[2],
             "CLOSE_PROXIMITY_MAC_READER=",
