@@ -22,7 +22,6 @@ import '../common/page/generic_loading_page.dart';
 import '../common/page/missing_attributes_page.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
@@ -72,7 +71,6 @@ class DisclosureScreen extends StatelessWidget {
           leading: _buildBackButton(context),
           automaticallyImplyLeading: false,
           actions: [
-            if (_showHelpIcon(state)) const HelpIconButton(),
             CloseIconButton(
               onPressed: () => _stopDisclosure(context),
             ),
@@ -96,16 +94,6 @@ class DisclosureScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  bool _showHelpIcon(DisclosureState state) {
-    return switch (state) {
-      DisclosureInitial() => false,
-      DisclosureSuccess() => false,
-      DisclosureStopped() => false,
-      DisclosureMissingAttributes() => false,
-      _ => true,
-    };
   }
 
   Widget? _buildBackButton(BuildContext context) {

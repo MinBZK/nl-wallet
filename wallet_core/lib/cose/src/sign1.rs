@@ -2,6 +2,7 @@ use std::num::NonZeroUsize;
 
 use chrono::DateTime;
 use chrono::Utc;
+use ciborium::tag::Required;
 use ciborium::value::Value;
 use coset::CoseSign1;
 use coset::Header;
@@ -11,7 +12,6 @@ use coset::ProtectedHeader;
 use coset::SignatureContext;
 use coset::iana;
 use coset::sig_structure_data;
-use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
@@ -26,12 +26,33 @@ use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use crate::CborIntMap;
 use crate::error::CoseError;
 use crate::message::TypedCose;
 use crate::serialization::cbor_serialize;
 
 /// COSE header label for `x5chain`, defined in RFC 9360.
 pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
+
+/// COSE header label for `typ`, defined in RFC 9596.
+pub const COSE_TYP_HEADER_LABEL: i64 = 16;
+
+pub trait CoseTyp {
+    const TYP: &'static str;
+}
+
+impl<T: CoseTyp> CoseTyp for CborIntMap<T> {
+    const TYP: &'static str = T::TYP;
+}
+
+/// A tagged COSE_Sign1 structure is identified by the CBOR tag 18.
+///
+/// ```cddl
+/// COSE_Sign1_Tagged = #6.18(COSE_Sign1)
+/// ```
+///
+/// <https://www.rfc-editor.org/rfc/rfc9052.html#section-4.2>
+pub type TaggedCoseSign1<T> = Required<TypedCose<CoseSign1, T>, { iana::CborTag::CoseSign1 as u64 }>;
 
 pub fn header_with_x5chain(chain: &VecNonEmpty<&BorrowingCertificate>) -> Header {
     let encode_certificate = |certificate: &&BorrowingCertificate| Value::Bytes(certificate.to_vec());
@@ -84,19 +105,12 @@ pub(crate) fn x5chain_from_header(header: &Header) -> Result<VecNonEmpty<Borrowi
 }
 
 impl<T> TypedCose<CoseSign1, T> {
-    pub async fn sign(
-        payload: &T,
-        unprotected_header: Header,
-        private_key: &impl EcdsaKey,
-        include_payload: bool,
-    ) -> Result<Self, CoseError>
+    pub async fn sign(payload: &T, unprotected_header: Header, private_key: &impl EcdsaKey) -> Result<Self, CoseError>
     where
         T: Serialize,
     {
         let payload = cbor_serialize(payload).map_err(CoseError::Cbor)?;
-        Ok(sign_cose(&payload, unprotected_header, private_key, include_payload)
-            .await?
-            .into())
+        Ok(sign_cose(payload, unprotected_header, private_key).await?.into())
     }
 
     pub(crate) async fn sign_with_protected_header(
@@ -104,34 +118,43 @@ impl<T> TypedCose<CoseSign1, T> {
         protected_header: Header,
         unprotected_header: Header,
         private_key: &impl EcdsaKey,
-        include_payload: bool,
     ) -> Result<Self, CoseError>
     where
         T: Serialize,
     {
         let payload = cbor_serialize(payload).map_err(CoseError::Cbor)?;
-        Ok(sign_cose_with_headers(
-            &payload,
-            protected_header,
-            unprotected_header,
-            private_key,
-            include_payload,
+        Ok(
+            sign_cose_with_headers(payload, protected_header, unprotected_header, private_key)
+                .await?
+                .into(),
         )
-        .await?
-        .into())
     }
 
     /// Sign a COSE payload and include the key pair's certificate in the unprotected `x5chain` header.
-    pub async fn sign_with_certificate<K: EcdsaKey>(
-        payload: &T,
-        key_pair: &KeyPair<K>,
-        include_payload: bool,
-    ) -> Result<Self, CoseError>
+    pub async fn sign_with_certificate<K: EcdsaKey>(payload: &T, key_pair: &KeyPair<K>) -> Result<Self, CoseError>
     where
         T: Serialize,
     {
         let header = header_with_x5chain(&vec_nonempty![key_pair.certificate()]);
-        Self::sign(payload, header, key_pair, include_payload).await
+        Self::sign(payload, header, key_pair).await
+    }
+
+    /// Sign a COSE payload and include the algorithm, the type from [`CoseTyp::TYP`] and the key pair's certificate
+    /// (`x5chain`) in the protected header.
+    pub async fn sign_with_typ_and_certificate<K: EcdsaKey>(
+        payload: &T,
+        key_pair: &KeyPair<K>,
+    ) -> Result<Self, CoseError>
+    where
+        T: Serialize + CoseTyp,
+    {
+        let mut protected_header = header_with_x5chain(&vec_nonempty![key_pair.certificate()]);
+        protected_header.alg = Some(coset::Algorithm::Assigned(iana::Algorithm::ES256));
+        protected_header
+            .rest
+            .push((Label::Int(COSE_TYP_HEADER_LABEL), Value::Text(T::TYP.to_owned())));
+
+        Self::sign_with_protected_header(payload, protected_header, Header::default(), key_pair).await
     }
 
     /// Get the certificate chain from the unprotected `x5chain` header parameter.
@@ -217,12 +240,7 @@ impl<T> TypedCose<CoseSign1, T> {
         certificate
             .verify(certificate_usage, intermediate_certs, time, trust_anchors)
             .map_err(CoseError::CertificateVerify)?;
-
-        let PublicKey::ESP256(verifying_key) = certificate.public_key() else {
-            return Err(CoseError::UnsupportedCertificateAlgorithm);
-        };
-
-        self.verify_and_parse(verifying_key)
+        self.verify_and_parse(certificate.public_key())
     }
 
     async fn verify_against_trust_anchors_with_chain_and_crl(
@@ -243,12 +261,7 @@ impl<T> TypedCose<CoseSign1, T> {
                 CertificateCrlVerificationError::CertificateVerify(source) => CoseError::CertificateVerify(source),
                 error => CoseError::CertificateCrl(error),
             })?;
-
-        let PublicKey::ESP256(verifying_key) = x5chain.first().public_key() else {
-            return Err(CoseError::UnsupportedCertificateAlgorithm);
-        };
-
-        self.verify_and_parse(verifying_key)
+        self.verify_and_parse(x5chain.first().public_key())
     }
 }
 
@@ -267,30 +280,27 @@ fn signature_data_with_header(payload: &[u8], header: Header) -> (Vec<u8>, Prote
     (signature_data, protected_header)
 }
 
-pub async fn sign_cose(
-    payload: &[u8],
+async fn sign_cose(
+    payload: Vec<u8>,
     unprotected_header: Header,
     private_key: &impl EcdsaKey,
-    include_payload: bool,
 ) -> Result<CoseSign1, CoseError> {
     sign_cose_with_headers(
         payload,
         HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
         unprotected_header,
         private_key,
-        include_payload,
     )
     .await
 }
 
 async fn sign_cose_with_headers(
-    payload: &[u8],
+    payload: Vec<u8>,
     protected_header: Header,
     unprotected_header: Header,
     private_key: &impl EcdsaKey,
-    include_payload: bool,
 ) -> Result<CoseSign1, CoseError> {
-    let (signature_data, protected_header) = signature_data_with_header(payload, protected_header);
+    let (signature_data, protected_header) = signature_data_with_header(&payload, protected_header);
     let signature = private_key
         .try_sign(&signature_data)
         .await
@@ -299,7 +309,7 @@ async fn sign_cose_with_headers(
 
     Ok(CoseSign1 {
         signature,
-        payload: include_payload.then(|| payload.to_vec()),
+        payload: Some(payload),
         protected: protected_header,
         unprotected: unprotected_header,
     })

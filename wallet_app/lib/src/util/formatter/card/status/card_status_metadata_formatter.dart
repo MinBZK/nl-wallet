@@ -16,6 +16,9 @@ abstract class CardStatusMetadataFormatter {
 
   IconData? icon(CardStatus status);
 
+  /// Names the status for assistive tech when [text] alone doesn't, so the state isn't conveyed by the icon only.
+  String? iconSemanticsLabel(BuildContext context, WalletCard card);
+
   Color? iconColor(BuildContext context, CardStatus status);
 
   Color? backgroundColor(BuildContext context, CardStatus status);

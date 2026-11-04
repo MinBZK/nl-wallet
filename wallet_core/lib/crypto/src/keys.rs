@@ -17,7 +17,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde::de;
 
-use crate::p256_der::DerVerifyingKey;
 use crate::utils;
 
 const AES_GCM_IV_BYTES_SIZE: usize = 12;
@@ -41,6 +40,48 @@ pub enum PublicKey {
     RSA(RsaMin2048PublicKey),
 }
 
+#[derive(Debug, Clone)]
+pub enum PublicKeyRef<'a> {
+    // ECDSA keys, named in line with [RFC9864](https://datatracker.ietf.org/doc/rfc9864/)
+    ESP256(&'a p256::ecdsa::VerifyingKey),
+    ESP384(&'a p384::ecdsa::VerifyingKey),
+
+    // RSA key
+    RSA(&'a RsaMin2048PublicKey),
+}
+
+impl<'a> From<&'a PublicKey> for PublicKeyRef<'a> {
+    fn from(key: &'a PublicKey) -> Self {
+        match key {
+            PublicKey::ESP256(verifying_key) => PublicKeyRef::ESP256(verifying_key),
+            PublicKey::ESP384(verifying_key) => PublicKeyRef::ESP384(verifying_key),
+            PublicKey::RSA(rsa_public_key) => PublicKeyRef::RSA(rsa_public_key),
+        }
+    }
+}
+
+pub trait AsPublicKeyRef {
+    fn as_public_key_ref<'a>(&'a self) -> PublicKeyRef<'a>;
+}
+
+impl AsPublicKeyRef for PublicKey {
+    fn as_public_key_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+        self.into()
+    }
+}
+
+impl AsPublicKeyRef for &PublicKey {
+    fn as_public_key_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+        (*self).into()
+    }
+}
+
+impl<'a> AsPublicKeyRef for PublicKeyRef<'a> {
+    fn as_public_key_ref<'b>(&'b self) -> PublicKeyRef<'b> {
+        self.clone()
+    }
+}
+
 impl Hash for PublicKey {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         std::mem::discriminant(self).hash(state);
@@ -58,14 +99,20 @@ impl From<p256::ecdsa::VerifyingKey> for PublicKey {
     }
 }
 
-impl From<DerVerifyingKey> for PublicKey {
-    fn from(key: DerVerifyingKey) -> Self {
-        Self::ESP256(key.into_inner())
+impl<'a> From<&'a p256::ecdsa::VerifyingKey> for PublicKeyRef<'a> {
+    fn from(key: &'a p256::ecdsa::VerifyingKey) -> Self {
+        Self::ESP256(key)
     }
 }
 
 impl From<p384::ecdsa::VerifyingKey> for PublicKey {
     fn from(key: p384::ecdsa::VerifyingKey) -> Self {
+        Self::ESP384(key)
+    }
+}
+
+impl<'a> From<&'a p384::ecdsa::VerifyingKey> for PublicKeyRef<'a> {
+    fn from(key: &'a p384::ecdsa::VerifyingKey) -> Self {
         Self::ESP384(key)
     }
 }
@@ -190,7 +237,7 @@ pub struct AppleAssertion(Vec<u8>);
 ///
 /// # Example
 /// ```rust
-/// use crypto::SymmetricKey;
+/// use crypto::keys::SymmetricKey;
 ///
 /// let key_bytes = vec![0x01, 0x02, 0x03, 0x04];
 /// let symmetric_key: SymmetricKey = key_bytes.into();
@@ -245,8 +292,8 @@ mod tests {
     use rsa::pkcs8::DecodePrivateKey;
     use rstest::rstest;
 
-    use crate::PublicKey;
-    use crate::PublicKeyError;
+    use crate::keys::PublicKey;
+    use crate::keys::PublicKeyError;
 
     fn hash(key: &PublicKey) -> u64 {
         let mut hasher = DefaultHasher::new();
@@ -268,8 +315,8 @@ mod tests {
 
     #[test]
     fn different_ecdsa_variants_are_not_equal() {
-        let p256_key = PublicKey::ESP256(*p256::ecdsa::SigningKey::generate().verifying_key());
-        let p384_key = PublicKey::ESP384(*p384::ecdsa::SigningKey::generate().verifying_key());
+        let p256_key = PublicKey::from(*p256::ecdsa::SigningKey::generate().verifying_key());
+        let p384_key = PublicKey::from(*p384::ecdsa::SigningKey::generate().verifying_key());
         assert_ne!(p256_key, p384_key);
         assert_ne!(hash(&p256_key), hash(&p384_key));
     }

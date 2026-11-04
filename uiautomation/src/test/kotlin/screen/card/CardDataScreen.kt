@@ -33,5 +33,5 @@ class CardDataScreen : MobileActions() {
 
     fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 
-    fun revocationMessageVisible() = elementWithTextVisible(revocationMessage)
+    fun revocationMessageVisible() = elementContainingTextVisible(revocationMessage)
 }

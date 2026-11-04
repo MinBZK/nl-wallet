@@ -3,6 +3,7 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::keys::SecureEcdsaKey;
+use crypto::kid::Kid;
 use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
@@ -15,7 +16,6 @@ use tracing::debug;
 use utils::generator::Generator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
-use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::keys::KidPair;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::WalletId;
@@ -75,9 +75,9 @@ where
         .map_err(WalletCertificateError::JwtSigning)
 }
 
-async fn parse_claims_and_retrieve_wallet_user<T, R>(
+async fn parse_claims_and_retrieve_wallet_user<'a, T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkeys: &impl PublicKeyByKid,
+    certificate_signing_pubkeys: &'a impl PublicKeyByKid<'a>,
     wallet_user_repository: &R,
     include_blocked: bool,
 ) -> Result<(WalletUser, WalletCertificateClaims, Kid), WalletCertificateError>
@@ -185,9 +185,9 @@ where
 /// - Check that the provided PIN key and the HW key in the [`WalletUser`] are present in the (verified) wallet
 ///   certificate
 /// - Return the [`WalletUser`].
-pub async fn verify_wallet_certificate<T, R, F, H, P, S>(
+pub async fn verify_wallet_certificate<'a, T, R, F, H, P, S>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkeys: &impl PublicKeyByKid,
+    certificate_signing_pubkeys: &'a impl PublicKeyByKid<'a>,
     pin_pubkey_encryption_kids: &KidPair,
     pin_checks: PinCheckOptions,
     pin_pubkey: P,
@@ -229,9 +229,9 @@ where
 /// - Check that the HW key in the [`WalletUser`] are present in the (verified) wallet certificate
 /// - Returns a tuple of the [`WalletUser`], [`WalletCertificateClaims`] and the [`Kid`] of the key that signed the
 ///   wallet certificate.
-pub async fn parse_and_verify_wallet_cert_using_hw_pubkey<T, R>(
+pub async fn parse_and_verify_wallet_cert_using_hw_pubkey<'a, T, R>(
     certificate: &WalletCertificate,
-    certificate_signing_pubkeys: &impl PublicKeyByKid,
+    certificate_signing_pubkeys: &'a impl PublicKeyByKid<'a>,
     allow_for_blocked_users: bool,
     repositories: &R,
 ) -> Result<(WalletUser, WalletCertificateClaims, Kid), WalletCertificateError>
@@ -296,6 +296,7 @@ where
 pub mod mock {
     use std::sync::LazyLock;
 
+    use crypto::kid::Kid;
     use hsm::model::TestHsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
@@ -304,14 +305,13 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
-    use wallet_provider_domain::keys::Kid;
 
     use crate::keys::certificate_signing_key_identifier;
     use crate::keys::pin_hmac_key_identifier;
     use crate::keys::pin_pubkey_encryption_key_identifier;
 
-    pub static CERTIFICATE_KID: LazyLock<Kid> = LazyLock::new(|| Kid::try_new("0".to_owned()).unwrap());
-    pub static ENCRYPTION_KID: LazyLock<Kid> = LazyLock::new(|| Kid::try_new("0".to_owned()).unwrap());
+    pub static CERTIFICATE_KID: LazyLock<Kid> = LazyLock::new(|| Kid::try_new("0").unwrap());
+    pub static ENCRYPTION_KID: LazyLock<Kid> = LazyLock::new(|| Kid::try_new("0").unwrap());
 
     pub const REVOCATION_CODE_KEY_IDENTIFIER: &str = "revocation_code_key_identifier_1";
 
@@ -371,7 +371,7 @@ mod tests {
     use std::time::Duration;
 
     use chrono::Utc;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
@@ -477,7 +477,7 @@ mod tests {
         verify_wallet_certificate(
             &wallet_certificate,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {
@@ -515,7 +515,7 @@ mod tests {
         verify_wallet_certificate(
             &wallet_certificate,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {
@@ -571,7 +571,7 @@ mod tests {
         verify_wallet_certificate(
             &wallet_certificate,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {
@@ -611,7 +611,7 @@ mod tests {
         parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             false,
@@ -650,7 +650,7 @@ mod tests {
         parse_and_verify_wallet_cert_using_hw_pubkey(
             &wallet_certificate,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             false,
@@ -686,7 +686,7 @@ mod tests {
         verify_wallet_certificate(
             &wallet_certificate,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {

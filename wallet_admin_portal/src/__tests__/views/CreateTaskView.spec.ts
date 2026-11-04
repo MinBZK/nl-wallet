@@ -1,13 +1,33 @@
-import { mount, type VueWrapper } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import router from '../../router'
 import CreateTaskView from '../../views/CreateTaskView.vue'
-import { createTask, type CreatedTask } from '@/api/tasks.ts'
+import { createTask } from '@/api/tasks.ts'
 import { loggedInUser, mockGetAuthState, mockLoggedInUser } from '../mockUseAuth'
+import { buttonByText } from '../testUtils'
 import { Privilege } from '@/types/privilege.ts'
+import { findWallet } from '@/api/wallets.ts'
+import type { Wallet } from '@/types/wallet.ts'
+import { TaskActionType } from '@/types/task-action.ts'
+import type { Task } from '@/types/task.ts'
+
+const createdTask: Task = {
+  id: 'TST-1234567',
+  action: TaskActionType.RevokeWallet,
+  targetSummary: '—',
+  reason: 'Because reasons',
+  createdAt: new Date('2026-08-01T10:00:00'),
+  createdBy: 'Jane Doe',
+}
 
 vi.mock('@/api/tasks.ts', () => ({
-  createTask: vi.fn<() => Promise<CreatedTask>>(() => Promise.resolve({ id: 'TST-1234567' })),
+  createTask: vi.fn<() => Promise<Task>>(() => Promise.resolve(createdTask)),
+}))
+
+vi.mock('@/api/wallets.ts', () => ({
+  findWallet: vi.fn<() => Promise<Wallet | null>>(() =>
+    Promise.resolve({ id: '1920-HYS1-2020-11', status: 'revokable' }),
+  ),
 }))
 
 vi.mock('@/composables/authentication.ts', () => ({
@@ -34,6 +54,15 @@ async function mountAt(path: string) {
     global: { plugins: [router], stubs: { Teleport: true } },
   })
   return wrapper
+}
+
+// Searches for a wallet and adds it to the list, so that the wizard can continue past step 1.
+async function addWallet(wrapper: VueWrapper, id = '1920-HYS1-2020-11') {
+  vi.mocked(findWallet).mockResolvedValueOnce({ id, status: 'revokable' })
+  await wrapper.get('input[type="text"]').setValue(id)
+  await wrapper.get('form').trigger('submit')
+  await flushPromises()
+  await buttonByText(wrapper, 'Voeg toe aan de lijst')!.trigger('click')
 }
 
 function nextButton(wrapper: Awaited<ReturnType<typeof mountAt>>) {
@@ -70,8 +99,59 @@ describe('CreateTaskView', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('open-tasks'))
   })
 
+  it('shows an error and stays on step 1 when continuing without wallets', async () => {
+    const wrapper = await mountAt('/create-task/revoke_wallet')
+    await nextButton(wrapper).trigger('click')
+
+    expect(wrapper.text()).toContain('Stap 1 van 3')
+    expect(wrapper.text()).toContain('minimaal één wallet')
+  })
+
+  it('clears the empty list error once a wallet is added', async () => {
+    const wrapper = await mountAt('/create-task/revoke_wallet')
+    await nextButton(wrapper).trigger('click')
+    await addWallet(wrapper)
+
+    expect(wrapper.text()).not.toContain('minimaal één wallet')
+  })
+
+  it('hides the empty list error when searching and shows it again when continuing without wallets', async () => {
+    const wrapper = await mountAt('/create-task/revoke_wallet')
+    await nextButton(wrapper).trigger('click')
+    expect(wrapper.text()).toContain('minimaal één wallet')
+
+    await wrapper.get('input[type="text"]').setValue('1920-HYS1-2020-11')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('minimaal één wallet')
+
+    await nextButton(wrapper).trigger('click')
+    expect(wrapper.text()).toContain('minimaal één wallet')
+  })
+
+  it('shows the selected wallets on the check step and passes them to createTask', async () => {
+    const wrapper = await mountAt('/create-task/revoke_wallet')
+    await addWallet(wrapper)
+    await nextButton(wrapper).trigger('click')
+    await wrapper.get('.reason-input').setValue('Because reasons')
+    await nextButton(wrapper).trigger('click')
+
+    expect(wrapper.text()).toContain('1 Wallet-ID')
+    expect(wrapper.text()).not.toContain("1 Wallet-ID's")
+    expect(wrapper.text()).toContain('1920-HYS1-2020-11')
+
+    await nextButton(wrapper).trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(createTask).toHaveBeenCalledWith(
+      { taskType: 'revoke_wallet', taskParameters: { walletIds: ['1920-HYS1-2020-11'] } },
+      'Because reasons',
+    )
+  })
+
   it('disables the next button on the reason step until a reason is entered', async () => {
     const wrapper = await mountAt('/create-task/revoke_wallet')
+    await addWallet(wrapper)
     await nextButton(wrapper).trigger('click')
 
     expect(nextButton(wrapper).attributes('disabled')).toBeDefined()
@@ -83,6 +163,7 @@ describe('CreateTaskView', () => {
 
   it('creates the task and shows the confirmation step when reaching the last step', async () => {
     const wrapper = await mountAt('/create-task/revoke_wallet')
+    await addWallet(wrapper)
     await nextButton(wrapper).trigger('click')
 
     await wrapper.get('.reason-input').setValue('Because reasons')
@@ -100,6 +181,7 @@ describe('CreateTaskView', () => {
     vi.mocked(createTask).mockRejectedValueOnce(new Error('BOOM 500'))
 
     const wrapper = await mountAt('/create-task/revoke_wallet')
+    await addWallet(wrapper)
     await nextButton(wrapper).trigger('click')
 
     await wrapper.get('.reason-input').setValue('Because reasons')
@@ -110,7 +192,7 @@ describe('CreateTaskView', () => {
   })
 
   it('does not create a duplicate task when the next button is clicked twice before it resolves', async () => {
-    let resolveTask!: (value: { id: string }) => void
+    let resolveTask!: (value: Task) => void
     vi.mocked(createTask).mockReturnValueOnce(
       new Promise((resolve) => {
         resolveTask = resolve
@@ -118,6 +200,7 @@ describe('CreateTaskView', () => {
     )
 
     const wrapper = await mountAt('/create-task/revoke_wallet')
+    await addWallet(wrapper)
     await nextButton(wrapper).trigger('click')
 
     await wrapper.get('.reason-input').setValue('Because reasons')
@@ -128,7 +211,7 @@ describe('CreateTaskView', () => {
     const secondClick = nextButton(wrapper).trigger('click')
     await Promise.all([firstClick, secondClick])
 
-    resolveTask({ id: 'TST-1234567' })
+    resolveTask(createdTask)
     await wrapper.vm.$nextTick()
 
     // Ensure that createTask was only called once, even though the button was clicked twice.

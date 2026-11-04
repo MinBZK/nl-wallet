@@ -11,6 +11,7 @@ import '../widget/version/app_version_text.dart';
 import '../widget/version/config_version_text.dart';
 import '../widget/version/os_version_text.dart';
 import '../widget/wallet_scrollbar.dart';
+import 'wallet_modal_bottom_sheet.dart';
 
 class HelpSheet extends StatelessWidget {
   final String? errorCode, supportCode;
@@ -101,10 +102,8 @@ class HelpSheet extends StatelessWidget {
     String? errorCode,
     String? supportCode,
   }) async {
-    return showModalBottomSheet<void>(
+    return showWalletModalBottomSheet<void>(
       context: context,
-      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return WalletScrollbar(
           child: SingleChildScrollView(

@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:store_redirect/store_redirect.dart';
 
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../util/store_util.dart';
 import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
 
@@ -32,12 +32,12 @@ class UpdateNotificationDialog extends StatelessWidget {
           },
         ),
         TextButton(
+          onPressed: openAppStore,
           child: Text.rich(
             (Platform.isIOS ? context.l10n.generalToAppStoreCta : context.l10n.generalToPlayStoreCta)
                 .toUpperCase()
                 .toTextSpan(context),
           ),
-          onPressed: () => StoreRedirect.redirect,
         ),
       ],
     );

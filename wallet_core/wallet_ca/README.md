@@ -2,9 +2,8 @@
 
 `wallet_ca` is a development and operations utility for creating the X.509
 material used by NL Wallet. It can generate self-signed certificate authorities,
-issuer and access certificates, certificates for existing public keys, signed
-reader requests, OAuth Status List Tokens, and certificate revocation lists
-(CRLs).
+issuer and access certificates, certificates for existing public keys, OAuth
+Status List Tokens, and certificate revocation lists (CRLs).
 
 Run the CLI from the repository root:
 
@@ -59,17 +58,14 @@ to generate issuer certificates and configuration.
 ## Status List Tokens
 
 Create a separate Token Status List signing certificate under the same CA as
-the referenced tokens. For WRPRCs, its subject distinguished name must be
-identical to that of the WRPRC signing certificate. It remains a separate
-certificate because status-list validation requires the OAuth Status Signing
-extended key usage:
+the referenced tokens. Its subject does not need to match the WRPRC signer's:
 
 ```shell
 cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert \
     --type tsl \
     --ca-key-file target/ca.wrprc.key.pem \
     --ca-crt-file target/ca.wrprc.crt.pem \
-    --common-name "Development WRPRC signer" \
+    --common-name "Development WRPRC status list signer" \
     --organization-name "Development Registrar B.V." \
     --organization-id NTRNL-00000001 \
     --file-prefix target/wrprc-tsl

@@ -6,7 +6,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto::SymmetricKey;
+use crypto::keys::SymmetricKey;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;

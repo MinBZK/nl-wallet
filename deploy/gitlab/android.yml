@@ -24,10 +24,19 @@ test-android:
     - adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done' || true
     - cd wallet_core/wallet/platform_support/android
     - ANDROID_NDK_TARGETS=x86_64 ./gradlew --no-daemon testDebugUnitTest connectedAndroidTest
-  after_script: >
-    deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/android.zip
-    wallet_core/wallet/platform_support/android/build/test-results/testDebugUnitTest/TEST*.xml
-    wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml
+  after_script:
+    - >
+      deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/android.zip
+      wallet_core/wallet/platform_support/android/build/test-results/testDebugUnitTest/TEST*.xml
+      wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml
+    - COVERAGE=wallet_core/wallet/platform_support/android/build/reports/coverage
+    # Unit and instrumented coverage end up in separate reports, so both are stored.
+    - >
+      deploy/bin/store-artifact.sh "$COVERAGE/unit/debug/cobertura.xml"
+      qt/quality-time/android-unit-cobertura.xml
+    - >
+      deploy/bin/store-artifact.sh "$COVERAGE/androidTest/debug/connected/cobertura.xml"
+      qt/quality-time/android-cobertura.xml
 
 ### Android building
 .build-android-app:

@@ -3,7 +3,7 @@ use std::error::Error;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
-use crate::CredentialEcdsaKey;
+use crate::keys::CredentialEcdsaKey;
 
 pub trait DisclosureWscd {
     type Key: CredentialEcdsaKey;

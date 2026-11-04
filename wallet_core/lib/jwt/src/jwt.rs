@@ -9,9 +9,13 @@ use std::time::Duration;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::CredentialEcdsaKey;
-use crypto::PublicKey;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyRef;
+use crypto::kid::Kid;
+use crypto::kid::VerifyingKeyWithKid;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
@@ -469,28 +473,44 @@ where
 /// Implement this for custom key stores to use them with
 /// [`UnverifiedJwt::parse_and_verify_by_kid`] and
 /// [`UnverifiedJwt::parse_and_verify_with_sub_by_kid`].
-pub trait PublicKeyByKid {
+pub trait PublicKeyByKid<'a> {
+    type Key: 'a + AsPublicKeyRef;
     type Error: std::error::Error + Send + Sync + 'static;
 
-    fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error>;
+    fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error>;
 }
 
-impl PublicKeyByKid for JwkSet {
+impl PublicKeyByKid<'_> for JwkSet {
+    type Key = PublicKey;
     type Error = JwkConversionError;
 
-    fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
+    fn find(&self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
         self.find(kid).map(jwk_to_public_key).transpose()
     }
 }
 
-impl<K> PublicKeyByKid for HashMap<String, K>
+impl<'a, K> PublicKeyByKid<'a> for HashMap<Kid, K>
 where
-    K: Into<PublicKey> + Clone,
+    K: 'a + AsPublicKeyRef,
 {
+    type Key = PublicKeyRef<'a>;
     type Error = Infallible;
 
-    fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
-        Ok(self.get(kid).cloned().map(|k| k.into()))
+    fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
+        Ok(self.get(kid).map(AsPublicKeyRef::as_public_key_ref))
+    }
+}
+
+impl<'a> PublicKeyByKid<'a> for VerifyingKeyWithKid {
+    type Key = PublicKeyRef<'a>;
+    type Error = Infallible;
+
+    fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
+        if self.kid.as_ref() == kid {
+            Ok(Some(self.public_key.as_public_key_ref()))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -501,9 +521,9 @@ where
     E: std::error::Error + Send + Sync + 'static,
 {
     /// Verify the JWT using the key whose `kid` matches the header, looked up from `keys`.
-    pub fn parse_and_verify_by_kid<K: PublicKeyByKid>(
+    pub fn parse_and_verify_by_kid<'a>(
         &self,
-        keys: &K,
+        keys: &'a impl PublicKeyByKid<'a>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithKid<H>, T), JwtVerifyError> {
         let kid = self.extract_kid().map_err(JwtVerifyError::ParseError)?;
@@ -513,7 +533,7 @@ where
             .ok_or(JwtVerifyError::KeyNotFound(kid))?;
 
         let validation = validation.into_validation(&pubkey);
-        self.parse_and_verify(JwtDecodingKey::from(pubkey), validation)
+        self.parse_and_verify(JwtDecodingKey::from(pubkey.as_public_key_ref()), validation)
     }
 }
 
@@ -529,7 +549,7 @@ where
 ///
 /// # Example
 /// ```
-/// # use crypto::PublicKey;
+/// # use crypto::keys::PublicKeyRef;
 /// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -551,7 +571,7 @@ where
 ///
 /// let unverified = signed.into_unverified();
 /// let (_, payload) = unverified.parse_and_verify(
-///     JwtDecodingKey::from(PublicKey::from(*key.verifying_key())),
+///     JwtDecodingKey::from(PublicKeyRef::from(key.verifying_key())),
 ///     &*ESP256_ONLY_VALIDATION,
 /// )?;
 /// assert_eq!(payload.name, "alice");
@@ -658,9 +678,9 @@ impl<T> SignedJwt<T, HeaderWithKid>
 where
     T: Serialize + JwtTyp,
 {
-    pub async fn sign_with_kid<K: EcdsaKey + KeyWithKid>(payload: T, privkey: &K) -> Result<Self, JwtSignError> {
+    pub async fn sign_with_kid<K: EcdsaKey + KeyWithKid>(payload: &T, privkey: &K) -> Result<Self, JwtSignError> {
         let header = HeaderWithKid::from_kid(privkey.kid().to_string());
-        SignedJwt::sign_with_header(header, &payload, privkey).await
+        SignedJwt::sign_with_header(header, payload, privkey).await
     }
 }
 
@@ -767,7 +787,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// # Examples
 /// From an `UnverifiedJwt`:
 /// ```
-/// # use crypto::PublicKey;
+/// # use crypto::keys::PublicKeyRef;
 /// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -789,7 +809,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 ///
 /// let unverified = signed.into_unverified();
 /// let verified = unverified.into_verified(
-///     &JwtDecodingKey::from(PublicKey::from(*key.verifying_key())),
+///     &JwtDecodingKey::from(PublicKeyRef::from(key.verifying_key())),
 ///     &*ESP256_ONLY_VALIDATION,
 /// )?;
 /// assert_eq!(verified.payload().name, "alice");
@@ -884,6 +904,16 @@ impl TryFrom<&Jwk> for JwtDecodingKey {
     }
 }
 
+impl<'a> From<PublicKeyRef<'a>> for JwtDecodingKey {
+    fn from(value: PublicKeyRef<'a>) -> Self {
+        match value {
+            PublicKeyRef::ESP256(key) => JwtDecodingKey::from_ec_public_key(key),
+            PublicKeyRef::ESP384(key) => JwtDecodingKey::from_ec_public_key(key),
+            PublicKeyRef::RSA(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
+        }
+    }
+}
+
 impl From<&PublicKey> for JwtDecodingKey {
     fn from(value: &PublicKey) -> Self {
         match value {
@@ -891,13 +921,6 @@ impl From<&PublicKey> for JwtDecodingKey {
             PublicKey::ESP384(key) => JwtDecodingKey::from_ec_public_key(key),
             PublicKey::RSA(key) => JwtDecodingKey::from_rsa_public_key(key.as_ref()),
         }
-    }
-}
-
-// Convenience impl for converting a `PublicKey` to a `JwtDecodingKey`
-impl From<PublicKey> for JwtDecodingKey {
-    fn from(value: PublicKey) -> Self {
-        (&value).into()
     }
 }
 
@@ -962,7 +985,9 @@ impl JwtValidation {
 
     /// Since `jsonwebtoken` only supports one algorithm family at a time, this converts a `JwtValidation` into a valid
     /// `Validation` for the given public key.
-    pub fn into_validation(mut self, public_key: &PublicKey) -> ValidationWrapper {
+    pub fn into_validation(mut self, public_key: &impl AsPublicKeyRef) -> ValidationWrapper {
+        let public_key = public_key.as_public_key_ref();
+
         // only include algorithms supported by the public key
         self.0.algorithms = self
             .0
@@ -1041,11 +1066,11 @@ pub trait SupportedAlgorithms {
     fn supported_algorithms(&self) -> &[Algorithm];
 }
 
-impl SupportedAlgorithms for PublicKey {
+impl SupportedAlgorithms for PublicKeyRef<'_> {
     fn supported_algorithms(&self) -> &[Algorithm] {
         match self {
-            PublicKey::ESP256(_) | PublicKey::ESP384(_) => AlgorithmFamily::Ec.algorithms(),
-            PublicKey::RSA(_) => AlgorithmFamily::Rsa.algorithms(),
+            PublicKeyRef::ESP256(_) | PublicKeyRef::ESP384(_) => AlgorithmFamily::Ec.algorithms(),
+            PublicKeyRef::RSA(_) => AlgorithmFamily::Rsa.algorithms(),
         }
     }
 }
@@ -1143,9 +1168,9 @@ where
     E: std::error::Error + Send + Sync + 'static,
 {
     /// Verify the JWT using the key whose `kid` matches the header, also enforcing the `sub` claim.
-    pub fn parse_and_verify_with_sub_by_kid<K: PublicKeyByKid>(
+    pub fn parse_and_verify_with_sub_by_kid<'a, K: PublicKeyByKid<'a>>(
         &self,
-        keys: &K,
+        keys: &'a K,
     ) -> Result<(HeaderWithKid<H>, T), JwtVerifyError> {
         let validation = default_sub_validation::<T>();
         self.parse_and_verify_by_kid(keys, validation.to_owned().into())
@@ -1171,7 +1196,7 @@ where
         privkey: &K,
     ) -> Result<Self, JwtSignError> {
         let claims = PayloadWithSub::new(payload);
-        SignedJwt::sign_with_kid(claims, privkey).await.map(Into::into)
+        SignedJwt::sign_with_kid(&claims, privkey).await.map(Into::into)
     }
 }
 
@@ -1370,9 +1395,10 @@ mod tests {
 
     use ::axum::response::IntoResponse;
     use chrono::TimeDelta;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::p256_der::DerVerifyingKey;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateVerifyError;
@@ -1478,7 +1504,7 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let (_, parsed) = jwt
-            .parse_and_verify_with_sub(&PublicKey::from(*private_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&PublicKeyRef::from(private_key.verifying_key()).into())
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -1503,7 +1529,7 @@ mod tests {
         // the JWT can be verified and parsed back into an identical value
         let (_, parsed) = jwt
             .parse_and_verify(
-                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(private_key.verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
@@ -1541,7 +1567,7 @@ mod tests {
         // the JWT cannot be verified with `parse_and_verify_with_typ()`
         let parsed = jwt
             .parse_and_verify(
-                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(private_key.verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .expect_err("should fail because the JWT has the wrong `typ` field");
@@ -1580,7 +1606,7 @@ mod tests {
         // the JWT should be accepted, as the `typ` header is case-insensitive
         let (_, parsed) = jwt
             .parse_and_verify(
-                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(private_key.verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .expect("should succeed because the `typ` field only differs in case");
@@ -1609,7 +1635,7 @@ mod tests {
     #[tokio::test]
     async fn test_esp256_only_validation_validates_exp_when_present() {
         let private_key = SigningKey::generate();
-        let decoding_key = || JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key()));
+        let decoding_key = || JwtDecodingKey::from(PublicKeyRef::from(private_key.verifying_key()));
 
         // A payload without an `exp` claim at all is accepted, since `exp` is not a required claim.
         SignedJwt::sign(&ToyMessage::default(), &private_key)
@@ -1647,7 +1673,7 @@ mod tests {
         // the JWT can be verified and parsed back into an identical value
         let (_, parsed) = unverified_jwt
             .parse_and_verify(
-                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(private_key.verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
@@ -1657,7 +1683,7 @@ mod tests {
         let verified_jwt = unverified_jwt
             .clone()
             .into_verified(
-                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(private_key.verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
@@ -1699,7 +1725,7 @@ mod tests {
             .unwrap()
             .as_ref()
             .parse_and_verify(
-                JwtDecodingKey::from(PublicKey::from(*key1.verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(key1.verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
@@ -1724,7 +1750,7 @@ mod tests {
             let (_, parsed) = signed_jwt
                 .as_ref()
                 .parse_and_verify(
-                    JwtDecodingKey::from(PublicKey::from(*key.verifying_key())),
+                    JwtDecodingKey::from(PublicKeyRef::from(key.verifying_key())),
                     &*ESP256_ONLY_VALIDATION,
                 )
                 .unwrap();
@@ -1744,13 +1770,13 @@ mod tests {
         assert!(!jwt_message.contains_key("sub"));
 
         // verification fails because `sub` is required
-        jwt.parse_and_verify_with_sub(&PublicKey::from(*private_key.verifying_key()).into())
+        jwt.parse_and_verify_with_sub(&PublicKeyRef::from(private_key.verifying_key()).into())
             .unwrap_err();
 
         // we can parse and verify the JWT if we don't require the `sub` field to be present
         let (_, parsed) = jwt
             .parse_and_verify(
-                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(private_key.verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
@@ -1966,12 +1992,12 @@ mod tests {
         let signing_key = SigningKey::generate();
         let kid = signing_key.kid().to_string();
 
-        let mut jwk = jwk_from_public_key(&PublicKey::from(*signing_key.verifying_key())).unwrap();
+        let mut jwk = jwk_from_public_key(&PublicKeyRef::from(signing_key.verifying_key())).unwrap();
         jwk.common.key_id = Some(kid.clone());
         let jwks = JwkSet { keys: vec![jwk] };
 
         let payload = ToyMessage::default();
-        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_kid(payload.clone(), &signing_key)
+        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_kid(&payload, &signing_key)
             .await
             .unwrap()
             .into_unverified();
@@ -1990,7 +2016,7 @@ mod tests {
         let kid = "my-key-id".to_owned();
 
         // The JwkSet holds the correct key but under a different kid.
-        let mut jwk = jwk_from_public_key(&PublicKey::from(*signing_key.verifying_key())).unwrap();
+        let mut jwk = jwk_from_public_key(&PublicKeyRef::from(signing_key.verifying_key())).unwrap();
         jwk.common.key_id = Some("other-key-id".to_owned());
         let jwks = JwkSet { keys: vec![jwk] };
 
@@ -2022,7 +2048,7 @@ mod tests {
         let kid = "my-key-id".to_owned();
 
         // The JwkSet holds a different key's JWK under the matching kid.
-        let mut jwk = jwk_from_public_key(&PublicKey::from(*other_key.verifying_key())).unwrap();
+        let mut jwk = jwk_from_public_key(&PublicKeyRef::from(other_key.verifying_key())).unwrap();
         jwk.common.key_id = Some(kid.clone());
         let jwks = JwkSet { keys: vec![jwk] };
 
@@ -2230,7 +2256,7 @@ mod tests {
             .parse::<UnverifiedJwt<_>>()
             .unwrap()
             .into_verified(
-                JwtDecodingKey::from(PublicKey::from(*private_key.verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(private_key.verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();
@@ -2280,9 +2306,12 @@ mod tests {
     #[rstest]
     #[case::ecdsa_p256(PrivateKey::P256(p256::ecdsa::SigningKey::generate()), Algorithm::ES256)]
     #[case::ecdsa_p384(PrivateKey::P384(p384::ecdsa::SigningKey::generate()), Algorithm::ES384)]
-    #[case::rsa2048(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa3072(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa4096(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa2048_rs256(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa3072_rs384(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS384)]
+    #[case::rsa4096_rs512(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS512)]
+    #[case::rsa2048_ps256(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::PS256)]
+    #[case::rsa3072_ps384(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::PS384)]
+    #[case::rsa4096_ps512(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::PS512)]
     fn test_sign_and_verify_with_algorithms(#[case] private_key: PrivateKey, #[case] algorithm: Algorithm) {
         let payload = ToyMessage::default();
 
@@ -2292,13 +2321,29 @@ mod tests {
         let unverified: UnverifiedJwt<ToyMessage> = token_str.parse().unwrap();
 
         let public_key = private_key.public_key();
-        let validation = JwtValidation::default_with_algorithms(public_key.supported_algorithms().to_vec())
-            .try_into_validation()
-            .unwrap();
+        let validation =
+            JwtValidation::default_with_algorithms(public_key.as_public_key_ref().supported_algorithms().to_vec())
+                .try_into_validation()
+                .unwrap();
 
-        let decoding_key = JwtDecodingKey::from(public_key);
+        let decoding_key = JwtDecodingKey::from(&public_key);
         let (_, parsed) = unverified.parse_and_verify(&decoding_key, &validation).unwrap();
 
         assert_eq!(parsed, payload);
+    }
+
+    #[test]
+    fn test_config_key_with_kid() {
+        let kid = "v1".try_into().unwrap();
+
+        let keypair = SigningKey::generate();
+        let public_key = DerVerifyingKey::from(*keypair.verifying_key());
+
+        let key_with_kid = VerifyingKeyWithKid {
+            kid,
+            public_key: public_key.clone(),
+        };
+        assert_matches!(key_with_kid.find("v1").unwrap(), Some(PublicKeyRef::ESP256(found_key)) if found_key == public_key.as_inner());
+        assert!(key_with_kid.find("v2").unwrap().is_none());
     }
 }

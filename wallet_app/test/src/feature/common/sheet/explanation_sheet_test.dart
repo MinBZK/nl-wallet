@@ -58,5 +58,31 @@ void main() {
       expect(descriptionFinder, findsOneWidget);
       expect(closeButtonFinder, findsOneWidget);
     });
+
+    testWidgets('show displays the sheet and close button dismisses it', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () => ExplanationSheet.show(
+                context,
+                title: 'T',
+                description: 'D',
+                closeButtonText: 'C',
+              ),
+              child: const Text('Show Sheet'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Sheet'));
+      await tester.pumpAndSettle();
+      expect(find.text('T'), findsOneWidget);
+
+      await tester.tap(find.text('C'));
+      await tester.pumpAndSettle();
+      expect(find.text('T'), findsNothing);
+    });
   });
 }

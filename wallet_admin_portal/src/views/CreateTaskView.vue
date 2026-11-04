@@ -1,7 +1,18 @@
 <template>
   <template v-if="action">
     <div class="wizard-content">
-      <template v-if="step === 'intro'">
+      <SelectWalletsStep
+        v-if="step === 'intro' && type === TaskActionType.RevokeWallet"
+        v-model="selectedWallets"
+        :step-number="stepNumber"
+        :total-steps="totalSteps"
+        :title="action.header"
+        :description="action.description"
+        :error="introError"
+        @search="introError = null"
+      />
+
+      <template v-else-if="step === 'intro'">
         <TaskStepHeader
           :step-number="stepNumber"
           :total-steps="totalSteps"
@@ -51,23 +62,33 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePageTitle } from '@/composables/pageTitle.ts'
-import { useAuth } from '@/composables/authentication.ts'
 import { useNavigation } from '@/composables/navigation.ts'
 import TaskStepHeader from '@/components/create-task/TaskStepHeader.vue'
 import TaskWizardFooter from '@/components/create-task/TaskWizardFooter.vue'
 import AddReasonStep from '@/components/create-task/AddReasonStep.vue'
 import CheckTaskStep from '@/components/create-task/CheckTaskStep.vue'
+import SelectWalletsStep from '@/components/create-task/SelectWalletsStep.vue'
 import TaskCreatedStep from '@/components/create-task/TaskCreatedStep.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import TaskCard from '@/components/tasks/TaskCard.vue'
-import { TASK_ACTION_INFO, type TaskActionType } from '@/types/task-action.ts'
+import { TASK_ACTION_INFO, TaskActionType } from '@/types/task-action.ts'
 import type { TaskDetailRow } from '@/types/task-detail-row.ts'
+import type { TaskPayload } from '@/types/task-payload.ts'
+import type { Wallet } from '@/types/wallet.ts'
 import { createTask } from '@/api/tasks.ts'
+import { taskPayloadRows } from '@/utils/taskPayloadRows.ts'
 
 type WizardStep = 'intro' | 'reason' | 'check' | 'done'
+
+interface TaskDraft {
+  /** What the task will do. */
+  payload: TaskPayload
+  /** The reason the first step can't continue yet, or null when it has everything it needs. */
+  introStepError: string | null
+}
 
 /** Order of all wizard steps. */
 const STEP_ORDER: WizardStep[] = ['intro', 'reason', 'check', 'done']
@@ -76,11 +97,12 @@ const NUMBERED_STEPS: WizardStep[] = ['intro', 'reason', 'check']
 
 const route = useRoute()
 const { setPageTitle, resetPageTitle } = usePageTitle()
-const { loggedInUser } = useAuth()
 const { goBackOrHome, goHome } = useNavigation()
 
 const step = ref<WizardStep>('intro')
 const reason = ref('')
+const selectedWallets = ref<Wallet[]>([])
+const introError = ref<string | null>(null)
 const taskId = ref<string | null>(null)
 const isCreatingTask = ref(false)
 const taskCreationFailed = ref(false)
@@ -92,14 +114,40 @@ const type = computed(() => route.params.type as TaskActionType)
 const action = computed(() => TASK_ACTION_INFO[type.value] ?? null)
 const pageTitle = computed(() => (action.value ? `Maak taak aan: ${action.value.title}` : ''))
 
+/** The part of the wizard's data that depends on the task type. */
+const taskDraft = computed((): TaskDraft => {
+  switch (type.value) {
+    case TaskActionType.RevokeWallet: {
+      const walletIds = selectedWallets.value.map((wallet) => wallet.id)
+      return {
+        payload: { taskType: TaskActionType.RevokeWallet, taskParameters: { walletIds } },
+        introStepError:
+          walletIds.length === 0
+            ? 'Om verder te gaan, moet je minimaal één wallet toevoegen aan de lijst.'
+            : null,
+      }
+    }
+    default:
+      return {
+        payload: { taskType: type.value, taskParameters: {} },
+        introStepError: null,
+      }
+  }
+})
+
+const payloadRows = computed(() => taskPayloadRows(taskDraft.value.payload))
+
 const taskDetails = computed<TaskDetailRow[]>(() => [
   { label: 'Actie', value: action.value?.title ?? '' },
+  ...payloadRows.value.summaryRows,
+  ...payloadRows.value.selectionRows,
   { label: 'Reden', value: reason.value },
 ])
 
 const createdDetails = computed<TaskDetailRow[]>(() => [
   { label: 'Taak ID', value: taskId.value ?? '' },
   { label: 'Actie', value: action.value?.title ?? '' },
+  ...payloadRows.value.summaryRows,
 ])
 
 const nextLabel = computed(() => {
@@ -111,6 +159,9 @@ const nextLabel = computed(() => {
 watchEffect(() => {
   if (!action.value) return
   setPageTitle(pageTitle.value)
+})
+watch(selectedWallets, () => {
+  introError.value = null
 })
 onBeforeUnmount(resetPageTitle)
 
@@ -124,11 +175,7 @@ async function handleNext() {
     if (isCreatingTask.value) return
     isCreatingTask.value = true
     try {
-      const task = await createTask(
-        type.value,
-        loggedInUser.value?.displayName ?? 'Onbekend',
-        reason.value,
-      )
+      const task = await createTask(taskDraft.value.payload, reason.value)
       taskId.value = task.id
       taskCreationFailed.value = false
       step.value = 'done'
@@ -142,6 +189,10 @@ async function handleNext() {
   if (step.value === 'done') {
     goBackOrHome()
     return
+  }
+  if (step.value === 'intro') {
+    introError.value = taskDraft.value.introStepError
+    if (introError.value) return
   }
   step.value = STEP_ORDER[STEP_ORDER.indexOf(step.value) + 1]!
 }

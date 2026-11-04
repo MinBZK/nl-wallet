@@ -295,7 +295,7 @@ build-pacf-issuance-server-binary:
   extends: .build-binary
   script:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package pacf_issuance_server --bin
-      pacf_issuance_server
+      pacf_issuance_server --features test_internal_ui
   artifacts:
     name: pacf_issuance_server
     paths:
@@ -362,8 +362,8 @@ build-demo-index-binary:
 build-acf-demo-issuer-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package acf_demo_issuer --bin
-      acf_demo_issuer
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package acf_demo_issuer --bin acf_demo_issuer
+      --features test_internal_ui
   artifacts:
     name: acf_demo_issuer
     paths:

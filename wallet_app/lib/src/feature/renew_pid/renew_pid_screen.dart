@@ -20,7 +20,6 @@ import '../common/dialog/stop_digid_login_dialog.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/utility/scroll_offset_provider.dart';
@@ -70,7 +69,6 @@ class RenewPidScreen extends StatelessWidget {
           : null,
       automaticallyImplyLeading: false,
       actions: [
-        if (_showHelpIcon(state)) const HelpIconButton(),
         if (_showCloseButton(state)) CloseIconButton(onPressed: () => _stopRenewPid(context)),
       ],
       title: _buildTitle(context, state),
@@ -258,17 +256,6 @@ class RenewPidScreen extends StatelessWidget {
       case RenewPidUpdatingCards():
         return false;
     }
-  }
-
-  /// Determines whether to show the close button in the [WalletAppBar].
-  bool _showHelpIcon(RenewPidState state) {
-    return switch (state) {
-      RenewPidLoadingDigidUrl() => false,
-      RenewPidAwaitingDigidAuthentication() => false,
-      RenewPidVerifyingDigidAuthentication() => false,
-      RenewPidUpdatingCards() => false,
-      _ => true,
-    };
   }
 
   bool _showCloseButton(RenewPidState state) {

@@ -19,6 +19,11 @@ use syn::parse_macro_input;
 /// `#[audit]` parameter, derives `serde::Serialize`, and uses
 /// `serde_json::to_value()` to produce the JSON.
 ///
+/// A parameter annotated with `#[audit(flatten)]` gets `#[serde(flatten)]` on its
+/// field, so its fields are included directly in the JSON parameters instead of
+/// nested under the parameter name; see the `serde(flatten)` limitations at
+/// <https://serde.rs/attr-flatten.html>. A violation is reported as an audit error.
+///
 /// # Example
 ///
 /// ```rust
@@ -95,10 +100,12 @@ pub fn audited(_attr: TokenStream, item: TokenStream) -> TokenStream {
 const AUDITOR: &str = "auditor";
 const AUDIT_USER: &str = "audit_user";
 const AUDIT: &str = "audit";
+const FLATTEN: &str = "flatten";
 
 struct AuditParam {
     ident: syn::Ident,
     ty: Box<syn::Type>,
+    flatten: bool,
 }
 
 enum ParamRole {
@@ -291,13 +298,32 @@ fn generate_field_initialization(p: &AuditParam) -> proc_macro2::TokenStream {
 /// Generates the struct field type definition for an `#[audit]` parameter.
 fn generate_field_definition(p: &AuditParam) -> proc_macro2::TokenStream {
     let ident = &p.ident;
+    let serde_attr = p.flatten.then(|| quote! { #[serde(flatten)] });
     if let syn::Type::Reference(type_ref) = p.ty.as_ref() {
         let inner = &type_ref.elem;
-        quote! { #ident: &'__audit #inner }
+        quote! { #serde_attr #ident: &'__audit #inner }
     } else {
         let ty = &p.ty;
-        quote! { #ident: &'__audit #ty }
+        quote! { #serde_attr #ident: &'__audit #ty }
     }
+}
+
+/// Parses the optional arguments of an `#[audit]` attribute, returning whether `flatten` is present.
+fn parse_audit_flatten(attr: &syn::Attribute) -> syn::Result<bool> {
+    if matches!(attr.meta, syn::Meta::Path(_)) {
+        return Ok(false);
+    }
+
+    let mut flatten = false;
+    attr.parse_nested_meta(|meta| {
+        if meta.path.is_ident(FLATTEN) {
+            flatten = true;
+            Ok(())
+        } else {
+            Err(meta.error(format!("unsupported #[{AUDIT}] argument, expected `{FLATTEN}`")))
+        }
+    })?;
+    Ok(flatten)
 }
 
 /// Extracts the identifier from a typed parameter, returning an error if it is not a simple ident.
@@ -323,11 +349,12 @@ fn classify_param(pat_type: &syn::PatType) -> syn::Result<ParamRole> {
                 require_ident(pat_type, AUDIT_USER).map(ParamRole::AuditUser).into()
             } else if attr.path().is_ident(AUDIT) {
                 require_ident(pat_type, AUDIT)
-                    .map(|ident| {
-                        ParamRole::AuditParam(AuditParam {
+                    .and_then(|ident| {
+                        Ok(ParamRole::AuditParam(AuditParam {
                             ident,
                             ty: pat_type.ty.clone(),
-                        })
+                            flatten: parse_audit_flatten(attr)?,
+                        }))
                     })
                     .into()
             } else {
@@ -578,6 +605,17 @@ mod tests {
         }
     }
 
+    fn unsupported_audit_argument() -> ItemFn {
+        syn::parse_quote! {
+            async fn unsupported_argument(
+                #[audit(rename = "other")] name: &str,
+                #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
     #[rstest]
     #[case::non_async_function(non_async_function(), "#[audited] can only be applied to async functions")]
     #[case::missing_auditor(
@@ -615,6 +653,10 @@ mod tests {
         audit_user_and_auditor_on_same_param(),
         "found multiple #[auditor], #[audit] and/or #[audit_user] attributes on a single parameter, only a single is \
          allowed"
+    )]
+    #[case::unsupported_audit_argument(
+        unsupported_audit_argument(),
+        "unsupported #[audit] argument, expected `flatten`"
     )]
     fn test_audited_inner_rejects(#[case] input: ItemFn, #[case] expected_error: &str) {
         let err = audited_inner(&input).unwrap_err();
@@ -709,6 +751,18 @@ mod tests {
         }
     }
 
+    fn with_flattened_audit_param() -> ItemFn {
+        syn::parse_quote! {
+            async fn with_flatten(
+                #[audit(flatten)] payload: &Payload,
+                #[audit] name: &str,
+                #[auditor] log: &Log,
+            ) -> Result<(), Error> {
+                Ok(())
+            }
+        }
+    }
+
     #[rstest]
     #[case::no_audit_params(no_audit_params())]
     #[case::with_audit_params(with_audit_params())]
@@ -718,6 +772,7 @@ mod tests {
     #[case::with_reference_to_type_with_lifetimes(with_reference_to_type_with_lifetimes())]
     #[case::with_audit_user_param(with_audit_user_param())]
     #[case::with_only_audit_user_param(with_only_audit_user_param())]
+    #[case::with_flattened_audit_param(with_flattened_audit_param())]
     fn audited_inner_succeeds(#[case] input: ItemFn) {
         assert!(audited_inner(&input).is_ok());
     }

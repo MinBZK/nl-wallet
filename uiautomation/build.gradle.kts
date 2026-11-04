@@ -59,27 +59,6 @@ tasks.register<Test>("testEnglish") {
     }
 }
 
-tasks.register<Test>("testA11yBatch1") {
-    useJUnitPlatform {
-        includeTags("a11yBatch1")
-        exclude("suite/**")
-    }
-}
-
-tasks.register<Test>("testA11yBatch2") {
-    useJUnitPlatform {
-        includeTags("a11yBatch2")
-        exclude("suite/**")
-    }
-}
-
-tasks.register<Test>("testA11yBatch3") {
-    useJUnitPlatform {
-        includeTags("a11yBatch3")
-        exclude("suite/**")
-    }
-}
-
 tasks.register<Test>("testAllAndroids") {
     useJUnitPlatform {
         includeTags("onallandroids")

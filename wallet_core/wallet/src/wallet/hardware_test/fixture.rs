@@ -23,7 +23,7 @@ use attestation_types::status_claim::StatusListClaim;
 use chrono::TimeDelta;
 use chrono::Utc;
 use ciborium::value::Value;
-use crypto::PublicKey;
+use crypto::keys::PublicKeyRef;
 use crypto::p256_der::DerSignature;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -49,6 +49,7 @@ use p256::elliptic_curve::Generate;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use token_status_list::status_list::StatusList;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::verification::client::mock::MockStatusListClient;
 use utils::generator::TimeGenerator;
@@ -113,10 +114,12 @@ impl<C> Fixture<C> {
         // All key material is generated for this run and remains inside the test process.
         let issuer_ca = Ca::generate_issuer_mock_ca()?;
         let issuer = issuer_ca.generate_issuer_mock()?;
-        let credential_status_list =
+        let credential_status_list = StatusListJwt::sign(
             StatusListToken::builder(CREDENTIAL_STATUS_LIST_URI.parse()?, StatusList::new(1).pack())
-                .sign(&issuer_ca.generate_issuer_status_list_mock()?)
-                .await?;
+                .build(&TimeGenerator),
+            &issuer_ca.generate_issuer_status_list_mock()?,
+        )
+        .await?;
         let reader_ca = Ca::generate_wrpac_mock_ca()?;
         let reader = reader_ca.generate_wrpac_verifier_mock_with_crl()?;
         let registration_ca = MockRegistrationCertificateAuthority::new();
@@ -150,14 +153,14 @@ impl<C> Fixture<C> {
         config.wrprc_trust_anchors = registration_ca.trust_anchors;
         config.issuer_trust_anchors = issuer_ca.to_trust_anchors();
         config.account_server.certificate_public_keys = HashMap::from([(
-            account_key.kid().to_owned(),
+            account_key.kid().try_into()?,
             CertificatePublicKey {
                 key: (*account_key.verifying_key()).into(),
                 used_from: Utc::now().into(),
             },
         )]);
         config.account_server.instruction_result_public_keys =
-            HashMap::from([(account_key.kid().to_owned(), (*account_key.verifying_key()).into())]);
+            HashMap::from([(account_key.kid().try_into()?, (*account_key.verifying_key()).into())]);
 
         let mut preview = PreviewableCredentialPayload::nl_pid_mdoc_example(&TimeGenerator);
         preview.attributes.overwrite(
@@ -167,7 +170,7 @@ impl<C> Fixture<C> {
         let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
             preview,
             Utc::now(),
-            &PublicKey::from(*holder_key.verifying_key()),
+            &PublicKeyRef::from(holder_key.verifying_key()),
             None,
             Some(StatusListClaim {
                 idx: 0,
@@ -265,7 +268,7 @@ impl<C> Fixture<C> {
             WalletRepositories {
                 config_repository: UpdatingConfigurationRepository::new(
                     LocalConfigurationRepository::new(config),
-                    default_config_server_config(),
+                    default_config_server_config().into(),
                 )
                 .await,
                 update_policy_repository: MockUpdatePolicyRepository::default(),

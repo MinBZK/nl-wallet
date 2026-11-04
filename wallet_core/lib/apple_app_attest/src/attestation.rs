@@ -397,7 +397,8 @@ pub mod mock {
             // * The Apple development environment as AAGUID.
             // * A hash of the raw public key as credential ID.
             // * The public key in COSE key format.
-            let mut auth_data = AuthenticatorData::new(app_identifier.as_ref(), Some(0));
+            let mut auth_data =
+                AuthenticatorData::new(app_identifier.as_ref(), Some(0), &passkey_crypto::AvailableBackend);
 
             let aaguid = environment.to_aaguid();
 

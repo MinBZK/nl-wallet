@@ -32,7 +32,7 @@ use p256::ecdsa::SigningKey;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use serde::Deserialize;
 use serde::Serialize;
-use token_status_list::status_list_token::StatusListToken;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::verification::client::mock::MockStatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -74,7 +74,7 @@ impl Scenario {
 pub struct Verification {
     issuer_trust_anchors: TrustAnchors,
     session_transcript_hex: String,
-    credential_status_list: StatusListToken,
+    credential_status_list: StatusListJwt,
     #[serde(default)]
     expected_error_status: Option<DeviceResponseStatus>,
 }

@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/organization.dart';
@@ -232,6 +233,35 @@ void main() {
       expect(find.text(l10n.organizationDetailScreenCategoryInfo), findsNothing);
     });
 
+    testWidgets('url rows expose their title as label and the displayed url as value of a link', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final organization = WalletMockData.organization.copyWith(webUri: 'https://example.org/web');
+      await tester.pumpWidgetWithAppWrapper(
+        const OrganizationDetailScreen().withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(organization: organization, sharedDataWithOrganizationBefore: false),
+        ),
+        surfaceSize: const Size(375, 1200),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      final rows = {
+        l10n.organizationDetailScreenWebsiteInfo: organization.webUri!,
+        l10n.organizationDetailScreenSupportInfo: organization.supportUri,
+        l10n.organizationDetailScreenPrivacyInfo: organization.privacyPolicyUri!,
+      };
+      for (final MapEntry(key: title, value: url) in rows.entries) {
+        final rowFinder = find.semantics.byLabel(title);
+        expect(rowFinder, findsOne);
+        final row = rowFinder.evaluate().single;
+        expect(row, isSemantics(isLink: true, isButton: false, hasTapAction: true));
+        expect(row.getSemanticsData().value, url.replaceAll('https://', ''));
+        expect(row.getSemanticsData().linkUrl, Uri.parse(url));
+      }
+      expect(find.semantics.byLabel(RegExp('https://')), findsNothing);
+      semanticsHandle.dispose();
+    });
+
     testWidgets('onReportIssuePressed callback is triggered when button is clicked', (tester) async {
       bool isCalled = false;
       await tester.pumpWidgetWithAppWrapper(
@@ -252,6 +282,39 @@ void main() {
       expect(reportIssueButtonFinder, findsOneWidget);
       await tester.tap(reportIssueButtonFinder);
       expect(isCalled, isTrue);
+    });
+
+    testWidgets('activating a url row opens its url', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final launchedUrls = <String>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/url_launcher'),
+        (MethodCall methodCall) async {
+          launchedUrls.add(methodCall.arguments['url'] as String);
+          return true;
+        },
+      );
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/url_launcher'),
+          null,
+        ),
+      );
+      final organization = WalletMockData.organization.copyWith(webUri: 'https://example.org/web');
+      await tester.pumpWidgetWithAppWrapper(
+        const OrganizationDetailScreen().withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(organization: organization, sharedDataWithOrganizationBefore: false),
+        ),
+        surfaceSize: const Size(375, 1200),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      tester.semantics.tap(find.semantics.byLabel(l10n.organizationDetailScreenWebsiteInfo));
+      await tester.pumpAndSettle();
+
+      expect(launchedUrls, [organization.webUri]);
+      semanticsHandle.dispose();
     });
   });
 }

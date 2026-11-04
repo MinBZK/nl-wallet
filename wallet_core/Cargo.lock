@@ -10,7 +10,7 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "acf_demo_issuer"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "acf_demo_issuer_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "async-trait",
  "issuer_common_migrations",
@@ -187,7 +187,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "android_attest"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "bitflags",
  "bytes",
@@ -317,7 +317,7 @@ checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c0798709bf56d9ed84af3"
 
 [[package]]
 name = "apple_app_attest"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "chrono",
  "ciborium",
@@ -326,6 +326,7 @@ dependencies = [
  "derive_more",
  "nutype",
  "p256 0.14.0",
+ "passkey-crypto",
  "passkey-types",
  "rand 0.8.6",
  "rand_core 0.9.5",
@@ -709,7 +710,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "attestation_data"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "attestation_types",
  "base64 0.22.1",
@@ -730,7 +731,6 @@ dependencies = [
  "mdoc",
  "p256 0.14.0",
  "rand_core 0.9.5",
- "rcgen 0.14.5",
  "rstest",
  "sd_jwt",
  "sd_jwt_vc_metadata",
@@ -741,18 +741,16 @@ dependencies = [
  "ssri",
  "strum 0.28.0",
  "thiserror 2.0.17",
- "time",
  "token_status_list",
  "tokio",
  "url",
  "utils",
  "uuid",
- "x509-parser 0.18.0",
 ]
 
 [[package]]
 name = "attestation_types"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "base64 0.22.1",
  "data-url 0.3.2",
@@ -771,7 +769,7 @@ dependencies = [
 
 [[package]]
 name = "audit_log"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "audit_log_macros",
  "chrono",
@@ -792,7 +790,7 @@ dependencies = [
 
 [[package]]
 name = "audit_log_macros"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "audit_log",
  "itertools 0.14.0",
@@ -806,7 +804,7 @@ dependencies = [
 
 [[package]]
 name = "audit_log_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -1396,11 +1394,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c673075a2e0e5f4a1dde27ce9dee1ea4558c7ffe648f576438a20ca1d2acc4b0"
 dependencies = [
  "iana-time-zone",
- "js-sys",
  "num-traits",
  "pure-rust-locales",
  "serde",
- "wasm-bindgen",
  "windows-link",
 ]
 
@@ -1562,8 +1558,6 @@ dependencies = [
  "compression-core",
  "flate2",
  "memchr",
- "zstd",
- "zstd-safe",
 ]
 
 [[package]]
@@ -1647,6 +1641,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "affbf0190ed2caf063e3def54ff444b449371d55c58e513a95ab98eca50adb49"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1681,7 +1684,7 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "cose"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "chrono",
  "ciborium",
@@ -1689,11 +1692,18 @@ dependencies = [
  "crypto",
  "derive_more",
  "error_category",
+ "futures",
+ "hex-literal",
+ "indexmap 2.12.1",
  "p256 0.14.0",
+ "p384 0.14.0",
+ "rand 0.8.6",
  "rand_core 0.9.5",
  "ring",
+ "rsa",
  "rstest",
  "serde",
+ "sha2 0.10.9",
  "strum 0.28.0",
  "thiserror 2.0.17",
  "tokio",
@@ -1702,9 +1712,9 @@ dependencies = [
 
 [[package]]
 name = "coset"
-version = "0.3.8"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4c8cc80f631f8307b887faca24dcc3abc427cd0367f6eb6188f6e8f5b7ad8fb"
+checksum = "1eb98d5e9155e2cf7cd942c8b3033097d4563b6fb0a00b9caecb74669555c058"
 dependencies = [
  "ciborium",
  "ciborium-io",
@@ -1809,7 +1819,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "crypto"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -1838,6 +1848,7 @@ dependencies = [
  "rand 0.8.6",
  "rand_core 0.9.5",
  "rcgen 0.14.5",
+ "regex",
  "reqwest",
  "ring",
  "rsa",
@@ -2059,6 +2070,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "curve25519-dalek"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5eed333089e2e1c1ac8c6c0398e5e2497b4c9926ca6d0365ed1e099afa5bc23"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.3.0",
+ "curve25519-dalek-derive",
+ "digest 0.11.3",
+ "fiat-crypto 0.3.0",
+ "rand_core 0.10.1",
+ "rustc_version",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
 name = "curve25519-dalek-derive"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2196,7 +2224,7 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 
 [[package]]
 name = "db_test"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "acf_demo_issuer_migrations",
  "async-dropper",
@@ -2230,7 +2258,7 @@ dependencies = [
 
 [[package]]
 name = "dcql"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "attestation_types",
  "crypto",
@@ -2271,7 +2299,7 @@ dependencies = [
 
 [[package]]
 name = "demo_index"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -2294,7 +2322,7 @@ dependencies = [
 
 [[package]]
 name = "demo_issuer"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -2332,7 +2360,7 @@ dependencies = [
 
 [[package]]
 name = "demo_relying_party"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -2369,7 +2397,7 @@ dependencies = [
 
 [[package]]
 name = "demo_utils"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "attestation_data",
@@ -2667,15 +2695,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "ed25519"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29fcf32e6c73d1079f83ab4d782de2d81620346a5f38c6237a86a22f8368980a"
+dependencies = [
+ "pkcs8 0.11.0",
+ "signature 3.0.0",
+]
+
+[[package]]
 name = "ed25519-dalek"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70e796c081cee67dc755e1a36a0a172b897fab85fc3f6bc48307991f64e4eca9"
 dependencies = [
- "curve25519-dalek",
- "ed25519",
+ "curve25519-dalek 4.1.3",
+ "ed25519 2.2.3",
  "serde",
  "sha2 0.10.9",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "ed25519-dalek"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ebaa1a2bf1290ab3bfe5a7b771d050ebffab2711c19a81691c683a5144a25de"
+dependencies = [
+ "curve25519-dalek 5.0.0",
+ "ed25519 3.0.0",
+ "rand_core 0.10.1",
+ "serde",
+ "sha2 0.11.0",
+ "signature 3.0.0",
  "subtle",
  "zeroize",
 ]
@@ -2762,7 +2816,7 @@ dependencies = [
 
 [[package]]
 name = "entity"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "attestation_data",
  "attestation_types",
@@ -2819,12 +2873,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
 name = "error_category"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "error_category_derive",
  "rstest",
@@ -2836,7 +2890,7 @@ dependencies = [
 
 [[package]]
 name = "error_category_derive"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "error_category",
  "proc-macro2",
@@ -3042,7 +3096,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "android_logger",
  "anyhow",
@@ -3072,7 +3126,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api_macros"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "quote",
  "syn 2.0.117",
@@ -3313,7 +3367,7 @@ dependencies = [
 
 [[package]]
 name = "gba_hc_converter"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -3675,7 +3729,7 @@ dependencies = [
 
 [[package]]
 name = "health_checkers"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "async-trait",
  "db_test",
@@ -3787,7 +3841,7 @@ dependencies = [
 
 [[package]]
 name = "hsm"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "config",
  "crypto",
@@ -3925,7 +3979,7 @@ dependencies = [
 
 [[package]]
 name = "http_utils"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "async-trait",
  "axum",
@@ -4017,6 +4071,7 @@ version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "818356c5132c1fede50f837ca96afbe78ff42413047f4abb886217845e1b6c8c"
 dependencies = [
+ "ctutils",
  "subtle",
  "typenum",
  "zeroize",
@@ -4406,7 +4461,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4417,7 +4472,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "issuance_server"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4458,7 +4513,7 @@ dependencies = [
 
 [[package]]
 name = "issuance_server_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "issuer_common_migrations",
  "sea-orm-migration",
@@ -4467,10 +4522,11 @@ dependencies = [
 
 [[package]]
 name = "issuer_common"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "attestation_data",
  "attestation_types",
+ "base64 0.22.1",
  "chrono",
  "crypto",
  "db_test",
@@ -4483,6 +4539,7 @@ dependencies = [
  "jwt",
  "oauth",
  "openid4vc",
+ "p256 0.14.0",
  "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
@@ -4499,7 +4556,7 @@ dependencies = [
 
 [[package]]
 name = "issuer_common_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -4605,7 +4662,7 @@ version = "10.4.0"
 source = "git+https://github.com/Keats/jsonwebtoken.git?rev=a89c743d222aee5ae1c21d3c3197dabdf25f7f77#a89c743d222aee5ae1c21d3c3197dabdf25f7f77"
 dependencies = [
  "base64 0.22.1",
- "ed25519-dalek",
+ "ed25519-dalek 2.2.0",
  "getrandom 0.2.16",
  "hmac 0.12.1",
  "js-sys",
@@ -4624,7 +4681,7 @@ dependencies = [
 
 [[package]]
 name = "jwe"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "derive_more",
  "itertools 0.14.0",
@@ -4662,7 +4719,7 @@ dependencies = [
 
 [[package]]
 name = "jwt"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "attestation_types",
@@ -4695,21 +4752,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "kinded"
-version = "0.3.0"
+name = "keccak"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce4bdbb2f423660b19f0e9f7115182214732d8dd5f840cd0a3aee3e22562f34c"
+checksum = "d8f198d1db720e4940b5a493201d199d9f24f568f8f746bd13706243a2f71598"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.3.0",
+]
+
+[[package]]
+name = "kinded"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21677048d7aa2c4c73e7edac4a9d5aee810a3987ccef2762c8449ffd0b92f8d2"
 dependencies = [
  "kinded_macros",
 ]
 
 [[package]]
 name = "kinded_macros"
-version = "0.3.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a13b4ddc5dcb32f45dac3d6f606da2a52fdb9964a18427e63cd5ef6c0d13288d"
+checksum = "6eaa04e7e45e39b21765756cc9544a4eb4a7f41abefbe77e6256a1649789551d"
 dependencies = [
- "convert_case 0.6.0",
+ "convert_case 0.11.0",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -4820,9 +4887,9 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.1.23"
+version = "1.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15d118bbf3771060e7311cc7bb0545b01d08a8b4a7de949198dec1fa0ca1c0f7"
+checksum = "ff20308ecabd635a2dc1dd5834a86c462cca20efba1d5d3ddab1f8aea3455cb2"
 dependencies = [
  "cc",
  "libc",
@@ -4970,7 +5037,7 @@ dependencies = [
 
 [[package]]
 name = "mdoc"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "aes-gcm",
  "attestation_types",
@@ -5015,7 +5082,7 @@ dependencies = [
 
 [[package]]
 name = "mdoc_derive"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5024,7 +5091,7 @@ dependencies = [
 
 [[package]]
 name = "measure"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "metrics",
  "proc-macro2",
@@ -5159,6 +5226,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ml-dsa"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "add6b9d92e496f16f4526d68ff29da1483aba4b119baeab8bed3b9e3544a6f3d"
+dependencies = [
+ "const-oid 0.10.2",
+ "crypto-common 0.2.2",
+ "ctutils",
+ "hybrid-array",
+ "module-lattice",
+ "pkcs8 0.11.0",
+ "shake",
+ "signature 3.0.0",
+]
+
+[[package]]
 name = "mockall"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5182,6 +5265,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "module-lattice"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c61b87c9683ab7cb1c6871d261ad5479b6b10ceb52c4352aaca3b5d35a8febe"
+dependencies = [
+ "ctutils",
+ "hybrid-array",
+ "num-traits",
 ]
 
 [[package]]
@@ -5278,6 +5372,9 @@ name = "nonempty-collections"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3fc446c90b1fb75a59aeacd45aa8b107a1777c080a719d4e0ae1a8e6ddabae5"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "noop_proc_macro"
@@ -5291,7 +5388,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5415,18 +5512,18 @@ dependencies = [
 
 [[package]]
 name = "nutype"
-version = "0.6.2"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70587a780088c67dad31bf722b875c5616096b4d8c0ded8b7de03294ffb9bbb5"
+checksum = "ae5a3dbe7b39891991de649985f7930fea69131fc7492d1cf2621d279ad56f77"
 dependencies = [
  "nutype_macros",
 ]
 
 [[package]]
 name = "nutype_macros"
-version = "0.6.2"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "148934b975faeddd8f0679d7cf11280b50c4c5495d6fe72bdaf07c932874b404"
+checksum = "ea8ebf0265a233787dc277bd299f7facf14954a4e8a40c7c3435d8a58c9cd522"
 dependencies = [
  "cfg-if",
  "kinded",
@@ -5440,7 +5537,7 @@ dependencies = [
 
 [[package]]
 name = "oauth"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -5681,7 +5778,7 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "openid4vc"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "async-trait",
  "attestation_data",
@@ -5690,6 +5787,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "cose",
+ "coset",
  "crypto",
  "dashmap 6.1.0",
  "dcql",
@@ -5746,7 +5844,7 @@ dependencies = [
 
 [[package]]
 name = "openid4vc_server"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "attestation_data",
  "attestation_types",
@@ -5760,6 +5858,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
+ "jwe",
  "jwt",
  "mediatype",
  "oauth",
@@ -5965,7 +6064,7 @@ dependencies = [
 
 [[package]]
 name = "pacf_issuance_server"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "axum",
@@ -5990,7 +6089,7 @@ dependencies = [
 
 [[package]]
 name = "pacf_issuance_server_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "issuer_common_migrations",
  "sea-orm-migration",
@@ -6082,24 +6181,39 @@ dependencies = [
 ]
 
 [[package]]
-name = "passkey-types"
-version = "0.4.0"
+name = "passkey-crypto"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77144664f6aac5f629d7efa815f5098a054beeeca6ccafee5ec453fd2b0c53f9"
+checksum = "e5108c58974bacdae414ee66edf0c009818509ccf6be4a911032147336e3da27"
+dependencies = [
+ "coset",
+ "ed25519-dalek 3.0.0",
+ "getrandom 0.4.2",
+ "hmac 0.13.0",
+ "log",
+ "ml-dsa",
+ "p256 0.14.0",
+ "rand 0.10.3",
+ "sha2 0.11.0",
+ "signature 3.0.0",
+ "zeroize",
+]
+
+[[package]]
+name = "passkey-types"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4ed76f185c29d0d0c226ecf653531bb962e63eff3bf6d5cd5062288116138d2"
 dependencies = [
  "bitflags",
  "ciborium",
- "coset",
  "data-encoding",
- "getrandom 0.2.16",
- "hmac 0.12.1",
  "indexmap 2.12.1",
- "rand 0.8.6",
+ "passkey-crypto",
  "serde",
  "serde_json",
- "sha2 0.10.9",
- "strum 0.25.0",
- "typeshare",
+ "strum 0.27.2",
+ "url",
  "zeroize",
 ]
 
@@ -6286,7 +6400,7 @@ dependencies = [
 
 [[package]]
 name = "pid_issuer"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -6341,7 +6455,7 @@ dependencies = [
 
 [[package]]
 name = "pid_issuer_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "async-trait",
  "issuer_common_migrations",
@@ -6426,7 +6540,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "platform_support"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "aes-gcm",
  "android_attest",
@@ -6435,6 +6549,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "cfg_eval",
+ "cose",
  "crypto",
  "derive_more",
  "error_category",
@@ -7118,7 +7233,7 @@ dependencies = [
 
 [[package]]
 name = "readable_identifier"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "derive_more",
  "rand 0.8.6",
@@ -7265,7 +7380,7 @@ dependencies = [
 
 [[package]]
 name = "revocation_portal"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -7412,6 +7527,7 @@ dependencies = [
  "pkcs8 0.10.2",
  "rand_core 0.6.4",
  "serde",
+ "sha2 0.10.9",
  "signature 2.2.0",
  "spki 0.7.3",
  "subtle",
@@ -7522,7 +7638,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7688,7 +7804,7 @@ dependencies = [
 
 [[package]]
 name = "sd_jwt"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "attestation_types",
  "base64 0.22.1",
@@ -7722,7 +7838,7 @@ dependencies = [
 
 [[package]]
 name = "sd_jwt_vc_metadata"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "attestation_types",
  "crypto",
@@ -8364,7 +8480,7 @@ dependencies = [
 
 [[package]]
 name = "server_utils"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "attestation_data",
@@ -8401,7 +8517,7 @@ dependencies = [
 
 [[package]]
 name = "server_utils_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "sea-orm-migration",
 ]
@@ -8457,6 +8573,17 @@ dependencies = [
  "cfg-if",
  "cpufeatures 0.3.0",
  "digest 0.11.3",
+]
+
+[[package]]
+name = "shake"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09057cb2149ad4cbd2da1e26b351f9a4c354219421229c69c3063e6f61947c4a"
+dependencies = [
+ "digest 0.11.3",
+ "keccak",
+ "sponge-cursor",
 ]
 
 [[package]]
@@ -8600,7 +8727,7 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -8644,6 +8771,12 @@ dependencies = [
  "base64ct",
  "der 0.8.2",
 ]
+
+[[package]]
+name = "sponge-cursor"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a0219bd7d979d58245a4f41f695e1ac9f8befdffadd7f61f1bae9e39abc6620"
 
 [[package]]
 name = "sqlx"
@@ -8874,7 +9007,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "static_server"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "axum",
  "axum-server",
@@ -8895,12 +9028,14 @@ dependencies = [
 
 [[package]]
 name = "status_lists"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "attestation_types",
  "axum",
  "chrono",
+ "cose",
+ "coset",
  "crypto",
  "db_test",
  "derive_more",
@@ -8940,7 +9075,7 @@ dependencies = [
 
 [[package]]
 name = "status_lists_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "sea-orm-migration",
 ]
@@ -9029,18 +9164,18 @@ dependencies = [
 
 [[package]]
 name = "strum"
-version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
-dependencies = [
- "strum_macros 0.25.3",
-]
-
-[[package]]
-name = "strum"
 version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
+
+[[package]]
+name = "strum"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af23d6f6c1a224baef9d3f61e287d2761385a5b88fdab4eb4c6f11aeb54c4bcf"
+dependencies = [
+ "strum_macros 0.27.2",
+]
 
 [[package]]
 name = "strum"
@@ -9053,14 +9188,13 @@ dependencies = [
 
 [[package]]
 name = "strum_macros"
-version = "0.25.3"
+version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23dc1fa9ac9c169a78ba62f0b841814b7abae11bdd047b9c58f893439e309ea0"
+checksum = "7695ce3845ea4b33927c055a39dc438a45b059f7c1b3d91d38d10355fb8cbca7"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
- "rustversion",
  "syn 2.0.117",
 ]
 
@@ -9084,7 +9218,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "svg_sanitize"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "derive_more",
  "quick-xml",
@@ -9176,7 +9310,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -9247,7 +9381,7 @@ dependencies = [
 
 [[package]]
 name = "tests_integration"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "acf_demo_issuer",
  "android_attest",
@@ -9484,12 +9618,15 @@ dependencies = [
 
 [[package]]
 name = "token_status_list"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "attestation_types",
  "axum",
  "base64 0.22.1",
  "chrono",
+ "ciborium",
+ "cose",
+ "coset",
  "crypto",
  "dashmap 6.1.0",
  "derive_more",
@@ -9498,6 +9635,7 @@ dependencies = [
  "hex",
  "http",
  "jwt",
+ "mdoc_derive",
  "mockall",
  "moka",
  "regex",
@@ -9505,6 +9643,7 @@ dependencies = [
  "rstest",
  "rustls-pki-types",
  "serde",
+ "serde_bytes",
  "serde_json",
  "serde_with",
  "strum 0.28.0",
@@ -9900,28 +10039,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
-name = "typeshare"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19be0f411120091e76e13e5a0186d8e2bcc3e7e244afdb70152197f1a8486ceb"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
- "typeshare-annotation",
-]
-
-[[package]]
-name = "typeshare-annotation"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a615d6c2764852a2e88a4f16e9ce1ea49bb776b5872956309e170d63a042a34f"
-dependencies = [
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
 name = "uname"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10133,7 +10250,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "update_policy_model"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "indexmap 2.12.1",
  "rstest",
@@ -10147,7 +10264,7 @@ dependencies = [
 
 [[package]]
 name = "update_policy_server"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "axum",
@@ -10238,7 +10355,7 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "utils"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "built",
  "chrono",
@@ -10356,7 +10473,7 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "verification_server"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "attestation_data",
@@ -10402,7 +10519,7 @@ dependencies = [
 
 [[package]]
 name = "verification_server_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "sea-orm-migration",
  "server_utils_migrations",
@@ -10442,7 +10559,7 @@ dependencies = [
 
 [[package]]
 name = "wallet"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -10517,7 +10634,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_account"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -10549,13 +10666,12 @@ dependencies = [
 
 [[package]]
 name = "wallet_ca"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "assert_cmd",
  "assert_fs",
  "attestation_data",
- "attestation_types",
  "base64 0.22.1",
  "chrono",
  "clap",
@@ -10564,10 +10680,8 @@ dependencies = [
  "crypto",
  "hex",
  "http_utils",
- "indexmap 2.12.1",
  "itertools 0.14.0",
  "jwt",
- "mdoc",
  "p256 0.14.0",
  "pem",
  "predicates",
@@ -10585,7 +10699,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_configuration"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "anyhow",
  "attestation_data",
@@ -10610,7 +10724,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "async-trait",
  "entity",
@@ -10620,7 +10734,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -10681,7 +10795,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_domain"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -10695,6 +10809,7 @@ dependencies = [
  "p256 0.14.0",
  "rand 0.8.6",
  "regex",
+ "rstest",
  "sea-orm",
  "semver",
  "serde",
@@ -10704,6 +10819,7 @@ dependencies = [
  "thiserror 2.0.17",
  "tracing",
  "trait-variant",
+ "utils",
  "utoipa",
  "uuid",
  "wallet_account",
@@ -10711,7 +10827,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_migrations"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -10721,7 +10837,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_persistence"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -10739,6 +10855,7 @@ dependencies = [
  "mockall",
  "p256 0.14.0",
  "rand_core 0.9.5",
+ "rstest",
  "sea-orm",
  "semver",
  "serde",
@@ -10756,7 +10873,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_service"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "android_attest",
  "anyhow",
@@ -10979,7 +11096,7 @@ dependencies = [
 
 [[package]]
 name = "web_utils"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "accept-language",
  "anyhow",
@@ -11061,7 +11178,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -11484,7 +11601,7 @@ checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
 
 [[package]]
 name = "wscd"
-version = "0.7.0-dev"
+version = "0.7.1-dev"
 dependencies = [
  "attestation_types",
  "chrono",
@@ -11758,18 +11875,18 @@ dependencies = [
 
 [[package]]
 name = "zstd"
-version = "0.13.3"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e91ee311a569c327171651566e07972200e76fcfe2242a4fa446149a3881c08a"
+checksum = "db3ae9bf90af6e40197bef767eeefc46ad6397420fe873830bd85e5fbbfb3c70"
 dependencies = [
  "zstd-safe",
 ]
 
 [[package]]
 name = "zstd-safe"
-version = "7.3.0"
+version = "8.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64d80649ab6db9d9f6f9c80a40becd948eda4714a0a5ac8c4d157a32231c7882"
+checksum = "ded520f16b29e1a9b771c722221b2b0a0398c2316d9bb3c42b458a5414d7434b"
 dependencies = [
  "zstd-sys",
 ]

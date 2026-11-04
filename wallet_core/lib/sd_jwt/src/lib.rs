@@ -65,7 +65,7 @@
 //! ```
 //! # use attestation_types::claim_path::ClaimPath;
 //! # use chrono::Utc;
-//! # use crypto::PublicKey;
+//! # use crypto::keys::PublicKeyRef;
 //! # use crypto::server_keys::generate::Ca;
 //! # use crypto::trust_anchor::TrustAnchors;
 //! # use jwt::confirmation::ConfirmationClaim;
@@ -103,7 +103,7 @@
 //! let holder_privkey = SigningKey::generate();
 //! let claims = SdJwtVcClaims {
 //!     _sd_alg: None,
-//!     cnf: ConfirmationClaim::Jwk(jwk_from_public_key(&PublicKey::from(*holder_privkey.verifying_key()))?),
+//!     cnf: ConfirmationClaim::try_from_public_key(&PublicKeyRef::from(holder_privkey.verifying_key()))?,
 //!     vct: "com:example:vct".into(),
 //!     vct_integrity: None,
 //!     iat: DateTimeSeconds::from(Utc::now()),

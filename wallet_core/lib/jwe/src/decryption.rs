@@ -99,9 +99,13 @@ impl JweDecrypter {
             .to_pkcs8_der()
             .expect("a p256 secret key should always encode to DER");
 
-        let decrypter = EcdhEsJweAlgorithm::from(algorithm)
+        let mut decrypter = EcdhEsJweAlgorithm::from(algorithm)
             .decrypter_from_der(der.as_bytes())
             .expect("the p256 secret key DER should always be valid");
+
+        if let Some(id) = &id {
+            decrypter.set_key_id(id.clone());
+        }
 
         Self {
             id,
@@ -124,17 +128,6 @@ impl JweDecrypter {
     ) -> Result<Vec<u8>, JweDecryptionError> {
         let (payload, header) =
             josekit::jwe::deserialize_compact(jwe, self.decrypter.as_ref()).map_err(JweDecryptionError::Decryption)?;
-
-        if let Some(id) = self.id.as_deref() {
-            let received_id = header.claim("kid").and_then(serde_json::Value::as_str);
-
-            if received_id != Some(id) {
-                return Err(JweDecryptionError::IdMismatch(
-                    id.to_string(),
-                    received_id.map(str::to_string),
-                ));
-            }
-        }
 
         if let ExpectedEncryptionAlgorithm::Algorithms(algorithms) = expected_algorithm {
             let enc = header

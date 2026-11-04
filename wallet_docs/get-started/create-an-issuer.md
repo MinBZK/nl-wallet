@@ -384,6 +384,14 @@ openssl pkcs8 -topk8 -nocrypt \
 openssl pkcs8 -topk8 -nocrypt \
     -in "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.pem" -inform PEM \
     -out "${TARGET_DIR}/wrpac.${IDENTIFIER}.key.der" -outform DER
+
+# Generate a P-256 ECDH secret key used for decrypting encrypted Credential Requests.
+
+openssl ecparam -genkey -name prime256v1 -noout \
+    -out "${TARGET_DIR}/credential_request_encryption.ec.key" > /dev/null
+openssl pkcs8 -topk8 -inform PEM -outform DER \
+    -in "${TARGET_DIR}/credential_request_encryption.ec.key" \
+    -out "${TARGET_DIR}/credential_request_encryption.key.der" -nocrypt
 ```
 
 Serve `${TARGET_DIR}/wrpac.${IDENTIFIER}.crl.der` at `WRPAC_CRL_URL` and replace
@@ -400,9 +408,9 @@ signs issuer metadata. The following example uses the WRPRC CA created by
 `scripts/setup-devenv.sh`; for another environment, arrange the WRPRC and its
 status list with the registration authority trusted by that environment.
 
-Create separate WRPRC and status-list signing certificates with the same
-subject. Then create a registration payload for the insurance credential, using
-the organization identifier and legal name from the WRPAC above:
+Create WRPRC and status-list signing certificates. Then create a registration
+payload for the insurance credential, using the organization identifier and
+legal name from the WRPAC above:
 
 ```shell
 export WRPRC_CA_DIR=scripts/devenv/target
@@ -817,6 +825,20 @@ EOF
 unset IS_WALLET_CLIENT_IDS
 ```
 
+#### Configuring Credential Request encryption
+
+Decryption of Credential Requests requires configuration of a static P-256 ECDH
+secret key. The Issuer will publish the public key corresponding to this in the
+Issuer Metadata.
+
+```shell
+cd nl-wallet
+export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
+cat <<EOF > "$TARGET_DIR/parts/07-credential-request-encryption.toml"
+credential_request_encryption_key = "$(openssl base64 -e -A -in "${TARGET_DIR}/credential_request_encryption.key.der")"
+EOF
+```
+
 #### Configuring metadata and issuer registration
 
 We [previously](#creating-the-technical-attestation-schema-json-document) made a
@@ -985,9 +1007,13 @@ EOF
 ```
 
 By default the issuance server will serve the status lists it creates. You can
-opt out of this behaviour and serve the status lists yourself. Ensure that you
-map a request with URL path ending on `/id` to filesystem path of with name
-`id.jwt`.
+opt out of this behaviour and serve the status lists yourself. Each status list
+is published in two formats: as a JWT in a file named `id.jwt` and as a (binary)
+CWT in a file named `id.cwt`. Ensure that you map a request with URL path ending
+on `/id` to one of these files, based on the `Accept` header of the request:
+serve `id.cwt` with content type `application/statuslist+cwt` when that is
+requested, and `id.jwt` with content type `application/statuslist+jwt`
+otherwise.
 
 By default the status lists uses the same database as configured for the session
 store. If you have a memory store as session store you need to configure a

@@ -87,8 +87,20 @@ impl TryFrom<&Url> for Image {
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_json::json;
 
     use super::*;
+
+    #[rstest]
+    #[case("image/svg+xml", "<svg></svg>", Image::Svg("<svg></svg>".to_owned()))]
+    #[case("image/png", "yv4=", Image::Png(vec![0xca, 0xfe]))]
+    #[case("image/jpeg", "q80=", Image::Jpeg(vec![0xab, 0xcd]))]
+    fn image_deserialize(#[case] mime_type: &str, #[case] image_data: &str, #[case] expected: Image) {
+        assert_eq!(
+            serde_json::from_value::<Image>(json!({"mimeType": mime_type ,"imageData": image_data})).unwrap(),
+            expected,
+        )
+    }
 
     #[rstest]
     #[case("data:image/png;base64,q80=")]

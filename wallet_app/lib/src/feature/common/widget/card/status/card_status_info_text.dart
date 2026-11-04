@@ -26,21 +26,25 @@ class CardStatusInfoText extends StatelessWidget {
 
     if (leadingIcon == null) return bodyText;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
-          child: Icon(
-            leadingIcon,
-            color: data.iconColor,
+    // Merged so the icon's status label and the explanation are read as one announcement.
+    return MergeSemantics(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Icon(
+              leadingIcon,
+              color: data.iconColor,
+              semanticLabel: data.iconSemanticsLabel,
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          child: bodyText,
-        ),
-      ],
+          const SizedBox(width: 8),
+          Flexible(
+            child: bodyText,
+          ),
+        ],
+      ),
     );
   }
 }

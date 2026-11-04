@@ -10,6 +10,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val shareButton = l10n.getString("disclosureConfirmDataAttributesPageApproveCta")
     private val closeButton = l10n.getString("generalClose")
     private val viewLoginDisclosureDetailsButton = l10n.getString("organizationApprovePageMoreInfoLoginCta")
+    private val loginDetailsTitle = l10n.getString("loginDetailScreenCredentialsTitle")
     private val viewDisclosureOrganizationDetailsButton = l10n.getString("requestDetailScreenAboutOrganizationCta")
     private val goBackButton = l10n.getString("generalBottomBackCta")
     private val stopRequestButton = l10n.getString("missingAttributesPageCloseCta")
@@ -58,6 +59,8 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     fun viewLoginDisclosureDetails() = clickElementContainingText(viewLoginDisclosureDetailsButton)
 
+    fun loginDetailsVisible() = elementWithTextVisible(loginDetailsTitle)
+
     fun organizationDescriptionOnDetailsVisible(description: String): Boolean = elementWithTextVisible(description);
 
     fun goBack() = clickElementWithText(goBackButton)
@@ -91,10 +94,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     fun dataVisible(data: String) = elementContainingTextVisible(data)
 
-    fun sharingReasonVisible(reason: String): Boolean {
-        // TODO PVW-6101 check for purpose
-        return true
-    }
+    fun sharingReasonVisible(reason: String) = elementContainingTextVisible(reason)
 
     fun privacyHeaderVisible(): Boolean {
         scrollToElementWithText(privacySectionTitle)

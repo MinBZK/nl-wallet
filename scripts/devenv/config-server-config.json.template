@@ -6,6 +6,7 @@
       "${STATIC_SERVER_CA_CRT}"
     ]
   },
+  "signing_key_id": "0",
   "signing_public_key": "${CONFIG_SIGNING_PUBLIC_KEY}",
   "update_frequency_in_sec": 3600
 }

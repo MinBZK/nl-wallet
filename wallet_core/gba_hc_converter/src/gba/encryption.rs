@@ -125,7 +125,7 @@ pub fn verify_name(name: &str, authentication_code: &str, hmac_key: &Key<HmacSha
 
 #[cfg(test)]
 mod tests {
-    use crypto::SymmetricKey;
+    use crypto::keys::SymmetricKey;
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
 

@@ -18,7 +18,7 @@ use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
 use attestation_types::pid_constants::PID_RESIDENT_STREET;
 use attestation_types::status_claim::StatusClaim;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::keys::PublicKeyRef;
 use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use dcql::CredentialQueryIdentifier;
@@ -325,7 +325,7 @@ impl TestCredential {
                 ..self.sd_jwt_payload_preview.clone()
             },
             Utc::now(),
-            &PublicKey::from(*holder_key.verifying_key()),
+            &PublicKeyRef::from(holder_key.verifying_key()),
             vct_integrity,
             Some(status.clone()),
         )

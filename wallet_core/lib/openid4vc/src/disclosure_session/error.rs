@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::num::NonZeroUsize;
 
 use attestation_types::credential_format::Format;
 use derive_more::Constructor;
@@ -57,9 +58,20 @@ pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[source] VpMessageClientError),
 
-    #[error("received credential request with mix of formats from verifier, this is unsupported")]
-    #[category(critical)]
-    MixedFormatCredentialRequest,
+    #[error("attestations provided for unknown credential query")]
+    #[category(impossible)]
+    UnknownCredentialQuery,
+
+    #[error("attestation format mismatch for credential query: requested {requested}, provided {provided}")]
+    #[category(impossible)]
+    AttestationFormatMismatch { requested: Format, provided: Format },
+
+    #[error("signing returned {received} signed attestations, expected {expected}")]
+    #[category(impossible)]
+    SignedAttestationCountMismatch {
+        expected: NonZeroUsize,
+        received: NonZeroUsize,
+    },
 
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] mdoc::Error),

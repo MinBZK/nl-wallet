@@ -874,6 +874,35 @@ open class MobileActions {
         }
     }
 
+    fun elementContainingTextWithSiblingVisible(partialText: String, partialSiblingText: String): Boolean {
+        return try {
+            findElementByPartialTextAndPartialSiblingText(partialText, partialSiblingText).isDisplayed
+        } catch (e: Exception) {
+            println("Element not found or error occurred: ${e.message}")
+            false
+        }
+    }
+
+    /** Flutter puts `attributedValue` in the content-desc on Android, and in the separate `value` attribute on iOS. */
+    fun elementWithLabelAndValueVisible(label: String, value: String, timeoutInSeconds: Long = 5): Boolean {
+        val xpath = when (platform()) {
+            Platform.ANDROID ->
+                "//*[contains(@content-desc, ${quoteForAndroid(label)}) and contains(@content-desc, ${quoteForAndroid(value)})]"
+            Platform.IOS -> "//*[contains(@name, ${quoteForIos(label)}) and contains(@value, ${quoteForIos(value)})]"
+        }
+        return try {
+            WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+                .until(ExpectedConditions.presenceOfElementLocated(By.xpath(xpath)))
+                .isDisplayed
+        } catch (e: TimeoutException) {
+            println("Element with label '$label' and value '$value' not found: ${e.message}")
+            false
+        } catch (e: org.openqa.selenium.StaleElementReferenceException) {
+            println("Element with label '$label' and value '$value' went stale: ${e.message}")
+            false
+        }
+    }
+
     fun openApp() {
         val driver = when (platform()) {
             Platform.ANDROID -> driver as AndroidDriver

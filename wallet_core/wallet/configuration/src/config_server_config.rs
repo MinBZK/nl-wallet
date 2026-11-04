@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use crypto::kid::Kid;
 use crypto::p256_der::DerVerifyingKey;
 use http_utils::client::TlsPinningConfig;
 use serde::Deserialize;
@@ -14,6 +15,9 @@ use crate::EnvironmentSpecific;
 pub struct ConfigServerConfiguration {
     pub environment: String,
     pub http_config: TlsPinningConfig,
+
+    pub signing_key_id: Kid,
+
     #[serde_as(as = "Base64")]
     pub signing_public_key: DerVerifyingKey,
 

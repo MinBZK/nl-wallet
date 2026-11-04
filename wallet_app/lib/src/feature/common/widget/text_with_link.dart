@@ -5,10 +5,13 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import 'url_span.dart';
 
+const _kSemanticsIdentifier = 'textWithLink';
+
 class TextWithLink extends StatelessWidget {
   final String fullText;
   final String linkText;
   final String? onTapHint;
+  final Uri? linkUrl;
   final TextStyle? style;
   final TextAlign textAlign;
   final VoidCallback onLinkPressed;
@@ -17,6 +20,7 @@ class TextWithLink extends StatelessWidget {
     required this.fullText,
     required this.linkText,
     this.onTapHint,
+    this.linkUrl,
     this.style,
     this.textAlign = TextAlign.start,
     required this.onLinkPressed,
@@ -35,32 +39,30 @@ class TextWithLink extends StatelessWidget {
 
     /// Fallback for production, so we don't crash for an ill formatted text.
     if (parts.length != 2) return Text.rich(fullText.toTextSpan(context), style: textStyle);
-    return MergeSemantics(
-      child: Semantics(
-        onTap: onLinkPressed,
-        onTapHint: onTapHint,
-        attributedLabel: fullText.toAttributedString(context),
-        excludeSemantics: true,
-        link: true,
-        button: true,
-        child: Text.rich(
-          locale: context.activeLocale,
+    return Text.rich(
+      locale: context.activeLocale,
+      TextSpan(
+        style: textStyle,
+        children: [
+          // An identifier makes the paragraph expose its text parts and the link as ordered siblings, instead of
+          // merging the text into one node that is read before the link.
           TextSpan(
-            style: textStyle,
-            children: [
-              parts.first.toTextSpan(context),
-              UrlSpan(
-                ctaText: linkText,
-                onPressed: onLinkPressed,
-                textStyle: style,
-              ),
-              parts.last.toTextSpan(context),
-            ],
+            text: parts.first,
+            locale: context.activeLocale,
+            semanticsIdentifier: _kSemanticsIdentifier,
           ),
-          textAlign: textAlign,
-          textScaler: MediaQuery.textScalerOf(context),
-        ),
+          UrlSpan(
+            ctaText: linkText,
+            onPressed: onLinkPressed,
+            onTapHint: onTapHint,
+            linkUrl: linkUrl,
+            textStyle: style,
+          ),
+          parts.last.toTextSpan(context),
+        ],
       ),
+      textAlign: textAlign,
+      textScaler: MediaQuery.textScalerOf(context),
     );
   }
 }

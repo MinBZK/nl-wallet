@@ -24,12 +24,9 @@ class HistorySectionSliver extends StatelessWidget {
         itemCount: section.events.length + 1, // +1 for the divider (separator) at the end of the list
         itemBuilder: (context, i) {
           return i < section.events.length
-              ? Semantics(
-                  button: true,
-                  child: WalletEventRow(
-                    event: section.events[i],
-                    onPressed: () => onRowPressed(section.events[i]),
-                  ),
+              ? WalletEventRow(
+                  event: section.events[i],
+                  onPressed: () => onRowPressed(section.events[i]),
                 )
               : const SizedBox();
         },

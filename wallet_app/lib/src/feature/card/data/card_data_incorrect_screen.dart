@@ -4,7 +4,6 @@ import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/paragraphed_sliver_list.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
@@ -18,7 +17,6 @@ class CardDataIncorrectScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         title: TitleText(context.l10n.cardDataIncorrectScreenSubhead),
-        actions: const [HelpIconButton()],
       ),
       key: const Key('cardDataIncorrectScreen'),
       body: SafeArea(

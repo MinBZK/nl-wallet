@@ -1,7 +1,8 @@
 # /a11y-scan
 
 Evaluates a folder of NL Wallet screen captures against **WCAG 2.1 AA** and
-writes an axe-form report.
+writes a raw axe-core report (a bare array of result objects) plus a metadata
+sidecar.
 
 ## Files
 
@@ -32,10 +33,14 @@ screenshot is still evaluated from the page source (contrast rules become
 
 ## Output
 
-- `A11Y-REPORT.json` — a wrapper holding one [axe-core](https://github.com/dequelabs/axe-core)
-  result object per screen (`results[]`), plus `suppressed[]` and a `summary`.
-  Each result has `violations` and `incomplete` in axe's node shape, with the
+- `A11Y-REPORT.json` — a raw [axe-core](https://github.com/dequelabs/axe-core)
+  report: a bare JSON array of result objects, one per screen, byte-compatible
+  with axe's own output. Each result carries all four axe buckets — `violations`,
+  `incomplete`, `passes`, `inapplicable` — in axe's node shape, with the
   page-source snippet in `nodes[].html` and a native locator in `nodes[].target`.
+- `A11Y-REPORT.meta.json` — sidecar for what axe has no slot for: capture
+  provenance (`capture_sources`), the `suppressed[]` list, `rules_run`, and a
+  run `summary`.
 - `A11Y-REPORT.md` — human-readable, grouped by screen.
 
 ## Behaviour notes
@@ -50,7 +55,8 @@ screenshot is still evaluated from the page source (contrast rules become
   tagged `best-practice` and included in every run; pass `--no-best-practice`
   to drop them and keep the report strictly WCAG 2.1 AA.
 - **Suppression is in-scan.** `false-positives.md` (or `--fp-rules <file>`) is
-  applied in Step 4; matched violations move to `suppressed[]`.
+  applied in Step 4; a matched violation is dropped from the axe report and
+  recorded in the sidecar's `suppressed[]`.
 - **Read-only with respect to the target.** The skill reads captures and
   writes its report; it never builds, launches, or drives the app. Live-only
   criteria (focus visibility, keyboard operability, reflow, orientation) are

@@ -8,7 +8,6 @@ import '../../../data/service/navigation_service.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import 'bloc/qr_scan_bloc.dart';
@@ -39,7 +38,6 @@ class QrScanScreen extends StatelessWidget {
 
   PreferredSize _buildAppBar({required bool translucent}) {
     const appBar = WalletAppBar(
-      actions: [HelpIconButton()],
       fadeInTitleOnScroll: false,
     );
     return PreferredSize(

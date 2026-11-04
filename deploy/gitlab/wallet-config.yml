@@ -2,7 +2,7 @@
   extends: .rust
   stage: init
   script:
-    - scripts/generate-wallet-config.sh wallet_core/wallet "$CONFIG_ENV" "$STATIC_HOSTNAME" "$CONFIG_PUBKEY"
+    - scripts/generate-wallet-config.sh wallet_core/wallet "$CONFIG_ENV" "$STATIC_HOSTNAME" "$CONFIG_KEY_ID" "$CONFIG_PUBKEY"
       "$CONFIG_TLS_CA"
   artifacts:
     name: wallet-config-$CONFIG_ENV

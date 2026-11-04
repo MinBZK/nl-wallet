@@ -282,7 +282,7 @@ mod tests {
     use itertools::Itertools;
     use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use parking_lot::Mutex;
-    use token_status_list::status_list_token::mock::create_status_list_token;
+    use token_status_list::status_list_jwt::mock::create_status_list_jwt;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use token_status_list::verification::verifier::RevocationStatus;
     use utils::generator::mock::MockTimeGenerator;
@@ -314,7 +314,7 @@ mod tests {
         wallet_config.issuer_trust_anchors = ca.to_trust_anchors();
         let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(wallet_config)));
 
-        let (_, _, status_list_token) = create_status_list_token(&keypair, None, None).await;
+        let (_, _, status_list_token) = create_status_list_jwt(&keypair, None, None).await;
         let mut mock_status_list_client = MockStatusListClient::new();
         mock_status_list_client
             .expect_fetch()

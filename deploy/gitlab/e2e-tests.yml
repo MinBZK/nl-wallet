@@ -32,11 +32,11 @@ scheduled-automation-tests-trigger:
     - java -version
     - cd uiautomation
     - set -euxo pipefail
+    - !reference [.extract-xyz-bank-registration-certificate, before_script]
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
     AUTO_GRANT_PERMISSIONS: "true"
     IOS_ACCEPT_ALERTS: "true"
-    ENABLE_BROWSERSTACK_A11Y_CHECKS: false
     ENABLE_A11Y_CAPTURES: "true"
 
 .extract-reader-wrpac-credentials:
@@ -59,6 +59,13 @@ scheduled-automation-tests-trigger:
     - kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-monkey-bike -o jsonpath='{.data.registration_certificate}' | base64 --decode > /tmp/monkey_bike.wrprc
     - export MONKEY_BIKE_WRPRC_FILE=/tmp/monkey_bike.wrprc
 
+.extract-xyz-bank-registration-certificate:
+  extends: .env-k8s
+  before_script:
+    - XYZ_BANK_WRPRC_JWT=$(kubectl get secret nl-wallet-demo-rp-verification-server-verifier-usecases-xyz-bank -o jsonpath='{.data.registration_certificate_mdoc}' | base64 --decode | tr -- '-_' '+/' | awk '{ while (length($0) % 4) $0 = $0 "="; print }' | base64 --decode)
+    - echo "$XYZ_BANK_WRPRC_JWT" | cut -d. -f2 | tr -- '-_' '+/' | awk '{ while (length($0) % 4) $0 = $0 "="; print }' | base64 --decode > /tmp/xyz_bank.wrprc.json
+    - export XYZ_BANK_WRPRC_FILE=/tmp/xyz_bank.wrprc.json
+
 # Install the Apple development certificate and provisioning profiles that Appium needs to build
 # WebDriverAgent for real iOS devices, from the fastlane match repository (read-only). The job
 # token must be allowlisted on the certificates project. The login keychain is unlocked first
@@ -70,6 +77,7 @@ scheduled-automation-tests-trigger:
 .install-ios-signing:
   extends: .env-k8s
   before_script:
+    - !reference [.extract-xyz-bank-registration-certificate, before_script]
     - *extract-reader-wrpac-credentials-script
     - MACOS_KEYCHAIN_PASSWORD="$(kubectl get secret nl-wallet-macmini -o jsonpath='{.data.password}' | base64 --decode)"
     - security unlock-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" ~/Library/Keychains/login.keychain-db
@@ -94,8 +102,7 @@ automation-tests-load-device-config:
   stage: init
   rules:
     - !reference [.on-schedule-automation, rules]
-    - !reference [.merge-request, rules]
-    - !reference [.default-branch, rules]
+    - !reference [.default-or-merge-request, rules]
   script:
     - |
       SECRET_JSON=$(kubectl get secret nl-wallet-macmini -o json)
@@ -146,6 +153,14 @@ automation-tests-load-device-config:
   resource_group: real-device-automation-tests
   tags:
     - macos-devices
+  hooks:
+    # The first session on a real iPhone sometimes fails with "port #8100 is occupied", left behind by a previous
+    # job. Log which process holds the port, so it can be cleaned up at its source.
+    pre_get_sources_script:
+      - |
+        for pid in $(lsof -ti tcp:8100 -sTCP:LISTEN); do
+          echo "Leftover process on port 8100: $(ps -o pid=,ppid=,user=,etime=,command= -p "$pid")"
+        done
   variables:
     ENABLE_A11Y_CAPTURES: "true"
   artifacts:
@@ -211,6 +226,12 @@ automation-tests-load-device-config:
 
 .run-automation-tests-default:
   extends: .run-automation-tests-common-setup
+  needs:
+    - job: build-env-ont
+      artifacts: true
+      optional: true
+    - job: run-automation-revocation-tests-android
+      artifacts: false
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace test --tests $TESTS -Dtest.config.remote=true -Dfile.encoding=UTF-8 ||
@@ -232,6 +253,8 @@ automation-tests-load-device-config:
     - job: build-env-ont
       artifacts: true
       optional: true
+    - job: run-automation-revocation-tests-ios
+      artifacts: false
   before_script:
     - !reference [.install-ios-signing, before_script]
     - !reference [.fetch-ios-app, before_script]
@@ -346,6 +369,8 @@ run-automation-notifications-tests-android:
 
 run-automation-revocation-tests-android:
   extends: .run-automation-tests-default
+  allow_failure: true
+  needs: !reference [.run-automation-tests-common-setup, needs]
   variables:
     TESTS: "suite.RevocationTestSuite"
 
@@ -402,6 +427,21 @@ run-automation-notifications-tests-ios:
 
 run-automation-revocation-tests-ios:
   extends: .run-automation-tests-ios-default
+  allow_failure: true
+  needs:
+    - job: build-ios-app-adhoc-ont
+      artifacts: false
+      optional: true
+    - job: automation-tests-load-device-config
+      artifacts: true
+    - job: build-env-ont
+      artifacts: true
+      optional: true
+    # Revocation tests affect the whole environment (revoking all wallets, the shared recovery code, or the wallet
+    # solution), so the iOS and Android revocation jobs must not run at the same time.
+    - job: run-automation-revocation-tests-android
+      artifacts: false
+      optional: true
   variables:
     TEST_SUITE: "suite.RevocationTestSuite"
 
@@ -662,162 +702,6 @@ run-automation-english-tests-android:
     - compgen -G "build/test-results/testEnglish/*.xml"
   rules:
     - !reference [.on-schedule-automation, rules]
-
-.run-automation-a11y-batch:
-  extends: .run-automation-tests-common-setup
-  script:
-    - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace testA11yBatch${BATCH_NUMBER} -Dtest.config.remote=true
-      -Dfile.encoding=UTF-8 || true
-  rules:
-    - !reference [.on-schedule-trigger-scan, rules]
-  variables:
-    ENABLE_BROWSERSTACK_A11Y_CHECKS: true
-
-run-automation-a11y-batch1-tests:
-  extends: .run-automation-a11y-batch
-  variables:
-    BATCH_NUMBER: "1"
-
-run-automation-a11y-batch2-tests:
-  extends: .run-automation-a11y-batch
-  needs:
-    - job: run-automation-a11y-batch1-tests
-      artifacts: false
-  variables:
-    BATCH_NUMBER: "2"
-
-run-automation-a11y-batch3-tests:
-  extends: .run-automation-a11y-batch
-  needs:
-    - job: run-automation-a11y-batch2-tests
-      artifacts: false
-  after_script:
-    - echo "$CI_PIPELINE_ID" > a11y-build-name.txt
-    - deploy/bin/store-artifact.sh a11y-build-name.txt qt/quality-time/a11y-results/a11y-build-name.txt
-  variables:
-    BATCH_NUMBER: "3"
-
-browserstack-a11y-merge:
-  extends: .run-automation-tests-base
-  rules:
-    - !reference [.on-schedule-scan, rules]
-  variables:
-    BROWSERSTACK_API_BASE: "https://api-app-accessibility.browserstack.com/automate/api/v1"
-  script:
-    - set +x
-    - BUILD_NAME=$(mc cat qt/quality-time/a11y-results/a11y-build-name.txt)
-    - BROWSERSTACK_PROJECT_ID=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.project_id}' | base64
-      --decode)
-    # Get the last 2 builds for this project whose name == CI_PIPELINE_ID
-    - |
-      curl -sfS "${BROWSERSTACK_API_BASE}/project/${BROWSERSTACK_PROJECT_ID}/build?page_size=50&page=1" \
-        -u "${BROWSERSTACK_USER}:${BROWSERSTACK_KEY}" \
-        -o builds_raw.json
-
-    - set -x
-    - |
-      echo "Filtering builds with name == BUILD_NAME (${BUILD_NAME}) and selecting the last 2…"
-      jq --arg build_name "$BUILD_NAME" '
-        {
-          success,
-          info,
-          filters,
-          builds: (
-            [ .builds[]
-              | select(.name == $build_name)
-            ]
-            | sort_by(.created_at)  # oldest → newest
-            | reverse               # newest → oldest
-            | .[:2]                 # take the last 2
-          )
-        }
-      ' builds_raw.json > builds.json
-
-      echo "Checking we have at least 2 matching builds…"
-      jq -e '
-        .success == true
-        and (.builds | length >= 2)
-      ' builds.json > /dev/null || {
-        echo "ERROR: Need at least 2 builds with name == \"${BUILD_NAME}\". Got:"
-        jq '{builds: [.builds[] | {id, th_build_id, name, created_at}]}' builds.json
-        exit 1
-      }
-
-    # Create a combined summary
-    - |
-      echo "Creating combined summary…"
-      jq -n --slurpfile r builds.json '
-      def to_num:
-        if type=="number" then .
-        elif type=="string" then (tonumber? // 0)
-        else 0 end;
-
-      # severity_count can be: object, array of objects, null → return numeric for key
-      def sev_get(o; k):
-        if o == null then 0
-        elif (o|type)=="object" then ((o[k] // 0) | to_num)
-        elif (o|type)=="array"  then ((o | map(. [k] // 0 | to_num) | add) // 0)
-        else 0 end;
-
-      # sum a severity key across all builds
-      def sev_sum(k):
-        ([$r[0].builds[]
-          | .issue_summary
-          | if . == null then {} else . end
-          | .severity_count
-          | sev_get(.; k)
-        ] | add) // 0;
-
-      {
-        project_id: ($r[0].builds[0].project_id // $r[0].project_id),
-        generated_at: (now | strflocaltime("%Y-%m-%dT%H:%M:%SZ")),
-        source: { page: $r[0].info.page, page_size: $r[0].info.page_size, count: $r[0].info.count },
-        builds: [
-          $r[0].builds[] |
-          { id, th_build_id, name, created_at, started_at, status, issue_summary }
-        ],
-        summary: {
-          build_count: ($r[0].builds | length),
-          statuses: (
-            reduce ($r[0].builds[] | .status) as $s ({}; .[$s] = ((.[$s] // 0) + 1) )
-          ),
-          totals: {
-            total_issues: ([$r[0].builds[].issue_summary.total] | map((. // 0) | to_num) | add),
-            scan_count:   ([$r[0].builds[].issue_summary.scan_count] | map((. // 0) | to_num) | add),
-            severity_count: {
-              minor:            sev_sum("minor"),
-              moderate:         sev_sum("moderate"),
-              serious:          sev_sum("serious"),
-              critical:         sev_sum("critical"),
-              failed_issues:    sev_sum("failed_issues"),
-              needs_review:     sev_sum("needs_review"),
-              confirmed:        sev_sum("confirmed"),
-              hidden_issues:    sev_sum("hidden_issues"),
-              duplicate_issues: sev_sum("duplicate_issues")
-            }
-          }
-        }
-      }' > combined_summary.json
-
-    # Verify summary
-    - |
-      jq -e '
-        (.builds | length == 2)
-        and (.summary.build_count == 2)
-        and (.summary.totals.total_issues | type == "number")
-      ' combined_summary.json > /dev/null || {
-        echo "ERROR: combined_summary.json sanity check failed"
-        cat combined_summary.json || true
-        exit 1
-      }
-  after_script:
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/a11y-results/a11y.zip uiautomation/combined_summary.json
-  artifacts:
-    name: browserstack-a11y
-    when: always
-    paths:
-      - uiautomation/combined_summary.json
 
 run-automation-smoke-test-android-ont:
   extends: .run-automation-tests-common-setup

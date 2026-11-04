@@ -56,6 +56,7 @@ require_env_vars \
 
 CONFIG_ENV="${IOS_ENV_SLUG}"
 WALLET_CONFIG_JOB_NAME="wallet-config-${IOS_ENV_SLUG}"
+BUILD_ENV_JOB_NAME="build-env-${IOS_ENV_SLUG}"
 export FLUTTER_XCODE_BUNDLE_IDENTIFIER="${APPLICATION_ID}"
 export FLUTTER_XCODE_APP_NAME="${APP_NAME}"
 
@@ -128,6 +129,17 @@ WALLET_CONFIG_JOB_ID="$(resolve_job_id "${JOBS_JSON}" "${WALLET_CONFIG_JOB_NAME}
 echo -e "${INFO}Fetching ${CYAN}${WALLET_CONFIG_JOB_NAME}${NC} from job ${CYAN}${WALLET_CONFIG_JOB_ID}${NC}"
 fetch_wallet_config "${PROJECT_ID}" "${WALLET_CONFIG_JOB_ID}" "${WALLET_CONFIG_DIR}"
 
+if [[ -z "${DEMO_INDEX_URL}" ]]; then
+    if job_has_artifacts "${JOBS_JSON}" "${BUILD_ENV_JOB_NAME}"; then
+        BUILD_ENV_JOB_ID="$(resolve_job_id "${JOBS_JSON}" "${BUILD_ENV_JOB_NAME}")"
+        echo -e "${INFO}Fetching ${CYAN}DEMO_INDEX_URL${NC} from ${CYAN}${BUILD_ENV_JOB_NAME}${NC} job ${CYAN}${BUILD_ENV_JOB_ID}${NC}"
+        DEMO_INDEX_URL="$(fetch_demo_index_url "${PROJECT_ID}" "${BUILD_ENV_JOB_ID}" "${IOS_ENV_SLUG}")"
+    else
+        warn "No ${BUILD_ENV_JOB_NAME} artifacts found in pipeline ${PIPELINE_ID} (expired?), the demo index menu item will be hidden."
+        warn "Set DEMO_INDEX_URL=<url> to provide it manually."
+    fi
+fi
+
 UNIVERSAL_LINK_BASE="${UNIVERSAL_LINK_BASE:-https://${UL_HOSTNAME}${UNIVERSAL_LINK_PATH}}"
 export CONFIG_ENV
 export UL_HOSTNAME
@@ -146,6 +158,7 @@ echo -e "  APPLE_ATTESTATION_ENVIRONMENT=${CYAN}${APPLE_ATTESTATION_ENVIRONMENT}
 echo -e "  APPLICATION_ID=${CYAN}${APPLICATION_ID}${NC}"
 echo -e "  APP_NAME=${CYAN}${APP_NAME}${NC}"
 echo -e "  ALLOW_RELEASE_LOGS=${CYAN}${ALLOW_RELEASE_LOGS}${NC}"
+echo -e "  DEMO_INDEX_URL=${CYAN}${DEMO_INDEX_URL}${NC}"
 echo -e "${WARN}Use a physical iOS device. The simulator uses faux attestation and ${IOS_ENV_NAME} will reject it.${NC}"
 
 echo

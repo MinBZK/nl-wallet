@@ -6,8 +6,6 @@ import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
@@ -15,7 +13,7 @@ import screen.help.ActivitiesHelpScreen
 import screen.help.ContactScreen
 import screen.help.HelpAndInfoScreen
 import screen.menu.MenuScreen
-import util.MobileActions.Companion.ANIMATION_SETTLE_MILLIS
+import util.MobileActions.Companion.SCREEN_TRANSITION_MILLIS
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("UC 9.6 Get help")
@@ -37,7 +35,6 @@ class HelpTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC31 Get help")
-    @Tags(Tag("a11yBatch2"))
     fun verifyHelp(testInfo: TestInfo) {
         setUp(testInfo)
         menuScreen.clickHelpAndInfoButton()
@@ -57,13 +54,13 @@ class HelpTests : TestBase() {
         assertTrue(contactScreen.visible(), "Contact screen not visible")
 
         contactScreen.clickBottomBackButton()
-        Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        assertTrue(activitiesHelpScreen.somethingElseButtonVisible(), "somethingElseButton not visible")
         activitiesHelpScreen.clickBottomBackButton()
-        Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        Thread.sleep(SCREEN_TRANSITION_MILLIS)
         activitiesHelpScreen.clickBottomBackButton()
-        Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        assertTrue(activitiesHelpScreen.cardActivitiesButtonVisible(), "cardActivitiesButton not visible")
         helpAndInfoScreen.clickBottomBackButton()
-        Thread.sleep(ANIMATION_SETTLE_MILLIS)
+        assertTrue(helpAndInfoScreen.visible(), "Help buttons are not visible")
         helpAndInfoScreen.clickBottomBackButton()
         assertTrue(menuScreen.menuVisible(), "Menu screen not visible")
     }

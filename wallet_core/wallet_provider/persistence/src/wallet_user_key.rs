@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crypto::kid::Kid;
 use crypto::p256_der::verifying_key_sha256;
 use hsm::model::wrapped_key::WrappedKey;
 use p256::ecdsa::VerifyingKey;
@@ -18,7 +19,6 @@ use sea_orm::Set;
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::SelectStatement;
 use uuid::Uuid;
-use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WithKid;
 use wallet_provider_domain::repository::PersistenceError;

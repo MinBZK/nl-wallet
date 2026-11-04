@@ -1,11 +1,11 @@
 use std::assert_matches;
 
+use jwe::algorithm::CompressionAlgorithm;
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
-use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
 use jwe::error::JweDecryptionError;
@@ -41,7 +41,7 @@ where
             EncryptionAlgorithm::A256Gcm,
             Some(b"apu"),
             Some(b"apv"),
-            JweCompression::Deflate,
+            Some(CompressionAlgorithm::Deflate),
         )
         .expect("encrypting payload to JWE should succeed")
 }
@@ -89,8 +89,7 @@ fn test_encrypt_decrypt_id_mismatch() {
 
     assert_matches!(
         error,
-        JweJsonDecryptionError::JweDecryption(JweDecryptionError::IdMismatch(expected_kid, Some(received_kid)))
-            if &expected_kid == "key_id" && received_kid == "wrong_key_id"
+        JweJsonDecryptionError::JweDecryption(JweDecryptionError::Decryption(_))
     );
 
     // The sender should not omit the kid value from the JWE.
@@ -104,8 +103,7 @@ fn test_encrypt_decrypt_id_mismatch() {
 
     assert_matches!(
         error,
-        JweJsonDecryptionError::JweDecryption(JweDecryptionError::IdMismatch(expected_kid, None))
-            if &expected_kid == "key_id"
+        JweJsonDecryptionError::JweDecryption(JweDecryptionError::Decryption(_))
     );
 }
 

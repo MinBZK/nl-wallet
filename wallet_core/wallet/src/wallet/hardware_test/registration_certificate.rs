@@ -20,7 +20,7 @@ use mdoc::ItemsRequest;
 use serde_json::json;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
-use token_status_list::status_list_token::StatusListToken;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::verification::client::StatusListClientError;
 
 use crate::errors::DisclosureError;
@@ -100,7 +100,7 @@ impl RegistrationCertificateCase {
     pub(super) fn status_list(
         self,
         authority: &MockRegistrationCertificateAuthority,
-    ) -> Result<StatusListToken, StatusListClientError> {
+    ) -> Result<StatusListJwt, StatusListClientError> {
         match self {
             Self::Revoked | Self::Suspended => {
                 let mut list = StatusList::new(10);

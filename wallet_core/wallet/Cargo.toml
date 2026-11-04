@@ -24,7 +24,7 @@ name = "close_proximity_device_scenario"
 required-features = ["hardware_integration_test"]
 
 [features]
-# Allow the disclosure return URL and its prefix to use "http://" and
+# Allow the disclosure return URL to use "http://" and
 # allow Credential Issuer Identifiers to contain "http://"
 allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_configuration/allow_insecure_url"]
 # Enable the iOS-only UniFFI session-crypto helpers exposed by platform_support.
@@ -84,7 +84,7 @@ nutype.workspace = true
 p256.workspace = true
 parking_lot.workspace = true
 rand.workspace = true
-reqwest = { workspace = true, features = ["zstd"] }
+reqwest.workspace = true
 ring.workspace = true
 rusqlite.workspace = true
 rustls-pki-types.workspace = true

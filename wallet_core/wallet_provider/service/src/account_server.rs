@@ -30,8 +30,12 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
-use crypto::PublicKey;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyRef;
 use crypto::keys::SecureEcdsaKey;
+use crypto::kid::Kid;
+use crypto::kid::KidError;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
@@ -97,8 +101,6 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 use wallet_account::signed::ChallengeResponsePayload;
 use wallet_account::signed::SequenceNumberComparison;
-use wallet_provider_domain::keys::Kid;
-use wallet_provider_domain::keys::KidError;
 use wallet_provider_domain::keys::KidPair;
 use wallet_provider_domain::keys::UnknownKid;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
@@ -564,21 +566,22 @@ impl<'a> CertificateSigningKeysByKid<'a> {
 #[error("public key expired: {0}")]
 pub struct KeyExpired(DateTime<Utc>);
 
-impl<'a> PublicKeyByKid for CertificateSigningKeysByKid<'a> {
+impl<'a> PublicKeyByKid<'a> for CertificateSigningKeysByKid<'a> {
+    type Key = PublicKeyRef<'a>;
     type Error = KeyExpired;
 
-    fn find(&self, kid: &str) -> Result<Option<PublicKey>, Self::Error> {
+    fn find(&self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
         let kid = match Kid::try_from(kid) {
             Ok(kid) => kid,
             Err(_) => return Ok(None),
         };
 
         if kid == self.current.kid {
-            return Ok(Some(self.current.public_key.clone()));
+            return Ok(Some(self.current.public_key.as_public_key_ref()));
         }
 
         match self.previous.get(&kid) {
-            Some(key) if key.exp > self.now => Ok(Some(key.certificate_public_key.clone())),
+            Some(key) if key.exp > self.now => Ok(Some(key.certificate_public_key.as_public_key_ref())),
             Some(key) => Err(KeyExpired(key.exp)),
             None => Ok(None),
         }
@@ -1914,7 +1917,8 @@ pub mod mock {
     use apple_app_attest::MockAttestationCa;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
+    use crypto::kid::Kid;
     use crypto::server_keys::generate::Ca;
     use hsm::model::mock::MockPkcs11Client;
     use p256::ecdsa::SigningKey;
@@ -1925,7 +1929,6 @@ pub mod mock {
     use token_status_list::status_list_service::mock::MockStatusListService;
     use token_status_list::status_list_service::mock::generate_status_claims;
     use utils::vec_nonempty;
-    use wallet_provider_domain::keys::Kid;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use super::mock_play_integrity::MockPlayIntegrityClient;
@@ -2187,7 +2190,7 @@ pub mod mock {
         let issuer_key = issuer_ca.generate_issuer_mock().unwrap();
         let holder_key = SigningKey::generate();
         let sd_jwt =
-            SignedSdJwt::pid_example(&issuer_key, &PublicKey::from(*holder_key.verifying_key())).into_verified();
+            SignedSdJwt::pid_example(&issuer_key, &PublicKeyRef::from(holder_key.verifying_key())).into_verified();
 
         let sd_jwt = sd_jwt
             .into_presentation_builder()
@@ -2222,8 +2225,10 @@ mod tests {
     use chrono::DateTime;
     use chrono::TimeZone;
     use chrono::Utc;
-    use crypto::PublicKey;
     use crypto::keys::EcdsaKey;
+    use crypto::keys::PublicKey;
+    use crypto::keys::PublicKeyRef;
+    use crypto::kid::Kid;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
@@ -2267,7 +2272,6 @@ mod tests {
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
-    use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::keys::KidPair;
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::QueryResult;
@@ -2701,7 +2705,7 @@ mod tests {
             .expect("should return instruction result");
 
         let new_certificate = new_certificate_result
-            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&PublicKeyRef::from(instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result")
             .1
             .result;
@@ -2724,8 +2728,8 @@ mod tests {
 
         let (_, cert_data) = cert
             .parse_and_verify_with_sub_by_kid(&HashMap::from([(
-                setup.signing_key.kid().to_owned(),
-                PublicKey::from(*setup.signing_key.verifying_key()),
+                setup.signing_key.kid().try_into().unwrap(),
+                PublicKeyRef::from(setup.signing_key.verifying_key()),
             )]))
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
@@ -2734,7 +2738,7 @@ mod tests {
         let (wallet_user, _pin_pubkey) = verify_wallet_certificate(
             &cert,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {
@@ -3338,7 +3342,7 @@ mod tests {
         .expect("should return unit instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&PublicKeyRef::from(instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
     }
 
@@ -3363,7 +3367,7 @@ mod tests {
         verify_wallet_certificate(
             &new_cert,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {
@@ -3382,7 +3386,7 @@ mod tests {
         verify_wallet_certificate(
             &new_cert,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {
@@ -3457,7 +3461,7 @@ mod tests {
             .expect("should return instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&PublicKeyRef::from(instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
 
         user_state.repositories = WalletUserTestRepo {
@@ -3639,7 +3643,7 @@ mod tests {
             .expect("should return instruction result for old pin");
 
         instruction_result
-            .parse_and_verify_with_sub(&PublicKey::from(*instruction_result_signing_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&PublicKeyRef::from(instruction_result_signing_key.verifying_key()).into())
             .expect("Could not parse and verify instruction result");
 
         // Check that checking the PIN with the new certificate now fails
@@ -3780,7 +3784,7 @@ mod tests {
         verify_wallet_certificate(
             &result.certificate,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {

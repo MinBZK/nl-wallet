@@ -13,6 +13,7 @@ use http_utils::client::TlsPinningConfig;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtParseError;
 use jwt::error::JwtVerifyError;
+use jwt::headers::HeaderWithKid;
 pub use wallet_configuration::verification::CONFIG_EXPIRY_LEEWAY;
 pub use wallet_configuration::verification::WALLET_CONFIG_VALIDATION;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -28,7 +29,7 @@ pub use self::updating_repository::UpdatingConfigurationRepository;
 use crate::repository::FileStorageError;
 use crate::repository::HttpClientError;
 
-pub type WalletConfigJwt = UnverifiedJwt<WalletConfiguration>;
+pub type WalletConfigJwt = UnverifiedJwt<WalletConfiguration, HeaderWithKid>;
 
 /// Checks whether the given configuration is expired at `now`, using the same leeway as [`WALLET_CONFIG_VALIDATION`].
 ///
@@ -40,6 +41,9 @@ pub fn is_expired(config: &WalletConfiguration, now: DateTime<Utc>) -> bool {
 
     expires + CONFIG_EXPIRY_LEEWAY < now
 }
+
+#[cfg(any(test, feature = "test"))]
+pub use self::mock::ConfigSigningKey;
 
 pub type WalletConfigurationRepository =
     UpdatingConfigurationRepository<FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>>>;
@@ -61,7 +65,15 @@ pub enum ConfigurationError {
 }
 
 #[cfg(test)]
-pub(crate) mod test {
+pub fn test_wallet_config() -> WalletConfiguration {
+    const TEST_WALLET_CONFIG_JSON: &str = include_str!("../../test-wallet-config.json");
+
+    // The JSON has already been parsed in build.rs, so unwrap is safe here
+    serde_json::from_str(TEST_WALLET_CONFIG_JSON).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
     use chrono::SubsecRound;
     use chrono::TimeDelta;
     use chrono::Utc;
@@ -70,13 +82,7 @@ pub(crate) mod test {
 
     use super::CONFIG_EXPIRY_LEEWAY;
     use super::is_expired;
-
-    const TEST_WALLET_CONFIG_JSON: &str = include_str!("../../test-wallet-config.json");
-
-    pub fn test_wallet_config() -> WalletConfiguration {
-        // The JSON has already been parsed in build.rs, so unwrap is safe here
-        serde_json::from_str(TEST_WALLET_CONFIG_JSON).unwrap()
-    }
+    use super::test_wallet_config;
 
     fn leeway() -> TimeDelta {
         TimeDelta::from_std(CONFIG_EXPIRY_LEEWAY).unwrap()

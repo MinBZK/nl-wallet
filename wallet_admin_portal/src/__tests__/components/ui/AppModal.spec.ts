@@ -4,7 +4,7 @@ import { defineComponent, h, onMounted, ref } from 'vue'
 import AppModal from '../../../components/ui/AppModal.vue'
 
 // Attach to the real document: focus assertions need it.
-function mountModal(props: { dismissible?: boolean } = {}) {
+function mountModal(props: { dismissible?: boolean; size?: 'sm' | 'md' } = {}) {
   return mount(AppModal, {
     props,
     attachTo: document.body,
@@ -39,6 +39,18 @@ afterEach(() => {
 })
 
 describe('AppModal', () => {
+  it('applies the small size to the dialog', () => {
+    const wrapper = mountModal({ size: 'sm' })
+
+    expect(wrapper.get('[role="dialog"]').classes()).toContain('sm')
+  })
+
+  it('applies the medium size to the dialog', () => {
+    const wrapper = mountModal({ size: 'md' })
+
+    expect(wrapper.get('[role="dialog"]').classes()).toContain('md')
+  })
+
   it('names the dialog after the heading it hands a labelId to', () => {
     const wrapper = mountModal()
 

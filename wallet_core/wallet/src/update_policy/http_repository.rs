@@ -33,7 +33,7 @@ impl HttpUpdatePolicyRepository {
         version(); // force a failure as early as possible
 
         Self {
-            client: ReqwestHttpClient::new("update-policy".parse().expect("should be a valid filename")),
+            client: ReqwestHttpClient::new("update-policy"),
             state: RwLock::new((VersionState::Ok, None)),
         }
     }

@@ -5,7 +5,6 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/widget/bullet_list.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/text/body_text.dart';
@@ -25,7 +24,6 @@ class DemoScreen extends StatelessWidget {
       child: Scaffold(
         appBar: WalletAppBar(
           title: TitleText(context.l10n.demoScreenTitle),
-          actions: const [HelpIconButton()],
         ),
         body: SafeArea(
           child: LayoutBuilder(

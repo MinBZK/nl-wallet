@@ -1,12 +1,10 @@
-mod admin_portal_session_repository;
-mod admin_task_repository;
+mod admin_portal_repository;
 mod errors;
 mod transaction;
 mod wallet_flag_repository;
 mod wallet_user_repository;
 
-pub use self::admin_portal_session_repository::AdminPortalSessionRepository;
-pub use self::admin_task_repository::AdminTaskRepository;
+pub use self::admin_portal_repository::AdminPortalRepository;
 pub use self::errors::PersistenceError;
 pub use self::transaction::Committable;
 pub use self::transaction::TransactionStarter;

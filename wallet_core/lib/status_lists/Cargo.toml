@@ -81,6 +81,7 @@ utoipa = { workspace = true, optional = true }
 utoipa-axum = { workspace = true, optional = true }
 
 attestation_types.path = "../attestation_types"
+cose.path = "../cose"
 crypto.path = "../crypto"
 jwt.path = "../jwt"
 http_utils.path = "../http_utils"
@@ -91,6 +92,7 @@ utils.path = "../utils"
 db_test = { path = "../db_test", optional = true }
 
 [dev-dependencies]
+coset.workspace = true
 p256.workspace = true
 rstest.workspace = true
 tempfile.workspace = true

@@ -4,6 +4,9 @@ use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateProfile;
+use crypto::x509::DistinguishedName;
 use dcql::ClaimsSelection;
 use dcql::CredentialQuery;
 use dcql::Query;
@@ -15,6 +18,7 @@ use serde_json::Value;
 use serde_json::json;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
+use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::client::StatusListClientError;
@@ -37,10 +41,10 @@ impl jwt::JwtTyp for RegistrationCertificateFixture {
 }
 
 #[derive(Debug, Clone)]
-pub struct StaticStatusListClient(pub StatusListToken);
+pub struct StaticStatusListClient(pub StatusListJwt);
 
 impl StatusListClient for StaticStatusListClient {
-    async fn fetch(&self, _url: Url) -> Result<StatusListToken, StatusListClientError> {
+    async fn fetch(&self, _url: Url) -> Result<StatusListJwt, StatusListClientError> {
         Ok(self.0.clone())
     }
 }
@@ -221,16 +225,23 @@ impl MockRegistrationCertificateAuthority {
     pub fn new_with_status(status: StatusType) -> Self {
         let ca = Ca::generate_mock();
         let trust_anchors = ca.to_trust_anchors();
-        let status_list_key_pair = ca.generate_issuer_status_list_mock().unwrap();
+        let status_list_key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("Mock status list signer"),
+                CertificateConfiguration::with_profile(CertificateProfile::StatusListSigning),
+            )
+            .unwrap();
         let mut status_list = StatusList::new(10);
         if status != StatusType::Valid {
             assert_eq!(status_list.insert(0, status), None);
         }
-        let status_list = StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack())
-            .sign(&status_list_key_pair)
-            .now_or_never()
-            .unwrap()
-            .unwrap();
+        let status_list = StatusListJwt::sign(
+            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack()).build(&TimeGenerator),
+            &status_list_key_pair,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap();
 
         Self {
             ca,
@@ -267,12 +278,14 @@ impl MockRegistrationCertificateAuthority {
             .unwrap()
     }
 
-    pub fn sign_status_list(&self, status_list: StatusList) -> StatusListToken {
+    pub fn sign_status_list(&self, status_list: StatusList) -> StatusListJwt {
         let signing_key_pair = self.ca.generate_issuer_status_list_mock().unwrap();
-        StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack())
-            .sign(&signing_key_pair)
-            .now_or_never()
-            .unwrap()
-            .unwrap()
+        StatusListJwt::sign(
+            StatusListToken::builder(STATUS_LIST_URI.parse().unwrap(), status_list.pack()).build(&TimeGenerator),
+            &signing_key_pair,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap()
     }
 }

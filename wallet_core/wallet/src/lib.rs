@@ -113,6 +113,7 @@ pub mod test {
     pub use crate::account_provider::HttpAccountProviderClient;
     pub use crate::account_provider::MockAccountProviderClient;
     pub use crate::config::CONFIG_EXPIRY_LEEWAY;
+    pub use crate::config::ConfigSigningKey;
     pub use crate::config::FileStorageConfigurationRepository;
     pub use crate::config::HttpConfigurationRepository;
     pub use crate::config::LocalConfigurationRepository;

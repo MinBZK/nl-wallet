@@ -1,6 +1,7 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 import net.razvan.JacocoToCoberturaPlugin
 import net.razvan.JacocoToCoberturaTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.ByteArrayOutputStream
 import java.util.Base64
 
@@ -134,7 +135,7 @@ tasks.withType<Test>().configureEach {
 }
 
 tasks.named { it == "testDebugUnitTest" }.configureEach {
-    finalizedBy("jacocoReport")
+    finalizedBy("jacocoReport", "coberturaReport")
 }
 tasks.register<JacocoReport>("jacocoReport") {
     // Explicit setup seems to work best, but might be broken on AGP upgrades
@@ -147,12 +148,12 @@ tasks.register<JacocoReport>("jacocoReport") {
         xml.outputLocation = layout.buildDirectory.file("reports/coverage/unit/debug/report.xml")
     }
 }
-tasks.register<JacocoToCoberturaTask>("coberturaReport").configure {
+tasks.register<JacocoToCoberturaTask>("coberturaReport") {
     // Connect via jacocoReport does not work: https://github.com/gradle/gradle/issues/6619
+    mustRunAfter("jacocoReport")
     inputFile = layout.buildDirectory.file("reports/coverage/unit/debug/report.xml")
     outputFile = file("${inputFile.get()}/../cobertura.xml")
     splitByPackage = false
-    finalizedBy("coberturaReport")
 }
 
 tasks.named<JacocoToCoberturaTask>(JacocoToCoberturaPlugin.TASK_NAME) {

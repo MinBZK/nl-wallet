@@ -9,8 +9,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junit.jupiter.api.assertAll
@@ -64,7 +62,6 @@ class UserEntersPinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC37 Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.")
-    @Tags(Tag("a11yBatch2"))
     fun verifyNotConnectedErrorMessage(testInfo: TestInfo) {
         // Network toggling is only implemented for Android (via adb). On real iOS
         // devices it requires the RemoteXPC tunnel / condition inducer.

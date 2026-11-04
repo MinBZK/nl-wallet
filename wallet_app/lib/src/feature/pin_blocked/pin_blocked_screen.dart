@@ -5,7 +5,6 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
@@ -24,7 +23,6 @@ class PinBlockedScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         title: TitleText(context.l10n.pinBlockedScreenHeadline),
-        actions: const [HelpIconButton()],
       ),
       body: SafeArea(
         child: Column(
