@@ -44,7 +44,11 @@ impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
 
                         // Clear ETag file to ensure a fresh fetch even when ETags collide.
                         // Collisions can happen e.g. on nginx when configs are of same size and have same mtime.
-                        tokio::fs::remove_file(&etag_path).await.ok();
+                        if let Err(err) = tokio::fs::remove_file(&etag_path).await
+                            && err.kind() != std::io::ErrorKind::NotFound
+                        {
+                            tracing::warn!("Failed to remove ETag file: {err}");
+                        }
                         initial_config
                     }
 
