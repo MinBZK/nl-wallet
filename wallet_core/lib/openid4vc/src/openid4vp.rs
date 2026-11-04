@@ -471,6 +471,10 @@ impl VpAuthorizationRequest {
             )
             .await?;
 
+        if header.x5c.iter().skip(1).any(|cert| trust_anchors.contains(cert)) {
+            error!("Ignored root certificate in OpenID4VP request x5c chain");
+        }
+
         Ok((auth_request, header.x5c.into_first()))
     }
 

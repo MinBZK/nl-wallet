@@ -18,6 +18,7 @@ use oauth::token::AuthorizationCode;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
+use tracing::error;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -499,6 +500,17 @@ where
             )
             .await
             .map_err(WalletIssuanceError::CredentialIssuerMetadataVerify)?;
+
+        if verified_issuer_metadata
+            .header()
+            .x5c
+            .iter()
+            .skip(1)
+            .any(|cert| wrpac_trust_anchors.contains(cert))
+        {
+            error!("Ignored root certificate in issuer metadata x5c chain");
+        }
+
         let access_certificate = verified_issuer_metadata.header().x5c.first().clone();
         let issuer_metadata_payload = verified_issuer_metadata.into_payload();
         if *issuer_metadata_payload.sub != credential_offer.credential_issuer {
