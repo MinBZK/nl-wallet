@@ -50,6 +50,7 @@ build-documentation:
 publish-documentation:
   stage: publish
   rules: !reference [.default-branch, rules]
+  resource_group: publish-documentation
   needs:
     - job: build-documentation
       artifacts: true
