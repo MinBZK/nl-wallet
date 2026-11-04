@@ -1,6 +1,7 @@
 use std::assert_matches;
 use std::collections::HashMap;
 use std::net::IpAddr;
+use std::net::SocketAddr;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -170,7 +171,7 @@ async fn wallet_server_settings_and_listener(
 
     // Generate a complete configuration for the verifier, including
     // a section for the issuer if that feature is enabled.
-    let ws_port = wallet_server.port;
+    let ws_addr = SocketAddr::new(wallet_server.ip, wallet_server.port);
     let settings = Settings {
         wallet_server,
 
@@ -192,7 +193,7 @@ async fn wallet_server_settings_and_listener(
 
         allow_origins: None,
 
-        public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
+        public_url: format!("http://{ws_addr}/").parse().unwrap(),
 
         universal_link_base_url: "http://universal.link/".parse().unwrap(),
 
@@ -274,10 +275,12 @@ async fn wait_for_server(base_url: BaseUrl) {
 fn internal_url(settings: &VerifierSettings) -> BaseUrl {
     match settings.server_settings.internal_server {
         ServerAuth::ProtectedInternalEndpoint {
-            server: Server { port, .. },
+            server: Server { ip, port },
             ..
         }
-        | ServerAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
+        | ServerAuth::InternalEndpoint(Server { ip, port }) => {
+            format!("http://{}/", SocketAddr::new(ip, port)).parse().unwrap()
+        }
         ServerAuth::Authentication(_) => settings.public_url.clone(),
     }
 }
@@ -300,7 +303,7 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
     let internal_listener = match &mut auth {
         ServerAuth::Authentication(_) => None,
         ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
-            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
+            let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             server.port = listener.local_addr().unwrap().port();
             Some(listener)
         }
