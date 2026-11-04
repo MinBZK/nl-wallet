@@ -127,6 +127,13 @@ impl TrustAnchors {
     pub fn contains(&self, certificate: &BorrowingCertificate) -> bool {
         self.certificates.contains(certificate)
     }
+
+    pub fn find_in_chain<'a>(
+        &self,
+        chain: impl IntoIterator<Item = &'a BorrowingCertificate>,
+    ) -> Option<&'a BorrowingCertificate> {
+        chain.into_iter().find(|certificate| self.contains(certificate))
+    }
 }
 
 impl PartialEq for TrustAnchors {

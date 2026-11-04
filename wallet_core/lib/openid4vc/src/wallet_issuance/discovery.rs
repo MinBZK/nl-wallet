@@ -501,14 +501,14 @@ where
             .await
             .map_err(WalletIssuanceError::CredentialIssuerMetadataVerify)?;
 
-        if verified_issuer_metadata
-            .header()
-            .x5c
-            .iter()
-            .skip(1)
-            .any(|cert| wrpac_trust_anchors.contains(cert))
+        if let Some(trust_anchor) =
+            wrpac_trust_anchors.find_in_chain(verified_issuer_metadata.header().x5c.iter().skip(1))
         {
-            error!("Ignored root certificate in issuer metadata x5c chain");
+            let subject = trust_anchor.x509_certificate().subject();
+            error!(
+                "x5c of Credential Issuer Metadata request contains trust anchor {subject}; this violates HAIP 1.0, \
+                 ignoring it"
+            );
         }
 
         let access_certificate = verified_issuer_metadata.header().x5c.first().clone();
