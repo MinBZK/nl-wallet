@@ -81,6 +81,8 @@
 - The wallet now also accepts a registration certificate in JWT format that is
   included in `verifier_info` or `issuer_info` as a compact JWT, without the
   additional base64url encoding required by ETSI TS 119 472-2.
+- The wallet now also accepts a registration certificate in `verifier_info` or
+  `issuer_info` whose base64url encoding includes padding.
 - The PID, as issued by the `pid_issuer`, was updated to match the EUDI PID
   Rulebook. Note that `portrait`, even though being mandatory, is not included
   at all because the BRP does not provide it. `place_of_birth` is also not

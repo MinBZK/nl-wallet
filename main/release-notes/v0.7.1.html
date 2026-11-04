@@ -282,6 +282,8 @@ to OpenID4VCI 1.0 and its implementation is now effectively dead code.</p></li>
 <li><p>The wallet now also accepts a registration certificate in JWT format that is
 included in <code class="docutils literal notranslate"><span class="pre">verifier_info</span></code> or <code class="docutils literal notranslate"><span class="pre">issuer_info</span></code> as a compact JWT, without the
 additional base64url encoding required by ETSI TS 119 472-2.</p></li>
+<li><p>The wallet now also accepts a registration certificate in <code class="docutils literal notranslate"><span class="pre">verifier_info</span></code> or
+<code class="docutils literal notranslate"><span class="pre">issuer_info</span></code> whose base64url encoding includes padding.</p></li>
 <li><p>The PID, as issued by the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, was updated to match the EUDI PID
 Rulebook. Note that <code class="docutils literal notranslate"><span class="pre">portrait</span></code>, even though being mandatory, is not included
 at all because the BRP does not provide it. <code class="docutils literal notranslate"><span class="pre">place_of_birth</span></code> is also not
