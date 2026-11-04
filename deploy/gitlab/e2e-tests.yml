@@ -153,6 +153,14 @@ automation-tests-load-device-config:
   resource_group: real-device-automation-tests
   tags:
     - macos-devices
+  hooks:
+    # The first session on a real iPhone sometimes fails with "port #8100 is occupied", left behind by a previous
+    # job. Log which process holds the port, so it can be cleaned up at its source.
+    pre_get_sources_script:
+      - |
+        for pid in $(lsof -ti tcp:8100 -sTCP:LISTEN); do
+          echo "Leftover process on port 8100: $(ps -o pid=,ppid=,user=,etime=,command= -p "$pid")"
+        done
   variables:
     ENABLE_A11Y_CAPTURES: "true"
   artifacts:
@@ -428,6 +436,11 @@ run-automation-revocation-tests-ios:
       artifacts: true
     - job: build-env-ont
       artifacts: true
+      optional: true
+    # Revocation tests affect the whole environment (revoking all wallets, the shared recovery code, or the wallet
+    # solution), so the iOS and Android revocation jobs must not run at the same time.
+    - job: run-automation-revocation-tests-android
+      artifacts: false
       optional: true
   variables:
     TEST_SUITE: "suite.RevocationTestSuite"
