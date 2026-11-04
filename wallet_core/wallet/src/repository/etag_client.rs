@@ -14,23 +14,22 @@ use tokio::fs;
 use tracing::warn;
 
 use super::FileStorageError;
-use super::Filename;
 use super::HttpClientError;
 use super::HttpResponse;
 use crate::reqwest::CachedReqwestClient;
 
 pub struct EtagHttpClient<T, B, E> {
     cached_client: CachedReqwestClient<B>,
-    resource_identifier: Filename,
+    resource_identifier: String,
     etag_path: PathBuf,
     _marker: PhantomData<(T, B, E)>, // data and error type to fetch and builder type
 }
 
 impl<T, B, E> EtagHttpClient<T, B, E> {
-    pub fn new(resource_identifier: Filename, etag_path: PathBuf) -> Self {
+    pub fn new(resource_identifier: impl Into<String>, etag_path: PathBuf) -> Self {
         Self {
             cached_client: CachedReqwestClient::new(),
-            resource_identifier,
+            resource_identifier: resource_identifier.into(),
             etag_path,
             _marker: PhantomData,
         }
@@ -89,7 +88,7 @@ where
 
         let response = client
             .send_custom_get(
-                ReqwestClientUrl::Relative(&self.resource_identifier.as_ref().to_string_lossy()),
+                ReqwestClientUrl::Relative(&self.resource_identifier),
                 |request| match latest_etag {
                     Some(etag) => request.header(header::IF_NONE_MATCH, etag),
                     None => request,
@@ -142,7 +141,6 @@ mod test {
     use tokio::fs;
 
     use super::EtagHttpClient;
-    use crate::repository::Filename;
     use crate::repository::HttpClientError;
     use crate::repository::HttpResponse;
 
@@ -183,7 +181,7 @@ mod test {
 
         let tempdir = tempfile::tempdir().unwrap();
         let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), tempdir.path().join("config.etag"));
+            EtagHttpClient::new("config", tempdir.path().join("config.etag"));
 
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
 
@@ -224,9 +222,9 @@ mod test {
         let tempdir = tempfile::tempdir().unwrap();
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
         let client1: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), tempdir.path().join("config.etag"));
+            EtagHttpClient::new("config", tempdir.path().join("config.etag"));
         let client2: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), tempdir.path().join("config.etag"));
+            EtagHttpClient::new("config", tempdir.path().join("config.etag"));
 
         let response = client1.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
@@ -258,10 +256,8 @@ mod test {
         let etag_path = tempdir.path().join("config.etag");
         fs::write(&etag_path, b"invalid\netag").await.unwrap();
 
-        let resource_identifier: Filename = "config".parse().unwrap();
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
-        let client =
-            EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::new(resource_identifier, etag_path.clone());
+        let client = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::new("config", etag_path.clone());
 
         // The invalid ETag should not be sent along and should be deleted.
         let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
@@ -300,7 +296,7 @@ mod test {
         let etag_path = tempdir.path().join("config.etag");
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
         let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), etag_path.clone());
+            EtagHttpClient::new("config", etag_path.clone());
 
         let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
@@ -330,7 +326,7 @@ mod test {
         let etag_path = tempdir.path().join("config.etag");
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
         let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), etag_path.clone());
+            EtagHttpClient::new("config", etag_path.clone());
 
         // Reject the response, which should not result in its ETag being stored.
         let result = client

@@ -29,10 +29,7 @@ pub struct HttpConfigurationRepository<B> {
 impl<B> HttpConfigurationRepository<B> {
     pub fn new(config_key: VerifyingKeyWithKid, etag_path: PathBuf, initial_config: WalletConfiguration) -> Self {
         Self {
-            client: EtagHttpClient::new(
-                config_key.kid.as_ref().parse().expect("should be a valid filename"),
-                etag_path,
-            ),
+            client: EtagHttpClient::new(config_key.kid.as_ref(), etag_path),
             config_key,
             config: RwLock::new((Arc::new(initial_config), None)),
         }
