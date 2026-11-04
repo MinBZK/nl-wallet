@@ -202,8 +202,11 @@ impl<T: DeserializeOwned, H: DeserializeOwned> UnverifiedJwt<T, H> {
 }
 
 impl<T, H: DeserializeOwned> UnverifiedJwt<T, HeaderWithX5c<H>> {
-    fn extract_x5c_certificates(&self) -> Result<VecNonEmpty<BorrowingCertificate>, JwtParseError> {
-        let header = self.dangerous_parse_header_unverified()?;
+    fn extract_x5c_certificates(&self) -> Result<VecNonEmpty<BorrowingCertificate>, JwtX5cVerifyError> {
+        let header = self
+            .dangerous_parse_header_unverified()
+            .map_err(JwtVerifyError::ParseError)
+            .map_err(JwtX5cVerifyError::JwtVerify)?;
         Ok(header.x5c)
     }
 }
@@ -296,10 +299,7 @@ where
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let certificates = self
-            .extract_x5c_certificates()
-            .map_err(JwtVerifyError::ParseError)
-            .map_err(JwtX5cVerifyError::JwtVerify)?;
+        let certificates = self.extract_x5c_certificates()?;
 
         // Verify the certificate chain against the trust anchors.
         let (leaf_cert, intermediate_certs) = certificates.split_first();
@@ -323,10 +323,7 @@ where
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let certificates = self
-            .extract_x5c_certificates()
-            .map_err(JwtVerifyError::ParseError)
-            .map_err(JwtX5cVerifyError::JwtVerify)?;
+        let certificates = self.extract_x5c_certificates()?;
 
         crl_verifier
             .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
@@ -2077,9 +2074,9 @@ mod tests {
         let payload = json!({"hello": "world"});
         let mut certs = vec_nonempty![
             keypair.certificate().to_owned(),
-            BorrowingCertificate::from_certificate_der(intermediate3.certificate().to_owned()).unwrap(),
-            BorrowingCertificate::from_certificate_der(intermediate2.certificate().to_owned()).unwrap(),
-            BorrowingCertificate::from_certificate_der(intermediate1.certificate().to_owned()).unwrap(),
+            intermediate3.as_borrowing_certificate().unwrap(),
+            intermediate2.as_borrowing_certificate().unwrap(),
+            intermediate1.as_borrowing_certificate().unwrap(),
         ];
         if include_root {
             certs.push(ca.as_borrowing_certificate().unwrap());
@@ -2151,7 +2148,7 @@ mod tests {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
-        let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
+        let ca_cert = ca.as_borrowing_certificate().unwrap();
 
         // Put the ca_cert in both the certificate list and the trust anchors.
         let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
@@ -2181,7 +2178,7 @@ mod tests {
         let keypair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
         let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
-        let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
+        let ca_cert = ca.as_borrowing_certificate().unwrap();
 
         // Put the ca_cert in both the certificate list and the trust anchors.
         let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
