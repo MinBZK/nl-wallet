@@ -1,10 +1,12 @@
 import type { Task } from '@/types/task.ts'
 import type { TaskDetail } from '@/types/task-detail.ts'
 import type { TaskHistoryEntry } from '@/types/task-history-entry.ts'
+import type { TaskPayload } from '@/types/task-payload.ts'
 import type { TaskResponse, TaskStatus } from '@/types/task-response.ts'
-import { TASK_ACTION_INFO, TaskActionType } from '@/types/task-action.ts'
+import { TASK_ACTION_INFO } from '@/types/task-action.ts'
 import { getAuthState } from '@/composables/authentication.ts'
 import { dateTimeFormatter } from '@/utils/dateFormatters.ts'
+import { taskPayloadRows, taskTargetSummary } from '@/utils/taskPayloadRows.ts'
 import { postJson, request } from '@/api/request.ts'
 
 type TaskListView = 'open' | 'history' | 'reviewable'
@@ -16,30 +18,21 @@ const VERDICT_BY_STATUS: Record<TaskStatus, string> = {
   withdrawn: 'Ingetrokken',
 }
 
-/**
- * Resolves the "purpose" of a task, i.e. what it targets.
- *
- * Only the revoke solution action has a fixed target, for all other actions this falls back to '—'.
- * TODO(Anyone): derive the purpose from the task parameters, see PVW-6177, PVW-6176 and PVW-6175.
- */
-function resolvePurpose(response: TaskResponse): string {
-  switch (response.taskType) {
-    case TaskActionType.RevokeSolution:
-      return 'Alle wallets'
-    default:
-      return '—'
-  }
-}
-
 function toTask(response: TaskResponse): Task {
   return {
     id: response.taskId,
     action: response.taskType,
-    purpose: resolvePurpose(response),
+    targetSummary: taskTargetSummary(response) ?? '—',
     reason: response.taskReason,
     createdAt: new Date(response.createdAt),
     createdBy: response.createdBy,
   }
+}
+
+/** Resolves the result of a task; `executionDetails` is not shown, as it is untranslated backend output. */
+function resolveResult(response: TaskResponse): string {
+  if (response.executionSuccessful === null) return '—'
+  return response.executionSuccessful ? 'Succesvol' : 'Mislukt'
 }
 
 function toHistoryEntry(response: TaskResponse): TaskHistoryEntry {
@@ -47,14 +40,15 @@ function toHistoryEntry(response: TaskResponse): TaskHistoryEntry {
   return {
     ...toTask(response),
     verdict: VERDICT_BY_STATUS[response.status],
-    result: response.executionResult ?? '—',
+    result: resolveResult(response),
+    executedAt: response.executedAt ? new Date(response.executedAt) : undefined,
     completedAt: new Date(
       (withdrawn ? response.withdrawnAt : response.reviewedAt) ?? response.createdAt,
     ),
     // The backend only allows the creator to withdraw a task.
     completedBy: (withdrawn ? response.createdBy : response.reviewedBy) ?? '—',
-    // Withdrawing does not take a reason, so this is only set for reviewed tasks.
-    completionReason: response.reviewComment || undefined,
+    completionReason:
+      (withdrawn ? response.withdrawalComment : response.reviewComment) || undefined,
   }
 }
 
@@ -62,9 +56,9 @@ function fetchTasks(view: TaskListView): Promise<TaskResponse[]> {
   return request<TaskResponse[]>(`/tasks?view=${view}`)
 }
 
-/** Creates a task of type [action] with [reason]; the creator is the logged in user. */
-export async function createTask(action: TaskActionType, reason: string): Promise<Task> {
-  return toTask(await postJson<TaskResponse>('/tasks', { taskType: action, taskReason: reason }))
+/** Creates a task for [payload] with [reason]; the creator is the logged in user. */
+export async function createTask(payload: TaskPayload, reason: string): Promise<Task> {
+  return toTask(await postJson<TaskResponse>('/tasks', { ...payload, taskReason: reason }))
 }
 
 /**
@@ -116,6 +110,8 @@ export async function fetchTaskDetail(id: string): Promise<TaskDetail> {
     authState.status === 'authenticated' && task.createdBy === authState.user.displayName
   const createdBy = isOwnTask ? `${task.createdBy} (jij)` : task.createdBy
 
+  const { summaryRows, selectionRows } = taskPayloadRows(task)
+
   return {
     id,
     action: task.taskType,
@@ -124,23 +120,20 @@ export async function fetchTaskDetail(id: string): Promise<TaskDetail> {
       { label: 'Aangemaakt op:', value: dateTimeFormatter.format(new Date(task.createdAt)) },
       { label: 'Aangemaakt door:', value: createdBy },
     ],
-    // The task parameters (e.g. the wallet IDs) are not shown yet, as their shape is not defined by the backend.
-    details: [{ label: 'Reden', value: task.taskReason }],
+    details: [...summaryRows, ...selectionRows, { label: 'Reden', value: task.taskReason }],
     consequences: TASK_ACTION_INFO[task.taskType].consequences,
     isOwnTask,
     log: task.status === 'created' ? undefined : toHistoryEntry(task),
   }
 }
 
-/**
- * TODO(Anyone): The design requires a withdrawal reason, so the backend should accept and store it.
- *
- * Withdraws the task with [id], which is only allowed for the creator while the task is still open.
- * The backend does not store a withdrawal reason, so [_reason] is currently not sent.
- * Returns the withdrawn task.
- */
-export async function withdrawTask(id: string, _reason: string): Promise<TaskHistoryEntry> {
-  return toHistoryEntry(await postJson<TaskResponse>(`/tasks/${encodeURIComponent(id)}/withdraw`))
+/** Withdraws the task with [id] for [reason], which is only allowed for the creator while the task is still open. */
+export async function withdrawTask(id: string, reason: string): Promise<TaskHistoryEntry> {
+  return toHistoryEntry(
+    await postJson<TaskResponse>(`/tasks/${encodeURIComponent(id)}/withdraw`, {
+      withdrawalComment: reason,
+    }),
+  )
 }
 
 /** Approves the task with [id] and returns it; the backend does not allow reviewing your own task. */

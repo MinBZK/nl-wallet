@@ -56,7 +56,9 @@ function buildTaskLog(task: TaskHistoryEntry): TaskLogEntry[] {
     {
       title: 'Resultaat:',
       rows: [
-        { label: 'Op:', value: dateTimeFormatter.format(task.completedAt) },
+        ...(task.executedAt
+          ? [{ label: 'Op:', value: dateTimeFormatter.format(task.executedAt) }]
+          : []),
         { label: 'Resultaat:', value: task.result },
       ],
     },

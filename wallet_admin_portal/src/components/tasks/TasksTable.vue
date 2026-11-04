@@ -7,7 +7,7 @@
           <tr v-for="task in tasks" :key="task.id">
             <td>{{ task.id }}</td>
             <td>{{ TASK_ACTION_INFO[task.action].title }}</td>
-            <td>{{ task.purpose }}</td>
+            <td>{{ task.targetSummary }}</td>
             <template v-if="isTaskHistoryEntry(task)">
               <td>{{ task.verdict }}</td>
               <td>{{ task.result }}</td>
