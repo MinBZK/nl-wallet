@@ -28,7 +28,7 @@ for language in ${languages}; do
                 continue
             fi
             echo "Downloading ${file}"
-            curl --fail --silent --show-error --location --output "${VIDEOS_DIR}/${file}.part" "${VIDEOS_URL}/${file}"
+            curl  -fsSL -o "${VIDEOS_DIR}/${file}.part" "${VIDEOS_URL}/${file}"
             mv "${VIDEOS_DIR}/${file}.part" "${VIDEOS_DIR}/${file}"
         done
     done
