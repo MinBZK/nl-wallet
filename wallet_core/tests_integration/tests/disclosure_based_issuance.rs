@@ -1,3 +1,5 @@
+use std::assert_matches;
+
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_types::claim_path::ClaimPath;
@@ -19,6 +21,7 @@ use tests_integration::common::*;
 use utils::vec_nonempty;
 use wallet::AttributeValue;
 use wallet::DisclosureAttestationOptions;
+use wallet::DisclosureBasedIssuanceResult;
 use wallet::DisclosureUriSource;
 use wallet::Pin;
 use wallet::openid4vc::SessionType;
@@ -244,7 +247,6 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
         .await
         .unwrap();
 
-    // If the issuer has no attestations to issue, we receive an empty vec and no error.
-    let attestations = wallet.continue_disclosure_based_issuance(&[0], pin).await.unwrap();
-    assert!(attestations.is_empty());
+    let result = wallet.continue_disclosure_based_issuance(&[0], pin).await.unwrap();
+    assert_matches!(result, DisclosureBasedIssuanceResult::NoIssuableAttestations);
 }

@@ -2206,21 +2206,44 @@ impl SseDecode for crate::models::disclosure::CloseProximityDisclosureFlutterUpd
     }
 }
 
-impl SseDecode for crate::models::instruction::DisclosureBasedIssuanceResult {
+impl SseDecode for crate::models::instruction::DisclosureBasedIssuanceInstructionResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                let mut var_field0 =
-                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
-                return crate::models::instruction::DisclosureBasedIssuanceResult::Ok(var_field0);
+                let mut var_field0 = <crate::models::issuance::DisclosureBasedIssuanceResult>::sse_decode(deserializer);
+                return crate::models::instruction::DisclosureBasedIssuanceInstructionResult::Ok(var_field0);
             }
             1 => {
                 let mut var_error = <crate::models::instruction::WalletInstructionError>::sse_decode(deserializer);
-                return crate::models::instruction::DisclosureBasedIssuanceResult::InstructionError {
+                return crate::models::instruction::DisclosureBasedIssuanceInstructionResult::InstructionError {
                     error: var_error,
                 };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::models::issuance::DisclosureBasedIssuanceResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                return crate::models::issuance::DisclosureBasedIssuanceResult::NoIssuableAttestations;
+            }
+            1 => {
+                let mut var_field0 =
+                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
+                return crate::models::issuance::DisclosureBasedIssuanceResult::Previews(var_field0);
+            }
+            2 => {
+                let mut var_issuer = <crate::models::organization::Organization>::sse_decode(deserializer);
+                return crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews { issuer: var_issuer };
             }
             _ => {
                 unimplemented!("");
@@ -3636,13 +3659,13 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::CloseProximity
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::instruction::DisclosureBasedIssuanceResult {
+impl flutter_rust_bridge::IntoDart for crate::models::instruction::DisclosureBasedIssuanceInstructionResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            crate::models::instruction::DisclosureBasedIssuanceResult::Ok(field0) => {
+            crate::models::instruction::DisclosureBasedIssuanceInstructionResult::Ok(field0) => {
                 [0.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::instruction::DisclosureBasedIssuanceResult::InstructionError { error } => {
+            crate::models::instruction::DisclosureBasedIssuanceInstructionResult::InstructionError { error } => {
                 [1.into_dart(), error.into_into_dart().into_dart()].into_dart()
             }
             _ => {
@@ -3652,13 +3675,43 @@ impl flutter_rust_bridge::IntoDart for crate::models::instruction::DisclosureBas
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::models::instruction::DisclosureBasedIssuanceResult
+    for crate::models::instruction::DisclosureBasedIssuanceInstructionResult
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::DisclosureBasedIssuanceResult>
-    for crate::models::instruction::DisclosureBasedIssuanceResult
+impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::DisclosureBasedIssuanceInstructionResult>
+    for crate::models::instruction::DisclosureBasedIssuanceInstructionResult
 {
-    fn into_into_dart(self) -> crate::models::instruction::DisclosureBasedIssuanceResult {
+    fn into_into_dart(self) -> crate::models::instruction::DisclosureBasedIssuanceInstructionResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::issuance::DisclosureBasedIssuanceResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::issuance::DisclosureBasedIssuanceResult::NoIssuableAttestations => {
+                [0.into_dart()].into_dart()
+            }
+            crate::models::issuance::DisclosureBasedIssuanceResult::Previews(field0) => {
+                [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews { issuer } => {
+                [2.into_dart(), issuer.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::models::issuance::DisclosureBasedIssuanceResult
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::issuance::DisclosureBasedIssuanceResult>
+    for crate::models::issuance::DisclosureBasedIssuanceResult
+{
+    fn into_into_dart(self) -> crate::models::issuance::DisclosureBasedIssuanceResult {
         self
     }
 }
@@ -4799,17 +4852,39 @@ impl SseEncode for crate::models::disclosure::CloseProximityDisclosureFlutterUpd
     }
 }
 
-impl SseEncode for crate::models::instruction::DisclosureBasedIssuanceResult {
+impl SseEncode for crate::models::instruction::DisclosureBasedIssuanceInstructionResult {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
-            crate::models::instruction::DisclosureBasedIssuanceResult::Ok(field0) => {
+            crate::models::instruction::DisclosureBasedIssuanceInstructionResult::Ok(field0) => {
                 <i32>::sse_encode(0, serializer);
-                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
+                <crate::models::issuance::DisclosureBasedIssuanceResult>::sse_encode(field0, serializer);
             }
-            crate::models::instruction::DisclosureBasedIssuanceResult::InstructionError { error } => {
+            crate::models::instruction::DisclosureBasedIssuanceInstructionResult::InstructionError { error } => {
                 <i32>::sse_encode(1, serializer);
                 <crate::models::instruction::WalletInstructionError>::sse_encode(error, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::models::issuance::DisclosureBasedIssuanceResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::issuance::DisclosureBasedIssuanceResult::NoIssuableAttestations => {
+                <i32>::sse_encode(0, serializer);
+            }
+            crate::models::issuance::DisclosureBasedIssuanceResult::Previews(field0) => {
+                <i32>::sse_encode(1, serializer);
+                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
+            }
+            crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews { issuer } => {
+                <i32>::sse_encode(2, serializer);
+                <crate::models::organization::Organization>::sse_encode(issuer, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -6120,6 +6195,15 @@ mod io {
             unsafe { *flutter_rust_bridge::for_generated::box_from_leak_ptr(self) }
         }
     }
+    impl CstDecode<crate::models::issuance::DisclosureBasedIssuanceResult>
+        for *mut wire_cst_disclosure_based_issuance_result
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::issuance::DisclosureBasedIssuanceResult {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::issuance::DisclosureBasedIssuanceResult>::cst_decode(*wrap).into()
+        }
+    }
     impl CstDecode<crate::models::config::FlutterMaintenanceWindow> for *mut wire_cst_flutter_maintenance_window {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::config::FlutterMaintenanceWindow {
@@ -6205,20 +6289,39 @@ mod io {
             }
         }
     }
-    impl CstDecode<crate::models::instruction::DisclosureBasedIssuanceResult>
-        for wire_cst_disclosure_based_issuance_result
+    impl CstDecode<crate::models::instruction::DisclosureBasedIssuanceInstructionResult>
+        for wire_cst_disclosure_based_issuance_instruction_result
     {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::instruction::DisclosureBasedIssuanceResult {
+        fn cst_decode(self) -> crate::models::instruction::DisclosureBasedIssuanceInstructionResult {
             match self.tag {
                 0 => {
                     let ans = unsafe { self.kind.Ok };
-                    crate::models::instruction::DisclosureBasedIssuanceResult::Ok(ans.field0.cst_decode())
+                    crate::models::instruction::DisclosureBasedIssuanceInstructionResult::Ok(ans.field0.cst_decode())
                 }
                 1 => {
                     let ans = unsafe { self.kind.InstructionError };
-                    crate::models::instruction::DisclosureBasedIssuanceResult::InstructionError {
+                    crate::models::instruction::DisclosureBasedIssuanceInstructionResult::InstructionError {
                         error: ans.error.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::issuance::DisclosureBasedIssuanceResult> for wire_cst_disclosure_based_issuance_result {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::issuance::DisclosureBasedIssuanceResult {
+            match self.tag {
+                0 => crate::models::issuance::DisclosureBasedIssuanceResult::NoIssuableAttestations,
+                1 => {
+                    let ans = unsafe { self.kind.Previews };
+                    crate::models::issuance::DisclosureBasedIssuanceResult::Previews(ans.field0.cst_decode())
+                }
+                2 => {
+                    let ans = unsafe { self.kind.NoPreviews };
+                    crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews {
+                        issuer: ans.issuer.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -7000,6 +7103,19 @@ mod io {
         }
     }
     impl Default for wire_cst_close_proximity_disclosure_flutter_update {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_disclosure_based_issuance_instruction_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: DisclosureBasedIssuanceInstructionResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_disclosure_based_issuance_instruction_result {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -7863,6 +7979,14 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_disclosure_based_issuance_result(
+    ) -> *mut wire_cst_disclosure_based_issuance_result {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(
+            wire_cst_disclosure_based_issuance_result::new_with_null_ptr(),
+        )
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_flutter_maintenance_window(
     ) -> *mut wire_cst_flutter_maintenance_window {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_flutter_maintenance_window::new_with_null_ptr())
@@ -8288,6 +8412,29 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
+    pub struct wire_cst_disclosure_based_issuance_instruction_result {
+        tag: i32,
+        kind: DisclosureBasedIssuanceInstructionResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union DisclosureBasedIssuanceInstructionResultKind {
+        Ok: wire_cst_DisclosureBasedIssuanceInstructionResult_Ok,
+        InstructionError: wire_cst_DisclosureBasedIssuanceInstructionResult_InstructionError,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_DisclosureBasedIssuanceInstructionResult_Ok {
+        field0: *mut wire_cst_disclosure_based_issuance_result,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_DisclosureBasedIssuanceInstructionResult_InstructionError {
+        error: *mut wire_cst_wallet_instruction_error,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
     pub struct wire_cst_disclosure_based_issuance_result {
         tag: i32,
         kind: DisclosureBasedIssuanceResultKind,
@@ -8295,19 +8442,19 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub union DisclosureBasedIssuanceResultKind {
-        Ok: wire_cst_DisclosureBasedIssuanceResult_Ok,
-        InstructionError: wire_cst_DisclosureBasedIssuanceResult_InstructionError,
+        Previews: wire_cst_DisclosureBasedIssuanceResult_Previews,
+        NoPreviews: wire_cst_DisclosureBasedIssuanceResult_NoPreviews,
         nil__: (),
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_DisclosureBasedIssuanceResult_Ok {
+    pub struct wire_cst_DisclosureBasedIssuanceResult_Previews {
         field0: *mut wire_cst_list_attestation_presentation,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_DisclosureBasedIssuanceResult_InstructionError {
-        error: *mut wire_cst_wallet_instruction_error,
+    pub struct wire_cst_DisclosureBasedIssuanceResult_NoPreviews {
+        issuer: *mut wire_cst_organization,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

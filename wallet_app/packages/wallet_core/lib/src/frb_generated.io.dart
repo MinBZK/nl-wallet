@@ -122,6 +122,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   bool dco_decode_box_autoadd_bool(dynamic raw);
 
   @protected
+  DisclosureBasedIssuanceResult dco_decode_box_autoadd_disclosure_based_issuance_result(dynamic raw);
+
+  @protected
   FlutterMaintenanceWindow dco_decode_box_autoadd_flutter_maintenance_window(dynamic raw);
 
   @protected
@@ -150,6 +153,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   CloseProximityDisclosureFlutterUpdate dco_decode_close_proximity_disclosure_flutter_update(dynamic raw);
+
+  @protected
+  DisclosureBasedIssuanceInstructionResult dco_decode_disclosure_based_issuance_instruction_result(dynamic raw);
 
   @protected
   DisclosureBasedIssuanceResult dco_decode_disclosure_based_issuance_result(dynamic raw);
@@ -448,6 +454,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  DisclosureBasedIssuanceResult sse_decode_box_autoadd_disclosure_based_issuance_result(SseDeserializer deserializer);
+
+  @protected
   FlutterMaintenanceWindow sse_decode_box_autoadd_flutter_maintenance_window(SseDeserializer deserializer);
 
   @protected
@@ -476,6 +485,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   CloseProximityDisclosureFlutterUpdate sse_decode_close_proximity_disclosure_flutter_update(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DisclosureBasedIssuanceInstructionResult sse_decode_disclosure_based_issuance_instruction_result(
     SseDeserializer deserializer,
   );
 
@@ -820,6 +834,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ffi.Pointer<ffi.Bool> cst_encode_box_autoadd_bool(bool raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return wire.cst_new_box_autoadd_bool(cst_encode_bool(raw));
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_disclosure_based_issuance_result> cst_encode_box_autoadd_disclosure_based_issuance_result(
+    DisclosureBasedIssuanceResult raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_disclosure_based_issuance_result();
+    cst_api_fill_to_wire_disclosure_based_issuance_result(raw, ptr.ref);
+    return ptr;
   }
 
   @protected
@@ -1281,6 +1305,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_box_autoadd_disclosure_based_issuance_result(
+    DisclosureBasedIssuanceResult apiObj,
+    ffi.Pointer<wire_cst_disclosure_based_issuance_result> wireObj,
+  ) {
+    cst_api_fill_to_wire_disclosure_based_issuance_result(apiObj, wireObj.ref);
+  }
+
+  @protected
   void cst_api_fill_to_wire_box_autoadd_flutter_maintenance_window(
     FlutterMaintenanceWindow apiObj,
     ffi.Pointer<wire_cst_flutter_maintenance_window> wireObj,
@@ -1363,20 +1395,43 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_disclosure_based_issuance_result(
-    DisclosureBasedIssuanceResult apiObj,
-    wire_cst_disclosure_based_issuance_result wireObj,
+  void cst_api_fill_to_wire_disclosure_based_issuance_instruction_result(
+    DisclosureBasedIssuanceInstructionResult apiObj,
+    wire_cst_disclosure_based_issuance_instruction_result wireObj,
   ) {
-    if (apiObj is DisclosureBasedIssuanceResult_Ok) {
-      var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
+    if (apiObj is DisclosureBasedIssuanceInstructionResult_Ok) {
+      var pre_field0 = cst_encode_box_autoadd_disclosure_based_issuance_result(apiObj.field0);
       wireObj.tag = 0;
       wireObj.kind.Ok.field0 = pre_field0;
       return;
     }
-    if (apiObj is DisclosureBasedIssuanceResult_InstructionError) {
+    if (apiObj is DisclosureBasedIssuanceInstructionResult_InstructionError) {
       var pre_error = cst_encode_box_autoadd_wallet_instruction_error(apiObj.error);
       wireObj.tag = 1;
       wireObj.kind.InstructionError.error = pre_error;
+      return;
+    }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_disclosure_based_issuance_result(
+    DisclosureBasedIssuanceResult apiObj,
+    wire_cst_disclosure_based_issuance_result wireObj,
+  ) {
+    if (apiObj is DisclosureBasedIssuanceResult_NoIssuableAttestations) {
+      wireObj.tag = 0;
+      return;
+    }
+    if (apiObj is DisclosureBasedIssuanceResult_Previews) {
+      var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
+      wireObj.tag = 1;
+      wireObj.kind.Previews.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is DisclosureBasedIssuanceResult_NoPreviews) {
+      var pre_issuer = cst_encode_box_autoadd_organization(apiObj.issuer);
+      wireObj.tag = 2;
+      wireObj.kind.NoPreviews.issuer = pre_issuer;
       return;
     }
   }
@@ -2067,6 +2122,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_disclosure_based_issuance_result(
+    DisclosureBasedIssuanceResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_flutter_maintenance_window(FlutterMaintenanceWindow self, SseSerializer serializer);
 
   @protected
@@ -2096,6 +2157,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void sse_encode_close_proximity_disclosure_flutter_update(
     CloseProximityDisclosureFlutterUpdate self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_disclosure_based_issuance_instruction_result(
+    DisclosureBasedIssuanceInstructionResult self,
     SseSerializer serializer,
   );
 
@@ -3452,6 +3519,18 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_bool = _cst_new_box_autoadd_boolPtr
       .asFunction<ffi.Pointer<ffi.Bool> Function(bool)>();
 
+  ffi.Pointer<wire_cst_disclosure_based_issuance_result> cst_new_box_autoadd_disclosure_based_issuance_result() {
+    return _cst_new_box_autoadd_disclosure_based_issuance_result();
+  }
+
+  late final _cst_new_box_autoadd_disclosure_based_issuance_resultPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_disclosure_based_issuance_result> Function()>>(
+        'frbgen_wallet_core_cst_new_box_autoadd_disclosure_based_issuance_result',
+      );
+  late final _cst_new_box_autoadd_disclosure_based_issuance_result =
+      _cst_new_box_autoadd_disclosure_based_issuance_resultPtr
+          .asFunction<ffi.Pointer<wire_cst_disclosure_based_issuance_result> Function()>();
+
   ffi.Pointer<wire_cst_flutter_maintenance_window> cst_new_box_autoadd_flutter_maintenance_window() {
     return _cst_new_box_autoadd_flutter_maintenance_window();
   }
@@ -4123,6 +4202,34 @@ final class wire_cst_attestation_presentation extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_attestation_attribute> attributes;
 }
 
+final class wire_cst_list_attestation_presentation extends ffi.Struct {
+  external ffi.Pointer<wire_cst_attestation_presentation> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_DisclosureBasedIssuanceResult_Previews extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
+}
+
+final class wire_cst_DisclosureBasedIssuanceResult_NoPreviews extends ffi.Struct {
+  external ffi.Pointer<wire_cst_organization> issuer;
+}
+
+final class DisclosureBasedIssuanceResultKind extends ffi.Union {
+  external wire_cst_DisclosureBasedIssuanceResult_Previews Previews;
+
+  external wire_cst_DisclosureBasedIssuanceResult_NoPreviews NoPreviews;
+}
+
+final class wire_cst_disclosure_based_issuance_result extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external DisclosureBasedIssuanceResultKind kind;
+}
+
 final class wire_cst_flutter_maintenance_window extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> start;
 
@@ -4249,13 +4356,6 @@ final class wire_cst_app_notification extends ffi.Struct {
 
 final class wire_cst_list_app_notification extends ffi.Struct {
   external ffi.Pointer<wire_cst_app_notification> ptr;
-
-  @ffi.Int32()
-  external int len;
-}
-
-final class wire_cst_list_attestation_presentation extends ffi.Struct {
-  external ffi.Pointer<wire_cst_attestation_presentation> ptr;
 
   @ffi.Int32()
   external int len;
@@ -4413,25 +4513,25 @@ final class wire_cst_close_proximity_disclosure_flutter_update extends ffi.Struc
   external CloseProximityDisclosureFlutterUpdateKind kind;
 }
 
-final class wire_cst_DisclosureBasedIssuanceResult_Ok extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
+final class wire_cst_DisclosureBasedIssuanceInstructionResult_Ok extends ffi.Struct {
+  external ffi.Pointer<wire_cst_disclosure_based_issuance_result> field0;
 }
 
-final class wire_cst_DisclosureBasedIssuanceResult_InstructionError extends ffi.Struct {
+final class wire_cst_DisclosureBasedIssuanceInstructionResult_InstructionError extends ffi.Struct {
   external ffi.Pointer<wire_cst_wallet_instruction_error> error;
 }
 
-final class DisclosureBasedIssuanceResultKind extends ffi.Union {
-  external wire_cst_DisclosureBasedIssuanceResult_Ok Ok;
+final class DisclosureBasedIssuanceInstructionResultKind extends ffi.Union {
+  external wire_cst_DisclosureBasedIssuanceInstructionResult_Ok Ok;
 
-  external wire_cst_DisclosureBasedIssuanceResult_InstructionError InstructionError;
+  external wire_cst_DisclosureBasedIssuanceInstructionResult_InstructionError InstructionError;
 }
 
-final class wire_cst_disclosure_based_issuance_result extends ffi.Struct {
+final class wire_cst_disclosure_based_issuance_instruction_result extends ffi.Struct {
   @ffi.Int32()
   external int tag;
 
-  external DisclosureBasedIssuanceResultKind kind;
+  external DisclosureBasedIssuanceInstructionResultKind kind;
 }
 
 final class wire_cst_flutter_configuration extends ffi.Struct {

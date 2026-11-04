@@ -14,6 +14,20 @@ import 'revocation.dart';
 part 'issuance.freezed.dart';
 
 @freezed
+sealed class DisclosureBasedIssuanceResult with _$DisclosureBasedIssuanceResult {
+  const DisclosureBasedIssuanceResult._();
+
+  const factory DisclosureBasedIssuanceResult.noIssuableAttestations() =
+      DisclosureBasedIssuanceResult_NoIssuableAttestations;
+  const factory DisclosureBasedIssuanceResult.previews(
+    List<AttestationPresentation> field0,
+  ) = DisclosureBasedIssuanceResult_Previews;
+  const factory DisclosureBasedIssuanceResult.noPreviews({
+    required Organization issuer,
+  }) = DisclosureBasedIssuanceResult_NoPreviews;
+}
+
+@freezed
 sealed class IssuanceContinueResult with _$IssuanceContinueResult {
   const IssuanceContinueResult._();
 

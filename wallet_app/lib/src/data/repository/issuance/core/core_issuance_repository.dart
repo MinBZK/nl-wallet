@@ -75,9 +75,16 @@ class CoreIssuanceRepository implements IssuanceRepository {
   Future<List<WalletCard>> discloseForIssuance(String pin, List<int> selectedIndices) async {
     final result = await _walletCore.continueDisclosureBasedIssuance(pin, selectedIndices);
     switch (result) {
-      case core.DisclosureBasedIssuanceResult_Ok(field0: final cards):
-        return _attestationMapper.mapList(cards);
-      case core.DisclosureBasedIssuanceResult_InstructionError():
+      case core.DisclosureBasedIssuanceInstructionResult_Ok(field0: final result):
+        switch (result) {
+          case core.DisclosureBasedIssuanceResult_Previews(field0: final cards):
+            return _attestationMapper.mapList(cards);
+          case core.DisclosureBasedIssuanceResult_NoIssuableAttestations():
+            return [];
+          case core.DisclosureBasedIssuanceResult_NoPreviews():
+            throw UnsupportedError('Disclosure based issuance without previews is not supported yet');
+        }
+      case core.DisclosureBasedIssuanceInstructionResult_InstructionError():
         throw result.error;
     }
   }

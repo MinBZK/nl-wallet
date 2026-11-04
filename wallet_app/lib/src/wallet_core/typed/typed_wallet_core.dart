@@ -157,12 +157,14 @@ class TypedWalletCore {
     runnable: () => core.continueIssuance(uri: uri),
   );
 
-  Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin, List<int> selectedIndices) =>
-      _callWithFlowBreadcrumb(
-        'issuance.disclosure_based.continue',
-        failureCode: 'issuance.disclosure_based.fail.continue',
-        runnable: () => core.continueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin),
-      );
+  Future<core.DisclosureBasedIssuanceInstructionResult> continueDisclosureBasedIssuance(
+    String pin,
+    List<int> selectedIndices,
+  ) => _callWithFlowBreadcrumb(
+    'issuance.disclosure_based.continue',
+    failureCode: 'issuance.disclosure_based.fail.continue',
+    runnable: () => core.continueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin),
+  );
 
   Future<core.IssuanceStartResult> startIssuanceFromOffer(String offerUri) => _callWithFlowBreadcrumb(
     'issuance.start',

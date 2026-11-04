@@ -13,7 +13,7 @@ part of 'instruction.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
-mixin _$DisclosureBasedIssuanceResult {
+mixin _$DisclosureBasedIssuanceInstructionResult {
 
 
 
@@ -21,7 +21,7 @@ mixin _$DisclosureBasedIssuanceResult {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult);
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceInstructionResult);
 }
 
 
@@ -30,20 +30,20 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-    return 'DisclosureBasedIssuanceResult()';
+    return 'DisclosureBasedIssuanceInstructionResult()';
 }
 
 
 }
 
 /// @nodoc
-class $DisclosureBasedIssuanceResultCopyWith<$Res>  {
-$DisclosureBasedIssuanceResultCopyWith(DisclosureBasedIssuanceResult _, $Res Function(DisclosureBasedIssuanceResult) __);
+class $DisclosureBasedIssuanceInstructionResultCopyWith<$Res>  {
+$DisclosureBasedIssuanceInstructionResultCopyWith(DisclosureBasedIssuanceInstructionResult _, $Res Function(DisclosureBasedIssuanceInstructionResult) __);
 }
 
 
-/// Adds pattern-matching-related methods to [DisclosureBasedIssuanceResult].
-extension DisclosureBasedIssuanceResultPatterns on DisclosureBasedIssuanceResult {
+/// Adds pattern-matching-related methods to [DisclosureBasedIssuanceInstructionResult].
+extension DisclosureBasedIssuanceInstructionResultPatterns on DisclosureBasedIssuanceInstructionResult {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -56,11 +56,11 @@ extension DisclosureBasedIssuanceResultPatterns on DisclosureBasedIssuanceResult
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( DisclosureBasedIssuanceResult_Ok value)?  ok,TResult Function( DisclosureBasedIssuanceResult_InstructionError value)?  instructionError,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( DisclosureBasedIssuanceInstructionResult_Ok value)?  ok,TResult Function( DisclosureBasedIssuanceInstructionResult_InstructionError value)?  instructionError,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case DisclosureBasedIssuanceResult_Ok() when ok != null:
-return ok(_that);case DisclosureBasedIssuanceResult_InstructionError() when instructionError != null:
+case DisclosureBasedIssuanceInstructionResult_Ok() when ok != null:
+return ok(_that);case DisclosureBasedIssuanceInstructionResult_InstructionError() when instructionError != null:
 return instructionError(_that);case _:
   return orElse();
 
@@ -79,11 +79,11 @@ return instructionError(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( DisclosureBasedIssuanceResult_Ok value)  ok,required TResult Function( DisclosureBasedIssuanceResult_InstructionError value)  instructionError,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( DisclosureBasedIssuanceInstructionResult_Ok value)  ok,required TResult Function( DisclosureBasedIssuanceInstructionResult_InstructionError value)  instructionError,}){
 final _that = this;
 switch (_that) {
-case DisclosureBasedIssuanceResult_Ok():
-return ok(_that);case DisclosureBasedIssuanceResult_InstructionError():
+case DisclosureBasedIssuanceInstructionResult_Ok():
+return ok(_that);case DisclosureBasedIssuanceInstructionResult_InstructionError():
 return instructionError(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
@@ -98,11 +98,11 @@ return instructionError(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( DisclosureBasedIssuanceResult_Ok value)?  ok,TResult? Function( DisclosureBasedIssuanceResult_InstructionError value)?  instructionError,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( DisclosureBasedIssuanceInstructionResult_Ok value)?  ok,TResult? Function( DisclosureBasedIssuanceInstructionResult_InstructionError value)?  instructionError,}){
 final _that = this;
 switch (_that) {
-case DisclosureBasedIssuanceResult_Ok() when ok != null:
-return ok(_that);case DisclosureBasedIssuanceResult_InstructionError() when instructionError != null:
+case DisclosureBasedIssuanceInstructionResult_Ok() when ok != null:
+return ok(_that);case DisclosureBasedIssuanceInstructionResult_InstructionError() when instructionError != null:
 return instructionError(_that);case _:
   return null;
 
@@ -120,10 +120,10 @@ return instructionError(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( List<AttestationPresentation> field0)?  ok,TResult Function( WalletInstructionError error)?  instructionError,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( DisclosureBasedIssuanceResult field0)?  ok,TResult Function( WalletInstructionError error)?  instructionError,required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case DisclosureBasedIssuanceResult_Ok() when ok != null:
-return ok(_that.field0);case DisclosureBasedIssuanceResult_InstructionError() when instructionError != null:
+case DisclosureBasedIssuanceInstructionResult_Ok() when ok != null:
+return ok(_that.field0);case DisclosureBasedIssuanceInstructionResult_InstructionError() when instructionError != null:
 return instructionError(_that.error);case _:
   return orElse();
 
@@ -142,10 +142,10 @@ return instructionError(_that.error);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( List<AttestationPresentation> field0)  ok,required TResult Function( WalletInstructionError error)  instructionError,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( DisclosureBasedIssuanceResult field0)  ok,required TResult Function( WalletInstructionError error)  instructionError,}) {final _that = this;
 switch (_that) {
-case DisclosureBasedIssuanceResult_Ok():
-return ok(_that.field0);case DisclosureBasedIssuanceResult_InstructionError():
+case DisclosureBasedIssuanceInstructionResult_Ok():
+return ok(_that.field0);case DisclosureBasedIssuanceInstructionResult_InstructionError():
 return instructionError(_that.error);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -160,10 +160,10 @@ return instructionError(_that.error);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( List<AttestationPresentation> field0)?  ok,TResult? Function( WalletInstructionError error)?  instructionError,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( DisclosureBasedIssuanceResult field0)?  ok,TResult? Function( WalletInstructionError error)?  instructionError,}) {final _that = this;
 switch (_that) {
-case DisclosureBasedIssuanceResult_Ok() when ok != null:
-return ok(_that.field0);case DisclosureBasedIssuanceResult_InstructionError() when instructionError != null:
+case DisclosureBasedIssuanceInstructionResult_Ok() when ok != null:
+return ok(_that.field0);case DisclosureBasedIssuanceInstructionResult_InstructionError() when instructionError != null:
 return instructionError(_that.error);case _:
   return null;
 
@@ -175,97 +175,100 @@ return instructionError(_that.error);case _:
 /// @nodoc
 
 
-class DisclosureBasedIssuanceResult_Ok extends DisclosureBasedIssuanceResult {
-  const DisclosureBasedIssuanceResult_Ok( List<AttestationPresentation> field0): _field0 = field0,super._();
+class DisclosureBasedIssuanceInstructionResult_Ok extends DisclosureBasedIssuanceInstructionResult {
+  const DisclosureBasedIssuanceInstructionResult_Ok(this.field0): super._();
   
 
- final  List<AttestationPresentation> _field0;
- List<AttestationPresentation> get field0 {
-  if (_field0 is EqualUnmodifiableListView) return _field0;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_field0);
-}
+ final  DisclosureBasedIssuanceResult field0;
 
-
-/// Create a copy of DisclosureBasedIssuanceResult
+/// Create a copy of DisclosureBasedIssuanceInstructionResult
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$DisclosureBasedIssuanceResult_OkCopyWith<DisclosureBasedIssuanceResult_Ok> get copyWith => _$DisclosureBasedIssuanceResult_OkCopyWithImpl<DisclosureBasedIssuanceResult_Ok>(this, _$identity);
+$DisclosureBasedIssuanceInstructionResult_OkCopyWith<DisclosureBasedIssuanceInstructionResult_Ok> get copyWith => _$DisclosureBasedIssuanceInstructionResult_OkCopyWithImpl<DisclosureBasedIssuanceInstructionResult_Ok>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult_Ok&&const DeepCollectionEquality().equals(other.field0, _field0));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceInstructionResult_Ok&&(identical(other.field0, field0) || other.field0 == field0));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_field0));
+    return Object.hash(runtimeType,field0);
 }
 
 @override
 String toString() {
-    return 'DisclosureBasedIssuanceResult.ok(field0: $field0)';
+    return 'DisclosureBasedIssuanceInstructionResult.ok(field0: $field0)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $DisclosureBasedIssuanceResult_OkCopyWith<$Res> implements $DisclosureBasedIssuanceResultCopyWith<$Res> {
-  factory $DisclosureBasedIssuanceResult_OkCopyWith(DisclosureBasedIssuanceResult_Ok value, $Res Function(DisclosureBasedIssuanceResult_Ok) _then) = _$DisclosureBasedIssuanceResult_OkCopyWithImpl;
+abstract mixin class $DisclosureBasedIssuanceInstructionResult_OkCopyWith<$Res> implements $DisclosureBasedIssuanceInstructionResultCopyWith<$Res> {
+  factory $DisclosureBasedIssuanceInstructionResult_OkCopyWith(DisclosureBasedIssuanceInstructionResult_Ok value, $Res Function(DisclosureBasedIssuanceInstructionResult_Ok) _then) = _$DisclosureBasedIssuanceInstructionResult_OkCopyWithImpl;
 @useResult
 $Res call({
- List<AttestationPresentation> field0
+ DisclosureBasedIssuanceResult field0
 });
 
 
-
+$DisclosureBasedIssuanceResultCopyWith<$Res> get field0;
 
 }
 /// @nodoc
-class _$DisclosureBasedIssuanceResult_OkCopyWithImpl<$Res>
-    implements $DisclosureBasedIssuanceResult_OkCopyWith<$Res> {
-  _$DisclosureBasedIssuanceResult_OkCopyWithImpl(this._self, this._then);
+class _$DisclosureBasedIssuanceInstructionResult_OkCopyWithImpl<$Res>
+    implements $DisclosureBasedIssuanceInstructionResult_OkCopyWith<$Res> {
+  _$DisclosureBasedIssuanceInstructionResult_OkCopyWithImpl(this._self, this._then);
 
-  final DisclosureBasedIssuanceResult_Ok _self;
-  final $Res Function(DisclosureBasedIssuanceResult_Ok) _then;
+  final DisclosureBasedIssuanceInstructionResult_Ok _self;
+  final $Res Function(DisclosureBasedIssuanceInstructionResult_Ok) _then;
 
-/// Create a copy of DisclosureBasedIssuanceResult
+/// Create a copy of DisclosureBasedIssuanceInstructionResult
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? field0 = null,}) {
-  return _then(DisclosureBasedIssuanceResult_Ok(
-null == field0 ? _self._field0 : field0 // ignore: cast_nullable_to_non_nullable
-as List<AttestationPresentation>,
+  return _then(DisclosureBasedIssuanceInstructionResult_Ok(
+null == field0 ? _self.field0 : field0 // ignore: cast_nullable_to_non_nullable
+as DisclosureBasedIssuanceResult,
   ));
 }
 
-
+/// Create a copy of DisclosureBasedIssuanceInstructionResult
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DisclosureBasedIssuanceResultCopyWith<$Res> get field0 {
+  
+  return $DisclosureBasedIssuanceResultCopyWith<$Res>(_self.field0, (value) {
+    return _then(_self.copyWith(field0: value));
+  });
+}
 }
 
 /// @nodoc
 
 
-class DisclosureBasedIssuanceResult_InstructionError extends DisclosureBasedIssuanceResult {
-  const DisclosureBasedIssuanceResult_InstructionError({required this.error}): super._();
+class DisclosureBasedIssuanceInstructionResult_InstructionError extends DisclosureBasedIssuanceInstructionResult {
+  const DisclosureBasedIssuanceInstructionResult_InstructionError({required this.error}): super._();
   
 
  final  WalletInstructionError error;
 
-/// Create a copy of DisclosureBasedIssuanceResult
+/// Create a copy of DisclosureBasedIssuanceInstructionResult
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$DisclosureBasedIssuanceResult_InstructionErrorCopyWith<DisclosureBasedIssuanceResult_InstructionError> get copyWith => _$DisclosureBasedIssuanceResult_InstructionErrorCopyWithImpl<DisclosureBasedIssuanceResult_InstructionError>(this, _$identity);
+$DisclosureBasedIssuanceInstructionResult_InstructionErrorCopyWith<DisclosureBasedIssuanceInstructionResult_InstructionError> get copyWith => _$DisclosureBasedIssuanceInstructionResult_InstructionErrorCopyWithImpl<DisclosureBasedIssuanceInstructionResult_InstructionError>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult_InstructionError&&(identical(other.error, error) || other.error == error));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceInstructionResult_InstructionError&&(identical(other.error, error) || other.error == error));
 }
 
 
@@ -276,15 +279,15 @@ int get hashCode {
 
 @override
 String toString() {
-    return 'DisclosureBasedIssuanceResult.instructionError(error: $error)';
+    return 'DisclosureBasedIssuanceInstructionResult.instructionError(error: $error)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $DisclosureBasedIssuanceResult_InstructionErrorCopyWith<$Res> implements $DisclosureBasedIssuanceResultCopyWith<$Res> {
-  factory $DisclosureBasedIssuanceResult_InstructionErrorCopyWith(DisclosureBasedIssuanceResult_InstructionError value, $Res Function(DisclosureBasedIssuanceResult_InstructionError) _then) = _$DisclosureBasedIssuanceResult_InstructionErrorCopyWithImpl;
+abstract mixin class $DisclosureBasedIssuanceInstructionResult_InstructionErrorCopyWith<$Res> implements $DisclosureBasedIssuanceInstructionResultCopyWith<$Res> {
+  factory $DisclosureBasedIssuanceInstructionResult_InstructionErrorCopyWith(DisclosureBasedIssuanceInstructionResult_InstructionError value, $Res Function(DisclosureBasedIssuanceInstructionResult_InstructionError) _then) = _$DisclosureBasedIssuanceInstructionResult_InstructionErrorCopyWithImpl;
 @useResult
 $Res call({
  WalletInstructionError error
@@ -295,23 +298,23 @@ $WalletInstructionErrorCopyWith<$Res> get error;
 
 }
 /// @nodoc
-class _$DisclosureBasedIssuanceResult_InstructionErrorCopyWithImpl<$Res>
-    implements $DisclosureBasedIssuanceResult_InstructionErrorCopyWith<$Res> {
-  _$DisclosureBasedIssuanceResult_InstructionErrorCopyWithImpl(this._self, this._then);
+class _$DisclosureBasedIssuanceInstructionResult_InstructionErrorCopyWithImpl<$Res>
+    implements $DisclosureBasedIssuanceInstructionResult_InstructionErrorCopyWith<$Res> {
+  _$DisclosureBasedIssuanceInstructionResult_InstructionErrorCopyWithImpl(this._self, this._then);
 
-  final DisclosureBasedIssuanceResult_InstructionError _self;
-  final $Res Function(DisclosureBasedIssuanceResult_InstructionError) _then;
+  final DisclosureBasedIssuanceInstructionResult_InstructionError _self;
+  final $Res Function(DisclosureBasedIssuanceInstructionResult_InstructionError) _then;
 
-/// Create a copy of DisclosureBasedIssuanceResult
+/// Create a copy of DisclosureBasedIssuanceInstructionResult
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') $Res call({Object? error = null,}) {
-  return _then(DisclosureBasedIssuanceResult_InstructionError(
+  return _then(DisclosureBasedIssuanceInstructionResult_InstructionError(
 error: null == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
 as WalletInstructionError,
   ));
 }
 
-/// Create a copy of DisclosureBasedIssuanceResult
+/// Create a copy of DisclosureBasedIssuanceInstructionResult
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')

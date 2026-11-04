@@ -13,6 +13,346 @@ part of 'issuance.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
+mixin _$DisclosureBasedIssuanceResult {
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+    return 'DisclosureBasedIssuanceResult()';
+}
+
+
+}
+
+/// @nodoc
+class $DisclosureBasedIssuanceResultCopyWith<$Res>  {
+$DisclosureBasedIssuanceResultCopyWith(DisclosureBasedIssuanceResult _, $Res Function(DisclosureBasedIssuanceResult) __);
+}
+
+
+/// Adds pattern-matching-related methods to [DisclosureBasedIssuanceResult].
+extension DisclosureBasedIssuanceResultPatterns on DisclosureBasedIssuanceResult {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( DisclosureBasedIssuanceResult_NoIssuableAttestations value)?  noIssuableAttestations,TResult Function( DisclosureBasedIssuanceResult_Previews value)?  previews,TResult Function( DisclosureBasedIssuanceResult_NoPreviews value)?  noPreviews,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case DisclosureBasedIssuanceResult_NoIssuableAttestations() when noIssuableAttestations != null:
+return noIssuableAttestations(_that);case DisclosureBasedIssuanceResult_Previews() when previews != null:
+return previews(_that);case DisclosureBasedIssuanceResult_NoPreviews() when noPreviews != null:
+return noPreviews(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( DisclosureBasedIssuanceResult_NoIssuableAttestations value)  noIssuableAttestations,required TResult Function( DisclosureBasedIssuanceResult_Previews value)  previews,required TResult Function( DisclosureBasedIssuanceResult_NoPreviews value)  noPreviews,}){
+final _that = this;
+switch (_that) {
+case DisclosureBasedIssuanceResult_NoIssuableAttestations():
+return noIssuableAttestations(_that);case DisclosureBasedIssuanceResult_Previews():
+return previews(_that);case DisclosureBasedIssuanceResult_NoPreviews():
+return noPreviews(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( DisclosureBasedIssuanceResult_NoIssuableAttestations value)?  noIssuableAttestations,TResult? Function( DisclosureBasedIssuanceResult_Previews value)?  previews,TResult? Function( DisclosureBasedIssuanceResult_NoPreviews value)?  noPreviews,}){
+final _that = this;
+switch (_that) {
+case DisclosureBasedIssuanceResult_NoIssuableAttestations() when noIssuableAttestations != null:
+return noIssuableAttestations(_that);case DisclosureBasedIssuanceResult_Previews() when previews != null:
+return previews(_that);case DisclosureBasedIssuanceResult_NoPreviews() when noPreviews != null:
+return noPreviews(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  noIssuableAttestations,TResult Function( List<AttestationPresentation> field0)?  previews,TResult Function( Organization issuer)?  noPreviews,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case DisclosureBasedIssuanceResult_NoIssuableAttestations() when noIssuableAttestations != null:
+return noIssuableAttestations();case DisclosureBasedIssuanceResult_Previews() when previews != null:
+return previews(_that.field0);case DisclosureBasedIssuanceResult_NoPreviews() when noPreviews != null:
+return noPreviews(_that.issuer);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  noIssuableAttestations,required TResult Function( List<AttestationPresentation> field0)  previews,required TResult Function( Organization issuer)  noPreviews,}) {final _that = this;
+switch (_that) {
+case DisclosureBasedIssuanceResult_NoIssuableAttestations():
+return noIssuableAttestations();case DisclosureBasedIssuanceResult_Previews():
+return previews(_that.field0);case DisclosureBasedIssuanceResult_NoPreviews():
+return noPreviews(_that.issuer);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  noIssuableAttestations,TResult? Function( List<AttestationPresentation> field0)?  previews,TResult? Function( Organization issuer)?  noPreviews,}) {final _that = this;
+switch (_that) {
+case DisclosureBasedIssuanceResult_NoIssuableAttestations() when noIssuableAttestations != null:
+return noIssuableAttestations();case DisclosureBasedIssuanceResult_Previews() when previews != null:
+return previews(_that.field0);case DisclosureBasedIssuanceResult_NoPreviews() when noPreviews != null:
+return noPreviews(_that.issuer);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class DisclosureBasedIssuanceResult_NoIssuableAttestations extends DisclosureBasedIssuanceResult {
+  const DisclosureBasedIssuanceResult_NoIssuableAttestations(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult_NoIssuableAttestations);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+    return 'DisclosureBasedIssuanceResult.noIssuableAttestations()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class DisclosureBasedIssuanceResult_Previews extends DisclosureBasedIssuanceResult {
+  const DisclosureBasedIssuanceResult_Previews( List<AttestationPresentation> field0): _field0 = field0,super._();
+  
+
+ final  List<AttestationPresentation> _field0;
+ List<AttestationPresentation> get field0 {
+  if (_field0 is EqualUnmodifiableListView) return _field0;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_field0);
+}
+
+
+/// Create a copy of DisclosureBasedIssuanceResult
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DisclosureBasedIssuanceResult_PreviewsCopyWith<DisclosureBasedIssuanceResult_Previews> get copyWith => _$DisclosureBasedIssuanceResult_PreviewsCopyWithImpl<DisclosureBasedIssuanceResult_Previews>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult_Previews&&const DeepCollectionEquality().equals(other.field0, _field0));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_field0));
+}
+
+@override
+String toString() {
+    return 'DisclosureBasedIssuanceResult.previews(field0: $field0)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DisclosureBasedIssuanceResult_PreviewsCopyWith<$Res> implements $DisclosureBasedIssuanceResultCopyWith<$Res> {
+  factory $DisclosureBasedIssuanceResult_PreviewsCopyWith(DisclosureBasedIssuanceResult_Previews value, $Res Function(DisclosureBasedIssuanceResult_Previews) _then) = _$DisclosureBasedIssuanceResult_PreviewsCopyWithImpl;
+@useResult
+$Res call({
+ List<AttestationPresentation> field0
+});
+
+
+
+
+}
+/// @nodoc
+class _$DisclosureBasedIssuanceResult_PreviewsCopyWithImpl<$Res>
+    implements $DisclosureBasedIssuanceResult_PreviewsCopyWith<$Res> {
+  _$DisclosureBasedIssuanceResult_PreviewsCopyWithImpl(this._self, this._then);
+
+  final DisclosureBasedIssuanceResult_Previews _self;
+  final $Res Function(DisclosureBasedIssuanceResult_Previews) _then;
+
+/// Create a copy of DisclosureBasedIssuanceResult
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? field0 = null,}) {
+  return _then(DisclosureBasedIssuanceResult_Previews(
+null == field0 ? _self._field0 : field0 // ignore: cast_nullable_to_non_nullable
+as List<AttestationPresentation>,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class DisclosureBasedIssuanceResult_NoPreviews extends DisclosureBasedIssuanceResult {
+  const DisclosureBasedIssuanceResult_NoPreviews({required this.issuer}): super._();
+  
+
+ final  Organization issuer;
+
+/// Create a copy of DisclosureBasedIssuanceResult
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DisclosureBasedIssuanceResult_NoPreviewsCopyWith<DisclosureBasedIssuanceResult_NoPreviews> get copyWith => _$DisclosureBasedIssuanceResult_NoPreviewsCopyWithImpl<DisclosureBasedIssuanceResult_NoPreviews>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is DisclosureBasedIssuanceResult_NoPreviews&&(identical(other.issuer, issuer) || other.issuer == issuer));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,issuer);
+}
+
+@override
+String toString() {
+    return 'DisclosureBasedIssuanceResult.noPreviews(issuer: $issuer)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DisclosureBasedIssuanceResult_NoPreviewsCopyWith<$Res> implements $DisclosureBasedIssuanceResultCopyWith<$Res> {
+  factory $DisclosureBasedIssuanceResult_NoPreviewsCopyWith(DisclosureBasedIssuanceResult_NoPreviews value, $Res Function(DisclosureBasedIssuanceResult_NoPreviews) _then) = _$DisclosureBasedIssuanceResult_NoPreviewsCopyWithImpl;
+@useResult
+$Res call({
+ Organization issuer
+});
+
+
+
+
+}
+/// @nodoc
+class _$DisclosureBasedIssuanceResult_NoPreviewsCopyWithImpl<$Res>
+    implements $DisclosureBasedIssuanceResult_NoPreviewsCopyWith<$Res> {
+  _$DisclosureBasedIssuanceResult_NoPreviewsCopyWithImpl(this._self, this._then);
+
+  final DisclosureBasedIssuanceResult_NoPreviews _self;
+  final $Res Function(DisclosureBasedIssuanceResult_NoPreviews) _then;
+
+/// Create a copy of DisclosureBasedIssuanceResult
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? issuer = null,}) {
+  return _then(DisclosureBasedIssuanceResult_NoPreviews(
+issuer: null == issuer ? _self.issuer : issuer // ignore: cast_nullable_to_non_nullable
+as Organization,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$IssuanceContinueResult {
 
 

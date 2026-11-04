@@ -147,7 +147,7 @@ Future<String?> cancelDisclosure() => WalletCore.instance.api.crateApiFullCancel
 Future<AcceptDisclosureResult> acceptDisclosure({required List<int> selectedIndices, required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptDisclosure(selectedIndices: selectedIndices, pin: pin);
 
-Future<DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance({
+Future<DisclosureBasedIssuanceInstructionResult> continueDisclosureBasedIssuance({
   required List<int> selectedIndices,
   required String pin,
 }) => WalletCore.instance.api.crateApiFullContinueDisclosureBasedIssuance(selectedIndices: selectedIndices, pin: pin);

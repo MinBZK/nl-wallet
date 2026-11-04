@@ -40,3 +40,25 @@ impl From<wallet::IssuanceContinueResult> for IssuanceContinueResult {
         }
     }
 }
+
+pub enum DisclosureBasedIssuanceResult {
+    NoIssuableAttestations,
+    Previews(Vec<AttestationPresentation>),
+    NoPreviews { issuer: Organization },
+}
+
+impl From<wallet::DisclosureBasedIssuanceResult> for DisclosureBasedIssuanceResult {
+    fn from(value: wallet::DisclosureBasedIssuanceResult) -> Self {
+        match value {
+            wallet::DisclosureBasedIssuanceResult::NoIssuableAttestations => {
+                DisclosureBasedIssuanceResult::NoIssuableAttestations
+            }
+            wallet::DisclosureBasedIssuanceResult::Previews(attestations) => DisclosureBasedIssuanceResult::Previews(
+                attestations.into_iter().map(AttestationPresentation::from).collect(),
+            ),
+            wallet::DisclosureBasedIssuanceResult::NoPreviews { issuer } => DisclosureBasedIssuanceResult::NoPreviews {
+                issuer: (*issuer).into(),
+            },
+        }
+    }
+}

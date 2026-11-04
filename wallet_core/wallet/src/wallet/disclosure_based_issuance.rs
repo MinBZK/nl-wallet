@@ -19,6 +19,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
+use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::DisclosureError;
@@ -61,6 +62,19 @@ pub enum DisclosureBasedIssuanceError {
     MissingPreviews(Box<Organization>),
 }
 
+#[derive(Debug)]
+pub enum DisclosureBasedIssuanceResult {
+    /// The issuer accepted the disclosure but has nothing to issue.
+    NoIssuableAttestations,
+
+    /// Previews of the attestations on offer, to be accepted with [`Wallet::accept_issuance`].
+    Previews(VecNonEmpty<AttestationPresentation>),
+
+    NoPreviews {
+        issuer: Box<Organization>,
+    },
+}
+
 // This method requires the caller to be aware which flow it is in: ordinary disclosure
 // (in which case it should call accept_disclosure()), or disclosure based issuance.
 // Calling this method in a non-disclosure based issuance setting will result in an error.
@@ -85,7 +99,7 @@ where
         &mut self,
         selected_indices: &[usize],
         pin: Pin,
-    ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
+    ) -> Result<DisclosureBasedIssuanceResult, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
         let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
@@ -125,7 +139,7 @@ where
                 if err.error_response.error
                     == RemoteErrorCode::Known(PostAuthResponseErrorCode::NoIssuableAttestations) =>
             {
-                return Ok(vec![]); // TODO (PVW-6381): use an explicit type to handle this case
+                return Ok(DisclosureBasedIssuanceResult::NoIssuableAttestations);
             }
 
             Err(err) => Err(err)?,
@@ -157,7 +171,7 @@ where
             return Err(DisclosureBasedIssuanceError::MissingPreviews(organization));
         };
 
-        Ok(previews.into())
+        Ok(DisclosureBasedIssuanceResult::Previews(previews))
     }
 }
 
@@ -218,6 +232,7 @@ mod tests {
     use super::super::disclosure::DisclosureError;
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
+    use super::super::disclosure_based_issuance::DisclosureBasedIssuanceResult;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_example_pid_preview_data;
     use super::super::test::create_example_pid_sd_jwt;
@@ -366,12 +381,12 @@ mod tests {
             .returning(move |_| Ok(vec![expectation_attestation_copy.clone()]));
 
         // Accept disclosure based issuance
-        let previews = wallet
+        let result = wallet
             .continue_disclosure_based_issuance(&[0], PIN.clone())
             .await
             .expect("continuing disclosure based issuance should not have resulted in an error");
 
-        assert!(!previews.is_empty())
+        assert_matches!(result, DisclosureBasedIssuanceResult::Previews(_));
     }
 
     #[derive(thiserror::Error, Debug)]
@@ -435,13 +450,12 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
 
-        let previews = wallet
+        let result = wallet
             .continue_disclosure_based_issuance(&[0], PIN.clone())
             .await
             .expect("continuing disclosure based issuance should not have resulted in an error");
 
-        // By offering zero attestations to issue, the issuer says that it has no attestations to offer.
-        assert!(previews.is_empty());
+        assert_matches!(result, DisclosureBasedIssuanceResult::NoIssuableAttestations);
     }
 
     #[tokio::test]
