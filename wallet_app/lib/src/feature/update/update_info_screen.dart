@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:store_redirect/store_redirect.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../util/store_util.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
@@ -84,7 +84,7 @@ class UpdateInfoScreen extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.north_east_outlined),
-            onPressed: StoreRedirect.redirect,
+            onPressed: openAppStore,
           ),
           secondaryButton: TertiaryButton(
             text: Text.rich(context.l10n.generalClose.toTextSpan(context)),

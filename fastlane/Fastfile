@@ -356,6 +356,8 @@ platform :ios do
 
     app_name = options[:app_name] || DEFAULT_APP_NAME
     universal_link_base = options[:universal_link_base]
+    ensure_env_vars(env_vars: ['APP_STORE_ID'])
+    app_store_id = ENV["APP_STORE_ID"]
     sentry_dsn = ENV["SENTRY_DSN"]
     sentry_environment = ENV["SENTRY_ENVIRONMENT"]
 
@@ -404,6 +406,7 @@ platform :ios do
             "--dart-define=DEMO_INDEX_URL=#{demo_index_url}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
             "--dart-define=ALLOW_RELEASE_LOGS=#{allow_release_logs}",
+            "--dart-define=APP_STORE_ID=#{app_store_id}",
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
@@ -428,6 +431,8 @@ platform :ios do
 
     app_name = options[:app_name] || DEFAULT_APP_NAME
     universal_link_base = options[:universal_link_base]
+    ensure_env_vars(env_vars: ['APP_STORE_ID'])
+    app_store_id = ENV["APP_STORE_ID"]
     sentry_dsn = ENV["SENTRY_DSN"]
     sentry_environment = ENV["SENTRY_ENVIRONMENT"]
     sentry_release = ENV["SENTRY_RELEASE"]
@@ -469,6 +474,7 @@ platform :ios do
             "--dart-define=DEMO_INDEX_URL=#{demo_index_url}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
             "--dart-define=ALLOW_RELEASE_LOGS=#{allow_release_logs}",
+            "--dart-define=APP_STORE_ID=#{app_store_id}",
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",

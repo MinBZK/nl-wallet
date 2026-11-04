@@ -43,6 +43,12 @@ class Environment {
   /// Set using: `flutter build --dart-define=DEMO_INDEX_URL=https://example.org/demo`
   static String get demoIndexUrl => const String.fromEnvironment('DEMO_INDEX_URL');
 
+  /// The numeric App Store id of the app, used to link to its App Store page (iOS only).
+  ///
+  /// Set using: `flutter build --dart-define=APP_STORE_ID=1234567890`
+  /// The Fastlane build lanes fail when this is not provided.
+  static String get appStoreId => const String.fromEnvironment('APP_STORE_ID');
+
   /// The DSN for Sentry error reporting.
   ///
   /// Set using: `flutter build --dart-define=SENTRY_DSN=your_sentry_dsn`
