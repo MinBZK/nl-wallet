@@ -68,6 +68,7 @@ build-ios-app-ont:
     - job: wallet-config-ont
       artifacts: true
   variables:
+    APP_STORE_ID: "SSSS"
     ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
@@ -95,6 +96,7 @@ build-ios-simulator-app-ont:
       - "wallet_app/ios/compile_rust_core.log"
       - "wallet_app/ios/*.xcactivitylog"
   variables:
+    APP_STORE_ID: "SSSS"
     ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_BUILD_MODE: "debug"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
@@ -124,6 +126,7 @@ build-ios-app-mock:
   rules: !reference [.on-mock-build, rules]
   needs: []
   variables:
+    APP_STORE_ID: "6478397577"
     ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_MOCK: "true" # override .build-ios-app
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
@@ -140,6 +143,7 @@ build-ios-app-demo:
     - job: wallet-config-demo
       artifacts: true
   variables:
+    APP_STORE_ID: "6478535649"
     ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
@@ -153,6 +157,7 @@ build-ios-app-pub:
     - job: wallet-config-pub
       artifacts: true
   variables:
+    APP_STORE_ID: "6612019892"
     ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "pub"
     APP_NAME: "NL Wallet (pub)"
