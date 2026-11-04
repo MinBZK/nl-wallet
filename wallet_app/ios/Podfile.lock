@@ -4,14 +4,11 @@ PODS:
   - root_jailbreak_sniffer (1.1.4):
     - Flutter
     - IOSSecuritySuite (~> 1.9.10)
-  - workmanager_apple (0.0.1):
-    - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - IOSSecuritySuite (= 1.9.10)
   - root_jailbreak_sniffer (from `.symlinks/plugins/root_jailbreak_sniffer/ios`)
-  - workmanager_apple (from `.symlinks/plugins/workmanager_apple/ios`)
 
 SPEC REPOS:
   trunk:
@@ -22,14 +19,11 @@ EXTERNAL SOURCES:
     :path: Flutter
   root_jailbreak_sniffer:
     :path: ".symlinks/plugins/root_jailbreak_sniffer/ios"
-  workmanager_apple:
-    :path: ".symlinks/plugins/workmanager_apple/ios"
 
 SPEC CHECKSUMS:
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   IOSSecuritySuite: e764318117aabd1f894cbdfc5ac013a59352953d
   root_jailbreak_sniffer: ddaf19e879b5042d74ea446cac763feb35925204
-  workmanager_apple: 904529ae31e97fc5be632cf628507652294a0778
 
 PODFILE CHECKSUM: 335d088304ccf48d994b5d4212b809d4aef43a73
 
