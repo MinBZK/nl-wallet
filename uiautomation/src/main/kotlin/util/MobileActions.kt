@@ -475,8 +475,9 @@ open class MobileActions {
             Platform.ANDROID -> {
                 val androidDriver = driver as AndroidDriver
                 val openButton = AppiumBy.id("com.android.chrome:id/positive_button")
+                val openButtonClickable = ExpectedConditions.elementToBeClickable(openButton)
                 WebDriverWait(driver, Duration.ofMillis(timeoutMillis)).until {
-                    androidDriver.currentPackage == testConfig.appIdentifier || driver.findElements(openButton).isNotEmpty()
+                    androidDriver.currentPackage == testConfig.appIdentifier || openButtonClickable.apply(it) != null
                 }
                 driver.findElements(openButton).firstOrNull()?.click()
             }
