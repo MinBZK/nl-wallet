@@ -219,35 +219,39 @@ impl BorrowingCertificate {
         trust_anchors: &TrustAnchors,
     ) -> Result<(), CertificateVerifyError> {
         self.verify_inner(usage, intermediate_certs, time, trust_anchors, None)
+            .map(|_| ())
     }
 
-    fn verify_with_crls(
+    fn verify_with_crls<'a>(
         &self,
         usage: Option<CertificateUsage>,
-        intermediate_certs: &[BorrowingCertificate],
+        intermediate_certs: impl IntoIterator<Item = &'a BorrowingCertificate, IntoIter: Clone>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
         crls: &[&CertRevocationList<'_>],
     ) -> Result<(), CertificateVerifyError> {
         self.verify_inner(usage, intermediate_certs, time, trust_anchors, Some(crls))
+            .map(|_| ())
     }
 
-    fn verify_inner(
+    /// Verify the certificate and retain only the intermediates used in the verified path.
+    fn verify_inner<'a>(
         &self,
         usage: Option<CertificateUsage>,
-        intermediate_certs: &[BorrowingCertificate],
+        intermediate_certs: impl IntoIterator<Item = &'a BorrowingCertificate, IntoIter: Clone>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
         crls: Option<&[&CertRevocationList<'_>]>,
-    ) -> Result<(), CertificateVerifyError> {
+    ) -> Result<Vec<&'a BorrowingCertificate>, CertificateVerifyError> {
         // Do not rely on webpki for this, as it accepts a self-signed end-entity certificate that is a trust anchor.
         if trust_anchors.contains(self) {
             return Err(CertificateVerifyError::EndEntityIsTrustAnchor);
         }
 
         // Do not rely on webpki to handle trust anchors that are also passed as intermediates.
-        let intermediate_certs = intermediate_certs
-            .iter()
+        let intermediate_certs = intermediate_certs.into_iter();
+        let intermediate_der = intermediate_certs
+            .clone()
             .filter(|cert| !trust_anchors.contains(cert))
             .map(BorrowingCertificate::as_der)
             .cloned()
@@ -289,13 +293,21 @@ impl BorrowingCertificate {
             .verify_for_usage(
                 &supported_sig_algs,
                 trust_anchors.as_trust_anchor_slice(),
-                intermediate_certs.as_slice(),
+                intermediate_der.as_slice(),
                 time,
                 OptionalExtendedKeyUsageValidator(key_usage),
                 revocation,
                 None,
             )
-            .map(|_| ())
+            .map(|path| {
+                // Match back to the parsed input certificates before webpki's path and its temporary DER array expire.
+                intermediate_certs
+                    .filter(|certificate| {
+                        path.intermediate_certificates()
+                            .any(|intermediate| &intermediate.der() == certificate.as_der())
+                    })
+                    .collect()
+            })
             .map_err(|error| CertificateVerifyError::Verification(Box::new(error)))
     }
 
