@@ -471,6 +471,11 @@ impl VpAuthorizationRequest {
             )
             .await?;
 
+        if let Some(trust_anchor) = trust_anchors.find_in_chain(header.x5c.iter().skip(1)) {
+            let subject = trust_anchor.x509_certificate().subject();
+            error!("x5c of OpenID4VP request contains trust anchor {subject}; this violates HAIP 1.0, ignoring it");
+        }
+
         Ok((auth_request, header.x5c.into_first()))
     }
 

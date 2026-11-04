@@ -119,8 +119,7 @@ impl<T: DeserializeOwned + JwtTyp> UnverifiedJwt<T, JadesbbHeader> {
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
     ) -> Result<(JadesbbHeader, T), JwtX5cVerifyError> {
-        // There is nothing preventing having trust anchors in the `x5c` header.
-        self.parse_and_verify_allow_trust_anchor_in_x5c(
+        self.parse_and_verify_against_trust_anchors(
             trust_anchors,
             time,
             certificate_usage,

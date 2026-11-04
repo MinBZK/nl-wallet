@@ -18,6 +18,7 @@ use oauth::token::AuthorizationCode;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
+use tracing::error;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -499,6 +500,17 @@ where
             )
             .await
             .map_err(WalletIssuanceError::CredentialIssuerMetadataVerify)?;
+
+        if let Some(trust_anchor) =
+            wrpac_trust_anchors.find_in_chain(verified_issuer_metadata.header().x5c.iter().skip(1))
+        {
+            let subject = trust_anchor.x509_certificate().subject();
+            error!(
+                "x5c of Credential Issuer Metadata request contains trust anchor {subject}; this violates HAIP 1.0, \
+                 ignoring it"
+            );
+        }
+
         let access_certificate = verified_issuer_metadata.header().x5c.first().clone();
         let issuer_metadata_payload = verified_issuer_metadata.into_payload();
         if *issuer_metadata_payload.sub != credential_offer.credential_issuer {
