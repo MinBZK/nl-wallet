@@ -10,6 +10,7 @@ test-ios-platform-support-device:
   before_script:
     - !reference [.install-ios-signing, before_script]
   script:
+    - python3 -m unittest discover -s scripts/close_proximity -p 'test_*.py'
     - bundle exec fastlane ios test_platform_support_device
   after_script:
     - deploy/bin/store-artifact.sh fastlane/test_output/platform-support-device.junit
