@@ -1,5 +1,6 @@
 pub mod aes_siv;
 pub mod keys;
+pub mod kid;
 pub mod p256_der;
 pub mod server_keys;
 pub mod trust_anchor;

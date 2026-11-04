@@ -1,11 +1,5 @@
-use nutype::nutype;
+use crypto::kid::Kid;
 use serde::Deserialize;
-
-#[nutype(
-    derive(Debug, Clone, TryFrom, AsRef, Hash, PartialEq, Eq, Deserialize),
-    validate(regex = r"^[A-Za-z0-9_-]+$")
-)]
-pub struct Kid(String);
 
 /// A pair of key identifiers ("kid"s) for a symmetric encryption key: the one currently used to encrypt, and
 /// optionally the previous one, still needed to decrypt data that hasn't been re-encrypted yet as part of a

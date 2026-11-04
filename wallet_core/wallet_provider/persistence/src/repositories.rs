@@ -695,6 +695,7 @@ pub mod mock {
     use apple_app_attest::AssertionCounter;
     use chrono::DateTime;
     use chrono::Utc;
+    use crypto::kid::Kid;
     use dashmap::DashMap;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::wrapped_key::WrappedKey;
@@ -706,7 +707,6 @@ pub mod mock {
     use uuid::Uuid;
     use uuid::uuid;
     use wallet_account::messages::errors::RevocationReason;
-    use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;

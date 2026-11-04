@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::kid::VerifyingKeyWithKid;
 use error_category::sentry::classify_mask_and_capture;
 use http_utils::client::TlsPinningConfig;
 use parking_lot::Mutex;
@@ -18,7 +19,6 @@ use tracing::warn;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
-use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::CONFIG_EXPIRY_LEEWAY;
@@ -156,7 +156,10 @@ impl WalletConfigurationRepository {
 
         let wrapped = FileStorageConfigurationRepository::init(
             storage_path,
-            ConfigKeyWithKid::new(config.signing_key_id, config.signing_public_key),
+            VerifyingKeyWithKid {
+                kid: config.signing_key_id,
+                public_key: config.signing_public_key,
+            },
             initial_config,
         )
         .await?;

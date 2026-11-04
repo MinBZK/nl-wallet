@@ -1,5 +1,6 @@
 use std::assert_matches;
 
+use crypto::kid::VerifyingKeyWithKid;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::default_reqwest_client_builder;
 use jwt::SignedJwt;
@@ -22,7 +23,6 @@ use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
-use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_provider::settings::Settings as WpSettings;
 
 #[tokio::test]
@@ -71,10 +71,10 @@ async fn test_wallet_config() {
     let storage_dir = tempfile::tempdir().unwrap();
     let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
-        ConfigKeyWithKid::new(
-            config_server_config.signing_key_id,
-            config_server_config.signing_public_key,
-        ),
+        VerifyingKeyWithKid {
+            kid: config_server_config.signing_key_id,
+            public_key: config_server_config.signing_public_key,
+        },
         etag_path.clone(),
         default_wallet_config(),
     );
@@ -113,10 +113,10 @@ async fn test_wallet_config_stale() {
     let storage_dir = tempfile::tempdir().unwrap();
     let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
-        ConfigKeyWithKid::new(
-            config_server_config.signing_key_id,
-            config_server_config.signing_public_key,
-        ),
+        VerifyingKeyWithKid {
+            kid: config_server_config.signing_key_id,
+            public_key: config_server_config.signing_public_key,
+        },
         etag_path,
         default_wallet_config(),
     );
@@ -145,7 +145,10 @@ async fn test_wallet_config_incorrect_kid() {
     let storage_dir = tempfile::tempdir().unwrap();
     let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
-        ConfigKeyWithKid::new("different".to_string(), config_server_config.signing_public_key),
+        VerifyingKeyWithKid {
+            kid: "different".try_into().unwrap(),
+            public_key: config_server_config.signing_public_key,
+        },
         etag_path,
         default_wallet_config(),
     );
@@ -190,10 +193,10 @@ async fn test_wallet_config_signature_verification_failed() {
     let storage_dir = tempfile::tempdir().unwrap();
     let etag_path = storage_dir.path().join("config.etag");
     let http_config = HttpConfigurationRepository::new(
-        ConfigKeyWithKid::new(
-            config_server_config.signing_key_id,
-            config_server_config.signing_public_key,
-        ),
+        VerifyingKeyWithKid {
+            kid: config_server_config.signing_key_id,
+            public_key: config_server_config.signing_public_key,
+        },
         etag_path,
         default_wallet_config(),
     );
@@ -231,10 +234,10 @@ async fn test_wallet_config_rejected_etag_not_stored() {
     let storage_dir = tempfile::tempdir().unwrap();
     let etag_path = storage_dir.path().join("config.etag");
     let rejecting_http_config = HttpConfigurationRepository::new(
-        ConfigKeyWithKid::new(
-            config_server_config.signing_key_id.clone(),
-            config_server_config.signing_public_key,
-        ),
+        VerifyingKeyWithKid {
+            kid: config_server_config.signing_key_id.clone(),
+            public_key: config_server_config.signing_public_key,
+        },
         etag_path.clone(),
         default_wallet_config(),
     );
@@ -253,10 +256,10 @@ async fn test_wallet_config_rejected_etag_not_stored() {
     // An app update that accepts the served configuration starts out with the same storage, and should therefore
     // receive and apply that configuration.
     let accepting_http_config = HttpConfigurationRepository::new(
-        ConfigKeyWithKid::new(
-            config_server_config.signing_key_id,
-            (*signing_key.key.verifying_key()).into(),
-        ),
+        VerifyingKeyWithKid {
+            kid: config_server_config.signing_key_id,
+            public_key: (*signing_key.key.verifying_key()).into(),
+        },
         etag_path.clone(),
         default_wallet_config(),
     );

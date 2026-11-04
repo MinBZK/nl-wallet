@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use crypto::keys::EcdsaKey;
+use crypto::kid::VerifyingKeyWithKid;
 use jwt::KeyWithKid;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Signer;
 use p256::elliptic_curve::Generate;
-use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::ConfigurationError;
@@ -28,10 +28,10 @@ impl ConfigSigningKey {
         Self { key, kid }
     }
 
-    pub fn to_config_key_with_kid(&self) -> ConfigKeyWithKid {
-        ConfigKeyWithKid {
-            kid: self.kid.to_string(),
-            key: (*self.key.verifying_key()).into(),
+    pub fn to_config_key_with_kid(&self) -> VerifyingKeyWithKid {
+        VerifyingKeyWithKid {
+            kid: self.kid.try_into().unwrap(),
+            public_key: (*self.key.verifying_key()).into(),
         }
     }
 }

@@ -367,14 +367,14 @@ pub fn create_wallet_configuration() -> WalletConfiguration {
     let mut config = test_wallet_config();
 
     config.account_server.certificate_public_keys = HashMap::from([(
-        keys.certificate_signing_key.kid().to_owned(),
+        keys.certificate_signing_key.kid().try_into().unwrap(),
         CertificatePublicKey {
             key: (*keys.certificate_signing_key.verifying_key()).into(),
             used_from: Utc::now().into(),
         },
     )]);
     config.account_server.instruction_result_public_keys = HashMap::from([(
-        keys.instruction_result_signing_key.kid().to_owned(),
+        keys.instruction_result_signing_key.kid().try_into().unwrap(),
         DerVerifyingKey::from(*keys.instruction_result_signing_key.verifying_key()),
     )]);
 

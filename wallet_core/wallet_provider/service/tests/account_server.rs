@@ -11,6 +11,7 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::PublicKey;
 use crypto::keys::PublicKeyRef;
 use crypto::keys::SecureEcdsaKey;
+use crypto::kid::Kid;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::sha256;
@@ -44,7 +45,6 @@ use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_account::signed::ChallengeResponse;
-use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::keys::KidPair;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::TimeoutPinPolicy;
@@ -182,7 +182,7 @@ async fn do_registration(
 
     let (_, cert_data) = certificate
         .parse_and_verify_with_sub_by_kid(&HashMap::from([(
-            certificate_signing_key.kid().to_owned(),
+            certificate_signing_key.kid().try_into().unwrap(),
             PublicKey::from(certificate_signing_key.verifying_key().await.unwrap()),
         )]))
         .expect("Could not parse and verify wallet certificate");

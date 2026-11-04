@@ -22,6 +22,8 @@ use attestation_types::credential_format::Format;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
+use crypto::kid::Kid;
+use crypto::kid::VerifyingKeyWithKid;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -113,7 +115,6 @@ use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
-use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::CertificatePublicKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AndroidRootPublicKey;
@@ -472,7 +473,7 @@ pub async fn build_wallet_environment_with_instruction_result_keys(
     ups_port: u16,
     ups_root_ca: ReqwestTrustAnchor,
     wp_port: u16,
-    instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
+    instruction_result_public_keys: HashMap<Kid, DerVerifyingKey>,
 ) -> (ConfigServerConfiguration, WalletConfiguration) {
     let (static_settings, static_root_ca) = static_server_settings();
 
@@ -496,7 +497,7 @@ pub async fn build_wallet_environment_with_certificate_public_keys(
     ups_port: u16,
     ups_root_ca: ReqwestTrustAnchor,
     wp_port: u16,
-    certificate_public_keys: HashMap<String, CertificatePublicKey>,
+    certificate_public_keys: HashMap<Kid, CertificatePublicKey>,
 ) -> (ConfigServerConfiguration, WalletConfiguration) {
     let (static_settings, static_root_ca) = static_server_settings();
 
@@ -521,8 +522,8 @@ async fn build_wallet_environment_inner(
     ups_root_ca: ReqwestTrustAnchor,
     wp_port: u16,
     pid_credential_offer: Option<Url>,
-    instruction_result_public_keys: Option<HashMap<String, DerVerifyingKey>>,
-    certificate_public_keys: Option<HashMap<String, CertificatePublicKey>>,
+    instruction_result_public_keys: Option<HashMap<Kid, DerVerifyingKey>>,
+    certificate_public_keys: Option<HashMap<Kid, CertificatePublicKey>>,
 ) -> (ConfigServerConfiguration, WalletConfiguration) {
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
@@ -619,10 +620,10 @@ where
 
     let etag_path = temp_path.as_ref().join(format!("{}.etag", random_string(10)));
     let config_repository = HttpConfigurationRepository::new(
-        ConfigKeyWithKid::new(
-            config_server_config.signing_key_id,
-            config_server_config.signing_public_key,
-        ),
+        VerifyingKeyWithKid {
+            kid: config_server_config.signing_key_id,
+            public_key: config_server_config.signing_public_key,
+        },
         etag_path,
         wallet_config,
     );

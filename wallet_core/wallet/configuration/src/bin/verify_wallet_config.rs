@@ -7,10 +7,10 @@ use std::path::PathBuf;
 use anyhow::Context;
 use anyhow::Result;
 use clap::Parser;
+use crypto::kid::VerifyingKeyWithKid;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithKid;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
-use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::verification::WALLET_CONFIG_VALIDATION;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -38,10 +38,10 @@ fn main() -> Result<()> {
         .parse()
         .context("could not parse wallet configuration JWT")?;
 
-    let config_key = ConfigKeyWithKid::new(
-        config_server_config.signing_key_id.clone(),
-        config_server_config.signing_public_key.clone(),
-    );
+    let config_key = VerifyingKeyWithKid {
+        kid: config_server_config.signing_key_id,
+        public_key: config_server_config.signing_public_key,
+    };
 
     let (_, wallet_config) = jwt
         .parse_and_verify_by_kid(&config_key, WALLET_CONFIG_VALIDATION.clone())

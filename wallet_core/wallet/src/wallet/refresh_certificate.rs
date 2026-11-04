@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::kid::Kid;
 use error_category::ErrorCategory;
 use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -102,7 +103,7 @@ where
     async fn refresh_wallet_certificate(
         &mut self,
         remote_instruction: &InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>,
-        certificate_public_keys: &HashMap<String, CertificatePublicKey>,
+        certificate_public_keys: &HashMap<Kid, CertificatePublicKey>,
     ) -> Result<(), RefreshCertificateError>
     where
         UR: Repository<VersionState>,
@@ -162,7 +163,7 @@ where
 
 fn certificate_needs_refresh(
     certificate: &WalletCertificate,
-    certificate_public_keys: &HashMap<String, CertificatePublicKey>,
+    certificate_public_keys: &HashMap<Kid, CertificatePublicKey>,
     refresh_threshold: Duration,
     time: &impl Generator<DateTime<Utc>>,
 ) -> bool {
@@ -187,7 +188,7 @@ fn certificate_needs_refresh(
         return false;
     };
 
-    &header.kid != newest_kid
+    header.kid != newest_kid.as_ref()
 }
 
 #[cfg(test)]
@@ -240,7 +241,7 @@ mod tests {
             .unwrap()
             .used_from = (Utc::now() - Duration::from_secs(60)).into();
         config.account_server.certificate_public_keys.insert(
-            "newer".to_owned(),
+            "newer".try_into().unwrap(),
             CertificatePublicKey {
                 key: (*SigningKey::generate().verifying_key()).into(),
                 used_from: (Utc::now() - Duration::from_secs(1)).into(),
@@ -312,7 +313,7 @@ mod tests {
             .unwrap()
             .used_from = (Utc::now() - Duration::from_secs(60)).into();
         config.account_server.certificate_public_keys.insert(
-            "newer".to_owned(),
+            "newer".try_into().unwrap(),
             CertificatePublicKey {
                 key: (*SigningKey::generate().verifying_key()).into(),
                 used_from: (Utc::now() - Duration::from_secs(1)).into(),
@@ -368,7 +369,7 @@ mod tests {
             .unwrap()
             .used_from = (Utc::now() - Duration::from_secs(60)).into();
         config.account_server.certificate_public_keys.insert(
-            "newer".to_owned(),
+            "newer".try_into().unwrap(),
             CertificatePublicKey {
                 key: (*SigningKey::generate().verifying_key()).into(),
                 used_from: (Utc::now() - Duration::from_secs(1)).into(),
@@ -446,7 +447,7 @@ mod tests {
     fn test_certificate_needs_refresh() {
         let hw_pubkey = *SigningKey::generate().verifying_key();
         let certificate = valid_certificate(None, hw_pubkey);
-        let current_kid = ACCOUNT_SERVER_KEYS.certificate_signing_key.kid().to_string();
+        let current_kid: Kid = ACCOUNT_SERVER_KEYS.certificate_signing_key.kid().try_into().unwrap();
         let current_public_key = CertificatePublicKey {
             key: (*ACCOUNT_SERVER_KEYS.certificate_signing_key.verifying_key()).into(),
             used_from: (Utc::now() - Duration::from_secs(20)).into(),
@@ -461,6 +462,7 @@ mod tests {
         ));
 
         // A newer key than the certificate's kid is already in use: refresh needed.
+        let newer_kid: Kid = "newer".try_into().unwrap();
         let newer_public_key = CertificatePublicKey {
             key: (*SigningKey::generate().verifying_key()).into(),
             used_from: (Utc::now() - Duration::from_secs(10)).into(),
@@ -469,13 +471,14 @@ mod tests {
             &certificate,
             &HashMap::from([
                 (current_kid.clone(), current_public_key.clone()),
-                ("newer".to_owned(), newer_public_key.clone()),
+                (newer_kid.clone(), newer_public_key.clone()),
             ]),
             Duration::from_secs(60),
             &TimeGenerator,
         ));
 
         // The certificate's kid is still the newest, even though an older key is also present: no refresh needed.
+        let older_kid = "older".try_into().unwrap();
         let older_public_key = CertificatePublicKey {
             key: (*SigningKey::generate().verifying_key()).into(),
             used_from: (Utc::now() - Duration::from_secs(30)).into(),
@@ -484,7 +487,7 @@ mod tests {
             &certificate,
             &HashMap::from([
                 (current_kid.clone(), current_public_key.clone()),
-                ("older".to_owned(), older_public_key)
+                (older_kid, older_public_key)
             ]),
             Duration::from_secs(60),
             &TimeGenerator,
@@ -492,6 +495,7 @@ mod tests {
 
         // A newer key is present in the configuration, but the wallet provider is not using it yet (its
         // `used_from` lies in the future): no refresh needed.
+        let future_kid: Kid = "future".try_into().unwrap();
         let future_public_key = CertificatePublicKey {
             key: (*SigningKey::generate().verifying_key()).into(),
             used_from: (Utc::now() + Duration::from_secs(3600)).into(),
@@ -500,7 +504,7 @@ mod tests {
             &certificate,
             &HashMap::from([
                 (current_kid.clone(), current_public_key.clone()),
-                ("future".to_owned(), future_public_key.clone()),
+                (future_kid.clone(), future_public_key.clone()),
             ]),
             Duration::from_secs(60),
             &TimeGenerator,
@@ -511,8 +515,8 @@ mod tests {
             &certificate,
             &HashMap::from([
                 (current_kid, current_public_key),
-                ("newer".to_owned(), newer_public_key),
-                ("future".to_owned(), future_public_key),
+                (newer_kid, newer_public_key),
+                (future_kid, future_public_key),
             ]),
             Duration::from_secs(60),
             &TimeGenerator,
@@ -522,7 +526,7 @@ mod tests {
     #[test]
     fn test_certificate_needs_refresh_exp() {
         let hw_pubkey = *SigningKey::generate().verifying_key();
-        let current_kid = ACCOUNT_SERVER_KEYS.certificate_signing_key.kid().to_string();
+        let current_kid = ACCOUNT_SERVER_KEYS.certificate_signing_key.kid().try_into().unwrap();
         let current_public_key = CertificatePublicKey {
             key: (*ACCOUNT_SERVER_KEYS.certificate_signing_key.verifying_key()).into(),
             used_from: (Utc::now() - Duration::from_secs(20)).into(),

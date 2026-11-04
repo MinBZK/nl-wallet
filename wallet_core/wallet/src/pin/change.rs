@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::future::Future;
 
+use crypto::kid::Kid;
 use crypto::utils::KeyBytes;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
@@ -106,7 +107,7 @@ pub struct BeginChangePinOperation<'a, C, S> {
     client: &'a C,
     storage: &'a S,
     registration_data: &'a RegistrationData,
-    certificate_public_keys: &'a HashMap<String, CertificatePublicKey>,
+    certificate_public_keys: &'a HashMap<Kid, CertificatePublicKey>,
     hw_pubkey: &'a VerifyingKey,
 }
 
@@ -115,7 +116,7 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
         client: &'a C,
         storage: &'a S,
         registration_data: &'a RegistrationData,
-        certificate_public_keys: &'a HashMap<String, CertificatePublicKey>,
+        certificate_public_keys: &'a HashMap<Kid, CertificatePublicKey>,
         hw_pubkey: &'a VerifyingKey,
     ) -> Self {
         Self {
@@ -335,11 +336,11 @@ mod test {
 
     const CHANGE_PIN_RETRIES: u8 = 2;
 
-    async fn create_registration_data() -> (RegistrationData, HashMap<String, CertificatePublicKey>, VerifyingKey) {
+    async fn create_registration_data() -> (RegistrationData, HashMap<Kid, CertificatePublicKey>, VerifyingKey) {
         let certificate_signing_key = SigningKey::generate();
         let hw_privkey = SigningKey::generate();
         let certificate_public_keys = HashMap::from([(
-            certificate_signing_key.kid().to_owned(),
+            certificate_signing_key.kid().try_into().unwrap(),
             CertificatePublicKey {
                 key: (*certificate_signing_key.verifying_key()).into(),
                 used_from: Utc::now().into(),
@@ -539,7 +540,7 @@ mod test {
         MockChangePinClient,
         MockChangePinStorage,
         RegistrationData,
-        HashMap<String, CertificatePublicKey>,
+        HashMap<Kid, CertificatePublicKey>,
         VerifyingKey,
     ) {
         let (registration_data, certificate_public_keys, hw_pubkey) = create_registration_data().await;
@@ -579,7 +580,7 @@ mod test {
             setup_change_pin_certificate_sanity_check_test().await;
         let other_key = SigningKey::generate();
         let other_certificate_public_keys = HashMap::from([(
-            other_key.kid().to_owned(), // same kid, different key
+            other_key.kid().try_into().unwrap(), // same kid, different key
             CertificatePublicKey {
                 key: (*other_key.verifying_key()).into(),
                 used_from: Utc::now().into(),

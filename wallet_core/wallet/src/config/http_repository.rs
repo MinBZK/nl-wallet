@@ -2,10 +2,10 @@ use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crypto::kid::VerifyingKeyWithKid;
 use http_utils::reqwest::IntoReqwestClient;
 use parking_lot::RwLock;
 use tracing::info;
-use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::WALLET_CONFIG_VALIDATION;
@@ -22,14 +22,17 @@ type ConfigState = (Arc<WalletConfiguration>, Option<Arc<WalletConfigJwt>>);
 
 pub struct HttpConfigurationRepository<B> {
     client: EtagHttpClient<WalletConfigJwt, B, ConfigurationError>,
-    config_key: ConfigKeyWithKid,
+    config_key: VerifyingKeyWithKid,
     config: RwLock<ConfigState>,
 }
 
 impl<B> HttpConfigurationRepository<B> {
-    pub fn new(config_key: ConfigKeyWithKid, etag_path: PathBuf, initial_config: WalletConfiguration) -> Self {
+    pub fn new(config_key: VerifyingKeyWithKid, etag_path: PathBuf, initial_config: WalletConfiguration) -> Self {
         Self {
-            client: EtagHttpClient::new(config_key.kid.parse().expect("should be a valid filename"), etag_path),
+            client: EtagHttpClient::new(
+                config_key.kid.as_ref().parse().expect("should be a valid filename"),
+                etag_path,
+            ),
             config_key,
             config: RwLock::new((Arc::new(initial_config), None)),
         }

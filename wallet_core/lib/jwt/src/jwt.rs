@@ -14,6 +14,8 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::keys::PublicKey;
 use crypto::keys::PublicKeyRef;
+use crypto::kid::Kid;
+use crypto::kid::VerifyingKeyWithKid;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
@@ -486,7 +488,8 @@ impl PublicKeyByKid<'_> for JwkSet {
         self.find(kid).map(jwk_to_public_key).transpose()
     }
 }
-impl<'a, K> PublicKeyByKid<'a> for HashMap<String, K>
+
+impl<'a, K> PublicKeyByKid<'a> for HashMap<Kid, K>
 where
     K: 'a + AsPublicKeyRef,
 {
@@ -495,6 +498,19 @@ where
 
     fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
         Ok(self.get(kid).map(AsPublicKeyRef::as_public_key_ref))
+    }
+}
+
+impl<'a> PublicKeyByKid<'a> for VerifyingKeyWithKid {
+    type Key = PublicKeyRef<'a>;
+    type Error = Infallible;
+
+    fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
+        if self.kid.as_ref() == kid {
+            Ok(Some(self.public_key.as_public_key_ref()))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -1382,6 +1398,7 @@ mod tests {
     use crypto::keys::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::p256_der::DerVerifyingKey;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateVerifyError;
@@ -2313,5 +2330,20 @@ mod tests {
         let (_, parsed) = unverified.parse_and_verify(&decoding_key, &validation).unwrap();
 
         assert_eq!(parsed, payload);
+    }
+
+    #[test]
+    fn test_config_key_with_kid() {
+        let kid = "v1".try_into().unwrap();
+
+        let keypair = SigningKey::generate();
+        let public_key = DerVerifyingKey::from(*keypair.verifying_key());
+
+        let key_with_kid = VerifyingKeyWithKid {
+            kid,
+            public_key: public_key.clone(),
+        };
+        assert_matches!(key_with_kid.find("v1").unwrap(), Some(PublicKeyRef::ESP256(found_key)) if found_key == public_key.as_inner());
+        assert!(key_with_kid.find("v2").unwrap().is_none());
     }
 }

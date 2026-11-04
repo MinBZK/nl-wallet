@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crypto::kid::VerifyingKeyWithKid;
 use derive_more::Constructor;
 use http_utils::reqwest::IntoReqwestClient;
-use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::ConfigurationError;
@@ -28,7 +28,7 @@ pub struct FileStorageConfigurationRepository<T> {
 impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
     pub async fn init(
         storage_path: PathBuf,
-        config_key: ConfigKeyWithKid,
+        config_key: VerifyingKeyWithKid,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
         let default_config = match config_file::get_config_file(storage_path.as_path()).await? {

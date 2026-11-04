@@ -8,6 +8,7 @@ use axum::extract::State;
 use axum::routing::get;
 use chrono::TimeDelta;
 use chrono::Utc;
+use crypto::kid::VerifyingKeyWithKid;
 use http_utils::client::TlsPinningConfig;
 use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
@@ -26,7 +27,6 @@ use wallet::test::UpdatingConfigurationRepository;
 use wallet::test::default_config_server_config;
 use wallet::test::default_wallet_config;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
-use wallet_configuration::verification::ConfigKeyWithKid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 /// Serves a wallet configuration JWT, which can be replaced while the server is running. This makes it possible to
@@ -70,7 +70,7 @@ impl SwappableConfigServer {
 
         let config_server_config = ConfigServerConfiguration {
             http_config: TlsPinningConfig::try_new(base_url, vec_nonempty![trust_anchor]).unwrap(),
-            signing_key_id: kid.to_string(),
+            signing_key_id: kid.try_into().unwrap(),
             ..default_config_server_config()
         };
 
@@ -115,10 +115,10 @@ async fn test_expired_configuration_is_rejected() {
 
     let storage_dir = tempfile::tempdir().unwrap();
     let repository = HttpConfigurationRepository::new(
-        ConfigKeyWithKid::new(
-            config_server_config.signing_key_id,
-            config_server_config.signing_public_key,
-        ),
+        VerifyingKeyWithKid {
+            kid: config_server_config.signing_key_id,
+            public_key: config_server_config.signing_public_key,
+        },
         storage_dir.path().join("wallet-config.jwt"),
         embedded_config,
     );
