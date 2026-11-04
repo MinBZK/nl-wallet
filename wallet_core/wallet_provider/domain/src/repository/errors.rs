@@ -1,4 +1,4 @@
-use crate::keys::KidError;
+use crypto::kid::KidError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PersistenceError {

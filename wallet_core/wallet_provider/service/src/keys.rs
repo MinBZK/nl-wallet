@@ -1,11 +1,11 @@
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
+use crypto::kid::Kid;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use jwt::KeyWithKid;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
-use wallet_provider_domain::keys::Kid;
 
 const WALLET_CERTIFICATE_SIGNING_KEY_PREFIX: &str = "wallet_certificate_signing_";
 const PIN_HMAC_KEY_PREFIX: &str = "pin_hmac_";

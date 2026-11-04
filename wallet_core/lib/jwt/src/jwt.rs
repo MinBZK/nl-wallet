@@ -9,11 +9,13 @@ use std::time::Duration;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::AsPublicKeyRef;
-use crypto::CredentialEcdsaKey;
-use crypto::PublicKey;
-use crypto::PublicKeyRef;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyRef;
+use crypto::kid::Kid;
+use crypto::kid::VerifyingKeyWithKid;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
@@ -486,7 +488,8 @@ impl PublicKeyByKid<'_> for JwkSet {
         self.find(kid).map(jwk_to_public_key).transpose()
     }
 }
-impl<'a, K> PublicKeyByKid<'a> for HashMap<String, K>
+
+impl<'a, K> PublicKeyByKid<'a> for HashMap<Kid, K>
 where
     K: 'a + AsPublicKeyRef,
 {
@@ -495,6 +498,19 @@ where
 
     fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
         Ok(self.get(kid).map(AsPublicKeyRef::as_public_key_ref))
+    }
+}
+
+impl<'a> PublicKeyByKid<'a> for VerifyingKeyWithKid {
+    type Key = PublicKeyRef<'a>;
+    type Error = Infallible;
+
+    fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
+        if self.kid.as_ref() == kid {
+            Ok(Some(self.public_key.as_public_key_ref()))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -533,7 +549,7 @@ where
 ///
 /// # Example
 /// ```
-/// # use crypto::PublicKeyRef;
+/// # use crypto::keys::PublicKeyRef;
 /// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -662,9 +678,9 @@ impl<T> SignedJwt<T, HeaderWithKid>
 where
     T: Serialize + JwtTyp,
 {
-    pub async fn sign_with_kid<K: EcdsaKey + KeyWithKid>(payload: T, privkey: &K) -> Result<Self, JwtSignError> {
+    pub async fn sign_with_kid<K: EcdsaKey + KeyWithKid>(payload: &T, privkey: &K) -> Result<Self, JwtSignError> {
         let header = HeaderWithKid::from_kid(privkey.kid().to_string());
-        SignedJwt::sign_with_header(header, &payload, privkey).await
+        SignedJwt::sign_with_header(header, payload, privkey).await
     }
 }
 
@@ -771,7 +787,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// # Examples
 /// From an `UnverifiedJwt`:
 /// ```
-/// # use crypto::PublicKeyRef;
+/// # use crypto::keys::PublicKeyRef;
 /// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -1180,7 +1196,7 @@ where
         privkey: &K,
     ) -> Result<Self, JwtSignError> {
         let claims = PayloadWithSub::new(payload);
-        SignedJwt::sign_with_kid(claims, privkey).await.map(Into::into)
+        SignedJwt::sign_with_kid(&claims, privkey).await.map(Into::into)
     }
 }
 
@@ -1379,9 +1395,10 @@ mod tests {
 
     use ::axum::response::IntoResponse;
     use chrono::TimeDelta;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::p256_der::DerVerifyingKey;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateVerifyError;
@@ -1980,7 +1997,7 @@ mod tests {
         let jwks = JwkSet { keys: vec![jwk] };
 
         let payload = ToyMessage::default();
-        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_kid(payload.clone(), &signing_key)
+        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_kid(&payload, &signing_key)
             .await
             .unwrap()
             .into_unverified();
@@ -2313,5 +2330,20 @@ mod tests {
         let (_, parsed) = unverified.parse_and_verify(&decoding_key, &validation).unwrap();
 
         assert_eq!(parsed, payload);
+    }
+
+    #[test]
+    fn test_config_key_with_kid() {
+        let kid = "v1".try_into().unwrap();
+
+        let keypair = SigningKey::generate();
+        let public_key = DerVerifyingKey::from(*keypair.verifying_key());
+
+        let key_with_kid = VerifyingKeyWithKid {
+            kid,
+            public_key: public_key.clone(),
+        };
+        assert_matches!(key_with_kid.find("v1").unwrap(), Some(PublicKeyRef::ESP256(found_key)) if found_key == public_key.as_inner());
+        assert!(key_with_kid.find("v2").unwrap().is_none());
     }
 }

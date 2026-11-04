@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 use std::slice::from_ref;
 
+use crypto::kid::Kid;
 use crypto::utils::random_string;
 use db_test::DbSetup;
 use hsm::model::wrapped_key::WrappedKey;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
 use uuid::Uuid;
-use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;

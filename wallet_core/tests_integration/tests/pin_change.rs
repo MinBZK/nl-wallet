@@ -9,11 +9,13 @@ use wallet::Pin;
 async fn ltc45_test_pin_change() {
     let db_setup = DbSetup::create().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
 
     let old_pin: Pin = "123344".into();
     let new_pin: Pin = "123355".into();
 
-    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) =
+        setup_wallet_and_default_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, old_pin.clone()).await;
 
     let begin = wallet.begin_change_pin(old_pin, new_pin.clone()).await;

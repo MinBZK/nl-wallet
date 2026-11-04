@@ -15,10 +15,11 @@ use wallet::Pin;
 async fn test_pre_authorized_code_issuance() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
 
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
     let pacf_issuance_server = setup_pre_auth_env(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 

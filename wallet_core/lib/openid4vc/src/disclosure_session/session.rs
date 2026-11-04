@@ -3,7 +3,7 @@ use std::hash::Hash;
 use attestation_data::organization::Organization;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::CredentialEcdsaKey;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
 use dcql::CredentialQueryIdentifier;
@@ -283,7 +283,7 @@ mod tests {
     use attestation_data::organization::Organization;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;

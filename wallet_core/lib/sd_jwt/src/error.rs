@@ -3,7 +3,7 @@ use std::time::Duration;
 use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::keys::PublicKey;
 use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;

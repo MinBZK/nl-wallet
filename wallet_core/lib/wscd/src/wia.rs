@@ -16,7 +16,7 @@ pub mod mock {
     use std::time::Duration;
 
     use chrono::Utc;
-    use crypto::PublicKeyRef;
+    use crypto::keys::PublicKeyRef;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::verifying_key_sha256;
     use crypto::server_keys::KeyPair;

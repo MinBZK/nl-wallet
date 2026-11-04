@@ -5,7 +5,7 @@ env:
     urls:
     - "https://${UL_HOSTNAME}/deeplink"
     - "https://${UL_HOSTNAME}/help"
-    - "https://${STATIC_HOSTNAME}/config/v1/wallet-config"
+    - "https://${STATIC_HOSTNAME}/config/v1/0"
     includePaths:
     - "https://${STATIC_HOSTNAME}/deeplink.*"
     - "https://${STATIC_HOSTNAME}/help.*"

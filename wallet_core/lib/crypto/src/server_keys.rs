@@ -3,8 +3,8 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 
-use crate::PublicKey;
 use crate::keys::EcdsaKey;
+use crate::keys::PublicKey;
 use crate::x509::BorrowingCertificate;
 
 #[derive(Debug, thiserror::Error)]

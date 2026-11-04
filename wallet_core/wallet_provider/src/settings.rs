@@ -14,6 +14,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use crypto::kid::Kid;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::KeyPairError;
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -43,7 +44,6 @@ use utils::duration::DurationHours;
 use utils::duration::DurationMinutes;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
-use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::keys::KidPair;
 use wallet_provider_persistence::database::ConnectionOptions;
 

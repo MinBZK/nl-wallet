@@ -28,21 +28,26 @@ fn path_for_config_file(storage_path: &Path) -> PathBuf {
     storage_path.join("configuration.jwt")
 }
 
+pub fn path_for_config_etag(storage_path: &Path) -> PathBuf {
+    storage_path.join("configuration.etag")
+}
+
 #[cfg(test)]
 mod tests {
     use jwt::SignedJwt;
-    use p256::elliptic_curve::Generate;
 
+    use crate::config::ConfigSigningKey;
     use crate::config::config_file::get_config_file;
     use crate::config::config_file::update_config_file;
     use crate::config::default_wallet_config;
 
     #[tokio::test]
     async fn should_read_and_update_config() {
-        let signing_key = p256::ecdsa::SigningKey::generate();
+        let config_signing_key = ConfigSigningKey::new_with_kid("0");
+
         let mut config = default_wallet_config();
         config.lock_timeouts.background_timeout = 1500;
-        let jwt = SignedJwt::sign(&config, &signing_key).await.unwrap();
+        let jwt = SignedJwt::sign_with_kid(&config, &config_signing_key).await.unwrap();
         let unverified = jwt.into_unverified();
 
         let tempdir = tempfile::tempdir().unwrap();

@@ -14,6 +14,7 @@ use http::StatusCode;
 use http::header;
 use http_utils::health::create_health_router;
 use jwt::VerifiedJwt;
+use jwt::headers::HeaderWithKid;
 use status_lists::publish::PublishDir;
 use status_lists::serve::StatusListRouteSource;
 use status_lists::serve::create_serve_router;
@@ -44,9 +45,10 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
     info!("listening on {}", listener.local_addr()?);
     let listener = listener.into_std()?;
 
+    let config_path = format!("/{}", settings.wallet_config_jwt.header().kid);
     let config_entity_tag = EntityTag::from_data(settings.wallet_config_jwt.jwt().serialization().as_bytes());
     let config_router = Router::new()
-        .route("/wallet-config", get(configuration))
+        .route(&config_path, get(configuration))
         .with_state((settings.wallet_config_jwt, config_entity_tag));
 
     let status_list_router = create_serve_router([StatusListRouteSource {
@@ -107,7 +109,7 @@ async fn crl(State(crl_file): State<PathBuf>) -> Result<Response, StatusCode> {
 }
 
 async fn configuration(
-    State((config_jwt, config_entity_tag)): State<(VerifiedJwt<WalletConfiguration>, EntityTag)>,
+    State((config_jwt, config_entity_tag)): State<(VerifiedJwt<WalletConfiguration, HeaderWithKid>, EntityTag)>,
     headers: HeaderMap,
 ) -> Result<Response, StatusCode> {
     info!("received configuration request");

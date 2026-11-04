@@ -6,7 +6,6 @@ use std::str::FromStr;
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 
-use super::Filename;
 use super::HttpClient;
 use super::HttpClientError;
 use super::HttpResponse;
@@ -14,15 +13,15 @@ use crate::reqwest::CachedReqwestClient;
 
 pub struct ReqwestHttpClient<T, B> {
     cached_client: CachedReqwestClient<B>,
-    resource_identifier: Filename,
+    resource_identifier: String,
     _marker: PhantomData<(T, B)>, // data type to fetch and builder type
 }
 
 impl<T, B> ReqwestHttpClient<T, B> {
-    pub fn new(resource_identifier: Filename) -> Self {
+    pub fn new(resource_identifier: impl Into<String>) -> Self {
         Self {
             cached_client: CachedReqwestClient::new(),
-            resource_identifier,
+            resource_identifier: resource_identifier.into(),
             _marker: PhantomData,
         }
     }
@@ -41,9 +40,7 @@ where
             .cached_client
             .get_or_try_init(client_builder, IntoReqwestClient::try_into_client)?;
         let response = client
-            .send_get(ReqwestClientUrl::Relative(
-                &self.resource_identifier.as_ref().to_string_lossy(),
-            ))
+            .send_get(ReqwestClientUrl::Relative(&self.resource_identifier))
             .await?;
 
         // Try to get the body from any 4xx or 5xx error responses, in order to create an Error::Response.

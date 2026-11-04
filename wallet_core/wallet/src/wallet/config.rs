@@ -121,7 +121,7 @@ mod tests {
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use crate::config::test::test_wallet_config;
+    use crate::config::test_wallet_config;
 
     // Tests both setting and clearing the configuration callback.
     #[tokio::test]

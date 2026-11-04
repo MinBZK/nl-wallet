@@ -12,7 +12,7 @@ use chrono::Utc;
 use cose::CborError;
 use cose::CoseError;
 use cose::cbor_serialize;
-use crypto::EcdsaKeySend;
+use crypto::keys::EcdsaKeySend;
 use futures::StreamExt;
 use futures::future::join_all;
 use futures::future::try_join_all;

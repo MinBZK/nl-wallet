@@ -25,7 +25,7 @@ pub mod mock {
 
     use chrono::Days;
     use chrono::Utc;
-    use crypto::EcdsaKeySend;
+    use crypto::keys::EcdsaKeySend;
     use crypto::server_keys::KeyPair;
     use derive_more::Constructor;
     use url::Url;

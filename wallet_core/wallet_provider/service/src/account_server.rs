@@ -30,10 +30,12 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
-use crypto::AsPublicKeyRef;
-use crypto::PublicKey;
-use crypto::PublicKeyRef;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyRef;
 use crypto::keys::SecureEcdsaKey;
+use crypto::kid::Kid;
+use crypto::kid::KidError;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
@@ -99,8 +101,6 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 use wallet_account::signed::ChallengeResponsePayload;
 use wallet_account::signed::SequenceNumberComparison;
-use wallet_provider_domain::keys::Kid;
-use wallet_provider_domain::keys::KidError;
 use wallet_provider_domain::keys::KidPair;
 use wallet_provider_domain::keys::UnknownKid;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
@@ -1917,7 +1917,8 @@ pub mod mock {
     use apple_app_attest::MockAttestationCa;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
+    use crypto::kid::Kid;
     use crypto::server_keys::generate::Ca;
     use hsm::model::mock::MockPkcs11Client;
     use p256::ecdsa::SigningKey;
@@ -1928,7 +1929,6 @@ pub mod mock {
     use token_status_list::status_list_service::mock::MockStatusListService;
     use token_status_list::status_list_service::mock::generate_status_claims;
     use utils::vec_nonempty;
-    use wallet_provider_domain::keys::Kid;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use super::mock_play_integrity::MockPlayIntegrityClient;
@@ -2225,9 +2225,10 @@ mod tests {
     use chrono::DateTime;
     use chrono::TimeZone;
     use chrono::Utc;
-    use crypto::PublicKey;
-    use crypto::PublicKeyRef;
     use crypto::keys::EcdsaKey;
+    use crypto::keys::PublicKey;
+    use crypto::keys::PublicKeyRef;
+    use crypto::kid::Kid;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
@@ -2271,7 +2272,6 @@ mod tests {
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
-    use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::keys::KidPair;
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::QueryResult;
@@ -2728,7 +2728,7 @@ mod tests {
 
         let (_, cert_data) = cert
             .parse_and_verify_with_sub_by_kid(&HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKeyRef::from(setup.signing_key.verifying_key()),
             )]))
             .expect("Could not parse and verify wallet certificate");
@@ -2738,7 +2738,7 @@ mod tests {
         let (wallet_user, _pin_pubkey) = verify_wallet_certificate(
             &cert,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {
@@ -3367,7 +3367,7 @@ mod tests {
         verify_wallet_certificate(
             &new_cert,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {
@@ -3386,7 +3386,7 @@ mod tests {
         verify_wallet_certificate(
             &new_cert,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {
@@ -3784,7 +3784,7 @@ mod tests {
         verify_wallet_certificate(
             &result.certificate,
             &HashMap::from([(
-                setup.signing_key.kid().to_owned(),
+                setup.signing_key.kid().try_into().unwrap(),
                 PublicKey::from(setup.signing_pubkey),
             )]),
             &KidPair {

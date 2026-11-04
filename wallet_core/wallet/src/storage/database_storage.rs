@@ -1513,7 +1513,7 @@ pub(crate) mod tests {
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
-    use crypto::PublicKeyRef;
+    use crypto::keys::PublicKeyRef;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;

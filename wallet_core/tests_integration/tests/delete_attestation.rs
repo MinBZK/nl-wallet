@@ -18,6 +18,7 @@ use wallet_provider_persistence::entity::wallet_user_key;
 async fn test_delete_attestation_ok() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
     // Use only a single degree document so there is exactly one non-PID attestation to delete.
@@ -30,6 +31,7 @@ async fn test_delete_attestation_ok() {
     let (mut wallet, _, issuance_urls) = setup_wallet_and_env(
         &db_setup,
         &hsm_setup,
+        &tempdir,
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         (wp_settings, wp_root_ca),

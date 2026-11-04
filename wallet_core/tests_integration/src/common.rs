@@ -22,10 +22,12 @@ use attestation_types::credential_format::Format;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
-use crypto::PublicKeyRef;
+use crypto::kid::Kid;
+use crypto::kid::VerifyingKeyWithKid;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::utils::random_string;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use ctor::ctor;
@@ -45,6 +47,7 @@ use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
 use jwt::SignedJwt;
+use jwt::headers::HeaderWithKid;
 use oauth::issuer_identifier::IssuerIdentifier;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::HttpVpMessageClient;
@@ -85,6 +88,7 @@ use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
+use tempfile::TempDir;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use tokio::net::TcpListener;
 use tokio::time;
@@ -102,6 +106,7 @@ use wallet::Pin;
 use wallet::Wallet;
 use wallet::WalletClients;
 use wallet::WalletRepositories;
+use wallet::test::ConfigSigningKey;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
@@ -185,11 +190,13 @@ pub type WalletWithStorage = Wallet<
 pub async fn setup_wallet_and_default_env(
     db_setup: &DbSetup,
     hsm_setup: &HsmSetup,
+    tempdir: &TempDir,
     vendor: WalletDeviceVendor,
 ) -> (WalletWithStorage, DisclosureUrls, IssuerData) {
     setup_wallet_and_env(
         db_setup,
         hsm_setup,
+        tempdir,
         vendor,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
@@ -466,7 +473,7 @@ pub async fn build_wallet_environment_with_instruction_result_keys(
     ups_port: u16,
     ups_root_ca: ReqwestTrustAnchor,
     wp_port: u16,
-    instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
+    instruction_result_public_keys: HashMap<Kid, DerVerifyingKey>,
 ) -> (ConfigServerConfiguration, WalletConfiguration) {
     let (static_settings, static_root_ca) = static_server_settings();
 
@@ -490,7 +497,7 @@ pub async fn build_wallet_environment_with_certificate_public_keys(
     ups_port: u16,
     ups_root_ca: ReqwestTrustAnchor,
     wp_port: u16,
-    certificate_public_keys: HashMap<String, CertificatePublicKey>,
+    certificate_public_keys: HashMap<Kid, CertificatePublicKey>,
 ) -> (ConfigServerConfiguration, WalletConfiguration) {
     let (static_settings, static_root_ca) = static_server_settings();
 
@@ -515,8 +522,8 @@ async fn build_wallet_environment_inner(
     ups_root_ca: ReqwestTrustAnchor,
     wp_port: u16,
     pid_credential_offer: Option<Url>,
-    instruction_result_public_keys: Option<HashMap<String, DerVerifyingKey>>,
-    certificate_public_keys: Option<HashMap<String, CertificatePublicKey>>,
+    instruction_result_public_keys: Option<HashMap<Kid, DerVerifyingKey>>,
+    certificate_public_keys: Option<HashMap<Kid, CertificatePublicKey>>,
 ) -> (ConfigServerConfiguration, WalletConfiguration) {
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
@@ -540,10 +547,9 @@ async fn build_wallet_environment_inner(
 
     static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
 
-    let static_port = start_static_server(static_settings, static_root_ca.clone()).await;
+    let config_url = start_static_server(static_settings, static_root_ca.clone()).await;
     let config_server_config = ConfigServerConfiguration {
-        http_config: TlsPinningConfig::try_new(local_config_base_url(static_port), vec_nonempty![static_root_ca])
-            .unwrap(),
+        http_config: TlsPinningConfig::try_new(config_url, vec_nonempty![static_root_ca]).unwrap(),
         ..default_config_server_config()
     };
 
@@ -570,11 +576,15 @@ pub async fn setup_file_wallet(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
-    path: PathBuf,
+    temp_path: PathBuf,
 ) -> WalletWithStorage {
-    setup_wallet(config_server_config, wallet_config, key_holder, async move || {
-        MockHardwareDatabaseStorage::open_file(path).await
-    })
+    setup_wallet(
+        config_server_config,
+        wallet_config,
+        key_holder,
+        &temp_path.clone(),
+        async move || MockHardwareDatabaseStorage::open_file(temp_path).await,
+    )
     .await
 }
 
@@ -583,8 +593,9 @@ pub async fn setup_in_memory_wallet(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
+    temp_path: impl AsRef<Path>,
 ) -> WalletWithStorage {
-    setup_wallet(config_server_config, wallet_config, key_holder, async || {
+    setup_wallet(config_server_config, wallet_config, key_holder, temp_path, async || {
         MockHardwareDatabaseStorage::open_in_memory().await
     })
     .await
@@ -595,6 +606,7 @@ pub async fn setup_wallet<F>(
     config_server_config: ConfigServerConfiguration,
     wallet_config: WalletConfiguration,
     key_holder: MockHardwareAttestedKeyHolder,
+    temp_path: impl AsRef<Path>,
     storage_generator: F,
 ) -> WalletWithStorage
 where
@@ -606,9 +618,13 @@ where
     crl_distribution_point.set_port(Some(static_settings.crl_port)).unwrap();
     crl_distribution_point.set_path("/wrpac.crl.der");
 
+    let etag_path = temp_path.as_ref().join(format!("{}.etag", random_string(10)));
     let config_repository = HttpConfigurationRepository::new(
-        PublicKeyRef::from(config_server_config.signing_public_key.as_inner()).into(),
-        tempfile::tempdir().unwrap().keep(),
+        VerifyingKeyWithKid {
+            kid: config_server_config.signing_key_id,
+            public_key: config_server_config.signing_public_key,
+        },
+        etag_path,
         wallet_config,
     );
 
@@ -653,6 +669,7 @@ where
 pub async fn setup_wallet_and_env(
     db_setup: &DbSetup,
     hsm_setup: &HsmSetup,
+    tempdir: &TempDir,
     vendor: WalletDeviceVendor,
     ups_config: (UpsSettings, ReqwestTrustAnchor),
     wp_config: (WpSettings, ReqwestTrustAnchor),
@@ -680,7 +697,7 @@ pub async fn setup_wallet_and_env(
         WalletDeviceVendor::Google => mock_device_config.google_key_holder(),
     };
 
-    let wallet = setup_in_memory_wallet(config_server_config, wallet_config, key_holder).await;
+    let wallet = setup_in_memory_wallet(config_server_config, wallet_config, key_holder, &tempdir).await;
 
     (wallet, verifier_server_urls, issuer_data)
 }
@@ -691,6 +708,7 @@ pub async fn setup_wallet_and_env(
 pub async fn setup_wallet_env(
     db_setup: &DbSetup,
     hsm_setup: &HsmSetup,
+    tempdir: &TempDir,
     vendor: WalletDeviceVendor,
 ) -> WalletWithStorage {
     let mock_device_config = MockDeviceConfig::generate();
@@ -718,7 +736,7 @@ pub async fn setup_wallet_env(
         WalletDeviceVendor::Google => mock_device_config.google_key_holder(),
     };
 
-    setup_in_memory_wallet(config_server_config, wallet_config, key_holder).await
+    setup_in_memory_wallet(config_server_config, wallet_config, key_holder, tempdir).await
 }
 
 /// Start just the pre-authorized-code issuer (`pacf_issuance_server`). Its keys are software-backed, so
@@ -789,15 +807,14 @@ pub fn update_policy_server_settings() -> (UpsSettings, ReqwestTrustAnchor) {
     (settings, root_ca)
 }
 
-pub async fn config_jwt(wallet_config: &WalletConfiguration) -> SignedJwt<WalletConfiguration> {
+pub async fn config_jwt(wallet_config: &WalletConfiguration) -> SignedJwt<WalletConfiguration, HeaderWithKid> {
     let key = read_file("config_signing.pem");
+    let signing_key = ConfigSigningKey {
+        key: SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
+        kid: "0",
+    };
 
-    SignedJwt::sign(
-        wallet_config,
-        &SigningKey::from_pkcs8_pem(&String::from_utf8_lossy(&key)).unwrap(),
-    )
-    .await
-    .unwrap()
+    SignedJwt::sign_with_kid(wallet_config, &signing_key).await.unwrap()
 }
 
 pub fn wallet_provider_settings(db_url: Url, audit_db_url: Url) -> (WpSettings, ReqwestTrustAnchor) {
@@ -814,7 +831,7 @@ pub fn wallet_provider_settings(db_url: Url, audit_db_url: Url) -> (WpSettings, 
     (settings, root_ca)
 }
 
-pub async fn start_static_server(settings: StaticSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
+pub async fn start_static_server(settings: StaticSettings, trust_anchor: ReqwestTrustAnchor) -> BaseUrl {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
@@ -831,7 +848,7 @@ pub async fn start_static_server(settings: StaticSettings, trust_anchor: Reqwest
         Some(vec_nonempty![trust_anchor.into_certificate()]),
     )
     .await;
-    port
+    base_url
 }
 
 pub async fn start_static_crl_server(settings: &StaticSettings) -> u16 {
