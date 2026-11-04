@@ -2563,7 +2563,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         );
       case 1:
         return IssuanceContinueResult_NoPreviews(
-          organization: dco_decode_box_autoadd_organization(raw[1]),
+          issuer: dco_decode_box_autoadd_organization(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -2584,7 +2584,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         );
       case 2:
         return IssuanceStartResult_NoPreviews(
-          organization: dco_decode_box_autoadd_organization(raw[1]),
+          issuer: dco_decode_box_autoadd_organization(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -3671,8 +3671,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_field0 = sse_decode_list_attestation_presentation(deserializer);
         return IssuanceContinueResult_Previews(var_field0);
       case 1:
-        var var_organization = sse_decode_box_autoadd_organization(deserializer);
-        return IssuanceContinueResult_NoPreviews(organization: var_organization);
+        var var_issuer = sse_decode_box_autoadd_organization(deserializer);
+        return IssuanceContinueResult_NoPreviews(issuer: var_issuer);
       default:
         throw UnimplementedError('');
     }
@@ -3691,8 +3691,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_field0 = sse_decode_list_attestation_presentation(deserializer);
         return IssuanceStartResult_Previews(var_field0);
       case 2:
-        var var_organization = sse_decode_box_autoadd_organization(deserializer);
-        return IssuanceStartResult_NoPreviews(organization: var_organization);
+        var var_issuer = sse_decode_box_autoadd_organization(deserializer);
+        return IssuanceStartResult_NoPreviews(issuer: var_issuer);
       default:
         throw UnimplementedError('');
     }
@@ -5113,9 +5113,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case IssuanceContinueResult_Previews(field0: final field0):
         sse_encode_i_32(0, serializer);
         sse_encode_list_attestation_presentation(field0, serializer);
-      case IssuanceContinueResult_NoPreviews(organization: final organization):
+      case IssuanceContinueResult_NoPreviews(issuer: final issuer):
         sse_encode_i_32(1, serializer);
-        sse_encode_box_autoadd_organization(organization, serializer);
+        sse_encode_box_autoadd_organization(issuer, serializer);
     }
   }
 
@@ -5129,9 +5129,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case IssuanceStartResult_Previews(field0: final field0):
         sse_encode_i_32(1, serializer);
         sse_encode_list_attestation_presentation(field0, serializer);
-      case IssuanceStartResult_NoPreviews(organization: final organization):
+      case IssuanceStartResult_NoPreviews(issuer: final issuer):
         sse_encode_i_32(2, serializer);
-        sse_encode_box_autoadd_organization(organization, serializer);
+        sse_encode_box_autoadd_organization(issuer, serializer);
     }
   }
 

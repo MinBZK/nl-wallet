@@ -4,7 +4,7 @@ use crate::models::organization::Organization;
 pub enum IssuanceStartResult {
     AuthorizationUrl(String),
     Previews(Vec<AttestationPresentation>),
-    NoPreviews { organization: Organization },
+    NoPreviews { issuer: Organization },
 }
 
 impl From<wallet::IssuanceStartResult> for IssuanceStartResult {
@@ -15,8 +15,8 @@ impl From<wallet::IssuanceStartResult> for IssuanceStartResult {
             Previews(previews) => {
                 IssuanceStartResult::Previews(previews.into_iter().map(AttestationPresentation::from).collect())
             }
-            NoPreviews { organization } => IssuanceStartResult::NoPreviews {
-                organization: (*organization).into(),
+            NoPreviews { issuer } => IssuanceStartResult::NoPreviews {
+                issuer: (*issuer).into(),
             },
         }
     }
@@ -24,7 +24,7 @@ impl From<wallet::IssuanceStartResult> for IssuanceStartResult {
 
 pub enum IssuanceContinueResult {
     Previews(Vec<AttestationPresentation>),
-    NoPreviews { organization: Organization },
+    NoPreviews { issuer: Organization },
 }
 
 impl From<wallet::IssuanceContinueResult> for IssuanceContinueResult {
@@ -34,8 +34,8 @@ impl From<wallet::IssuanceContinueResult> for IssuanceContinueResult {
             Previews(previews) => {
                 IssuanceContinueResult::Previews(previews.into_iter().map(AttestationPresentation::from).collect())
             }
-            NoPreviews { organization } => IssuanceContinueResult::NoPreviews {
-                organization: (*organization).into(),
+            NoPreviews { issuer } => IssuanceContinueResult::NoPreviews {
+                issuer: (*issuer).into(),
             },
         }
     }

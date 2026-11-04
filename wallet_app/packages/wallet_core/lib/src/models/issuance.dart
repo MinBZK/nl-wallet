@@ -35,7 +35,7 @@ sealed class IssuanceContinueResult with _$IssuanceContinueResult {
     List<AttestationPresentation> field0,
   ) = IssuanceContinueResult_Previews;
   const factory IssuanceContinueResult.noPreviews({
-    required Organization organization,
+    required Organization issuer,
   }) = IssuanceContinueResult_NoPreviews;
 }
 
@@ -50,6 +50,6 @@ sealed class IssuanceStartResult with _$IssuanceStartResult {
     List<AttestationPresentation> field0,
   ) = IssuanceStartResult_Previews;
   const factory IssuanceStartResult.noPreviews({
-    required Organization organization,
+    required Organization issuer,
   }) = IssuanceStartResult_NoPreviews;
 }

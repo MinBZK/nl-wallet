@@ -23,7 +23,7 @@ sealed class StartIssuanceResult with _$StartIssuanceResult {
 
   /// The issuer does not provide previews, so the cards can only be shown once they are issued.
   const factory StartIssuanceResult.noPreviews({
-    required Organization organization,
+    required Organization issuer,
   }) = StartIssuanceNoPreviews;
 
   const factory StartIssuanceResult.readyToDisclose({
@@ -42,7 +42,7 @@ sealed class StartIssuanceResult with _$StartIssuanceResult {
   Organization? get relyingParty => map(
     authorizationRequired: (_) => null,
     preAuthorizedOffer: (value) => value.previews.firstOrNull?.issuer,
-    noPreviews: (value) => value.organization,
+    noPreviews: (value) => value.issuer,
     readyToDisclose: (value) => value.relyingParty,
     missingAttributes: (value) => value.relyingParty,
   );

@@ -185,7 +185,7 @@ void main() {
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
-        (_) async => Result.success(StartIssuanceNoPreviews(organization: WalletMockData.organization)),
+        (_) async => Result.success(StartIssuanceNoPreviews(issuer: WalletMockData.organization)),
       );
     },
     act: (bloc) async {
@@ -208,7 +208,7 @@ void main() {
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(continueIssuanceUseCase.invoke(any)).thenAnswer(
-        (_) async => Result.success(ContinueIssuanceNoPreviews(organization: WalletMockData.organization)),
+        (_) async => Result.success(ContinueIssuanceNoPreviews(issuer: WalletMockData.organization)),
       );
     },
     act: (bloc) async {
@@ -231,7 +231,7 @@ void main() {
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(continueIssuanceUseCase.invoke(any)).thenAnswer(
-        (_) async => Result.success(ContinueIssuanceNoPreviews(organization: WalletMockData.organization)),
+        (_) async => Result.success(ContinueIssuanceNoPreviews(issuer: WalletMockData.organization)),
       );
     },
     act: (bloc) async {

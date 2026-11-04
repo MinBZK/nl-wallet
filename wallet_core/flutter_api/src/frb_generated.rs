@@ -2510,10 +2510,8 @@ impl SseDecode for crate::models::issuance::IssuanceContinueResult {
                 return crate::models::issuance::IssuanceContinueResult::Previews(var_field0);
             }
             1 => {
-                let mut var_organization = <crate::models::organization::Organization>::sse_decode(deserializer);
-                return crate::models::issuance::IssuanceContinueResult::NoPreviews {
-                    organization: var_organization,
-                };
+                let mut var_issuer = <crate::models::organization::Organization>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceContinueResult::NoPreviews { issuer: var_issuer };
             }
             _ => {
                 unimplemented!("");
@@ -2537,10 +2535,8 @@ impl SseDecode for crate::models::issuance::IssuanceStartResult {
                 return crate::models::issuance::IssuanceStartResult::Previews(var_field0);
             }
             2 => {
-                let mut var_organization = <crate::models::organization::Organization>::sse_decode(deserializer);
-                return crate::models::issuance::IssuanceStartResult::NoPreviews {
-                    organization: var_organization,
-                };
+                let mut var_issuer = <crate::models::organization::Organization>::sse_decode(deserializer);
+                return crate::models::issuance::IssuanceStartResult::NoPreviews { issuer: var_issuer };
             }
             _ => {
                 unimplemented!("");
@@ -3985,8 +3981,8 @@ impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceContinue
             crate::models::issuance::IssuanceContinueResult::Previews(field0) => {
                 [0.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::issuance::IssuanceContinueResult::NoPreviews { organization } => {
-                [1.into_dart(), organization.into_into_dart().into_dart()].into_dart()
+            crate::models::issuance::IssuanceContinueResult::NoPreviews { issuer } => {
+                [1.into_dart(), issuer.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -4012,8 +4008,8 @@ impl flutter_rust_bridge::IntoDart for crate::models::issuance::IssuanceStartRes
             crate::models::issuance::IssuanceStartResult::Previews(field0) => {
                 [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::issuance::IssuanceStartResult::NoPreviews { organization } => {
-                [2.into_dart(), organization.into_into_dart().into_dart()].into_dart()
+            crate::models::issuance::IssuanceStartResult::NoPreviews { issuer } => {
+                [2.into_dart(), issuer.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -5134,9 +5130,9 @@ impl SseEncode for crate::models::issuance::IssuanceContinueResult {
                 <i32>::sse_encode(0, serializer);
                 <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
             }
-            crate::models::issuance::IssuanceContinueResult::NoPreviews { organization } => {
+            crate::models::issuance::IssuanceContinueResult::NoPreviews { issuer } => {
                 <i32>::sse_encode(1, serializer);
-                <crate::models::organization::Organization>::sse_encode(organization, serializer);
+                <crate::models::organization::Organization>::sse_encode(issuer, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -5157,9 +5153,9 @@ impl SseEncode for crate::models::issuance::IssuanceStartResult {
                 <i32>::sse_encode(1, serializer);
                 <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
             }
-            crate::models::issuance::IssuanceStartResult::NoPreviews { organization } => {
+            crate::models::issuance::IssuanceStartResult::NoPreviews { issuer } => {
                 <i32>::sse_encode(2, serializer);
-                <crate::models::organization::Organization>::sse_encode(organization, serializer);
+                <crate::models::organization::Organization>::sse_encode(issuer, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -6461,7 +6457,7 @@ mod io {
                 1 => {
                     let ans = unsafe { self.kind.NoPreviews };
                     crate::models::issuance::IssuanceContinueResult::NoPreviews {
-                        organization: ans.organization.cst_decode(),
+                        issuer: ans.issuer.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -6483,7 +6479,7 @@ mod io {
                 2 => {
                     let ans = unsafe { self.kind.NoPreviews };
                     crate::models::issuance::IssuanceStartResult::NoPreviews {
-                        organization: ans.organization.cst_decode(),
+                        issuer: ans.issuer.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -8590,7 +8586,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_IssuanceContinueResult_NoPreviews {
-        organization: *mut wire_cst_organization,
+        issuer: *mut wire_cst_organization,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -8619,7 +8615,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_IssuanceStartResult_NoPreviews {
-        organization: *mut wire_cst_organization,
+        issuer: *mut wire_cst_organization,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

@@ -120,11 +120,11 @@ return noPreviews(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( List<WalletCard> previews)?  previews,TResult Function( Organization organization)?  noPreviews,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( List<WalletCard> previews)?  previews,TResult Function( Organization issuer)?  noPreviews,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ContinueIssuancePreviews() when previews != null:
 return previews(_that.previews);case ContinueIssuanceNoPreviews() when noPreviews != null:
-return noPreviews(_that.organization);case _:
+return noPreviews(_that.issuer);case _:
   return orElse();
 
 }
@@ -142,11 +142,11 @@ return noPreviews(_that.organization);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( List<WalletCard> previews)  previews,required TResult Function( Organization organization)  noPreviews,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( List<WalletCard> previews)  previews,required TResult Function( Organization issuer)  noPreviews,}) {final _that = this;
 switch (_that) {
 case ContinueIssuancePreviews():
 return previews(_that.previews);case ContinueIssuanceNoPreviews():
-return noPreviews(_that.organization);}
+return noPreviews(_that.issuer);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -160,11 +160,11 @@ return noPreviews(_that.organization);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( List<WalletCard> previews)?  previews,TResult? Function( Organization organization)?  noPreviews,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( List<WalletCard> previews)?  previews,TResult? Function( Organization issuer)?  noPreviews,}) {final _that = this;
 switch (_that) {
 case ContinueIssuancePreviews() when previews != null:
 return previews(_that.previews);case ContinueIssuanceNoPreviews() when noPreviews != null:
-return noPreviews(_that.organization);case _:
+return noPreviews(_that.issuer);case _:
   return null;
 
 }
@@ -250,10 +250,10 @@ as List<WalletCard>,
 
 
 class ContinueIssuanceNoPreviews implements ContinueIssuanceResult {
-  const ContinueIssuanceNoPreviews({required this.organization});
+  const ContinueIssuanceNoPreviews({required this.issuer});
   
 
- final  Organization organization;
+ final  Organization issuer;
 
 /// Create a copy of ContinueIssuanceResult
 /// with the given fields replaced by the non-null parameter values.
@@ -265,18 +265,18 @@ $ContinueIssuanceNoPreviewsCopyWith<ContinueIssuanceNoPreviews> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is ContinueIssuanceNoPreviews&&(identical(other.organization, organization) || other.organization == organization));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ContinueIssuanceNoPreviews&&(identical(other.issuer, issuer) || other.issuer == issuer));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,organization);
+    return Object.hash(runtimeType,issuer);
 }
 
 @override
 String toString() {
-    return 'ContinueIssuanceResult.noPreviews(organization: $organization)';
+    return 'ContinueIssuanceResult.noPreviews(issuer: $issuer)';
 }
 
 
@@ -287,11 +287,11 @@ abstract mixin class $ContinueIssuanceNoPreviewsCopyWith<$Res> implements $Conti
   factory $ContinueIssuanceNoPreviewsCopyWith(ContinueIssuanceNoPreviews value, $Res Function(ContinueIssuanceNoPreviews) _then) = _$ContinueIssuanceNoPreviewsCopyWithImpl;
 @useResult
 $Res call({
- Organization organization
+ Organization issuer
 });
 
 
-$OrganizationCopyWith<$Res> get organization;
+$OrganizationCopyWith<$Res> get issuer;
 
 }
 /// @nodoc
@@ -304,9 +304,9 @@ class _$ContinueIssuanceNoPreviewsCopyWithImpl<$Res>
 
 /// Create a copy of ContinueIssuanceResult
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? organization = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? issuer = null,}) {
   return _then(ContinueIssuanceNoPreviews(
-organization: null == organization ? _self.organization : organization // ignore: cast_nullable_to_non_nullable
+issuer: null == issuer ? _self.issuer : issuer // ignore: cast_nullable_to_non_nullable
 as Organization,
   ));
 }
@@ -315,10 +315,10 @@ as Organization,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$OrganizationCopyWith<$Res> get organization {
+$OrganizationCopyWith<$Res> get issuer {
   
-  return $OrganizationCopyWith<$Res>(_self.organization, (value) {
-    return _then(_self.copyWith(organization: value));
+  return $OrganizationCopyWith<$Res>(_self.issuer, (value) {
+    return _then(_self.copyWith(issuer: value));
   });
 }
 }

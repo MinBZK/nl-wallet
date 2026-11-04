@@ -1565,9 +1565,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       return;
     }
     if (apiObj is IssuanceContinueResult_NoPreviews) {
-      var pre_organization = cst_encode_box_autoadd_organization(apiObj.organization);
+      var pre_issuer = cst_encode_box_autoadd_organization(apiObj.issuer);
       wireObj.tag = 1;
-      wireObj.kind.NoPreviews.organization = pre_organization;
+      wireObj.kind.NoPreviews.issuer = pre_issuer;
       return;
     }
   }
@@ -1587,9 +1587,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       return;
     }
     if (apiObj is IssuanceStartResult_NoPreviews) {
-      var pre_organization = cst_encode_box_autoadd_organization(apiObj.organization);
+      var pre_issuer = cst_encode_box_autoadd_organization(apiObj.issuer);
       wireObj.tag = 2;
-      wireObj.kind.NoPreviews.organization = pre_organization;
+      wireObj.kind.NoPreviews.issuer = pre_issuer;
       return;
     }
   }
@@ -4576,7 +4576,7 @@ final class wire_cst_IssuanceContinueResult_Previews extends ffi.Struct {
 }
 
 final class wire_cst_IssuanceContinueResult_NoPreviews extends ffi.Struct {
-  external ffi.Pointer<wire_cst_organization> organization;
+  external ffi.Pointer<wire_cst_organization> issuer;
 }
 
 final class IssuanceContinueResultKind extends ffi.Union {
@@ -4601,7 +4601,7 @@ final class wire_cst_IssuanceStartResult_Previews extends ffi.Struct {
 }
 
 final class wire_cst_IssuanceStartResult_NoPreviews extends ffi.Struct {
-  external ffi.Pointer<wire_cst_organization> organization;
+  external ffi.Pointer<wire_cst_organization> issuer;
 }
 
 final class IssuanceStartResultKind extends ffi.Union {

@@ -460,11 +460,11 @@ return noPreviews(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( List<AttestationPresentation> field0)?  previews,TResult Function( Organization organization)?  noPreviews,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( List<AttestationPresentation> field0)?  previews,TResult Function( Organization issuer)?  noPreviews,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case IssuanceContinueResult_Previews() when previews != null:
 return previews(_that.field0);case IssuanceContinueResult_NoPreviews() when noPreviews != null:
-return noPreviews(_that.organization);case _:
+return noPreviews(_that.issuer);case _:
   return orElse();
 
 }
@@ -482,11 +482,11 @@ return noPreviews(_that.organization);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( List<AttestationPresentation> field0)  previews,required TResult Function( Organization organization)  noPreviews,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( List<AttestationPresentation> field0)  previews,required TResult Function( Organization issuer)  noPreviews,}) {final _that = this;
 switch (_that) {
 case IssuanceContinueResult_Previews():
 return previews(_that.field0);case IssuanceContinueResult_NoPreviews():
-return noPreviews(_that.organization);}
+return noPreviews(_that.issuer);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -500,11 +500,11 @@ return noPreviews(_that.organization);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( List<AttestationPresentation> field0)?  previews,TResult? Function( Organization organization)?  noPreviews,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( List<AttestationPresentation> field0)?  previews,TResult? Function( Organization issuer)?  noPreviews,}) {final _that = this;
 switch (_that) {
 case IssuanceContinueResult_Previews() when previews != null:
 return previews(_that.field0);case IssuanceContinueResult_NoPreviews() when noPreviews != null:
-return noPreviews(_that.organization);case _:
+return noPreviews(_that.issuer);case _:
   return null;
 
 }
@@ -590,10 +590,10 @@ as List<AttestationPresentation>,
 
 
 class IssuanceContinueResult_NoPreviews extends IssuanceContinueResult {
-  const IssuanceContinueResult_NoPreviews({required this.organization}): super._();
+  const IssuanceContinueResult_NoPreviews({required this.issuer}): super._();
   
 
- final  Organization organization;
+ final  Organization issuer;
 
 /// Create a copy of IssuanceContinueResult
 /// with the given fields replaced by the non-null parameter values.
@@ -605,18 +605,18 @@ $IssuanceContinueResult_NoPreviewsCopyWith<IssuanceContinueResult_NoPreviews> ge
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceContinueResult_NoPreviews&&(identical(other.organization, organization) || other.organization == organization));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceContinueResult_NoPreviews&&(identical(other.issuer, issuer) || other.issuer == issuer));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,organization);
+    return Object.hash(runtimeType,issuer);
 }
 
 @override
 String toString() {
-    return 'IssuanceContinueResult.noPreviews(organization: $organization)';
+    return 'IssuanceContinueResult.noPreviews(issuer: $issuer)';
 }
 
 
@@ -627,7 +627,7 @@ abstract mixin class $IssuanceContinueResult_NoPreviewsCopyWith<$Res> implements
   factory $IssuanceContinueResult_NoPreviewsCopyWith(IssuanceContinueResult_NoPreviews value, $Res Function(IssuanceContinueResult_NoPreviews) _then) = _$IssuanceContinueResult_NoPreviewsCopyWithImpl;
 @useResult
 $Res call({
- Organization organization
+ Organization issuer
 });
 
 
@@ -644,9 +644,9 @@ class _$IssuanceContinueResult_NoPreviewsCopyWithImpl<$Res>
 
 /// Create a copy of IssuanceContinueResult
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? organization = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? issuer = null,}) {
   return _then(IssuanceContinueResult_NoPreviews(
-organization: null == organization ? _self.organization : organization // ignore: cast_nullable_to_non_nullable
+issuer: null == issuer ? _self.issuer : issuer // ignore: cast_nullable_to_non_nullable
 as Organization,
   ));
 }
@@ -765,12 +765,12 @@ return noPreviews(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String field0)?  authorizationUrl,TResult Function( List<AttestationPresentation> field0)?  previews,TResult Function( Organization organization)?  noPreviews,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String field0)?  authorizationUrl,TResult Function( List<AttestationPresentation> field0)?  previews,TResult Function( Organization issuer)?  noPreviews,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case IssuanceStartResult_AuthorizationUrl() when authorizationUrl != null:
 return authorizationUrl(_that.field0);case IssuanceStartResult_Previews() when previews != null:
 return previews(_that.field0);case IssuanceStartResult_NoPreviews() when noPreviews != null:
-return noPreviews(_that.organization);case _:
+return noPreviews(_that.issuer);case _:
   return orElse();
 
 }
@@ -788,12 +788,12 @@ return noPreviews(_that.organization);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String field0)  authorizationUrl,required TResult Function( List<AttestationPresentation> field0)  previews,required TResult Function( Organization organization)  noPreviews,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String field0)  authorizationUrl,required TResult Function( List<AttestationPresentation> field0)  previews,required TResult Function( Organization issuer)  noPreviews,}) {final _that = this;
 switch (_that) {
 case IssuanceStartResult_AuthorizationUrl():
 return authorizationUrl(_that.field0);case IssuanceStartResult_Previews():
 return previews(_that.field0);case IssuanceStartResult_NoPreviews():
-return noPreviews(_that.organization);}
+return noPreviews(_that.issuer);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -807,12 +807,12 @@ return noPreviews(_that.organization);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String field0)?  authorizationUrl,TResult? Function( List<AttestationPresentation> field0)?  previews,TResult? Function( Organization organization)?  noPreviews,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String field0)?  authorizationUrl,TResult? Function( List<AttestationPresentation> field0)?  previews,TResult? Function( Organization issuer)?  noPreviews,}) {final _that = this;
 switch (_that) {
 case IssuanceStartResult_AuthorizationUrl() when authorizationUrl != null:
 return authorizationUrl(_that.field0);case IssuanceStartResult_Previews() when previews != null:
 return previews(_that.field0);case IssuanceStartResult_NoPreviews() when noPreviews != null:
-return noPreviews(_that.organization);case _:
+return noPreviews(_that.issuer);case _:
   return null;
 
 }
@@ -966,10 +966,10 @@ as List<AttestationPresentation>,
 
 
 class IssuanceStartResult_NoPreviews extends IssuanceStartResult {
-  const IssuanceStartResult_NoPreviews({required this.organization}): super._();
+  const IssuanceStartResult_NoPreviews({required this.issuer}): super._();
   
 
- final  Organization organization;
+ final  Organization issuer;
 
 /// Create a copy of IssuanceStartResult
 /// with the given fields replaced by the non-null parameter values.
@@ -981,18 +981,18 @@ $IssuanceStartResult_NoPreviewsCopyWith<IssuanceStartResult_NoPreviews> get copy
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult_NoPreviews&&(identical(other.organization, organization) || other.organization == organization));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is IssuanceStartResult_NoPreviews&&(identical(other.issuer, issuer) || other.issuer == issuer));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,organization);
+    return Object.hash(runtimeType,issuer);
 }
 
 @override
 String toString() {
-    return 'IssuanceStartResult.noPreviews(organization: $organization)';
+    return 'IssuanceStartResult.noPreviews(issuer: $issuer)';
 }
 
 
@@ -1003,7 +1003,7 @@ abstract mixin class $IssuanceStartResult_NoPreviewsCopyWith<$Res> implements $I
   factory $IssuanceStartResult_NoPreviewsCopyWith(IssuanceStartResult_NoPreviews value, $Res Function(IssuanceStartResult_NoPreviews) _then) = _$IssuanceStartResult_NoPreviewsCopyWithImpl;
 @useResult
 $Res call({
- Organization organization
+ Organization issuer
 });
 
 
@@ -1020,9 +1020,9 @@ class _$IssuanceStartResult_NoPreviewsCopyWithImpl<$Res>
 
 /// Create a copy of IssuanceStartResult
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? organization = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? issuer = null,}) {
   return _then(IssuanceStartResult_NoPreviews(
-organization: null == organization ? _self.organization : organization // ignore: cast_nullable_to_non_nullable
+issuer: null == issuer ? _self.issuer : issuer // ignore: cast_nullable_to_non_nullable
 as Organization,
   ));
 }

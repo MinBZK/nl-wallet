@@ -66,8 +66,8 @@ class CoreIssuanceRepository implements IssuanceRepository {
         return StartIssuanceAuthorizationRequired(authUrl);
       case core.IssuanceStartResult_Previews(field0: final cards):
         return StartIssuancePreAuthorizedOffer(_attestationMapper.mapList(cards));
-      case core.IssuanceStartResult_NoPreviews(:final organization):
-        return StartIssuanceNoPreviews(organization: _relyingPartyMapper.map(organization));
+      case core.IssuanceStartResult_NoPreviews(:final issuer):
+        return StartIssuanceNoPreviews(issuer: _relyingPartyMapper.map(issuer));
     }
   }
 
@@ -95,8 +95,8 @@ class CoreIssuanceRepository implements IssuanceRepository {
     switch (result) {
       case core.IssuanceContinueResult_Previews(field0: final cards):
         return ContinueIssuancePreviews(_attestationMapper.mapList(cards));
-      case core.IssuanceContinueResult_NoPreviews(:final organization):
-        return ContinueIssuanceNoPreviews(organization: _relyingPartyMapper.map(organization));
+      case core.IssuanceContinueResult_NoPreviews(:final issuer):
+        return ContinueIssuanceNoPreviews(issuer: _relyingPartyMapper.map(issuer));
     }
   }
 

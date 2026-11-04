@@ -545,7 +545,7 @@ typedef struct wire_cst_IssuanceContinueResult_Previews {
 } wire_cst_IssuanceContinueResult_Previews;
 
 typedef struct wire_cst_IssuanceContinueResult_NoPreviews {
-  struct wire_cst_organization *organization;
+  struct wire_cst_organization *issuer;
 } wire_cst_IssuanceContinueResult_NoPreviews;
 
 typedef union IssuanceContinueResultKind {
@@ -567,7 +567,7 @@ typedef struct wire_cst_IssuanceStartResult_Previews {
 } wire_cst_IssuanceStartResult_Previews;
 
 typedef struct wire_cst_IssuanceStartResult_NoPreviews {
-  struct wire_cst_organization *organization;
+  struct wire_cst_organization *issuer;
 } wire_cst_IssuanceStartResult_NoPreviews;
 
 typedef union IssuanceStartResultKind {

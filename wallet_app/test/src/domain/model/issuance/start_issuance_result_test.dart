@@ -16,7 +16,7 @@ void main() {
     final preAuthOfferEmpty = const StartIssuanceResult.preAuthorizedOffer([]);
     expect(preAuthOfferEmpty.relyingParty, isNull);
 
-    final noPreviews = StartIssuanceResult.noPreviews(organization: WalletMockData.organization);
+    final noPreviews = StartIssuanceResult.noPreviews(issuer: WalletMockData.organization);
     expect(noPreviews.relyingParty, WalletMockData.organization);
 
     final readyToDisclose = StartIssuanceResult.readyToDisclose(
@@ -42,7 +42,7 @@ void main() {
     final preAuthOffer = StartIssuanceResult.preAuthorizedOffer([WalletMockData.card]);
     expect(preAuthOffer.sessionType, isNull);
 
-    final noPreviews = StartIssuanceResult.noPreviews(organization: WalletMockData.organization);
+    final noPreviews = StartIssuanceResult.noPreviews(issuer: WalletMockData.organization);
     expect(noPreviews.sessionType, isNull);
 
     final readyToDisclose = StartIssuanceResult.readyToDisclose(
