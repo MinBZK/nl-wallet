@@ -2,10 +2,21 @@ import router from '@/router'
 
 const BASE_PATH = '/admin-portal'
 
+/** Thrown on a non-OK response, carrying the HTTP [status] so callers can handle specific codes. */
+export class HttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'HttpError'
+  }
+}
+
 /** Thrown on 401 response, after redirecting to `/login`. */
-export class UnauthorizedError extends Error {
+export class UnauthorizedError extends HttpError {
   constructor() {
-    super('Unauthorized')
+    super(401, 'Unauthorized')
     this.name = 'UnauthorizedError'
   }
 }
@@ -20,7 +31,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    throw new Error(`Unexpected ${path} response: ${response.status}`)
+    throw new HttpError(response.status, `Unexpected ${path} response: ${response.status}`)
   }
 
   return response.json() as Promise<T>

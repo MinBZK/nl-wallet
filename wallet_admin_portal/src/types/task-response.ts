@@ -1,21 +1,22 @@
-import type { TaskActionType } from './task-action.ts'
+import type { TaskPayload } from './task-payload.ts'
 
 export type TaskStatus = 'created' | 'withdrawn' | 'approved' | 'rejected'
 
-/** A task as returned by the wallet_provider `/admin-portal/tasks` endpoints. */
-export interface TaskResponse {
+interface TaskResponseFields {
   taskId: string
   createdAt: string
   createdBy: string
-  taskType: TaskActionType
-  taskParameters: unknown
   taskReason: string
   status: TaskStatus
+  withdrawalComment: string | null
   withdrawnAt: string | null
   reviewedAt: string | null
   reviewedBy: string | null
   reviewComment: string | null
   executedAt: string | null
-  executionResult: string | null
-  executionResultDetails: unknown
+  executionSuccessful: boolean | null
+  executionDetails: string | null
 }
+
+/** A task as returned by the wallet_provider `/admin-portal/tasks` endpoints. */
+export type TaskResponse = TaskResponseFields & TaskPayload
