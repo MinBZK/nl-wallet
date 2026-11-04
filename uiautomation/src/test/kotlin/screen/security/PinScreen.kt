@@ -74,9 +74,8 @@ class PinScreen : MobileActions() {
     }
 
     fun enterPin(pin: String) {
-        for (digit in pin) {
-            clickElementWithText(digit.toString())
-        }
+        clickElementWithText(pin.take(1))
+        withoutWaitForIdle { pin.drop(1).forEach { clickElementWithText(it.toString()) } }
     }
 
     fun clickConfirmPinErrorFatalCta() = clickElementWithText(confirmPinErrorFatalCta)

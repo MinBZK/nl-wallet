@@ -19,6 +19,7 @@ use status_lists::publish::PublishDir;
 use status_lists::serve::StatusListRouteSource;
 use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
+use tower_http::services::ServeDir;
 use tracing::debug;
 use tracing::info;
 use utils::built_info::version_string;
@@ -57,9 +58,15 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
         ttl: None,
     }])?;
 
+    let videos_router = settings
+        .videos_dir
+        .map(|videos_dir| Router::new().nest_service("/videos", ServeDir::new(videos_dir)))
+        .unwrap_or_default();
+
     let app = Router::new()
         .merge(create_health_router([]))
         .merge(status_list_router)
+        .merge(videos_router)
         .nest("/config/v1", config_router);
 
     axum_server::from_tcp_rustls(listener, settings.tls_config.into_rustls_config()?)

@@ -1,1 +1,1 @@
-rootProject.name = 'bluetooth'
+rootProject.name = "bluetooth"
