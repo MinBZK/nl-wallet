@@ -80,10 +80,6 @@ pub enum CertificateVerifyError {
     #[category(pd)]
     Verification(#[source] Box<webpki::Error>),
 
-    #[error("certificate chain must not contain the trust anchor")]
-    #[category(critical)]
-    TrustAnchorInChain,
-
     #[error("end-entity certificate must not be a trust anchor")]
     #[category(critical)]
     EndEntityIsTrustAnchor,
@@ -211,23 +207,10 @@ impl BorrowingCertificate {
         Ok(BorrowingCertificate(yoke))
     }
 
-    /// Verifies the HAIP 1.0 requirement that a certificate chain does not contain any of the trust anchors.
-    pub fn ensure_trust_anchor_not_in_chain<'a>(
-        chain: impl IntoIterator<Item = &'a BorrowingCertificate>,
-        trust_anchors: &TrustAnchors,
-    ) -> Result<(), CertificateVerifyError> {
-        if chain.into_iter().any(|cert| trust_anchors.contains(cert)) {
-            return Err(CertificateVerifyError::TrustAnchorInChain);
-        }
-
-        Ok(())
-    }
-
     /// Verify the certificate against the specified trust anchors.
     ///
     /// The certificate itself must not be a trust anchor, as direct trust is not supported. Any trust anchors present
-    /// in `intermediate_certs` are ignored. Profiles that forbid the trust anchor in the certificate chain, such as
-    /// HAIP 1.0, should check for this before calling this method.
+    /// in `intermediate_certs` are ignored.
     pub fn verify(
         &self,
         usage: Option<CertificateUsage>,
