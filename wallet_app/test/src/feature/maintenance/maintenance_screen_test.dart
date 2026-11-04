@@ -2,7 +2,6 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/configuration/maintenance_window.dart';
-import 'package:wallet/src/feature/common/widget/button/icon/help_icon_button.dart';
 import 'package:wallet/src/feature/common/widget/text/body_text.dart';
 import 'package:wallet/src/feature/maintenance/maintenance_screen.dart';
 
@@ -226,22 +225,6 @@ void main() {
         );
 
         expect(find.byType(BodyText), findsWidgets);
-      });
-    });
-
-    testWidgets('Help button is not displayed', (tester) async {
-      await withClock(Clock.fixed(DateTime(2025, 1, 15, 10, 30)), () async {
-        final now = clock.now();
-        final maintenance = MaintenanceWindow(
-          startDateTime: now,
-          endDateTime: now.add(const Duration(hours: 2)),
-        );
-
-        await tester.pumpWidgetWithAppWrapper(
-          MaintenanceScreen(maintenanceWindow: maintenance),
-        );
-
-        expect(find.byType(HelpIconButton), findsNothing);
       });
     });
   });

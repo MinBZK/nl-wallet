@@ -9,7 +9,6 @@ import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/page_illustration.dart';
@@ -28,7 +27,7 @@ class UpdateInfoScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         title: TitleText(context.l10n.updateInfoScreenTitle),
-        actions: const [HelpIconButton(), CloseIconButton()],
+        actions: const [CloseIconButton()],
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(

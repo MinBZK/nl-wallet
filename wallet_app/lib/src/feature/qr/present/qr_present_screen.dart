@@ -18,7 +18,6 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
 import '../../common/widget/button/icon/close_icon_button.dart';
-import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
@@ -104,11 +103,11 @@ class QrPresentScreen extends StatelessWidget {
 
   List<Widget>? _actions(QrPresentState state) {
     return switch (state) {
-      QrPresentInitial() => const [HelpIconButton()],
-      QrPresentServerStarted() => const [HelpIconButton()],
+      QrPresentInitial() => null,
+      QrPresentServerStarted() => null,
       QrPresentConnected() => null,
       QrPresentConnectionFailed() => null,
-      QrPresentError() => const [HelpIconButton()],
+      QrPresentError() => null,
       QrPresentBluetoothDisabled() => const [CloseIconButton()],
     };
   }

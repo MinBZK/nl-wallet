@@ -9,7 +9,6 @@ import '../../wallet_assets.dart';
 import '../common/widget/bullet_list.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/page_illustration.dart';
@@ -28,7 +27,6 @@ class IntroductionPrivacyScreen extends StatelessWidget {
         title: TitleText(context.l10n.introductionPrivacyScreenHeadline),
         leading: const BackIconButton(),
         progress: FlowProgress(currentStep: 1, totalSteps: OnboardingHelper.totalSteps),
-        actions: const [HelpIconButton()],
       ),
       key: const Key('introductionPrivacyScreen'),
       body: SafeArea(child: _buildContent(context)),

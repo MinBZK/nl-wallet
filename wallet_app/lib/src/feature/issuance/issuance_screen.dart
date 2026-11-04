@@ -25,7 +25,6 @@ import '../common/page/terminal_page.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
@@ -75,7 +74,6 @@ class IssuanceScreen extends StatelessWidget {
           leading: _buildBackButton(context),
           automaticallyImplyLeading: false,
           actions: [
-            if (_showHelpIcon(context)) const HelpIconButton(),
             CloseIconButton(onPressed: () => _stopIssuance(context)).takeIf((_) => _showCloseIcon(context)),
           ].nonNullsList,
           title: _buildTitle(context),
@@ -98,19 +96,6 @@ class IssuanceScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  bool _showHelpIcon(BuildContext context) {
-    final state = context.watch<IssuanceBloc>().state;
-    return switch (state) {
-      IssuanceInitial() => false,
-      IssuanceLoadInProgress() => false,
-      IssuanceAuthenticateWithIssuer() => false,
-      IssuanceMissingAttributes() => false,
-      IssuanceCompleted() => false,
-      IssuanceError(:final error) => error is! RelyingPartyError && error is! PreAuthorizedCodeExpiredError,
-      _ => true,
-    };
   }
 
   bool _showCloseIcon(BuildContext context) {

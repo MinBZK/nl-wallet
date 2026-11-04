@@ -6,7 +6,6 @@ import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../pin/bloc/pin_bloc.dart';
 import '../../pin/pin_page.dart';
-import '../widget/button/icon/help_icon_button.dart';
 import '../widget/pin_header.dart';
 import '../widget/wallet_app_bar.dart';
 
@@ -22,7 +21,6 @@ class ConfirmWithPinScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const WalletAppBar(
-        actions: [HelpIconButton()],
         fadeInTitleOnScroll: false,
       ),
       body: BlocProvider<PinBloc>(
