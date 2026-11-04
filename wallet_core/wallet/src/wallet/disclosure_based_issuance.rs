@@ -56,10 +56,6 @@ pub enum DisclosureBasedIssuanceError {
     #[error("unexpected scheme: expected '{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}', found '{0}'")]
     #[category(critical)]
     UnexpectedScheme(String, Box<Organization>),
-
-    #[error("issuance session contains no previews")]
-    #[category(critical)]
-    MissingPreviews(Box<Organization>),
 }
 
 #[derive(Debug)]
@@ -165,13 +161,10 @@ where
             .await
             .map_err(DisclosureBasedIssuanceError::Issuance)?;
 
-        let IssuanceContinueResult::Previews(previews) = result else {
-            // Disclosure based issuance requires previews, so discard the issuance session that was just stored.
-            self.session.take();
-            return Err(DisclosureBasedIssuanceError::MissingPreviews(organization));
-        };
-
-        Ok(DisclosureBasedIssuanceResult::Previews(previews))
+        match result {
+            IssuanceContinueResult::Previews(previews) => Ok(DisclosureBasedIssuanceResult::Previews(previews)),
+            IssuanceContinueResult::NoPreviews { issuer } => Ok(DisclosureBasedIssuanceResult::NoPreviews { issuer }),
+        }
     }
 }
 
@@ -459,7 +452,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_continue_disclosure_based_issuance_error_missing_previews() {
+    async fn test_wallet_continue_disclosure_based_issuance_without_previews() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -517,13 +510,17 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
 
-        let error = wallet
+        let result = wallet
             .continue_disclosure_based_issuance(&[0], PIN.clone())
             .await
-            .expect_err("continuing disclosure based issuance without previews should result in an error");
+            .expect("continuing disclosure based issuance without previews should succeed");
 
-        assert_matches!(error, DisclosureBasedIssuanceError::MissingPreviews(_));
-        assert!(wallet.session.is_none());
+        assert_matches!(
+            result,
+            DisclosureBasedIssuanceResult::NoPreviews { issuer }
+                if &*issuer == IssuerRegistration::new_mock().organization()
+        );
+        assert_matches!(wallet.session, Some(Session::Issuance(_)));
     }
 
     #[tokio::test]
