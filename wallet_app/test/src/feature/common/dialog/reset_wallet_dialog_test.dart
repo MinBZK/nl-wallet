@@ -32,6 +32,13 @@ void main() {
     expect(confirmCtaFinder, findsOneWidget);
   });
 
+  testWidgets('ResetWalletDialog exposes its title as heading', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(const ResetWalletDialog());
+
+    final l10n = await TestUtils.englishLocalizations;
+    TestUtils.expectHeading(tester, l10n.resetWalletDialogTitle);
+  });
+
   testWidgets('ResetWalletDialog invokes ResetWalletUseCase when confirm is pressed', (tester) async {
     final ResetWalletUseCase usecase = MockResetWalletUseCase();
     await tester.pumpWidgetWithAppWrapper(

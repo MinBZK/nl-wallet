@@ -10,6 +10,7 @@ import '../../../common/widget/centered_loading_indicator.dart';
 import '../bloc/qr_scan_bloc.dart';
 import 'flashlight_button.dart';
 import 'qr_scanner_active_announcer.dart';
+import 'qr_scanner_hint.dart';
 
 const kAndroidCameraResolution = Size(960, 1280);
 
@@ -66,27 +67,13 @@ class _QrScannerState extends State<QrScanner> {
   Widget _buildOverlay(BuildContext context) {
     return Stack(
       children: [
-        _buildAlignedScanQrHint(),
+        const Align(
+          alignment: Alignment.topCenter,
+          child: QrScannerHint(),
+        ),
         _buildPositionedFlashLightButton(),
         const QrScannerActiveAnnouncer(),
       ],
-    );
-  }
-
-  Widget _buildAlignedScanQrHint() {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        margin: EdgeInsets.only(top: context.mediaQuery.padding.top),
-        color: context.theme.appBarTheme.backgroundColor?.withValues(alpha: 0.9),
-        child: Text.rich(
-          context.l10n.qrScreenScanHint.toTextSpan(context),
-          textAlign: TextAlign.center,
-          style: context.textTheme.bodyLarge,
-        ),
-      ),
     );
   }
 

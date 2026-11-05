@@ -4,6 +4,7 @@ import 'package:wallet/src/feature/privacy_policy/privacy_policy_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
   /// This is required to read from the rootBundle (containing policy.md) multiple times
@@ -49,6 +50,17 @@ void main() {
 
       final dateFinder = find.textContaining('4 december 2024');
       expect(dateFinder, findsOneWidget);
+    });
+
+    testWidgets('section titles are exposed as headings', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const PrivacyPolicyScreen(),
+        surfaceSize: const Size(1500, 3500),
+      );
+      await tester.pumpAndSettle();
+
+      TestUtils.expectHeading(tester, '1. Wie is verantwoordelijk voor de verwerking van uw persoonsgegevens?');
+      expect(tester.getSemantics(find.text('Persoonsgegevens').first), isSemantics(isHeader: true));
     });
   });
 }

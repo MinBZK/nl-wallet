@@ -59,6 +59,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         return MarkdownBody(
                           data: snapshot.data!,
                           onTapLink: (string, href, title) => href?.let(launchUrlStringCatching),
+                          builders: {'h2': _HeadingBuilder(), 'h3': _HeadingBuilder()},
                           styleSheet: MarkdownStyleSheet(
                             textScaler: context.textScaler,
                             p: context.textTheme.bodyLarge,
@@ -87,5 +88,14 @@ class PrivacyPolicyScreen extends StatelessWidget {
         const BottomBackButton(),
       ],
     );
+  }
+}
+
+/// [MarkdownBody] renders headings as plain text, hiding the document structure from assistive technology.
+class _HeadingBuilder extends MarkdownElementBuilder {
+  // The element type comes from package:markdown, which is not a direct dependency, so it is inferred.
+  @override
+  Widget? visitElementAfterWithContext(BuildContext context, element, TextStyle? preferredStyle, _) {
+    return TitleText(element.textContent, style: preferredStyle);
   }
 }

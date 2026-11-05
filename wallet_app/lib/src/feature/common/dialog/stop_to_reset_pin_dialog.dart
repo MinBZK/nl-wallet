@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../widget/text/dialog_title_text.dart';
 
 const _kRouteName = 'StopToResetPinDialog';
 
@@ -27,7 +28,7 @@ class StopToResetPinDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text.rich(_resolveTitle(context).toTextSpan(context)),
+      title: DialogTitleText(_resolveTitle(context)),
       content: Text.rich(_resolveDescription(context).toTextSpan(context)),
       actions: <Widget>[
         TextButton(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../widget/text/dialog_title_text.dart';
 
 const _kRouteName = 'StopDigidLoginDialog';
 
@@ -12,7 +13,7 @@ class StopDigidLoginDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text.rich(context.l10n.stopDigidLoginDialogTitle.toTextSpan(context)),
+      title: DialogTitleText(context.l10n.stopDigidLoginDialogTitle),
       content: Text.rich(context.l10n.stopDigidLoginDialogSubtitle.toTextSpan(context)),
       actions: <Widget>[
         TextButton(

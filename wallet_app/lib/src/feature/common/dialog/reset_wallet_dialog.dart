@@ -5,6 +5,7 @@ import '../../../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../widget/text/title_text.dart';
 
 class ResetWalletDialog extends StatelessWidget {
   const ResetWalletDialog({super.key});
@@ -12,10 +13,7 @@ class ResetWalletDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text.rich(
-        context.l10n.resetWalletDialogTitle.toTextSpan(context),
-        style: context.textTheme.headlineMedium,
-      ),
+      title: TitleText(context.l10n.resetWalletDialogTitle),
       content: Text.rich(context.l10n.resetWalletDialogBody.toTextSpan(context)),
       actions: <Widget>[
         TextButton(
