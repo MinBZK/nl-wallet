@@ -38,6 +38,7 @@ use wallet_provider::test_support::TestState;
 use wallet_provider::test_support::post_json_request;
 use wallet_provider::test_support::setup_state;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+use wallet_provider_domain::model::admin_task::BlockUserParameters;
 use wallet_provider_domain::model::admin_task::CreateAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
@@ -103,6 +104,17 @@ async fn seed_session(repositories: &Repositories, user: &TestUser, privileges: 
 /// Returns a recovery code that is unique within the test, so that tests do not share wallets.
 fn new_recovery_code() -> String {
     format!("recovery-code-{}", Uuid::new_v4())
+}
+
+fn block_user_payload(recovery_codes: &[String]) -> TaskPayload {
+    let recovery_codes = recovery_codes
+        .iter()
+        .map(|recovery_code| RecoveryCode::from(recovery_code.clone()))
+        .collect::<Vec<_>>();
+
+    TaskPayload::BlockUser(BlockUserParameters {
+        recovery_codes: recovery_codes.try_into().unwrap(),
+    })
 }
 
 /// Inserts a wallet user with a unique wallet id and `recovery_code`, and returns that wallet id.
@@ -342,6 +354,76 @@ async fn test_check_recovery_code_counts_active_and_inactive_wallets() {
 
     let body: CheckRecoveryCodeResponse = json_body(response).await;
     assert_eq!(body.active_wallet_count, 1);
+    assert_eq!(body.inactive_wallet_count, 1);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_create_block_user_task_accepts_unknown_recovery_code() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let cookie = seed_session(&repositories, &alice, &[TaskType::BlockUser]).await;
+    // No wallet has this recovery code, which is allowed: a wallet may not have been created yet.
+    let payload = block_user_payload(&[new_recovery_code()]);
+
+    let request = post_json_request(
+        "/tasks",
+        &cookie,
+        &CreateTaskRequest {
+            payload: payload.clone(),
+            task_reason: "integration test".to_string(),
+        },
+    );
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let task: TaskResponse = json_body(response).await;
+    assert_eq!(task.status, TaskStatus::Created);
+    assert_eq!(task.payload, payload);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_block_user_task_approval_revokes_wallet() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let bob = TestUser::new("bob");
+    let cookie = seed_session(&repositories, &bob, &[TaskType::BlockUser]).await;
+    let recovery_code = new_recovery_code();
+    seed_wallet_with_recovery_code(&repositories, &recovery_code).await;
+    let task_id = seed_task_with_payload(
+        &repositories,
+        &alice,
+        block_user_payload(std::slice::from_ref(&recovery_code)),
+    )
+    .await;
+
+    let response = app
+        .clone()
+        .oneshot(review_request(task_id, &cookie, ReviewVerdict::Approve))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let task: TaskResponse = json_body(response).await;
+    assert_eq!(task.status, TaskStatus::Approved);
+    assert_eq!(task.execution_successful, Some(true));
+    assert_eq!(task.execution_details, Some("denied 1 recovery code(s)".to_string()));
+
+    // The wallet is now revoked, so the recovery code has no active wallets left.
+    let request = post_json_request(
+        "/recovery-codes/check",
+        &cookie,
+        &CheckRecoveryCodeRequest {
+            recovery_code: RecoveryCode::from(recovery_code),
+        },
+    );
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: CheckRecoveryCodeResponse = json_body(response).await;
+    assert_eq!(body.active_wallet_count, 0);
     assert_eq!(body.inactive_wallet_count, 1);
 }
 
