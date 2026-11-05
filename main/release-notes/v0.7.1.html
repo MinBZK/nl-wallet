@@ -251,6 +251,9 @@ variable and fail when it is not set, so every iOS build pipeline must now
 provide it. Android builds do not need it.
 When the app was installed through TestFlight, the update screens open
 TestFlight instead.</p></li>
+<li><p>The Fastlane <code class="docutils literal notranslate"><span class="pre">build</span></code> lanes accept a new <code class="docutils literal notranslate"><span class="pre">show_error_details</span></code> option (Dart
+define <code class="docutils literal notranslate"><span class="pre">SHOW_ERROR_DETAILS</span></code>, default <code class="docutils literal notranslate"><span class="pre">false</span></code>), which makes the wallet app show
+technical error details in the error details sheet.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -315,6 +318,8 @@ shows the window in local time instead of UTC.</p></li>
 <h2>Wallet app improvements<a class="headerlink" href="#wallet-app-improvements" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Update to Flutter 3.47.8.</p></li>
+<li><p>The error details sheet (“Show details” on error screens) can now show
+technical error details (error type, description and data).</p></li>
 </ul>
 </section>
 <section id="admin-portal-improvements">
