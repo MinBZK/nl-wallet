@@ -3306,8 +3306,8 @@ mod tests {
             sd_jwt: HashMap::from([(
                 PID_ATTESTATION_TYPE.to_owned(),
                 SdJwtPidClaims {
-                    login: "login".to_owned(),
-                    recovery_code: PID_RECOVERY_CODE.to_owned(),
+                    login: "login".parse().unwrap(),
+                    recovery_code: PID_RECOVERY_CODE.parse().unwrap(),
                 },
             )]),
         }

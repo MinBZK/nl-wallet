@@ -832,7 +832,7 @@ where
             })
             .ok_or(IssuanceError::MissingPidSdJwt)?;
 
-        let claim_path = vec_nonempty![ClaimPath::SelectByKey(pid_paths.recovery_code.clone())];
+        let claim_path = vec_nonempty![ClaimPath::SelectByKey(pid_paths.recovery_code.as_str().to_owned())];
 
         let recovery_code_disclosure = pid
             .sd_jwt()
@@ -2617,8 +2617,8 @@ mod tests {
         // If the attestation is the PID, then its identity should match the identity of a stored PID
         // even when that wouldn't be the case for non-PID attestations.
         let paths = SdJwtPidClaims {
-            login: "login".to_string(),
-            recovery_code: "recovery_code".to_string(),
+            login: "login".parse().unwrap(),
+            recovery_code: "recovery_code".parse().unwrap(),
         };
         let pid_config: PidAttributesConfiguration = PidAttributesConfiguration {
             mso_mdoc: HashMap::new(),

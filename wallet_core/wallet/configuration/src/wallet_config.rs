@@ -20,6 +20,7 @@ use http_utils::urls::BaseUrl;
 use itertools::Either;
 use jwt::JwtTyp;
 use openid4vc::wallet_issuance::AcceptIssuanceTrustAnchors;
+use sd_jwt::claims::ClaimName;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
@@ -180,8 +181,8 @@ impl MdocPath {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct SdJwtPidClaims {
-    pub login: String,
-    pub recovery_code: String,
+    pub login: ClaimName,
+    pub recovery_code: ClaimName,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -217,10 +218,10 @@ impl PidAttributesConfiguration {
     }
 
     /// The name of the claim containing the recovery code in the SD-JWT PID of the specified attestation type.
-    pub fn recovery_code_claim(&self, attestation_type: &str) -> Result<&str, PidAttributesConfigurationError> {
+    pub fn recovery_code_claim(&self, attestation_type: &str) -> Result<&ClaimName, PidAttributesConfigurationError> {
         self.sd_jwt
             .get(attestation_type)
-            .map(|paths| paths.recovery_code.as_str())
+            .map(|paths| &paths.recovery_code)
             .ok_or_else(|| PidAttributesConfigurationError::NoPidConfiguration(attestation_type.to_string()))
     }
 
@@ -252,5 +253,54 @@ impl DisclosureTypeConfig for PidAttributesConfiguration {
 
     fn sd_jwt_login_path(&self, vct: &str) -> Option<impl Iterator<Item = &str>> {
         self.sd_jwt.get(vct).map(|paths| std::iter::once(paths.login.as_str()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use attestation_types::credential_format::Format;
+    use itertools::Itertools;
+    use rstest::rstest;
+    use serde_json::json;
+
+    use super::PidAttributesConfiguration;
+
+    #[test]
+    fn test_pid_attributes_configuration_deserialize() {
+        let config: PidAttributesConfiguration = serde_json::from_value(json!({
+            "mso_mdoc": {
+                "pid_doctype": {
+                    "login": { "namespace": "pid_namespace", "element_name": "bsn" },
+                    "recovery_code": { "namespace": "pid_namespace", "element_name": "recovery_code" }
+                }
+            },
+            "sd_jwt": {
+                "pid_vct": { "login": "bsn", "recovery_code": "recovery_code" }
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(
+            config
+                .recovery_code_key_path(Format::MsoMdoc, "pid_doctype")
+                .unwrap()
+                .collect_vec(),
+            ["pid_namespace", "recovery_code"]
+        );
+        assert_eq!(config.recovery_code_claim("pid_vct").unwrap().as_str(), "recovery_code");
+    }
+
+    #[rstest]
+    #[case::login_sd(json!({ "login": "_sd", "recovery_code": "recovery_code" }))]
+    #[case::login_array_element(json!({ "login": "...", "recovery_code": "recovery_code" }))]
+    #[case::recovery_code_sd(json!({ "login": "bsn", "recovery_code": "_sd" }))]
+    #[case::recovery_code_array_element(json!({ "login": "bsn", "recovery_code": "..." }))]
+    fn test_pid_attributes_configuration_deserialize_reserved_claim_name(#[case] sd_jwt_claims: serde_json::Value) {
+        let result = serde_json::from_value::<PidAttributesConfiguration>(json!({
+            "mso_mdoc": {},
+            "sd_jwt": { "pid_vct": sd_jwt_claims }
+        }));
+
+        assert!(result.is_err());
     }
 }

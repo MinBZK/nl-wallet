@@ -7,6 +7,7 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::OfferedCredentialPreview;
 use platform_support::attested_key::AttestedKeyHolder;
+use sd_jwt::claims::ClaimName;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 
@@ -124,10 +125,10 @@ where
     }
 }
 
-fn retrieve_recovery_code_from_pid<'a>(attributes: &'a Attributes, recovery_code_claim: &str) -> Option<&'a str> {
+fn retrieve_recovery_code_from_pid<'a>(attributes: &'a Attributes, recovery_code_claim: &ClaimName) -> Option<&'a str> {
     attributes
         .as_ref()
-        .get(recovery_code_claim)
+        .get(recovery_code_claim.as_str())
         .and_then(|attribute| match attribute {
             Attribute::Text(code) => Some(code.as_str()),
             _ => None,
