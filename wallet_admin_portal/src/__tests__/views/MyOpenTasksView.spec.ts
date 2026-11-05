@@ -17,6 +17,7 @@ const task: Task = {
   reason: 'Suspicious activity',
   createdAt: new Date('2026-08-01T10:00:00'),
   createdBy: 'Jane Doe',
+  isOwnTask: false,
 }
 
 beforeEach(() => {

@@ -4,8 +4,8 @@ import type { TaskHistoryEntry } from '@/types/task-history-entry.ts'
 import type { TaskPayload } from '@/types/task-payload.ts'
 import type { TaskResponse, TaskStatus } from '@/types/task-response.ts'
 import { TASK_ACTION_INFO } from '@/types/task-action.ts'
-import { getAuthState } from '@/composables/authentication.ts'
 import { dateTimeFormatter } from '@/utils/dateFormatters.ts'
+import { formatCreatedBy } from '@/utils/taskFormatters.ts'
 import { taskPayloadRows, taskTargetSummary } from '@/utils/taskPayloadRows.ts'
 import { postJson, request } from '@/api/request.ts'
 
@@ -26,6 +26,7 @@ function toTask(response: TaskResponse): Task {
     reason: response.taskReason,
     createdAt: new Date(response.createdAt),
     createdBy: response.createdBy,
+    isOwnTask: response.isOwnTask,
   }
 }
 
@@ -86,29 +87,11 @@ export async function fetchTaskHistory(): Promise<TaskHistoryEntry[]> {
 }
 
 /**
- * TODO(Anyone): Add a single-task endpoint to the backend, so this can be simplified (PVW-6444).
- *
  * Backs the task details page.
- * There is no single-task endpoint (yet), so the task is looked up in all lists the logged in user can see.
- * Throws if the task does not exist.
+ * Throws if the task does not exist or the logged in user is not allowed to see it.
  */
 export async function fetchTaskDetail(id: string): Promise<TaskDetail> {
-  const [tasks, authState] = await Promise.all([
-    Promise.all([fetchTasks('open'), fetchTasks('reviewable'), fetchTasks('history')]).then(
-      (lists) => lists.flat(),
-    ),
-    getAuthState(),
-  ])
-  const task = tasks.find((task) => task.taskId === id)
-  if (!task) {
-    throw new Error(`Task not found: ${id}`)
-  }
-
-  // The response only has the creator's display name, so compare that to find out if the task is the user's own.
-  // TODO(Anyone): Display names are not unique; let the backend expose an ownership flag or the creator's ID (PVW-6444).
-  const isOwnTask =
-    authState.status === 'authenticated' && task.createdBy === authState.user.displayName
-  const createdBy = isOwnTask ? `${task.createdBy} (jij)` : task.createdBy
+  const task = await request<TaskResponse>(`/tasks/${encodeURIComponent(id)}`)
 
   const { summaryRows, selectionRows } = taskPayloadRows(task)
 
@@ -118,11 +101,11 @@ export async function fetchTaskDetail(id: string): Promise<TaskDetail> {
     overview: [
       { label: 'Actie', value: TASK_ACTION_INFO[task.taskType].title },
       { label: 'Aangemaakt op:', value: dateTimeFormatter.format(new Date(task.createdAt)) },
-      { label: 'Aangemaakt door:', value: createdBy },
+      { label: 'Aangemaakt door:', value: formatCreatedBy(toTask(task)) },
     ],
     details: [...summaryRows, ...selectionRows, { label: 'Reden', value: task.taskReason }],
     consequences: TASK_ACTION_INFO[task.taskType].consequences,
-    isOwnTask,
+    isOwnTask: task.isOwnTask,
     log: task.status === 'created' ? undefined : toHistoryEntry(task),
   }
 }

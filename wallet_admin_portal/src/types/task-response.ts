@@ -6,6 +6,7 @@ interface TaskResponseFields {
   taskId: string
   createdAt: string
   createdBy: string
+  isOwnTask: boolean
   taskReason: string
   status: TaskStatus
   withdrawalComment: string | null

@@ -18,6 +18,7 @@ const createdTask: Task = {
   reason: 'Because reasons',
   createdAt: new Date('2026-08-01T10:00:00'),
   createdBy: 'Jane Doe',
+  isOwnTask: false,
 }
 
 vi.mock('@/api/tasks.ts', () => ({

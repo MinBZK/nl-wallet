@@ -17,6 +17,7 @@ const historyTask: TaskHistoryEntry = {
   reason: 'Suspicious activity',
   createdAt: new Date('2026-08-01T10:00:00'),
   createdBy: 'Jane Doe',
+  isOwnTask: false,
   verdict: 'Approved',
   result: 'Completed',
   completedAt: new Date('2026-08-02T11:00:00'),

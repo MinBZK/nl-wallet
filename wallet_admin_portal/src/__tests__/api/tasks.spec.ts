@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   approveTask,
   createTask,
@@ -11,17 +11,12 @@ import {
 } from '@/api/tasks.ts'
 import { TaskActionType } from '@/types/task-action.ts'
 import type { TaskResponse } from '@/types/task-response.ts'
-import { getAuthState, type AuthState } from '@/composables/authentication.ts'
-import { Role } from '@/types/roles.ts'
-
-vi.mock('@/composables/authentication.ts', () => ({
-  getAuthState: vi.fn<() => Promise<AuthState>>(),
-}))
 
 const createdTask: TaskResponse = {
   taskId: '0190a1b2-0000-7000-8000-000000000001',
   createdAt: '2026-08-01T10:00:00Z',
   createdBy: 'Test User',
+  isOwnTask: true,
   taskType: TaskActionType.RevokeWallet,
   taskParameters: { walletIds: ['w-1', 'w-2'] },
   taskReason: 'Suspicious activity',
@@ -40,6 +35,7 @@ const approvedTask: TaskResponse = {
   ...createdTask,
   taskId: '0190a1b2-0000-7000-8000-000000000002',
   createdBy: 'Jane Doe',
+  isOwnTask: false,
   status: 'approved',
   reviewedAt: '2026-08-02T12:00:00Z',
   reviewedBy: 'Test User',
@@ -58,6 +54,7 @@ const reviewableTask: TaskResponse = {
   ...createdTask,
   taskId: '0190a1b2-0000-7000-8000-000000000004',
   createdBy: 'Jane Doe',
+  isOwnTask: false,
   taskType: TaskActionType.RevokeSolution,
   taskParameters: {},
 }
@@ -86,13 +83,6 @@ function lastRequest(fetchMock: ReturnType<typeof stubFetch>) {
   return { url, init, body: init?.body ? JSON.parse(init.body as string) : undefined }
 }
 
-beforeEach(() => {
-  vi.mocked(getAuthState).mockResolvedValue({
-    status: 'authenticated',
-    user: { displayName: 'Test User', privileges: [], role: Role.Unknown, canCreateTask: false },
-  })
-})
-
 afterEach(() => {
   vi.unstubAllGlobals()
 })
@@ -113,6 +103,7 @@ describe('tasks api', () => {
           reason: 'Suspicious activity',
           createdAt: new Date('2026-08-01T10:00:00Z'),
           createdBy: 'Test User',
+          isOwnTask: true,
         },
       ])
     })
@@ -221,11 +212,12 @@ describe('tasks api', () => {
   })
 
   describe('fetchTaskDetail', () => {
-    it('finds the task across all lists and marks it as own task when created by the logged in user', async () => {
-      stubFetch({ open: [createdTask], reviewable: [reviewableTask], history: [approvedTask] })
+    it('fetches the task by id and marks it as own task when the backend says so', async () => {
+      const fetchMock = stubFetch({}, createdTask)
 
       const detail = await fetchTaskDetail(createdTask.taskId)
 
+      expect(lastRequest(fetchMock).url).toBe(`/admin-portal/tasks/${createdTask.taskId}`)
       expect(detail.isOwnTask).toBe(true)
       expect(detail.overview).toContainEqual({
         label: 'Aangemaakt door:',
@@ -240,7 +232,7 @@ describe('tasks api', () => {
     })
 
     it('does not mark a task created by someone else as own task', async () => {
-      stubFetch({ reviewable: [reviewableTask] })
+      stubFetch({}, reviewableTask)
 
       const detail = await fetchTaskDetail(reviewableTask.taskId)
 
@@ -249,21 +241,24 @@ describe('tasks api', () => {
     })
 
     it('includes the log for a completed task', async () => {
-      stubFetch({ history: [approvedTask] })
+      stubFetch({}, approvedTask)
 
       const detail = await fetchTaskDetail(approvedTask.taskId)
 
       expect(detail.log).toMatchObject({ verdict: 'Goedgekeurd', completedBy: 'Test User' })
     })
 
-    it('throws when the task is not found', async () => {
-      stubFetch({ open: [createdTask] })
+    it('rejects when the task is not found', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn<() => Promise<unknown>>(async () => ({ status: 404, ok: false })),
+      )
 
-      await expect(fetchTaskDetail('unknown')).rejects.toThrow('Task not found: unknown')
+      await expect(fetchTaskDetail('unknown')).rejects.toThrow('404')
     })
 
     it('uses the singular for a task with one wallet', async () => {
-      stubFetch({ open: [{ ...createdTask, taskParameters: { walletIds: ['w-1'] } }] })
+      stubFetch({}, { ...createdTask, taskParameters: { walletIds: ['w-1'] } })
 
       const detail = await fetchTaskDetail(createdTask.taskId)
 

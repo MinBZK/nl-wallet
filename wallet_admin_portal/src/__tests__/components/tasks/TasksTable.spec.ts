@@ -13,6 +13,7 @@ const openTask: Task = {
   reason: 'Verdachte activiteit',
   createdAt: new Date('2026-08-01T10:00:00'),
   createdBy: 'Fleur Bakker',
+  isOwnTask: false,
 }
 
 const historyTask: TaskHistoryEntry = {
@@ -82,6 +83,21 @@ describe('TasksTable', () => {
       'Fleur Bakker',
       'BEKIJK DETAILS',
     ])
+  })
+
+  it('marks the creator with (jij) for own tasks', async () => {
+    const wrapper = await mountTable({
+      variant: 'open',
+      tasks: [{ ...openTask, isOwnTask: true }, openTask],
+    })
+
+    const headers = wrapper.findAll('thead th').map((th) => th.text())
+    const creatorColumn = headers.indexOf('AANGEMAAKT DOOR')
+    const creators = wrapper
+      .findAll('tbody tr')
+      .map((row) => row.findAll('td')[creatorColumn]?.text())
+
+    expect(creators).toEqual(['Fleur Bakker (jij)', 'Fleur Bakker'])
   })
 
   it('makes the scrollable table container keyboard focusable', async () => {

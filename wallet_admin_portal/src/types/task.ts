@@ -6,4 +6,5 @@ export interface Task {
   reason: string
   createdAt: Date
   createdBy: string
+  isOwnTask: boolean
 }
