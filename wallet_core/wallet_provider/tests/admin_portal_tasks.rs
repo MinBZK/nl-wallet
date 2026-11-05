@@ -244,7 +244,7 @@ async fn test_check_wallet_succeeds() {
 
     let request = Request::builder()
         .method("POST")
-        .uri(format!("/wallets/check"))
+        .uri("/wallets/check".to_string())
         .header(header::COOKIE, cookie)
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(
@@ -268,7 +268,7 @@ async fn test_check_wallet_bad_request() {
 
     let request = Request::builder()
         .method("POST")
-        .uri(format!("/wallets/check"))
+        .uri("/wallets/check".to_string())
         .header(header::COOKIE, cookie)
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(json!({ "walletId": 3 }).to_string()))
