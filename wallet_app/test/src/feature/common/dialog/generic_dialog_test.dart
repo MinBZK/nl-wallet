@@ -3,8 +3,16 @@ import 'package:wallet/src/feature/common/dialog/generic_dialog.dart';
 
 import '../../../test_util/dialog_utils.dart';
 import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
+  testWidgets('GenericDialog exposes its title as heading', (tester) async {
+    await DialogUtils.pumpDialog(tester, GenericDialog.showFinishSetup);
+
+    final l10n = await TestUtils.englishLocalizations;
+    TestUtils.expectHeading(tester, l10n.finishSetupDialogTitle);
+  });
+
   group('GenericDialog Goldens', () {
     testGoldens('Active Disclosure Session Dialog', (tester) async {
       await DialogUtils.pumpDialog(tester, GenericDialog.showActiveDisclosureSession);

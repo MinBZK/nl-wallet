@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/repository/wallet/wallet_repository.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../widget/text/dialog_title_text.dart';
 
 class IdleWarningDialog extends StatelessWidget {
   const IdleWarningDialog({super.key});
@@ -11,7 +12,7 @@ class IdleWarningDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text.rich(context.l10n.idleWarningDialogTitle.toTextSpan(context)),
+      title: DialogTitleText(context.l10n.idleWarningDialogTitle),
       content: Text.rich(context.l10n.idleWarningDialogDescription.toTextSpan(context)),
       actions: <Widget>[
         TextButton(

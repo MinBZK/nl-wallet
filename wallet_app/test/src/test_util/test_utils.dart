@@ -23,6 +23,17 @@ abstract class TestUtils {
     await tester.pumpAndSettle();
   }
 
+  /// Asserts that [text] is exposed to assistive technology as a heading.
+  static void expectHeading(WidgetTester tester, String text) {
+    final semantics = tester.getSemantics(find.text(text));
+    expect(semantics, isSemantics(isHeader: true, label: text));
+    expect(
+      semantics.getSemanticsData().headingLevel,
+      greaterThan(0),
+      reason: 'since Flutter 3.47 VoiceOver/TalkBack only announce headings via headingLevel > 0',
+    );
+  }
+
   static void mockSensorsPlugin() {
     // Mock the accelerometer, as this is used by e.g. [CardHolograph] to make it appear reflective.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(

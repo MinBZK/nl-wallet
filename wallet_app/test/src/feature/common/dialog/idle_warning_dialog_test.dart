@@ -3,8 +3,16 @@ import 'package:wallet/src/feature/common/dialog/idle_warning_dialog.dart';
 
 import '../../../test_util/dialog_utils.dart';
 import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
+  testWidgets('IdleWarningDialog exposes its title as heading', (tester) async {
+    await DialogUtils.pumpDialog(tester, IdleWarningDialog.show);
+
+    final l10n = await TestUtils.englishLocalizations;
+    TestUtils.expectHeading(tester, l10n.idleWarningDialogTitle);
+  });
+
   group('goldens', () {
     testGoldens(
       'Timeout Dialog',

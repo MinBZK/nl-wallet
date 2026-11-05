@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../widget/text/dialog_title_text.dart';
 
 /// A standardized Alert Dialog used across the application to display simple
 /// informational messages with a single "OK" dismissal action.
@@ -23,7 +24,7 @@ class GenericDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text.rich(title.toTextSpan(context)),
+      title: DialogTitleText(title),
       content: Text.rich(description.toTextSpan(context)),
       actions: <Widget>[
         TextButton(
