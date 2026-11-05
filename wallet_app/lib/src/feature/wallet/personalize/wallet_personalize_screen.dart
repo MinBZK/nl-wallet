@@ -27,7 +27,6 @@ import '../../common/widget/button/icon/back_icon_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
-import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/page_illustration.dart';
 import '../../common/widget/svg_or_image.dart';
 import '../../common/widget/text/title_text.dart';
@@ -172,7 +171,7 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
     };
     final description = switch (stage) {
       DigiDAuthStage.fetchingAuthUrl => context.l10n.walletPersonalizeScreenLoadingDigiDUrlDescription,
-      DigiDAuthStage.awaitingUserAction => context.l10n.walletPersonalizeScreenAwaitingUserAuthDescription,
+      DigiDAuthStage.awaitingUserAction => null,
       DigiDAuthStage.processingResult => context.l10n.walletPersonalizeScreenProcessingDigiDResultDescription,
     };
     return GenericLoadingPage(
@@ -193,7 +192,6 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
           );
         }
       },
-      loadingIndicator: stage == DigiDAuthStage.awaitingUserAction ? const SizedBox.shrink() : const LoadingIndicator(),
     );
   }
 
