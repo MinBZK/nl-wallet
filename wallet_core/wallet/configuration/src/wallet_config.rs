@@ -4,7 +4,6 @@ use std::ops::Range;
 use std::time::Duration;
 
 use attestation_data::disclosure_type::DisclosureTypeConfig;
-use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
@@ -18,6 +17,7 @@ use derive_more::Debug;
 use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
+use itertools::Either;
 use jwt::JwtTyp;
 use openid4vc::wallet_issuance::AcceptIssuanceTrustAnchors;
 use serde::Deserialize;
@@ -216,18 +216,30 @@ impl PidAttributesConfiguration {
         }
     }
 
-    pub fn recovery_code_path(&self, attestation_type: &str) -> Result<ClaimPath, PidAttributesConfigurationError> {
-        let path = ClaimPath::SelectByKey(
-            self.sd_jwt
-                .get(attestation_type)
-                .ok_or(PidAttributesConfigurationError::NoPidConfiguration(
-                    attestation_type.to_string(),
-                ))?
-                .recovery_code
-                .clone(),
-        );
+    /// The name of the claim containing the recovery code in the SD-JWT PID of the specified attestation type.
+    pub fn recovery_code_claim(&self, attestation_type: &str) -> Result<&str, PidAttributesConfigurationError> {
+        self.sd_jwt
+            .get(attestation_type)
+            .map(|paths| paths.recovery_code.as_str())
+            .ok_or_else(|| PidAttributesConfigurationError::NoPidConfiguration(attestation_type.to_string()))
+    }
 
-        Ok(path)
+    /// The key path of the recovery code in the PID of the specified format and attestation type, if configured.
+    pub fn recovery_code_key_path(
+        &self,
+        format: Format,
+        attestation_type: &str,
+    ) -> Option<impl Iterator<Item = &str> + Clone> {
+        match format {
+            Format::MsoMdoc => self
+                .mso_mdoc
+                .get(attestation_type)
+                .map(|paths| Either::Left(paths.recovery_code.key_path().into_iter())),
+            Format::SdJwt => self
+                .sd_jwt
+                .get(attestation_type)
+                .map(|paths| Either::Right(std::iter::once(paths.recovery_code.as_str()))),
+        }
     }
 }
 

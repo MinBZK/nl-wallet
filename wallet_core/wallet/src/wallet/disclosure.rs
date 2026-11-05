@@ -8,7 +8,6 @@ use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::organization::Organization;
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::credential_format::Format;
 use chrono::Utc;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -384,23 +383,15 @@ pub(super) fn is_request_for_recovery_code(
     request: impl AttestationRequest,
     pid_attributes: &PidAttributesConfiguration,
 ) -> bool {
-    match request.format() {
-        Format::MsoMdoc => pid_attributes
-            .mso_mdoc
-            .get(request.credential_types().collect::<VecNonEmpty<_>>().first())
-            .is_some_and(|paths| {
+    request.credential_types().any(|attestation_type| {
+        pid_attributes
+            .recovery_code_key_path(request.format(), &attestation_type)
+            .is_some_and(|key_path| {
                 request
                     .claim_paths()
-                    .any(|claim| ClaimPath::matches_key_path(&claim, paths.recovery_code.key_path()))
-            }),
-        Format::SdJwt => request.credential_types().any(|vct| {
-            pid_attributes.sd_jwt.get(&vct).is_some_and(|paths| {
-                request
-                    .claim_paths()
-                    .any(|claim| ClaimPath::matches_key_path(&claim, [paths.recovery_code.as_str()]))
+                    .any(|claim| ClaimPath::matches_key_path(&claim, key_path.clone()))
             })
-        }),
-    }
+    })
 }
 
 impl DisclosureProposalPresentation {

@@ -1,14 +1,12 @@
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::OfferedCredentialPreview;
 use platform_support::attested_key::AttestedKeyHolder;
-use utils::vec_nonempty;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 
@@ -75,7 +73,7 @@ where
     ) -> Result<(), RecoveryCodeError> {
         let received_recovery_code = retrieve_recovery_code_from_pid(
             &pid_preview.attributes,
-            pid_config.recovery_code_path(&pid_preview.attestation_type)?,
+            pid_config.recovery_code_claim(&pid_preview.attestation_type)?,
         )
         .ok_or(RecoveryCodeError::MissingIssuedRecoveryCode)?;
 
@@ -109,12 +107,12 @@ where
             .map_err(RecoveryCodeError::AttestationQuery)?
             .pop()
             .map(|stored_copy| -> Result<_, RecoveryCodeError> {
-                let recovery_code_path = pid_config.recovery_code_path(stored_copy.attestation_type())?;
+                let recovery_code_claim = pid_config.recovery_code_claim(stored_copy.attestation_type())?;
 
                 // The stored PID has to include a recovery code, since this was checked during issuance. However, it is
                 // still possible that the SD-JWT credential kinds or path to the recovery code was changed in the
                 // configuration. This should never happen, making this an error in the "impossible" category.
-                let code = retrieve_recovery_code_from_pid(&stored_copy.into_attributes(), recovery_code_path)
+                let code = retrieve_recovery_code_from_pid(&stored_copy.into_attributes(), recovery_code_claim)
                     .ok_or(RecoveryCodeError::MissingStoredRecoveryCode)?
                     .to_string();
 
@@ -126,10 +124,10 @@ where
     }
 }
 
-fn retrieve_recovery_code_from_pid(attributes: &Attributes, recovery_code_path: ClaimPath) -> Option<&str> {
+fn retrieve_recovery_code_from_pid<'a>(attributes: &'a Attributes, recovery_code_claim: &str) -> Option<&'a str> {
     attributes
-        .get(&vec_nonempty![recovery_code_path])
-        .expect("failed to retrieve recovery code from PID")
+        .as_ref()
+        .get(recovery_code_claim)
         .and_then(|attribute| match attribute {
             Attribute::Text(code) => Some(code.as_str()),
             _ => None,

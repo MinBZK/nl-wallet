@@ -14,7 +14,6 @@ use chrono::NaiveDate;
 use chrono::Utc;
 use error_category::ErrorCategory;
 use indexmap::IndexMap;
-use itertools::Either;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -62,16 +61,7 @@ pub trait AttestationPresentationConfig {
 
 impl AttestationPresentationConfig for PidAttributesConfiguration {
     fn filtered_attribute(&self, format: Format, attribute: &str) -> Option<impl Iterator<Item = &str> + Clone> {
-        match format {
-            Format::MsoMdoc => self
-                .mso_mdoc
-                .get(attribute)
-                .map(|paths| Either::Left(paths.recovery_code.key_path().into_iter())),
-            Format::SdJwt => self
-                .sd_jwt
-                .get(attribute)
-                .map(|paths| Either::Right(std::iter::once(paths.recovery_code.as_str()))),
-        }
+        self.recovery_code_key_path(format, attribute)
     }
 }
 
