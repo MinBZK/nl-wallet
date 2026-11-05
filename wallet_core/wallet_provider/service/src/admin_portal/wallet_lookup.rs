@@ -183,8 +183,12 @@ mod tests {
     use audit_log::model::mock::MockAuditLog;
     use crypto::kid::Kid;
     use crypto::trust_anchor::TrustAnchors;
+    use hsm::model::mock::MockPkcs11Client;
+    use hsm::service::HsmError;
+    use p256::ecdsa::SigningKey;
     use rstest::fixture;
     use rstest::rstest;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
@@ -204,16 +208,40 @@ mod tests {
     }
 
     #[fixture]
-    fn privileged_user() -> LoggedInUser {
+    fn recovery_code() -> RecoveryCode {
+        RecoveryCode::from("recovery-code".to_string())
+    }
+
+    #[fixture]
+    fn revoke_wallet_user() -> LoggedInUser {
         user("user-1", &[TaskType::RevokeWallet])
     }
 
     #[fixture]
-    fn unprivileged_user() -> LoggedInUser {
+    fn block_user() -> LoggedInUser {
         user("user-1", &[TaskType::BlockUser])
     }
 
-    /// Creates the service under test; `check_wallet` does not touch `self.repository`, so an empty mock suffices.
+    type TestUserState = UserState<
+        MockTransactionalWalletUserRepository,
+        StubWalletFlags,
+        MockPkcs11Client<HsmError>,
+        SigningKey,
+        MockStatusListService,
+    >;
+
+    async fn lookup_user_state(repository: MockTransactionalWalletUserRepository) -> TestUserState {
+        user_state(
+            repository,
+            StubWalletFlags::default(),
+            setup_hsm().await,
+            Kid::try_from("0").unwrap(),
+            TrustAnchors::empty(),
+            mock_status_list_service(),
+        )
+    }
+
+    /// The lookup methods do not touch `self.repository`, so an empty mock suffices.
     fn service() -> AdminPortalService<MockAdminPortalRepository, (), ()> {
         AdminPortalService::new(
             super::super::AdminPortalConfig {
@@ -233,19 +261,11 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn check_wallet_rejects_missing_privilege(wallet_id: WalletId, unprivileged_user: LoggedInUser) {
-        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        let user_state = user_state(
-            wallet_user_repo,
-            StubWalletFlags::default(),
-            setup_hsm().await,
-            Kid::try_from("0").unwrap(),
-            TrustAnchors::empty(),
-            mock_status_list_service(),
-        );
+    async fn check_wallet_rejects_missing_privilege(wallet_id: WalletId, block_user: LoggedInUser) {
+        let user_state = lookup_user_state(MockTransactionalWalletUserRepository::new()).await;
 
         let result = service()
-            .get_wallet_revocation_state(&wallet_id, &unprivileged_user, &user_state, &MockAuditLog)
+            .get_wallet_revocation_state(&wallet_id, &block_user, &user_state, &MockAuditLog)
             .await;
 
         assert_matches!(
@@ -255,8 +275,16 @@ mod tests {
     }
 
     #[rstest]
+    #[case::active(Some(WalletUserState::Active), Some(WalletRevocationState::Revokable))]
+    #[case::revoked(Some(WalletUserState::Revoked), Some(WalletRevocationState::Revoked))]
+    #[case::not_found(None, None)]
     #[tokio::test]
-    async fn check_wallet_returns_state_when_found(wallet_id: WalletId, privileged_user: LoggedInUser) {
+    async fn check_wallet_returns_lookup_result(
+        wallet_id: WalletId,
+        revoke_wallet_user: LoggedInUser,
+        #[case] state: Option<WalletUserState>,
+        #[case] expected: Option<WalletRevocationState>,
+    ) {
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
@@ -267,124 +295,71 @@ mod tests {
             .times(1)
             .return_once(move |_, id| {
                 assert_eq!(*id, returned_wallet_id);
-                Ok(QueryResult::Found(Box::new(WalletUserState::Active)))
+                Ok(match state {
+                    Some(state) => QueryResult::Found(Box::new(state)),
+                    None => QueryResult::NotFound,
+                })
             });
-        let user_state = user_state(
-            wallet_user_repo,
-            StubWalletFlags::default(),
-            setup_hsm().await,
-            Kid::try_from("0").unwrap(),
-            TrustAnchors::empty(),
-            mock_status_list_service(),
-        );
+        let user_state = lookup_user_state(wallet_user_repo).await;
 
         let result = service()
-            .get_wallet_revocation_state(&wallet_id, &privileged_user, &user_state, &MockAuditLog)
+            .get_wallet_revocation_state(&wallet_id, &revoke_wallet_user, &user_state, &MockAuditLog)
             .await;
 
-        assert_matches!(result, Ok(found_state) if found_state == WalletRevocationState::Revokable);
+        match expected {
+            Some(expected) => assert_matches!(result, Ok(found_state) if found_state == expected),
+            None => assert_matches!(result, Err(GetWalletRevocationStateError::NotFound(id)) if id == wallet_id),
+        }
     }
 
     #[rstest]
     #[tokio::test]
-    async fn check_wallet_returns_not_found_when_wallet_does_not_exist(
-        wallet_id: WalletId,
-        privileged_user: LoggedInUser,
+    async fn recovery_code_counts_reject_missing_privilege(
+        recovery_code: RecoveryCode,
+        revoke_wallet_user: LoggedInUser,
+    ) {
+        let user_state = lookup_user_state(MockTransactionalWalletUserRepository::new()).await;
+
+        let result = service()
+            .get_recovery_code_wallet_counts(&recovery_code, &revoke_wallet_user, &user_state, &MockAuditLog)
+            .await;
+
+        assert_matches!(
+            result,
+            Err(GetRecoveryCodeWalletCountsError::MissingPrivilege(TaskType::BlockUser))
+        );
+    }
+
+    #[rstest]
+    #[case::counts(
+        vec![WalletUserState::Active, WalletUserState::Blocked, WalletUserState::Revoked, WalletUserState::Transferred],
+        Some(RecoveryCodeWalletCounts { active: 2, inactive: 2 })
+    )]
+    #[case::not_found(vec![], None)]
+    #[tokio::test]
+    async fn recovery_code_counts_return_lookup_result(
+        recovery_code: RecoveryCode,
+        block_user: LoggedInUser,
+        #[case] states: Vec<WalletUserState>,
+        #[case] expected: Option<RecoveryCodeWalletCounts>,
     ) {
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_find_wallet_user_state_by_wallet_id()
-            .times(1)
-            .return_once(|_, _| Ok(QueryResult::NotFound));
-        let user_state = user_state(
-            wallet_user_repo,
-            StubWalletFlags::default(),
-            setup_hsm().await,
-            Kid::try_from("0").unwrap(),
-            TrustAnchors::empty(),
-            mock_status_list_service(),
-        );
-
-        let result = service()
-            .get_wallet_revocation_state(&wallet_id, &privileged_user, &user_state, &MockAuditLog)
-            .await;
-
-        assert_matches!(result, Err(GetWalletRevocationStateError::NotFound(id)) if id == wallet_id);
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn recovery_code_counts_split_active_and_inactive_wallets() {
-        let recovery_code = RecoveryCode::from("recovery-code".to_string());
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
             .expect_find_wallet_user_states_by_recovery_code()
             .times(1)
-            .return_once(|_, _| {
-                Ok(vec![
-                    WalletUserState::Active,
-                    WalletUserState::Blocked,
-                    WalletUserState::Revoked,
-                    WalletUserState::Transferred,
-                ])
-            });
-        let user_state = user_state(
-            wallet_user_repo,
-            StubWalletFlags::default(),
-            setup_hsm().await,
-            Kid::try_from("0").unwrap(),
-            TrustAnchors::empty(),
-            mock_status_list_service(),
-        );
+            .return_once(move |_, _| Ok(states));
+        let user_state = lookup_user_state(wallet_user_repo).await;
 
         let result = service()
-            .get_recovery_code_wallet_counts(
-                &recovery_code,
-                &user("user-1", &[TaskType::BlockUser]),
-                &user_state,
-                &MockAuditLog,
-            )
+            .get_recovery_code_wallet_counts(&recovery_code, &block_user, &user_state, &MockAuditLog)
             .await;
 
-        assert_matches!(result, Ok(counts) if counts == RecoveryCodeWalletCounts { active: 2, inactive: 2 });
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn recovery_code_counts_report_not_found_without_wallets() {
-        let recovery_code = RecoveryCode::from("recovery-code".to_string());
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_find_wallet_user_states_by_recovery_code()
-            .times(1)
-            .return_once(|_, _| Ok(vec![]));
-        let user_state = user_state(
-            wallet_user_repo,
-            StubWalletFlags::default(),
-            setup_hsm().await,
-            Kid::try_from("0").unwrap(),
-            TrustAnchors::empty(),
-            mock_status_list_service(),
-        );
-
-        let result = service()
-            .get_recovery_code_wallet_counts(
-                &recovery_code,
-                &user("user-1", &[TaskType::BlockUser]),
-                &user_state,
-                &MockAuditLog,
-            )
-            .await;
-
-        assert_matches!(result, Err(GetRecoveryCodeWalletCountsError::NotFound));
+        match expected {
+            Some(expected) => assert_matches!(result, Ok(counts) if counts == expected),
+            None => assert_matches!(result, Err(GetRecoveryCodeWalletCountsError::NotFound)),
+        }
     }
 }
