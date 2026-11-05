@@ -60,11 +60,16 @@ class ErrorPage extends StatelessWidget {
   }) {
     switch (error) {
       case GenericError():
-        return ErrorPage.generic(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+        return ErrorPage.generic(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style, error: error);
       case NetworkError(hasInternet: true):
-        return ErrorPage.server(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+        return ErrorPage.server(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style, error: error);
       case NetworkError(hasInternet: false):
-        return ErrorPage.noInternet(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+        return ErrorPage.noInternet(
+          context,
+          onPrimaryActionPressed: onPrimaryActionPressed,
+          style: style,
+          error: error,
+        );
       case PreAuthorizedCodeExpiredError():
         return ErrorPage.preAuthorizedCodeExpired(
           context,
@@ -72,13 +77,19 @@ class ErrorPage extends StatelessWidget {
           onPrimaryActionPressed: onPrimaryActionPressed,
         );
       case SessionError(state: .expired):
-        return ErrorPage.sessionExpired(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+        return ErrorPage.sessionExpired(
+          context,
+          onPrimaryActionPressed: onPrimaryActionPressed,
+          style: style,
+          error: error,
+        );
       case SessionError(state: .cancelled):
         return ErrorPage.cancelledSession(
           context,
           onPrimaryActionPressed: onPrimaryActionPressed,
           style: style,
           organizationName: organizationName,
+          error: error,
         );
       case RelyingPartyError():
         return ErrorPage.relyingParty(
@@ -86,15 +97,16 @@ class ErrorPage extends StatelessWidget {
           onPrimaryActionPressed: onPrimaryActionPressed,
           style: style,
           organizationName: error.organizationName,
+          error: error,
         );
       case HardwareUnsupportedError():
         Fimber.i('Hardware unsupported, primary action always defaults to resetToSplash');
-        return ErrorPage.deviceIncompatible(context);
+        return ErrorPage.deviceIncompatible(context, error: error);
       case AttestationFailedError():
         return ErrorPage.attestationFailed(context);
       default:
         Fimber.i('No specific handling defined for $error, defaulting to generic error page.');
-        return ErrorPage.generic(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+        return ErrorPage.generic(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style, error: error);
     }
   }
 
@@ -108,6 +120,7 @@ class ErrorPage extends StatelessWidget {
     BuildContext context, {
     VoidCallback? onPrimaryActionPressed,
     required ErrorCtaStyle style,
+    ApplicationError? error,
   }) {
     return ErrorPage(
       title: context.l10n.errorScreenGenericHeadline,
@@ -120,7 +133,7 @@ class ErrorPage extends StatelessWidget {
         style,
         onPressed: onPrimaryActionPressed,
       ),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context, error: error),
     );
   }
 
@@ -131,6 +144,7 @@ class ErrorPage extends StatelessWidget {
     BuildContext context, {
     VoidCallback? onPrimaryActionPressed,
     required ErrorCtaStyle style,
+    ApplicationError? error,
   }) {
     return ErrorPage(
       title: context.l10n.errorScreenServerHeadline,
@@ -143,7 +157,7 @@ class ErrorPage extends StatelessWidget {
         style,
         onPressed: onPrimaryActionPressed,
       ),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context, error: error),
     );
   }
 
@@ -154,6 +168,7 @@ class ErrorPage extends StatelessWidget {
     BuildContext context, {
     VoidCallback? onPrimaryActionPressed,
     required ErrorCtaStyle style,
+    ApplicationError? error,
   }) {
     return ErrorPage(
       title: context.l10n.errorScreenNoInternetHeadline,
@@ -166,12 +181,12 @@ class ErrorPage extends StatelessWidget {
         style,
         onPressed: onPrimaryActionPressed,
       ),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context, error: error),
     );
   }
 
   /// Creates an [ErrorPage] for when the device does not meet application requirements.
-  factory ErrorPage.deviceIncompatible(BuildContext context) {
+  factory ErrorPage.deviceIncompatible(BuildContext context, {ApplicationError? error}) {
     return ErrorPage(
       title: context.l10n.errorScreenDeviceIncompatibleHeadline,
       description: context.l10n.errorScreenDeviceIncompatibleDescription,
@@ -181,7 +196,7 @@ class ErrorPage extends StatelessWidget {
         ErrorCtaStyle.close,
         onPressed: () => Navigator.of(context).resetToSplash(),
       ),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context, error: error),
     );
   }
 
@@ -204,6 +219,7 @@ class ErrorPage extends StatelessWidget {
     VoidCallback? onPrimaryActionPressed,
     required ErrorCtaStyle style,
     String? cta,
+    ApplicationError? error,
   }) {
     return ErrorPage(
       title: context.l10n.errorScreenSessionExpiredHeadline,
@@ -217,7 +233,7 @@ class ErrorPage extends StatelessWidget {
         onPressed: onPrimaryActionPressed,
         cta: cta,
       ),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context, error: error),
     );
   }
 
@@ -252,6 +268,7 @@ class ErrorPage extends StatelessWidget {
     String? organizationName,
     VoidCallback? onPrimaryActionPressed,
     ErrorCtaStyle style = ErrorCtaStyle.close,
+    ApplicationError? error,
   }) {
     final description = organizationName == null
         ? context.l10n.errorScreenCancelledSessionDescriptionUnknownOrganization
@@ -261,7 +278,7 @@ class ErrorPage extends StatelessWidget {
       description: description,
       illustration: WalletAssets.svg_stopped,
       primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context, error: error),
     );
   }
 
@@ -275,6 +292,7 @@ class ErrorPage extends StatelessWidget {
     VoidCallback? onPrimaryActionPressed,
     ErrorCtaStyle style = ErrorCtaStyle.retry,
     bool useIssuanceStyle = false,
+    ApplicationError? error,
   }) {
     if (useIssuanceStyle) {
       final description = organizationName == null
@@ -285,7 +303,7 @@ class ErrorPage extends StatelessWidget {
         description: description,
         illustration: WalletAssets.svg_error_card_blocked,
         primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
-        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context, error: error),
       );
     } else {
       final description = organizationName == null
@@ -296,7 +314,7 @@ class ErrorPage extends StatelessWidget {
         description: description,
         illustration: WalletAssets.svg_error_general,
         primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
-        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context, error: error),
       );
     }
   }
@@ -310,13 +328,14 @@ class ErrorPage extends StatelessWidget {
     required String actionText,
     VoidCallback? onPrimaryActionPressed,
     ErrorCtaStyle style = ErrorCtaStyle.close,
+    ApplicationError? error,
   }) {
     return ErrorPage(
       title: context.l10n.disclosureDisconnectedPageTitle,
       description: context.l10n.disclosureDisconnectedPageDescription(actionText),
       primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
       illustration: WalletAssets.svg_error_bluetooth,
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context, error: error),
     );
   }
 

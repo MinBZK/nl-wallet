@@ -48,7 +48,8 @@
         demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         show_debug_options:true \
-        enable_wrprc_strict_mode_toggle:"${ENABLE_WRPRC_STRICT_MODE_TOGGLE:-false}" \
+        enable_wrprc_strict_mode_toggle:"${ENABLE_WRPRC_STRICT_MODE_TOGGLE:-true}" \
+        show_error_details:"${SHOW_ERROR_DETAILS:-true}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
     # Sign
     - |
@@ -69,7 +70,6 @@ build-ios-app-ont:
       artifacts: true
   variables:
     APP_STORE_ID: "SSSS"
-    ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
 
@@ -97,7 +97,6 @@ build-ios-simulator-app-ont:
       - "wallet_app/ios/*.xcactivitylog"
   variables:
     APP_STORE_ID: "SSSS"
-    ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_BUILD_MODE: "debug"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
@@ -114,7 +113,8 @@ build-ios-simulator-app-ont:
         allow_insecure_url:"true" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         show_debug_options:true \
-        enable_wrprc_strict_mode_toggle:"${ENABLE_WRPRC_STRICT_MODE_TOGGLE:-false}" \
+        enable_wrprc_strict_mode_toggle:"${ENABLE_WRPRC_STRICT_MODE_TOGGLE:-true}" \
+        show_error_details:"${SHOW_ERROR_DETAILS:-true}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))"
   after_script:
     - !reference [.build-ios-app, after_script]
@@ -127,7 +127,6 @@ build-ios-app-mock:
   needs: []
   variables:
     APP_STORE_ID: "6478397577"
-    ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_MOCK: "true" # override .build-ios-app
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
@@ -144,7 +143,6 @@ build-ios-app-demo:
       artifacts: true
   variables:
     APP_STORE_ID: "6478535649"
-    ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
 
@@ -158,7 +156,6 @@ build-ios-app-pub:
       artifacts: true
   variables:
     APP_STORE_ID: "6612019892"
-    ENABLE_WRPRC_STRICT_MODE_TOGGLE: "true"
     APP_PACKAGE_IDENTIFIER_SUFFIX: "pub"
     APP_NAME: "NL Wallet (pub)"
 

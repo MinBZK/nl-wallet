@@ -169,6 +169,14 @@ explicitly intended to collect device and Sentry logs. The shared ont/demo
 release builds set this flag to `true`; production release builds must not copy
 that setting.
 
+##### Technical Error Details
+
+The `SHOW_ERROR_DETAILS` Dart define controls whether the error details sheet
+(opened with "Show details" on error screens) includes technical information
+about the error: its type, the description from `wallet_core` and any
+associated data. The flag defaults to `false`, in which case only the error
+type is shown. Set using `flutter build --dart-define=SHOW_ERROR_DETAILS=true`.
+
 ##### Configuration
 
 The configuration for how the app can connect to the server that serves the

@@ -18,6 +18,12 @@ class Environment {
   /// Set using: `flutter build --dart-define=SHOW_DEBUG_OPTIONS=true`
   static bool get showDebugOptions => const bool.fromEnvironment('SHOW_DEBUG_OPTIONS', defaultValue: false);
 
+  /// Indicates whether technical error details (error type, description and data) are shown in the error details
+  /// sheet. Defaults to false, in which case only the error type is shown.
+  ///
+  /// Set using: `flutter build --dart-define=SHOW_ERROR_DETAILS=true`
+  static bool get showErrorDetails => const bool.fromEnvironment('SHOW_ERROR_DETAILS', defaultValue: false);
+
   /// Includes the temporary Close Proximity WRPRC strict mode switch. Defaults to false.
   ///
   /// Without this flag, Close Proximity always requires a WRPRC, including when a previous build saved otherwise.
