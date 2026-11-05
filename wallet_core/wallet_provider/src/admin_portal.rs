@@ -783,6 +783,7 @@ mod http_tests {
 
     use super::*;
     use crate::test_support::TestState;
+    use crate::test_support::post_json_request;
     use crate::test_support::setup_state;
 
     async fn setup_state_with_database_errors() -> TestState {
@@ -792,6 +793,10 @@ mod http_tests {
     }
 
     async fn setup_state_with_valid_user() -> (TestState, CookieJar) {
+        setup_state_with_user_roles(vec!["privilege_admin".to_string(), "offline_access".to_string()]).await
+    }
+
+    async fn setup_state_with_user_roles(roles: Vec<String>) -> (TestState, CookieJar) {
         let state = setup_state().await;
         let session_id = random_string(12);
         state
@@ -801,7 +806,7 @@ mod http_tests {
                 AdminPortalUserSession {
                     user_id: "user_id".to_string(),
                     display_name: "Jane Doe".to_string(),
-                    roles: vec!["privilege_admin".to_string(), "offline_access".to_string()],
+                    roles,
                     id_token: "the-id-token".to_string(),
                     expires_at: Utc::now() + TimeDelta::minutes(5),
                 },
@@ -999,18 +1004,9 @@ mod http_tests {
     }
 
     async fn create_task_from_body(body: Value) -> Response {
-        let state = setup_state().await;
-        create_task(
-            State(Arc::clone(&state)),
-            AuthenticatedAdminUser(LoggedInUser {
-                user_id: "alice".to_owned(),
-                display_name: "Alice".to_owned(),
-                privileges: vec![TaskType::RevokeWallet.to_string()],
-            }),
-            Json::from_bytes(&serde_json::to_vec(&body).unwrap()),
-        )
-        .await
-        .into_response()
+        let (state, jar) = setup_state_with_user_roles(vec!["privilege_revoke_wallet".to_string()]).await;
+        let request = post_json_request("/tasks", &session_cookie_header(&jar), &body);
+        router(Arc::clone(&state)).oneshot(request).await.unwrap()
     }
 
     #[rstest::rstest]
@@ -1052,6 +1048,11 @@ mod http_tests {
         )
         .await
         .into_response()
+    }
+
+    fn session_cookie_header(jar: &CookieJar) -> String {
+        let cookie = jar.get(SESSION_ID_COOKIE).unwrap();
+        format!("{}={}", cookie.name(), cookie.value())
     }
 
     #[serial_test::serial(hsm)]

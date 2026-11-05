@@ -31,6 +31,7 @@ use wallet_provider::admin_portal::ReviewTaskRequest;
 use wallet_provider::admin_portal::TaskResponse;
 use wallet_provider::admin_portal::WithdrawTaskRequest;
 use wallet_provider::test_support::TestState;
+use wallet_provider::test_support::post_json_request;
 use wallet_provider::test_support::setup_state;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
 use wallet_provider_domain::model::admin_task::CreateAdminTask;
@@ -284,19 +285,14 @@ async fn test_create_task_succeeds() {
         wallet_ids: vec_nonempty![wallet_id].into(),
     });
 
-    let request = Request::builder()
-        .method("POST")
-        .uri("/tasks")
-        .header(header::COOKIE, cookie)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(
-            serde_json::to_string(&CreateTaskRequest {
-                payload: payload.clone(),
-                task_reason: "integration test".to_string(),
-            })
-            .unwrap(),
-        ))
-        .unwrap();
+    let request = post_json_request(
+        "/tasks",
+        &cookie,
+        &CreateTaskRequest {
+            payload: payload.clone(),
+            task_reason: "integration test".to_string(),
+        },
+    );
 
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -315,18 +311,13 @@ async fn test_withdraw_task_succeeds() {
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
     let task_id = seed_task(&repositories, &alice).await;
 
-    let request = Request::builder()
-        .method("POST")
-        .uri(format!("/tasks/{task_id}/withdraw"))
-        .header(header::COOKIE, cookie)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(
-            serde_json::to_string(&WithdrawTaskRequest {
-                withdrawal_comment: "no longer needed".to_string(),
-            })
-            .unwrap(),
-        ))
-        .unwrap();
+    let request = post_json_request(
+        &format!("/tasks/{task_id}/withdraw"),
+        &cookie,
+        &WithdrawTaskRequest {
+            withdrawal_comment: "no longer needed".to_string(),
+        },
+    );
 
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -393,19 +384,14 @@ fn review_request(task_id: Uuid, cookie: &str, verdict: ReviewVerdict) -> Reques
         ReviewVerdict::Approve => "looks good",
         ReviewVerdict::Reject => "not today",
     };
-    Request::builder()
-        .method("POST")
-        .uri(format!("/tasks/{task_id}/review"))
-        .header(header::COOKIE, cookie)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(
-            serde_json::to_string(&ReviewTaskRequest {
-                verdict,
-                review_comment: review_comment.to_string(),
-            })
-            .unwrap(),
-        ))
-        .unwrap()
+    post_json_request(
+        &format!("/tasks/{task_id}/review"),
+        cookie,
+        &ReviewTaskRequest {
+            verdict,
+            review_comment: review_comment.to_string(),
+        },
+    )
 }
 
 #[serial_test::serial(hsm)]
