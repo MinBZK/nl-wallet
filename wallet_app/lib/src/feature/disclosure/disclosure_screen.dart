@@ -319,6 +319,7 @@ class DisclosureScreen extends StatelessWidget {
       context,
       style: state.canRetry ? ErrorCtaStyle.retry : ErrorCtaStyle.close,
       cta: cta,
+      error: state.error,
       onPrimaryActionPressed: () {
         if (userShouldRetryScan) {
           Navigator.pushNamedAndRemoveUntil(

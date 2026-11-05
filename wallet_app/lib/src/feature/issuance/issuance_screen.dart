@@ -337,6 +337,7 @@ class IssuanceScreen extends StatelessWidget {
       context,
       style: state.canRetry ? ErrorCtaStyle.retry : ErrorCtaStyle.close,
       cta: cta,
+      error: state.error,
       onPrimaryActionPressed: () {
         if (userShouldRetryScan) {
           Navigator.pushNamedAndRemoveUntil(
@@ -361,6 +362,7 @@ class IssuanceScreen extends StatelessWidget {
       onPrimaryActionPressed: () => Navigator.pop(context),
       style: .close,
       useIssuanceStyle: true,
+      error: error,
     );
   }
 

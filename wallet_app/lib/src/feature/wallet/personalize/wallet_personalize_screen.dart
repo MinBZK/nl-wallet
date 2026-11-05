@@ -339,6 +339,7 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
       onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
       style: .retry,
       useIssuanceStyle: true,
+      error: error,
     );
   }
 

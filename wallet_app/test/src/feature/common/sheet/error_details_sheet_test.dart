@@ -9,9 +9,11 @@ import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/feature/common/sheet/error_details_sheet.dart';
+import 'package:wallet/src/feature/common/widget/version/application_error_text.dart';
 import 'package:wallet/src/feature/common/widget/version/config_version_text.dart';
 import 'package:wallet/src/feature/common/widget/version/os_version_text.dart';
 import 'package:wallet/src/feature/common/widget/version/string_version_text.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.dart';
@@ -70,10 +72,30 @@ void main() {
               )
               .withDependency<GetVersionStringUseCase>((c) => getVersionStringUseCase)
               .withDependency<ConfigurationRepository>((c) => configurationRepository),
-          surfaceSize: const Size(350, 341),
+          surfaceSize: const Size(350, 320),
         );
         await tester.pumpAndSettle();
         await screenMatchesGolden('error_details_sheet/application_error.light');
+      },
+    );
+
+    testGoldens(
+      'light - with technical error details',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          const ErrorDetailsSheet(
+                error: GenericError(
+                  'Raw error message',
+                  sourceError: CoreGenericError('Something went wrong in core', data: {'key': 'value'}),
+                ),
+                showTechnicalDetails: true,
+              )
+              .withDependency<GetVersionStringUseCase>((c) => getVersionStringUseCase)
+              .withDependency<ConfigurationRepository>((c) => configurationRepository),
+          surfaceSize: const Size(350, 420),
+        );
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('error_details_sheet/technical_error_details.light');
       },
     );
 
@@ -108,6 +130,57 @@ void main() {
       expect(stringVersionFinder, findsOneWidget);
       expect(osVersionFinder, findsOneWidget);
       expect(configVersionFinder, findsOneWidget);
+    });
+
+    testWidgets('technical error details are shown when enabled', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const ErrorDetailsSheet(
+              error: GenericError(
+                'Raw error message',
+                sourceError: CoreGenericError('Something went wrong in core', data: {'key': 'value'}),
+              ),
+              showTechnicalDetails: true,
+            )
+            .withDependency<GetVersionStringUseCase>((c) => getVersionStringUseCase)
+            .withDependency<ConfigurationRepository>((c) => configurationRepository),
+      );
+
+      expect(find.byType(ApplicationErrorText), findsOneWidget);
+      expect(find.textContaining('Something went wrong in core', findRichText: true), findsOneWidget);
+      expect(find.textContaining('data: {key: value}', findRichText: true), findsOneWidget);
+    });
+
+    testWidgets('technical error details are hidden when disabled', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const ErrorDetailsSheet(
+              error: GenericError(
+                'Raw error message',
+                sourceError: CoreGenericError('Something went wrong in core', data: {'key': 'value'}),
+              ),
+              showTechnicalDetails: false,
+            )
+            .withDependency<GetVersionStringUseCase>((c) => getVersionStringUseCase)
+            .withDependency<ConfigurationRepository>((c) => configurationRepository),
+      );
+
+      expect(find.byType(ApplicationErrorText), findsOneWidget);
+      expect(find.textContaining('GenericError', findRichText: true), findsOneWidget);
+      expect(find.textContaining('Something went wrong in core', findRichText: true), findsNothing);
+      expect(find.textContaining('data: {key: value}', findRichText: true), findsNothing);
+      expect(find.textContaining('(CoreGenericError)', findRichText: true), findsNothing);
+    });
+
+    testWidgets('non-core source errors are described with their message', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ErrorDetailsSheet(
+              error: GenericError('Raw error message', sourceError: Exception('Some exception message')),
+              showTechnicalDetails: true,
+            )
+            .withDependency<GetVersionStringUseCase>((c) => getVersionStringUseCase)
+            .withDependency<ConfigurationRepository>((c) => configurationRepository),
+      );
+
+      expect(find.textContaining('Some exception message', findRichText: true), findsOneWidget);
     });
   });
 }
