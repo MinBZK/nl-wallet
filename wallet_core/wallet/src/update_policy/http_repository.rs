@@ -76,6 +76,7 @@ impl UpdateableRepository<VersionState, TlsPinningConfig> for HttpUpdatePolicyRe
             if last_fetched.is_some_and(|(last_fetch, fetched_for)| {
                 now.checked_duration_since(last_fetch)
                     .is_some_and(|diff| diff < *CACHE_DURATION)
+                    // This does not work for hash collisions, but the probability is acceptably low
                     && fetched_for == config_hash
             }) {
                 info!("Using cached version state for version {}", version());
