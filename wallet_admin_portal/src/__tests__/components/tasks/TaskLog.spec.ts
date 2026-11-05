@@ -11,6 +11,7 @@ const baseTask: TaskHistoryEntry = {
   reason: 'Suspicious activity',
   createdAt: new Date('2026-08-01T10:00:00'),
   createdBy: 'Jane Doe',
+  isOwnTask: false,
   verdict: 'Approved',
   result: 'Completed',
   completedAt: new Date('2026-08-02T11:15:00'),
@@ -32,6 +33,12 @@ describe('TaskLog', () => {
     expect(wrapper.text()).toContain('Completed')
     expect(wrapper.text()).toContain('Jane Doe')
     expect(wrapper.text()).toContain('Willeke Liselotte')
+  })
+
+  it('marks the creator with (jij) for an own task', () => {
+    const wrapper = mount(TaskLog, { props: { task: { ...baseTask, isOwnTask: true } } })
+
+    expect(wrapper.text()).toContain('Jane Doe (jij)')
   })
 
   it('shows the execution date in the result section', () => {
