@@ -14,6 +14,7 @@ use chrono::NaiveDate;
 use chrono::Utc;
 use error_category::ErrorCategory;
 use indexmap::IndexMap;
+use itertools::Either;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -55,19 +56,22 @@ pub enum AttributeError {
 }
 
 pub trait AttestationPresentationConfig {
-    fn filtered_attribute(&self, format: Format, attestation_type: &str) -> Option<&[String]>;
+    /// The key path of the attribute that should be filtered from the presentation of the attestation, if any.
+    fn filtered_attribute(&self, format: Format, attestation_type: &str) -> Option<impl Iterator<Item = &str> + Clone>;
 }
 
 impl AttestationPresentationConfig for PidAttributesConfiguration {
-    fn filtered_attribute(&self, format: Format, attribute: &str) -> Option<&[String]> {
-        let paths_by_attestation_type = match format {
-            Format::MsoMdoc => &self.mso_mdoc,
-            Format::SdJwt => &self.sd_jwt,
-        };
-
-        paths_by_attestation_type
-            .get(attribute)
-            .map(|pid_paths| pid_paths.recovery_code.as_ref())
+    fn filtered_attribute(&self, format: Format, attribute: &str) -> Option<impl Iterator<Item = &str> + Clone> {
+        match format {
+            Format::MsoMdoc => self
+                .mso_mdoc
+                .get(attribute)
+                .map(|paths| Either::Left(paths.recovery_code.key_path().into_iter())),
+            Format::SdJwt => self
+                .sd_jwt
+                .get(attribute)
+                .map(|paths| Either::Right(std::iter::once(paths.recovery_code.as_str()))),
+        }
     }
 }
 
@@ -238,6 +242,8 @@ impl ValidityStatus {
 
 #[cfg(test)]
 pub mod mock {
+    use std::iter::Empty;
+
     use attestation_data::organization::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
@@ -251,8 +257,12 @@ pub mod mock {
     pub struct EmptyPresentationConfig;
 
     impl AttestationPresentationConfig for EmptyPresentationConfig {
-        fn filtered_attribute(&self, _format: Format, _attestation_type: &str) -> Option<&[String]> {
-            None
+        fn filtered_attribute(
+            &self,
+            _format: Format,
+            _attestation_type: &str,
+        ) -> Option<impl Iterator<Item = &str> + Clone> {
+            None::<Empty<&str>>
         }
     }
 

@@ -8,7 +8,7 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::OfferedCredentialPreview;
 use platform_support::attested_key::AttestedKeyHolder;
-use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 
@@ -75,7 +75,7 @@ where
     ) -> Result<(), RecoveryCodeError> {
         let received_recovery_code = retrieve_recovery_code_from_pid(
             &pid_preview.attributes,
-            &pid_config.recovery_code_path(&pid_preview.attestation_type)?,
+            pid_config.recovery_code_path(&pid_preview.attestation_type)?,
         )
         .ok_or(RecoveryCodeError::MissingIssuedRecoveryCode)?;
 
@@ -114,7 +114,7 @@ where
                 // The stored PID has to include a recovery code, since this was checked during issuance. However, it is
                 // still possible that the SD-JWT credential kinds or path to the recovery code was changed in the
                 // configuration. This should never happen, making this an error in the "impossible" category.
-                let code = retrieve_recovery_code_from_pid(&stored_copy.into_attributes(), &recovery_code_path)
+                let code = retrieve_recovery_code_from_pid(&stored_copy.into_attributes(), recovery_code_path)
                     .ok_or(RecoveryCodeError::MissingStoredRecoveryCode)?
                     .to_string();
 
@@ -126,12 +126,9 @@ where
     }
 }
 
-fn retrieve_recovery_code_from_pid<'a>(
-    attributes: &'a Attributes,
-    recovery_code_path: &VecNonEmpty<ClaimPath>,
-) -> Option<&'a str> {
+fn retrieve_recovery_code_from_pid(attributes: &Attributes, recovery_code_path: ClaimPath) -> Option<&str> {
     attributes
-        .get(recovery_code_path)
+        .get(&vec_nonempty![recovery_code_path])
         .expect("failed to retrieve recovery code from PID")
         .and_then(|attribute| match attribute {
             Attribute::Text(code) => Some(code.as_str()),

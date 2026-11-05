@@ -26,8 +26,6 @@ use serde_with::serde_as;
 use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::duration::DurationDays;
-use utils::vec_at_least::NonEmptyIterator;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::EnvironmentSpecific;
 
@@ -154,8 +152,36 @@ pub struct UpdatePolicyServerConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct PidAttributesConfiguration {
-    pub mso_mdoc: HashMap<String, PidAttributePaths>,
-    pub sd_jwt: HashMap<String, PidAttributePaths>,
+    pub mso_mdoc: HashMap<String, MsoMdocPidClaims>,
+    pub sd_jwt: HashMap<String, SdJwtPidClaims>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
+pub struct MsoMdocPidClaims {
+    pub login: MdocPath,
+    pub recovery_code: MdocPath,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
+pub struct MdocPath {
+    pub namespace: String,
+    pub element_name: String,
+}
+
+impl MdocPath {
+    /// The path to this element as a sequence of claim path keys, i.e. the namespace followed by the element name.
+    pub fn key_path(&self) -> [&str; 2] {
+        [self.namespace.as_str(), self.element_name.as_str()]
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
+pub struct SdJwtPidClaims {
+    pub login: String,
+    pub recovery_code: String,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -190,20 +216,16 @@ impl PidAttributesConfiguration {
         }
     }
 
-    pub fn recovery_code_path(
-        &self,
-        attestation_type: &str,
-    ) -> Result<VecNonEmpty<ClaimPath>, PidAttributesConfigurationError> {
-        let path = self
-            .sd_jwt
-            .get(attestation_type)
-            .ok_or(PidAttributesConfigurationError::NoPidConfiguration(
-                attestation_type.to_string(),
-            ))?
-            .recovery_code
-            .nonempty_iter()
-            .map(|path| ClaimPath::SelectByKey(path.to_string()))
-            .collect();
+    pub fn recovery_code_path(&self, attestation_type: &str) -> Result<ClaimPath, PidAttributesConfigurationError> {
+        let path = ClaimPath::SelectByKey(
+            self.sd_jwt
+                .get(attestation_type)
+                .ok_or(PidAttributesConfigurationError::NoPidConfiguration(
+                    attestation_type.to_string(),
+                ))?
+                .recovery_code
+                .clone(),
+        );
 
         Ok(path)
     }
@@ -213,17 +235,10 @@ impl DisclosureTypeConfig for PidAttributesConfiguration {
     fn mdoc_login_path(&self, doctype: &str) -> Option<impl Iterator<Item = &str>> {
         self.mso_mdoc
             .get(doctype)
-            .map(|paths| paths.login.iter().map(String::as_str))
+            .map(|paths| paths.login.key_path().into_iter())
     }
 
     fn sd_jwt_login_path(&self, vct: &str) -> Option<impl Iterator<Item = &str>> {
-        self.sd_jwt.get(vct).map(|paths| paths.login.iter().map(String::as_str))
+        self.sd_jwt.get(vct).map(|paths| std::iter::once(paths.login.as_str()))
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
-pub struct PidAttributePaths {
-    pub login: VecNonEmpty<String>,
-    pub recovery_code: VecNonEmpty<String>,
 }

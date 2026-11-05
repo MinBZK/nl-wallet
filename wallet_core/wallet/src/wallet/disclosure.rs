@@ -52,7 +52,6 @@ use utils::vec_at_least::VecAtLeastTwo;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wallet_account::messages::errors::AccountRevokedData;
-use wallet_configuration::wallet_config::PidAttributePaths;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -385,20 +384,22 @@ pub(super) fn is_request_for_recovery_code(
     request: impl AttestationRequest,
     pid_attributes: &PidAttributesConfiguration,
 ) -> bool {
-    let matches_recovery_code_paths = |pid_paths: &PidAttributePaths| {
-        request
-            .claim_paths()
-            .any(|claim| ClaimPath::matches_key_path(&claim, pid_paths.recovery_code.iter().map(String::as_str)))
-    };
-
     match request.format() {
         Format::MsoMdoc => pid_attributes
             .mso_mdoc
             .get(request.credential_types().collect::<VecNonEmpty<_>>().first())
-            .is_some_and(matches_recovery_code_paths),
-        Format::SdJwt => request
-            .credential_types()
-            .any(|vct| pid_attributes.sd_jwt.get(&vct).is_some_and(matches_recovery_code_paths)),
+            .is_some_and(|paths| {
+                request
+                    .claim_paths()
+                    .any(|claim| ClaimPath::matches_key_path(&claim, paths.recovery_code.key_path()))
+            }),
+        Format::SdJwt => request.credential_types().any(|vct| {
+            pid_attributes.sd_jwt.get(&vct).is_some_and(|paths| {
+                request
+                    .claim_paths()
+                    .any(|claim| ClaimPath::matches_key_path(&claim, [paths.recovery_code.as_str()]))
+            })
+        }),
     }
 }
 
@@ -1052,8 +1053,10 @@ mod tests {
     use utils::vec_nonempty;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
-    use wallet_configuration::wallet_config::PidAttributePaths;
+    use wallet_configuration::wallet_config::MdocPath;
+    use wallet_configuration::wallet_config::MsoMdocPidClaims;
     use wallet_configuration::wallet_config::PidAttributesConfiguration;
+    use wallet_configuration::wallet_config::SdJwtPidClaims;
 
     use super::super::Session;
     use super::super::test::TestWalletMockStorage;
@@ -3298,16 +3301,22 @@ mod tests {
         PidAttributesConfiguration {
             mso_mdoc: HashMap::from([(
                 PID_MDOC_DOCTYPE.to_owned(),
-                PidAttributePaths {
-                    login: vec_nonempty!["login".to_owned()],
-                    recovery_code: vec_nonempty![PID_MDOC_DOCTYPE.to_owned(), PID_RECOVERY_CODE.to_owned()],
+                MsoMdocPidClaims {
+                    login: MdocPath {
+                        namespace: PID_MDOC_DOCTYPE.to_owned(),
+                        element_name: "login".to_owned(),
+                    },
+                    recovery_code: MdocPath {
+                        namespace: PID_MDOC_DOCTYPE.to_owned(),
+                        element_name: PID_RECOVERY_CODE.to_owned(),
+                    },
                 },
             )]),
             sd_jwt: HashMap::from([(
                 PID_ATTESTATION_TYPE.to_owned(),
-                PidAttributePaths {
-                    login: vec_nonempty!["login".to_owned()],
-                    recovery_code: vec_nonempty![PID_RECOVERY_CODE.to_owned()],
+                SdJwtPidClaims {
+                    login: "login".to_owned(),
+                    recovery_code: PID_RECOVERY_CODE.to_owned(),
                 },
             )]),
         }

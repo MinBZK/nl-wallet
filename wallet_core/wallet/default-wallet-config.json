@@ -31,14 +31,14 @@
   "pid_attributes": {
     "mso_mdoc": {
       "eu.europa.ec.eudi.pid.1": {
-        "login": ["eu.europa.ec.eudi.pid.nl.1", "bsn"],
-        "recovery_code": ["eu.europa.ec.eudi.pid.nl.1", "recovery_code"]
+        "login": { "namespace": "eu.europa.ec.eudi.pid.nl.1", "element_name": "bsn" },
+        "recovery_code": { "namespace": "eu.europa.ec.eudi.pid.nl.1", "element_name": "recovery_code" }
       }
     },
     "sd_jwt": {
       "urn:eudi:pid:nl:1": {
-        "login": ["bsn"],
-        "recovery_code": ["recovery_code"]
+        "login": "bsn",
+        "recovery_code": "recovery_code"
       }
     }
   },

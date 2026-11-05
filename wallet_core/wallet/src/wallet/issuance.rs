@@ -46,6 +46,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use uuid::Uuid;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
@@ -831,11 +832,7 @@ where
             })
             .ok_or(IssuanceError::MissingPidSdJwt)?;
 
-        let claim_path = pid_paths
-            .recovery_code
-            .nonempty_iter()
-            .map(|path| ClaimPath::SelectByKey(path.clone()))
-            .collect();
+        let claim_path = vec_nonempty![ClaimPath::SelectByKey(pid_paths.recovery_code.clone())];
 
         let recovery_code_disclosure = pid
             .sd_jwt()
@@ -961,7 +958,7 @@ mod tests {
     use wallet_account::messages::errors::RevocationReason;
     use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
     use wallet_account::messages::instructions::Instruction;
-    use wallet_configuration::wallet_config::PidAttributePaths;
+    use wallet_configuration::wallet_config::SdJwtPidClaims;
 
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
@@ -2619,9 +2616,9 @@ mod tests {
 
         // If the attestation is the PID, then its identity should match the identity of a stored PID
         // even when that wouldn't be the case for non-PID attestations.
-        let paths = PidAttributePaths {
-            login: vec_nonempty!["login".to_string()],
-            recovery_code: vec_nonempty!["recovery_code".to_string()],
+        let paths = SdJwtPidClaims {
+            login: "login".to_string(),
+            recovery_code: "recovery_code".to_string(),
         };
         let pid_config: PidAttributesConfiguration = PidAttributesConfiguration {
             mso_mdoc: HashMap::new(),
