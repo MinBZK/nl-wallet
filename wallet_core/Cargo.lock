@@ -10563,6 +10563,7 @@ name = "wallet"
 version = "0.7.1-dev"
 dependencies = [
  "aes-gcm",
+ "anyhow",
  "apple_app_attest",
  "async-trait",
  "attestation_data",

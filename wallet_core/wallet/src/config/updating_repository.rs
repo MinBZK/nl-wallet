@@ -175,7 +175,7 @@ pub struct UpdateConfig {
 }
 
 // Convenience for testing, should not be necessary for normal use
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 impl From<ConfigServerConfiguration> for UpdateConfig {
     fn from(config: ConfigServerConfiguration) -> Self {
         Self {

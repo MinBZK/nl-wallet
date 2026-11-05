@@ -370,6 +370,85 @@ Before running these tests:
 
 ## Running the suites in CI
 
+### Rust wallet disclosure on an iPhone
+
+`testWalletCloseProximityDisclosureWithMacReader` runs the Rust wallet's `start`, `continue`, and
+`accept_disclosure` APIs in the existing XCTest host app, without Flutter. It uses the real native
+BLE bridge and the Mac Swift reader. The Rust scenario is in `wallet/src/wallet/hardware_test/` and
+is compiled only with `wallet/hardware_integration_test`. The Xcode integration-test bundle links
+the `device_integration_tests` static-library example, which includes both `wallet` and
+`platform_support`; the production app does not link this test entry point.
+
+Run from the repository root, with an unlocked iPhone connected and Bluetooth permissions granted:
+
+```bash
+scripts/close_proximity/run_disclosure_ios_test.py --require-wallet-test -- \
+  xcodebuild test \
+    -project wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj \
+    -scheme PlatformSupport \
+    -testPlan LocalRealDevice \
+    -only-testing:'Integration Tests/CloseProximityDisclosureTests/testWalletCloseProximityDisclosureWithMacReader'
+```
+
+The wrapper builds the host Rust response verifier before launching XCTest. Pass
+`--wallet-verifier <executable>` to reuse an already built verifier. `--require-wallet-test` fails
+if no wallet response was verified, including when the wrong test plan skips the test.
+
+Each run creates fresh test keys, a synthetic PID, and a registered, unlocked wallet backed by
+in-memory SQLite. It generates a WRPAC, WRPRC, CRL, and signed WRPRC status list. Certificate and
+authorization checks use the production code, with controlled CRL/status-list retrieval. A signed
+test status list also covers the synthetic credential. A mock account-provider client signs the real
+disclosure digest with the credential's private key and returns a signed instruction result.
+This tests wallet signing orchestration, not the deployed Wallet Provider, HSM, PIN validation,
+registration, issuance, or hardware-backed credential storage.
+
+The scenario constructs reader authentication using the actual device engagement and the Mac
+reader's known test ephemeral key. It passes the signed request through `device_request_hex`;
+the Mac still performs BLE session establishment, encryption, transport, and response decryption.
+This scenario does not test the Swift reader's separate WRPAC/WRPRC request-generation flags.
+Only public certificates, the signed request, and synthetic test data leave the device.
+
+The reader writes the received response and its session transcript to a temporary JSON artifact.
+The host verifier checks issuer authentication, credential status, attribute digests, device authentication
+bound to that transcript, and exactly the requested attribute and value. The wallet checks the proposal,
+successful disclosure history, cleared session, and disconnect. The wrapper requires both XCTest
+and reader verification to succeed; a missing artifact, failed signature, or timeout fails the run.
+Tests must run serially because they share the device's native BLE bridge.
+
+`testWalletJwtRegistrationCertificateWithMacReader` runs the same successful disclosure using a
+compact JWT registration certificate in the `requestInfo.euWrprc` byte string. Both the JWT and CWT
+scenarios enable strict WRPRC validation and check the proposal, signing, disclosure history, session
+cleanup and cryptographically verified BLE response.
+
+The `testWalletRegistrationCertificate*` tests exercise the EUDI registration-certificate rejection
+paths through the same wallet and BLE transport. They cover missing/wrongly typed/malformed WRPRCs,
+tampered signatures, expiry, untrusted signing chains, reader identity and subject-type mismatches,
+revoked/suspended registrations, unavailable or untrusted status lists, out-of-bounds status indices,
+and unauthorized document types, namespaces and attributes. A two-document request also checks that
+an unauthorized second document rejects the entire request.
+
+Each request is reader-signed after the invalid registration data is inserted. The wallet must return
+the specific registration-certificate error, make no signing-instruction calls, record no disclosure,
+clear the session and stop its update listener. The Mac reader must receive and decrypt an error-only
+`DeviceResponse`: `InvalidRequest` for WRPRC parsing failures, `GeneralError` for the other cases.
+The host verifier rejects missing responses, incorrect statuses and responses containing documents.
+Status-list retrieval is controlled test infrastructure; the unavailable case returns a token-parsing
+failure. These tests exercise this branch's EUDI WRPRC policy, not every ISO 18013-5 requirement.
+
+All these tests run in the existing `LocalRealDevice` plan and iOS device CI job. To include them
+locally, select `Integration Tests/CloseProximityDisclosureTests` in the command above, or select an
+individual `testWalletRegistrationCertificate*` method by its full name.
+
+The same Rust scenarios can run without Bluetooth using a loopback transport:
+
+```bash
+cargo test --manifest-path wallet_core/Cargo.toml -p wallet \
+  --features hardware_integration_test --test close_proximity_device_scenario
+python3 -m unittest discover -s scripts/close_proximity -p 'test_*.py'
+```
+
+### Device suites
+
 The full suites run on the Mac mini that has the devices attached, on every
 default branch and merge request pipeline. See
 `deploy/gitlab/platform-support-tests.yml`. Both jobs share the
