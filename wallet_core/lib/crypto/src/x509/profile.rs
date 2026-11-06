@@ -84,10 +84,14 @@ impl CertificateProfile {
     /// provider certificates through ETSI TS 119 412-6, PID-4.1-01, to wallet provider certificates through WAL-5.1-01
     /// and to other attestation provider certificates through EAA-6.1-02, as ETSI EN 319 412-3 builds on
     /// ETSI EN 319 412-2.
+    ///
+    /// ETSI TS 119 411-8, GEN-6.6.1-03 also requires a policy identifier in WRPACs and permits a provider-assigned OID.
     pub fn certificate_policies(self) -> Option<&'static [u8]> {
         match self {
-            Self::PidIssuer | Self::Issuer | Self::Wia | Self::KeyAttestation => Some(NL_WALLET_CERTIFICATE_POLICIES),
-            Self::Wrpac | Self::Wrprc | Self::StatusListSigning => None,
+            Self::PidIssuer | Self::Issuer | Self::Wrpac | Self::Wia | Self::KeyAttestation => {
+                Some(NL_WALLET_CERTIFICATE_POLICIES)
+            }
+            Self::Wrprc | Self::StatusListSigning => None,
         }
     }
 

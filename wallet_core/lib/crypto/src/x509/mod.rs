@@ -773,7 +773,10 @@ mod tests {
         Some("2.25.150580842064059311066423755779195795505")
     )]
     #[case::status_list(Some(CertificateProfile::StatusListSigning), None)]
-    #[case::wrpac(Some(CertificateProfile::Wrpac), None)]
+    #[case::wrpac(
+        Some(CertificateProfile::Wrpac),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
     #[case::wrprc(Some(CertificateProfile::Wrprc), None)]
     #[case::wia(Some(CertificateProfile::Wia), Some("2.25.150580842064059311066423755779195795505"))]
     #[case::key_attestation(
