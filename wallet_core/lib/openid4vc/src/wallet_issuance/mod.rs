@@ -42,6 +42,7 @@ use oauth::issuer_identifier::IssuerUrl;
 use oauth::metadata::well_known::WellKnownError;
 use oauth::scope::Scope;
 use reqwest::header::ToStrError;
+use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
@@ -266,13 +267,17 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     MetadataIntegrityMissing,
 
-    #[error("metadata integrity digest contained is not consistent across credential copies")]
-    #[category(critical)]
-    MetadataIntegrityInconsistent,
-
     #[error("type metadata integrity did not verify correctly: {0}")]
     #[category(critical)]
     MetadataIntegrityVerification(#[source] TypeMetadataChainError),
+
+    #[error("credential copies are inconsistent")]
+    #[category(critical)]
+    CredentialCopiesInconsistent,
+
+    #[error("could not determine non-selectively disclosable claims of SD-JWT: {0}")]
+    #[category(critical)]
+    NonSelectivelyDisclosableClaims(#[source] NonSelectivelyDisclosableClaimsError),
 
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
