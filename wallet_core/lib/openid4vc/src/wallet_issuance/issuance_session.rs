@@ -1413,7 +1413,7 @@ impl Credentials {
                         .claim_paths(AttributesTraversalBehaviour::OnlyLeaves);
 
                     // Verify whether each claims selective disclosability matches the metadata.
-                    Self::verify_selective_disclosability(sd_jwt.sd_jwt(), issued_claims, normalized)?;
+                    Self::verify_selective_disclosability_against_metadata(sd_jwt.sd_jwt(), issued_claims, normalized)?;
                 }
 
                 Self::validate_confirmation_key(&public_key, &issued_credential_payload)?;
@@ -1438,7 +1438,7 @@ impl Credentials {
         Ok(())
     }
 
-    fn verify_selective_disclosability(
+    fn verify_selective_disclosability_against_metadata(
         sd_jwt: &VerifiedSdJwt,
         issued_claims: Vec<VecNonEmpty<ClaimPath>>,
         metadata: &NormalizedTypeMetadata,
@@ -1456,13 +1456,17 @@ impl Credentials {
         // Validating whether all required claims are issued is done by `validate_attributes`.
         // This will also prevent traversing and decoding the same disclosures several times for nested disclosures.
         for issued_claim in issued_claims {
-            Self::verify_claim_selective_disclosability(sd_jwt, issued_claim.as_slice(), &sd_metadata)?;
+            Self::verify_claim_selective_disclosability_against_metadata(
+                sd_jwt,
+                issued_claim.as_slice(),
+                &sd_metadata,
+            )?;
         }
 
         Ok(())
     }
 
-    fn verify_claim_selective_disclosability(
+    fn verify_claim_selective_disclosability_against_metadata(
         sd_jwt: &VerifiedSdJwt,
         claim_to_verify: &[ClaimPath],
         sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
@@ -4367,7 +4371,7 @@ mod tests {
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_never".to_string())], vec![vec_nonempty![ClaimPath::SelectByKey("root_array_never".to_string())]], ExpectedResult::SelectivelyDisclosability(ClaimSelectiveDisclosureMetadata::Never, true)
     )]
     #[case(vec_nonempty![ClaimPath::SelectByKey("root_array_never".to_string())], vec![], ExpectedResult::Ok)]
-    fn test_verify_claim_selective_disclosability(
+    fn test_verify_claim_selective_disclosability_against_metadata(
         #[case] claim_to_verify: VecNonEmpty<ClaimPath>,
         #[case] claims_to_conceal: Vec<VecNonEmpty<ClaimPath>>,
         #[case] expected: ExpectedResult,
@@ -4434,8 +4438,11 @@ mod tests {
         );
         let sd_jwt: VerifiedSdJwt = signed_sd_jwt.into_verified();
 
-        let result =
-            Credentials::verify_claim_selective_disclosability(&sd_jwt, claim_to_verify.as_slice(), &claims_metadata);
+        let result = Credentials::verify_claim_selective_disclosability_against_metadata(
+            &sd_jwt,
+            claim_to_verify.as_slice(),
+            &claims_metadata,
+        );
 
         match expected {
             ExpectedResult::Ok => result.unwrap(),
