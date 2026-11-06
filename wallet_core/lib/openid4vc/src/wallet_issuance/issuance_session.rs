@@ -1114,7 +1114,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                         trust_anchors.issuer_trust_anchors,
                     )?;
 
-                    // Only the first copy's integrity digest is verified here; [`verify_copies_consistency`] ensures
+                    // Only the first copy's integrity digest is verified here; [`verify_payloads_consistency`] ensures
                     // digests are identical for all copies.
                     let verified_metadata = verify_metadata_integrity(
                         credential_payloads
@@ -1180,9 +1180,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 }
             };
 
-        let first_credential_payload = verify_copies_consistency(credential_payloads)?;
-        verify_issuer_leaf_certificates_consistency(&credential_copies)?;
-        verify_selective_disclosability_consistency(&credential_copies)?;
+        let first_credential_payload = verify_copies_consistency(&credential_copies, credential_payloads)?;
 
         // All copies are equal at this point, so it suffices to check the first one against the metadata and preview.
         validate_attributes(&first_credential_payload, offered_metadata)?;
@@ -1495,9 +1493,10 @@ fn verify_metadata_integrity(
     Ok(verified_metadata)
 }
 
-/// Verify that all copies are equal and return the first.
+/// Verify that all copies of the credential are consistent and return the first payload.
 ///
-/// The following fields are not required to be identical:
+/// The copies are required to have identical payloads, issuer leaf certificates and selective disclosability. The
+/// following payload fields are not required to be identical:
 /// - `iat`: may differ, e.g. when the issuer signs each copy separately or randomizes it for unlinkability.
 /// - `cnf`: each copy is bound to a distinct holder key.
 /// - `status`: each copy may have its own status list entry, so it can be revoked separately.
@@ -1505,6 +1504,19 @@ fn verify_metadata_integrity(
 /// Note that `exp` and `nbf` are required to be identical, as the wallet stores a single validity window for all
 /// copies of an attestation.
 fn verify_copies_consistency(
+    credential_copies: &IssuedCredentialCopies,
+    credential_payloads: VecNonEmpty<CredentialPayload>,
+) -> Result<CredentialPayload, WalletIssuanceError> {
+    let first_credential_payload = verify_payloads_consistency(credential_payloads)?;
+    verify_issuer_leaf_certificates_consistency(credential_copies)?;
+    verify_selective_disclosability_consistency(credential_copies)?;
+
+    Ok(first_credential_payload)
+}
+
+/// Verify that the payloads of all copies are equal, apart from the fields listed in [`verify_copies_consistency`],
+/// and return the first.
+fn verify_payloads_consistency(
     credential_payloads: VecNonEmpty<CredentialPayload>,
 ) -> Result<CredentialPayload, WalletIssuanceError> {
     let (first, rest) = credential_payloads.split_first();
@@ -1537,9 +1549,9 @@ fn verify_issuer_leaf_certificates_consistency(
 }
 
 /// Verifies that all SD-JWT copies of the credential have the same non-selectively disclosable claims. As
-/// [`verify_copies_consistency`] ensures the claims themselves are equal, each claim should be selectively disclosable
-/// in the same way in every copy. This matters for claims of which the metadata allows either, as otherwise the
-/// wallet's check on non-selectively disclosable claims during disclosure would depend on the copy used.
+/// [`verify_payloads_consistency`] ensures the claims themselves are equal, each claim should be selectively
+/// disclosable in the same way in every copy. This matters for claims of which the metadata allows either, as otherwise
+/// the wallet's check on non-selectively disclosable claims during disclosure would depend on the copy used.
 ///
 /// TODO (PVW-6496): this does not cover claims nested in a selectively disclosable claim, as only the issuer-signed
 /// payload is considered.
@@ -3978,6 +3990,23 @@ mod tests {
     }
 
     #[rstest]
+    fn test_verify_copies_consistency(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+        #[values(1, 3)] copy_count: usize,
+    ) {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = ca.generate_pid_issuer_mock().unwrap();
+
+        let copies = issued_credential_copies(format, &ca, &vec![&issuer_key; copy_count]);
+        let first = example_credential_payload();
+        let payloads = vec![first.clone(); copy_count].try_into().unwrap();
+
+        let consistent = verify_copies_consistency(&copies, payloads).expect("copies should be consistent");
+
+        assert_eq!(consistent, first);
+    }
+
+    #[rstest]
     fn test_verify_issuer_leaf_certificates_consistency(
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
         #[values(1, 3)] copy_count: usize,
@@ -4065,7 +4094,7 @@ mod tests {
     }
 
     #[test]
-    fn test_verify_copies_consistency() {
+    fn test_verify_payloads_consistency() {
         let first = example_credential_payload();
 
         // Copies may differ in issuance time, holder key and status.
@@ -4076,7 +4105,7 @@ mod tests {
             ..first.clone()
         };
 
-        let consistent = verify_copies_consistency(vec_nonempty![first.clone(), other.clone(), other])
+        let consistent = verify_payloads_consistency(vec_nonempty![first.clone(), other.clone(), other])
             .expect("copies should be consistent");
 
         assert_eq!(consistent, first);
@@ -4141,10 +4170,10 @@ mod tests {
     }
 
     #[test]
-    fn test_verify_copies_consistency_single_copy() {
+    fn test_verify_payloads_consistency_single_copy() {
         let first = example_credential_payload();
 
-        let consistent = verify_copies_consistency(vec_nonempty![first.clone()]).expect("copy should be consistent");
+        let consistent = verify_payloads_consistency(vec_nonempty![first.clone()]).expect("copy should be consistent");
 
         assert_eq!(consistent, first);
     }
@@ -4166,7 +4195,7 @@ mod tests {
     #[case::vct_integrity(|payload: &mut CredentialPayload| {
         payload.vct_integrity = Some(Integrity::from(crypto::utils::random_bytes(32)));
     })]
-    fn test_verify_copies_consistency_error(
+    fn test_verify_payloads_consistency_error(
         #[case] modify: fn(&mut CredentialPayload),
         #[values(1, 2)] inconsistent_index: usize,
     ) {
@@ -4175,7 +4204,7 @@ mod tests {
         modify(&mut payloads[inconsistent_index]);
 
         let error =
-            verify_copies_consistency(payloads.try_into().unwrap()).expect_err("copies should not be consistent");
+            verify_payloads_consistency(payloads.try_into().unwrap()).expect_err("copies should not be consistent");
 
         assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
     }
