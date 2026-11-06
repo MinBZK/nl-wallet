@@ -1178,14 +1178,20 @@ mod tests {
         expect_find_task(&mut repository, task_id, Some(approved.clone()));
         expect_store_execution_result(&mut repository, approved, now);
 
+        let audit_log = InMemoryAuditLog::default();
         let user_repo = wallet_user_repository_with_count(existing_wallet_ids, revoked_count);
-        let executed = execute(repository, user_repo, now, task_id, &MockAuditLog)
+        let executed = execute(repository, user_repo, now, task_id, &audit_log)
             .await
             .expect("task should be executed");
 
         assert_eq!(executed.executed_at, Some(now));
         assert_eq!(executed.execution_successful, Some(expected_successful));
         assert!(executed.execution_details.unwrap().contains(expected_details));
+        assert!(
+            audit_log
+                .contains_match(|log: &String| log.contains("wallet_ids"))
+                .await
+        );
     }
 
     #[rstest]
