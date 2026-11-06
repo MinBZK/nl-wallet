@@ -22,10 +22,12 @@ then build, verify and promote both Android and iOS apps.
    installation: release builds currently use a [database per Git commit][database-version],
    so a different commit starts a fresh wallet (PVW-4707).
    Record the tested build numbers and results.
-5. **Promote those exact builds.** Use the agreed Google Play track and
-   TestFlight groups. Wait for any required store review and release action
-   to finish, then confirm the PUB audience can install both builds and check
-   service health.
+5. **Promote those exact builds.** Open **NL Wallet (pub)** in both store
+   consoles. In Google Play, promote Android from internal testing to the
+   **Public Demo** closed testing track. In TestFlight, add the iOS build to
+   the **Public Demo** external testing group. Wait for any required store
+   review and release action to finish, then confirm the PUB audience can
+   install both builds and check service health.
 6. **Require an update, if needed.** After the replacements are available,
    follow [Update-policy deployment](#update-policy-deployment), including
    the checks with an old and new app.
@@ -59,16 +61,12 @@ A version change after verification requires rebuilding and testing again.
 1. **Create an MR.** In `nl-wallet-secrets`, update
    [`configmaps/pub/nl-wallet-update-policy-server.yaml`][policy-config]
    to block versions below the chosen minimum. Target `main`.
-2. **Wait for the apps.** Both tested Android and iOS builds must be promoted
-   in Google Play and TestFlight and installable by the PUB audience. Keep the
-   blocking policy unchanged while either build is still in review or awaiting
-   release.
-3. **Deploy the policy.** Merge the MR and, in its resulting `main` pipeline,
+2. **Deploy the policy.** Merge the MR and, in its resulting `main` pipeline,
    trigger [**`apply-configmaps-pub`**][policy-ci]. Wait for it and the
    automatically triggered **`apply-secrets-pub`** to succeed. Then have the
    PUB operator restart `update-policy-server` and wait for it to be healthy:
    these jobs do not restart it, and the [policy loads at startup][policy-server].
-4. **Check the result.** Fully restart an old and a new app to bypass the
+3. **Check the result.** Fully restart an old and a new app to bypass the
    one-hour policy cache. The old app must require an update and open the
    correct update destination; the new app must remain usable.
 
