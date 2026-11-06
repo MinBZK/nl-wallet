@@ -465,6 +465,7 @@ where
 mod tests {
     use std::assert_matches;
 
+    use audit_log::model::mock::InMemoryAuditLog;
     use audit_log::model::mock::MockAuditLog;
     use chrono::DateTime;
     use chrono::Utc;
@@ -744,6 +745,7 @@ mod tests {
         wallet_user_repo: MockTransactionalWalletUserRepository,
         now: DateTime<Utc>,
         task_id: Uuid,
+        audit_log: &impl AuditLog,
     ) -> Result<AdminTask, ExecuteTaskError> {
         let mut user_state = setup_user_state(wallet_user_repo).await;
         user_state
@@ -752,7 +754,7 @@ mod tests {
             .returning(|_| Ok(()));
 
         service(repository, now, task_id)
-            .execute_task(task_id, &reviewer(), &user_state, &MockAuditLog)
+            .execute_task(task_id, &reviewer(), &user_state, audit_log)
             .await
     }
 
@@ -1177,7 +1179,7 @@ mod tests {
         expect_store_execution_result(&mut repository, approved, now);
 
         let user_repo = wallet_user_repository_with_count(existing_wallet_ids, revoked_count);
-        let executed = execute(repository, user_repo, now, task_id)
+        let executed = execute(repository, user_repo, now, task_id, &MockAuditLog)
             .await
             .expect("task should be executed");
 
@@ -1205,12 +1207,18 @@ mod tests {
         expect_store_execution_result(&mut repository, approved, now);
 
         let user_repo = wallet_user_repository_with_recovery_code_revocation(2);
-        let executed = execute(repository, user_repo, now, task_id)
+        let audit_log = InMemoryAuditLog::default();
+        let executed = execute(repository, user_repo, now, task_id, &audit_log)
             .await
             .expect("task should be executed");
 
         assert_eq!(executed.execution_successful, Some(true));
         assert_eq!(executed.execution_details.as_deref(), Some("denied 2 recovery code(s)"));
+        assert!(
+            audit_log
+                .contains_match(|log: &String| log.contains("recovery_codes"))
+                .await
+        );
     }
 
     #[rstest]
@@ -1226,9 +1234,15 @@ mod tests {
         expect_find_task(&mut repository, task_id, Some(task.clone()));
 
         // The wallet user repository has no expectations, so any revocation attempt panics.
-        let result = execute(repository, MockTransactionalWalletUserRepository::new(), now, task_id)
-            .await
-            .expect("task should be returned");
+        let result = execute(
+            repository,
+            MockTransactionalWalletUserRepository::new(),
+            now,
+            task_id,
+            &MockAuditLog,
+        )
+        .await
+        .expect("task should be returned");
 
         assert_eq!(result, task);
     }
@@ -1240,7 +1254,14 @@ mod tests {
         expect_transaction(&mut repository);
         expect_find_task(&mut repository, task_id, None);
 
-        let result = execute(repository, MockTransactionalWalletUserRepository::new(), now, task_id).await;
+        let result = execute(
+            repository,
+            MockTransactionalWalletUserRepository::new(),
+            now,
+            task_id,
+            &MockAuditLog,
+        )
+        .await;
 
         assert_matches!(result, Err(ExecuteTaskError::NotFound(id)) if id == task_id);
     }
@@ -1256,7 +1277,14 @@ mod tests {
             .times(1)
             .return_once(|_, _| Ok(None));
 
-        let result = execute(repository, wallet_user_repository(&["wallet-1"]), now, task_id).await;
+        let result = execute(
+            repository,
+            wallet_user_repository(&["wallet-1"]),
+            now,
+            task_id,
+            &MockAuditLog,
+        )
+        .await;
 
         assert_matches!(result, Err(ExecuteTaskError::InvalidState));
     }

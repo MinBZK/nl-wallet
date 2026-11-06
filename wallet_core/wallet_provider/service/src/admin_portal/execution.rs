@@ -47,7 +47,7 @@ where
 pub async fn block_users<T, R, F, H>(
     #[audit] task_id: Uuid,
     #[audit_user] approved_by: &LoggedInUser,
-    recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+    #[audit] recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
     user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,

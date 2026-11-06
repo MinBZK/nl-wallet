@@ -16,7 +16,7 @@ path = "tests/macro.rs"
 required-features = ["mock"]
 
 [features]
-mock = []
+mock = ["dep:serde_json", "dep:tokio"]
 db_test = ["mock", "dep:db_test", "tokio/rt-multi-thread"]
 
 [[test]]
@@ -43,6 +43,8 @@ audit_log_macros.path = "audit_log_macros"
 utils.path = "../../lib/utils"
 
 db_test = { path = "../../lib/db_test", optional = true }
+serde_json = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 
 [dev-dependencies]
 config = { workspace = true, features = ["toml"] }

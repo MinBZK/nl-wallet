@@ -109,13 +109,13 @@ where
 pub mod mock {
     use std::convert::Infallible;
     use std::fmt::Display;
+    use std::sync::Arc;
 
     use sea_orm::JsonValue;
+    use tokio::sync::RwLock;
 
     use super::AuditLog;
     use super::AuditUser;
-
-    pub struct MockAuditLog;
 
     pub struct MockAuditUser(String);
 
@@ -137,6 +137,8 @@ pub mod mock {
         }
     }
 
+    pub struct MockAuditLog;
+
     impl AuditLog for MockAuditLog {
         type Error = Infallible;
 
@@ -151,6 +153,61 @@ pub mod mock {
             F: AsyncFnOnce() -> Result<T, E>,
         {
             operation().await
+        }
+    }
+
+    #[derive(Default)]
+    pub struct InMemoryAuditLog(Arc<RwLock<Vec<String>>>);
+
+    impl AuditLog for InMemoryAuditLog {
+        type Error = Infallible;
+
+        async fn audit<F, T, E>(
+            &self,
+            operation_name: impl Into<String>,
+            parameters: JsonValue,
+            user_id: Option<String>,
+            operation: F,
+        ) -> Result<T, E>
+        where
+            F: AsyncFnOnce() -> Result<T, E>,
+        {
+            let result = operation().await;
+
+            let operation_name = operation_name.into();
+            let user_string = user_id.map(|user_id| format!(" by {user_id}")).unwrap_or_default();
+            let arguments = serde_json::to_string(&parameters).unwrap_or("<SERIALIZATION_ERROR>".to_string());
+            let operation_succeeded = match &result {
+                Ok(_) => "SUCCES",
+                Err(_) => "FAILED",
+            };
+
+            let mut lock = self.0.write().await;
+            lock.push(format!(
+                "AUDIT_LOG: {operation_name}{user_string} with {arguments} -> {operation_succeeded}"
+            ));
+
+            result
+        }
+    }
+
+    impl InMemoryAuditLog {
+        pub async fn len(&self) -> usize {
+            let lock = self.0.read().await;
+            lock.len()
+        }
+
+        pub async fn is_empty(&self) -> bool {
+            let lock = self.0.read().await;
+            lock.is_empty()
+        }
+
+        pub async fn contains_match<F>(&self, pattern: F) -> bool
+        where
+            F: FnMut(&String) -> bool,
+        {
+            let lock = self.0.read().await;
+            lock.iter().any(pattern)
         }
     }
 }
