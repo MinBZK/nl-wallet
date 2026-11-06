@@ -94,10 +94,6 @@ impl Mdoc {
     pub fn issuer_certificate_chain(&self) -> &VecNonEmpty<BorrowingCertificate> {
         &self.issuer_certificate_chain
     }
-
-    pub fn issuer_leaf_certificate(&self) -> &BorrowingCertificate {
-        self.issuer_certificate_chain().first()
-    }
 }
 
 #[cfg(any(test, feature = "test"))]

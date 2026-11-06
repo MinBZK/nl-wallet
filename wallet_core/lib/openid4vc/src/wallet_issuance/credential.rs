@@ -92,15 +92,15 @@ impl IssuedCredentialCopies {
         }
     }
 
-    pub fn issuer_leaf_certificates(&self) -> impl NonEmptyIterator<Item = &BorrowingCertificate> {
+    pub fn issuer_certificate_chains(&self) -> impl NonEmptyIterator<Item = &VecNonEmpty<BorrowingCertificate>> {
         match self {
             IssuedCredentialCopies::Mdoc(copies) => {
-                NEEither::Left(copies.nonempty_iter().map(|copy| copy.mdoc.issuer_leaf_certificate()))
+                NEEither::Left(copies.nonempty_iter().map(|copy| copy.mdoc.issuer_certificate_chain()))
             }
             IssuedCredentialCopies::SdJwt(copies) => NEEither::Right(
                 copies
                     .nonempty_iter()
-                    .map(|copy| copy.sd_jwt.sd_jwt().issuer_leaf_certificate()),
+                    .map(|copy| copy.sd_jwt.sd_jwt().issuer_certificate_chain()),
             ),
         }
     }

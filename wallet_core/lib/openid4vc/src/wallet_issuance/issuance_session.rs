@@ -1495,7 +1495,7 @@ fn verify_metadata_integrity(
 
 /// Verify that all copies of the credential are consistent and return the first payload.
 ///
-/// The copies are required to have identical payloads, issuer leaf certificates and selective disclosability. The
+/// The copies are required to have identical payloads, issuer certificate chains and selective disclosability. The
 /// following payload fields are not required to be identical:
 /// - `iat`: may differ, e.g. when the issuer signs each copy separately or randomizes it for unlinkability.
 /// - `cnf`: each copy is bound to a distinct holder key.
@@ -1508,7 +1508,7 @@ fn verify_copies_consistency(
     credential_payloads: VecNonEmpty<CredentialPayload>,
 ) -> Result<CredentialPayload, WalletIssuanceError> {
     let first_credential_payload = verify_payloads_consistency(credential_payloads)?;
-    verify_issuer_leaf_certificates_consistency(credential_copies)?;
+    verify_issuer_certificate_chains_consistency(credential_copies)?;
     verify_selective_disclosability_consistency(credential_copies)?;
 
     Ok(first_credential_payload)
@@ -1537,11 +1537,13 @@ fn verify_payloads_consistency(
     Ok(credential_payloads.into_first())
 }
 
-/// Verifies that all copies of the credential have the same issuer leaf certificate.
-fn verify_issuer_leaf_certificates_consistency(
+/// Verifies that all copies of the credential have the same issuer certificate chain. The whole chain is compared, as
+/// during disclosure the wallet matches the authority key identifiers requested by a verifier against the whole chain
+/// of a single copy, so the outcome should not depend on the copy used.
+fn verify_issuer_certificate_chains_consistency(
     credential_copies: &IssuedCredentialCopies,
 ) -> Result<(), WalletIssuanceError> {
-    if !credential_copies.issuer_leaf_certificates().into_iter().all_equal() {
+    if !credential_copies.issuer_certificate_chains().into_iter().all_equal() {
         return Err(WalletIssuanceError::CredentialCopiesInconsistent);
     }
 
@@ -3751,7 +3753,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_accept_issuance_error_issuer_leaf_certificates_inconsistent(
+    fn test_accept_issuance_error_issuer_certificate_chains_inconsistent(
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
         #[values(0, 1, 3)] other_issuer_key_index: usize,
     ) {
@@ -3763,7 +3765,7 @@ mod tests {
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
         // Sign one copy with a different leaf certificate. Every certificate is issued by the same trusted CA and the
-        // payloads are identical, so only the issuer leaf certificate consistency check catches this.
+        // payloads are identical, so only the issuer certificate chain consistency check catches this.
         signer.sign_copy_with_other_issuer_key(other_issuer_key_index);
 
         let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
@@ -4007,7 +4009,7 @@ mod tests {
     }
 
     #[rstest]
-    fn test_verify_issuer_leaf_certificates_consistency(
+    fn test_verify_issuer_certificate_chains_consistency(
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
         #[values(1, 3)] copy_count: usize,
     ) {
@@ -4016,11 +4018,11 @@ mod tests {
 
         let copies = issued_credential_copies(format, &ca, &vec![&issuer_key; copy_count]);
 
-        verify_issuer_leaf_certificates_consistency(&copies).expect("issuer leaf certificates should be consistent");
+        verify_issuer_certificate_chains_consistency(&copies).expect("issuer certificate chains should be consistent");
     }
 
     #[rstest]
-    fn test_verify_issuer_leaf_certificates_consistency_error(
+    fn test_verify_issuer_certificate_chains_consistency_error(
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
         #[values(1, 2)] other_index: usize,
     ) {
@@ -4033,8 +4035,8 @@ mod tests {
 
         let copies = issued_credential_copies(format, &ca, &issuer_keys);
 
-        let error = verify_issuer_leaf_certificates_consistency(&copies)
-            .expect_err("issuer leaf certificates should not be consistent");
+        let error = verify_issuer_certificate_chains_consistency(&copies)
+            .expect_err("issuer certificate chains should not be consistent");
 
         assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
     }
