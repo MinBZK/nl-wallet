@@ -1493,9 +1493,12 @@ fn verify_metadata_integrity(
 /// Verify that all copies are equal and return the first.
 ///
 /// The following fields are not required to be identical:
-/// - `iat`: may be randomized or rounded for unlinkability.
+/// - `iat`: may differ, e.g. when the issuer signs each copy separately or randomizes it for unlinkability.
 /// - `cnf`: each copy is bound to a distinct holder key.
 /// - `status`: each copy may have its own status list entry, so it can be revoked separately.
+///
+/// Note that `exp` and `nbf` are required to be identical, as the wallet stores a single validity window for all
+/// copies of an attestation.
 fn verify_copies_consistency(
     credential_payloads: VecNonEmpty<CredentialPayload>,
 ) -> Result<CredentialPayload, WalletIssuanceError> {
@@ -1517,7 +1520,7 @@ fn verify_copies_consistency(
     Ok(credential_payloads.into_first())
 }
 
-/// Verifies that all copies of the credential have the same issuer leaf certificates.
+/// Verifies that all copies of the credential have the same issuer leaf certificate.
 fn verify_issuer_leaf_certificates_consistency(
     credential_copies: &IssuedCredentialCopies,
 ) -> Result<(), WalletIssuanceError> {
