@@ -43,6 +43,8 @@ impl Mdoc {
             supported_algorithms,
         )?;
 
+        // TODO (PVW-4132): the x5chain is already parsed in `IssuerSigned::verify` and
+        // `IssuerAuth::verify_against_trust_anchors`, so we shouldn't need to parse it again here.
         let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain()?;
 
         let mdoc = Mdoc {
