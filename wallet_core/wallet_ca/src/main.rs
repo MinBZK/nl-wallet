@@ -425,17 +425,18 @@ impl Command {
         san_uris: Vec<HttpsUri>,
     ) -> CertificateConfiguration {
         let profile = match cert_type {
-            CertType::Issuer => Some(CertificateProfile::Issuer),
-            CertType::PidIssuer => Some(CertificateProfile::PidIssuer),
-            CertType::Tsl => Some(CertificateProfile::StatusListSigning),
-            CertType::Wia => Some(CertificateProfile::Wia),
-            CertType::KeyAttestation => Some(CertificateProfile::KeyAttestation),
-            CertType::Wrpac | CertType::Wrprc => None,
+            CertType::Issuer => CertificateProfile::Issuer,
+            CertType::PidIssuer => CertificateProfile::PidIssuer,
+            CertType::Tsl => CertificateProfile::StatusListSigning,
+            CertType::Wia => CertificateProfile::Wia,
+            CertType::KeyAttestation => CertificateProfile::KeyAttestation,
+            CertType::Wrpac => CertificateProfile::Wrpac,
+            CertType::Wrprc => CertificateProfile::Wrprc,
         };
         let subject_alt_names = san_uris.into_iter().map(Into::into).collect();
 
         CertificateConfiguration {
-            profile,
+            profile: Some(profile),
             crl_distribution_points,
             ca_issuers,
             subject_alt_names,

@@ -37,6 +37,7 @@ use pem::LineEnding;
 use pem::Pem;
 use predicates::prelude::*;
 use predicates::str::RegexPredicate;
+use rstest::rstest;
 use serde_json::json;
 use time::Duration;
 use time::OffsetDateTime;
@@ -128,6 +129,7 @@ fn assert_generated_certificate(
     start: OffsetDateTime,
     end: OffsetDateTime,
     usage: Option<CertificateUsage>,
+    expected_key_usage: u16,
 ) -> Result<()> {
     // Read certificate and verify PEM label
     let crt_pem_bytes = std::fs::read(crt_file)?;
@@ -166,27 +168,16 @@ fn assert_generated_certificate(
     let not_after = crt.validity().not_after.to_datetime();
     assert_eq!(not_after.cmp_range(&end, Duration::minutes(1)), Ordering::Equal);
 
-    // Required key usage as specified in ISO/IEC 18013-5:2021, Tables B.1 and B.3, and ETSI EN 319 412-2, section
-    // 4.3.2.
-    let expected_flags = if crt.is_ca() {
-        Some(0b0110_0000) // keyCertSign and cRLSign only
-    } else if usage.is_some() {
-        Some(0b0000_0001) // digitalSignature only
-    } else {
-        None
-    };
-    let key_usage = crt.key_usage()?;
-    assert_eq!(
-        key_usage.as_ref().map(|extension| extension.value.flags),
-        expected_flags
-    );
-    if let Some(key_usage) = key_usage {
-        assert!(key_usage.critical);
-    }
+    // Key Usage and Extended Key Usage are independent: WRPAC and WRPRC signers have only Key Usage.
+    let key_usage = crt.key_usage()?.expect("certificate must contain Key Usage");
+    assert_eq!(key_usage.value.flags, expected_key_usage);
+    assert!(key_usage.critical);
 
     // Verify that Extended Key Usage remains separate from Key Usage.
     if let Some(usage) = usage {
         assert_eq!(CertificateUsage::from_certificate(&crt)?, usage);
+    } else {
+        assert!(crt.extended_key_usage()?.is_none());
     }
 
     Ok(())
@@ -757,6 +748,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + DEFAULT_CA_LIFETIME,
         None,
+        0b0110_0000,
     )?;
 
     // Generate issuer key pair
@@ -787,6 +779,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::Mdl),
+            0b0000_0001,
         )?;
     }
 
@@ -819,6 +812,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::Mdl),
+            0b0000_0001,
         )?;
     }
 
@@ -850,6 +844,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             None,
+            0b0000_0001,
         )?;
     }
 
@@ -882,6 +877,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             None,
+            0b0000_0001,
         )?;
     }
 
@@ -913,6 +909,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::StatusListSigning),
+            0b0000_0001,
         )?;
     }
 
@@ -947,12 +944,75 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::StatusListSigning),
+            0b0000_0001,
         )?;
     }
 
     // Explicitly close the temp folder, for better error reporting
     temp.close()?;
 
+    Ok(())
+}
+
+#[rstest]
+#[case::wrpac("wrpac", 0b0000_0001)]
+#[case::wrprc("wrprc", 0b0000_0010)]
+fn wrp_certificate_key_usage(
+    #[case] cert_type: &str,
+    #[case] expected_key_usage: u16,
+    #[values("cert", "cert-pub")] subcommand: &str,
+) -> Result<()> {
+    let temp = TempDir::new()?;
+    let (ca_prefix, ca_crt, ca_key) = keypair_paths(&temp, "test-ca");
+    Command::new(assert_cmd::cargo::cargo_bin!())
+        .generate_ca(&ca_prefix)
+        .assert()
+        .success();
+    let ca_dn = DistinguishedName::new("CA".to_string(), "NL".to_string());
+    let trust_anchors = trust_anchors_from_pem(&ca_crt)?;
+
+    let prefix = format!("{cert_type}-{subcommand}");
+    let (cert_prefix, cert_file, _) = keypair_paths(&temp, &prefix);
+    let mut command = Command::new(assert_cmd::cargo::cargo_bin!());
+    command
+        .arg(subcommand)
+        .args(["--type", cert_type])
+        .arg("--ca-key-file")
+        .arg(ca_key.path())
+        .arg("--ca-crt-file")
+        .arg(ca_crt.path())
+        .args(["--common-name", "Test WRP certificate"])
+        .generate_for_legal_person("Test B.V.", "NTRNL-00000002")
+        .arg("--file-prefix")
+        .arg(cert_prefix.path());
+    if subcommand == "cert-pub" {
+        let public_key_file = public_key_path(&temp, &prefix);
+        generate_public_key(&public_key_file);
+        command.arg("--public-key-file").arg(public_key_file.path());
+    }
+    command.assert().success();
+
+    // WRPAC authenticates the relying party (type C); the WRPRC signer seals registration statements (type A).
+    assert_generated_certificate(
+        &cert_file,
+        &ca_dn,
+        &DistinguishedName::new_legal_person(
+            "Test WRP certificate".to_string(),
+            "NL".to_string(),
+            "Test B.V.".to_string(),
+            "NTRNL-00000002".to_string(),
+        ),
+        None,
+        OffsetDateTime::now_utc(),
+        OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
+        None,
+        expected_key_usage,
+    )?;
+    let certificate = certificate_from_pem(&cert_file)?;
+    assert!(!certificate.x509_certificate().is_ca());
+    certificate.verify(None, &[], &TimeGenerator, &trust_anchors)?;
+
+    temp.close()?;
     Ok(())
 }
 
@@ -981,6 +1041,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + Duration::days(586),
         None,
+        0b0110_0000,
     )?;
 
     // Generate tsl key pair
@@ -1012,6 +1073,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
             Some(CertificateUsage::StatusListSigning),
+            0b0000_0001,
         )?;
     }
 
@@ -1046,6 +1108,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
             Some(CertificateUsage::StatusListSigning),
+            0b0000_0001,
         )?;
     }
 
@@ -1078,6 +1141,7 @@ fn happy_flow_with_san() -> Result<()> {
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + DEFAULT_CA_LIFETIME,
         None,
+        0b0110_0000,
     )?;
 
     // Generate tsl key pair
@@ -1109,6 +1173,7 @@ fn happy_flow_with_san() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::StatusListSigning),
+            0b0000_0001,
         )?;
     }
 
@@ -1143,6 +1208,7 @@ fn happy_flow_with_san() -> Result<()> {
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
             Some(CertificateUsage::StatusListSigning),
+            0b0000_0001,
         )?;
     }
 
@@ -1540,6 +1606,7 @@ fn not_a_natural_or_legal_person() -> Result<()> {
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + DEFAULT_CA_LIFETIME,
         None,
+        0b0110_0000,
     )?;
 
     // Generate tsl key pair
@@ -1608,6 +1675,7 @@ fn happy_flow_legal_person_ca() -> Result<()> {
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + DEFAULT_CA_LIFETIME,
         None,
+        0b0110_0000,
     )?;
 
     // Explicitly close the temp folder, for better error reporting

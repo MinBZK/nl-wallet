@@ -31,6 +31,11 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert \
     --file-prefix target/wrprc-signer
 ```
 
+The generated signing certificate has a critical `keyUsage` containing only
+`contentCommitment` (also called `nonRepudiation`). For WRPACs, `--type wrpac`
+sets a critical `keyUsage` containing only `digitalSignature`. Neither
+profile adds an extended key usage. The same profiles apply to `cert-pub`.
+
 Then sign an authored JSON payload. The command validates the payload and
 checks that its `sub` matches the subject identifier in the supplied WRPAC
 before signing it:
