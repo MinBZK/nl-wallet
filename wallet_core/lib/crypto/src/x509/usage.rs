@@ -11,12 +11,15 @@ use x509_parser::extensions::ExtendedKeyUsage;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum CertificateUsage {
     Mdl,
+    /// ISO/IEC 18013-5 reader authentication. The EKU may be omitted in an EUDI WRPAC.
+    MdlReader,
     StatusListSigning,
     Wia,
     KeyAttestation,
 }
 
 const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
+const EXTENDED_KEY_USAGE_MDL_READER: &Oid = &oid!(1.0.18013.5.1.6);
 // The .127 is made up, the real child node is TDB
 const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
 // The .128 is made up, the real child node is TBD
@@ -53,6 +56,7 @@ impl CertificateUsage {
             let cert_usage = {
                 match key_usage_oid {
                     oid if oid == EXTENDED_KEY_USAGE_MDL => Some(Self::Mdl),
+                    oid if oid == EXTENDED_KEY_USAGE_MDL_READER => Some(Self::MdlReader),
                     oid if oid == EXTENDED_KEY_USAGE_TSL => Some(Self::StatusListSigning),
                     oid if oid == EXTENDED_KEY_USAGE_WIA => Some(Self::Wia),
                     oid if oid == EXTENDED_KEY_USAGE_KEY_ATTESTATION => Some(Self::KeyAttestation),
@@ -73,6 +77,7 @@ impl CertificateUsage {
     fn as_oid(self) -> &'static Oid<'static> {
         match self {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
+            CertificateUsage::MdlReader => EXTENDED_KEY_USAGE_MDL_READER,
             CertificateUsage::StatusListSigning => EXTENDED_KEY_USAGE_TSL,
             CertificateUsage::Wia => EXTENDED_KEY_USAGE_WIA,
             CertificateUsage::KeyAttestation => EXTENDED_KEY_USAGE_KEY_ATTESTATION,
@@ -120,6 +125,7 @@ mod tests {
     fn certificate_usage_to_oid_from_extension(
         #[values(
             CertificateUsage::Mdl,
+            CertificateUsage::MdlReader,
             CertificateUsage::StatusListSigning,
             CertificateUsage::Wia,
             CertificateUsage::KeyAttestation

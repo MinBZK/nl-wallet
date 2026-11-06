@@ -637,6 +637,44 @@ mod tests {
     }
 
     #[rstest]
+    #[case::pid_issuer(Some(CertificateProfile::PidIssuer), Some(("1.0.18013.5.1.2", false)))]
+    #[case::issuer(Some(CertificateProfile::Issuer), Some(("1.0.18013.5.1.2", false)))]
+    #[case::wrpac(Some(CertificateProfile::Wrpac), Some(("1.0.18013.5.1.6", false)))]
+    #[case::wrprc(Some(CertificateProfile::Wrprc), None)]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), Some(("1.3.6.1.5.5.7.3.127", false)))]
+    #[case::wia(Some(CertificateProfile::Wia), Some(("1.3.6.1.5.5.7.3.128", false)))]
+    #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some(("1.3.6.1.5.5.7.3.129", false)))]
+    #[case::without_profile(None, None)]
+    fn generated_leaf_extended_key_usage(
+        #[case] profile: Option<CertificateProfile>,
+        #[case] expected: Option<(&str, bool)>,
+    ) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    profile,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let certificate = key_pair.certificate().x509_certificate();
+        let eku = certificate.extended_key_usage().unwrap();
+        match expected {
+            Some((oid, critical)) => {
+                let eku = eku.expect("profile must generate Extended Key Usage");
+                assert_eq!(eku.critical, critical);
+                assert_eq!(
+                    eku.value.other.iter().map(ToString::to_string).collect::<Vec<_>>(),
+                    [oid]
+                );
+            }
+            None => assert!(eku.is_none()),
+        }
+    }
+
+    #[rstest]
     fn generated_leaf_subject_key_identifier(
         #[values(
             Some(CertificateProfile::PidIssuer),

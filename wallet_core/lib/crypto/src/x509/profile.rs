@@ -57,7 +57,8 @@ impl CertificateProfile {
             Self::StatusListSigning => Some(CertificateUsage::StatusListSigning),
             Self::Wia => Some(CertificateUsage::Wia),
             Self::KeyAttestation => Some(CertificateUsage::KeyAttestation),
-            Self::Wrpac | Self::Wrprc => None,
+            Self::Wrpac => Some(CertificateUsage::MdlReader),
+            Self::Wrprc => None,
         }
     }
 

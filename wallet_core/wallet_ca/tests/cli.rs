@@ -168,7 +168,7 @@ fn assert_generated_certificate(
     let not_after = crt.validity().not_after.to_datetime();
     assert_eq!(not_after.cmp_range(&end, Duration::minutes(1)), Ordering::Equal);
 
-    // Key Usage and Extended Key Usage are independent: WRPAC and WRPRC signers have only Key Usage.
+    // Key Usage and Extended Key Usage are independent: WRPRC signers have only Key Usage.
     let key_usage = crt.key_usage()?.expect("certificate must contain Key Usage");
     assert_eq!(key_usage.value.flags, expected_key_usage);
     assert!(key_usage.critical);
@@ -176,6 +176,10 @@ fn assert_generated_certificate(
     // Verify that Extended Key Usage remains separate from Key Usage.
     if let Some(usage) = usage {
         assert_eq!(CertificateUsage::from_certificate(&crt)?, usage);
+        let eku = crt
+            .extended_key_usage()?
+            .expect("certificate must contain Extended Key Usage");
+        assert!(!eku.critical);
     } else {
         assert!(crt.extended_key_usage()?.is_none());
     }
@@ -843,7 +847,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            None,
+            Some(CertificateUsage::MdlReader),
             0b0000_0001,
         )?;
     }
@@ -876,7 +880,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            None,
+            Some(CertificateUsage::MdlReader),
             0b0000_0001,
         )?;
     }
@@ -955,11 +959,12 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
 }
 
 #[rstest]
-#[case::wrpac("wrpac", 0b0000_0001)]
-#[case::wrprc("wrprc", 0b0000_0010)]
+#[case::wrpac("wrpac", 0b0000_0001, Some(CertificateUsage::MdlReader))]
+#[case::wrprc("wrprc", 0b0000_0010, None)]
 fn wrp_certificate_key_usage(
     #[case] cert_type: &str,
     #[case] expected_key_usage: u16,
+    #[case] expected_extended_key_usage: Option<CertificateUsage>,
     #[values("cert", "cert-pub")] subcommand: &str,
 ) -> Result<()> {
     let temp = TempDir::new()?;
@@ -1005,12 +1010,23 @@ fn wrp_certificate_key_usage(
         None,
         OffsetDateTime::now_utc(),
         OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-        None,
+        expected_extended_key_usage,
         expected_key_usage,
     )?;
     let certificate = certificate_from_pem(&cert_file)?;
     assert!(!certificate.x509_certificate().is_ca());
-    certificate.verify(None, &[], &TimeGenerator, &trust_anchors)?;
+    if cert_type == "wrpac" {
+        let eku = certificate
+            .x509_certificate()
+            .extended_key_usage()?
+            .expect("WRPAC must contain Extended Key Usage");
+        assert!(!eku.critical);
+        assert_eq!(
+            eku.value.other.iter().map(ToString::to_string).collect::<Vec<_>>(),
+            ["1.0.18013.5.1.6"]
+        );
+    }
+    certificate.verify(expected_extended_key_usage, &[], &TimeGenerator, &trust_anchors)?;
 
     temp.close()?;
     Ok(())

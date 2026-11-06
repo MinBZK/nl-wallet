@@ -32,8 +32,11 @@ cargo run --manifest-path wallet_core/Cargo.toml --bin wallet_ca -- cert \
 
 The generated signing certificate has a critical `keyUsage` containing only
 `contentCommitment` (also called `nonRepudiation`). For WRPACs, `--type wrpac`
-sets a critical `keyUsage` containing only `digitalSignature`. Neither
-profile adds an extended key usage. The same profiles apply to `cert-pub`.
+sets a critical `keyUsage` containing only `digitalSignature`, and a
+non-critical `extendedKeyUsage` containing the ISO/IEC 18013-5 reader
+authentication purpose `mdlReaderAuth` (`1.0.18013.5.1.6`). The EKU is
+non-critical following ETSI EN 319 412-2, section 4.3.10. The WRPRC signing
+profile adds no extended key usage. The same profiles apply to `cert-pub`.
 
 Then sign an authored JSON payload. The command validates the payload and
 checks that its `sub` matches the subject identifier in the supplied WRPAC
