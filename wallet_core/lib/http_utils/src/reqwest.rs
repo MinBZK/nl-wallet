@@ -206,7 +206,9 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
         .no_zstd()
         .no_deflate()
         .tls_built_in_root_certs(true)
-        .min_tls_version(Version::TLS_1_3)
+        .min_tls_version(Version::TLS_1_2)
+        // Force `rustls`, which only supports strong ciphers <https://docs.rs/rustls/latest/rustls/crypto/ring/cipher_suite/index.html>
+        .use_rustls_tls()
 }
 
 /// Create a [`ClientBuilder`] with sensible defaults that is TLS-only.
