@@ -130,7 +130,7 @@ where
 
             Ok(None) => Err(DisclosureBasedIssuanceError::MissingRedirectUri(organization.clone()))?,
 
-            // If the issuer has no attestations to issue, return an empty Vec.
+            // Check if the issuer has any attestations to issue.
             Err(DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(err))))
                 if err.error_response.error
                     == RemoteErrorCode::Known(PostAuthResponseErrorCode::NoIssuableAttestations) =>
