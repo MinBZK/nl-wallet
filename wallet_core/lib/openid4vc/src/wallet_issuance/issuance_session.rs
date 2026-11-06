@@ -1182,6 +1182,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let first_credential_payload = verify_copies_consistency(credential_payloads)?;
         verify_issuer_leaf_certificates_consistency(&credential_copies)?;
+        verify_selective_disclosability_consistency(&credential_copies)?;
 
         // All copies are equal at this point, so it suffices to check the first one against the metadata and preview.
         validate_attributes(&first_credential_payload, offered_metadata)?;
@@ -1535,6 +1536,35 @@ fn verify_issuer_leaf_certificates_consistency(
     Ok(())
 }
 
+/// Verifies that all SD-JWT copies of the credential have the same non-selectively disclosable claims. As
+/// [`verify_copies_consistency`] ensures the claims themselves are equal, each claim should be selectively disclosable
+/// in the same way in every copy. This matters for claims of which the metadata allows either, as otherwise the
+/// wallet's check on non-selectively disclosable claims during disclosure would depend on the copy used.
+///
+/// TODO (PVW-6496): this does not cover claims nested in a selectively disclosable claim, as only the issuer-signed
+/// payload is considered.
+fn verify_selective_disclosability_consistency(
+    credential_copies: &IssuedCredentialCopies,
+) -> Result<(), WalletIssuanceError> {
+    match credential_copies {
+        // An mdoc has no notion of selective disclosability, as each attribute can be disclosed separately.
+        IssuedCredentialCopies::Mdoc(_) => Ok(()),
+        IssuedCredentialCopies::SdJwt(copies) => {
+            let is_consistent = copies
+                .iter()
+                .map(|copy| copy.sd_jwt.sd_jwt().non_selectively_disclosable_claims())
+                .process_results(|mut non_sd_claims| non_sd_claims.all_equal())
+                .map_err(WalletIssuanceError::NonSelectivelyDisclosableClaims)?;
+
+            if !is_consistent {
+                return Err(WalletIssuanceError::CredentialCopiesInconsistent);
+            }
+
+            Ok(())
+        }
+    }
+}
+
 /// Verifies that the attributes of the issued credential are those described by the metadata of the credential
 /// configuration, i.e. that all mandatory claims are present and that no undescribed attributes occur.
 fn validate_attributes(
@@ -1611,6 +1641,7 @@ mod tests {
     use sd_jwt::test::conceal_and_sign;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use serde_bytes::ByteBuf;
     use serde_json::json;
     use ssri::Integrity;
@@ -2844,6 +2875,8 @@ mod tests {
         normalized_metadata: NormalizedTypeMetadata,
         pub random_metadata_integrity_index: Option<usize>,
         pub first_copy_expires_later: bool,
+        /// If set, the SD-JWT copy at this index does not make `family_name` selectively disclosable.
+        pub non_selectively_disclosable_copy_index: Option<usize>,
 
         /// If set, the copy at this index is signed with this key instead of `issuer_key`.
         other_issuer_key: Option<(usize, KeyPair)>,
@@ -2966,6 +2999,7 @@ mod tests {
                 metadata_integrity,
                 random_metadata_integrity_index: None,
                 first_copy_expires_later: false,
+                non_selectively_disclosable_copy_index: None,
                 other_issuer_key: None,
                 mdoc_previewable_payload,
                 sd_jwt_previewable_payload,
@@ -3094,10 +3128,21 @@ mod tests {
                     Credentials::MsoMdoc(mdoc_credentials)
                 }
                 Format::SdJwt => {
+                    let non_sd_metadata = family_name_type_metadata(
+                        &self.sd_jwt_previewable_payload.attestation_type,
+                        ClaimSelectiveDisclosureMetadata::Never,
+                    );
+
                     let sd_jwt_credentials = credential_payloads
                         .map(|(index, credential_payload)| {
+                            let type_metadata = if self.non_selectively_disclosable_copy_index == Some(index) {
+                                &non_sd_metadata
+                            } else {
+                                &self.normalized_metadata
+                            };
+
                             let unverified_sd_jwt = credential_payload
-                                .into_signed_sd_jwt(Some(&self.normalized_metadata), issuer_key_for_index(index))
+                                .into_signed_sd_jwt(Some(type_metadata), issuer_key_for_index(index))
                                 .now_or_never()
                                 .unwrap()
                                 .unwrap()
@@ -3737,6 +3782,49 @@ mod tests {
     }
 
     #[rstest]
+    fn test_accept_issuance_error_selective_disclosability_inconsistent(
+        #[values(0, 1, 3)] non_selectively_disclosable_copy_index: usize,
+    ) {
+        // Credential Metadata does not prescribe selective disclosability, so per copy either is accepted.
+        let (mut signer, _encrypter, previews, metadata) = MockCredentialSigner::new(
+            HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
+            SdJwtMetadataUsage::CredentialMetadata,
+            false,
+        );
+        let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
+
+        // Make a claim non-selectively disclosable in one copy only. The decoded payloads are identical, so only the
+        // selective disclosability consistency check catches this.
+        signer.non_selectively_disclosable_copy_index = Some(non_selectively_disclosable_copy_index);
+
+        let mut mock_msg_client = mock_openid_message_client_nonce(None, 1);
+
+        mock_msg_client.expect_request_credential().times(1).return_once(
+            move |_url, credential_request, _dpop_header, _access_token_header| {
+                Ok(signer.response_from_request(&credential_request))
+            },
+        );
+
+        let (wscd, wptl_trust_anchors) = create_mock_wscd();
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(previews, metadata, 4.try_into().unwrap(), None, true, false),
+        }
+        .accept_issuance(
+            NonZeroU8::MAX,
+            AcceptIssuanceTrustAnchors::new(&issuer_trust_anchors, &wptl_trust_anchors),
+            &wscd,
+            &MockTimeGenerator::default(),
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
+    }
+
+    #[rstest]
     fn test_accept_issuance_error_attributes_verification(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
         let mut mdoc_payload = PreviewableCredentialPayload::example_family_name_mdoc(&MockTimeGenerator::default());
         let mut sd_jwt_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
@@ -3835,38 +3923,58 @@ mod tests {
                     .unwrap(),
             ),
             Format::SdJwt => {
-                let payload = example_credential_payload();
-                let type_metadata =
-                    TypeMetadata::example_with_claim_name(&payload.previewable_payload.attestation_type, "family_name");
-                let (attestation_type, _, metadata_documents) =
-                    TypeMetadataDocuments::from_single_example(type_metadata);
-                let (normalized_metadata, _) = metadata_documents.into_normalized(&attestation_type).unwrap();
+                let type_metadata = family_name_type_metadata(
+                    &example_credential_payload().previewable_payload.attestation_type,
+                    ClaimSelectiveDisclosureMetadata::Always,
+                );
 
                 IssuedCredentialCopies::SdJwt(
                     issuer_keys
                         .iter()
-                        .map(|issuer_key| {
-                            let sd_jwt = example_credential_payload()
-                                .into_signed_sd_jwt(Some(&normalized_metadata), issuer_key)
-                                .now_or_never()
-                                .unwrap()
-                                .unwrap();
-
-                            SdJwtCopy {
-                                key_identifier: String::from("key_identifier"),
-                                sd_jwt: sd_jwt
-                                    .into_unverified()
-                                    .into_verified_against_trust_anchors(&trust_anchors, &MockTimeGenerator::default())
-                                    .and_then(DecodedSdJwt::try_from)
-                                    .unwrap(),
-                            }
-                        })
+                        .map(|issuer_key| sd_jwt_copy(issuer_key, &trust_anchors, &type_metadata))
                         .collect_vec()
                         .try_into()
                         .unwrap(),
                 )
             }
         }
+    }
+
+    /// Sign the example credential as an SD-JWT copy, concealing its claims according to `type_metadata`.
+    fn sd_jwt_copy(
+        issuer_key: &KeyPair,
+        trust_anchors: &TrustAnchors,
+        type_metadata: &NormalizedTypeMetadata,
+    ) -> SdJwtCopy {
+        let sd_jwt = example_credential_payload()
+            .into_signed_sd_jwt(Some(type_metadata), issuer_key)
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+
+        SdJwtCopy {
+            key_identifier: String::from("key_identifier"),
+            sd_jwt: sd_jwt
+                .into_unverified()
+                .into_verified_against_trust_anchors(trust_anchors, &MockTimeGenerator::default())
+                .and_then(DecodedSdJwt::try_from)
+                .unwrap(),
+        }
+    }
+
+    /// Type Metadata describing only the `family_name` claim, with the specified selective disclosability.
+    fn family_name_type_metadata(
+        attestation_type: &str,
+        sd: ClaimSelectiveDisclosureMetadata,
+    ) -> NormalizedTypeMetadata {
+        let mut type_metadata = UncheckedTypeMetadata::example_with_claim_name(attestation_type, "family_name");
+        type_metadata.claims[0].sd = sd;
+
+        let (attestation_type, _, metadata_documents) =
+            TypeMetadataDocuments::from_single_example(TypeMetadata::try_new(type_metadata).unwrap());
+        let (normalized_metadata, _) = metadata_documents.into_normalized(&attestation_type).unwrap();
+
+        normalized_metadata
     }
 
     #[rstest]
@@ -3898,6 +4006,49 @@ mod tests {
 
         let error = verify_issuer_leaf_certificates_consistency(&copies)
             .expect_err("issuer leaf certificates should not be consistent");
+
+        assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
+    }
+
+    #[rstest]
+    fn test_verify_selective_disclosability_consistency(
+        #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
+        #[values(1, 3)] copy_count: usize,
+    ) {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = ca.generate_pid_issuer_mock().unwrap();
+
+        let copies = issued_credential_copies(format, &ca, &vec![&issuer_key; copy_count]);
+
+        verify_selective_disclosability_consistency(&copies).expect("selective disclosability should be consistent");
+    }
+
+    #[rstest]
+    fn test_verify_selective_disclosability_consistency_error(#[values(0, 1, 2)] other_index: usize) {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key = ca.generate_pid_issuer_mock().unwrap();
+        let trust_anchors = TrustAnchors::try_from_trust_anchors([ca.to_borrowing_trust_anchor()]).unwrap();
+
+        let attestation_type = example_credential_payload().previewable_payload.attestation_type;
+        let sd_metadata = family_name_type_metadata(&attestation_type, ClaimSelectiveDisclosureMetadata::Always);
+        let non_sd_metadata = family_name_type_metadata(&attestation_type, ClaimSelectiveDisclosureMetadata::Never);
+
+        let copies = (0..3)
+            .map(|index| {
+                let type_metadata = if index == other_index {
+                    &non_sd_metadata
+                } else {
+                    &sd_metadata
+                };
+
+                sd_jwt_copy(&issuer_key, &trust_anchors, type_metadata)
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        let error = verify_selective_disclosability_consistency(&IssuedCredentialCopies::SdJwt(copies))
+            .expect_err("selective disclosability should not be consistent");
 
         assert_matches!(error, WalletIssuanceError::CredentialCopiesInconsistent);
     }

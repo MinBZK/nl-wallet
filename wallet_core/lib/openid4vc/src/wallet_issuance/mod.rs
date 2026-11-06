@@ -42,6 +42,7 @@ use oauth::issuer_identifier::IssuerUrl;
 use oauth::metadata::well_known::WellKnownError;
 use oauth::scope::Scope;
 use reqwest::header::ToStrError;
+use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
@@ -273,6 +274,10 @@ pub enum WalletIssuanceError {
     #[error("credential copies are inconsistent")]
     #[category(critical)]
     CredentialCopiesInconsistent,
+
+    #[error("could not determine non-selectively disclosable claims of SD-JWT: {0}")]
+    #[category(critical)]
+    NonSelectivelyDisclosableClaims(#[source] NonSelectivelyDisclosableClaimsError),
 
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
