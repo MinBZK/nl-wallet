@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../environment.dart';
+import '../../../data/service/announcement_service.dart';
 import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
@@ -11,6 +13,8 @@ import '../widget/text/title_text.dart';
 import '../widget/wallet_app_bar.dart';
 
 const double _kContextLogoSpacing = 40;
+
+const double _kHorizontalPadding = 40;
 
 /// A reusable widget for displaying a loading state with optional cancellation.
 ///
@@ -22,8 +26,10 @@ class GenericLoadingPage extends StatefulWidget {
   /// The main title shown at the top of the loading page, displayed in large text and centered.
   final String title;
 
-  /// Supporting text displayed below the title, centered on the page.
-  final String description;
+  /// Optional supporting text displayed below the title, centered on the page.
+  ///
+  /// Leave it out when the [title] carries the whole message, so a screen reader reads it in one go.
+  final String? description;
 
   /// Optional callback triggered when the cancel button is pressed.
   ///
@@ -47,23 +53,24 @@ class GenericLoadingPage extends StatefulWidget {
 
   /// The loading indicator widget that shows progress during the operation.
   ///
-  /// Defaults to [LoadingIndicator] but can be customized if needed.
+  /// Defaults to an inset [LoadingIndicator] but can be customized if needed.
   final Widget loadingIndicator;
 
-  /// Controls whether the title automatically requests accessibility focus.
+  /// Controls whether the title automatically requests accessibility focus, and whether a title that changes while
+  /// the page stays on screen is announced.
   ///
   /// Set to false only if the page has its own focus management.
   final bool requestAccessibilityFocus;
 
   const GenericLoadingPage({
     required this.title,
-    required this.description,
+    this.description,
     this.onCancel,
     this.cancelCta,
     this.appBar,
     this.requestAccessibilityFocus = true,
     this.contextImage,
-    this.loadingIndicator = const LoadingIndicator(),
+    this.loadingIndicator = const Padding(padding: EdgeInsets.all(16), child: LoadingIndicator()),
     super.key,
   });
 
@@ -91,6 +98,17 @@ class _GenericLoadingPageState extends State<GenericLoadingPage> {
   }
 
   @override
+  void didUpdateWidget(covariant GenericLoadingPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A flow can swap the title of a still-mounted page (e.g. 'Please wait' -> 'Waiting for your data...'). The
+    // focus request above only fires on mount, so without this the new status would go unnoticed by screen readers.
+    // An announcement rather than a live region: a live region also speaks on mount, doubling the focus read-out.
+    if (widget.requestAccessibilityFocus && widget.title != oldWidget.title) {
+      context.read<AnnouncementService>().announce(widget.title);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: widget.appBar,
@@ -105,6 +123,7 @@ class _GenericLoadingPageState extends State<GenericLoadingPage> {
               child: SingleChildScrollView(
                 reverse: true,
                 /* make sure it's bottom aligned */
+                padding: const EdgeInsets.symmetric(horizontal: _kHorizontalPadding),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -117,12 +136,14 @@ class _GenericLoadingPageState extends State<GenericLoadingPage> {
                       textAlign: TextAlign.center,
                       key: _titleKey,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.description,
-                      style: context.textTheme.bodyLarge,
-                      textAlign: TextAlign.center,
-                    ),
+                    if (widget.description != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.description!,
+                        style: context.textTheme.bodyLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                     const SizedBox(height: 24),
                   ],
                 ),

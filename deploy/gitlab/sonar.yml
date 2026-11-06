@@ -104,7 +104,7 @@ sonar-wallet-web:
 sonar-ios:
   extends: .default-sonar
   needs:
-    - job: test-ios
+    - job: test-ios-platform-support-device
       artifacts: true
   script:
     - cd wallet_core/wallet/platform_support/ios
@@ -118,13 +118,15 @@ sonar-ios:
       -Dsonar.c.file.suffixes=-
       -Dsonar.cpp.file.suffixes=-
       -Dsonar.objc.file.suffixes=-
-      -Dsonar.coverageReportPaths=../../../../fastlane/test_output/sonarqube-generic-coverage.xml
+      -Dsonar.coverageReportPaths=../../../../fastlane/test_output/device-coverage/sonarqube-generic-coverage.xml
   allow_failure: true
 
 sonar-android:
   extends: .default-sonar
   needs:
     - job: test-android
+      artifacts: true
+    - job: test-android-platform-support-device
       artifacts: true
   script:
     - cd wallet_core/wallet/platform_support/android

@@ -38,7 +38,7 @@ class DashboardTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC24 Show all available cards")
-    @Tags(Tag("smoke"), Tag("a11yBatch1"))
+    @Tags(Tag("smoke"))
     fun verifyIssuedCardsVisible(testInfo: TestInfo) {
         setUp(testInfo)
         assertAll(

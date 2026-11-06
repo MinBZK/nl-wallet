@@ -1,4 +1,4 @@
-use crate::keys::KidError;
+use crypto::kid::KidError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PersistenceError {
@@ -25,6 +25,9 @@ pub enum PersistenceError {
 
     #[error("invalid stored enum value: {0}")]
     EnumConversion(#[source] strum::ParseError),
+
+    #[error("invalid task parameters: {0}")]
+    TaskParametersConversion(#[source] serde_json::Error),
 
     #[error("no rows were updated")]
     NoRowsUpdated,

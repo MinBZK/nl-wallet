@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:wallet/src/data/service/announcement_service.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
@@ -11,6 +13,7 @@ import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/common/page/generic_loading_page.dart';
 import 'package:wallet/src/feature/common/page/terminal_page.dart';
+import 'package:wallet/src/feature/common/widget/loading_indicator.dart';
 import 'package:wallet/src/feature/error/error_page.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
@@ -575,6 +578,51 @@ void main() {
         ],
       );
       expect(find.byType(GenericLoadingPage), findsOneWidget);
+    });
+
+    testWidgets('ltc1 WalletPersonalizeConnectDigid exposes the status as a single heading above a loader', (
+      tester,
+    ) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeConnectDigid('auth_url'),
+        ),
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+        ],
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      final titleFinder = find.text(l10n.walletPersonalizeScreenAwaitingUserAuthTitle);
+      expect(titleFinder, findsOneWidget);
+      expect(
+        tester.getSemantics(titleFinder),
+        matchesSemantics(label: l10n.walletPersonalizeScreenAwaitingUserAuthTitle, isHeader: true),
+      );
+      expect(find.byType(LoadingIndicator), findsOneWidget);
+    });
+
+    testWidgets('ltc1 WalletPersonalizeConnectDigid announces the new status once when DigiD is opened', (
+      tester,
+    ) async {
+      final announcementService = MockAnnouncementService();
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeLoadingIssuanceUrl(),
+          streamStates: [const WalletPersonalizeConnectDigid('auth_url')],
+        ),
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+          RepositoryProvider<AnnouncementService>.value(value: announcementService),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+      verify(announcementService.announce(l10n.walletPersonalizeScreenAwaitingUserAuthTitle)).called(1);
+      verifyNever(announcementService.announce(l10n.walletPersonalizeScreenLoadingDigiDUrlTitle));
     });
 
     testWidgets('ltc1 Verify WalletPersonalizeAuthenticating shows GenericLoadingPage', (tester) async {

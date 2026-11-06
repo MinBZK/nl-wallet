@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crypto::kid::VerifyingKeyWithKid;
 use derive_more::Constructor;
 use http_utils::reqwest::IntoReqwestClient;
-use jwt::JwtDecodingKey;
+use jwt::error::JwtVerifyError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::ConfigurationError;
@@ -28,13 +29,29 @@ pub struct FileStorageConfigurationRepository<T> {
 impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
     pub async fn init(
         storage_path: PathBuf,
-        signing_public_key: JwtDecodingKey,
+        config_key: VerifyingKeyWithKid,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
+        let etag_path = config_file::path_for_config_etag(&storage_path);
         let default_config = match config_file::get_config_file(storage_path.as_path()).await? {
             Some(jwt) => {
-                match jwt.parse_and_verify(&signing_public_key, &*WALLET_CONFIG_VALIDATION) {
+                match jwt.parse_and_verify_by_kid(&config_key, WALLET_CONFIG_VALIDATION.clone()) {
                     Ok((_, stored_config)) if stored_config.version >= initial_config.version => stored_config,
+
+                    // Stored configuration is signed by an older key identifier
+                    Err(JwtVerifyError::KeyNotFound(kid)) => {
+                        tracing::info!("Configuration JWT signed by different key identifier: {kid}");
+
+                        // Clear ETag file to ensure a fresh fetch even when ETags collide.
+                        // Collisions can happen e.g. on nginx when configs are of same size and have same mtime.
+                        if let Err(err) = tokio::fs::remove_file(&etag_path).await
+                            && err.kind() != std::io::ErrorKind::NotFound
+                        {
+                            tracing::warn!("Failed to remove ETag file: {err}");
+                        }
+                        initial_config
+                    }
+
                     // Initial config is newer or JWT is tampered/invalid: fall back to the embedded config.
                     // We do not write the embedded config to disk since it has no corresponding JWT.
                     // The next successful HTTP fetch will populate the file.
@@ -44,6 +61,7 @@ impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
                         );
                         initial_config
                     }
+
                     _ => initial_config,
                 }
             }
@@ -51,7 +69,11 @@ impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
         };
 
         Ok(Self::new(
-            HttpConfigurationRepository::new(signing_public_key, storage_path.clone(), default_config),
+            HttpConfigurationRepository::new(
+                config_key,
+                config_file::path_for_config_etag(&storage_path),
+                default_config,
+            ),
             storage_path,
         ))
     }
@@ -90,17 +112,14 @@ where
 mod tests {
     use std::sync::Arc;
 
-    use crypto::PublicKey;
     use http_utils::client::InternalHttpConfig;
     use http_utils::client::TlsPinningConfig;
-    use jwt::JwtDecodingKey;
     use jwt::SignedJwt;
-    use p256::ecdsa::SigningKey;
-    use p256::elliptic_curve::Generate;
     use parking_lot::RwLock;
     use wallet_configuration::wallet_config::WalletConfiguration;
 
     use super::RawJwtProvider;
+    use crate::config::ConfigSigningKey;
     use crate::config::ConfigurationError;
     use crate::config::FileStorageConfigurationRepository;
     use crate::config::HttpConfigurationRepository;
@@ -113,12 +132,12 @@ mod tests {
     use crate::repository::UpdateableRepository;
 
     struct TestConfigRepo {
-        signing_key: SigningKey,
+        signing_key: ConfigSigningKey,
         config: RwLock<(WalletConfiguration, Option<Arc<WalletConfigJwt>>)>,
     }
 
     impl TestConfigRepo {
-        fn new(signing_key: SigningKey, config: WalletConfiguration) -> Self {
+        fn new(signing_key: ConfigSigningKey, config: WalletConfiguration) -> Self {
             Self {
                 signing_key,
                 config: RwLock::new((config, None)),
@@ -151,7 +170,7 @@ mod tests {
                 guard.0.lock_timeouts.background_timeout = 700;
                 (from, guard.0.clone())
             };
-            let jwt = SignedJwt::sign(&new_config, &self.signing_key).await.unwrap();
+            let jwt = SignedJwt::sign_with_kid(&new_config, &self.signing_key).await.unwrap();
             self.config.write().1 = Some(Arc::new(jwt.into_unverified()));
             Ok(RepositoryUpdateState::Updated {
                 from: Arc::new(from),
@@ -160,16 +179,22 @@ mod tests {
         }
     }
 
+    fn config_with_version(version: u64) -> WalletConfiguration {
+        let mut config = default_wallet_config();
+        config.version = version;
+        config
+    }
+
     #[tokio::test]
     async fn should_store_config_to_filesystem() {
-        let signing_key = SigningKey::generate();
-        let decoding_key: JwtDecodingKey = PublicKey::from(*signing_key.verifying_key()).into();
+        let signing_key = ConfigSigningKey::new_with_kid("0");
+        let config_key = signing_key.to_config_key_with_kid();
 
         let mut initial_wallet_config = default_wallet_config();
         initial_wallet_config.lock_timeouts.background_timeout = 500;
 
         let config_dir = tempfile::tempdir().unwrap();
-        let path = config_dir.keep();
+        let path = config_dir.path().to_path_buf();
 
         let repo = FileStorageConfigurationRepository::new(
             TestConfigRepo::new(signing_key, initial_wallet_config.clone()),
@@ -194,7 +219,9 @@ mod tests {
 
         // Verify the JWT was written to disk and can be parsed back
         let jwt = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
-        let (_, file_config) = jwt.parse_and_verify(&decoding_key, &*WALLET_CONFIG_VALIDATION).unwrap();
+        let (_, file_config) = jwt
+            .parse_and_verify_by_kid(&config_key, WALLET_CONFIG_VALIDATION.clone())
+            .unwrap();
 
         assert_eq!(
             700, file_config.lock_timeouts.background_timeout,
@@ -204,17 +231,16 @@ mod tests {
 
     #[tokio::test]
     async fn should_use_newer_embedded_wallet_get() {
-        let signing_key = SigningKey::generate();
-        let config_decoding_key: JwtDecodingKey = PublicKey::from(*signing_key.verifying_key()).into();
+        let signing_key = ConfigSigningKey::new_with_kid("0");
+        let config_key = signing_key.to_config_key_with_kid();
 
         let config_dir = tempfile::tempdir().unwrap();
-        let path = config_dir.keep();
+        let path = config_dir.path().to_path_buf();
 
-        let mut initially_stored_wallet_config = default_wallet_config();
-        initially_stored_wallet_config.version = 10;
+        let initially_stored_wallet_config = config_with_version(10);
 
         // Store a signed JWT with version 10 on disk
-        let jwt = SignedJwt::sign(&initially_stored_wallet_config, &signing_key)
+        let jwt = SignedJwt::sign_with_kid(&initially_stored_wallet_config, &signing_key)
             .await
             .unwrap();
         config_file::update_config_file(path.as_path(), &jwt.into_unverified())
@@ -222,20 +248,13 @@ mod tests {
             .unwrap();
 
         let repo: FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>> =
-            FileStorageConfigurationRepository::init(
-                path.clone(),
-                config_decoding_key.clone(),
-                default_wallet_config(),
-            )
-            .await
-            .unwrap();
+            FileStorageConfigurationRepository::init(path.clone(), config_key.clone(), config_with_version(0))
+                .await
+                .unwrap();
         assert_eq!(10, repo.get().version, "should use stored config");
 
-        let mut embedded_wallet_config = default_wallet_config();
-        embedded_wallet_config.version = 20;
-
         let repo: FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>> =
-            FileStorageConfigurationRepository::init(path.clone(), config_decoding_key.clone(), embedded_wallet_config)
+            FileStorageConfigurationRepository::init(path.clone(), config_key.clone(), config_with_version(20))
                 .await
                 .unwrap();
         assert_eq!(20, repo.get().version, "should use newer embedded config");
@@ -244,11 +263,47 @@ mod tests {
         // since it has no corresponding JWT. The next HTTP fetch will update the file.
         let jwt = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
         let (_, stored_config) = jwt
-            .parse_and_verify(&config_decoding_key, &*WALLET_CONFIG_VALIDATION)
+            .parse_and_verify_by_kid(&config_key, WALLET_CONFIG_VALIDATION.clone())
             .unwrap();
         assert_eq!(
             10, stored_config.version,
             "disk should still contain the original version-10 JWT"
         );
+    }
+
+    #[tokio::test]
+    async fn should_clear_etag_on_newer_kid() {
+        let config_dir = tempfile::tempdir().unwrap();
+        let path = config_dir.path().to_path_buf();
+
+        // Store a signed JWT with kid v0
+        let signing_key_v0 = ConfigSigningKey::new_with_kid("0");
+        let jwt = SignedJwt::sign_with_kid(&config_with_version(20), &signing_key_v0)
+            .await
+            .unwrap();
+        config_file::update_config_file(&path, &jwt.into_unverified())
+            .await
+            .unwrap();
+
+        // Create an ETag file
+        tokio::fs::write(config_file::path_for_config_etag(&path), "V0")
+            .await
+            .unwrap();
+
+        // Create repo with kid v1 simulating config key roll over
+        let config_key_v1 = ConfigSigningKey::new_with_kid("1").to_config_key_with_kid();
+
+        let repo: FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>> =
+            FileStorageConfigurationRepository::init(path.clone(), config_key_v1, config_with_version(10))
+                .await
+                .unwrap();
+        assert_eq!(
+            10,
+            repo.get().version,
+            "should use embedded config even though version is older"
+        );
+
+        // The ETag file should be cleared
+        assert!(!config_file::path_for_config_etag(&path).exists());
     }
 }

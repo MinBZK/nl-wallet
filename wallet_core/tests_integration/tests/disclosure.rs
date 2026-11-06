@@ -62,18 +62,17 @@ async fn assert_disclosure_ok(
 ) {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
         dcql_query: Some(dcql_query),
-        // QQQ
-        // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
-        // contained in the certificate, so we have to specify a return URL prefixed with that.
         return_url_template,
     };
 
-    let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, urls, _) =
+        setup_wallet_and_default_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin.clone()).await;
 
@@ -287,9 +286,11 @@ async fn failed_disclosure_session(
 ) -> (WalletWithStorage, DisclosureError, Url, Url) {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
-    let (mut wallet, urls, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, urls, _) =
+        setup_wallet_and_default_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     let client = reqwest::Client::new();

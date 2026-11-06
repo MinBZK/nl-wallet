@@ -1,6 +1,6 @@
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::EcdsaKey;
+use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
@@ -119,8 +119,7 @@ impl<T: DeserializeOwned + JwtTyp> UnverifiedJwt<T, JadesbbHeader> {
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: Option<CertificateUsage>,
     ) -> Result<(JadesbbHeader, T), JwtX5cVerifyError> {
-        // There is nothing preventing having trust anchors in the `x5c` header.
-        self.parse_and_verify_allow_trust_anchor_in_x5c(
+        self.parse_and_verify_against_trust_anchors(
             trust_anchors,
             time,
             certificate_usage,

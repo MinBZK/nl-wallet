@@ -252,38 +252,29 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildWebUrlRow(BuildContext context, String webUrl) {
-    final displayUri = UriDisplayFormatter.format(webUrl);
     return _buildInfoRowWithUrl(
       context,
       icon: Icons.language_outlined,
       title: context.l10n.organizationDetailScreenWebsiteInfo,
-      url: displayUri,
-      semanticsLabel: '${context.l10n.organizationDetailScreenWebsiteInfo}\n$webUrl',
-      onTap: () => launchUrlStringCatching(webUrl),
+      url: webUrl,
     );
   }
 
   Widget _buildSupportRow(BuildContext context, String supportUri) {
-    final displayUri = UriDisplayFormatter.format(supportUri);
     return _buildInfoRowWithUrl(
       context,
       icon: Icons.headset_mic_outlined,
       title: context.l10n.organizationDetailScreenSupportInfo,
-      url: displayUri,
-      semanticsLabel: '${context.l10n.organizationDetailScreenSupportInfo}\n$supportUri',
-      onTap: () => launchUrlStringCatching(supportUri),
+      url: supportUri,
     );
   }
 
   Widget _buildPrivacyRow(BuildContext context, String privacyPolicyUrl) {
-    final displayUri = UriDisplayFormatter.format(privacyPolicyUrl);
     return _buildInfoRowWithUrl(
       context,
       icon: Icons.policy_outlined,
       title: context.l10n.organizationDetailScreenPrivacyInfo,
-      url: displayUri,
-      semanticsLabel: '${context.l10n.organizationDetailScreenPrivacyInfo}\n$privacyPolicyUrl',
-      onTap: () => launchUrlStringCatching(privacyPolicyUrl),
+      url: privacyPolicyUrl,
     );
   }
 
@@ -318,22 +309,25 @@ class OrganizationDetailScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required String url,
-    required String semanticsLabel,
-    required VoidCallback onTap,
   }) {
+    final displayUri = UriDisplayFormatter.format(url);
+    void onTap() => launchUrlStringCatching(url);
+    // Title and url as label and value, so the raw url isn't read out as part of the link's name.
     return Semantics(
       onTapHint: context.l10n.generalWCAGOpenLink,
       excludeSemantics: true,
-      attributedLabel: semanticsLabel.toAttributedString(context),
-      button: true,
+      attributedLabel: title.toAttributedString(context),
+      attributedValue: displayUri.toAttributedString(context),
       link: true,
+      // Without a url Android exposes a link as a button.
+      linkUrl: Uri.tryParse(url),
       onTap: onTap,
       child: ListItem(
         icon: Icon(icon),
         label: Text(title),
         subtitle: Text.rich(
           UrlSpan(
-            ctaText: url,
+            ctaText: displayUri,
             onPressed: onTap,
             textStyle: context.textTheme.titleMedium!,
           ),

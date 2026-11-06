@@ -1,6 +1,7 @@
 use std::assert_matches;
 use std::collections::HashMap;
 use std::net::IpAddr;
+use std::net::SocketAddr;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -21,8 +22,8 @@ use attestation_types::pid_constants::pid_attestation_type;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
 use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
+use crypto::keys::PublicKeyRef;
 use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
@@ -146,7 +147,7 @@ async fn wallet_server_settings_and_listener(
     let wrpac_ca = Ca::generate_wrpac_mock_ca().unwrap();
     let wrpac_trust_anchors = wrpac_ca.to_trust_anchors();
 
-    // Set up the use case, based on RP CA and reader registration.
+    // Set up the use case with a WRPAC and a bound WRPRC.
     let usecase_keypair = wrpac_ca.generate_wrpac_verifier_mock_with_crl().unwrap();
     let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&wrpac_ca);
     let registration_certificate =
@@ -170,7 +171,7 @@ async fn wallet_server_settings_and_listener(
 
     // Generate a complete configuration for the verifier, including
     // a section for the issuer if that feature is enabled.
-    let ws_port = wallet_server.port;
+    let ws_addr = SocketAddr::new(wallet_server.ip, wallet_server.port);
     let settings = Settings {
         wallet_server,
 
@@ -192,7 +193,7 @@ async fn wallet_server_settings_and_listener(
 
         allow_origins: None,
 
-        public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
+        public_url: format!("http://{ws_addr}/").parse().unwrap(),
 
         universal_link_base_url: "http://universal.link/".parse().unwrap(),
 
@@ -274,10 +275,12 @@ async fn wait_for_server(base_url: BaseUrl) {
 fn internal_url(settings: &VerifierSettings) -> BaseUrl {
     match settings.server_settings.internal_server {
         ServerAuth::ProtectedInternalEndpoint {
-            server: Server { port, .. },
+            server: Server { ip, port },
             ..
         }
-        | ServerAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
+        | ServerAuth::InternalEndpoint(Server { ip, port }) => {
+            format!("http://{}/", SocketAddr::new(ip, port)).parse().unwrap()
+        }
         ServerAuth::Authentication(_) => settings.public_url.clone(),
     }
 }
@@ -300,7 +303,7 @@ async fn test_internal_authentication(#[case] mut auth: ServerAuth) {
     let internal_listener = match &mut auth {
         ServerAuth::Authentication(_) => None,
         ServerAuth::ProtectedInternalEndpoint { server, .. } | ServerAuth::InternalEndpoint(server) => {
-            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
+            let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             server.port = listener.local_addr().unwrap().port();
             Some(listener)
         }
@@ -838,7 +841,7 @@ fn prepare_example_credential_payload(
     let payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
         payload_preview,
         Utc::now(),
-        &PublicKey::from(*holder_privkey.verifying_key()),
+        &PublicKeyRef::from(holder_privkey.verifying_key()),
         Some(Integrity::from("")),
         Some(StatusListClaim::new_mock()),
     )
@@ -933,31 +936,19 @@ async fn perform_full_disclosure(
     // after which the status endpoint should report that the session is Done.
     let wscd = DisclosureMockRemoteWscd::default();
 
-    let attestations = match format {
-        Format::MsoMdoc => {
-            let partial_mdocs = disclosure_session
-                .credential_requests()
-                .as_ref()
-                .iter()
-                .map(|request| {
+    let attestations = disclosure_session
+        .credential_requests()
+        .as_ref()
+        .iter()
+        .map(|request| {
+            let attestations = match format {
+                Format::MsoMdoc => {
                     let (mdoc, holder_privkey_identifier) = prepare_example_mdoc_mock(&issuer_ca, &wscd);
                     let partial_mdoc = PartialMdoc::try_new(mdoc, request.claim_paths()).unwrap();
 
-                    (
-                        request.id().clone(),
-                        vec_nonempty![(partial_mdoc, holder_privkey_identifier)],
-                    )
-                })
-                .collect();
-
-            DisclosableAttestations::MsoMdoc(partial_mdocs)
-        }
-        Format::SdJwt => {
-            let presentations = disclosure_session
-                .credential_requests()
-                .as_ref()
-                .iter()
-                .map(|request| {
+                    DisclosableAttestations::MsoMdoc(vec_nonempty![(partial_mdoc, holder_privkey_identifier)])
+                }
+                Format::SdJwt => {
                     let (sd_jwt, key_id) = prepare_example_sd_jwt_mock(&issuer_ca, &wscd);
                     let presentation = request
                         .claim_paths()
@@ -966,13 +957,13 @@ async fn perform_full_disclosure(
                         })
                         .finish();
 
-                    (request.id().clone(), vec_nonempty![(presentation, key_id)])
-                })
-                .collect();
+                    DisclosableAttestations::SdJwt(vec_nonempty![(presentation, key_id)])
+                }
+            };
 
-            DisclosableAttestations::SdJwt(presentations)
-        }
-    };
+            (request.id().clone(), attestations)
+        })
+        .collect::<HashMap<_, _>>();
 
     let return_url = disclosure_session
         .disclose(attestations.try_into().unwrap(), &wscd, &MockTimeGenerator::default())
@@ -1149,10 +1140,10 @@ async fn test_disclosed_attributes_failed_session() {
 
     disclosure_session
         .disclose(
-            DisclosableAttestations::MsoMdoc(HashMap::from([(
+            HashMap::from([(
                 CredentialQuery::new_mock_mdoc_iso_example().id,
-                vec_nonempty![(partial_mdoc, EXAMPLE_KEY_IDENTIFIER.to_string())],
-            )]))
+                DisclosableAttestations::MsoMdoc(vec_nonempty![(partial_mdoc, EXAMPLE_KEY_IDENTIFIER.to_string())]),
+            )])
             .try_into()
             .unwrap(),
             &DisclosureMockRemoteWscd::new_example(),

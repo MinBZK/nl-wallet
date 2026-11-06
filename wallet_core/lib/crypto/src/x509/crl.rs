@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
@@ -211,12 +212,12 @@ where
     /// alternative succeeds.
     async fn crls_for_chain(
         &self,
-        chain: &[BorrowingCertificate],
+        chain: impl IntoIterator<Item: Borrow<BorrowingCertificate>>,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Vec<FetchedCrl>, CertificateCrlVerificationError> {
         let urls_by_cert = chain
-            .iter()
-            .map(extract_crl_distribution_points)
+            .into_iter()
+            .map(|cert| extract_crl_distribution_points(cert.borrow()))
             .collect::<Result<Vec<_>, _>>()
             .map_err(CertificateCrlVerificationError::InvalidDistributionPoint)?;
 
@@ -314,7 +315,9 @@ where
         Ok(FetchedCrl::Fresh { url, fetched })
     }
 
-    /// Verify a certificate chain, checking the revocation status of every certificate in the chain against their CRLs.
+    /// Verify a certificate chain, checking revocation of the leaf and intermediates in the first verified path.
+    /// Configured trust anchors and unused certificates do not require CRLs. Other supplied paths are not retried if
+    /// CRL retrieval or revocation checking fails.
     pub async fn verify_chain(
         &self,
         chain: &[BorrowingCertificate],
@@ -326,14 +329,26 @@ where
 
         // Validate the certificate path before following distribution-point URLs supplied by the certificate. This
         // prevents an untrusted certificate from turning CRL retrieval into an arbitrary network request.
-        leaf.verify(usage, intermediate_certs, time, trust_anchors)
+        let verified_intermediates = leaf
+            .verify_inner(usage, intermediate_certs, time, trust_anchors, None)
             .map_err(CertificateCrlVerificationError::CertificateVerify)?;
 
-        let crls = self.crls_for_chain(chain, time).await?;
+        let crls = self
+            .crls_for_chain(
+                std::iter::once(leaf).chain(verified_intermediates.iter().copied()),
+                time,
+            )
+            .await?;
 
         let crl_refs = crls.iter().map(FetchedCrl::crl).collect_vec();
-        leaf.verify_with_crls(usage, intermediate_certs, time, trust_anchors, &crl_refs)
-            .map_err(CertificateCrlVerificationError::Revocation)?;
+        leaf.verify_with_crls(
+            usage,
+            verified_intermediates.iter().copied(),
+            time,
+            trust_anchors,
+            &crl_refs,
+        )
+        .map_err(CertificateCrlVerificationError::Revocation)?;
 
         // Commit any freshly-fetched CRLs to the cache after successful verification.
         for fetched in crls {
@@ -491,6 +506,7 @@ mod tests {
     use rcgen::RevocationReason;
     use rcgen::RevokedCertParams;
     use rcgen::SerialNumber;
+    use rstest::rstest;
     use rustls_pki_types::UnixTime;
     use time::OffsetDateTime;
     use url::Url;
@@ -1211,11 +1227,160 @@ mod tests {
             .expect("certificate should verify");
     }
 
+    #[rstest]
+    #[case::without_distribution_point(false)]
+    #[case::with_distribution_point(true)]
     #[tokio::test]
-    async fn verify_chain_does_not_fetch_crl_for_untrusted_certificate() {
+    async fn verify_chain_ignores_trust_anchor_crl_distribution_points(#[case] include_distribution_point: bool) {
+        let ca = Ca::generate(
+            DistinguishedName::create_mock("root"),
+            CertificateConfiguration {
+                crl_distribution_points: if include_distribution_point {
+                    vec!["https://example.com/root.crl".parse().unwrap()]
+                } else {
+                    vec![]
+                },
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let leaf_crl_url: Url = "https://example.com/leaf.crl".parse().unwrap();
+        let leaf = leaf_with_cdps(&ca, vec![leaf_crl_url.clone()]);
+        let crl = ca.generate_crl(vec![], 1).unwrap().der().to_vec();
+        // Only the leaf's CRL is available: any attempt to fetch the root's CRL fails.
+        let verifier = CertificateCrlVerifier::new_with_fetcher(MockCrlFetcher::new([(leaf_crl_url, crl)]), 10);
+
+        verifier
+            .verify_chain(
+                &[leaf, ca.as_borrowing_certificate().unwrap()],
+                &ca.to_trust_anchors(),
+                None,
+                &TimeGenerator,
+            )
+            .await
+            .expect("an included trust anchor should not require a CRL");
+    }
+
+    #[rstest]
+    #[case::without_distribution_point(false)]
+    #[case::with_distribution_point(true)]
+    #[tokio::test]
+    async fn verify_chain_only_checks_crls_for_verified_path(
+        #[case] unused_has_distribution_point: bool,
+        #[values(false, true)] unused_is_trusted: bool,
+        #[values(false, true)] intermediate_is_revoked: bool,
+    ) {
+        let server = MockServer::start_async().await;
+        let intermediate_crl_url: Url = server.url("/intermediate.crl").parse().unwrap();
+        let leaf_crl_url: Url = server.url("/leaf.crl").parse().unwrap();
+        let unused_crl_url: Url = server.url("/unused.crl").parse().unwrap();
+        let root = Ca::generate_with_intermediate_count(
+            DistinguishedName::create_mock("root"),
+            CertificateConfiguration::default(),
+            1,
+        )
+        .unwrap();
+        let untrusted_root = Ca::generate_with_intermediate_count(
+            DistinguishedName::create_mock("untrusted root"),
+            CertificateConfiguration::default(),
+            1,
+        )
+        .unwrap();
+        let intermediate = root
+            .generate_intermediate(
+                DistinguishedName::create_mock("intermediate"),
+                CertificateConfiguration {
+                    crl_distribution_points: vec![intermediate_crl_url],
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        // The unused candidate has the same subject, but a different key and possibly an untrusted issuer.
+        let unused_issuer = if unused_is_trusted { &root } else { &untrusted_root };
+        let unused = unused_issuer
+            .generate_intermediate(
+                DistinguishedName::create_mock("intermediate"),
+                CertificateConfiguration {
+                    crl_distribution_points: unused_has_distribution_point
+                        .then_some(unused_crl_url)
+                        .into_iter()
+                        .collect(),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let leaf = leaf_with_cdps(&intermediate, vec![leaf_crl_url]);
+        let intermediate_cert = intermediate.as_borrowing_certificate().unwrap();
+        let revoked = intermediate_is_revoked
+            .then(|| RevokedCertParams {
+                serial_number: SerialNumber::from_slice(intermediate_cert.x509_certificate().raw_serial()),
+                revocation_time: OffsetDateTime::now_utc(),
+                reason_code: Some(RevocationReason::KeyCompromise),
+                invalidity_date: None,
+            })
+            .into_iter()
+            .collect();
+        let intermediate_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/intermediate.crl");
+                then.status(200).body(root.generate_crl(revoked, 1).unwrap().der());
+            })
+            .await;
+        let leaf_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/leaf.crl");
+                then.status(200)
+                    .body(intermediate.generate_crl(vec![], 1).unwrap().der());
+            })
+            .await;
+        let unused_mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/unused.crl");
+                then.status(500);
+            })
+            .await;
+        let verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
+
+        let result = verifier
+            .verify_chain(
+                &[
+                    leaf,
+                    unused.as_borrowing_certificate().unwrap(),
+                    intermediate_cert,
+                    root.as_borrowing_certificate().unwrap(),
+                ],
+                &root.to_trust_anchors(),
+                None,
+                &TimeGenerator,
+            )
+            .await;
+
+        if intermediate_is_revoked {
+            assert!(matches!(
+                result,
+                Err(CertificateCrlVerificationError::Revocation(CertificateVerifyError::Verification(error)))
+                    if matches!(*error, webpki::Error::CertRevoked)
+            ));
+        } else {
+            result.expect("an unused certificate should not require a CRL");
+        }
+        unused_mock.assert_calls_async(0).await;
+        leaf_mock.assert_calls_async(1).await;
+        intermediate_mock.assert_calls_async(1).await;
+    }
+
+    #[rstest]
+    #[case::without_root(false)]
+    #[case::with_root(true)]
+    #[tokio::test]
+    async fn verify_chain_does_not_fetch_crl_for_untrusted_certificate(#[case] include_root: bool) {
         let server = MockServer::start_async().await;
         let url: Url = server.url("/crl.der").parse().unwrap();
-        let (_untrusted_ca, leaf) = ca_and_leaf_with_cdps(vec![url]);
+        let (untrusted_ca, leaf) = ca_and_leaf_with_cdps(vec![url]);
+        let mut chain = vec![leaf];
+        if include_root {
+            chain.push(untrusted_ca.as_borrowing_certificate().unwrap());
+        }
         let trusted_ca = Ca::generate_mock();
         let mock = server
             .mock_async(|when, then| {
@@ -1225,16 +1390,20 @@ mod tests {
             .await;
 
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
-        provider
-            .verify_chain(&[leaf], &trusted_ca.to_trust_anchors(), None, &TimeGenerator)
+        let error = provider
+            .verify_chain(&chain, &trusted_ca.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect_err("untrusted certificate should fail before CRL retrieval");
+        assert!(matches!(error, CertificateCrlVerificationError::CertificateVerify(_)));
 
         mock.assert_calls_async(0).await;
     }
 
+    #[rstest]
+    #[case::without_root(false)]
+    #[case::with_root(true)]
     #[tokio::test]
-    async fn verify_chain_fails_for_revoked_certificate() {
+    async fn verify_chain_fails_for_revoked_certificate(#[case] include_root: bool) {
         let server = MockServer::start_async().await;
         let url: Url = server.url("/crl.der").parse().unwrap();
         let (ca, leaf) = ca_and_leaf_with_cdps(vec![url]);
@@ -1255,9 +1424,13 @@ mod tests {
 
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
         let trust_anchors = ca.to_trust_anchors();
+        let mut chain = vec![leaf];
+        if include_root {
+            chain.push(ca.as_borrowing_certificate().unwrap());
+        }
 
         let error = provider
-            .verify_chain(std::slice::from_ref(&leaf), &trust_anchors, None, &TimeGenerator)
+            .verify_chain(&chain, &trust_anchors, None, &TimeGenerator)
             .await
             .expect_err("revoked certificate should fail verification");
         assert!(matches!(
@@ -1269,14 +1442,17 @@ mod tests {
         // A CRL used in a failed verification must not be cached: a repeated call should
         // refetch it from the network rather than serve it from cache.
         provider
-            .verify_chain(&[leaf], &trust_anchors, None, &TimeGenerator)
+            .verify_chain(&chain, &trust_anchors, None, &TimeGenerator)
             .await
             .expect_err("revoked certificate should still fail verification on retry");
         mock.assert_calls_async(2).await;
     }
 
+    #[rstest]
+    #[case::without_root(false)]
+    #[case::with_root(true)]
     #[tokio::test]
-    async fn verify_chain_fails_for_revoked_intermediate_certificate() {
+    async fn verify_chain_fails_for_revoked_intermediate_certificate(#[case] include_root: bool) {
         let server = MockServer::start_async().await;
         let root_crl_url: Url = server.url("/root.crl").parse().unwrap();
         let intermediate_crl_url: Url = server.url("/intermediate.crl").parse().unwrap();
@@ -1341,13 +1517,12 @@ mod tests {
         let provider = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 10);
 
         // Verification should fail because of revoked intermediate
+        let mut chain = vec![leaf.certificate().clone(), intermediate_cert];
+        if include_root {
+            chain.push(root.as_borrowing_certificate().unwrap());
+        }
         let error = provider
-            .verify_chain(
-                &[leaf.certificate().clone(), intermediate_cert],
-                &root.to_trust_anchors(),
-                None,
-                &TimeGenerator,
-            )
+            .verify_chain(&chain, &root.to_trust_anchors(), None, &TimeGenerator)
             .await
             .expect_err("chain with a revoked intermediate certificate should fail verification");
         assert!(matches!(

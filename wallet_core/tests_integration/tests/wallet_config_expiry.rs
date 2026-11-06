@@ -8,7 +8,7 @@ use axum::extract::State;
 use axum::routing::get;
 use chrono::TimeDelta;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::kid::VerifyingKeyWithKid;
 use http_utils::client::TlsPinningConfig;
 use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
@@ -44,10 +44,11 @@ impl SwappableConfigServer {
         let listener = TcpListener::bind("localhost:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
 
+        let kid = "0";
         let app = Router::new().merge(create_health_router([])).nest(
             "/config/v1",
             Router::new()
-                .route("/wallet-config", get(serve_configuration))
+                .route(&format!("/{kid}"), get(serve_configuration))
                 .with_state(Arc::clone(&jwt)),
         );
 
@@ -69,6 +70,7 @@ impl SwappableConfigServer {
 
         let config_server_config = ConfigServerConfiguration {
             http_config: TlsPinningConfig::try_new(base_url, vec_nonempty![trust_anchor]).unwrap(),
+            signing_key_id: kid.try_into().unwrap(),
             ..default_config_server_config()
         };
 
@@ -113,8 +115,11 @@ async fn test_expired_configuration_is_rejected() {
 
     let storage_dir = tempfile::tempdir().unwrap();
     let repository = HttpConfigurationRepository::new(
-        PublicKey::from(*config_server_config.signing_public_key.as_inner()).into(),
-        storage_dir.path().to_path_buf(),
+        VerifyingKeyWithKid {
+            kid: config_server_config.signing_key_id,
+            public_key: config_server_config.signing_public_key,
+        },
+        storage_dir.path().join("wallet-config.jwt"),
         embedded_config,
     );
 
@@ -163,7 +168,7 @@ async fn test_expiry_is_reported_and_cleared() {
 
     // Since the server has nothing valid to offer, the wallet should report that it is stuck with an expired
     // configuration.
-    time::timeout(Duration::from_secs(30), async {
+    time::timeout(Duration::from_secs(10), async {
         while !repository.config_expired() {
             notifier.notified().await;
         }
@@ -175,7 +180,7 @@ async fn test_expiry_is_reported_and_cleared() {
     // off between attempts to replace an expired configuration.
     server.serve(&wallet_config(TimeDelta::hours(1), 3)).await;
 
-    time::timeout(Duration::from_secs(60), async {
+    time::timeout(Duration::from_secs(10), async {
         while repository.config_expired() {
             notifier.notified().await;
         }

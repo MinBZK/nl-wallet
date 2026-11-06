@@ -2,6 +2,7 @@ use std::result::Result;
 
 use chrono::DateTime;
 use chrono::Utc;
+use coset::iana;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use utils::generator::Generator;
@@ -29,11 +30,16 @@ impl Mdoc {
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
+        supported_algorithms: &[iana::Algorithm],
     ) -> crate::Result<Mdoc> {
         // Unfortunately we have to discard the `attributes` here, even though
         // the only consumer of this function will need them right away.
-        let IssuerSignedVerificationResult { mso, .. } =
-            issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
+        let IssuerSignedVerificationResult { mso, .. } = issuer_signed.verify(
+            ValidityRequirement::AllowNotYetValid,
+            time,
+            trust_anchors,
+            supported_algorithms,
+        )?;
 
         let mdoc = Mdoc { mso, issuer_signed };
 
@@ -70,10 +76,6 @@ impl Mdoc {
     pub fn issuer_certificate_chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
         self.issuer_signed.issuer_auth.x5chain()
     }
-
-    pub fn issuer_leaf_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
-        self.issuer_certificate_chain().map(VecNonEmpty::into_first)
-    }
 }
 
 #[cfg(any(test, feature = "test"))]
@@ -81,7 +83,7 @@ mod test {
     use chrono::DateTime;
     use chrono::TimeDelta;
     use chrono::Utc;
-    use crypto::CredentialEcdsaKey;
+    use crypto::keys::CredentialEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use indexmap::IndexMap;
@@ -170,7 +172,8 @@ pub mod mock {
     use chrono::DateTime;
     use chrono::Utc;
     use ciborium::Value;
-    use crypto::CredentialEcdsaKey;
+    use coset::iana;
+    use crypto::keys::CredentialEcdsaKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use indexmap::IndexMap;
@@ -204,7 +207,13 @@ pub mod mock {
                 .unwrap()
                 .issuer_signed;
 
-            Mdoc::new(issuer_signed, &IsoCertTimeGenerator, &ca.to_trust_anchors()).unwrap()
+            Mdoc::new(
+                issuer_signed,
+                &IsoCertTimeGenerator,
+                &ca.to_trust_anchors(),
+                &[iana::Algorithm::ES256],
+            )
+            .unwrap()
         }
 
         pub async fn new_mock() -> Self {

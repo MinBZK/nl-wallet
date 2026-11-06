@@ -9,7 +9,9 @@ use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::PublicKeyRef;
+use crypto::kid::Kid;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
@@ -112,10 +114,10 @@ impl Default for LockTimeoutConfiguration {
 pub struct AccountServerConfiguration {
     pub http_config: TlsPinningConfig,
     #[debug(skip)]
-    pub certificate_public_keys: HashMap<String, CertificatePublicKey>,
+    pub certificate_public_keys: HashMap<Kid, CertificatePublicKey>,
     #[debug(skip)]
     #[serde_as(as = "HashMap<_, Base64>")]
-    pub instruction_result_public_keys: HashMap<String, DerVerifyingKey>,
+    pub instruction_result_public_keys: HashMap<Kid, DerVerifyingKey>,
     #[debug(skip)]
     pub wptl_trust_anchors: TrustAnchors,
     #[serde(rename = "certificate_refresh_threshold_in_days")]
@@ -137,9 +139,9 @@ pub struct CertificatePublicKey {
     pub used_from: DateTimeSeconds,
 }
 
-impl From<CertificatePublicKey> for PublicKey {
-    fn from(value: CertificatePublicKey) -> Self {
-        PublicKey::from(*value.key.as_inner())
+impl AsPublicKeyRef for CertificatePublicKey {
+    fn as_public_key_ref<'a>(&'a self) -> PublicKeyRef<'a> {
+        PublicKeyRef::from(self.key.as_inner())
     }
 }
 

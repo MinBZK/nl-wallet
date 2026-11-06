@@ -4,6 +4,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/object_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../common/sheet/confirm_action_sheet.dart';
+import '../common/sheet/wallet_modal_bottom_sheet.dart';
 import '../common/widget/button/list_button.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
@@ -64,10 +65,8 @@ class RecoverPinStopSheet extends StatelessWidget {
     BuildContext context, {
     VoidCallback? onReportIssuePressed,
   }) async {
-    final confirmed = await showModalBottomSheet<bool>(
+    final confirmed = await showWalletModalBottomSheet<bool>(
       context: context,
-      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return WalletScrollbar(
           child: SingleChildScrollView(

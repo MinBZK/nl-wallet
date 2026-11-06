@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../domain/model/pin/pin_validation_error.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../common/widget/text/dialog_title_text.dart';
 
 class PinValidationErrorDialog extends StatelessWidget {
   final PinValidationError reason;
@@ -26,7 +27,7 @@ class PinValidationErrorDialog extends StatelessWidget {
     return AlertDialog(
       scrollable: true,
       semanticLabel: Platform.isAndroid ? title : null,
-      title: Text(title),
+      title: DialogTitleText(title),
       content: Text(body),
       actions: <Widget>[
         TextButton(

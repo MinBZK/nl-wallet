@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::Utc;
+use crypto::kid::Kid;
 use crypto::p256_der::DerVerifyingKey;
 use db_test::DbSetup;
 use hsm::model::Hsm as _;
@@ -11,6 +12,7 @@ use hsm::test::HsmSetup;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use serial_test::serial;
+use tempfile::TempDir;
 use tests_integration::common::*;
 use utils::vec_at_least::VecNonEmpty;
 use wallet::Pin;
@@ -18,7 +20,6 @@ use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 use wallet_configuration::wallet_config::CertificatePublicKey;
 use wallet_provider::settings::Settings as WpSettings;
-use wallet_provider_domain::keys::Kid;
 
 /// Sets up the shared test infrastructure for a key rollover test: a database, an HSM, a mock
 /// device, the update policy server (needed for the wallet to work) and the wallet provider
@@ -26,6 +27,7 @@ use wallet_provider_domain::keys::Kid;
 async fn setup_key_rollover_env() -> (
     DbSetup,
     HsmSetup,
+    TempDir,
     MockDeviceConfig,
     u16,
     ReqwestTrustAnchor,
@@ -35,6 +37,7 @@ async fn setup_key_rollover_env() -> (
 ) {
     let db_setup = DbSetup::create().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let mock_device_config = MockDeviceConfig::generate();
 
     // Start the update policy server (needed for the wallet to work)
@@ -53,6 +56,7 @@ async fn setup_key_rollover_env() -> (
     (
         db_setup,
         hsm_setup,
+        tempdir,
         mock_device_config,
         ups_port,
         ups_root_ca,
@@ -80,7 +84,7 @@ async fn setup_key_rollover_env() -> (
 #[serial(hsm)]
 async fn test_instruction_result_key_rollover() {
     // Don't drop `_db_setup` and `_hsm_setup`
-    let (_db_setup, _hsm_setup, mock_device_config, ups_port, ups_root_ca, mut wp_settings, wp_root_ca, hsm) =
+    let (_db_setup, _hsm_setup, tempdir, mock_device_config, ups_port, ups_root_ca, mut wp_settings, wp_root_ca, hsm) =
         setup_key_rollover_env().await;
 
     // Retrieve both instruction result public keys from the HSM
@@ -104,13 +108,14 @@ async fn test_instruction_result_key_rollover() {
         ups_port,
         ups_root_ca.clone(),
         wp_port,
-        HashMap::from([("0".to_string(), ir_pubkey_0.clone())]),
+        HashMap::from([("0".try_into().unwrap(), ir_pubkey_0.clone())]),
     )
     .await;
     let mut wallet = setup_in_memory_wallet(
         config_server_config,
         wallet_config.clone(),
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
 
@@ -129,8 +134,8 @@ async fn test_instruction_result_key_rollover() {
 
     // Stage 2: New key added to wallet config, WP still uses old key
     wallet_config.account_server.instruction_result_public_keys = HashMap::from([
-        ("0".to_string(), ir_pubkey_0.clone()),
-        ("1".to_string(), ir_pubkey_1.clone()),
+        ("0".try_into().unwrap(), ir_pubkey_0.clone()),
+        ("1".try_into().unwrap(), ir_pubkey_1.clone()),
     ]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
     wallet.lock();
@@ -141,7 +146,7 @@ async fn test_instruction_result_key_rollover() {
 
     // Failure: old key removed from wallet config before WP has rolled over (premature cleanup)
     wallet_config.account_server.instruction_result_public_keys =
-        HashMap::from([("1".to_string(), ir_pubkey_1.clone())]);
+        HashMap::from([("1".try_into().unwrap(), ir_pubkey_1.clone())]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
     wallet.lock();
     let error = wallet
@@ -175,7 +180,7 @@ async fn test_instruction_result_key_rollover() {
 
     // Stage 4: Old key removed from wallet config, WP uses new key
     wallet_config.account_server.instruction_result_public_keys =
-        HashMap::from([("1".to_string(), ir_pubkey_1.clone())]);
+        HashMap::from([("1".try_into().unwrap(), ir_pubkey_1.clone())]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
     wallet.lock();
     wallet
@@ -184,7 +189,8 @@ async fn test_instruction_result_key_rollover() {
         .expect("stage 4: new key accepted by wallet with new config only");
 
     // Failure case: wallet has not yet fetched the updated config when WP rolls over
-    wallet_config.account_server.instruction_result_public_keys = HashMap::from([("0".to_string(), ir_pubkey_0)]);
+    wallet_config.account_server.instruction_result_public_keys =
+        HashMap::from([("0".try_into().unwrap(), ir_pubkey_0)]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
     wallet.lock();
     let error = wallet
@@ -223,7 +229,7 @@ fn certificate_public_key(key: DerVerifyingKey, used_from: chrono::DateTime<Utc>
 #[serial(hsm)]
 async fn test_certificate_key_rollover() {
     // Don't drop `_db_setup` and `_hsm_setup`
-    let (_db_setup, _hsm_setup, mock_device_config, ups_port, ups_root_ca, mut wp_settings, wp_root_ca, hsm) =
+    let (_db_setup, _hsm_setup, tempdir, mock_device_config, ups_port, ups_root_ca, mut wp_settings, wp_root_ca, hsm) =
         setup_key_rollover_env().await;
 
     // Retrieve both certificate public keys from the HSM
@@ -249,7 +255,7 @@ async fn test_certificate_key_rollover() {
         ups_root_ca.clone(),
         wp_port,
         HashMap::from([(
-            "0".to_string(),
+            "0".try_into().unwrap(),
             certificate_public_key(cert_pubkey_0.clone(), Utc::now() - Duration::from_secs(3600)),
         )]),
     )
@@ -258,6 +264,7 @@ async fn test_certificate_key_rollover() {
         config_server_config,
         wallet_config.clone(),
         mock_device_config.apple_key_holder(),
+        &tempdir,
     )
     .await;
 
@@ -276,11 +283,11 @@ async fn test_certificate_key_rollover() {
     // Stage 2: New key added to wallet config, WP still uses old key.
     wallet_config.account_server.certificate_public_keys = HashMap::from([
         (
-            "0".to_string(),
+            "0".try_into().unwrap(),
             certificate_public_key(cert_pubkey_0.clone(), Utc::now() - Duration::from_secs(3600)),
         ),
         (
-            "1".to_string(),
+            "1".try_into().unwrap(),
             certificate_public_key(cert_pubkey_1.clone(), Utc::now() + Duration::from_secs(3600)),
         ),
     ]);
@@ -297,7 +304,7 @@ async fn test_certificate_key_rollover() {
     // the mismatch between wallet config and WP config, but since the user's PIN was still correct, unlocking itself
     // succeeds anyway. The certificate refresh is retried on the next unlock.
     wallet_config.account_server.certificate_public_keys = HashMap::from([(
-        "1".to_string(),
+        "1".try_into().unwrap(),
         certificate_public_key(cert_pubkey_1.clone(), Utc::now() - Duration::from_secs(3600)),
     )]);
     config_repo.update_config(Arc::new(wallet_config.clone()));
@@ -311,11 +318,11 @@ async fn test_certificate_key_rollover() {
     // Restore both keys before the WP itself rolls over
     wallet_config.account_server.certificate_public_keys = HashMap::from([
         (
-            "0".to_string(),
+            "0".try_into().unwrap(),
             certificate_public_key(cert_pubkey_0.clone(), Utc::now() - Duration::from_secs(3600)),
         ),
         (
-            "1".to_string(),
+            "1".try_into().unwrap(),
             certificate_public_key(cert_pubkey_1.clone(), Utc::now() + Duration::from_secs(3600)),
         ),
     ]);
@@ -325,9 +332,9 @@ async fn test_certificate_key_rollover() {
     // with kid = "0" at this point, and will send it along with the `CheckPin` instruction below. The new WP must
     // therefore still accept kid = "0" via `previous_certificate_kids`.
     drop(wp_abort);
-    wp_settings.current_certificate_kid = Kid::try_new("1".to_owned()).unwrap();
+    wp_settings.current_certificate_kid = Kid::try_new("1").unwrap();
     wp_settings.previous_certificate_kids = Some(HashMap::from([(
-        Kid::try_new("0".to_owned()).unwrap(),
+        Kid::try_new("0").unwrap(),
         Utc::now() + Duration::from_secs(3600),
     )]));
     let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca.clone()).await;
@@ -341,11 +348,11 @@ async fn test_certificate_key_rollover() {
     .unwrap();
     wallet_config.account_server.certificate_public_keys = HashMap::from([
         (
-            "0".to_string(),
+            "0".try_into().unwrap(),
             certificate_public_key(cert_pubkey_0.clone(), Utc::now() - Duration::from_secs(3600)),
         ),
         (
-            "1".to_string(),
+            "1".try_into().unwrap(),
             certificate_public_key(cert_pubkey_1.clone(), Utc::now() - Duration::from_secs(3500)),
         ),
     ]);
@@ -362,7 +369,7 @@ async fn test_certificate_key_rollover() {
     // Stage 4: old key removed from wallet config, WP uses new key. The stored certificate is already signed with kid =
     // "1", so unlocking succeeds; no refresh is needed.
     wallet_config.account_server.certificate_public_keys = HashMap::from([(
-        "1".to_string(),
+        "1".try_into().unwrap(),
         certificate_public_key(cert_pubkey_1.clone(), Utc::now() - Duration::from_secs(3600)),
     )]);
     config_repo.update_config(Arc::new(wallet_config.clone()));

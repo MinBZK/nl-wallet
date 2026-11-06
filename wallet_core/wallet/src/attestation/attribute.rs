@@ -225,7 +225,7 @@ pub mod test {
     use super::super::mock::EmptyPresentationConfig;
     use crate::attestation::AttestationValidity;
     use crate::attestation::metadata::ClaimDisplay;
-    use crate::config::test::test_wallet_config;
+    use crate::config::test_wallet_config;
 
     /// Credential Metadata for an mdoc: claim paths are namespaced, with the namespace matching the attestation
     /// type (mdoc has no nesting of its own, so all attributes live in a single namespace).

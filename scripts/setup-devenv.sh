@@ -341,12 +341,12 @@ cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
     --file-prefix "${TARGET_DIR}/wrprc_signer" \
     --force
 
-# Generate the WRPRC status-list signing certificate with the same subject as the WRPRC signer.
+# Generate the WRPRC status-list signing certificate.
 cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
     --bin wallet_ca cert --type tsl \
     --ca-key-file "${TARGET_DIR}/ca.wrprc.key.pem" \
     --ca-crt-file "${TARGET_DIR}/ca.wrprc.crt.pem" \
-    --common-name "Development WRPRC signer" \
+    --common-name "Development WRPRC status list signer" \
     --organization-name "Development Registrar B.V." \
     --organization-id "NTRNL-00000001" \
     --file-prefix "${TARGET_DIR}/wrprc_tsl" \
@@ -441,6 +441,12 @@ PID_ISSUER_WRPAC_KEY=$(< "${TARGET_DIR}/pid_issuer/wrpac.key.der" ${BASE64})
 export PID_ISSUER_WRPAC_KEY
 PID_ISSUER_WRPAC_CRT=$(< "${TARGET_DIR}/pid_issuer/wrpac.crt.der" ${BASE64})
 export PID_ISSUER_WRPAC_CRT
+
+# Generate pid issuer credential request encryption private key
+generate_credential_request_encryption_private_key pid_issuer
+
+PID_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/pid_issuer/pid_issuer_credential_request_encryption.key.der" ${BASE64})
+export PID_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
 
 # Generate relying party key and cert.
 # The verification server runs on localhost in local development and integration tests.
@@ -624,6 +630,20 @@ generate_issuance_registration_certificate pid 7 \
     "${TARGET_DIR}/pid_issuer/wrpac.crt.pem" "${TARGET_DIR}/pid_issuer/issuance" PID_Provider
 PID_ISSUER_REGISTRATION_CERTIFICATE=$(< "${TARGET_DIR}/pid_issuer/issuance.wrprc")
 export PID_ISSUER_REGISTRATION_CERTIFICATE
+
+# Generate credential request encryption private keys for each of the demo issuers
+generate_credential_request_encryption_private_key demo_issuer issuance_server
+generate_credential_request_encryption_private_key demo_issuer acf_demo_issuer
+generate_credential_request_encryption_private_key demo_issuer pacf_issuance_server
+
+ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/issuance_server_credential_request_encryption.key.der" ${BASE64})
+export ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
+
+ACF_DEMO_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/acf_demo_issuer_credential_request_encryption.key.der" ${BASE64})
+export ACF_DEMO_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
+
+PACF_ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY=$(< "${TARGET_DIR}/demo_issuer/pacf_issuance_server_credential_request_encryption.key.der" ${BASE64})
+export PACF_ISSUANCE_SERVER_CREDENTIAL_REQUEST_ENCRYPTION_KEY
 
 # The shared demo issuance services have their own identities, separate from the demo organizations.
 generate_demo_issuer_issuance_key_pair issuance_server wrpac
@@ -875,6 +895,12 @@ generate_or_reuse_root_ca "${TARGET_DIR}/static_server" "nl-wallet-static-server
 generate_ssl_key_pair_with_san "${TARGET_DIR}/static_server" static_server "${TARGET_DIR}/static_server/ca.crt.pem" "${TARGET_DIR}/static_server/ca.key.pem"
 
 ln -sf "${TARGET_DIR}/static_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/static.ca.crt.der"
+
+# Make the CA certificate for the static server available inside Android too.
+# This enables things like Exo Player to talk HTTPS without untrusted cert errors.
+mkdir -p "${BASE_DIR}/wallet_app/android/app/src/devenv/res/raw"
+cp "${TARGET_DIR}/static_server/ca.crt.pem" "${BASE_DIR}/wallet_app/android/app/src/devenv/res/raw/devenv_static_ca.pem"
+
 STATIC_SERVER_CA_CRT=$(< "${TARGET_DIR}/static_server/ca.crt.der" ${BASE64})
 export STATIC_SERVER_CA_CRT
 STATIC_SERVER_CERT=$(< "${TARGET_DIR}/static_server/static_server.crt.der" ${BASE64})
@@ -886,7 +912,7 @@ generate_config_signing_key_pair
 CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
 export CONFIG_SIGNING_PUBLIC_KEY
 
-BASE64_JWS_HEADER=$(echo -n '{"typ":"jwt","alg":"ES256"}' | base64_url_encode)
+BASE64_JWS_HEADER=$(echo -n '{"typ":"jwt","alg":"ES256","kid":"0"}' | base64_url_encode)
 BASE64_JWS_PAYLOAD=$(jq --compact-output --join-output "." "${TARGET_DIR}/wallet-config.json" | base64_url_encode)
 BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
 DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \

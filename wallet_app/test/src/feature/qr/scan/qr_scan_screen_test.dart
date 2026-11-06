@@ -6,7 +6,6 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/feature/common/widget/button/bottom_back_button.dart';
-import 'package:wallet/src/feature/common/widget/button/icon/help_icon_button.dart';
 import 'package:wallet/src/feature/qr/scan/bloc/qr_scan_bloc.dart';
 import 'package:wallet/src/feature/qr/scan/qr_scan_screen.dart';
 
@@ -143,7 +142,9 @@ void main() {
       expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
     });
 
-    testWidgets('ltc7 ltc16 ltc19 no permission state shows a single back button and the help button', (tester) async {
+    testWidgets('ltc7 ltc16 ltc19 no permission state shows a single back button', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrScanScreen().withState<QrScanBloc, QrScanState>(
           MockQrScanBloc(),
@@ -154,7 +155,6 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       expect(find.byType(BottomBackButton), findsNothing);
       expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
-      expect(find.byType(HelpIconButton), findsOneWidget);
     });
 
     testWidgets('ltc7 ltc16 ltc19 navigation is delegated to navigation service', (tester) async {

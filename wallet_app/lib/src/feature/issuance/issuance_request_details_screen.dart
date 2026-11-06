@@ -2,8 +2,11 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../domain/model/bloc/error_state.dart';
 import '../../domain/model/disclosure/disclose_card_request.dart';
+import '../../domain/model/result/application_error.dart';
 import '../../navigation/secured_page_route.dart';
+import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_constants.dart';
@@ -42,7 +45,7 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
               case IssuanceCheckOrganization():
                 return _buildContent(context, state);
               default:
-                return _buildError(context);
+                return _buildError(context, tryCast<ErrorState>(state)?.error);
             }
           },
         ),
@@ -50,9 +53,10 @@ class IssuanceRequestDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildError(BuildContext context) {
+  Widget _buildError(BuildContext context, ApplicationError? error) {
     return ErrorPage.generic(
       context,
+      error: error,
       onPrimaryActionPressed: () => Navigator.pop(context),
       style: ErrorCtaStyle.close,
     );

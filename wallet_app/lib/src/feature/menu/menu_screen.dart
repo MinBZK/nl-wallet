@@ -8,8 +8,8 @@ import '../../data/service/announcement_service.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../util/launch_util.dart';
 import '../../wallet_constants.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/secondary_button.dart';
@@ -125,7 +125,8 @@ class MenuScreen extends StatelessWidget {
       MenuItem(
         label: Text.rich(context.l10n.menuScreenFeedbackCta.toTextSpan(context)),
         leftIcon: const Icon(Icons.comment_outlined),
-        onPressed: () => PlaceholderScreen.showGeneric(context),
+        rightIcon: const Icon(Icons.north_east_outlined),
+        onPressed: () => launchUrlStringCatching(_feedbackFormUrl(context), mode: LaunchMode.externalApplication),
       ),
       MenuItem(
         label: Text.rich(context.l10n.menuScreenAboutCta.toTextSpan(context)),
@@ -151,4 +152,7 @@ class MenuScreen extends StatelessWidget {
     }
     return defaultMenuItems;
   }
+
+  String _feedbackFormUrl(BuildContext context) =>
+      context.activeLocale.languageCode == 'nl' ? kFeedbackFormUrlNl : kFeedbackFormUrlEn;
 }

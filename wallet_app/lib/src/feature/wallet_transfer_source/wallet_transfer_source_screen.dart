@@ -15,7 +15,6 @@ import '../common/page/terminal_page.dart';
 import '../common/sheet/error_details_sheet.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
@@ -49,7 +48,6 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
           leading: _buildBackButton(context),
           automaticallyImplyLeading: false,
           actions: [
-            if (_showHelpIcon(context)) const HelpIconButton(),
             _buildCloseButton(context),
           ],
           progress: context.bloc.state.stepperProgress,
@@ -208,18 +206,6 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
         key: const Key('primaryButtonCta'),
       ),
     );
-  }
-
-  bool _showHelpIcon(BuildContext context) {
-    final state = context.watch<WalletTransferSourceBloc>().state;
-    return switch (state) {
-      WalletTransferInitial() => false,
-      WalletTransferLoading() => false,
-      WalletTransferCancelling() => false,
-      WalletTransferTransferring() => false,
-      WalletTransferSuccess() => false,
-      _ => true,
-    };
   }
 
   Widget? _buildBackButton(BuildContext context) {

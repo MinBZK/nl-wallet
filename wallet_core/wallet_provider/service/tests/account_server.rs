@@ -7,9 +7,11 @@ use android_attest::attestation_extension::key_description::KeyDescription;
 use attestation_types::status_claim::StatusClaim;
 use base64::prelude::*;
 use chrono::Utc;
-use crypto::PublicKey;
 use crypto::keys::EcdsaKey;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyRef;
 use crypto::keys::SecureEcdsaKey;
+use crypto::kid::Kid;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::sha256;
@@ -43,7 +45,6 @@ use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_account::signed::ChallengeResponse;
-use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::keys::KidPair;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::TimeoutPinPolicy;
@@ -181,7 +182,7 @@ async fn do_registration(
 
     let (_, cert_data) = certificate
         .parse_and_verify_with_sub_by_kid(&HashMap::from([(
-            certificate_signing_key.kid().to_owned(),
+            certificate_signing_key.kid().try_into().unwrap(),
             PublicKey::from(certificate_signing_key.verifying_key().await.unwrap()),
         )]))
         .expect("Could not parse and verify wallet certificate");
@@ -247,7 +248,7 @@ async fn do_pin_change(
         .expect("ChangePinStart should succeed");
 
     let new_certificate = new_certificate_result
-        .parse_and_verify_with_sub(&PublicKey::from(*certificate_signing_key.verifying_key()).into())
+        .parse_and_verify_with_sub(&PublicKeyRef::from(certificate_signing_key.verifying_key()).into())
         .expect("Could not parse and verify instruction result")
         .1
         .result;
@@ -620,7 +621,7 @@ async fn test_certificate_signing_key_rollover() {
         .expect("refreshing the wallet certificate should succeed during the rollover window");
 
     let refreshed_certificate = refreshed_certificate_result
-        .parse_and_verify_with_sub(&PublicKey::from(*certificate_signing_key.verifying_key()).into())
+        .parse_and_verify_with_sub(&PublicKeyRef::from(certificate_signing_key.verifying_key()).into())
         .expect("could not parse and verify instruction result")
         .1
         .result;

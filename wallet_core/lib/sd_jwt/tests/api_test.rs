@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use attestation_types::claim_path::ClaimPath;
-use crypto::PublicKey;
+use crypto::keys::PublicKeyRef;
 use crypto::mock_remote::DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::server_keys::KeyPair;
@@ -295,7 +295,7 @@ async fn test_presentation() {
     );
     println!(
         "holder_key pubkey: {0}",
-        serde_json::to_string_pretty(&jwk_from_public_key(&PublicKey::from(*holder_key.verifying_key())).unwrap())
+        serde_json::to_string_pretty(&jwk_from_public_key(&PublicKeyRef::from(holder_key.verifying_key())).unwrap())
             .unwrap()
     );
 

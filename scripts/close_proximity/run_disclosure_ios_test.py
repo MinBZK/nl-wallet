@@ -5,10 +5,12 @@ import json
 import os
 import pathlib
 import re
+import select
 import shlex
 import signal
 import subprocess
 import sys
+import tempfile
 from typing import Optional
 
 
@@ -35,6 +37,16 @@ def parse_args() -> argparse.Namespace:
         help="Machine-readable host-helper prefix emitted by the test. Default: CLOSE_PROXIMITY_MAC_READER=",
     )
     parser.add_argument(
+        "--wallet-verifier",
+        type=pathlib.Path,
+        help="Prebuilt verify_close_proximity_response executable; otherwise build it before starting XCTest.",
+    )
+    parser.add_argument(
+        "--require-wallet-test",
+        action="store_true",
+        help="Fail unless at least one Rust wallet disclosure is verified (detects skipped test selection).",
+    )
+    parser.add_argument(
         "command",
         nargs=argparse.REMAINDER,
         help="Command to execute. Pass it after --, for example: -- xcodebuild test ...",
@@ -52,7 +64,12 @@ def parse_args() -> argparse.Namespace:
 
 class Runner:
     def __init__(
-        self, repo_root: pathlib.Path, qr_marker: str, helper_timeout: int
+        self,
+        repo_root: pathlib.Path,
+        qr_marker: str,
+        helper_timeout: int,
+        wallet_verifier: Optional[pathlib.Path] = None,
+        require_wallet_test: bool = False,
     ) -> None:
         self.repo_root = repo_root
         self.qr_pattern = re.compile(re.escape(qr_marker) + r"(\{[^\r\n]+\})")
@@ -62,8 +79,44 @@ class Runner:
         self.helper_exit_code = 0
         self.seen_payloads: set[str] = set()
         self._stopping = False
+        self.wallet_verifier = wallet_verifier
+        self.require_wallet_test = require_wallet_test
+        self.verified_wallet_tests = 0
+        self.artifacts = tempfile.TemporaryDirectory(prefix="wallet-disclosure-")
+        self.pending_verification: Optional[tuple[pathlib.Path, pathlib.Path]] = None
+
+    def _prepare_wallet_verifier(self) -> None:
+        if self.wallet_verifier is not None:
+            self.wallet_verifier = self.wallet_verifier.resolve(strict=True)
+            return
+        # Build before starting the device: compilation must not consume the BLE connection timeout.
+        completed = subprocess.run(
+            [
+                "cargo", "build",
+                "--manifest-path", str(self.repo_root / "wallet_core/Cargo.toml"),
+                "-p", "wallet",
+                "--features", "hardware_integration_test",
+                "--example", "verify_close_proximity_response",
+                "--message-format=json-render-diagnostics",
+            ],
+            cwd=self.repo_root,
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+        for line in completed.stdout.splitlines():
+            artifact = json.loads(line)
+            if (
+                artifact.get("reason") == "compiler-artifact"
+                and artifact.get("target", {}).get("name") == "verify_close_proximity_response"
+                and artifact.get("executable")
+            ):
+                self.wallet_verifier = pathlib.Path(artifact["executable"])
+        if self.wallet_verifier is None:
+            raise RuntimeError("Cargo did not produce the wallet response verifier")
 
     def run(self, command: list[str]) -> int:
+        self._prepare_wallet_verifier()
         command = self._with_auto_destination(command)
         master_fd, slave_fd = os.openpty()
         try:
@@ -84,6 +137,12 @@ class Runner:
 
         try:
             while True:
+                self._poll_helper()
+                self._maybe_start_helper(buffer)
+                # A previous reader may still be sending BLE end when the next test emits its marker.
+                # Keep launching pending readers even while XCTest is silent waiting for Bluetooth.
+                if not select.select([master_fd], [], [], 0.1)[0]:
+                    continue
                 try:
                     chunk = os.read(master_fd, 4096)
                 except OSError:
@@ -96,29 +155,31 @@ class Runner:
                 sys.stdout.write(text)
                 sys.stdout.flush()
 
-                buffer = (buffer + text)[-8192:]
-                self._maybe_start_helper(buffer)
-
-                self._poll_helper()
+                # Signed requests and their test trust anchors exceed the old 8 KiB log window.
+                buffer = (buffer + text)[-1_048_576:]
         finally:
             os.close(master_fd)
 
         test_exit_code = self.test_process.wait() if self.test_process else 1
         helper_exit_code = self._finish_helper()
+        self.artifacts.cleanup()
 
         if test_exit_code != 0:
             return test_exit_code
         if helper_exit_code != 0:
             return helper_exit_code
+        if self.require_wallet_test and self.verified_wallet_tests == 0:
+            print("No Rust wallet disclosure was verified; check the test plan and selection.", file=sys.stderr)
+            return 1
         return 0
 
     def _maybe_start_helper(self, buffer: str) -> None:
-        match = self.qr_pattern.search(buffer)
-        if not match:
-            return
-
-        payload_text = match.group(1)
-        if payload_text in self.seen_payloads:
+        payload_text = next(
+            (match.group(1) for match in self.qr_pattern.finditer(buffer)
+             if match.group(1) not in self.seen_payloads),
+            None,
+        )
+        if payload_text is None:
             return
 
         if self.helper_process and self.helper_process.poll() is None:
@@ -178,6 +239,17 @@ class Runner:
             )
         if payload.get("print_device_response_hex") is True:
             helper_command.append("--print-device-response-hex")
+        verification = payload.get("wallet_verification")
+        if verification is not None:
+            if not isinstance(verification, dict) or self.wallet_verifier is None:
+                raise RuntimeError("Wallet disclosure requires verification metadata and a host verifier")
+            directory = pathlib.Path(self.artifacts.name) / str(len(self.seen_payloads))
+            directory.mkdir()
+            expected = directory / "expected.json"
+            received = directory / "received.json"
+            expected.write_text(json.dumps(verification))
+            self.pending_verification = (expected, received)
+            helper_command.extend(["--device-response-file", str(received)])
         command_string = " ".join(shlex.quote(part) for part in helper_command)
         print(
             f"\n[auto-close-proximity] Launching helper: {command_string}\n",
@@ -202,9 +274,33 @@ class Runner:
             file=sys.stderr,
             flush=True,
         )
+        self._record_helper_result(helper_exit_code)
+        self.helper_process = None
+
+    def _record_helper_result(self, helper_exit_code: int) -> None:
+        if self.pending_verification is not None:
+            expected, received = self.pending_verification
+            self.pending_verification = None
+            if helper_exit_code == 0:
+                if not received.is_file():
+                    print("BLE reader did not write a response artifact", file=sys.stderr)
+                    helper_exit_code = 1
+                else:
+                    try:
+                        verification = subprocess.run(
+                            [str(self.wallet_verifier), str(expected), str(received)],
+                            cwd=self.repo_root,
+                            timeout=30,
+                            check=False,
+                        )
+                        helper_exit_code = verification.returncode
+                        if helper_exit_code == 0:
+                            self.verified_wallet_tests += 1
+                    except (OSError, subprocess.TimeoutExpired) as error:
+                        print(f"Wallet response verification failed: {error}", file=sys.stderr)
+                        helper_exit_code = 1
         if helper_exit_code != 0 and self.helper_exit_code == 0:
             self.helper_exit_code = helper_exit_code
-        self.helper_process = None
 
     def _finish_helper(self) -> int:
         if not self.helper_process:
@@ -220,8 +316,7 @@ class Runner:
                 self.helper_process.kill()
                 helper_exit_code = self.helper_process.wait()
 
-        if helper_exit_code != 0 and self.helper_exit_code == 0:
-            self.helper_exit_code = helper_exit_code
+        self._record_helper_result(helper_exit_code)
         self.helper_process = None
         return self.helper_exit_code
 
@@ -341,6 +436,8 @@ def main() -> int:
         repo_root=repo_root,
         qr_marker=args.qr_marker,
         helper_timeout=args.helper_timeout,
+        wallet_verifier=args.wallet_verifier,
+        require_wallet_test=args.require_wallet_test,
     )
     return runner.run(args.command)
 

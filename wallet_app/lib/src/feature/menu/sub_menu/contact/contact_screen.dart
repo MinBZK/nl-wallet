@@ -9,7 +9,6 @@ import '../../../common/widget/button/bottom_back_button.dart';
 import '../../../common/widget/button/button_content.dart';
 import '../../../common/widget/button/list_button.dart';
 import '../../../common/widget/text/body_text.dart';
-import '../../../common/widget/text/headline_small_text.dart';
 import '../../../common/widget/text/title_text.dart';
 import '../../../common/widget/wallet_app_bar.dart';
 import '../../../common/widget/wallet_scrollbar.dart';
@@ -57,7 +56,7 @@ class ContactScreen extends StatelessWidget {
           padding: const EdgeInsets.only(left: 16, right: 16, top: 24),
           child: Column(
             children: [
-              HeadlineSmallText(
+              TitleText(
                 context.l10n.contactScreenCallUsTitle,
                 style: BaseWalletTheme.headlineExtraSmallTextStyle,
               ),

@@ -1,11 +1,11 @@
 use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Into;
+use jwe::algorithm::CompressionAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
-use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
 use jwe::error::JweJsonDecryptionError;
@@ -23,7 +23,13 @@ impl WalletDatabasePayload {
         let Self(export) = self;
 
         let encryper = JweEncrypter::from(public_key);
-        let jwe = encryper.encrypt_json(export, ENCRYPTION_ALGORITHM, None, None, JweCompression::Deflate)?;
+        let jwe = encryper.encrypt_json(
+            export,
+            ENCRYPTION_ALGORITHM,
+            None,
+            None,
+            Some(CompressionAlgorithm::Deflate),
+        )?;
 
         Ok(jwe)
     }

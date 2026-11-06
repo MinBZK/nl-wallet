@@ -8,7 +8,6 @@ import '../../wallet_assets.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
@@ -34,7 +33,6 @@ class ReviewRevocationCodeScreen extends StatelessWidget {
           automaticallyImplyLeading: false,
           leading: _buildBackButton(context),
           actions: [
-            if (_showHelpIcon(context)) const HelpIconButton(),
             _buildCloseButton(context),
           ],
           title: TitleText(context.l10n.reviewRevocationCodeScreenTitle),
@@ -62,14 +60,6 @@ class ReviewRevocationCodeScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  bool _showHelpIcon(BuildContext context) {
-    final state = context.watch<ReviewRevocationCodeBloc>().state;
-    return switch (state) {
-      ReviewRevocationCodeSuccess() => false,
-      _ => true,
-    };
   }
 
   Widget _buildInitial(BuildContext context) {

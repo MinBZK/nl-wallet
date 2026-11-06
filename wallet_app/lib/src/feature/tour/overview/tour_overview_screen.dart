@@ -47,6 +47,7 @@ class TourOverviewScreen extends StatelessWidget {
                         context,
                         onPrimaryActionPressed: () => context.read<TourOverviewBloc>().add(const FetchVideosEvent()),
                         style: ErrorCtaStyle.retry,
+                        error: state.error,
                       );
                   }
                 },

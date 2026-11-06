@@ -3,7 +3,7 @@ use std::hash::Hash;
 use attestation_data::organization::Organization;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::CredentialEcdsaKey;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use url::Url;

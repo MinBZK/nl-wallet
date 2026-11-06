@@ -9,7 +9,9 @@ Available skill (`.claude/skills/`):
 
 - `/a11y-scan` — evaluate a folder of screen captures (Appium page source +
   screenshot, one pair per screen) against the **WCAG 2.1 AA** ruleset and
-  write an axe-form report → `A11Y-REPORT.json` + `.md`
+  write a raw axe-core report → `A11Y-REPORT.json` (a bare array of result
+  objects) + the `A11Y-REPORT.meta.json` sidecar (provenance, suppression,
+  summary) + `.md`
 
 The captures are produced by `MobileActions.captureA11ySnapshot(screenName)` in
 `uiautomation/` (writes `<screen>.<platform>.{xml,png}`, gated on

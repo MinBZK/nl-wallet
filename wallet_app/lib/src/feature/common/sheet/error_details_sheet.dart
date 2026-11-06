@@ -10,12 +10,17 @@ import '../widget/version/config_version_text.dart';
 import '../widget/version/os_version_text.dart';
 import '../widget/version/string_version_text.dart';
 import '../widget/wallet_scrollbar.dart';
+import 'wallet_modal_bottom_sheet.dart';
 
 class ErrorDetailsSheet extends StatelessWidget {
   final ApplicationError? error;
 
+  /// Overrides whether technical error details are shown, defaults to [Environment.showErrorDetails] when null.
+  final bool? showTechnicalDetails;
+
   const ErrorDetailsSheet({
     this.error,
+    this.showTechnicalDetails,
     super.key,
   });
 
@@ -66,6 +71,7 @@ class ErrorDetailsSheet extends StatelessWidget {
           error: error!,
           prefixTextStyle: prefixStyle,
           alignHorizontal: false,
+          showTechnicalDetails: showTechnicalDetails,
         ),
     ];
 
@@ -78,10 +84,8 @@ class ErrorDetailsSheet extends StatelessWidget {
   }
 
   static Future<void> show(BuildContext context, {ApplicationError? error}) async {
-    return showModalBottomSheet<void>(
+    return showWalletModalBottomSheet<void>(
       context: context,
-      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return WalletScrollbar(
           child: SingleChildScrollView(

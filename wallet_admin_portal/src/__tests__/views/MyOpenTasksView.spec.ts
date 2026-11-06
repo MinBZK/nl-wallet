@@ -13,10 +13,11 @@ vi.mock('@/api/tasks.ts', () => ({
 const task: Task = {
   id: 'TST-1234567',
   action: TaskActionType.RevokeWallet,
-  purpose: '1 Wallet',
+  targetSummary: '1 Wallet',
   reason: 'Suspicious activity',
   createdAt: new Date('2026-08-01T10:00:00'),
   createdBy: 'Jane Doe',
+  isOwnTask: false,
 }
 
 beforeEach(() => {

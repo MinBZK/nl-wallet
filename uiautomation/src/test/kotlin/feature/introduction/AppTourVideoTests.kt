@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
@@ -40,7 +38,6 @@ class AppTourVideoTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC14 User views app tour")
-    @Tags(Tag("a11yBatch3"))
     fun verifyVideoTour(testInfo: TestInfo) {
         setUp(testInfo)
         assertTrue(dashboardScreen.appTourBannerVisible(), "app tour banner is not visible")
@@ -56,23 +53,25 @@ class AppTourVideoTests : TestBase() {
         )
         appTourScreen.captureA11ySnapshot("AppTour")
 
-        appTourScreen.playVideo()
-        assertAll(
-            { assertTrue(videoPlayer.visible(), "Video player is not visible") },
-            { assertTrue(videoPlayer.closeButtonVisible(), "close button is not visible") },
-            { assertTrue(videoPlayer.subtitlesOnToggleVisible(), "subtitle on toggle is not visible") },
-            { assertTrue(videoPlayer.soundOffToggleVisible(), "sound toggle is not visible") },
-        )
-        videoPlayer.captureA11ySnapshot("AppTourVideoPlayer")
-        // This sleep is needed (in combination with find element timeout) to ensure that the first video "intro" has finished.
-        // This will break when the first video becomes longer
-        Thread.sleep(8000)
-        assertAll(
-            { assertTrue(videoPlayer.closeButtonVisible(), "Close button is not visible") },
-            { assertTrue(videoPlayer.replayButtonVisible(), "Replay button is not visible") },
-        )
+        videoPlayer.withoutWaitForIdle {
+            appTourScreen.playVideo()
+            assertAll(
+                { assertTrue(videoPlayer.visible(), "Video player is not visible") },
+                { assertTrue(videoPlayer.closeButtonVisible(), "close button is not visible") },
+                { assertTrue(videoPlayer.subtitlesOnToggleVisible(), "subtitle on toggle is not visible") },
+                { assertTrue(videoPlayer.soundOffToggleVisible(), "sound toggle is not visible") },
+            )
+            videoPlayer.captureA11ySnapshot("AppTourVideoPlayer")
+            // This sleep is needed (in combination with find element timeout) to ensure that the first video "intro" has finished.
+            // This will break when the first video becomes longer
+            Thread.sleep(8000)
+            assertAll(
+                { assertTrue(videoPlayer.closeButtonVisible(), "Close button is not visible") },
+                { assertTrue(videoPlayer.replayButtonVisible(), "Replay button is not visible") },
+            )
 
-        videoPlayer.close()
+            videoPlayer.close()
+        }
         assertTrue(appTourScreen.headlineVisible(), "Headline is not visible")
         appTourScreen.clickBackButton()
         assertTrue(helpAndInfoScreen.visible(), "Help menu is not visible")

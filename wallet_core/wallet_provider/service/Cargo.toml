@@ -93,7 +93,7 @@ tokio = { workspace = true, features = ["macros", "sync"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
-uuid = { workspace = true, features = ["v4"] }
+uuid = { workspace = true, features = ["v4", "v7"] }
 
 anyhow = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }

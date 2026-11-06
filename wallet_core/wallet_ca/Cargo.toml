@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[package.metadata.sbom]
+# Certificate-generation tool for local development.
+production-root = false
+
 [lints]
 workspace = true
 
@@ -17,7 +21,6 @@ chrono = { workspace = true, features = ["now"] }
 clap = { workspace = true, features = ["derive", "string"] }
 clio = { workspace = true, features = ["clap-parse"] }
 hex.workspace = true
-indexmap.workspace = true
 itertools.workspace = true
 p256 = { workspace = true, features = ["pem"] }
 pem.workspace = true
@@ -31,10 +34,8 @@ x509-parser.workspace = true
 
 crypto = { path = "../lib/crypto", features = ["generate"] }
 attestation_data.path = "../lib/attestation_data"
-attestation_types.path = "../lib/attestation_types"
 cose.path = "../lib/cose"
 jwt.path = "../lib/jwt"
-mdoc = { path = "../lib/mdoc", features = ["test"] }
 token_status_list.path = "../lib/token_status_list"
 utils.path = "../lib/utils"
 http_utils.path = "../lib/http_utils"

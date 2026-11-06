@@ -23,7 +23,6 @@ mock = [
     "crypto/mock",
     "dep:futures",
     "dep:rand_core",
-    "derive_more/into",
     "example_credential_payloads",
     "mdoc/test",
 ]
@@ -47,11 +46,9 @@ strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
-x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 futures = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-rcgen = { workspace = true, optional = true }
 
 attestation_types.path = "../attestation_types"
 cose.path = "../cose"
@@ -70,11 +67,9 @@ utils.path = "../utils"
 chrono = { workspace = true, features = ["now"] }
 futures.workspace = true
 rand_core.workspace = true
-rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 rstest.workspace = true
 serde_json.workspace = true
 serde_valid.workspace = true
-time = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["macros"] }
 
 attestation_types = { path = "../attestation_types", features = ["test_pid_constants"] }

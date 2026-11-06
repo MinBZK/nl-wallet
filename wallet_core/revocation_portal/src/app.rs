@@ -31,7 +31,7 @@ use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::Cookie;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use crypto::SymmetricKey;
+use crypto::keys::SymmetricKey;
 use crypto::utils::sha256;
 use derive_more::AsRef;
 use derive_more::Display;

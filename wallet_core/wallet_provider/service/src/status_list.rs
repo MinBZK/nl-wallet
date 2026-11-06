@@ -4,7 +4,7 @@ use attestation_types::status_claim::StatusClaim;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::EcdsaKey;
+use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use jwt::error::JwtSignError;
 use token_status_list::status_list::StatusList;

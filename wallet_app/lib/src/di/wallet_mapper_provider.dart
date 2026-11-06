@@ -69,7 +69,7 @@ class WalletMapperProvider extends StatelessWidget {
         ),
 
         /// Configuration
-        RepositoryProvider<Mapper<(String, String)?, MaintenanceWindow?>>(
+        RepositoryProvider<Mapper<core.FlutterMaintenanceWindow?, MaintenanceWindow?>>(
           create: (context) => MaintenanceWindowMapper(),
         ),
         RepositoryProvider<Mapper<core.PidAttestation, PidAttestation>>(

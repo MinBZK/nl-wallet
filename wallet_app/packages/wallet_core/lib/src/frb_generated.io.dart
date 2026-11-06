@@ -122,6 +122,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   bool dco_decode_box_autoadd_bool(dynamic raw);
 
   @protected
+  FlutterMaintenanceWindow dco_decode_box_autoadd_flutter_maintenance_window(dynamic raw);
+
+  @protected
   Image dco_decode_box_autoadd_image(dynamic raw);
 
   @protected
@@ -129,9 +132,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Organization dco_decode_box_autoadd_organization(dynamic raw);
-
-  @protected
-  (String, String) dco_decode_box_autoadd_record_string_string(dynamic raw);
 
   @protected
   RenderingMetadata dco_decode_box_autoadd_rendering_metadata(dynamic raw);
@@ -174,6 +174,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   FlutterConfiguration dco_decode_flutter_configuration(dynamic raw);
+
+  @protected
+  FlutterMaintenanceWindow dco_decode_flutter_maintenance_window(dynamic raw);
 
   @protected
   FlutterVersionState dco_decode_flutter_version_state(dynamic raw);
@@ -275,13 +278,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
+  FlutterMaintenanceWindow? dco_decode_opt_box_autoadd_flutter_maintenance_window(dynamic raw);
+
+  @protected
   Image? dco_decode_opt_box_autoadd_image(dynamic raw);
 
   @protected
   ImageWithMetadata? dco_decode_opt_box_autoadd_image_with_metadata(dynamic raw);
-
-  @protected
-  (String, String)? dco_decode_opt_box_autoadd_record_string_string(dynamic raw);
 
   @protected
   RenderingMetadata? dco_decode_opt_box_autoadd_rendering_metadata(dynamic raw);
@@ -312,9 +315,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   (String, AttributeValue) dco_decode_record_string_box_attribute_value(dynamic raw);
-
-  @protected
-  (String, String) dco_decode_record_string_string(dynamic raw);
 
   @protected
   RenderingMetadata dco_decode_rendering_metadata(dynamic raw);
@@ -448,6 +448,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  FlutterMaintenanceWindow sse_decode_box_autoadd_flutter_maintenance_window(SseDeserializer deserializer);
+
+  @protected
   Image sse_decode_box_autoadd_image(SseDeserializer deserializer);
 
   @protected
@@ -455,9 +458,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Organization sse_decode_box_autoadd_organization(SseDeserializer deserializer);
-
-  @protected
-  (String, String) sse_decode_box_autoadd_record_string_string(SseDeserializer deserializer);
 
   @protected
   RenderingMetadata sse_decode_box_autoadd_rendering_metadata(SseDeserializer deserializer);
@@ -502,6 +502,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   FlutterConfiguration sse_decode_flutter_configuration(SseDeserializer deserializer);
+
+  @protected
+  FlutterMaintenanceWindow sse_decode_flutter_maintenance_window(SseDeserializer deserializer);
 
   @protected
   FlutterVersionState sse_decode_flutter_version_state(SseDeserializer deserializer);
@@ -603,13 +606,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  FlutterMaintenanceWindow? sse_decode_opt_box_autoadd_flutter_maintenance_window(SseDeserializer deserializer);
+
+  @protected
   Image? sse_decode_opt_box_autoadd_image(SseDeserializer deserializer);
 
   @protected
   ImageWithMetadata? sse_decode_opt_box_autoadd_image_with_metadata(SseDeserializer deserializer);
-
-  @protected
-  (String, String)? sse_decode_opt_box_autoadd_record_string_string(SseDeserializer deserializer);
 
   @protected
   RenderingMetadata? sse_decode_opt_box_autoadd_rendering_metadata(SseDeserializer deserializer);
@@ -640,9 +643,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   (String, AttributeValue) sse_decode_record_string_box_attribute_value(SseDeserializer deserializer);
-
-  @protected
-  (String, String) sse_decode_record_string_string(SseDeserializer deserializer);
 
   @protected
   RenderingMetadata sse_decode_rendering_metadata(SseDeserializer deserializer);
@@ -823,6 +823,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_flutter_maintenance_window> cst_encode_box_autoadd_flutter_maintenance_window(
+    FlutterMaintenanceWindow raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_flutter_maintenance_window();
+    cst_api_fill_to_wire_flutter_maintenance_window(raw, ptr.ref);
+    return ptr;
+  }
+
+  @protected
   ffi.Pointer<wire_cst_image> cst_encode_box_autoadd_image(Image raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_image();
@@ -843,14 +853,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ptr = wire.cst_new_box_autoadd_organization();
     cst_api_fill_to_wire_organization(raw, ptr.ref);
-    return ptr;
-  }
-
-  @protected
-  ffi.Pointer<wire_cst_record_string_string> cst_encode_box_autoadd_record_string_string((String, String) raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    final ptr = wire.cst_new_box_autoadd_record_string_string();
-    cst_api_fill_to_wire_record_string_string(raw, ptr.ref);
     return ptr;
   }
 
@@ -1095,6 +1097,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_flutter_maintenance_window> cst_encode_opt_box_autoadd_flutter_maintenance_window(
+    FlutterMaintenanceWindow? raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_flutter_maintenance_window(raw);
+  }
+
+  @protected
   ffi.Pointer<wire_cst_image> cst_encode_opt_box_autoadd_image(Image? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_box_autoadd_image(raw);
@@ -1104,12 +1114,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ffi.Pointer<wire_cst_image_with_metadata> cst_encode_opt_box_autoadd_image_with_metadata(ImageWithMetadata? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw == null ? ffi.nullptr : cst_encode_box_autoadd_image_with_metadata(raw);
-  }
-
-  @protected
-  ffi.Pointer<wire_cst_record_string_string> cst_encode_opt_box_autoadd_record_string_string((String, String)? raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_record_string_string(raw);
   }
 
   @protected
@@ -1277,6 +1281,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_box_autoadd_flutter_maintenance_window(
+    FlutterMaintenanceWindow apiObj,
+    ffi.Pointer<wire_cst_flutter_maintenance_window> wireObj,
+  ) {
+    cst_api_fill_to_wire_flutter_maintenance_window(apiObj, wireObj.ref);
+  }
+
+  @protected
   void cst_api_fill_to_wire_box_autoadd_image(Image apiObj, ffi.Pointer<wire_cst_image> wireObj) {
     cst_api_fill_to_wire_image(apiObj, wireObj.ref);
   }
@@ -1292,14 +1304,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void cst_api_fill_to_wire_box_autoadd_organization(Organization apiObj, ffi.Pointer<wire_cst_organization> wireObj) {
     cst_api_fill_to_wire_organization(apiObj, wireObj.ref);
-  }
-
-  @protected
-  void cst_api_fill_to_wire_box_autoadd_record_string_string(
-    (String, String) apiObj,
-    ffi.Pointer<wire_cst_record_string_string> wireObj,
-  ) {
-    cst_api_fill_to_wire_record_string_string(apiObj, wireObj.ref);
   }
 
   @protected
@@ -1412,9 +1416,18 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.background_lock_timeout = cst_encode_u_16(apiObj.backgroundLockTimeout);
     wireObj.pid_attestations = cst_encode_list_pid_attestation(apiObj.pidAttestations);
     wireObj.static_assets_base_url = cst_encode_String(apiObj.staticAssetsBaseUrl);
-    wireObj.maintenance_window = cst_encode_opt_box_autoadd_record_string_string(apiObj.maintenanceWindow);
+    wireObj.maintenance_window = cst_encode_opt_box_autoadd_flutter_maintenance_window(apiObj.maintenanceWindow);
     wireObj.version = cst_encode_String(apiObj.version);
     wireObj.environment = cst_encode_String(apiObj.environment);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_flutter_maintenance_window(
+    FlutterMaintenanceWindow apiObj,
+    wire_cst_flutter_maintenance_window wireObj,
+  ) {
+    wireObj.start = cst_encode_String(apiObj.start);
+    wireObj.end = cst_encode_String(apiObj.end);
   }
 
   @protected
@@ -1613,12 +1626,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ) {
     wireObj.field0 = cst_encode_String(apiObj.$1);
     wireObj.field1 = cst_encode_box_attribute_value(apiObj.$2);
-  }
-
-  @protected
-  void cst_api_fill_to_wire_record_string_string((String, String) apiObj, wire_cst_record_string_string wireObj) {
-    wireObj.field0 = cst_encode_String(apiObj.$1);
-    wireObj.field1 = cst_encode_String(apiObj.$2);
   }
 
   @protected
@@ -2060,6 +2067,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_flutter_maintenance_window(FlutterMaintenanceWindow self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_image(Image self, SseSerializer serializer);
 
   @protected
@@ -2067,9 +2077,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_box_autoadd_organization(Organization self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_box_autoadd_record_string_string((String, String) self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_rendering_metadata(RenderingMetadata self, SseSerializer serializer);
@@ -2115,6 +2122,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_flutter_configuration(FlutterConfiguration self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_flutter_maintenance_window(FlutterMaintenanceWindow self, SseSerializer serializer);
 
   @protected
   void sse_encode_flutter_version_state(FlutterVersionState self, SseSerializer serializer);
@@ -2216,13 +2226,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_flutter_maintenance_window(FlutterMaintenanceWindow? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_image(Image? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_image_with_metadata(ImageWithMetadata? self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_opt_box_autoadd_record_string_string((String, String)? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_rendering_metadata(RenderingMetadata? self, SseSerializer serializer);
@@ -2253,9 +2263,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_record_string_box_attribute_value((String, AttributeValue) self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_record_string_string((String, String) self, SseSerializer serializer);
 
   @protected
   void sse_encode_rendering_metadata(RenderingMetadata self, SseSerializer serializer);
@@ -3445,6 +3452,17 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_bool = _cst_new_box_autoadd_boolPtr
       .asFunction<ffi.Pointer<ffi.Bool> Function(bool)>();
 
+  ffi.Pointer<wire_cst_flutter_maintenance_window> cst_new_box_autoadd_flutter_maintenance_window() {
+    return _cst_new_box_autoadd_flutter_maintenance_window();
+  }
+
+  late final _cst_new_box_autoadd_flutter_maintenance_windowPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_flutter_maintenance_window> Function()>>(
+        'frbgen_wallet_core_cst_new_box_autoadd_flutter_maintenance_window',
+      );
+  late final _cst_new_box_autoadd_flutter_maintenance_window = _cst_new_box_autoadd_flutter_maintenance_windowPtr
+      .asFunction<ffi.Pointer<wire_cst_flutter_maintenance_window> Function()>();
+
   ffi.Pointer<wire_cst_image> cst_new_box_autoadd_image() {
     return _cst_new_box_autoadd_image();
   }
@@ -3476,17 +3494,6 @@ class WalletCoreWire implements BaseWire {
       );
   late final _cst_new_box_autoadd_organization = _cst_new_box_autoadd_organizationPtr
       .asFunction<ffi.Pointer<wire_cst_organization> Function()>();
-
-  ffi.Pointer<wire_cst_record_string_string> cst_new_box_autoadd_record_string_string() {
-    return _cst_new_box_autoadd_record_string_string();
-  }
-
-  late final _cst_new_box_autoadd_record_string_stringPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_record_string_string> Function()>>(
-        'frbgen_wallet_core_cst_new_box_autoadd_record_string_string',
-      );
-  late final _cst_new_box_autoadd_record_string_string = _cst_new_box_autoadd_record_string_stringPtr
-      .asFunction<ffi.Pointer<wire_cst_record_string_string> Function()>();
 
   ffi.Pointer<wire_cst_rendering_metadata> cst_new_box_autoadd_rendering_metadata() {
     return _cst_new_box_autoadd_rendering_metadata();
@@ -4116,10 +4123,10 @@ final class wire_cst_attestation_presentation extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_attestation_attribute> attributes;
 }
 
-final class wire_cst_record_string_string extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+final class wire_cst_flutter_maintenance_window extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> start;
 
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field1;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> end;
 }
 
 final class wire_cst_WalletInstructionError_IncorrectPin extends ffi.Struct {
@@ -4441,7 +4448,7 @@ final class wire_cst_flutter_configuration extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> static_assets_base_url;
 
-  external ffi.Pointer<wire_cst_record_string_string> maintenance_window;
+  external ffi.Pointer<wire_cst_flutter_maintenance_window> maintenance_window;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> version;
 

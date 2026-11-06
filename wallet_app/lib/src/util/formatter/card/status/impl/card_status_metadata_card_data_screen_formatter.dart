@@ -5,6 +5,7 @@ import '../../../../../domain/model/card/wallet_card.dart';
 import '../../../../extension/build_context_extension.dart';
 import '../../../datetime/date_formatter.dart';
 import '../card_status_metadata_formatter.dart';
+import 'card_status_metadata_wallet_item_formatter.dart';
 
 class CardStatusMetadataCardDataScreenFormatter implements CardStatusMetadataFormatter {
   @override
@@ -61,6 +62,10 @@ class CardStatusMetadataCardDataScreenFormatter implements CardStatusMetadataFor
       CardStatusUndetermined() => Icons.warning_amber,
     };
   }
+
+  @override
+  String? iconSemanticsLabel(BuildContext context, WalletCard card) =>
+      CardStatusMetadataWalletItemFormatter().text(context, card);
 
   @override
   Color? iconColor(BuildContext context, CardStatus status) {

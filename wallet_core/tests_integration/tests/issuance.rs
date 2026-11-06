@@ -19,9 +19,11 @@ use wallet::Pin;
 async fn ltc1_test_pid_ok() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
-    let (mut wallet, _, _) = setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, _, _) =
+        setup_wallet_and_default_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin.clone()).await;
 

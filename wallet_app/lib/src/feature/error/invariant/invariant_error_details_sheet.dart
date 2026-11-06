@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../common/sheet/wallet_modal_bottom_sheet.dart';
 import '../../common/widget/button/bottom_close_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
@@ -85,10 +86,8 @@ class InvariantErrorDetailsSheet extends StatelessWidget {
   }
 
   static Future<void> show(BuildContext context, {String? code}) async {
-    return showModalBottomSheet<void>(
+    return showWalletModalBottomSheet<void>(
       context: context,
-      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return WalletScrollbar(
           child: SingleChildScrollView(

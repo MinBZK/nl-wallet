@@ -6,7 +6,7 @@ import '../../../domain/model/pid/pid_attestation.dart';
 import '../mapper.dart';
 
 class FlutterAppConfigurationMapper extends Mapper<core.FlutterConfiguration, FlutterAppConfiguration> {
-  final Mapper<(String, String)?, MaintenanceWindow?> _maintenanceWindowMapper;
+  final Mapper<core.FlutterMaintenanceWindow?, MaintenanceWindow?> _maintenanceWindowMapper;
   final Mapper<core.PidAttestation, PidAttestation> _pidAttestationMapper;
 
   FlutterAppConfigurationMapper(this._maintenanceWindowMapper, this._pidAttestationMapper);

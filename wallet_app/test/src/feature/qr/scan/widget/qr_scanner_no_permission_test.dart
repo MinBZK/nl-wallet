@@ -20,6 +20,7 @@ void main() {
 
     final l10n = await TestUtils.englishLocalizations;
     expect(find.text(l10n.qrScreenPermissionTitle), findsOneWidget);
+    TestUtils.expectHeading(tester, l10n.qrScreenPermissionTitle);
   });
 
   testWidgets('ltc7 ltc16 ltc19 the back button closes the page', (WidgetTester tester) async {

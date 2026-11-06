@@ -14,6 +14,7 @@ import '../../wallet_constants.dart';
 import '../common/widget/button/button_content.dart';
 import '../common/widget/button/list_button.dart';
 import '../common/widget/pin_header.dart';
+import '../common/widget/text/dialog_title_text.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import '../error/error_screen.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
@@ -230,27 +231,22 @@ class PinPage extends StatelessWidget {
   }
 
   Widget _buildHeader(PinHeaderBuilder builder) {
-    // FIXME: Remove [MergeSemantics] once flutter issue is fixed.
-    // Merging semantics fixes the (iOS) issue where only the scrollview can gain focus (without any announcement)
-    // Can be removed if the related framework bug is fixed. https://github.com/flutter/flutter/issues/164483
-    return MergeSemantics(
-      child: WalletScrollbar(
-        child: CustomScrollView(
-          slivers: [
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: BlocBuilder<PinBloc, PinState>(
-                builder: (context, state) {
-                  if (state is PinValidateFailure) {
-                    return builder(context, state.attemptsLeftInRound, state.isFinalRound);
-                  } else {
-                    return builder(context, null, false);
-                  }
-                },
-              ),
+    return WalletScrollbar(
+      child: CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: BlocBuilder<PinBloc, PinState>(
+              builder: (context, state) {
+                if (state is PinValidateFailure) {
+                  return builder(context, state.attemptsLeftInRound, state.isFinalRound);
+                } else {
+                  return builder(context, null, false);
+                }
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -367,7 +363,7 @@ class PinPage extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          title: Text.rich(title.toTextSpan(context)),
+          title: DialogTitleText(title),
           content: Text.rich(description.toTextSpan(context)),
           actions: <Widget>[
             TextButton(

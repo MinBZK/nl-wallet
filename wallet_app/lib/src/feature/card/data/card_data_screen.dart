@@ -12,7 +12,6 @@ import '../../../util/mapper/card/status/card_status_render_type.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/card/status/card_status_info_text.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -45,7 +44,6 @@ class CardDataScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         title: TitleText(_generateTitle(context)),
-        actions: const [HelpIconButton()],
       ),
       key: const Key('cardDataScreen'),
       body: SafeArea(

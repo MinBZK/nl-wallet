@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/feature/common/widget/pin_header.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/pin/pin_page.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
@@ -143,6 +144,19 @@ void main() {
       expect(headerFinder, findsOneWidget);
     });
 
+    testWidgets('PinPage exposes the header title as a heading of its own', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        PinPage(
+          headerBuilder: (context, _, _) => const PinHeader(title: 'Title', description: 'Description'),
+          onPinValidated: (_) {},
+        ).withState<PinBloc, PinState>(MockPinBloc(), const PinEntryInProgress(0)),
+      );
+      await tester.pumpAndSettle();
+
+      TestUtils.expectHeading(tester, 'Title');
+      expect(tester.getSemantics(find.text('Description')), isNot(isSemantics(isHeader: true)));
+    });
+
     testWidgets('PinPage renders the default error with the correct amount of leftover attempts', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
@@ -162,6 +176,19 @@ void main() {
       // Verify all expected widgets show up once
       expect(headerFinder, findsOneWidget);
       expect(attemptsLeftFinder, findsOneWidget);
+    });
+
+    testWidgets('PinPage exposes the error dialog title as heading', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.pumpWidgetWithAppWrapper(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinValidateFailure(attemptsLeftInRound: 2, isFinalRound: false),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      TestUtils.expectHeading(tester, l10n.pinErrorDialogTitle);
     });
 
     testWidgets('PinPage executes navigation when blocked', (tester) async {

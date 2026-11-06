@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../widget/text/dialog_title_text.dart';
 
 class LockedOutDialog extends StatelessWidget {
   const LockedOutDialog({super.key});
@@ -15,7 +16,7 @@ class LockedOutDialog extends StatelessWidget {
         ? context.l10n.lockedOutDialogDescriptioniOSVariant
         : context.l10n.lockedOutDialogDescription;
     return AlertDialog(
-      title: Text.rich(title.toTextSpan(context)),
+      title: DialogTitleText(title),
       content: Text.rich(description.toTextSpan(context)),
       actions: <Widget>[
         TextButton(

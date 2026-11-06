@@ -22,6 +22,7 @@ import '../common/widget/page_illustration.dart';
 import '../common/widget/paragraphed_sliver_list.dart';
 import '../common/widget/setting/switch_setting_row.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/dialog_title_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_screen.dart';
@@ -198,7 +199,6 @@ class BiometricSettingScreen extends StatelessWidget {
               },
             ),
             preferVerticalButtonLayout: false,
-            showHelpButton: false,
           ),
         );
       },
@@ -214,7 +214,7 @@ class BiometricSettingScreen extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          title: Text.rich(title.toTextSpan(context)),
+          title: DialogTitleText(title),
           content: Text.rich(
             context.l10n.biometricSettingsScreenSetupDialogDescription(supportedBiometricsText).toTextSpan(context),
           ),

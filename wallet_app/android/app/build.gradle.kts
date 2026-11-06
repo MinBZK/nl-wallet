@@ -187,6 +187,16 @@ android {
     }
 }
 
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        val devenv = file("src/devenv")
+        if (devenv.resolve("res/raw/devenv_static_ca.pem").exists()) {
+            variant.sources.res?.addStaticSourceDirectory(devenv.resolve("res").path)
+            variant.sources.manifests.addStaticManifestFile(devenv.resolve("AndroidManifest.xml").path)
+        }
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_11

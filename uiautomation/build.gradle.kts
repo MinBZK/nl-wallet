@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.1.20"
+    kotlin("jvm") version "2.4.21"
     application
 }
 
@@ -11,10 +11,10 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(jdkVersion = 21)
+    jvmToolchain(jdkVersion = 25)
 }
 
-val browserstackAgent by configurations.creating
+val browserstackAgent = configurations.create("browserstackAgent")
 
 dependencies {
     browserstackAgent("com.browserstack:browserstack-java-sdk:1.65.1")
@@ -59,27 +59,6 @@ tasks.register<Test>("testEnglish") {
     }
 }
 
-tasks.register<Test>("testA11yBatch1") {
-    useJUnitPlatform {
-        includeTags("a11yBatch1")
-        exclude("suite/**")
-    }
-}
-
-tasks.register<Test>("testA11yBatch2") {
-    useJUnitPlatform {
-        includeTags("a11yBatch2")
-        exclude("suite/**")
-    }
-}
-
-tasks.register<Test>("testA11yBatch3") {
-    useJUnitPlatform {
-        includeTags("a11yBatch3")
-        exclude("suite/**")
-    }
-}
-
 tasks.register<Test>("testAllAndroids") {
     useJUnitPlatform {
         includeTags("onallandroids")
@@ -117,11 +96,6 @@ tasks.withType<Test>().configureEach {
     listOf("ENABLE_A11Y_CAPTURES", "A11Y_CAPTURE_DIR").forEach { name ->
         (System.getProperty(name) ?: System.getenv(name))?.let { environment(name, it) }
     }
-
-    val toolchains = project.extensions.getByType(JavaToolchainService::class.java)
-    javaLauncher.set(toolchains.launcherFor {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    })
 
     if (System.getProperty("test.config.remote", "false").toBoolean()) {
         val agentProvider = CommandLineArgumentProvider {

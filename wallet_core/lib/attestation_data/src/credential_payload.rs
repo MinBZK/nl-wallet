@@ -8,8 +8,9 @@ use cose::CoseError;
 use cose::CoseKey;
 use cose::TypedCose;
 use coset::CoseSign1;
-use crypto::EcdsaKey;
-use crypto::PublicKey;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::EcdsaKey;
+use crypto::keys::PublicKey;
 use crypto::server_keys::KeyPair;
 use error_category::ErrorCategory;
 use jwt::confirmation::ConfirmationClaim;
@@ -230,7 +231,7 @@ impl CredentialPayload {
     pub fn from_previewable_credential_payload(
         previewable_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
-        holder_pubkey: &PublicKey,
+        holder_pubkey: &impl AsPublicKeyRef,
         vct_integrity: Option<Integrity>,
         status: Option<StatusListClaim>,
     ) -> Result<Self, JwkConversionError> {
@@ -264,13 +265,10 @@ impl CredentialPayload {
     pub fn from_mdoc(mdoc: Mdoc) -> Result<Self, CredentialPayloadFromMdocError> {
         let split = SplitMdocCredential::from_mdoc(mdoc).map_err(CredentialPayloadFromMdocError::Previewable)?;
 
-        let confirmation_key = ConfirmationClaim::Jwk(
-            jwk_from_public_key(&PublicKey::from(
-                VerifyingKey::try_from(split.device_key_info)
-                    .map_err(CredentialPayloadFromMdocError::CoseKeyConversion)?,
-            ))
-            .map_err(CredentialPayloadFromMdocError::JwkConversion)?,
-        );
+        let confirmation_key = ConfirmationClaim::try_from_public_key(&PublicKey::from(
+            VerifyingKey::try_from(split.device_key_info).map_err(CredentialPayloadFromMdocError::CoseKeyConversion)?,
+        ))
+        .map_err(CredentialPayloadFromMdocError::JwkConversion)?;
         // A status claim must be present, but `identifier_list` status are ignored for now (PVW-6106)
         let status = split.status.ok_or(CredentialPayloadFromMdocError::MissingStatusClaim)?;
         let status = status_list_claim_from_mdoc_status(status);
@@ -531,7 +529,8 @@ mod examples {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use crypto::PublicKey;
+    use crypto::keys::AsPublicKeyRef;
+    use crypto::keys::PublicKeyRef;
     use jwt::jwk::jwk_from_public_key;
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
@@ -545,7 +544,7 @@ mod examples {
         pub fn from_previewable_credential_payload_unvalidated(
             previewable_payload: PreviewableCredentialPayload,
             issued_at: DateTime<Utc>,
-            holder_pubkey: &PublicKey,
+            holder_pubkey: &impl AsPublicKeyRef,
             vct_integrity: Option<Integrity>,
             status: Option<StatusListClaim>,
         ) -> Result<Self, JwkConversionError> {
@@ -565,7 +564,7 @@ mod examples {
         ) -> Self {
             let time = time_generator.generate();
 
-            let confirmation_key = jwk_from_public_key(&PublicKey::from(*verifying_key)).unwrap();
+            let confirmation_key = jwk_from_public_key(&PublicKeyRef::from(verifying_key)).unwrap();
 
             Self {
                 issued_at: time.into(),
@@ -732,7 +731,8 @@ mod test {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use chrono::TimeZone;
     use chrono::Utc;
-    use crypto::PublicKey;
+    use coset::iana;
+    use crypto::keys::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -799,7 +799,7 @@ mod test {
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
             payload_preview.clone(),
             Utc::now(),
-            &PublicKey::from(*SigningKey::generate().verifying_key()),
+            &PublicKeyRef::from(SigningKey::generate().verifying_key()),
             Some(metadata_integrity.clone()),
             Some(StatusListClaim::new_mock()),
         )
@@ -841,7 +841,12 @@ mod test {
 
         // The IssuerSigned should be valid
         issuer_signed
-            .verify(ValidityRequirement::Valid, &TimeGenerator, &ca.to_trust_anchors())
+            .verify(
+                ValidityRequirement::Valid,
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+                &[iana::Algorithm::ES256],
+            )
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
@@ -1097,7 +1102,8 @@ mod test {
 
     #[test]
     fn test_serialize_deserialize_and_validate() {
-        let confirmation_key = jwk_from_public_key(&PublicKey::from(*SigningKey::generate().verifying_key())).unwrap();
+        let confirmation_key =
+            jwk_from_public_key(&PublicKeyRef::from(SigningKey::generate().verifying_key())).unwrap();
 
         let payload = CredentialPayload {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
@@ -1181,7 +1187,7 @@ mod test {
         let payload = CredentialPayload::from_previewable_credential_payload(
             preview_payload.clone(),
             Utc::now(),
-            &PublicKey::from(*holder_key.verifying_key()),
+            &PublicKeyRef::from(holder_key.verifying_key()),
             Some(Integrity::from("")),
             Some(StatusListClaim::new_mock()),
         )

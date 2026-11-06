@@ -18,6 +18,7 @@ use oauth::token::AuthorizationCode;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
+use tracing::error;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -32,6 +33,7 @@ use super::IssuanceFlow;
 use super::WalletIssuanceError;
 use super::authorization::HttpAuthorizationSession;
 use super::authorization_endpoints::AuthorizationEndpoints;
+use super::credential_request_encryption::CredentialRequestEncryptionParameters;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
 use super::issuer_registration::IssuerRegistration;
@@ -102,9 +104,17 @@ where
             wrprc_trust_anchors,
         } = common_parameters;
 
-        let (credential_configurations, credential_issuer, issuer_endpoints, issuer_registration, batch_size, flow) =
-            self.resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
-                .await?;
+        let (
+            credential_configurations,
+            credential_issuer,
+            issuer_endpoints,
+            issuer_registration,
+            batch_size,
+            encryption_parameters,
+            flow,
+        ) = self
+            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
+            .await?;
 
         let issuance_flow = match flow {
             CredentialOfferFlow::AuthorizationCode {
@@ -119,6 +129,7 @@ where
                     issuer_endpoints,
                     issuer_registration,
                     batch_size,
+                    encryption_parameters,
                     auth_endpoints,
                     client_id,
                     redirect_uri,
@@ -144,6 +155,7 @@ where
                         issuer_endpoints,
                         issuer_registration,
                         batch_size,
+                        encryption_parameters,
                         token_endpoint,
                         challenge_endpoint,
                         wia_client,
@@ -175,9 +187,17 @@ where
             wrprc_trust_anchors,
         } = common_parameters;
 
-        let (credential_configurations, credential_identifier, issuer_endpoints, issuer_registration, batch_size, flow) =
-            self.resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
-                .await?;
+        let (
+            credential_configurations,
+            credential_identifier,
+            issuer_endpoints,
+            issuer_registration,
+            batch_size,
+            encryption_parameters,
+            flow,
+        ) = self
+            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
+            .await?;
 
         let CredentialOfferFlow::AuthorizationCode {
             issuer_state,
@@ -195,6 +215,7 @@ where
             issuer_endpoints,
             issuer_registration,
             batch_size,
+            encryption_parameters,
             auth_endpoints,
             client_id,
             redirect_uri,
@@ -220,9 +241,17 @@ where
             wrprc_trust_anchors,
         } = common_parameters;
 
-        let (credential_configurations, credential_identifier, issuer_endpoints, issuer_registration, batch_size, flow) =
-            self.resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
-                .await?;
+        let (
+            credential_configurations,
+            credential_identifier,
+            issuer_endpoints,
+            issuer_registration,
+            batch_size,
+            encryption_parameters,
+            flow,
+        ) = self
+            .resolve_credential_offer_flow(offer_uri, selection, wrpac_trust_anchors, wrprc_trust_anchors)
+            .await?;
 
         let CredentialOfferFlow::PreAuthorizedCode {
             pre_authorized_code,
@@ -241,6 +270,7 @@ where
             issuer_endpoints,
             issuer_registration,
             batch_size,
+            encryption_parameters,
             token_endpoint,
             challenge_endpoint,
             wia_client,
@@ -470,6 +500,17 @@ where
             )
             .await
             .map_err(WalletIssuanceError::CredentialIssuerMetadataVerify)?;
+
+        if let Some(trust_anchor) =
+            wrpac_trust_anchors.find_in_chain(verified_issuer_metadata.header().x5c.iter().skip(1))
+        {
+            let subject = trust_anchor.x509_certificate().subject();
+            error!(
+                "x5c of Credential Issuer Metadata request contains trust anchor {subject}; this violates HAIP 1.0, \
+                 ignoring it"
+            );
+        }
+
         let access_certificate = verified_issuer_metadata.header().x5c.first().clone();
         let issuer_metadata_payload = verified_issuer_metadata.into_payload();
         if *issuer_metadata_payload.sub != credential_offer.credential_issuer {
@@ -578,6 +619,7 @@ where
             IssuerEndpoints,
             IssuerRegistration,
             NonZeroU8,
+            Option<CredentialRequestEncryptionParameters>,
             CredentialOfferFlow,
         ),
         WalletIssuanceError,
@@ -602,9 +644,26 @@ where
         let IssuerMetadata {
             credential_issuer,
             endpoints: issuer_endpoints,
+            credential_request_encryption,
             mut credential_configurations_supported,
             ..
         } = issuer_metadata;
+
+        // Select the public key and other Credential Request encryption parameters based on the contents of the Issuer
+        // Metadata. There are three cases in which request encryption is not used:
+        //
+        // 1. When the `credential_request_encryption` field is not present in the Issuer Metadata.
+        // 2. When all of the JWKs contained in the `credential_request_encryption` field are unsupported or lack a
+        //    `kid` value and the Issuer indicates that request encryption is optional by setting the
+        //    `encryption_required` field to `false`.
+        // 3. The `credential_request_encryption` field does not contain a `enc_values_supported` value that the Wallet
+        //    supports and request encryption is optional.
+        //
+        // Note that the Wallet chooses to always apply request encryption when there is a valid JWK.
+        let encryption_parameters = credential_request_encryption
+            .and_then(|encryption| encryption.select_encryption_parameters().transpose())
+            .transpose()
+            .map_err(WalletIssuanceError::CredentialRequestEncryptionMetadata)?;
 
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
@@ -695,6 +754,7 @@ where
             issuer_endpoints,
             issuer_registration,
             batch_size,
+            encryption_parameters,
             flow,
         ))
     }
@@ -708,6 +768,7 @@ where
         issuer_endpoints: IssuerEndpoints,
         issuer_registration: IssuerRegistration,
         batch_size: NonZeroU8,
+        encryption_parameters: Option<CredentialRequestEncryptionParameters>,
         token_endpoint: Url,
         challenge_endpoint: Option<Url>,
         wia_client: &impl WiaClient,
@@ -729,6 +790,7 @@ where
             issuer_endpoints,
             issuer_registration,
             batch_size,
+            encryption_parameters,
             token_endpoint,
             client_auth_challenge,
             token_request,
@@ -1117,7 +1179,7 @@ mod test {
         }
     }
 
-    /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint, and, if enabled in the
+    /// Start an httpmock server that serves the well-known metadata endpoints, a token endpoint, and, if enabled in the
     /// options, a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
     async fn start_httpmock_issuer(
         metadata_options: IssuerMetadataOptions<'_>,

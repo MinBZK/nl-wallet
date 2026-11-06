@@ -54,12 +54,15 @@ object LocalMobileDriver {
                 if (udid.isNotBlank()) setCapability("appium:udid", udid)
             }).also { driver ->
                 // Suppress Chrome's first-run screen so deepLink navigation lands on the target URL.
-                // Chrome reads '/data/local/tmp/chrome-command-line' at startup
+                // Chrome reads '/data/local/tmp/chrome-command-line' at startup, on user builds only as debug app
                 // For details see https://www.chromium.org/developers/how-tos/run-chromium-with-flags/
-                driver.executeScript(
-                    "mobile: shell",
-                    mapOf("command" to "sh -c 'echo chrome --disable-fre --no-default-browser-check --no-first-run --disable-notifications > /data/local/tmp/chrome-command-line'")
-                )
+                val chromeSetup = listOf(
+                    "echo chrome --disable-fre --no-default-browser-check --no-first-run --disable-notifications > /data/local/tmp/chrome-command-line",
+                    "am set-debug-app --persistent com.android.chrome",
+                    "pm grant com.android.chrome android.permission.POST_NOTIFICATIONS",
+                    "am force-stop com.android.chrome",
+                ).joinToString("; ")
+                driver.executeScript("mobile: shell", mapOf("command" to "sh -c '$chromeSetup'"))
             }
             Platform.IOS -> IOSDriver(serviceUrl, buildIOSOptions(
                 appPath = appPath,

@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[package.metadata.sbom]
+# Integration and performance test executables.
+production-root = false
+
 [lints]
 workspace = true
 
@@ -120,7 +124,7 @@ test_credentials = [
     "pid_issuer/mock",
 ]
 
-# Allow the disclosure return URL and its prefix to use http://
+# Allow the disclosure return URL to use http://
 allow_insecure_url = ["wallet?/allow_insecure_url"]
 
 # Initialize global logging using tracing-subscriber

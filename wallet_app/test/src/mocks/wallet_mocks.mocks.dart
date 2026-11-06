@@ -4653,8 +4653,15 @@ class MockWorkmanager extends _i1.Mock implements _i73.Workmanager {
   ) as _i9.Future<void>);
 
   @override
-  void executeTask(_i73.BackgroundTaskHandler? backgroundTaskHandler) => super.noSuchMethod(
-    Invocation.method(#executeTask, [backgroundTaskHandler]),
+  void executeTask(
+    _i73.BackgroundTaskHandler? backgroundTaskHandler, {
+    _i73.BackgroundTaskStoppedHandler? onTaskStopped,
+  }) => super.noSuchMethod(
+    Invocation.method(
+      #executeTask,
+      [backgroundTaskHandler],
+      {#onTaskStopped: onTaskStopped},
+    ),
     returnValueForMissingStub: null,
   );
 
@@ -4670,6 +4677,8 @@ class MockWorkmanager extends _i1.Mock implements _i73.Workmanager {
     Duration? backoffPolicyDelay,
     String? tag,
     _i74.OutOfQuotaPolicy? outOfQuotaPolicy,
+    _i74.ForegroundServiceConfig? foregroundServiceConfig,
+    bool? expedited = false,
   }) => (super.noSuchMethod(
     Invocation.method(
       #registerOneOffTask,
@@ -4683,6 +4692,8 @@ class MockWorkmanager extends _i1.Mock implements _i73.Workmanager {
         #backoffPolicyDelay: backoffPolicyDelay,
         #tag: tag,
         #outOfQuotaPolicy: outOfQuotaPolicy,
+        #foregroundServiceConfig: foregroundServiceConfig,
+        #expedited: expedited,
       },
     ),
     returnValue: _i9.Future<void>.value(),
@@ -4702,6 +4713,7 @@ class MockWorkmanager extends _i1.Mock implements _i73.Workmanager {
     _i74.BackoffPolicy? backoffPolicy,
     Duration? backoffPolicyDelay,
     String? tag,
+    _i74.ForegroundServiceConfig? foregroundServiceConfig,
   }) => (super.noSuchMethod(
     Invocation.method(
       #registerPeriodicTask,
@@ -4716,6 +4728,7 @@ class MockWorkmanager extends _i1.Mock implements _i73.Workmanager {
         #backoffPolicy: backoffPolicy,
         #backoffPolicyDelay: backoffPolicyDelay,
         #tag: tag,
+        #foregroundServiceConfig: foregroundServiceConfig,
       },
     ),
     returnValue: _i9.Future<void>.value(),
@@ -4728,6 +4741,13 @@ class MockWorkmanager extends _i1.Mock implements _i73.Workmanager {
     returnValue: _i9.Future<bool>.value(false),
     returnValueForMissingStub: _i9.Future<bool>.value(false),
   ) as _i9.Future<bool>);
+
+  @override
+  _i9.Future<_i74.WorkInfo?> getWorkInfo(String? uniqueName) => (super.noSuchMethod(
+    Invocation.method(#getWorkInfo, [uniqueName]),
+    returnValue: _i9.Future<_i74.WorkInfo?>.value(),
+    returnValueForMissingStub: _i9.Future<_i74.WorkInfo?>.value(),
+  ) as _i9.Future<_i74.WorkInfo?>);
 
   @override
   _i9.Future<void> registerProcessingTask(
@@ -4745,6 +4765,44 @@ class MockWorkmanager extends _i1.Mock implements _i73.Workmanager {
         #inputData: inputData,
         #constraints: constraints,
       },
+    ),
+    returnValue: _i9.Future<void>.value(),
+    returnValueForMissingStub: _i9.Future<void>.value(),
+  ) as _i9.Future<void>);
+
+  @override
+  _i9.Future<void> registerHealthResearchTask(
+    String? uniqueName,
+    String? taskName, {
+    Duration? initialDelay,
+    Map<String, dynamic>? inputData,
+    _i74.Constraints? constraints,
+  }) => (super.noSuchMethod(
+    Invocation.method(
+      #registerHealthResearchTask,
+      [uniqueName, taskName],
+      {
+        #initialDelay: initialDelay,
+        #inputData: inputData,
+        #constraints: constraints,
+      },
+    ),
+    returnValue: _i9.Future<void>.value(),
+    returnValueForMissingStub: _i9.Future<void>.value(),
+  ) as _i9.Future<void>);
+
+  @override
+  _i9.Future<void> registerContinuedProcessingTask(
+    String? uniqueName,
+    String? taskName, {
+    String? title,
+    String? subtitle,
+    Map<String, dynamic>? inputData,
+  }) => (super.noSuchMethod(
+    Invocation.method(
+      #registerContinuedProcessingTask,
+      [uniqueName, taskName],
+      {#title: title, #subtitle: subtitle, #inputData: inputData},
     ),
     returnValue: _i9.Future<void>.value(),
     returnValueForMissingStub: _i9.Future<void>.value(),
@@ -4787,6 +4845,20 @@ class MockWorkmanager extends _i1.Mock implements _i73.Workmanager {
       ),
     ),
   ) as _i9.Future<String>);
+
+  @override
+  _i9.Future<void> reportProgress(Map<String, dynamic>? progress) => (super.noSuchMethod(
+    Invocation.method(#reportProgress, [progress]),
+    returnValue: _i9.Future<void>.value(),
+    returnValueForMissingStub: _i9.Future<void>.value(),
+  ) as _i9.Future<void>);
+
+  @override
+  _i9.Future<void> setProgressListener(_i74.ProgressListener? listener) => (super.noSuchMethod(
+    Invocation.method(#setProgressListener, [listener]),
+    returnValue: _i9.Future<void>.value(),
+    returnValueForMissingStub: _i9.Future<void>.value(),
+  ) as _i9.Future<void>);
 }
 
 /// A class which mocks [AcceptDisclosureUseCase].

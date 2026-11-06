@@ -2,9 +2,10 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use attestation_data::organization::Organization;
+use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::CredentialEcdsaKey;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use dcql::CredentialQueryIdentifier;
@@ -57,20 +58,55 @@ pub trait DisclosureClient {
     ) -> Result<Self::Session, VpSessionError>;
 }
 
+/// The attestations to be disclosed in response to a single credential query, along with their key identifiers.
 #[derive(Debug, Clone)]
 pub enum DisclosableAttestations {
-    MsoMdoc(HashMap<CredentialQueryIdentifier, VecNonEmpty<(PartialMdoc, String)>>),
-    SdJwt(HashMap<CredentialQueryIdentifier, VecNonEmpty<(UnsignedSdJwtPresentation, String)>>),
+    MsoMdoc(VecNonEmpty<(PartialMdoc, String)>),
+    SdJwt(VecNonEmpty<(UnsignedSdJwtPresentation, String)>),
 }
 
+impl DisclosableAttestations {
+    pub fn format(&self) -> Format {
+        match self {
+            Self::MsoMdoc(_) => Format::MsoMdoc,
+            Self::SdJwt(_) => Format::SdJwt,
+        }
+    }
+}
+
+/// The attestations to be disclosed per credential query. Note that different credential queries may
+/// be answered using attestations of different formats.
 #[nutype(
     derive(Debug, Clone, AsRef, TryFrom),
-    validate(predicate = |response| match response {
-        DisclosableAttestations::MsoMdoc(map) => !map.is_empty(),
-        DisclosableAttestations::SdJwt(map) => !map.is_empty(),
-    }),
+    validate(predicate = |attestations| !attestations.is_empty()),
 )]
-pub struct NonEmptyDisclosableAttestations(DisclosableAttestations);
+pub struct NonEmptyDisclosableAttestations(HashMap<CredentialQueryIdentifier, DisclosableAttestations>);
+
+impl NonEmptyDisclosableAttestations {
+    /// Check that each credential query for which attestations are provided is present in the credential requests,
+    /// and that those attestations have the format requested in that credential query.
+    fn check_against_credential_requests(
+        &self,
+        credential_requests: &NormalizedCredentialRequests,
+    ) -> Result<(), VpClientError> {
+        for (id, attestations) in self.as_ref() {
+            let request = credential_requests
+                .as_ref()
+                .iter()
+                .find(|request| request.id() == id)
+                .ok_or(VpClientError::UnknownCredentialQuery)?;
+
+            if request.format() != attestations.format() {
+                return Err(VpClientError::AttestationFormatMismatch {
+                    requested: request.format(),
+                    provided: attestations.format(),
+                });
+            }
+        }
+
+        Ok(())
+    }
+}
 
 pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;

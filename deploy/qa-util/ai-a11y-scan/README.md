@@ -2,8 +2,9 @@
 
 AI-assisted accessibility review of the NL Wallet mobile app, built on a Claude
 Code skill. It evaluates the screens the e2e suite already visits against the
-**WCAG 2.1 AA** ruleset and produces an [axe-core](https://github.com/dequelabs/axe-core)-shaped
-report. It is a sibling of [`../ai-security-scan`](../ai-security-scan) and
+**WCAG 2.1 AA** ruleset and produces a raw [axe-core](https://github.com/dequelabs/axe-core)
+report — a bare array of result objects, drop-in for any tooling that already
+reads axe output. It is a sibling of [`../ai-security-scan`](../ai-security-scan) and
 follows the same shape: a skill that never drives the app, a false-positive
 suppression file, and gitignored reports that are review input rather than
 committed content.
@@ -12,7 +13,7 @@ committed content.
 
 | Skill | What it does | Output |
 |---|---|---|
-| `/a11y-scan` | Reads a folder of screen captures (page source + screenshot, one pair per screen/platform) and checks each against WCAG 2.1 AA | `A11Y-REPORT.json` + `.md` |
+| `/a11y-scan` | Reads a folder of screen captures (page source + screenshot, one pair per screen/platform) and checks each against WCAG 2.1 AA | `A11Y-REPORT.json` (raw axe array) + `A11Y-REPORT.meta.json` + `.md` |
 
 Supporting pieces:
 
@@ -32,13 +33,15 @@ Supporting pieces:
   extras.)
 - `false-positives.md` — reviewed-and-accepted findings the scan suppresses
   instead of re-raising (see below).
-- `validate-report.sh` — completeness gate for `A11Y-REPORT.json`. Checks it
-  parses, carries the wrapper keys downstream tooling indexes on, holds one
-  result object per capture, and has a `summary` that agrees with the findings;
-  it also prints each platform's capture commit for the log, which is reported
-  but never enforced. CI runs it after the scan; run it yourself after a local
-  scan (`./validate-report.sh A11Y-REPORT.json captures`) to catch a run that
-  died part-way instead of trusting the file's existence.
+- `validate-report.sh` — completeness gate for `A11Y-REPORT.json` and its
+  `A11Y-REPORT.meta.json` sidecar. Checks the report parses as an axe array,
+  carries the axe result keys downstream tooling indexes on, and holds one
+  result object per capture; checks the sidecar carries the `summary` and
+  `suppressed` keys and that the `summary` agrees with the findings; it also
+  prints each platform's capture commit for the log, which is reported but never
+  enforced. CI runs it after the scan; run it yourself after a local scan
+  (`./validate-report.sh A11Y-REPORT.json captures`) to catch a run that died
+  part-way instead of trusting the file's existence.
 - `docs/a11y.md` — what the scan can and cannot see, and why it emits axe form.
 
 The skill reads the capture files and writes its report. It never builds,
@@ -153,7 +156,7 @@ claude
 
 # Scan every capture in the folder
 > /a11y-scan ../../../uiautomation/build/a11y-captures
-# → writes ./A11Y-REPORT.json + ./A11Y-REPORT.md
+# → writes ./A11Y-REPORT.json (axe array) + ./A11Y-REPORT.meta.json + ./A11Y-REPORT.md
 
 # Just one platform, or one screen
 > /a11y-scan ../../../uiautomation/build/a11y-captures --platform android
@@ -172,10 +175,15 @@ them and keep the report strictly WCAG 2.1 AA.
 
 ## Reading the results
 
-- `A11Y-REPORT.json` is a wrapper holding one axe result object per screen
-  under `results[]`, plus `suppressed[]` and a `summary`. Each result carries
-  `violations` and `incomplete` in axe's node shape (`nodes[].html` is the
-  page-source snippet, `nodes[].target` is a native locator).
+- `A11Y-REPORT.json` is a **raw axe-core report**: a bare JSON array of result
+  objects, one per screen, byte-compatible with axe's own output. Each result
+  carries the four axe buckets — `violations`, `incomplete`, `passes`,
+  `inapplicable` — in axe's node shape (`nodes[].html` is the page-source
+  snippet, `nodes[].target` is a native locator). Because it is a bare array
+  with no wrapper, any tool that reads axe JSON ingests it unchanged.
+- `A11Y-REPORT.meta.json` is the sidecar for everything axe has no slot for:
+  capture provenance (`capture_sources`), the suppression list (`suppressed[]`),
+  the rule set that ran (`rules_run`), and a run `summary`.
 - `A11Y-REPORT.md` is the human-readable view, grouped by screen and sorted by
   impact.
 - **`violations`** are every finding whose rule condition was met on a visible
@@ -183,7 +191,10 @@ them and keep the report strictly WCAG 2.1 AA.
   those into `false-positives.md`). **`incomplete`** are findings whose evidence
   a static capture cannot read at all — contrast on a busy/gradient background,
   or a node the page source under-describes — and need a human or a device
-  check. Nothing is dropped silently.
+  check. **`passes`** and **`inapplicable`** carry the rest of the active rule
+  set per screen (rules that held, and rules with no applicable element), so the
+  four buckets together cover every rule the way axe does. Nothing is dropped
+  silently.
 - All output is a starting point for human review, never a substitute for it.
   Contrast is estimated from screenshot pixels, and live-only criteria (focus
   visibility, keyboard operability, reflow, orientation) are out of scope — see
@@ -199,9 +210,10 @@ instead of re-raising them every run.
 
 Unlike the security scan (where suppression happens in a separate `/triage`
 step), `/a11y-scan` applies suppression **during the scan**: a violation that
-matches a rule is moved out of `violations` into the report's `suppressed[]`
-list. Pass a different rules file with `--fp-rules <file>`, or `--no-suppress`
-to see everything raw.
+matches a rule is dropped from the axe report's `violations` and recorded in the
+`suppressed[]` list of the `A11Y-REPORT.meta.json` sidecar (the axe array has no
+slot for it). Pass a different rules file with `--fp-rules <file>`, or
+`--no-suppress` to see everything raw.
 
 To accept a new finding, add a rule following the format documented at the top
 of `false-positives.md`: scope it to the specific screen/element and rule
@@ -221,11 +233,12 @@ Suppression never touches `incomplete` findings.
    (`qt/quality-time/a11y-captures/e2e-{android,ios}.zip`, stored by the e2e
    jobs on `main` only), unzips both into `captures/`, and runs
    `claude -p "/a11y-scan captures" --append-system-prompt "$NONINTERACTIVE"`.
-   `validate-report.sh` then gates on the report being *complete* — parseable,
-   one result per capture, summary consistent — so a scan that stopped part-way
-   fails the job instead of publishing a partial report downstream. It also
-   prints the capture provenance, which is reported but never enforced.
-   `A11Y-REPORT.json` + `.md` are collected as artifacts.
+   `validate-report.sh` then gates on the report being *complete* — the axe
+   array parses, one result per capture, and the sidecar's summary consistent —
+   so a scan that stopped part-way fails the job instead of publishing a partial
+   report downstream. It also prints the capture provenance, which is reported
+   but never enforced. `A11Y-REPORT.json`, `A11Y-REPORT.meta.json`, and `.md`
+   are collected as artifacts.
 
    **Capture provenance.** The two archives live at a fixed path and are
    refreshed independently by whichever e2e run last succeeded, so the Android
@@ -239,13 +252,14 @@ Suppression never touches `incomplete` findings.
                                 "ios":     { "commit": "2f5bee7e", ... } }
    ```
 
-   The scan copies those into the report's `capture_sources`, repeats each
-   platform's commit on its result objects as `testEnvironment.commit`, and
-   prints a `Captures: android @ … · ios @ …` line in the Markdown. Without
-   this the report carries only the *scan's* commit — which `store-artifact.sh`
-   tags the upload with — implying the captures came from code they may
-   predate. A platform whose commit cannot be read is recorded as `unknown`,
-   never silently backfilled from `scan_commit`.
+   The scan copies those into the `A11Y-REPORT.meta.json` sidecar's
+   `capture_sources` and prints a `Captures: android @ … · ios @ …` line in the
+   Markdown. (Provenance lives in the sidecar because the axe result shape has
+   no commit field — the raw `A11Y-REPORT.json` stays a clean axe array.)
+   Without this the report carries only the *scan's* commit — which
+   `store-artifact.sh` tags the upload with — implying the captures came from
+   code they may predate. A platform whose commit cannot be read is recorded as
+   `unknown`, never silently backfilled from `scan_commit`.
 
 Two details make the headless run work without any prompt:
 

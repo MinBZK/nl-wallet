@@ -7,17 +7,17 @@
           <tr v-for="task in tasks" :key="task.id">
             <td>{{ task.id }}</td>
             <td>{{ TASK_ACTION_INFO[task.action].title }}</td>
-            <td>{{ task.purpose }}</td>
+            <td>{{ task.targetSummary }}</td>
             <template v-if="isTaskHistoryEntry(task)">
               <td>{{ task.verdict }}</td>
               <td>{{ task.result }}</td>
               <td>{{ dateFormatter.format(task.completedAt) }}</td>
               <td>{{ task.completedBy }}</td>
-              <td>{{ task.createdBy }}</td>
+              <td>{{ formatCreatedBy(task) }}</td>
             </template>
             <template v-else>
               <td>{{ dateFormatter.format(task.createdAt) }}</td>
-              <td>{{ task.createdBy }}</td>
+              <td>{{ formatCreatedBy(task) }}</td>
             </template>
             <td>
               <RouterLink :to="{ name: 'task-details', params: { id: task.id } }" class="details">
@@ -37,6 +37,7 @@ import type { Task } from '@/types/task.ts'
 import { isTaskHistoryEntry, type TaskHistoryEntry } from '@/types/task-history-entry.ts'
 import { TASK_ACTION_INFO } from '@/types/task-action.ts'
 import { dateFormatter } from '@/utils/dateFormatters.ts'
+import { formatCreatedBy } from '@/utils/taskFormatters.ts'
 import EmptyState from '../ui/EmptyState.vue'
 import TasksTableHeader from './TasksTableHeader.vue'
 

@@ -25,7 +25,9 @@ use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::ErrorWithCode;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::par::PAR_TTL;
+use p256::SecretKey;
 use p256::ecdsa::SigningKey;
+use p256::elliptic_curve::Generate;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -354,6 +356,7 @@ where
         issuer_identifier,
         metadata_keypair,
         RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap(),
+        SecretKey::generate(),
         NonZeroU8::new(4).unwrap(),
         HashSet::from([MOCK_WALLET_CLIENT_ID.to_string()]),
         credential_configs,

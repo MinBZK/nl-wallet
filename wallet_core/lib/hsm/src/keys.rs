@@ -1,4 +1,4 @@
-use crypto::EcdsaKeySend;
+use crypto::keys::EcdsaKeySend;
 use crypto::keys::SecureEcdsaKey;
 use derive_more::Constructor;
 use derive_more::Debug;

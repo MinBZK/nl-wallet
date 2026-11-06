@@ -11,7 +11,7 @@ use cose::CoseError;
 use cose::CoseTyp;
 use cose::TaggedCoseSign1;
 use cose::TypedCose;
-use crypto::EcdsaKey;
+use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use derive_more::AsRef;
 use derive_more::Into;
@@ -116,6 +116,7 @@ mod test {
     use coset::CoseSign1;
     use coset::Label;
     use coset::TaggedCborSerializable;
+    use crypto::keys::PublicKey;
     use crypto::server_keys::generate::Ca;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -194,7 +195,9 @@ mod test {
             .and_then(|(_, value)| value.as_text());
         assert_eq!(typ, Some(TOKEN_STATUS_LIST_CWT_TYP));
 
-        let payload = cose.verify_and_parse(keypair.private_key().verifying_key()).unwrap();
+        let payload = cose
+            .verify_and_parse(&PublicKey::from(keypair.verifying_key().await.unwrap()))
+            .unwrap();
         let claims = claims_map(&payload);
         assert_eq!(claims[&2], &Value::Text(sub.as_str().to_owned()));
         assert_eq!(claims[&4], &Value::from(SLT_EXP));

@@ -4,7 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
-use crypto::EcdsaKey;
+use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use derive_more::AsRef;
 use derive_more::FromStr;
@@ -166,7 +166,7 @@ pub mod verification {
 pub mod mock {
     use base64::Engine;
     use base64::prelude::BASE64_STANDARD;
-    use crypto::EcdsaKey;
+    use crypto::keys::EcdsaKey;
     use crypto::server_keys::KeyPair;
     use jwt::headers::HeaderWithTyp;
     use jwt::headers::HeaderWithX5c;
@@ -227,7 +227,7 @@ mod test {
 
     use chrono::DateTime;
     use chrono::Days;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKeyRef;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use jwt::ESP256_ONLY_VALIDATION;
@@ -252,7 +252,7 @@ mod test {
         let verified = signed
             .0
             .into_verified(
-                JwtDecodingKey::from(PublicKey::from(*keypair.private_key().verifying_key())),
+                JwtDecodingKey::from(PublicKeyRef::from(keypair.private_key().verifying_key())),
                 &*ESP256_ONLY_VALIDATION,
             )
             .unwrap();

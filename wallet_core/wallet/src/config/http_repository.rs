@@ -2,8 +2,8 @@ use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crypto::kid::VerifyingKeyWithKid;
 use http_utils::reqwest::IntoReqwestClient;
-use jwt::JwtDecodingKey;
 use parking_lot::RwLock;
 use tracing::info;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -22,18 +22,15 @@ type ConfigState = (Arc<WalletConfiguration>, Option<Arc<WalletConfigJwt>>);
 
 pub struct HttpConfigurationRepository<B> {
     client: EtagHttpClient<WalletConfigJwt, B, ConfigurationError>,
-    signing_public_key: JwtDecodingKey,
+    config_key: VerifyingKeyWithKid,
     config: RwLock<ConfigState>,
 }
 
 impl<B> HttpConfigurationRepository<B> {
-    pub fn new(signing_public_key: JwtDecodingKey, storage_path: PathBuf, initial_config: WalletConfiguration) -> Self {
+    pub fn new(config_key: VerifyingKeyWithKid, etag_path: PathBuf, initial_config: WalletConfiguration) -> Self {
         Self {
-            client: EtagHttpClient::new(
-                "wallet-config".parse().expect("should be a valid filename"),
-                storage_path,
-            ),
-            signing_public_key,
+            client: EtagHttpClient::new(config_key.kid.as_ref(), etag_path),
+            config_key,
             config: RwLock::new((Arc::new(initial_config), None)),
         }
     }
@@ -70,7 +67,7 @@ where
         let response = self
             .client
             .fetch_and_accept(client_builder, |jwt: WalletConfigJwt| {
-                let (_, config) = jwt.parse_and_verify(&self.signing_public_key, &*WALLET_CONFIG_VALIDATION)?;
+                let (_, config) = jwt.parse_and_verify_by_kid(&self.config_key, WALLET_CONFIG_VALIDATION.clone())?;
                 Ok((jwt, config))
             })
             .await?;

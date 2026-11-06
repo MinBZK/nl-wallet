@@ -3,8 +3,8 @@
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
-use coset::RegisteredLabelWithPrivate;
-use coset::iana::Algorithm;
+use coset::iana;
+use crypto::keys::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use crypto::x509::KeyIdentifier;
@@ -91,27 +91,35 @@ pub enum VerificationError {
     #[category(critical)]
     UnexpectedCACommonNameCount(usize),
 
-    #[error("unsupported algorithm: {0:?}")]
+    #[error("unsupported issuer algorithm: {0:?}")]
     #[category(critical)]
-    UnsupportedAlgorithm(RegisteredLabelWithPrivate<Algorithm>),
+    UnsupportedIssuerAlgorithm(iana::Algorithm),
 
-    #[error("missing algorithm")]
+    #[error("unsupported device algorithm: {0:?}")]
     #[category(critical)]
-    MissingAlgorithm,
+    UnsupportedDeviceAlgorithm(iana::Algorithm),
 }
 
 pub struct SupportedAlgorithms {
-    pub issuer_algorithms: VecNonEmpty<RegisteredLabelWithPrivate<Algorithm>>,
-    pub device_algorithms: VecNonEmpty<RegisteredLabelWithPrivate<Algorithm>>,
+    pub issuer_algorithms: VecNonEmpty<iana::Algorithm>,
+    pub device_algorithms: VecNonEmpty<iana::Algorithm>,
 }
 
 impl Default for SupportedAlgorithms {
     fn default() -> Self {
         Self {
-            issuer_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
+            issuer_algorithms: vec_nonempty![
+                iana::Algorithm::ES256,
+                iana::Algorithm::ESP256,
+                iana::Algorithm::ES384,
+                iana::Algorithm::ESP384
+            ],
             device_algorithms: vec_nonempty![
-                RegisteredLabelWithPrivate::Assigned(Algorithm::ES256),
-                RegisteredLabelWithPrivate::Assigned(Algorithm::HMAC_256_256),
+                iana::Algorithm::ES256,
+                iana::Algorithm::ESP256,
+                iana::Algorithm::ES384,
+                iana::Algorithm::ESP384,
+                iana::Algorithm::HMAC_256_256
             ],
         }
     }
@@ -246,7 +254,12 @@ impl IssuerSigned {
         validity: ValidityRequirement,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
+        algorithms: &[iana::Algorithm],
     ) -> Result<IssuerSignedVerificationResult> {
+        let algorithm = self.issuer_auth.algorithm()?;
+        if !algorithms.contains(&algorithm) {
+            Err(VerificationError::UnsupportedIssuerAlgorithm(algorithm))?;
+        }
         let TaggedBytes(mso) =
             self.issuer_auth
                 .verify_against_trust_anchors(trust_anchors, time, Some(CertificateUsage::Mdl))?;
@@ -335,8 +348,8 @@ impl Document {
     where
         C: StatusListClient,
     {
-        // Check that all COSE objects use a supported algorithm.
-        self.verify_issuer_signature_alg(supported_algorithms.issuer_algorithms.as_slice())?;
+        // Check that the device signature is from a supported algorithm.
+        // Issuer signature algorithms is checked separately when verifying the issuer signed.
         self.verify_device_signature_alg(supported_algorithms.device_algorithms.as_slice())?;
 
         debug!("verifying document with doc_type: {:?}", &self.doc_type);
@@ -345,9 +358,12 @@ impl Document {
             mso,
             attributes,
             ca_common_name,
-        } = self
-            .issuer_signed
-            .verify(ValidityRequirement::Valid, time, trust_anchors)?;
+        } = self.issuer_signed.verify(
+            ValidityRequirement::Valid,
+            time,
+            trust_anchors,
+            supported_algorithms.issuer_algorithms.as_slice(),
+        )?;
 
         debug!("verifying mso.doc_type matches document doc_type");
         if self.doc_type != mso.doc_type {
@@ -364,12 +380,12 @@ impl Document {
         let device_authentication_bts = DeviceAuthenticationKeyed::challenge(&self.doc_type, session_transcript)?;
 
         debug!("extracting device_key");
-        let device_key = (&mso.device_key_info.device_key).try_into()?;
+        let device_key = VerifyingKey::try_from(&mso.device_key_info.device_key)?;
         match &self.device_signed.device_auth {
             DeviceAuth::DeviceSignature(sig) => {
                 debug!("verifying DeviceSignature");
                 sig.clone_with_payload(device_authentication_bts.to_vec())
-                    .verify(&device_key)?;
+                    .verify(&PublicKey::from(device_key))?;
             }
             DeviceAuth::DeviceMac(mac) => {
                 debug!("verifying DeviceMac");
@@ -415,36 +431,16 @@ impl Document {
         Ok(disclosed_document)
     }
 
-    fn verify_issuer_signature_alg(
-        &self,
-        supported_algorithms: &[RegisteredLabelWithPrivate<Algorithm>],
-    ) -> Result<()> {
-        let issuer_signature_alg = self.issuer_signed.issuer_auth.protected_header().alg.as_ref();
-        match issuer_signature_alg {
-            Some(issuer_signature_alg) if !supported_algorithms.contains(issuer_signature_alg) => {
-                Err(VerificationError::UnsupportedAlgorithm(issuer_signature_alg.clone()))?
-            }
-            Some(_) => Ok(()),
-            None => Err(VerificationError::MissingAlgorithm)?,
-        }
-    }
-
-    fn verify_device_signature_alg(
-        &self,
-        supported_algorithms: &[RegisteredLabelWithPrivate<Algorithm>],
-    ) -> Result<()> {
+    fn verify_device_signature_alg(&self, supported_algorithms: &[iana::Algorithm]) -> Result<()> {
         let device_signature_alg = match &self.device_signed.device_auth {
-            DeviceAuth::DeviceSignature(device_sig) => device_sig.protected_header().alg.as_ref(),
-            DeviceAuth::DeviceMac(device_mac) => device_mac.protected_header().alg.as_ref(),
-        };
+            DeviceAuth::DeviceSignature(device_sig) => device_sig.algorithm(),
+            DeviceAuth::DeviceMac(device_mac) => device_mac.algorithm(),
+        }?;
 
-        match device_signature_alg {
-            Some(device_signature_alg) if !supported_algorithms.contains(device_signature_alg) => {
-                Err(VerificationError::UnsupportedAlgorithm(device_signature_alg.clone()))?
-            }
-            Some(_) => Ok(()),
-            None => Err(VerificationError::MissingAlgorithm)?,
+        if !supported_algorithms.contains(&device_signature_alg) {
+            Err(VerificationError::UnsupportedDeviceAlgorithm(device_signature_alg))?
         }
+        Ok(())
     }
 }
 

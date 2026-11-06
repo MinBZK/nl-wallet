@@ -30,7 +30,10 @@ class IntroductionScreen : MobileActions() {
 
     fun clickNextButton() = clickElementWithText(nextButton)
 
-    fun clickSkipButton() = clickElementWithText(skipButton)
+    fun clickSkipButton() {
+        clickElementWithText(skipButton)
+        waitUntilTextGone(skipButton)
+    }
 
     fun clickBackButton() = clickElementWithText(backButton)
 

@@ -261,10 +261,10 @@ typedef struct wire_cst_attestation_presentation {
   struct wire_cst_list_attestation_attribute *attributes;
 } wire_cst_attestation_presentation;
 
-typedef struct wire_cst_record_string_string {
-  struct wire_cst_list_prim_u_8_strict *field0;
-  struct wire_cst_list_prim_u_8_strict *field1;
-} wire_cst_record_string_string;
+typedef struct wire_cst_flutter_maintenance_window {
+  struct wire_cst_list_prim_u_8_strict *start;
+  struct wire_cst_list_prim_u_8_strict *end;
+} wire_cst_flutter_maintenance_window;
 
 typedef struct wire_cst_WalletInstructionError_IncorrectPin {
   uint8_t attempts_left_in_round;
@@ -504,7 +504,7 @@ typedef struct wire_cst_flutter_configuration {
   uint16_t background_lock_timeout;
   struct wire_cst_list_pid_attestation *pid_attestations;
   struct wire_cst_list_prim_u_8_strict *static_assets_base_url;
-  struct wire_cst_record_string_string *maintenance_window;
+  struct wire_cst_flutter_maintenance_window *maintenance_window;
   struct wire_cst_list_prim_u_8_strict *version;
   struct wire_cst_list_prim_u_8_strict *environment;
 } wire_cst_flutter_configuration;
@@ -824,13 +824,13 @@ struct wire_cst_attestation_presentation *frbgen_wallet_core_cst_new_box_autoadd
 
 bool *frbgen_wallet_core_cst_new_box_autoadd_bool(bool value);
 
+struct wire_cst_flutter_maintenance_window *frbgen_wallet_core_cst_new_box_autoadd_flutter_maintenance_window(void);
+
 struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
 
 struct wire_cst_image_with_metadata *frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata(void);
 
 struct wire_cst_organization *frbgen_wallet_core_cst_new_box_autoadd_organization(void);
-
-struct wire_cst_record_string_string *frbgen_wallet_core_cst_new_box_autoadd_record_string_string(void);
 
 struct wire_cst_rendering_metadata *frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata(void);
 
@@ -880,10 +880,10 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_attribute_value);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_bool);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_flutter_maintenance_window);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_organization);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_record_string_string);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_revocation_status);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);

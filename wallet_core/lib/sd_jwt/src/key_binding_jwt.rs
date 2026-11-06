@@ -4,8 +4,8 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
-use crypto::CredentialEcdsaKey;
-use crypto::EcdsaKey;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use derive_more::Display;
 use derive_more::FromStr;
@@ -224,7 +224,7 @@ mod test {
     use base64::prelude::*;
     use chrono::TimeZone;
     use chrono::Utc;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -398,7 +398,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &PublicKey::from(*signing_key.verifying_key()).into(),
+                &PublicKeyRef::from(signing_key.verifying_key()).into(),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
@@ -443,7 +443,7 @@ mod test {
         };
 
         let result = jwt_str.parse::<UnverifiedKeyBindingJwt>().unwrap().into_verified(
-            &PublicKey::from(*signing_key.verifying_key()).into(),
+            &PublicKeyRef::from(signing_key.verifying_key()).into(),
             &kb_verification_options,
             &now_generator,
         );
@@ -474,7 +474,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &PublicKey::from(*signing_key.verifying_key()).into(),
+                &PublicKeyRef::from(signing_key.verifying_key()).into(),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )
@@ -501,7 +501,7 @@ mod test {
             .parse::<UnverifiedKeyBindingJwt>()
             .unwrap()
             .into_verified(
-                &PublicKey::from(*signing_key.verifying_key()).into(),
+                &PublicKeyRef::from(signing_key.verifying_key()).into(),
                 &kb_verification_options,
                 &MockTimeGenerator::default(),
             )

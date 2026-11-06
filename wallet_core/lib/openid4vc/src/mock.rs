@@ -3,8 +3,12 @@ use std::iter;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
 use dcql::disclosure::ExtendingVctRetriever;
+use jwe::algorithm::EcdhAlgorithm;
+use jwe::encryption::JwePublicKey;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::token::AuthorizationCode;
+use p256::SecretKey;
+use p256::elliptic_curve::Generate;
 pub use wscd::mock::MOCK_WALLET_CLIENT_ID;
 
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
@@ -13,6 +17,7 @@ use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::CredentialMetadata;
+use crate::metadata::issuer_metadata::CredentialRequestEncryption;
 use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::JoinCredentialConfigurationId;
@@ -59,11 +64,11 @@ impl IssuerMetadata {
             })
             .collect();
 
-        IssuerMetadata {
+        Self {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
             endpoints,
-            credential_request_encryption: None,
+            credential_request_encryption: Some(CredentialRequestEncryption::new_mock()),
             credential_response_encryption: None,
             batch_credential_issuance: Some(BatchCredentialIssuance {
                 batch_size: AtLeastTwoU64::try_new(10.try_into().unwrap()).unwrap(),
@@ -75,6 +80,18 @@ impl IssuerMetadata {
     }
 }
 
+impl CredentialRequestEncryption {
+    pub fn new_mock() -> Self {
+        let credential_request_public_key = JwePublicKey::new(
+            Some("key".to_string()),
+            SecretKey::generate().public_key(),
+            EcdhAlgorithm::EcdhEs,
+        );
+
+        Self::new(credential_request_public_key)
+    }
+}
+
 impl IssuerEndpoints {
     pub fn new_mock(issuer_identifier: &IssuerIdentifier) -> Self {
         let issuer_url = issuer_identifier.as_issuer_url();
@@ -82,13 +99,7 @@ impl IssuerEndpoints {
         let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
         let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
 
-        Self {
-            credential_endpoint,
-            nonce_endpoint: Some(nonce_endpoint),
-            deferred_credential_endpoint: None,
-            notification_endpoint: None,
-            credential_preview_endpoint: Some(credential_preview_endpoint),
-        }
+        Self::new(credential_endpoint, nonce_endpoint, Some(credential_preview_endpoint))
     }
 }
 

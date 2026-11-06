@@ -1,4 +1,5 @@
 use coset::Label;
+use coset::iana;
 use crypto::x509::CertificateParseError;
 use crypto::x509::CertificateVerifyError;
 use crypto::x509::crl::CertificateCrlVerificationError;
@@ -25,13 +26,25 @@ pub enum CoseError {
     #[category(pd)]
     UnsupportedAlgorithm(coset::Algorithm),
 
-    #[error("ECDSA signature parsing failed: {0}")]
+    #[error("mismatch between COSE algorithm and public key: {0:?}")]
     #[category(pd)]
-    EcdsaSignatureParsingFailed(#[source] p256::ecdsa::Error),
+    MismatchAlgorithmWithPublicKey(iana::Algorithm),
 
-    #[error("ECDSA signature verification failed: {0}")]
+    #[error("ESP256 signature verification failed: {0}")]
     #[category(pd)]
-    EcdsaSignatureVerificationFailed(#[source] p256::ecdsa::Error),
+    Esp256SignatureVerificationFailed(#[source] p256::ecdsa::Error),
+
+    #[error("ESP384 signature verification failed: {0}")]
+    #[category(pd)]
+    Esp384SignatureVerificationFailed(#[source] p384::ecdsa::Error),
+
+    #[error("RSA PKCS1v15 signature verification failed: {0}")]
+    #[category(pd)]
+    RsaPkcs1v15SignatureVerificationFailed(#[source] rsa::signature::Error),
+
+    #[error("RSA-PSS signature verification failed: {0}")]
+    #[category(pd)]
+    RsaPssSignatureVerificationFailed(#[source] rsa::signature::Error),
 
     #[error("MAC verification failed")]
     #[category(critical)]
@@ -65,9 +78,9 @@ pub enum CoseError {
     #[category(critical)]
     SignatureMissing,
 
-    #[error("unsupported certificate algorithm")]
+    #[error("incorrect number of signatures received, expected: {expected}, received: {received}")]
     #[category(critical)]
-    UnsupportedCertificateAlgorithm,
+    IncorrectSignatureCount { expected: usize, received: usize },
 }
 
 #[cfg(test)]
@@ -90,5 +103,13 @@ mod tests {
     fn structural_errors_without_input_values_are_critical() {
         assert_eq!(CoseError::MissingPayload.category(), Category::Critical);
         assert_eq!(CoseError::MissingAlgorithm.category(), Category::Critical);
+        assert_eq!(
+            CoseError::IncorrectSignatureCount {
+                expected: 2,
+                received: 1
+            }
+            .category(),
+            Category::Critical
+        );
     }
 }

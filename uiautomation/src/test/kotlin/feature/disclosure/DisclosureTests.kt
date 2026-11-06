@@ -90,7 +90,6 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC15 Share data flow, Opening a bank account. MDOC")
-    @Tags(Tag("a11yBatch1"))
     fun verifyDisclosureCreateAccountXyzBankMdoc(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -167,7 +166,7 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC18 LTC25 RP Login flow, MDOC")
-    @Tags(Tag("smoke"), Tag("a11yBatch1"))
+    @Tags(Tag("smoke"))
     fun verifyDisclosureLoginMdoc(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
@@ -189,6 +188,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.captureA11ySnapshot("DisclosureSharedDataDetails")
 
         disclosureScreen.goBack()
+        assertTrue(disclosureScreen.loginDetailsVisible(), "Login details screen not visible")
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
@@ -226,6 +226,7 @@ class DisclosureTests : TestBase() {
         assertTrue(disclosureScreen.bsnVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "BSN not visible")
 
         disclosureScreen.goBack()
+        assertTrue(disclosureScreen.loginDetailsVisible(), "Login details screen not visible")
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
@@ -275,7 +276,6 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC10 Wallet does not contain requested attributes")
-    @Tags(Tag("a11yBatch1"))
     fun verifyDisclosureCreateAccountMonkeyBike(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)

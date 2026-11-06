@@ -11,8 +11,6 @@ import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Tag
-import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junit.jupiter.api.assertAll
@@ -75,7 +73,6 @@ class HistoryTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC22 View activity list")
-    @Tags(Tag("a11yBatch1"))
     fun verifyHistoryEntries(testInfo: TestInfo) {
         setUp(testInfo)
         dashboardScreen.clickMenuButton()

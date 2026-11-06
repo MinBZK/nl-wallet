@@ -18,6 +18,7 @@
 import { computed } from 'vue'
 import type { TaskHistoryEntry } from '@/types/task-history-entry.ts'
 import { dateTimeFormatter } from '@/utils/dateFormatters.ts'
+import { formatCreatedBy } from '@/utils/taskFormatters.ts'
 
 /** A labeled value displayed within a log entry. */
 interface TaskLogRow {
@@ -41,7 +42,7 @@ function buildTaskLog(task: TaskHistoryEntry): TaskLogEntry[] {
       title: 'Aangemaakt:',
       rows: [
         { label: 'Op:', value: dateTimeFormatter.format(task.createdAt) },
-        { label: 'Door:', value: task.createdBy },
+        { label: 'Door:', value: formatCreatedBy(task) },
       ],
     },
     {
@@ -56,7 +57,9 @@ function buildTaskLog(task: TaskHistoryEntry): TaskLogEntry[] {
     {
       title: 'Resultaat:',
       rows: [
-        { label: 'Op:', value: dateTimeFormatter.format(task.completedAt) },
+        ...(task.executedAt
+          ? [{ label: 'Op:', value: dateTimeFormatter.format(task.executedAt) }]
+          : []),
         { label: 'Resultaat:', value: task.result },
       ],
     },

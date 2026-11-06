@@ -72,8 +72,7 @@ void main() {
       bloc.add(const WalletTransferAgreeEvent());
       await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferPinConfirmedEvent());
-      // Wait for (mock) stream to emit
-      await Future.delayed(const Duration(milliseconds: 15));
+      await bloc.stream.firstWhere((state) => state is WalletTransferSuccess);
     },
     verify: (bloc) => verify(mockStartWalletTransferUseCase.invoke()).called(1),
     expect: () => [
@@ -110,8 +109,7 @@ void main() {
       bloc.add(const WalletTransferAgreeEvent());
       await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferPinConfirmedEvent());
-      // Wait for (mock) stream to emit
-      await Future.delayed(const Duration(milliseconds: 15));
+      await bloc.stream.firstWhere((state) => state is WalletTransferError);
     },
     verify: (bloc) => verify(mockStartWalletTransferUseCase.invoke()).called(1),
     expect: () => [
@@ -170,8 +168,7 @@ void main() {
       bloc.add(const WalletTransferAgreeEvent());
       await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferPinConfirmedEvent());
-      // Wait for (mock) stream to emit
-      await Future.delayed(const Duration(milliseconds: 20));
+      await bloc.stream.firstWhere((state) => state is WalletTransferFailed);
     },
     expect: () => [
       isA<WalletTransferLoading>(),
@@ -193,8 +190,7 @@ void main() {
     },
     act: (bloc) async {
       bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer'));
-      // Wait for (mock) stream to emit
-      await Future.delayed(const Duration(milliseconds: 20));
+      await bloc.stream.firstWhere((state) => state is WalletTransferStopped);
     },
     expect: () => [
       isA<WalletTransferLoading>(),
@@ -223,8 +219,7 @@ void main() {
       bloc.add(const WalletTransferAgreeEvent());
       await Future.delayed(Duration.zero);
       bloc.add(const WalletTransferPinConfirmedEvent());
-      // Wait for (mock) stream to emit
-      await Future.delayed(const Duration(milliseconds: 20));
+      await bloc.stream.firstWhere((state) => state is WalletTransferError);
     },
     expect: () => [
       isA<WalletTransferLoading>(),

@@ -7,7 +7,6 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/fade_in_at_offset.dart';
@@ -33,7 +32,6 @@ class CardPreviewScreen extends StatelessWidget {
           appearOffset: 90,
           child: Text(card.title.l10nValue(context)),
         ),
-        actions: const [HelpIconButton()],
       ),
       body: SafeArea(
         child: _buildBody(context),
