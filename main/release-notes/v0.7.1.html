@@ -248,12 +248,17 @@ its App Store page from the update screens. It is passed to the Flutter build
 as <code class="docutils literal notranslate"><span class="pre">--dart-define=APP_STORE_ID=&lt;id&gt;</span></code>. The Fastlane <code class="docutils literal notranslate"><span class="pre">ios</span> <span class="pre">build</span></code> and
 <code class="docutils literal notranslate"><span class="pre">ios</span> <span class="pre">build_simulator</span></code> lanes read it from the <code class="docutils literal notranslate"><span class="pre">APP_STORE_ID</span></code> environment
 variable and fail when it is not set, so every iOS build pipeline must now
-provide it. Android builds do not need it.
-When the app was installed through TestFlight, the update screens open
-TestFlight instead.</p></li>
+provide it. Android builds do not need it. When the app was installed through
+TestFlight, the update screens open TestFlight instead.</p></li>
 <li><p>The Fastlane <code class="docutils literal notranslate"><span class="pre">build</span></code> lanes accept a new <code class="docutils literal notranslate"><span class="pre">show_error_details</span></code> option (Dart
 define <code class="docutils literal notranslate"><span class="pre">SHOW_ERROR_DETAILS</span></code>, default <code class="docutils literal notranslate"><span class="pre">false</span></code>), which makes the wallet app show
 technical error details in the error details sheet.</p></li>
+<li><p>The organization identifier in the subject of X.509 certificates is now read
+and written using the X.520 <code class="docutils literal notranslate"><span class="pre">organizationIdentifier</span></code> attribute type
+(<code class="docutils literal notranslate"><span class="pre">2.5.4.97</span></code>), as required by ETSI EN 319 412-3, instead of <code class="docutils literal notranslate"><span class="pre">1.3.6.1.1.15</span></code>.
+Certificates that have the old OID are no longer recognized as belonging to a
+legal person: the services refuse to start with them, and the wallet rejects
+WRPACs that use it. Reissue these certificates with the current <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code>.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -262,8 +267,7 @@ technical error details in the error details sheet.</p></li>
 <li><p>Issuers have a new optional setting <code class="docutils literal notranslate"><span class="pre">credential_preview_endpoint</span></code> (default
 <code class="docutils literal notranslate"><span class="pre">true</span></code>). When set to <code class="docutils literal notranslate"><span class="pre">false</span></code>, the issuer does not serve the non-standard
 Credential Preview Endpoint, behaving like a standard OpenID4VCI issuer. This
-is intended for testing the wallet against such issuers; note that the wallet
-still requires previews for PID and disclosure based issuance.</p></li>
+is intended for testing the wallet against such issuers.</p></li>
 <li><p>Wallet supports X509 certificates with ES384 and RSA (min 2048) keys.</p></li>
 <li><p>Wallet supports CWT certificates with ES384 and RSA (min 2048) keys.</p></li>
 <li><p>The issuance server now also publish their status lists in CWT format, as
@@ -273,6 +277,32 @@ the request (<code class="docutils literal notranslate"><span class="pre">applic
 <li><p>Wallet now requires the Wallet Configuration to have a key identifier (<code class="docutils literal notranslate"><span class="pre">kid</span></code>).
 The <code class="docutils literal notranslate"><span class="pre">kid</span></code> is used as the path component on the configured base url when
 downloading the Wallet Configuration.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> utility generates certificates that follow the ETSI
+certificate profiles for notification on the EU Lists of Trusted Entities
+(ETSI EN 319 412-2/-3 and TS 119 412-6):</p>
+<ul>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">ca</span></code> command accepts <code class="docutils literal notranslate"><span class="pre">--organization-name</span></code> and <code class="docutils literal notranslate"><span class="pre">--organization-id</span></code>, to
+generate a CA with a legal person subject.</p></li>
+<li><p>The new certificate type <code class="docutils literal notranslate"><span class="pre">pid-issuer</span></code> is meant for PID issuers. The
+<code class="docutils literal notranslate"><span class="pre">issuer</span></code> type is now meant for issuers of other attestations.</p></li>
+<li><p>The new <code class="docutils literal notranslate"><span class="pre">--ca-issuer</span></code> option adds an Authority Information Access
+extension with the URL(s) at which the issuing CA certificate is served.</p></li>
+<li><p>All end-entity certificates get a Subject Key Identifier, computed as
+required by ISO/IEC 18013-5 (SHA-1 hash of the public key).</p></li>
+<li><p>Issuer, PID issuer, WIA and Key Attestation certificates get a certificate
+policy, for now the provisional OID
+<code class="docutils literal notranslate"><span class="pre">2.25.150580842064059311066423755779195795505</span></code>.</p></li>
+<li><p>PID issuer certificates get a QcType statement with <code class="docutils literal notranslate"><span class="pre">id-etsi-qct-pid</span></code>, and
+WIA and Key Attestation certificates one with <code class="docutils literal notranslate"><span class="pre">id-etsi-qct-wal</span></code>.</p></li>
+<li><p>WIA, Key Attestation and status list signing certificates get the
+<code class="docutils literal notranslate"><span class="pre">digitalSignature</span></code> key usage.</p></li>
+<li><p>All certificates get a random serial number. Previously, the serial number
+was derived from the public key, so a certificate reissued for the same
+key had the same serial number.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">countryName</span></code> and <code class="docutils literal notranslate"><span class="pre">serialNumber</span></code> subject attributes are encoded as a
+<code class="docutils literal notranslate"><span class="pre">PrintableString</span></code>, as required by RFC 5280.</p></li>
+</ul>
+</li>
 </ul>
 </section>
 <section id="interoperability-improvements">
@@ -287,6 +317,38 @@ included in <code class="docutils literal notranslate"><span class="pre">verifie
 additional base64url encoding required by ETSI TS 119 472-2.</p></li>
 <li><p>The wallet now also accepts a registration certificate in <code class="docutils literal notranslate"><span class="pre">verifier_info</span></code> or
 <code class="docutils literal notranslate"><span class="pre">issuer_info</span></code> whose base64url encoding includes padding.</p></li>
+<li><p>The wallet parses registration certificates (WRPRCs) more leniently, so that
+it accepts those of the EUDI reference implementation and registrar:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">srv_description</span></code> may also be a single array of multi-language strings,
+instead of the array of arrays of ETSI TS 119 475 Annex B.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> is no longer required, as ETSI TS 119 475 does not list it among the
+payload attributes. It was not used.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">status</span></code> may also have the nested Token Status List shape
+(<code class="docutils literal notranslate"><span class="pre">{&quot;status_list&quot;:</span> <span class="pre">{&quot;idx&quot;:</span> <span class="pre">0,</span> <span class="pre">&quot;uri&quot;:</span> <span class="pre">&quot;...&quot;}}</span></code>) used by the Annex C example,
+or an integer <code class="docutils literal notranslate"><span class="pre">idx</span></code>, besides the shape with a numeric string <code class="docutils literal notranslate"><span class="pre">idx</span></code>
+prescribed by GEN-6.2.6.1-04.</p></li>
+</ul>
+</li>
+<li><p>Certificate chains (the <code class="docutils literal notranslate"><span class="pre">x5c</span></code> header of a JWT or the <code class="docutils literal notranslate"><span class="pre">x5chain</span></code> header of a
+COSE object) that wrongly include a configured trust anchor are no longer
+rejected. The trust anchor is ignored when building the certificate path. As
+required by HAIP, certificate chains should not include it.</p></li>
+<li><p>The wallet no longer requires the signing certificate of a Status List Token
+to have the status list signing extended key usage, nor to have the same
+subject as the signer of the attestation or WRPRC that refers to it. Neither
+the Token Status List draft nor ETSI TS 119 475 requires this, and the EUDI
+reference implementation signs its WRPRC status lists with a different
+certificate. The signing certificate is still verified against the trust
+anchors. For the same reason, issuers no longer refuse to start when the
+status list signing certificate of a credential configuration has a different
+subject than its attestation signing certificate.</p></li>
+<li><p>The wallet now expects <code class="docutils literal notranslate"><span class="pre">credential_request_encryption.jwks</span></code> in the issuer
+metadata to be a JSON Web Key Set object with a <code class="docutils literal notranslate"><span class="pre">keys</span></code> member, as required by
+OpenID4VCI 1.0 (referring to RFC 7591), instead of a bare array of keys as in
+the non-normative example of OpenID4VCI. Previously, the wallet could not
+fetch the metadata of issuers that publish this field, such as the EUDI
+testbed issuer.</p></li>
 <li><p>The PID, as issued by the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, was updated to match the EUDI PID
 Rulebook. Note that <code class="docutils literal notranslate"><span class="pre">portrait</span></code>, even though being mandatory, is not included
 at all because the BRP does not provide it. <code class="docutils literal notranslate"><span class="pre">place_of_birth</span></code> is also not
@@ -296,6 +358,19 @@ supported.</p></li>
 <li><p>The wallet now supports disclosure requests that ask for credentials in
 different formats (mdoc and SD-JWT) in the same DCQL query. Previously, the
 wallet aborted the session when receiving such a request.</p></li>
+<li><p>The wallet now accepts SD-JWT claim paths in a DCQL query that end with
+<code class="docutils literal notranslate"><span class="pre">null</span></code>, such as <code class="docutils literal notranslate"><span class="pre">[&quot;nationalities&quot;,</span> <span class="pre">null]</span></code> as requested by the EUDI reference
+verifier, and discloses the whole array. This is an interim solution: array
+elements that an issuer made selectively disclosable separately are not
+disclosed. A <code class="docutils literal notranslate"><span class="pre">null</span></code> elsewhere in the path, array indices and <code class="docutils literal notranslate"><span class="pre">null</span></code> in mdoc
+claim paths are still rejected.</p></li>
+<li><p>The wallet now supports issuance by OpenID4VCI issuers that do not offer the
+non-standard Credential Preview Endpoint. In that case the app asks the user
+whether to receive the cards from the issuing organization and then asks for
+the PIN, without showing the cards first. PID issuance and disclosure based
+issuance still require previews. Known limitations: issued cards are always
+added as new cards, also when they renew an existing card, and the copies of
+an issued credential are not yet checked for consistency with each other.</p></li>
 </ul>
 </section>
 <section id="bug-fixes">
@@ -320,6 +395,9 @@ shows the window in local time instead of UTC.</p></li>
 <li><p>Update to Flutter 3.47.8.</p></li>
 <li><p>The error details sheet (“Show details” on error screens) can now show
 technical error details (error type, description and data).</p></li>
+<li><p>Errors that occur while fetching the wallet configuration are now reported to
+Sentry. Networking errors and HTTP error responses are excluded, because they
+are expected on mobile devices. Previously, these errors were only logged.</p></li>
 </ul>
 </section>
 <section id="admin-portal-improvements">
