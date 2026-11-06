@@ -1332,7 +1332,7 @@ fn create_attestation_copy_models(
         IssuedCredentialCopies::Mdoc(mdocs) => mdocs
             .into_nonempty_iter()
             .map(|MdocCopy { key_identifier, mdoc }| {
-                let (mso, issuer_signed, ..) = mdoc.into_components();
+                let (mso, issuer_signed) = mdoc.into_components();
 
                 let attestation_bytes: Vec<u8> = cbor_serialize(&issuer_signed)?;
 

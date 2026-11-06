@@ -21,7 +21,7 @@ impl PartialMdoc {
         mdoc: Mdoc,
         claim_paths: impl IntoIterator<Item = &'a VecNonEmpty<ClaimPath>>,
     ) -> std::result::Result<Self, MissingAttributesError> {
-        let (mso, issuer_signed, ..) = mdoc.into_components();
+        let (mso, issuer_signed) = mdoc.into_components();
 
         let issuer_signed = issuer_signed.into_attribute_subset(claim_paths)?;
 

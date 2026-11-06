@@ -81,14 +81,10 @@ impl Mdoc {
         self.issuer_signed
     }
 
-    pub fn into_components(self) -> (MobileSecurityObject, IssuerSigned, VecNonEmpty<BorrowingCertificate>) {
-        let Self {
-            mso,
-            issuer_signed,
-            issuer_certificate_chain,
-        } = self;
+    pub fn into_components(self) -> (MobileSecurityObject, IssuerSigned) {
+        let Self { mso, issuer_signed, .. } = self;
 
-        (mso, issuer_signed, issuer_certificate_chain)
+        (mso, issuer_signed)
     }
 
     pub fn issuer_certificate_chain(&self) -> &VecNonEmpty<BorrowingCertificate> {
