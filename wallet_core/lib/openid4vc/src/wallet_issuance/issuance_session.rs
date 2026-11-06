@@ -28,7 +28,7 @@ use jwe::algorithm::CompressionAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::encryption::JweEncrypter;
 use jwt::nonce::Nonce;
-use mdoc::ATTR_RANDOM_LENGTH;
+use mdoc::MIN_ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
 use nonempty_collections::NEMap;
@@ -1341,9 +1341,9 @@ impl Credentials {
                 });
 
                 if let Some(min) = min_random_len
-                    && min < ATTR_RANDOM_LENGTH
+                    && min < MIN_ATTR_RANDOM_LENGTH
                 {
-                    return Err(WalletIssuanceError::AttributeRandomLength(min, ATTR_RANDOM_LENGTH));
+                    return Err(WalletIssuanceError::AttributeRandomLength(min, MIN_ATTR_RANDOM_LENGTH));
                 }
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
@@ -3767,7 +3767,10 @@ mod tests {
         )
         .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, WalletIssuanceError::AttributeRandomLength(5, ATTR_RANDOM_LENGTH));
+        assert_matches!(
+            error,
+            WalletIssuanceError::AttributeRandomLength(5, MIN_ATTR_RANDOM_LENGTH)
+        );
     }
 
     #[rstest]
