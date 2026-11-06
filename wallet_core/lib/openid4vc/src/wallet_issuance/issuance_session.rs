@@ -1521,9 +1521,7 @@ fn verify_copies_consistency(
 fn verify_issuer_leaf_certificates_consistency(
     credential_copies: &IssuedCredentialCopies,
 ) -> Result<(), WalletIssuanceError> {
-    let issuer_leaf_certificates = credential_copies.issuer_leaf_certificates();
-    let (first, rest) = issuer_leaf_certificates.split_first();
-    if rest.iter().any(|cert| first != cert) {
+    if !credential_copies.issuer_leaf_certificates().into_iter().all_equal() {
         return Err(WalletIssuanceError::CredentialCopiesInconsistent);
     }
 

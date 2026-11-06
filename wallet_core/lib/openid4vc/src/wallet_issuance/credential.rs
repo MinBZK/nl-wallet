@@ -1,6 +1,7 @@
 use attestation_types::credential_format::Format;
 use crypto::x509::BorrowingCertificate;
 use mdoc::holder::Mdoc;
+use nonempty_collections::NEEither;
 use nonempty_collections::NonEmptyIterator;
 use sd_jwt::sd_jwt::DecodedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -91,16 +92,16 @@ impl IssuedCredentialCopies {
         }
     }
 
-    pub fn issuer_leaf_certificates(&self) -> VecNonEmpty<&BorrowingCertificate> {
+    pub fn issuer_leaf_certificates(&self) -> impl NonEmptyIterator<Item = &BorrowingCertificate> {
         match self {
-            IssuedCredentialCopies::Mdoc(copies) => copies
-                .nonempty_iter()
-                .map(|copy| copy.mdoc.issuer_leaf_certificate())
-                .collect(),
-            IssuedCredentialCopies::SdJwt(copies) => copies
-                .nonempty_iter()
-                .map(|copy| copy.sd_jwt.sd_jwt().issuer_leaf_certificate())
-                .collect(),
+            IssuedCredentialCopies::Mdoc(copies) => {
+                NEEither::Left(copies.nonempty_iter().map(|copy| copy.mdoc.issuer_leaf_certificate()))
+            }
+            IssuedCredentialCopies::SdJwt(copies) => NEEither::Right(
+                copies
+                    .nonempty_iter()
+                    .map(|copy| copy.sd_jwt.sd_jwt().issuer_leaf_certificate()),
+            ),
         }
     }
 }
