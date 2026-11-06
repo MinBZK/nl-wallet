@@ -162,26 +162,13 @@ impl<T> TypedCose<CoseSign1, T> {
         x5chain_from_header(&self.as_ref().unprotected)
     }
 
-    /// Get the certificate chain from the unprotected `x5chain` header parameter, rejecting it if it contains the trust
-    /// anchor, as mandated by HAIP 1.0.
-    fn x5chain_without_trust_anchor(
-        &self,
-        trust_anchors: &TrustAnchors,
-    ) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
-        let x5chain = self.x5chain()?;
-
-        BorrowingCertificate::ensure_trust_anchor_not_in_chain(&x5chain, trust_anchors)
-            .map_err(CoseError::CertificateVerify)?;
-
-        Ok(x5chain)
-    }
-
     /// Verify the certificate path and COSE signature, then deserialize the authenticated payload.
     ///
     /// A `None` certificate usage still validates the certificate path, but does not require a profile-specific
     /// extended key usage.
     ///
-    /// As mandated by HAIP 1.0, the `x5chain` header must not contain the trust anchor.
+    /// Configured trust anchors present among the intermediate certificates are ignored. The leaf certificate
+    /// must not itself be a trust anchor.
     pub fn verify_against_trust_anchors(
         &self,
         trust_anchors: &TrustAnchors,
@@ -191,7 +178,7 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
-        let x5chain = self.x5chain_without_trust_anchor(trust_anchors)?;
+        let x5chain = self.x5chain()?;
 
         self.verify_with_x5chain(&x5chain, trust_anchors, time, certificate_usage)
     }
@@ -199,7 +186,8 @@ impl<T> TypedCose<CoseSign1, T> {
     /// Verify the certificate path with fail-closed CRL checking and the COSE signature, then deserialize the
     /// authenticated payload.
     ///
-    /// As mandated by HAIP 1.0, the `x5chain` header must not contain the trust anchor.
+    /// Configured trust anchors present among the intermediate certificates are ignored. The leaf certificate
+    /// must not itself be a trust anchor.
     pub async fn verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
@@ -210,7 +198,7 @@ impl<T> TypedCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
-        let x5chain = self.x5chain_without_trust_anchor(trust_anchors)?;
+        let x5chain = self.x5chain()?;
 
         self.verify_against_trust_anchors_with_chain_and_crl(
             x5chain,
@@ -224,8 +212,8 @@ impl<T> TypedCose<CoseSign1, T> {
 
     /// Verify the certificate path of `x5chain` and the COSE signature, then deserialize the authenticated payload.
     ///
-    /// This does not apply any profile-specific rules to the contents of `x5chain`, such as checking that it does not
-    /// contain the trust anchor.
+    /// Configured trust anchors present among the intermediate certificates are ignored. The leaf certificate
+    /// must not itself be a trust anchor.
     pub(crate) fn verify_with_x5chain(
         &self,
         x5chain: &VecNonEmpty<BorrowingCertificate>,

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use attestation_types::claim_path::ClaimPath;
-use crypto::EcdsaKey;
+use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use indexmap::IndexMap;
 use jwt::JwtTyp;
@@ -94,7 +94,7 @@ impl From<SignedSdJwt> for VerifiedSdJwt {
 /// # Example:
 /// ```
 /// # use attestation_types::claim_path::ClaimPath;
-/// # use crypto::PublicKeyRef;
+/// # use crypto::keys::PublicKeyRef;
 /// # use chrono::Utc;
 /// # use crypto::server_keys::generate::Ca;
 /// # use jwt::confirmation::ConfirmationClaim;
@@ -162,7 +162,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// ```
     /// # use attestation_types::claim_path::ClaimPath;
     /// # use chrono::Utc;
-    /// # use crypto::PublicKeyRef;
+    /// # use crypto::keys::PublicKeyRef;
     /// # use jwt::confirmation::ConfirmationClaim;
     /// # use p256::ecdsa::SigningKey;
     /// # use p256::elliptic_curve::Generate;
@@ -237,7 +237,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
 #[cfg(feature = "examples")]
 mod examples {
     use attestation_types::claim_path::ClaimPath;
-    use crypto::AsPublicKeyRef;
+    use crypto::keys::AsPublicKeyRef;
     use crypto::server_keys::KeyPair;
     use futures::FutureExt;
     use utils::generator::mock::MockTimeGenerator;

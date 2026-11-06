@@ -153,7 +153,7 @@ mod tests {
     use std::assert_matches;
 
     use coset::Header;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::DisclosureMockRemoteWscdError;
     use crypto::mock_remote::MockRemoteEcdsaKey;

@@ -7,10 +7,11 @@ import type { TaskHistoryEntry } from '@/types/task-history-entry.ts'
 const baseTask: TaskHistoryEntry = {
   id: 'TST-1234567',
   action: TaskActionType.RevokeWallet,
-  purpose: '1 Wallet',
+  targetSummary: '1 Wallet',
   reason: 'Suspicious activity',
   createdAt: new Date('2026-08-01T10:00:00'),
   createdBy: 'Jane Doe',
+  isOwnTask: false,
   verdict: 'Approved',
   result: 'Completed',
   completedAt: new Date('2026-08-02T11:15:00'),
@@ -27,11 +28,36 @@ describe('TaskLog', () => {
       'Resultaat:',
     ])
     expect(wrapper.text()).toContain('01-08-2026, 10:00')
-    expect(wrapper.text()).toContain('02-08-2026, 11:15')
+    expect(wrapper.findAll('.entry')[1]!.text()).toContain('02-08-2026, 11:15')
     expect(wrapper.text()).toContain('Approved')
     expect(wrapper.text()).toContain('Completed')
     expect(wrapper.text()).toContain('Jane Doe')
     expect(wrapper.text()).toContain('Willeke Liselotte')
+  })
+
+  it('marks the creator with (jij) for an own task', () => {
+    const wrapper = mount(TaskLog, { props: { task: { ...baseTask, isOwnTask: true } } })
+
+    expect(wrapper.text()).toContain('Jane Doe (jij)')
+  })
+
+  it('shows the execution date in the result section', () => {
+    const wrapper = mount(TaskLog, {
+      props: { task: { ...baseTask, executedAt: new Date('2026-08-02T11:16:00') } },
+    })
+
+    const result = wrapper.findAll('.entry').at(-1)!
+    expect(result.text()).toContain('Op:')
+    expect(result.text()).toContain('02-08-2026, 11:16')
+    expect(result.text()).not.toContain('02-08-2026, 11:15')
+  })
+
+  it('omits the date from the result section when the task was not executed', () => {
+    const wrapper = mount(TaskLog, { props: { task: { ...baseTask, result: '—' } } })
+
+    const result = wrapper.findAll('.entry').at(-1)!
+    expect(result.text()).not.toContain('Op:')
+    expect(result.text()).toContain('—')
   })
 
   it('omits the reason row when there is no completion reason', () => {

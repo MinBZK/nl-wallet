@@ -10,7 +10,6 @@ import '../../../util/extension/navigator_state_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/page/terminal_page.dart';
 import '../../common/widget/button/icon/close_icon_button.dart';
-import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/page_illustration.dart';
@@ -41,7 +40,6 @@ class DeleteCardScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         fadeInTitleOnScroll: false,
         actions: [
-          if (_showHelpIcon(context)) const HelpIconButton(),
           CloseIconButton(onPressed: () => _onClose(context)),
         ],
         progress: _resolveProgress(context),
@@ -95,14 +93,6 @@ class DeleteCardScreen extends StatelessWidget {
     } else {
       Navigator.pop(context);
     }
-  }
-
-  bool _showHelpIcon(BuildContext context) {
-    final state = context.watch<DeleteCardBloc>().state;
-    return switch (state) {
-      DeleteCardSuccess() => false,
-      _ => true,
-    };
   }
 
   FlowProgress _resolveProgress(BuildContext context) {

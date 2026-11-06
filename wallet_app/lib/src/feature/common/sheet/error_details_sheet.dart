@@ -15,8 +15,12 @@ import 'wallet_modal_bottom_sheet.dart';
 class ErrorDetailsSheet extends StatelessWidget {
   final ApplicationError? error;
 
+  /// Overrides whether technical error details are shown, defaults to [Environment.showErrorDetails] when null.
+  final bool? showTechnicalDetails;
+
   const ErrorDetailsSheet({
     this.error,
+    this.showTechnicalDetails,
     super.key,
   });
 
@@ -67,6 +71,7 @@ class ErrorDetailsSheet extends StatelessWidget {
           error: error!,
           prefixTextStyle: prefixStyle,
           alignHorizontal: false,
+          showTechnicalDetails: showTechnicalDetails,
         ),
     ];
 

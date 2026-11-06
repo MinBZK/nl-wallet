@@ -9,11 +9,13 @@ use std::time::Duration;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::AsPublicKeyRef;
-use crypto::CredentialEcdsaKey;
-use crypto::PublicKey;
-use crypto::PublicKeyRef;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyRef;
+use crypto::kid::Kid;
+use crypto::kid::VerifyingKeyWithKid;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
@@ -200,8 +202,11 @@ impl<T: DeserializeOwned, H: DeserializeOwned> UnverifiedJwt<T, H> {
 }
 
 impl<T, H: DeserializeOwned> UnverifiedJwt<T, HeaderWithX5c<H>> {
-    fn extract_x5c_certificates(&self) -> Result<VecNonEmpty<BorrowingCertificate>, JwtParseError> {
-        let header = self.dangerous_parse_header_unverified()?;
+    fn extract_x5c_certificates(&self) -> Result<VecNonEmpty<BorrowingCertificate>, JwtX5cVerifyError> {
+        let header = self
+            .dangerous_parse_header_unverified()
+            .map_err(JwtVerifyError::ParseError)
+            .map_err(JwtX5cVerifyError::JwtVerify)?;
         Ok(header.x5c)
     }
 }
@@ -285,7 +290,8 @@ where
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header.
     ///
-    /// As mandated by HAIP 1.0, the `x5c` JWT header must not contain the trust anchor.
+    /// Configured trust anchors present among the intermediate certificates are ignored. The leaf certificate
+    /// must not itself be a trust anchor.
     pub fn parse_and_verify_against_trust_anchors(
         &self,
         trust_anchors: &TrustAnchors,
@@ -293,53 +299,8 @@ where
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let certificates = self.extract_x5c_certificates_without_trust_anchor(trust_anchors)?;
+        let certificates = self.extract_x5c_certificates()?;
 
-        self.parse_and_verify_with_x5c_certificates(&certificates, trust_anchors, time, certificate_usage, validation)
-    }
-
-    /// Like [`Self::parse_and_verify_against_trust_anchors`], but allows the trust anchor being present in the `x5c`
-    /// JWT header. HAIP forbids this, so only use this for profiles unrelated to HAIP, such as JAdES B-B.
-    pub(crate) fn parse_and_verify_allow_trust_anchor_in_x5c(
-        &self,
-        trust_anchors: &TrustAnchors,
-        time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
-        validation: JwtValidation,
-    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let certificates = self
-            .extract_x5c_certificates()
-            .map_err(JwtVerifyError::ParseError)
-            .map_err(JwtX5cVerifyError::JwtVerify)?;
-
-        self.parse_and_verify_with_x5c_certificates(&certificates, trust_anchors, time, certificate_usage, validation)
-    }
-
-    /// Extract the certificates from the `x5c` JWT header, rejecting them if they contain the trust anchor, as
-    /// mandated by HAIP 1.0.
-    fn extract_x5c_certificates_without_trust_anchor(
-        &self,
-        trust_anchors: &TrustAnchors,
-    ) -> Result<VecNonEmpty<BorrowingCertificate>, JwtX5cVerifyError> {
-        let certificates = self
-            .extract_x5c_certificates()
-            .map_err(JwtVerifyError::ParseError)
-            .map_err(JwtX5cVerifyError::JwtVerify)?;
-
-        BorrowingCertificate::ensure_trust_anchor_not_in_chain(&certificates, trust_anchors)
-            .map_err(JwtX5cVerifyError::CertificateValidation)?;
-
-        Ok(certificates)
-    }
-
-    fn parse_and_verify_with_x5c_certificates(
-        &self,
-        certificates: &VecNonEmpty<BorrowingCertificate>,
-        trust_anchors: &TrustAnchors,
-        time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
-        validation: JwtValidation,
-    ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
         // Verify the certificate chain against the trust anchors.
         let (leaf_cert, intermediate_certs) = certificates.split_first();
         leaf_cert
@@ -352,7 +313,8 @@ where
 
     /// Verify the X.509 certificate chain, including fail-closed CRL checking, and then verify the JWS.
     ///
-    /// As mandated by HAIP 1.0, the `x5c` JWT header must not contain the trust anchor.
+    /// Configured trust anchors present among the intermediate certificates are ignored. The leaf certificate
+    /// must not itself be a trust anchor.
     pub async fn parse_and_verify_against_trust_anchors_with_crl(
         &self,
         trust_anchors: &TrustAnchors,
@@ -361,7 +323,7 @@ where
         certificate_usage: Option<CertificateUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
-        let certificates = self.extract_x5c_certificates_without_trust_anchor(trust_anchors)?;
+        let certificates = self.extract_x5c_certificates()?;
 
         crl_verifier
             .verify_chain(certificates.as_ref(), trust_anchors, certificate_usage, time)
@@ -486,7 +448,8 @@ impl PublicKeyByKid<'_> for JwkSet {
         self.find(kid).map(jwk_to_public_key).transpose()
     }
 }
-impl<'a, K> PublicKeyByKid<'a> for HashMap<String, K>
+
+impl<'a, K> PublicKeyByKid<'a> for HashMap<Kid, K>
 where
     K: 'a + AsPublicKeyRef,
 {
@@ -495,6 +458,19 @@ where
 
     fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
         Ok(self.get(kid).map(AsPublicKeyRef::as_public_key_ref))
+    }
+}
+
+impl<'a> PublicKeyByKid<'a> for VerifyingKeyWithKid {
+    type Key = PublicKeyRef<'a>;
+    type Error = Infallible;
+
+    fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
+        if self.kid.as_ref() == kid {
+            Ok(Some(self.public_key.as_public_key_ref()))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -533,7 +509,7 @@ where
 ///
 /// # Example
 /// ```
-/// # use crypto::PublicKeyRef;
+/// # use crypto::keys::PublicKeyRef;
 /// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -662,9 +638,9 @@ impl<T> SignedJwt<T, HeaderWithKid>
 where
     T: Serialize + JwtTyp,
 {
-    pub async fn sign_with_kid<K: EcdsaKey + KeyWithKid>(payload: T, privkey: &K) -> Result<Self, JwtSignError> {
+    pub async fn sign_with_kid<K: EcdsaKey + KeyWithKid>(payload: &T, privkey: &K) -> Result<Self, JwtSignError> {
         let header = HeaderWithKid::from_kid(privkey.kid().to_string());
-        SignedJwt::sign_with_header(header, &payload, privkey).await
+        SignedJwt::sign_with_header(header, payload, privkey).await
     }
 }
 
@@ -771,7 +747,7 @@ impl<T: DeserializeOwned, H: DeserializeOwned> From<SignedJwt<T, H>> for Verifie
 /// # Examples
 /// From an `UnverifiedJwt`:
 /// ```
-/// # use crypto::PublicKeyRef;
+/// # use crypto::keys::PublicKeyRef;
 /// # use jwt::ESP256_ONLY_VALIDATION;
 /// # use jwt::JwtDecodingKey;
 /// # use jwt::JwtTyp;
@@ -1180,7 +1156,7 @@ where
         privkey: &K,
     ) -> Result<Self, JwtSignError> {
         let claims = PayloadWithSub::new(payload);
-        SignedJwt::sign_with_kid(claims, privkey).await.map(Into::into)
+        SignedJwt::sign_with_kid(&claims, privkey).await.map(Into::into)
     }
 }
 
@@ -1379,15 +1355,17 @@ mod tests {
 
     use ::axum::response::IntoResponse;
     use chrono::TimeDelta;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::p256_der::DerVerifyingKey;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateVerifyError;
     use crypto::x509::DistinguishedName;
     use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::CertificateCrlVerifier;
+    use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use ecdsa::elliptic_curve::Generate;
     use futures::FutureExt;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
@@ -1885,16 +1863,27 @@ mod tests {
         crl_mock.assert_calls_async(1).await;
     }
 
+    #[rstest]
+    #[case::without_root(false)]
+    #[case::with_root(true)]
     #[tokio::test]
-    async fn test_parse_and_verify_jwt_with_cert_and_crl_requires_distribution_point() {
+    async fn test_parse_and_verify_jwt_with_cert_and_crl_requires_distribution_point(#[case] include_root: bool) {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_wrpac_verifier_mock().unwrap();
         let crl_verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+        let mut certs = vec_nonempty![keypair.certificate().clone()];
+        if include_root {
+            certs.push(ca.as_borrowing_certificate().unwrap());
+        }
 
-        let jwt = SignedJwt::sign_with_certificate(&json!({"hello": "world"}), &keypair)
-            .await
-            .unwrap()
-            .into_unverified();
+        let jwt = SignedJwt::sign_with_header(
+            HeaderWithX5c::from_certs(certs),
+            &json!({"hello": "world"}),
+            keypair.private_key(),
+        )
+        .await
+        .unwrap()
+        .into_unverified();
 
         let error = jwt
             .parse_and_verify_against_trust_anchors_with_crl(
@@ -1980,7 +1969,7 @@ mod tests {
         let jwks = JwkSet { keys: vec![jwk] };
 
         let payload = ToyMessage::default();
-        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_kid(payload.clone(), &signing_key)
+        let jwt: UnverifiedJwt<ToyMessage, HeaderWithKid> = SignedJwt::sign_with_kid(&payload, &signing_key)
             .await
             .unwrap()
             .into_unverified();
@@ -2056,8 +2045,11 @@ mod tests {
         assert_matches!(err, JwtVerifyError::Validation(_));
     }
 
+    #[rstest]
+    #[case::without_root(false)]
+    #[case::with_root(true)]
     #[tokio::test]
-    async fn test_parse_and_verify_jwt_with_cert_intermediates() {
+    async fn test_parse_and_verify_jwt_with_cert_intermediates(#[case] include_root: bool) {
         // Generate a chain of certificates
         let ca = Ca::generate_with_intermediate_count(
             DistinguishedName::create_mock("myca"),
@@ -2080,12 +2072,15 @@ mod tests {
         // Construct a JWT with the `x5c` field containing the X.509 certificates
         // of the leaf certificate and the intermediates, in reverse order.
         let payload = json!({"hello": "world"});
-        let certs = vec_nonempty![
+        let mut certs = vec_nonempty![
             keypair.certificate().to_owned(),
-            BorrowingCertificate::from_certificate_der(intermediate3.certificate().to_owned()).unwrap(),
-            BorrowingCertificate::from_certificate_der(intermediate2.certificate().to_owned()).unwrap(),
-            BorrowingCertificate::from_certificate_der(intermediate1.certificate().to_owned()).unwrap(),
+            intermediate3.as_borrowing_certificate().unwrap(),
+            intermediate2.as_borrowing_certificate().unwrap(),
+            intermediate1.as_borrowing_certificate().unwrap(),
         ];
+        if include_root {
+            certs.push(ca.as_borrowing_certificate().unwrap());
+        }
 
         let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
             .await
@@ -2106,79 +2101,100 @@ mod tests {
         assert_eq!(header.x5c.into_first(), *keypair.certificate());
     }
 
+    #[rstest]
+    #[case::without_crl(false)]
+    #[case::with_crl(true)]
     #[tokio::test]
-    async fn test_parse_and_verify_jwt_with_wrong_cert() {
+    async fn test_rejects_jwt_with_untrusted_root_in_x5c(#[case] check_crl: bool) {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
+        let keypair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+        let certs = vec_nonempty![keypair.certificate().clone(), ca.as_borrowing_certificate().unwrap()];
 
         let payload = json!({"hello": "world"});
-        let jwt = SignedJwt::sign_with_certificate(&payload, &keypair)
+        let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
             .await
             .unwrap()
             .into_unverified();
 
         let other_ca = Ca::generate(DistinguishedName::create_mock("otherca"), Default::default()).unwrap();
-
-        let err = jwt
-            .parse_and_verify_against_trust_anchors(
-                &other_ca.to_trust_anchors(),
+        let trust_anchors = other_ca.to_trust_anchors();
+        let result = if check_crl {
+            jwt.parse_and_verify_against_trust_anchors_with_crl(
+                &trust_anchors,
+                &MockCertificateCrlVerifier::default(),
                 &TimeGenerator,
                 None,
                 DEFAULT_VALIDATION.to_owned(),
             )
-            .unwrap_err();
+            .await
+        } else {
+            jwt.parse_and_verify_against_trust_anchors(
+                &trust_anchors,
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )
+        };
         assert_matches!(
-            err,
-            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::Verification(_))
+            result,
+            Err(JwtX5cVerifyError::CertificateValidation(
+                CertificateVerifyError::Verification(_)
+            ))
         );
     }
 
     #[tokio::test]
-    async fn test_rejects_jwt_with_trust_anchor_in_x5c() {
+    async fn test_parse_and_verify_jwt_with_trust_anchor_in_x5c() {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_wrpac_verifier_mock().unwrap();
 
-        let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
+        let ca_cert = ca.as_borrowing_certificate().unwrap();
 
         // Put the ca_cert in both the certificate list and the trust anchors.
         let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
         let trust_anchors = ca.to_trust_anchors();
 
         let payload = json!({"hello": "world"});
-        let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
-            .await
-            .unwrap()
-            .into_unverified();
+        let jwt = SignedJwt::sign_with_header(
+            HeaderWithX5c::from_certs(certs.clone()),
+            &payload,
+            keypair.private_key(),
+        )
+        .await
+        .unwrap()
+        .into_unverified();
 
-        let err = jwt
+        let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(&trust_anchors, &TimeGenerator, None, DEFAULT_VALIDATION.to_owned())
-            .unwrap_err();
+            .unwrap();
 
-        assert_matches!(
-            err,
-            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::TrustAnchorInChain)
-        );
+        assert_eq!(header.x5c, certs);
+        assert_eq!(deserialized, payload);
     }
 
     #[tokio::test]
-    async fn test_rejects_jwt_with_trust_anchor_in_x5c_with_crl() {
+    async fn test_parse_and_verify_jwt_with_trust_anchor_in_x5c_with_crl() {
         let ca = Ca::generate_mock();
-        let keypair = ca.generate_wrpac_verifier_mock().unwrap();
-        let crl_verifier = CertificateCrlVerifier::new(httpmock_reqwest_client_builder().build().unwrap(), 1);
+        let keypair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
 
-        let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
+        let ca_cert = ca.as_borrowing_certificate().unwrap();
 
         // Put the ca_cert in both the certificate list and the trust anchors.
         let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
         let trust_anchors = ca.to_trust_anchors();
 
         let payload = json!({"hello": "world"});
-        let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
-            .await
-            .unwrap()
-            .into_unverified();
+        let jwt = SignedJwt::sign_with_header(
+            HeaderWithX5c::from_certs(certs.clone()),
+            &payload,
+            keypair.private_key(),
+        )
+        .await
+        .unwrap()
+        .into_unverified();
 
-        let err = jwt
+        let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors_with_crl(
                 &trust_anchors,
                 &crl_verifier,
@@ -2187,12 +2203,89 @@ mod tests {
                 DEFAULT_VALIDATION.to_owned(),
             )
             .await
-            .unwrap_err();
+            .unwrap();
 
+        assert_eq!(header.x5c, certs);
+        assert_eq!(deserialized, payload);
+    }
+
+    #[rstest]
+    #[case::without_crl(false)]
+    #[case::with_crl(true)]
+    #[tokio::test]
+    async fn test_rejects_jwt_with_trust_anchor_as_leaf(#[case] check_crl: bool) {
+        let ca = Ca::generate_mock();
+        let jwt = SignedJwt::sign_with_header(
+            HeaderWithX5c::from_certs(vec_nonempty![ca.as_borrowing_certificate().unwrap()]),
+            &json!({"hello": "world"}),
+            &ca.to_signing_key().unwrap(),
+        )
+        .await
+        .unwrap()
+        .into_unverified();
+        let trust_anchors = ca.to_trust_anchors();
+
+        let result = if check_crl {
+            jwt.parse_and_verify_against_trust_anchors_with_crl(
+                &trust_anchors,
+                &MockCertificateCrlVerifier::default(),
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )
+            .await
+        } else {
+            jwt.parse_and_verify_against_trust_anchors(
+                &trust_anchors,
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )
+        };
         assert_matches!(
-            err,
-            JwtX5cVerifyError::CertificateValidation(CertificateVerifyError::TrustAnchorInChain)
+            result,
+            Err(JwtX5cVerifyError::CertificateValidation(
+                CertificateVerifyError::EndEntityIsTrustAnchor
+            ))
         );
+    }
+
+    #[rstest]
+    #[case::without_crl(false)]
+    #[case::with_crl(true)]
+    #[tokio::test]
+    async fn test_rejects_invalid_signature_with_trust_anchor_in_x5c(#[case] check_crl: bool) {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+        let certs = vec_nonempty![keypair.certificate().clone(), ca.as_borrowing_certificate().unwrap()];
+        let jwt = SignedJwt::sign_with_header(
+            HeaderWithX5c::from_certs(certs),
+            &json!({"hello": "world"}),
+            &SigningKey::generate(),
+        )
+        .await
+        .unwrap()
+        .into_unverified();
+        let trust_anchors = ca.to_trust_anchors();
+
+        let result = if check_crl {
+            jwt.parse_and_verify_against_trust_anchors_with_crl(
+                &trust_anchors,
+                &MockCertificateCrlVerifier::new_for_ca(&ca),
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )
+            .await
+        } else {
+            jwt.parse_and_verify_against_trust_anchors(
+                &trust_anchors,
+                &TimeGenerator,
+                None,
+                DEFAULT_VALIDATION.to_owned(),
+            )
+        };
+        assert_matches!(result, Err(JwtX5cVerifyError::JwtVerify(JwtVerifyError::Validation(_))));
     }
 
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -2313,5 +2406,20 @@ mod tests {
         let (_, parsed) = unverified.parse_and_verify(&decoding_key, &validation).unwrap();
 
         assert_eq!(parsed, payload);
+    }
+
+    #[test]
+    fn test_config_key_with_kid() {
+        let kid = "v1".try_into().unwrap();
+
+        let keypair = SigningKey::generate();
+        let public_key = DerVerifyingKey::from(*keypair.verifying_key());
+
+        let key_with_kid = VerifyingKeyWithKid {
+            kid,
+            public_key: public_key.clone(),
+        };
+        assert_matches!(key_with_kid.find("v1").unwrap(), Some(PublicKeyRef::ESP256(found_key)) if found_key == public_key.as_inner());
+        assert!(key_with_kid.find("v2").unwrap().is_none());
     }
 }

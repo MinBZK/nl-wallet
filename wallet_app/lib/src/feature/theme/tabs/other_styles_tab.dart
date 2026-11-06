@@ -35,7 +35,6 @@ import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
-import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/card/card_logo.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/card/status/card_status_info_label.dart';
@@ -739,7 +738,6 @@ class OtherStylesTab extends StatelessWidget {
               title: Text('WalletAppBar'),
               progress: FlowProgress(currentStep: 2, totalSteps: 8),
               leading: BackIconButton(),
-              actions: [HelpIconButton()],
             ),
             body: ListView.builder(
               itemBuilder: (context, index) {
@@ -780,7 +778,6 @@ class OtherStylesTab extends StatelessWidget {
               ),
               progress: FlowProgress(currentStep: 2, totalSteps: 8),
               leading: BackIconButton(),
-              actions: [HelpIconButton()],
             ),
             body: ListView.builder(
               itemBuilder: (context, index) {

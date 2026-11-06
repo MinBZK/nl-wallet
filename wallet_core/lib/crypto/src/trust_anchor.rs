@@ -90,11 +90,10 @@ impl From<BorrowingTrustAnchor> for Vec<u8> {
     }
 }
 
-/// A collection of trust anchors for HAIP compliant chain validation.
+/// A collection of configured trust anchors for certificate chain validation.
 ///
 /// Internally this type stores:
-/// - the original [`BorrowingCertificate`]s, used to verify the HAIP requirement that certificates in the chain should
-///   not appear as trust anchor as well
+/// - the original [`BorrowingCertificate`]s, used to identify configured trust anchors in a supplied certificate chain
 /// - the pre-parsed [`TrustAnchor<'static>`] values used for certificate chain validation using webpki
 ///
 /// Parsing happens once at construction/deserialization time, so callers pay no per-call overhead.
@@ -127,6 +126,13 @@ impl TrustAnchors {
 
     pub fn contains(&self, certificate: &BorrowingCertificate) -> bool {
         self.certificates.contains(certificate)
+    }
+
+    pub fn find_in_chain<'a>(
+        &self,
+        chain: impl IntoIterator<Item = &'a BorrowingCertificate>,
+    ) -> Option<&'a BorrowingCertificate> {
+        chain.into_iter().find(|certificate| self.contains(certificate))
     }
 }
 

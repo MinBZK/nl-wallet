@@ -362,7 +362,7 @@ mod tests {
 
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::x509::BorrowingCertificate;
     use futures::FutureExt;
     use http::StatusCode;

@@ -2,8 +2,9 @@ use std::num::NonZeroUsize;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::PublicKey;
+use crypto::keys::PublicKey;
 use crypto::keys::SecureEcdsaKey;
+use crypto::kid::Kid;
 use crypto::p256_der::DerSignature;
 use futures::future;
 use hsm::model::encrypter::Encrypter;
@@ -52,7 +53,6 @@ use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::transfer::TransferSessionState;
-use wallet_provider_domain::keys::Kid;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -854,7 +854,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
         let pubkey = verified_sd_jwt
             .holder_pubkey()
             .expect("holder pubkey should be a valid JWK");
-        let crypto::PublicKey::ESP256(key) = pubkey else {
+        let crypto::keys::PublicKey::ESP256(key) = pubkey else {
             return Err(InstructionError::UnsupportedHolderPublicKey(Box::new(pubkey)));
         };
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
@@ -1356,6 +1356,7 @@ mod tests {
     use std::sync::Mutex;
 
     use chrono::Utc;
+    use crypto::kid::Kid;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
@@ -1407,7 +1408,6 @@ mod tests {
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::transfer::TransferSessionState;
-    use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevocationRegistration;

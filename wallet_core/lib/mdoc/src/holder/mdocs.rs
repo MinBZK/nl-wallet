@@ -97,7 +97,7 @@ mod test {
     use chrono::DateTime;
     use chrono::TimeDelta;
     use chrono::Utc;
-    use crypto::CredentialEcdsaKey;
+    use crypto::keys::CredentialEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use indexmap::IndexMap;
@@ -193,7 +193,7 @@ pub mod mock {
     use chrono::Utc;
     use ciborium::Value;
     use coset::iana;
-    use crypto::CredentialEcdsaKey;
+    use crypto::keys::CredentialEcdsaKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use indexmap::IndexMap;

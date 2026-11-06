@@ -1,7 +1,7 @@
 use base64::prelude::*;
-use crypto::AsPublicKeyRef;
-use crypto::PublicKey;
-use crypto::PublicKeyRef;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::PublicKey;
+use crypto::keys::PublicKeyRef;
 use ecdsa::elliptic_curve::AffinePoint;
 use ecdsa::elliptic_curve::CurveArithmetic;
 use ecdsa::elliptic_curve::FieldBytes;

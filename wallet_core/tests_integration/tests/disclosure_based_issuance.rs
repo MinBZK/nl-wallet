@@ -31,11 +31,12 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
 ) {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
     // Start with a wallet that contains the PID.
     let (mut wallet, disclosure_urls, issuance_data) =
-        setup_wallet_and_default_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+        setup_wallet_and_default_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
 
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin.clone()).await;
@@ -211,6 +212,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
 ) {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
     let (issuance_server_settings, _, di_trust_anchor, di_tls_config) =
@@ -218,6 +220,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     let (mut wallet, _, issuance_urls) = setup_wallet_and_env(
         &db_setup,
         &hsm_setup,
+        &tempdir,
         WalletDeviceVendor::Apple,
         update_policy_server_settings(),
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),

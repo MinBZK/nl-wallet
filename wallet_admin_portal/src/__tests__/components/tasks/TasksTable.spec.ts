@@ -9,16 +9,17 @@ import type { TaskHistoryEntry } from '@/types/task-history-entry.ts'
 const openTask: Task = {
   id: 'RW-1234567',
   action: TaskActionType.RevokeWallet,
-  purpose: '1 Wallet',
+  targetSummary: '1 Wallet',
   reason: 'Verdachte activiteit',
   createdAt: new Date('2026-08-01T10:00:00'),
   createdBy: 'Fleur Bakker',
+  isOwnTask: false,
 }
 
 const historyTask: TaskHistoryEntry = {
   ...openTask,
   verdict: 'Goedgekeurd',
-  result: 'Uitgevoerd',
+  result: 'Succesvol',
   completedAt: new Date('2026-08-02T11:00:00'),
   completedBy: 'Sanne de Groot',
 }
@@ -76,12 +77,27 @@ describe('TasksTable', () => {
       'Wallet(s) intrekken',
       '1 Wallet',
       'Goedgekeurd',
-      'Uitgevoerd',
+      'Succesvol',
       '02-08-2026',
       'Sanne de Groot',
       'Fleur Bakker',
       'BEKIJK DETAILS',
     ])
+  })
+
+  it('marks the creator with (jij) for own tasks', async () => {
+    const wrapper = await mountTable({
+      variant: 'open',
+      tasks: [{ ...openTask, isOwnTask: true }, openTask],
+    })
+
+    const headers = wrapper.findAll('thead th').map((th) => th.text())
+    const creatorColumn = headers.indexOf('AANGEMAAKT DOOR')
+    const creators = wrapper
+      .findAll('tbody tr')
+      .map((row) => row.findAll('td')[creatorColumn]?.text())
+
+    expect(creators).toEqual(['Fleur Bakker (jij)', 'Fleur Bakker'])
   })
 
   it('makes the scrollable table container keyboard focusable', async () => {

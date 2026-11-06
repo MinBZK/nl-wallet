@@ -12,9 +12,9 @@ use p256::ecdsa::signature::Signer;
 use p256::elliptic_curve::Generate;
 use parking_lot::Mutex;
 
-use crate::CredentialEcdsaKey;
-use crate::EcdsaKey;
-use crate::SecureEcdsaKey;
+use crate::keys::CredentialEcdsaKey;
+use crate::keys::EcdsaKey;
+use crate::keys::SecureEcdsaKey;
 use crate::utils::random_string;
 use crate::wscd::DisclosureWscd;
 

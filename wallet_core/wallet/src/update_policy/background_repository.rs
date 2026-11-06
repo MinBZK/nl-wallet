@@ -78,7 +78,7 @@ where
             .background_task
             .lock()
             .as_ref()
-            .is_none_or(|task| !task.is_finished())
+            .is_none_or(|task| task.is_finished())
         {
             let wrapped = Arc::clone(&self.wrapped);
             let callback = Arc::clone(&self.callback);

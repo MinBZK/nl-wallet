@@ -3,6 +3,7 @@ use android_attest::attestation_extension::key_attestation::PatchLevel;
 use apple_app_attest::AssertionCounter;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::kid::Kid;
 use crypto::p256_der::verifying_key_sha256;
 use derive_more::AsRef;
 use derive_more::Debug;
@@ -19,7 +20,6 @@ use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
 
-use crate::keys::Kid;
 use crate::model::QueryResult;
 
 pub type WalletUserQueryResult = QueryResult<WalletUser>;
@@ -222,11 +222,11 @@ pub mod mock {
     use uuid::uuid;
 
     use super::AndroidHardwareIdentifiers;
+    use super::Kid;
     use super::WalletUser;
     use super::WalletUserAttestation;
     use super::WalletUserState;
     use super::WithKid;
-    use crate::keys::Kid;
     use crate::model::wallet_user::WalletId;
 
     pub fn wallet_user_1() -> WalletUser {

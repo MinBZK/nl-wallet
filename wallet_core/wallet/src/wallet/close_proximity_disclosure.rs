@@ -18,7 +18,7 @@ use attestation_data::x509::RelyingPartyError;
 use chrono::DateTime;
 use chrono::Utc;
 use ciborium::value::Value;
-use crypto::CredentialEcdsaKey;
+use crypto::keys::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::CertificateVerifyError;
 use crypto::x509::DistinguishedNameError;
@@ -1020,6 +1020,8 @@ mod tests {
     use std::sync::LazyLock;
 
     use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::Attributes;
+    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::organization::Organization;
     use attestation_data::registration_certificate::ParsedRegistrationCertificate;
@@ -1034,6 +1036,7 @@ mod tests {
     use attestation_data::registration_certificate::mock::RegistrationCertificateFixture;
     use attestation_data::registration_certificate::mock::STATUS_LIST_URI;
     use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
+    use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -1043,7 +1046,7 @@ mod tests {
     use chrono::Utc;
     use ciborium::value::Value;
     use cose::wrprc_cwt::WrprcCwtError;
-    use crypto::WithVerifyingKey;
+    use crypto::keys::WithVerifyingKey;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;
@@ -1055,6 +1058,7 @@ mod tests {
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
     use indexmap::IndexMap;
+    use itertools::Itertools;
     use jwt::error::JwtParseError;
     use jwt::error::JwtVerifyError;
     use jwt::error::JwtX5cVerifyError;
@@ -1074,6 +1078,8 @@ mod tests {
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use openid4vc::disclosure_session::DisclosureTrustAnchors;
+    use openid4vc::metadata::issuer_metadata::CredentialClaim;
+    use openid4vc::metadata::issuer_metadata::CredentialMetadata;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::signature::Signer;
@@ -1118,6 +1124,7 @@ mod tests {
     use crate::Pin;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
+    use crate::attestation::AttributeValue;
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::config::LocalConfigurationRepository;
     use crate::errors::StorageError;
@@ -1125,6 +1132,7 @@ mod tests {
     use crate::storage::DisclosableAttestation;
     use crate::storage::InstructionData;
     use crate::storage::StoredAttestationCopy;
+    use crate::storage::StoredAttestationMetadata;
     use crate::wallet::DisclosureError;
     use crate::wallet::Session;
     use crate::wallet::disclosure::VpDisclosableAttestation;
@@ -1662,6 +1670,126 @@ mod tests {
                 if *missing.organization == expected_organization
                     && !missing.shared_data_with_relying_party_before
         );
+    }
+
+    /// In the PID Rulebook, `place_of_birth` is a single data element whose value is a map. As a reader can only
+    /// request data elements, requesting it should propose the entire map for disclosure.
+    #[tokio::test]
+    async fn test_wallet_continue_close_proximity_disclosure_map_valued_data_element() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked_with_config(
+            WalletDeviceVendor::Apple,
+            close_proximity_wallet_configuration(),
+        )
+        .await;
+
+        let items_request =
+            interop_items_request(EUDI_PID_DOCTYPE, &[(EUDI_PID_DOCTYPE, &["place_of_birth"][..])], None);
+        setup_close_proximity_disclosure_session(&mut wallet, items_request).await;
+        let Some(Session::CloseProximityDisclosure(session)) = wallet.session.as_mut() else {
+            panic!("expected a close proximity disclosure session");
+        };
+        session.wrprc_strict_mode = false;
+
+        // Create a PID that contains a `place_of_birth` map, along with Credential Metadata claims for each of its
+        // leaves, next to some other attributes.
+        let place_of_birth = [("country", "NL"), ("locality", "Hellevoetsluis")];
+        let leaf_path = |key: &'static str| vec![EUDI_PID_DOCTYPE, "place_of_birth", key];
+
+        let attributes = Attributes::example(
+            [
+                (
+                    vec![EUDI_PID_DOCTYPE, "family_name"],
+                    Attribute::Text("uijt de Fruitplukker".to_string()),
+                ),
+                (
+                    vec![EUDI_PID_DOCTYPE, "given_name"],
+                    Attribute::Text("Lennert".to_string()),
+                ),
+            ]
+            .into_iter()
+            .chain(place_of_birth.map(|(key, value)| (leaf_path(key), Attribute::Text(value.to_string())))),
+        );
+
+        let mut metadata = CredentialMetadata::new_mdoc_example(EUDI_PID_DOCTYPE, &["family_name", "given_name"]);
+        metadata
+            .claims
+            .as_mut()
+            .unwrap()
+            .extend(place_of_birth.map(|(key, _)| CredentialClaim {
+                path: ClaimPath::select_by_keys(&leaf_path(key)),
+                mandatory: false,
+                display: None,
+            }));
+
+        let holder_key = SigningKey::generate();
+        let pid = example_stored_attestation_copy(
+            Format::MsoMdoc,
+            CredentialPayload::example_with_attributes(
+                EUDI_PID_DOCTYPE,
+                attributes,
+                holder_key.verifying_key(),
+                &MockTimeGenerator::default(),
+            ),
+            StoredAttestationMetadata::CredentialMetadata(metadata),
+            &holder_key,
+        );
+
+        wallet
+            .mut_storage()
+            .expect_fetch_valid_unique_attestations_by_credential_kinds()
+            .once()
+            .return_once(move |_, _| Ok(vec![pid]));
+        wallet
+            .mut_storage()
+            .expect_did_share_data_with_relying_party()
+            .once()
+            .returning(|_| Ok(false));
+
+        let proposal = wallet
+            .continue_close_proximity_disclosure()
+            .await
+            .expect("continuing disclosure should succeed");
+
+        // The presentation shown to the user should contain each of the leaves of the map.
+        let DisclosureAttestationOptions::Single(presentation) = proposal.attestation_options.first() else {
+            panic!("expected a single attestation option");
+        };
+        let presented_attributes = presentation
+            .attributes
+            .iter()
+            .map(|attribute| (attribute.key.clone().into_inner(), attribute.value.clone()))
+            .collect_vec();
+
+        let expected_attributes = place_of_birth
+            .map(|(key, value)| {
+                (
+                    leaf_path(key).into_iter().map(str::to_string).collect_vec(),
+                    AttributeValue::Text(value.to_string()),
+                )
+            })
+            .to_vec();
+        assert_eq!(presented_attributes, expected_attributes);
+
+        // The partial mdoc to be disclosed should contain only the data element, including the entire map.
+        let Some(Session::CloseProximityDisclosure(session)) = wallet.session.as_ref() else {
+            panic!("expected a close proximity disclosure session");
+        };
+
+        let CloseProximityDisclosureSessionState::DisclosureProposed { attestations, .. } =
+            &*session.session_state.lock()
+        else {
+            panic!("expected a proposed close proximity disclosure session");
+        };
+
+        let (_, attestation) = attestations.select_proposal(&[0]).into_iter().exactly_one().unwrap();
+        let (partial_mdoc, _) = attestation.partial_attestation();
+        let disclosed_attributes =
+            Attributes::from_mdoc_attributes(partial_mdoc.issuer_signed().clone().into_entries_by_namespace())
+                .expect("disclosed mdoc should convert to Attributes");
+        let expected_disclosed_attributes = Attributes::example(
+            place_of_birth.map(|(key, value)| (leaf_path(key), Attribute::Text(value.to_string()))),
+        );
+        assert_eq!(disclosed_attributes, expected_disclosed_attributes);
     }
 
     #[tokio::test]

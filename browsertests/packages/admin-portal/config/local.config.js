@@ -20,6 +20,8 @@ export default defineConfig({
   retries: 3,
   use: {
     baseURL: process.env.ADMIN_PORTAL_URL,
+    // The devenv Keycloak uses a self-signed certificate.
+    ignoreHTTPSErrors: true,
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     trace: "retain-on-failure",

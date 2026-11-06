@@ -13,6 +13,7 @@ import helper.OrganizationMetadataHelper
 import helper.TasDataHelper
 import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
+import io.appium.java_client.Setting
 import io.appium.java_client.android.AndroidDriver
 import io.appium.java_client.ios.IOSDriver
 import org.openqa.selenium.By
@@ -472,9 +473,13 @@ open class MobileActions {
         switchToNativeContext()
         when (platform()) {
             Platform.ANDROID -> {
-                WebDriverWait(driver, Duration.ofMillis(timeoutMillis))
-                    .until(ExpectedConditions.elementToBeClickable(AppiumBy.id("com.android.chrome:id/positive_button")))
-                    .click()
+                val androidDriver = driver as AndroidDriver
+                val openButton = AppiumBy.id("com.android.chrome:id/positive_button")
+                val openButtonClickable = ExpectedConditions.elementToBeClickable(openButton)
+                WebDriverWait(driver, Duration.ofMillis(timeoutMillis)).until {
+                    androidDriver.currentPackage == testConfig.appIdentifier || openButtonClickable.apply(it) != null
+                }
+                driver.findElements(openButton).firstOrNull()?.click()
             }
             Platform.IOS -> {
                 val autoAcceptAlerts = EnvironmentUtil.getVar("IOS_ACCEPT_ALERTS").toBooleanStrictOrNull() ?: true
@@ -809,25 +814,28 @@ open class MobileActions {
         }
     }
 
-    private fun findElementByText(text: String, timeoutInSeconds: Long = 5): WebElement {
-        val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
-        return when (platform()) {
-            Platform.ANDROID -> {
-                val quotedText = quoteForAndroid(text)
-                wait.until(
-                    ExpectedConditions.presenceOfElementLocated(
-                        AppiumBy.androidUIAutomator("new UiSelector().description($quotedText)")
-                    )
-                )
-            }
-            Platform.IOS -> {
-                val quotedText = quoteForIosPredicate(text)
-                wait.until(
-                    ExpectedConditions.presenceOfElementLocated(
-                        AppiumBy.iOSNsPredicateString("name == $quotedText")
-                    )
-                )
-            }
+    private fun textLocator(text: String): By = when (platform()) {
+        Platform.ANDROID -> AppiumBy.androidUIAutomator("new UiSelector().description(${quoteForAndroid(text)})")
+        Platform.IOS -> AppiumBy.iOSNsPredicateString("name == ${quoteForIosPredicate(text)}")
+    }
+
+    private fun findElementByText(text: String, timeoutInSeconds: Long = 5): WebElement =
+        WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+            .until(ExpectedConditions.presenceOfElementLocated(textLocator(text)))
+
+    fun waitUntilTextGone(text: String, timeoutInSeconds: Long = 5) {
+        WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+            .until(ExpectedConditions.invisibilityOfElementLocated(textLocator(text)))
+    }
+
+    fun <T> withoutWaitForIdle(block: () -> T): T {
+        val androidDriver = driver as? AndroidDriver ?: return block()
+        val previous = androidDriver.settings[Setting.WAIT_FOR_IDLE_TIMEOUT.toString()] ?: 10000
+        androidDriver.setSetting(Setting.WAIT_FOR_IDLE_TIMEOUT, 0)
+        try {
+            return block()
+        } finally {
+            androidDriver.setSetting(Setting.WAIT_FOR_IDLE_TIMEOUT, previous)
         }
     }
 

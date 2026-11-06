@@ -7,6 +7,7 @@ import 'package:wallet/src/feature/menu/sub_menu/contact/contact_screen.dart';
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mocks.dart';
 import '../../../../test_util/golden_utils.dart';
+import '../../../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
@@ -31,5 +32,16 @@ void main() {
       );
       await screenMatchesGolden('dark.landscape');
     });
+  });
+  testWidgets('ContactScreen exposes the call us title as heading', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      const ContactScreen(),
+      providers: [
+        Provider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+      ],
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    TestUtils.expectHeading(tester, l10n.contactScreenCallUsTitle);
   });
 }

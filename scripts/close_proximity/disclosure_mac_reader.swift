@@ -36,6 +36,7 @@ private struct SessionEstablishedData {
 }
 
 private struct DeviceResponseHandling {
+    var responseFile: String? = nil
     let expectedPlaintext: Data?
     let shouldPrintPlaintextHex: Bool
     let encodedSessionTranscript: Data
@@ -297,6 +298,7 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
     var requestDocType: String?
     var requestAttributes: [(namespace: String, element: String)] = []
     var printDeviceResponseHex = false
+    var responseFile: String?
     var index = 0
 
     while index < arguments.count {
@@ -369,6 +371,12 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
             )
         case "--print-device-response-hex":
             printDeviceResponseHex = true
+        case "--device-response-file":
+            index += 1
+            guard index < arguments.count else {
+                throw ArgumentError.missingValue("--device-response-file")
+            }
+            responseFile = arguments[index]
         case "--help":
             print(
                 """
@@ -401,6 +409,9 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                   --print-device-response-hex
                                          Print the decrypted DeviceResponse plaintext as
                                          \(Configuration.deviceResponseHexMarker)<hex>.
+                  --device-response-file <path>
+                                         Save the decrypted response and reader session transcript
+                                         as JSON for cryptographic verification by the Rust harness.
                   --timeout <seconds>    How long to wait before giving up.
                                          Default: \(Int(Configuration.defaultTimeout))
                 """
@@ -413,11 +424,11 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
         index += 1
     }
 
-    if (expectedDeviceResponseHex != nil || deviceRequestHex != nil || printDeviceResponseHex)
+    if (expectedDeviceResponseHex != nil || deviceRequestHex != nil || printDeviceResponseHex || responseFile != nil)
         && qrCode == nil
     {
         throw ArgumentError.invalidConfiguration(
-            "--device-request-hex, --expect-device-response-hex, and --print-device-response-hex require --qr-code"
+            "Device request and response options require --qr-code"
         )
     }
 
@@ -470,7 +481,7 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
         )
 
         let deviceResponseHandling: DeviceResponseHandling?
-        if expectedDeviceResponseHex != nil || printDeviceResponseHex {
+        if expectedDeviceResponseHex != nil || printDeviceResponseHex || responseFile != nil {
             let expectedPlaintext: Data?
             if let expectedDeviceResponseHex {
                 expectedPlaintext = try hexDecodedData(expectedDeviceResponseHex)
@@ -478,6 +489,7 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                 expectedPlaintext = nil
             }
             deviceResponseHandling = DeviceResponseHandling(
+                responseFile: responseFile,
                 expectedPlaintext: expectedPlaintext,
                 shouldPrintPlaintextHex: printDeviceResponseHex,
                 encodedSessionTranscript: sessionEstablishedData.encodedSessionTranscript,
@@ -1192,6 +1204,13 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
                 }
                 if deviceResponseHandling.shouldPrintPlaintextHex {
                     print("\(Configuration.deviceResponseHexMarker)\(hexEncodedData(plaintext))")
+                }
+                if let responseFile = deviceResponseHandling.responseFile {
+                    let artifact = try JSONSerialization.data(withJSONObject: [
+                        "device_response_hex": hexEncodedData(plaintext),
+                        "session_transcript_hex": hexEncodedData(deviceResponseHandling.encodedSessionTranscript),
+                    ])
+                    try artifact.write(to: URL(fileURLWithPath: responseFile), options: .atomic)
                 }
             } catch {
                 fail("DeviceResponse validation failed: \(error.localizedDescription)")

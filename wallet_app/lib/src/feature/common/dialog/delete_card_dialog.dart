@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../widget/text/title_text.dart';
 
 /// A dialog that asks the user to confirm deletion of a card.
 class DeleteCardDialog extends StatelessWidget {
@@ -12,10 +13,7 @@ class DeleteCardDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text.rich(
-        context.l10n.deleteCardDialogTitle(cardTitle).toTextSpan(context),
-        style: context.textTheme.headlineMedium,
-      ),
+      title: TitleText(context.l10n.deleteCardDialogTitle(cardTitle)),
       content: Text.rich(context.l10n.deleteCardDialogBody.toTextSpan(context)),
       actions: <Widget>[
         TextButton(

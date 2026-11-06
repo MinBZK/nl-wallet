@@ -88,10 +88,10 @@ impl<R, T, U> AdminPortalService<R, T, U> {
 mod tests {
     use std::assert_matches;
 
+    use crypto::kid::Kid;
     use crypto::trust_anchor::TrustAnchors;
     use rstest::fixture;
     use rstest::rstest;
-    use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;

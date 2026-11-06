@@ -9,8 +9,8 @@
 use std::borrow::Cow;
 
 use base64::prelude::*;
-use crypto::AsPublicKeyRef;
-use crypto::PublicKey;
+use crypto::keys::AsPublicKeyRef;
+use crypto::keys::PublicKey;
 use crypto::x509::BorrowingCertificate;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;

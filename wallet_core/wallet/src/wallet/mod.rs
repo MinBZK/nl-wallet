@@ -5,6 +5,8 @@ mod config;
 mod delete_attestation;
 mod disclosure;
 mod disclosure_based_issuance;
+#[cfg(feature = "hardware_integration_test")]
+pub mod hardware_test;
 mod history;
 mod init;
 mod instruction_client;

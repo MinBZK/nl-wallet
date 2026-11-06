@@ -11,7 +11,7 @@ use cose::CoseError;
 use cose::CoseTyp;
 use cose::TaggedCoseSign1;
 use cose::TypedCose;
-use crypto::EcdsaKey;
+use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use derive_more::AsRef;
 use derive_more::Into;
@@ -116,7 +116,7 @@ mod test {
     use coset::CoseSign1;
     use coset::Label;
     use coset::TaggedCborSerializable;
-    use crypto::PublicKey;
+    use crypto::keys::PublicKey;
     use crypto::server_keys::generate::Ca;
     use utils::generator::mock::MockTimeGenerator;
 

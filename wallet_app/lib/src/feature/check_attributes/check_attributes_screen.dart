@@ -12,7 +12,6 @@ import '../common/widget/animation/animated_card_switcher.dart';
 import '../common/widget/attribute/attribute_row.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/list_button.dart';
 import '../common/widget/button/secondary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
@@ -53,7 +52,6 @@ class CheckAttributesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WalletAppBar(
-        actions: const [HelpIconButton()],
         title: FadeInAtOffset(
           appearOffset: 120,
           visibleOffset: 150,

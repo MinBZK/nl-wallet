@@ -1,35 +1,11 @@
-import { test as base, expect } from "@playwright/test"
-import { AdminPortalPage } from "../pages/adminPortalPage.js"
+import { expect } from "@playwright/test"
 import { TASK_ACTION_LABELS, USERS } from "../data/users.js"
 import { authFile } from "../data/auth.js"
-import AxeBuilder from "@axe-core/playwright"
-
-const DISABLED_RULES = [
-  "select-name", // TODO =: enable after PVW-6463
-  "scrollable-region-focusable", // TODO =: enable after PVW-6464
-]
+import { test } from "./fixtures.js"
 
 function unauthorizedTaskTypes(user) {
   return Object.keys(TASK_ACTION_LABELS).filter((type) => !user.taskActions.includes(type))
 }
-
-const test = base.extend({
-  adminPortal: async ({ page }, use) => {
-    await use(new AdminPortalPage(page))
-  },
-
-  accessibilityCheck: async ({ page }, use) => {
-    async function check() {
-      await page.waitForLoadState("load")
-      const accessibilityScanResults = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-        .disableRules(DISABLED_RULES)
-        .analyze()
-      expect(accessibilityScanResults.violations).toEqual([])
-    }
-    await use(check)
-  },
-})
 
 test.describe("Admin portal", () => {
   test.describe("Authentication", () => {
@@ -119,13 +95,13 @@ test.describe("Admin portal", () => {
         }) => {
           await adminPortal.open()
 
-          await adminPortal.openCreateTask()
-          await expect(adminPortal.taskDialog).toBeVisible()
+          await adminPortal.openCreateTaskDialog()
+          await expect(adminPortal.createTaskDialog).toBeVisible()
 
           for (const type of user.taskActions) {
-            await expect(adminPortal.taskAction(TASK_ACTION_LABELS[type])).toBeVisible()
+            await expect(adminPortal.createTaskDialogAction(TASK_ACTION_LABELS[type])).toBeVisible()
           }
-          await expect(adminPortal.taskDialogActions).toHaveCount(user.taskActions.length)
+          await expect(adminPortal.createTaskDialogActions).toHaveCount(user.taskActions.length)
 
           await accessibilityCheck()
         })

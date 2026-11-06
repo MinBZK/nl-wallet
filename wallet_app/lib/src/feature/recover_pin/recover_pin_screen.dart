@@ -25,7 +25,6 @@ import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -81,7 +80,6 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
           onPressed: () => _handleBackPress(state, context),
         ).takeIf((_) => _canPop(state)),
         actions: [
-          const HelpIconButton().takeIf((_) => _showHelpIcon(state)),
           CloseIconButton(onPressed: () => _stopRecoverPin(context)).takeIf(
             (_) => _canStop(state),
           ),
@@ -155,24 +153,6 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
       RecoverPinDigidFailure() => true,
       RecoverPinDigidLoginCancelled() => true,
       RecoverPinError() => true,
-    };
-  }
-
-  /// Determines if the "Help" button should be displayed in the AppBar.
-  ///
-  /// Returns:
-  ///   True if the "Help" button should be visible, false otherwise.
-  bool _showHelpIcon(RecoverPinState state) {
-    return switch (state) {
-      RecoverPinLoadingDigidUrl() => false,
-      RecoverPinAwaitingDigidAuthentication() => false,
-      RecoverPinVerifyingDigidAuthentication() => false,
-      RecoverPinUpdatingPin() => false,
-      RecoverPinChooseNewPin() => false,
-      RecoverPinSelectPinFailed() => false,
-      RecoverPinConfirmNewPin() => false,
-      RecoverPinConfirmPinFailed() => false,
-      _ => true,
     };
   }
 

@@ -1,6 +1,10 @@
 use std::str;
 
 use base64::DecodeError;
+use base64::alphabet;
+use base64::engine::DecodePaddingMode;
+use base64::engine::GeneralPurpose;
+use base64::engine::GeneralPurposeConfig;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
@@ -17,6 +21,12 @@ use utils::generator::Generator;
 use super::ParsedRegistrationCertificate;
 
 pub const REQUEST_INFO_WRPRC_KEY: &str = "euWrprc";
+
+/// Base64url decoding that accepts both padded and unpadded input.
+const BASE64_URL_SAFE_INDIFFERENT_PAD: GeneralPurpose = GeneralPurpose::new(
+    &alphabet::URL_SAFE,
+    GeneralPurposeConfig::new().with_decode_padding_mode(DecodePaddingMode::Indifferent),
+);
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateJwtParseError {
@@ -102,7 +112,8 @@ impl TryFrom<String> for RegistrationCertificateEnvelope {
             return Ok(Self::Jwt(jwt));
         }
 
-        let bytes = BASE64_URL_SAFE_NO_PAD
+        // Implementations differ in whether the base64url encoding includes padding, so accept both.
+        let bytes = BASE64_URL_SAFE_INDIFFERENT_PAD
             .decode(data)
             .map_err(RegistrationCertificateEnvelopeParseError::Base64)?;
 
@@ -178,6 +189,7 @@ mod tests {
     use rstest::rstest;
     use utils::generator::TimeGenerator;
 
+    use super::BASE64_URL_SAFE_INDIFFERENT_PAD;
     use super::REQUEST_INFO_WRPRC_KEY;
     use super::RegistrationCertificateEnvelope;
     use super::RegistrationCertificateRequestParseError;
@@ -290,6 +302,39 @@ mod tests {
             .unwrap()
             .into_payload();
         assert_eq!(payload.payload().sub, "LEIXG-529900T8BM49AURSDO55");
+    }
+
+    #[test]
+    fn parse_padded_base64url_registration_certificate() {
+        let authority = MockRegistrationCertificateAuthority::new();
+        let certificate = authority.sign_cwt(&RegistrationCertificateFixture(valid_payload_json()));
+        // Prefix a COSE_Sign1 tag when needed, so that the base64url encoding always ends in padding.
+        let tags: &[u8] = if certificate.len().is_multiple_of(3) {
+            &[0xd2]
+        } else {
+            &[]
+        };
+        let data = BASE64_URL_SAFE.encode([tags, certificate.as_slice()].concat());
+        assert!(data.ends_with('='));
+
+        let envelope = RegistrationCertificateEnvelope::try_from(data).unwrap();
+
+        assert_matches!(&envelope, RegistrationCertificateEnvelope::Cwt(_));
+        assert_eq!(envelope.to_vec().unwrap(), certificate);
+    }
+
+    #[rstest]
+    #[case::two_bytes_unpadded("Zm8", Some(b"fo".as_slice()))]
+    #[case::two_bytes_padded("Zm8=", Some(b"fo".as_slice()))]
+    #[case::one_byte_unpadded("Zg", Some(b"f".as_slice()))]
+    #[case::one_byte_padded("Zg==", Some(b"f".as_slice()))]
+    #[case::one_byte_partially_padded("Zg=", Some(b"f".as_slice()))]
+    #[case::url_safe_alphabet("-_8=", Some([0xfb, 0xff].as_slice()))]
+    #[case::excess_padding("Zm8==", None)]
+    #[case::padding_inside("Z=m8", None)]
+    #[case::standard_alphabet("+/8=", None)]
+    fn decode_base64url_indifferent_of_padding(#[case] input: &str, #[case] expected: Option<&[u8]>) {
+        assert_eq!(BASE64_URL_SAFE_INDIFFERENT_PAD.decode(input).ok().as_deref(), expected);
     }
 
     // This test guards against accidentally applying OpenID4VP's extra base64url encoding to CP.

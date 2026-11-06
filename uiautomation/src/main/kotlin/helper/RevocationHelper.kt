@@ -100,10 +100,13 @@ class RevocationHelper {
         val wallets = JSONArray(response.asString())
         val activeWalletIds = wallets.mapNotNull { wallet ->
             if (wallet !is JSONObject?) return@mapNotNull null
-            wallet.takeIf { it.getString("state") == "Active" }?.getString("wallet_id")
+            wallet.takeIf { it.getString("state") == "active" }?.getString("wallet_id")
         }
 
-        if (activeWalletIds.isEmpty()) return
+        check(activeWalletIds.isNotEmpty()) {
+            "No active wallets found to revoke, states found: " +
+                wallets.mapNotNull { (it as? JSONObject)?.optString("state") }.toSet()
+        }
 
         request(walletProviderBaseUrl)
             .contentType(ContentType.JSON)

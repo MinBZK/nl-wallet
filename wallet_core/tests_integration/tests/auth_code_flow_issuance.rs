@@ -148,9 +148,10 @@ async fn test_acf_demo_issuer_authorize_redirects_to_consent() {
 async fn test_acf_demo_issuer_wallet_issuance() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
     let acf = setup_auth_code_env_with_previews(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
@@ -200,9 +201,10 @@ async fn test_acf_demo_issuer_wallet_issuance() {
 async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
     let acf = setup_auth_code_env(&db_setup, None).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
@@ -243,9 +245,10 @@ async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
 async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, &hsm_setup, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
     let acf = setup_auth_code_env_with_previews(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 

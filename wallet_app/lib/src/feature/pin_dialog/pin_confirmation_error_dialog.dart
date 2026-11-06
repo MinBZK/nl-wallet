@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
+import '../common/widget/text/dialog_title_text.dart';
 
 class PinConfirmationErrorDialog extends StatelessWidget {
   final bool retryAllowed;
@@ -22,7 +23,7 @@ class PinConfirmationErrorDialog extends StatelessWidget {
     return AlertDialog(
       scrollable: true,
       semanticLabel: Platform.isAndroid ? title : null,
-      title: Text(title),
+      title: DialogTitleText(title),
       content: Text(content),
       actions: <Widget>[
         TextButton(

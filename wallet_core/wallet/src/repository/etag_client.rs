@@ -2,7 +2,6 @@ use std::error::Error;
 use std::hash::Hash;
 use std::io::ErrorKind;
 use std::marker::PhantomData;
-use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -15,44 +14,35 @@ use tokio::fs;
 use tracing::warn;
 
 use super::FileStorageError;
-use super::Filename;
 use super::HttpClientError;
 use super::HttpResponse;
 use crate::reqwest::CachedReqwestClient;
 
 pub struct EtagHttpClient<T, B, E> {
     cached_client: CachedReqwestClient<B>,
-    resource_identifier: Filename,
-    etag_dir: PathBuf,
+    resource_identifier: String,
+    etag_path: PathBuf,
     _marker: PhantomData<(T, B, E)>, // data and error type to fetch and builder type
 }
 
 impl<T, B, E> EtagHttpClient<T, B, E> {
-    pub fn new(resource_identifier: Filename, etag_dir: PathBuf) -> Self {
+    pub fn new(resource_identifier: impl Into<String>, etag_path: PathBuf) -> Self {
         Self {
             cached_client: CachedReqwestClient::new(),
-            resource_identifier,
-            etag_dir,
+            resource_identifier: resource_identifier.into(),
+            etag_path,
             _marker: PhantomData,
         }
     }
 
-    fn etag_file(resource_identifier: Filename, etag_dir: &Path) -> PathBuf {
-        let mut filename = resource_identifier.into_inner();
-        filename.set_extension("etag");
-        etag_dir.join(filename)
-    }
-
-    async fn read_latest_etag(resource_identifier: Filename, etag_dir: &Path) -> Option<HeaderValue> {
-        let etag_file = Self::etag_file(resource_identifier, etag_dir);
-
-        let content = match fs::read(&etag_file).await {
+    async fn read_latest_etag(etag_path: &PathBuf) -> Option<HeaderValue> {
+        let content = match fs::read(etag_path).await {
             Ok(content) => content,
             Err(err) if err.kind() == ErrorKind::NotFound => {
                 return None;
             }
             Err(err) => {
-                warn!("Could not read ETag header file from {}: {err}", etag_file.display());
+                warn!("Could not read ETag header file from {}: {err}", etag_path.display());
                 return None;
             }
         };
@@ -60,8 +50,8 @@ impl<T, B, E> EtagHttpClient<T, B, E> {
             Ok(etag) => Some(etag),
             Err(err) => {
                 warn!("Invalid stored ETag header value, deleting stored ETag file: {err}");
-                if let Err(err) = fs::remove_file(&etag_file).await {
-                    warn!("Could not remove ETag file {}: {err}", etag_file.display());
+                if let Err(err) = fs::remove_file(etag_path).await {
+                    warn!("Could not remove ETag file {}: {err}", etag_path.display());
                 }
                 None
             }
@@ -69,8 +59,7 @@ impl<T, B, E> EtagHttpClient<T, B, E> {
     }
 
     async fn store_latest_etag(&self, etag: &HeaderValue) -> Result<(), FileStorageError> {
-        let etag_file = Self::etag_file(self.resource_identifier.clone(), &self.etag_dir);
-        fs::write(&etag_file, etag.as_bytes()).await?;
+        fs::write(&self.etag_path, etag.as_bytes()).await?;
         Ok(())
     }
 }
@@ -95,11 +84,11 @@ where
             .get_or_try_init(client_builder, IntoReqwestClient::try_into_client)
             .map_err(HttpClientError::Networking)?;
 
-        let latest_etag = Self::read_latest_etag(self.resource_identifier.clone(), &self.etag_dir).await;
+        let latest_etag = Self::read_latest_etag(&self.etag_path).await;
 
         let response = client
             .send_custom_get(
-                ReqwestClientUrl::Relative(&self.resource_identifier.as_ref().to_string_lossy()),
+                ReqwestClientUrl::Relative(&self.resource_identifier),
                 |request| match latest_etag {
                     Some(etag) => request.header(header::IF_NONE_MATCH, etag),
                     None => request,
@@ -152,7 +141,6 @@ mod test {
     use tokio::fs;
 
     use super::EtagHttpClient;
-    use crate::repository::Filename;
     use crate::repository::HttpClientError;
     use crate::repository::HttpResponse;
 
@@ -168,7 +156,6 @@ mod test {
 
     #[tokio::test]
     async fn test_etag_http_client() {
-        let tempdir = tempfile::tempdir().unwrap();
         let server = MockServer::start_async().await;
         let base_url = server.base_url().parse().unwrap();
 
@@ -192,8 +179,9 @@ mod test {
             })
             .await;
 
+        let tempdir = tempfile::tempdir().unwrap();
         let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), tempdir.path().to_path_buf());
+            EtagHttpClient::new("config", tempdir.path().join("config.etag"));
 
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
 
@@ -231,12 +219,12 @@ mod test {
             })
             .await;
 
-        let etag_dir = tempfile::tempdir().unwrap();
+        let tempdir = tempfile::tempdir().unwrap();
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
         let client1: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), etag_dir.path().to_path_buf());
+            EtagHttpClient::new("config", tempdir.path().join("config.etag"));
         let client2: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), etag_dir.path().to_path_buf());
+            EtagHttpClient::new("config", tempdir.path().join("config.etag"));
 
         let response = client1.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
@@ -265,30 +253,22 @@ mod test {
             .await;
 
         let tempdir = tempfile::tempdir().unwrap();
-        let resource_identifier: Filename = "config".parse().unwrap();
-        let etag_file = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::etag_file(
-            resource_identifier.clone(),
-            tempdir.path(),
-        );
-        fs::write(&etag_file, b"invalid\netag").await.unwrap();
+        let etag_path = tempdir.path().join("config.etag");
+        fs::write(&etag_path, b"invalid\netag").await.unwrap();
 
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
-        let client = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::new(
-            resource_identifier,
-            tempdir.path().to_path_buf(),
-        );
+        let client = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::new("config", etag_path.clone());
 
         // The invalid ETag should not be sent along and should be deleted.
         let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
         mock_ok.assert_async().await;
 
-        assert!(!fs::try_exists(&etag_file).await.unwrap());
+        assert!(!fs::try_exists(&etag_path).await.unwrap());
     }
 
     #[tokio::test]
     async fn test_etag_http_client_mismatch() {
-        let tempdir = tempfile::tempdir().unwrap();
         let server = MockServer::start_async().await;
         let base_url = server.base_url().parse().unwrap();
 
@@ -312,9 +292,11 @@ mod test {
             })
             .await;
 
+        let tempdir = tempfile::tempdir().unwrap();
+        let etag_path = tempdir.path().join("config.etag");
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
         let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), tempdir.as_ref().to_path_buf());
+            EtagHttpClient::new("config", etag_path.clone());
 
         let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
@@ -340,10 +322,11 @@ mod test {
             })
             .await;
 
-        let etag_dir = tempfile::tempdir().unwrap();
+        let tempdir = tempfile::tempdir().unwrap();
+        let etag_path = tempdir.path().join("config.etag");
         let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
         let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
-            EtagHttpClient::new("config".parse().unwrap(), etag_dir.path().to_path_buf());
+            EtagHttpClient::new("config", etag_path.clone());
 
         // Reject the response, which should not result in its ETag being stored.
         let result = client
@@ -353,15 +336,7 @@ mod test {
             panic!("rejecting the response should result in an error");
         };
         assert_matches!(error, HttpClientError::EmptyBody);
-        assert!(
-            fs::read_dir(etag_dir.path())
-                .await
-                .unwrap()
-                .next_entry()
-                .await
-                .unwrap()
-                .is_none()
-        );
+        assert!(!etag_path.exists());
 
         // The next request should therefore not include the ETag, so the response is received and evaluated again.
         let response = client.fetch_and_accept(&client_builder, Ok).await.unwrap();
@@ -369,10 +344,6 @@ mod test {
         mock_ok.assert_calls_async(2).await;
 
         // Now that the response has been accepted, its ETag should have been stored.
-        let etag_file = EtagHttpClient::<Stub, TlsPinningConfig, HttpClientError>::etag_file(
-            "config".parse().unwrap(),
-            etag_dir.path(),
-        );
-        assert_eq!(fs::read(&etag_file).await.unwrap(), b"etag");
+        assert_eq!(fs::read(&etag_path).await.unwrap(), b"etag");
     }
 }

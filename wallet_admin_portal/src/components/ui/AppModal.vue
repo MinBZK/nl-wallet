@@ -4,6 +4,7 @@
       <div
         ref="dialog"
         class="dialog"
+        :class="size"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="labelId"
@@ -26,9 +27,11 @@ const props = withDefaults(
   defineProps<{
     // False while an action is in flight, to block a fake cancel.
     dismissible?: boolean
+    size?: 'sm' | 'md'
   }>(),
   {
     dismissible: true,
+    size: 'md',
   },
 )
 
@@ -127,5 +130,10 @@ onBeforeUnmount(() => {
   background: var(--color-background);
   border-radius: 6px;
   box-shadow: 0 1px 15px rgba(0, 0, 0, 0.05);
+}
+
+.dialog.sm {
+  width: 19.5rem;
+  border-radius: 1rem;
 }
 </style>

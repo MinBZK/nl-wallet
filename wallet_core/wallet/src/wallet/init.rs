@@ -632,7 +632,8 @@ mod tests {
 
         let config_server_config = default_config_server_config();
         let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config.into())
+                .await;
         let mut wallet_clients: WalletClients<
             MockAccountProviderClient,
             MockIssuanceDiscovery,
@@ -713,7 +714,8 @@ mod tests {
 
         let config_server_config = default_config_server_config();
         let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config.into())
+                .await;
         let mut wallet_clients: WalletClients<
             MockAccountProviderClient,
             MockIssuanceDiscovery,
@@ -788,7 +790,8 @@ mod tests {
 
         let config_server_config = default_config_server_config();
         let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config.into())
+                .await;
         let wallet_clients: WalletClients<
             MockAccountProviderClient,
             MockIssuanceDiscovery,

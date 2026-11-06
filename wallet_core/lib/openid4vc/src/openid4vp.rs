@@ -471,6 +471,11 @@ impl VpAuthorizationRequest {
             )
             .await?;
 
+        if let Some(trust_anchor) = trust_anchors.find_in_chain(header.x5c.iter().skip(1)) {
+            let subject = trust_anchor.x509_certificate().subject();
+            error!("x5c of OpenID4VP request contains trust anchor {subject}; this violates HAIP 1.0, ignoring it");
+        }
+
         Ok((auth_request, header.x5c.into_first()))
     }
 
@@ -1155,8 +1160,8 @@ mod tests {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use base64::prelude::*;
     use coset::iana;
-    use crypto::PublicKey;
-    use crypto::PublicKeyRef;
+    use crypto::keys::PublicKey;
+    use crypto::keys::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::KeyPair;

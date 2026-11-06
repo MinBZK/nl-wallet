@@ -26,6 +26,7 @@ class CardIssuanceScreen : MobileActions() {
     fun addCardButtonVisible(timeoutInSeconds: Long = 20) = elementWithTextVisible(addCardButton, timeoutInSeconds)
 
     fun clickAdd2CardsButton() {
+        elementWithTextVisible(add2CardsButton, 20)
         scrollToElementWithText(add2CardsButton)
         clickElementWithText(add2CardsButton)
     }
@@ -36,6 +37,7 @@ class CardIssuanceScreen : MobileActions() {
     }
 
     fun viewDetailsOfCard(cardIdentifier: String) {
+        elementContainingTextVisible(cardIdentifier, 20)
         scrollToEndOfScreen()
         findElementByPartialTextAndPartialSiblingText(viewDetailsButton, cardIdentifier).click()
     }

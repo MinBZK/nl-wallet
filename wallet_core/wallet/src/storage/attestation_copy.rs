@@ -444,7 +444,7 @@ mod tests {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::status_claim::StatusListClaim;
     use chrono::Utc;
-    use crypto::PublicKeyRef;
+    use crypto::keys::PublicKeyRef;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -467,7 +467,7 @@ mod tests {
     use super::StoredAttestationCopy;
     use super::WithKeyIdentifier;
     use crate::attestation::AttestationAttribute;
-    use crate::config::test::test_wallet_config;
+    use crate::config::test_wallet_config;
     use crate::storage::StoredAttestationMetadata;
 
     static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);

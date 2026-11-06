@@ -65,7 +65,7 @@
 //! ```
 //! # use attestation_types::claim_path::ClaimPath;
 //! # use chrono::Utc;
-//! # use crypto::PublicKeyRef;
+//! # use crypto::keys::PublicKeyRef;
 //! # use crypto::server_keys::generate::Ca;
 //! # use crypto::trust_anchor::TrustAnchors;
 //! # use jwt::confirmation::ConfirmationClaim;

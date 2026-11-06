@@ -188,6 +188,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.captureA11ySnapshot("DisclosureSharedDataDetails")
 
         disclosureScreen.goBack()
+        assertTrue(disclosureScreen.loginDetailsVisible(), "Login details screen not visible")
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
@@ -225,6 +226,7 @@ class DisclosureTests : TestBase() {
         assertTrue(disclosureScreen.bsnVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "BSN not visible")
 
         disclosureScreen.goBack()
+        assertTrue(disclosureScreen.loginDetailsVisible(), "Login details screen not visible")
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()

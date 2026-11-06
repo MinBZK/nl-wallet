@@ -297,7 +297,7 @@ mod tests {
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use base64::prelude::*;
     use cose::wrprc_cwt::SignedWrprcCwt;
-    use crypto::PublicKeyRef;
+    use crypto::keys::PublicKeyRef;
     use crypto::mock_remote::DisclosureMockRemoteWscd;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;

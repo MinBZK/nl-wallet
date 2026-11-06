@@ -461,6 +461,7 @@ mod tests {
     use audit_log::model::mock::MockAuditLog;
     use chrono::DateTime;
     use chrono::Utc;
+    use crypto::kid::Kid;
     use crypto::trust_anchor::TrustAnchors;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
@@ -470,7 +471,6 @@ mod tests {
     use token_status_list::status_list_service::mock::MockStatusListService;
     use utils::vec_nonempty;
     use uuid::Uuid;
-    use wallet_provider_domain::keys::Kid;
     use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
     use wallet_provider_domain::model::admin_task::TaskStatus;
     use wallet_provider_domain::model::admin_task::TaskType;
