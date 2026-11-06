@@ -106,6 +106,178 @@ impl From<StatusListCwtClaims> for StatusListTokenClaims {
     }
 }
 
+#[cfg(feature = "verification")]
+pub mod verification {
+    use chrono::DateTime;
+    use chrono::Utc;
+    use cose::CoseError;
+    use crypto::trust_anchor::TrustAnchors;
+    use url::Url;
+    use utils::generator::Generator;
+
+    use crate::status_list_cwt::StatusListCwt;
+    use crate::status_list_token::StatusListTokenClaims;
+    use crate::status_list_token::verification::StatusListTokenClaimsVerificationError;
+
+    #[derive(Debug, thiserror::Error)]
+    pub enum StatusListCwtVerificationError {
+        #[error("CWT verification failed: {0}")]
+        CwtVerification(#[source] CoseError),
+
+        #[error("CWT claims verification failed: {0}")]
+        Claims(#[source] StatusListTokenClaimsVerificationError),
+    }
+
+    impl StatusListCwt {
+        pub fn parse_and_verify(
+            &self,
+            trust_anchors: &TrustAnchors,
+            url: &Url,
+            time: &impl Generator<DateTime<Utc>>,
+        ) -> Result<StatusListTokenClaims, StatusListCwtVerificationError> {
+            let claims = self
+                .0
+                .0
+                .verify_with_typ_against_trust_anchors(trust_anchors, time, None)
+                .map_err(StatusListCwtVerificationError::CwtVerification)?;
+
+            let claims = StatusListTokenClaims::from(claims.0);
+            claims
+                .verify(url, time)
+                .map_err(StatusListCwtVerificationError::Claims)?;
+
+            Ok(claims)
+        }
+    }
+}
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
+    use chrono::DateTime;
+    use chrono::Utc;
+    use crypto::keys::EcdsaKey;
+    use crypto::server_keys::KeyPair;
+    use utils::generator::TimeGenerator;
+
+    use crate::status_list::PackedStatusList;
+    use crate::status_list_cwt::StatusListCwt;
+    use crate::status_list_token::StatusListToken;
+    use crate::status_list_token::StatusListTokenClaims;
+
+    pub async fn mock_status_list_cwt<S>(
+        keypair: &KeyPair<S>,
+        exp: Option<DateTime<Utc>>,
+    ) -> (StatusListCwt, StatusListTokenClaims)
+    where
+        S: EcdsaKey,
+    {
+        let claims = StatusListToken::builder(
+            "https://example.com/statuslists/1".parse().unwrap(),
+            PackedStatusList::new(10),
+        )
+        .exp(exp)
+        .build(&TimeGenerator);
+        let status_list_cwt = StatusListCwt::sign(claims.clone(), keypair).await.unwrap();
+
+        (status_list_cwt, claims)
+    }
+}
+
+#[cfg(all(test, feature = "verification"))]
+mod verification_test {
+    use std::assert_matches;
+    use std::ops::Add;
+
+    use chrono::Days;
+    use chrono::SubsecRound;
+    use chrono::Utc;
+    use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
+    use utils::generator::mock::MockTimeGenerator;
+
+    use crate::status_list_cwt::StatusListCwt;
+    use crate::status_list_cwt::mock::mock_status_list_cwt;
+    use crate::status_list_cwt::verification::StatusListCwtVerificationError;
+    use crate::status_list_token::StatusListTokenClaims;
+    use crate::status_list_token::verification::StatusListTokenClaimsVerificationError;
+
+    async fn mock_signed_status_list_cwt() -> (StatusListCwt, StatusListTokenClaims, Ca) {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_status_list_mock().unwrap();
+        let exp = Utc::now().add(Days::new(1)).trunc_subsecs(0);
+        let (signed, claims) = mock_status_list_cwt(&keypair, Some(exp)).await;
+
+        (signed, claims, ca)
+    }
+
+    #[tokio::test]
+    async fn test_status_list_cwt_verification() {
+        let (signed, expected_claims, ca) = mock_signed_status_list_cwt().await;
+
+        let claims = signed
+            .parse_and_verify(
+                &ca.to_trust_anchors(),
+                &expected_claims.sub,
+                &MockTimeGenerator::default(),
+            )
+            .unwrap();
+
+        // `iat` is encoded in whole seconds, so it loses the subseconds of the signing time
+        let expected_claims = StatusListTokenClaims {
+            iat: expected_claims.iat.trunc_subsecs(0),
+            ..expected_claims
+        };
+        assert_eq!(claims, expected_claims);
+    }
+
+    #[tokio::test]
+    async fn test_status_list_cwt_verification_rejects_untrusted_signer() {
+        let (signed, claims, _) = mock_signed_status_list_cwt().await;
+
+        let err = signed
+            .parse_and_verify(&TrustAnchors::empty(), &claims.sub, &MockTimeGenerator::default())
+            .unwrap_err();
+
+        assert_matches!(err, StatusListCwtVerificationError::CwtVerification(_));
+    }
+
+    #[tokio::test]
+    async fn test_status_list_cwt_verification_rejects_unexpected_subject() {
+        let (signed, _, ca) = mock_signed_status_list_cwt().await;
+
+        let err = signed
+            .parse_and_verify(
+                &ca.to_trust_anchors(),
+                &"http://example.com/sub".parse().unwrap(),
+                &MockTimeGenerator::default(),
+            )
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            StatusListCwtVerificationError::Claims(StatusListTokenClaimsVerificationError::UnexpectedSubject { .. })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_status_list_cwt_verification_rejects_expired() {
+        let (signed, claims, ca) = mock_signed_status_list_cwt().await;
+
+        let err = signed
+            .parse_and_verify(
+                &ca.to_trust_anchors(),
+                &claims.sub,
+                &MockTimeGenerator::new(claims.exp.unwrap().add(Days::new(1))),
+            )
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            StatusListCwtVerificationError::Claims(StatusListTokenClaimsVerificationError::Expired)
+        );
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;

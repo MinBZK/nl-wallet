@@ -81,3 +81,50 @@ impl StatusListTokenBuilder {
         }
     }
 }
+
+#[cfg(feature = "verification")]
+pub mod verification {
+    use std::ops::Add;
+
+    use chrono::DateTime;
+    use chrono::Duration;
+    use chrono::Utc;
+    use url::Url;
+    use utils::generator::Generator;
+
+    use crate::status_list_token::StatusListTokenClaims;
+
+    const EXP_LEEWAY: Duration = Duration::seconds(60);
+
+    #[derive(Debug, thiserror::Error)]
+    pub enum StatusListTokenClaimsVerificationError {
+        #[error("status list token is expired")]
+        Expired,
+
+        #[error("status list token subject claim ('{sub}') does not match url claim of Reference Token ('{url}')")]
+        UnexpectedSubject { sub: Box<Url>, url: Box<Url> },
+    }
+
+    impl StatusListTokenClaims {
+        /// Check the claims of a verified Status List Token in either format, as required by step 4 of
+        /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-8.3>.
+        pub fn verify(
+            &self,
+            url: &Url,
+            time: &impl Generator<DateTime<Utc>>,
+        ) -> Result<(), StatusListTokenClaimsVerificationError> {
+            if *url != self.sub {
+                return Err(StatusListTokenClaimsVerificationError::UnexpectedSubject {
+                    sub: Box::new(self.sub.clone()),
+                    url: Box::new(url.to_owned()),
+                });
+            }
+
+            if self.exp.is_some_and(|exp| exp.add(EXP_LEEWAY) < time.generate()) {
+                return Err(StatusListTokenClaimsVerificationError::Expired);
+            }
+
+            Ok(())
+        }
+    }
+}

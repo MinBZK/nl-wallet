@@ -174,7 +174,7 @@ where
                 .get_with(url.clone(), async {
                     let token = self.client.fetch(url.clone()).await.map_err(Arc::new)?;
                     let fetched_at = Instant::now();
-                    let claims = token.parse_and_verify(issuer_trust_anchors, url.clone(), time);
+                    let claims = token.parse_and_verify(issuer_trust_anchors, &url, time);
                     let cache_validity = claims.as_ref().ok().map(|claims| CacheValidity {
                         exp: claims.exp,
                         ttl: claims.ttl,
@@ -196,7 +196,7 @@ where
             }
             let claims = cached
                 .token
-                .parse_and_verify(issuer_trust_anchors, url.clone(), time)
+                .parse_and_verify(issuer_trust_anchors, &url, time)
                 .map_err(Arc::new)?;
 
             // An earlier caller may not have trusted this token, leaving its TTL unknown when it was cached.
