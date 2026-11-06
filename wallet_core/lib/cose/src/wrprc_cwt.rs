@@ -21,7 +21,7 @@ use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use error_category::ErrorCategory;
 use serde::Deserialize;
 use serde::Deserializer;
@@ -173,7 +173,7 @@ where
         self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
     ) -> Result<VerifiedWrprcCwt<T>, WrprcCwtError> {
         let payload = self
             .cose

@@ -71,8 +71,8 @@ pub use key_identifier::KeyIdentifier;
 pub use profile::CertificateProfile;
 #[cfg(any(test, feature = "generate"))]
 pub use san::SubjectAltNameUri;
-pub use usage::CertificateUsage;
-pub use usage::CertificateUsageError;
+pub use usage::CertificateExtendedKeyUsage;
+pub use usage::CertificateExtendedKeyUsageError;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
 pub enum CertificateVerifyError {
@@ -213,7 +213,7 @@ impl BorrowingCertificate {
     /// in `intermediate_certs` are ignored.
     pub fn verify(
         &self,
-        usage: Option<CertificateUsage>,
+        usage: Option<CertificateExtendedKeyUsage>,
         intermediate_certs: &[BorrowingCertificate],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
@@ -224,7 +224,7 @@ impl BorrowingCertificate {
 
     fn verify_with_crls<'a>(
         &self,
-        usage: Option<CertificateUsage>,
+        usage: Option<CertificateExtendedKeyUsage>,
         intermediate_certs: impl IntoIterator<Item = &'a BorrowingCertificate, IntoIter: Clone>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
@@ -237,7 +237,7 @@ impl BorrowingCertificate {
     /// Verify the certificate and retain only the intermediates used in the verified path.
     fn verify_inner<'a>(
         &self,
-        usage: Option<CertificateUsage>,
+        usage: Option<CertificateExtendedKeyUsage>,
         intermediate_certs: impl IntoIterator<Item = &'a BorrowingCertificate, IntoIter: Clone>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
@@ -729,7 +729,7 @@ mod tests {
 
         certificate
             .verify(
-                profile.and_then(CertificateProfile::usage),
+                profile.and_then(CertificateProfile::extended_key_usage),
                 &[],
                 &TimeGenerator,
                 &ca.to_trust_anchors(),
@@ -822,7 +822,7 @@ mod tests {
         key_pair
             .certificate()
             .verify(
-                profile.and_then(CertificateProfile::usage),
+                profile.and_then(CertificateProfile::extended_key_usage),
                 &[],
                 &TimeGenerator,
                 &ca.to_trust_anchors(),
@@ -954,7 +954,7 @@ mod tests {
         key_pair
             .certificate()
             .verify(
-                profile.and_then(CertificateProfile::usage),
+                profile.and_then(CertificateProfile::extended_key_usage),
                 &[],
                 &TimeGenerator,
                 &ca.to_trust_anchors(),
@@ -982,14 +982,19 @@ mod tests {
         // Test verify with correct usage
         key_pair
             .certificate()
-            .verify(Some(CertificateUsage::Wia), &[], &TimeGenerator, &ca.to_trust_anchors())
+            .verify(
+                Some(CertificateExtendedKeyUsage::Wia),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
             .expect("Expected verify to succeed");
 
         // Test verify with different usage
         key_pair
             .certificate()
             .verify(
-                Some(CertificateUsage::StatusListSigning),
+                Some(CertificateExtendedKeyUsage::StatusListSigning),
                 &[],
                 &TimeGenerator,
                 &ca.to_trust_anchors(),

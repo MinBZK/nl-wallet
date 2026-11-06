@@ -623,7 +623,7 @@ pub mod generate {
             result.use_authority_key_identifier_extension = !source.exclude_aki;
             if let Some(profile) = source.profile {
                 result.key_usages = profile.key_usages();
-                if let Some(usage) = profile.usage() {
+                if let Some(usage) = profile.extended_key_usage() {
                     result.extended_key_usages.push(usage.to_key_usage_purpose());
                 }
             }

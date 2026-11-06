@@ -1,6 +1,6 @@
 use der::oid::ObjectIdentifier;
 
-use super::CertificateUsage;
+use super::CertificateExtendedKeyUsage;
 
 /// The DER encoded content of the certificate policies extension (RFC 5280, section 4.2.1.4) of NL Wallet
 /// certificates, which contains a single policy without qualifiers:
@@ -29,8 +29,8 @@ const ID_ETSI_QCT_PID: ObjectIdentifier = ObjectIdentifier::new_unwrap("0.4.0.19
 /// The QcType of wallet provider certificates, id-etsi-qct-wal (ETSI TS 119 412-6, Annex A).
 const ID_ETSI_QCT_WAL: ObjectIdentifier = ObjectIdentifier::new_unwrap("0.4.0.194126.1.2");
 
-/// The profile of a generated end-entity certificate, which determines its [`CertificateUsage`] and other extensions
-/// that depend on its purpose.
+/// The profile of a generated end-entity certificate, which determines its [`CertificateExtendedKeyUsage`] and other
+/// extensions that depend on its purpose.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CertificateProfile {
     /// PID issuer certificate.
@@ -48,16 +48,16 @@ pub enum CertificateProfile {
 
 impl CertificateProfile {
     /// The extended key usage of the certificate, if the profile specifies one.
-    pub fn usage(self) -> Option<CertificateUsage> {
+    pub fn extended_key_usage(self) -> Option<CertificateExtendedKeyUsage> {
         match self {
             // Both issuer profiles map to the mdoc issuer extended key usage of ISO/IEC 18013-5, also for SD-JWT
             // signing: issuers sign both formats with the same certificate, and SD-JWT defines no extended key usage of
             // its own.
-            Self::PidIssuer | Self::Issuer => Some(CertificateUsage::Mdl),
-            Self::StatusListSigning => Some(CertificateUsage::StatusListSigning),
-            Self::Wia => Some(CertificateUsage::Wia),
-            Self::KeyAttestation => Some(CertificateUsage::KeyAttestation),
-            Self::Wrpac => Some(CertificateUsage::MdlReader),
+            Self::PidIssuer | Self::Issuer => Some(CertificateExtendedKeyUsage::Mdl),
+            Self::StatusListSigning => Some(CertificateExtendedKeyUsage::StatusListSigning),
+            Self::Wia => Some(CertificateExtendedKeyUsage::Wia),
+            Self::KeyAttestation => Some(CertificateExtendedKeyUsage::KeyAttestation),
+            Self::Wrpac => Some(CertificateExtendedKeyUsage::MdlReader),
             Self::Wrprc => None,
         }
     }

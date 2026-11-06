@@ -19,7 +19,7 @@ use chrono::Utc;
 use cose::wrprc_cwt::UnverifiedWrprcCwt;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use crypto::x509::DistinguishedName;
 use crypto::x509::SubjectAltNameUri;
 use crypto::x509::crl::extract_crl_distribution_points;
@@ -128,7 +128,7 @@ fn assert_generated_certificate(
     expected_san_uri: Option<&SubjectAltNameUri>,
     start: OffsetDateTime,
     end: OffsetDateTime,
-    usage: Option<CertificateUsage>,
+    usage: Option<CertificateExtendedKeyUsage>,
     expected_key_usage: u16,
 ) -> Result<()> {
     // Read certificate and verify PEM label
@@ -175,7 +175,7 @@ fn assert_generated_certificate(
 
     // Verify that Extended Key Usage remains separate from Key Usage.
     if let Some(usage) = usage {
-        assert_eq!(CertificateUsage::from_certificate(&crt)?, usage);
+        assert_eq!(CertificateExtendedKeyUsage::from_certificate(&crt)?, usage);
         let eku = crt
             .extended_key_usage()?
             .expect("certificate must contain Extended Key Usage");
@@ -782,7 +782,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::Mdl),
+            Some(CertificateExtendedKeyUsage::Mdl),
             0b0000_0001,
         )?;
     }
@@ -815,7 +815,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::Mdl),
+            Some(CertificateExtendedKeyUsage::Mdl),
             0b0000_0001,
         )?;
     }
@@ -847,7 +847,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::MdlReader),
+            Some(CertificateExtendedKeyUsage::MdlReader),
             0b0000_0001,
         )?;
     }
@@ -880,7 +880,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::MdlReader),
+            Some(CertificateExtendedKeyUsage::MdlReader),
             0b0000_0001,
         )?;
     }
@@ -912,7 +912,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::StatusListSigning),
+            Some(CertificateExtendedKeyUsage::StatusListSigning),
             0b0000_0001,
         )?;
     }
@@ -947,7 +947,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::StatusListSigning),
+            Some(CertificateExtendedKeyUsage::StatusListSigning),
             0b0000_0001,
         )?;
     }
@@ -959,12 +959,12 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
 }
 
 #[rstest]
-#[case::wrpac("wrpac", 0b0000_0001, Some(CertificateUsage::MdlReader))]
+#[case::wrpac("wrpac", 0b0000_0001, Some(CertificateExtendedKeyUsage::MdlReader))]
 #[case::wrprc("wrprc", 0b0000_0010, None)]
 fn wrp_certificate_key_usage(
     #[case] cert_type: &str,
     #[case] expected_key_usage: u16,
-    #[case] expected_extended_key_usage: Option<CertificateUsage>,
+    #[case] expected_extended_key_usage: Option<CertificateExtendedKeyUsage>,
     #[values("cert", "cert-pub")] subcommand: &str,
 ) -> Result<()> {
     let temp = TempDir::new()?;
@@ -1088,7 +1088,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
-            Some(CertificateUsage::StatusListSigning),
+            Some(CertificateExtendedKeyUsage::StatusListSigning),
             0b0000_0001,
         )?;
     }
@@ -1123,7 +1123,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
             None,
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + Duration::days(7),
-            Some(CertificateUsage::StatusListSigning),
+            Some(CertificateExtendedKeyUsage::StatusListSigning),
             0b0000_0001,
         )?;
     }
@@ -1188,7 +1188,7 @@ fn happy_flow_with_san() -> Result<()> {
             Some(&"https://tsl.example.com".parse().unwrap()),
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::StatusListSigning),
+            Some(CertificateExtendedKeyUsage::StatusListSigning),
             0b0000_0001,
         )?;
     }
@@ -1223,7 +1223,7 @@ fn happy_flow_with_san() -> Result<()> {
             Some(&"https://tsl.example.com".parse().unwrap()),
             OffsetDateTime::now_utc(),
             OffsetDateTime::now_utc() + DEFAULT_CERTIFICATE_LIFETIME,
-            Some(CertificateUsage::StatusListSigning),
+            Some(CertificateExtendedKeyUsage::StatusListSigning),
             0b0000_0001,
         )?;
     }
@@ -1440,8 +1440,8 @@ fn happy_flow_pid_issuer() -> Result<()> {
         let crt_pem_bytes = std::fs::read(&issuer_crt)?;
         let (_, crt_pem) = x509_parser::pem::parse_x509_pem(&crt_pem_bytes)?;
         assert_eq!(
-            CertificateUsage::from_certificate(&crt_pem.parse_x509()?)?,
-            CertificateUsage::Mdl
+            CertificateExtendedKeyUsage::from_certificate(&crt_pem.parse_x509()?)?,
+            CertificateExtendedKeyUsage::Mdl
         );
         assert_generated_certificate_qc_statements(&issuer_crt, expected_qc_statements)?;
     }

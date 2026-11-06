@@ -19,8 +19,8 @@ use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate;
 use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateExtendedKeyUsage;
 use crypto::x509::CertificateProfile;
-use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use http_utils::urls::HttpsUri;
 use jwt::SignedJwt;
@@ -546,9 +546,10 @@ impl Command {
                 if signing_key_pair.certificate().x509_certificate().is_ca() {
                     anyhow::bail!("status list signing certificate must be an end-entity certificate");
                 }
-                let usage = CertificateUsage::from_certificate(signing_key_pair.certificate().x509_certificate())
-                    .context("status list signing certificate must have Status List Signing usage")?;
-                if usage != CertificateUsage::StatusListSigning {
+                let usage =
+                    CertificateExtendedKeyUsage::from_certificate(signing_key_pair.certificate().x509_certificate())
+                        .context("status list signing certificate must have Status List Signing usage")?;
+                if usage != CertificateExtendedKeyUsage::StatusListSigning {
                     anyhow::bail!("status list signing certificate must have Status List Signing usage");
                 }
 
