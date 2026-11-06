@@ -777,7 +777,10 @@ mod tests {
         Some(CertificateProfile::Wrpac),
         Some("2.25.150580842064059311066423755779195795505")
     )]
-    #[case::wrprc(Some(CertificateProfile::Wrprc), None)]
+    #[case::wrprc(
+        Some(CertificateProfile::Wrprc),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
     #[case::wia(Some(CertificateProfile::Wia), Some("2.25.150580842064059311066423755779195795505"))]
     #[case::key_attestation(
         Some(CertificateProfile::KeyAttestation),

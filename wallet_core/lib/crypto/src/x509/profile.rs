@@ -86,12 +86,15 @@ impl CertificateProfile {
     /// ETSI EN 319 412-2.
     ///
     /// ETSI TS 119 411-8, GEN-6.6.1-03 also requires a policy identifier in WRPACs and permits a provider-assigned OID.
+    ///
+    /// WRPRC signing certificates are modeled on ETSI EN 319 412-3, which inherits the policy requirement through
+    /// LEG-4.1-1. They reuse the temporary NL Wallet policy.
     pub fn certificate_policies(self) -> Option<&'static [u8]> {
         match self {
-            Self::PidIssuer | Self::Issuer | Self::Wrpac | Self::Wia | Self::KeyAttestation => {
+            Self::PidIssuer | Self::Issuer | Self::Wrpac | Self::Wrprc | Self::Wia | Self::KeyAttestation => {
                 Some(NL_WALLET_CERTIFICATE_POLICIES)
             }
-            Self::Wrprc | Self::StatusListSigning => None,
+            Self::StatusListSigning => None,
         }
     }
 
