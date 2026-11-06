@@ -172,6 +172,29 @@ mod test {
         );
     }
 
+    #[test]
+    fn test_status_list_cwt_claims_ignore_unknown_claims() {
+        let claims = CborIntMap(StatusListCwtClaims::from(StatusListTokenClaims {
+            iat: DateTime::from_timestamp(1_686_920_170, 0).unwrap(),
+            exp: Some(DateTime::from_timestamp(SLT_EXP, 0).unwrap()),
+            sub: "https://example.com/statuslists/1".parse().unwrap(),
+            ttl: Some(Duration::from_secs(SLT_TTL)),
+            status_list: PackedStatusList::new(10),
+        }));
+
+        let Value::Map(mut map) = cbor_value(&claims) else {
+            panic!("claims should serialize to a map");
+        };
+        map.push((Value::from(1), Value::Text("https://example.com".to_owned())));
+        map.push((Value::Text("private".to_owned()), Value::Bool(true)));
+
+        let deserialized = Value::Map(map)
+            .deserialized::<CborIntMap<StatusListCwtClaims>>()
+            .unwrap();
+
+        assert_eq!(deserialized.0, claims.0);
+    }
+
     #[tokio::test]
     async fn test_status_list_cwt_is_tagged_typed_and_signed_by_key_pair() {
         let ca = Ca::generate_mock();

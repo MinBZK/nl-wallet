@@ -1733,6 +1733,7 @@ dependencies = [
  "futures",
  "hex-literal",
  "indexmap 2.12.1",
+ "mdoc_derive",
  "p256 0.14.0",
  "p384 0.14.0",
  "rand 0.10.3",
