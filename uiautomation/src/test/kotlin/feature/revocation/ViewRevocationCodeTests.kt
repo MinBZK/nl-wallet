@@ -78,8 +78,8 @@ class ViewRevocationCodeTests : TestBase() {
         settingsScreen.clickRevocationCodeButton()
         revocationCodeSettingScreen.clickViewButton()
         pinScreen.enterPin(DEFAULT_PIN)
-        revocationCodeSettingScreen.captureA11ySnapshot("RevocationCodeSettings")
         val revocationCodeFromSettings = revocationCodeSettingScreen.getRevocationCode()
+        revocationCodeSettingScreen.captureA11ySnapshot("RevocationCodeSettings")
         assertTrue(revocationCodeFromSettings == revocationCodeFromSetup, "Revocation codes don't match")
     }
 }
