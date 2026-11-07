@@ -1,10 +1,7 @@
 use std::str;
 
 use base64::DecodeError;
-use base64::alphabet;
-use base64::engine::DecodePaddingMode;
-use base64::engine::GeneralPurpose;
-use base64::engine::GeneralPurposeConfig;
+use base64::engine::general_purpose::URL_SAFE_PAD_INDIFFERENT;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
@@ -21,12 +18,6 @@ use utils::generator::Generator;
 use super::ParsedRegistrationCertificate;
 
 pub const REQUEST_INFO_WRPRC_KEY: &str = "euWrprc";
-
-/// Base64url decoding that accepts both padded and unpadded input.
-const BASE64_URL_SAFE_INDIFFERENT_PAD: GeneralPurpose = GeneralPurpose::new(
-    &alphabet::URL_SAFE,
-    GeneralPurposeConfig::new().with_decode_padding_mode(DecodePaddingMode::Indifferent),
-);
 
 #[derive(Debug, thiserror::Error)]
 pub enum RegistrationCertificateJwtParseError {
@@ -113,7 +104,7 @@ impl TryFrom<String> for RegistrationCertificateEnvelope {
         }
 
         // Implementations differ in whether the base64url encoding includes padding, so accept both.
-        let bytes = BASE64_URL_SAFE_INDIFFERENT_PAD
+        let bytes = URL_SAFE_PAD_INDIFFERENT
             .decode(data)
             .map_err(RegistrationCertificateEnvelopeParseError::Base64)?;
 
@@ -180,6 +171,7 @@ pub fn verify_registration_certificate_envelope(
 mod tests {
     use std::assert_matches;
 
+    use base64::engine::general_purpose::URL_SAFE_PAD_INDIFFERENT;
     use base64::prelude::*;
     use ciborium::value::Value;
     use indexmap::IndexMap;
@@ -189,7 +181,6 @@ mod tests {
     use rstest::rstest;
     use utils::generator::TimeGenerator;
 
-    use super::BASE64_URL_SAFE_INDIFFERENT_PAD;
     use super::REQUEST_INFO_WRPRC_KEY;
     use super::RegistrationCertificateEnvelope;
     use super::RegistrationCertificateRequestParseError;
@@ -334,7 +325,7 @@ mod tests {
     #[case::padding_inside("Z=m8", None)]
     #[case::standard_alphabet("+/8=", None)]
     fn decode_base64url_indifferent_of_padding(#[case] input: &str, #[case] expected: Option<&[u8]>) {
-        assert_eq!(BASE64_URL_SAFE_INDIFFERENT_PAD.decode(input).ok().as_deref(), expected);
+        assert_eq!(URL_SAFE_PAD_INDIFFERENT.decode(input).ok().as_deref(), expected);
     }
 
     // This test guards against accidentally applying OpenID4VP's extra base64url encoding to CP.
