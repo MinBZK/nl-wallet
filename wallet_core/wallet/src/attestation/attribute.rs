@@ -82,8 +82,8 @@ impl AttestationPresentation {
         let validity = AttestationValidity {
             revocation_status: None,
             validity_window: ValidityWindow {
-                valid_from: credential.not_before.map(Into::into),
-                valid_until: credential.expiration.map(Into::into),
+                valid_from: credential.contents.not_before.map(Into::into),
+                valid_until: credential.contents.expires.map(Into::into),
             },
         };
 
@@ -91,7 +91,7 @@ impl AttestationPresentation {
         match &credential.copies {
             IssuedCredentialCopies::Mdoc(copies) => Self::create_from_mdoc(
                 AttestationIdentity::Ephemeral,
-                credential.attestation_type.clone(),
+                credential.contents.attestation_type.clone(),
                 credential.metadata.clone(),
                 issuer_organization,
                 validity,
@@ -103,7 +103,7 @@ impl AttestationPresentation {
 
                 Self::create_from_sd_jwt_claims(
                     AttestationIdentity::Ephemeral,
-                    credential.attestation_type.clone(),
+                    credential.contents.attestation_type.clone(),
                     credential.metadata.clone(),
                     issuer_organization,
                     validity,

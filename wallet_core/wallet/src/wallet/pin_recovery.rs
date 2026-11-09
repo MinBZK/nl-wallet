@@ -424,7 +424,7 @@ where
         // Get an SD-JWT copy out of the PID we just received.
         let pid = issuance_result
             .into_iter()
-            .filter(|attestation| attestation.attestation_type == pid_attestation_type)
+            .filter(|attestation| attestation.contents.attestation_type == pid_attestation_type)
             .find_map(|attestation| match attestation.copies {
                 IssuedCredentialCopies::Mdoc(_) => None,
                 IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.into_first().sd_jwt),

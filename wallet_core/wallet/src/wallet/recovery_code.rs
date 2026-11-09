@@ -84,7 +84,7 @@ where
             .find_map(|credential| match &credential.copies {
                 IssuedCredentialCopies::SdJwt(copies) => pid_config
                     .sd_jwt
-                    .get(&credential.attestation_type)
+                    .get(&credential.contents.attestation_type)
                     .map(|pid_claims| (pid_claims, &copies.first().sd_jwt)),
                 _ => None,
             })

@@ -819,7 +819,7 @@ where
         let (pid, pid_paths) = issued_credentials_with_metadata
             .iter()
             .find_map(|cred| {
-                let pid_paths = pid_attributes.sd_jwt.get(&cred.attestation_type)?;
+                let pid_paths = pid_attributes.sd_jwt.get(&cred.contents.attestation_type)?;
 
                 let SdJwtCopy { sd_jwt, .. } = match &cred.copies {
                     IssuedCredentialCopies::Mdoc(_) => None,

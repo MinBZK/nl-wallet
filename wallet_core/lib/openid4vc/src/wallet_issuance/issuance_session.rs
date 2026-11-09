@@ -1193,9 +1193,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let credential_with_metadata = CredentialWithMetadata::new(
             credential_copies,
-            first_credential_payload.contents.attestation_type,
-            first_credential_payload.contents.expires,
-            first_credential_payload.contents.not_before,
+            first_credential_payload.contents,
             extended_attestation_types,
             issued_metadata,
             self.session_state.issuer_registration.clone(),

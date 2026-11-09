@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
@@ -763,9 +764,13 @@ where
                 |(
                     CredentialWithMetadata {
                         copies,
-                        attestation_type,
-                        expiration,
-                        not_before,
+                        contents:
+                            CredentialContents {
+                                attestation_type,
+                                expires,
+                                not_before,
+                                ..
+                            },
                         extended_attestation_types,
                         metadata,
                         issuer_registration,
@@ -779,7 +784,7 @@ where
                         issuer_registration: Set(serde_json::to_value(issuer_registration)?),
                         attestation_type: Set(attestation_type),
                         attestation_format: Set(copies.format().into()),
-                        expiration: Set(expiration.map(Into::into)),
+                        expiration: Set(expires.map(Into::into)),
                         not_before: Set(not_before.map(Into::into)),
                         extended_types: Set(ExtendedTypesModel::new(extended_attestation_types)),
                         metadata: Set(metadata.into()),
@@ -857,8 +862,8 @@ where
             attestation::Entity::update_many()
                 .set(attestation::ActiveModel {
                     issuer_registration: Set(serde_json::to_value(credential.issuer_registration)?),
-                    expiration: Set(credential.expiration.map(Into::into)),
-                    not_before: Set(credential.not_before.map(Into::into)),
+                    expiration: Set(credential.contents.expires.map(Into::into)),
+                    not_before: Set(credential.contents.not_before.map(Into::into)),
                     extended_types: Set(ExtendedTypesModel::new(credential.extended_attestation_types)),
                     metadata: Set(credential.metadata.into()),
                     ..Default::default()
@@ -1898,17 +1903,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_mdoc_copies,
-                        mdoc.doc_type().to_string(),
-                        Some(
-                            (&mdoc.clone().into_components().0.validity_info.valid_until)
-                                .try_into()
-                                .unwrap(),
-                        ),
-                        Some(
-                            (&mdoc.clone().into_components().0.validity_info.valid_from)
-                                .try_into()
-                                .unwrap(),
-                        ),
+                        CredentialContents::from_mdoc(mdoc.clone()).unwrap(),
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
                         issuer_registration.clone(),
@@ -2133,9 +2128,11 @@ pub(crate) mod tests {
                             key_identifier: "mdoc_key_id".to_owned(),
                             mdoc: mdoc.clone(),
                         }]),
-                        mdoc.doc_type().to_owned(),
-                        None,
-                        None,
+                        CredentialContents {
+                            expires: None,
+                            not_before: None,
+                            ..CredentialContents::from_mdoc(mdoc).unwrap()
+                        },
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata),
                         IssuerRegistration::new_mock(),
@@ -2192,17 +2189,7 @@ pub(crate) mod tests {
                             key_identifier: "mdoc_key_id".to_owned(),
                             mdoc: mdoc.clone(),
                         }]),
-                        mdoc.doc_type().to_owned(),
-                        Some(
-                            (&mdoc.clone().into_components().0.validity_info.valid_until)
-                                .try_into()
-                                .unwrap(),
-                        ),
-                        Some(
-                            (&mdoc.clone().into_components().0.validity_info.valid_from)
-                                .try_into()
-                                .unwrap(),
-                        ),
+                        CredentialContents::from_mdoc(mdoc).unwrap(),
                         std::iter::empty::<String>(),
                         IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
                         IssuerRegistration::new_mock(),
@@ -2236,6 +2223,11 @@ pub(crate) mod tests {
         let mdoc = round_trip_mdoc(&mdoc);
 
         let attestation_type = mdoc.doc_type().to_string();
+        let contents = CredentialContents {
+            expires: None,
+            not_before: None,
+            ..CredentialContents::from_mdoc(mdoc.clone()).unwrap()
+        };
 
         storage
             .insert_credentials(
@@ -2246,9 +2238,7 @@ pub(crate) mod tests {
                             key_identifier: "mdoc_key_id".to_string(),
                             mdoc
                         }]),
-                        attestation_type.clone(),
-                        None,
-                        None,
+                        contents,
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
                         IssuerRegistration::new_mock(),
@@ -2286,6 +2276,17 @@ pub(crate) mod tests {
         let mdoc_doc_type = mdoc.doc_type().to_string();
         let sd_jwt_vct = sd_jwt.sd_jwt().claims().vct.clone();
 
+        let mdoc_contents = CredentialContents {
+            expires: None,
+            not_before: None,
+            ..CredentialContents::from_mdoc(mdoc.clone()).unwrap()
+        };
+        let sd_jwt_contents = CredentialContents {
+            expires: None,
+            not_before: None,
+            ..CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap()
+        };
+
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
         storage
@@ -2298,9 +2299,7 @@ pub(crate) mod tests {
                                 key_identifier: "mdoc_key_id".to_string(),
                                 mdoc
                             }]),
-                            mdoc_doc_type.clone(),
-                            None,
-                            None,
+                            mdoc_contents,
                             Vec::<String>::new(),
                             IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
                             IssuerRegistration::new_mock(),
@@ -2313,9 +2312,7 @@ pub(crate) mod tests {
                                 key_identifier: "sd_jwt_key_id".to_string(),
                                 sd_jwt,
                             }]),
-                            sd_jwt_vct.clone(),
-                            None,
-                            None,
+                            sd_jwt_contents,
                             normalized_metadata.extended_vcts(),
                             IssuedCredentialMetadata::nl_pid_example(),
                             IssuerRegistration::new_mock(),
@@ -2495,6 +2492,12 @@ pub(crate) mod tests {
             SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKeyRef::from(holder_key.verifying_key())).into_verified(),
         )
         .unwrap();
+        let contents = CredentialContents {
+            attestation_type: attestation_type.to_string(),
+            expires: None,
+            not_before: None,
+            ..CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap()
+        };
 
         storage
             .insert_credentials(
@@ -2505,9 +2508,7 @@ pub(crate) mod tests {
                             key_identifier: key_identifier.to_string(),
                             sd_jwt,
                         }]),
-                        attestation_type.to_string(),
-                        None,
-                        None,
+                        contents,
                         extended_attestation_types.iter().copied(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
@@ -2696,9 +2697,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        attestation_type.clone(),
-                        sd_jwt.sd_jwt().claims().exp,
-                        sd_jwt.sd_jwt().claims().nbf,
+                        CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap(),
                         normalized_metadata.extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
@@ -2904,9 +2903,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies.clone(),
-                        attestation_type.clone(),
-                        sd_jwt.sd_jwt().claims().exp,
-                        sd_jwt.sd_jwt().claims().nbf,
+                        CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap(),
                         initial_metadata.extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         initial_issuer_registration.clone(),
@@ -3011,9 +3008,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        attestation_type.clone(),
-                        sd_jwt.sd_jwt().claims().exp,
-                        sd_jwt.sd_jwt().claims().nbf,
+                        CredentialContents::from_sd_jwt(sd_jwt).unwrap(),
                         renewed_extended_types,
                         renewed_metadata,
                         renewed_issuer_registration.clone(),
@@ -3305,7 +3300,7 @@ pub(crate) mod tests {
             sd_jwt: sd_jwt.clone()
         }]);
 
-        let attestation_type = sd_jwt.sd_jwt().claims().vct.clone();
+        let contents = CredentialContents::from_sd_jwt(sd_jwt).unwrap();
 
         // Insert sd_jwts
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
@@ -3318,9 +3313,7 @@ pub(crate) mod tests {
                     (
                         CredentialWithMetadata::new(
                             issued_copies.clone(),
-                            attestation_type.clone(),
-                            sd_jwt.sd_jwt().claims().exp,
-                            sd_jwt.sd_jwt().claims().nbf,
+                            contents.clone(),
                             normalized_metadata.extended_vcts(),
                             metadata.clone(),
                             IssuerRegistration::new_mock(),
@@ -3330,9 +3323,7 @@ pub(crate) mod tests {
                     (
                         CredentialWithMetadata::new(
                             issued_copies,
-                            attestation_type,
-                            sd_jwt.sd_jwt().claims().exp,
-                            sd_jwt.sd_jwt().claims().nbf,
+                            contents,
                             normalized_metadata.extended_vcts(),
                             metadata,
                             IssuerRegistration::new_mock(),
@@ -3533,9 +3524,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        sd_jwt.sd_jwt().claims().vct.clone(),
-                        sd_jwt.sd_jwt().claims().exp,
-                        sd_jwt.sd_jwt().claims().nbf,
+                        CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap(),
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
@@ -3682,13 +3671,15 @@ pub(crate) mod tests {
         renewed_presentation.identity = AttestationIdentity::Fixed { id: attestation_id };
         renewed_presentation.attestation_type = "mock_renewed".to_string();
 
+        let sd_jwt = DecodedSdJwt::try_from(
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKeyRef::from(SigningKey::generate().verifying_key()))
+                .into_verified(),
+        )
+        .unwrap();
+        let contents = CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap();
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
             key_identifier: "renewed_key_id".to_string(),
-            sd_jwt: DecodedSdJwt::try_from(
-                SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKeyRef::from(SigningKey::generate().verifying_key()))
-                    .into_verified()
-            )
-            .unwrap()
+            sd_jwt,
         }]);
 
         storage
@@ -3697,9 +3688,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        "urn:eudi:pid:nl:1".to_string(),
-                        None,
-                        None,
+                        contents,
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
