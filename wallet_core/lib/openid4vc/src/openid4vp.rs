@@ -936,7 +936,7 @@ impl VpAuthorizationResponse {
     fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<VpAuthorizationResponse, JweJsonDecryptionError> {
         let decrypter = JweDecrypter::from_ecdh_secret_key(secret_key);
 
-        // Accept only the encryption algorithms anounced in the client metadata.
+        // Accept only the encryption algorithms announced in the client metadata.
         decrypter.decrypt_json(
             jwe,
             ExpectedEncryptionAlgorithm::Algorithms(RESPONSE_ENCRYPTION_ALGORITHMS),
