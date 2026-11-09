@@ -146,6 +146,15 @@ pub struct AccountServerKeys {
     pub instruction_result_signing_key: SigningKey,
 }
 
+impl AccountServerKeys {
+    pub fn generate() -> Self {
+        Self {
+            certificate_signing_key: SigningKey::generate(),
+            instruction_result_signing_key: SigningKey::generate(),
+        }
+    }
+}
+
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
     pub issuance_key: KeyPair,
@@ -195,15 +204,6 @@ pub type TestWalletInMemoryStorage<
 
 /// The account server key material, generated once for testing.
 pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(AccountServerKeys::generate);
-
-impl AccountServerKeys {
-    pub fn generate() -> Self {
-        Self {
-            certificate_signing_key: SigningKey::generate(),
-            instruction_result_signing_key: SigningKey::generate(),
-        }
-    }
-}
 
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
