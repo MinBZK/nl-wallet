@@ -67,8 +67,12 @@ impl CredentialRequest {
         }
     }
 
-    pub fn decrypt(jwe: &str, decrypter: &JweDecrypter) -> Result<Self, JweJsonDecryptionError> {
-        decrypter.decrypt_json(jwe, ExpectedEncryptionAlgorithm::Any, AllowedDecompression::Deflate)
+    pub fn decrypt(
+        jwe: &str,
+        decrypter: &JweDecrypter,
+        allowed_decompression: AllowedDecompression,
+    ) -> Result<Self, JweJsonDecryptionError> {
+        decrypter.decrypt_json(jwe, ExpectedEncryptionAlgorithm::Any, allowed_decompression)
     }
 
     pub fn encrypt(

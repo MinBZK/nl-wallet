@@ -20,7 +20,6 @@ use derive_more::From;
 use derive_more::Into;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
-use jwe::algorithm::CompressionAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::encryption::JwePublicKey;
 use jwk_simple::Algorithm;
@@ -309,7 +308,7 @@ impl CredentialRequestEncryption {
         Self {
             jwks: Jwks::new(vec_nonempty![public_key.into()]),
             enc_values_supported,
-            zip_values_supported: HashSet::from([CompressionAlgorithm::Deflate.into()]),
+            zip_values_supported: HashSet::new(),
             encryption_required: true,
         }
     }

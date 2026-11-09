@@ -32,6 +32,7 @@ use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use jwe::algorithm::EcdhAlgorithm;
+use jwe::decryption::AllowedDecompression;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JwePublicKey;
@@ -1435,9 +1436,14 @@ impl Session<AccessTokenIssued> {
 
         // Decrypt the Credential Request, which should always be encrypted as we publish `encryption_required: true` in
         // the Issuer Metadata.
-        let credential_request =
-            CredentialRequest::decrypt(credential_request_jwe, &issuer_data.credential_request_decrypter)
-                .map_err(CredentialRequestError::Decryption)?;
+        let credential_request = CredentialRequest::decrypt(
+            credential_request_jwe,
+            &issuer_data.credential_request_decrypter,
+            // Disallow Deflate compression in order to prevent a wallet from including zip bombs in the encrypted
+            // Credential Request.
+            AllowedDecompression::None,
+        )
+        .map_err(CredentialRequestError::Decryption)?;
 
         // Verify the received proof of cryptographic key material and collect all of the public keys.
         let public_keys = credential_request
@@ -1739,8 +1745,10 @@ mod tests {
     use crypto::utils::random_string;
     use derive_more::Debug;
     use futures::FutureExt;
+    use jwe::algorithm::CompressionAlgorithm;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwe::encryption::JweEncrypter;
+    use jwe::error::JweDecryptionError;
     use mdoc::MdocStatus;
     use mdoc::verifier::IssuerSignedVerificationResult;
     use mdoc::verifier::ValidityRequirement;
@@ -2481,6 +2489,7 @@ mod tests {
         UnknownProofNonce,
         CredentialConfigurationId,
         UnknownCredentialIdentifier,
+        DeflateCompression,
         JwtProofType,
     }
 
@@ -2595,19 +2604,27 @@ mod tests {
             .unwrap(),
         );
 
-        let credential_request_jwe = if failure == CredentialRequestFailure::JwtProofType {
-            // Because a "jwt" proof will make a `CredentialRequest` fail to serialize, convert to `serde_json::Value`
-            // first before editing the payload.
-            let mut credential_request = serde_json::to_value(credential_request).unwrap();
+        let credential_request_jwe = match failure {
+            CredentialRequestFailure::DeflateCompression => credential_request
+                .encrypt(
+                    &credential_request_encrypter,
+                    EncryptionAlgorithm::A128Gcm,
+                    Some(CompressionAlgorithm::Deflate),
+                )
+                .unwrap(),
+            CredentialRequestFailure::JwtProofType => {
+                // Because a "jwt" proof will make a `CredentialRequest` fail to serialize, convert to
+                // `serde_json::Value` first before editing the payload.
+                let mut credential_request = serde_json::to_value(credential_request).unwrap();
 
-            credential_request["proofs"] = json!({"jwt": ["eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.e30.c2ln"]});
-            credential_request_encrypter
-                .encrypt_json(&credential_request, EncryptionAlgorithm::A128Gcm, None, None, None)
-                .unwrap()
-        } else {
-            credential_request
+                credential_request["proofs"] = json!({"jwt": ["eyJ0eXAiOiJvcGVuaWQ0dmNpLXByb29mK2p3dCJ9.e30.c2ln"]});
+                credential_request_encrypter
+                    .encrypt_json(&credential_request, EncryptionAlgorithm::A128Gcm, None, None, None)
+                    .unwrap()
+            }
+            _ => credential_request
                 .encrypt(&credential_request_encrypter, EncryptionAlgorithm::A128Gcm, None)
-                .unwrap()
+                .unwrap(),
         };
 
         // Create a fixture to populate the `Issuer` session, containing the `PreparedCredential`.
@@ -2846,7 +2863,29 @@ mod tests {
         assert_matches!(error, CredentialRequestError::InvalidAttestationProof(_));
     }
 
-    #[rstest]
+    #[tokio::test]
+    async fn test_process_credential_request_error_decryption_deflate() {
+        // Compress the encrypted Credential Request with Deflate, which the Issuer should reject.
+        let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
+            setup_mock_issuer_and_credential_request(
+                Format::SdJwt,
+                NonZeroUsize::MIN,
+                CredentialRequestFailure::DeflateCompression,
+            );
+
+        let error = issuer
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
+            .await
+            .expect_err("processing CredentialRequest should fail");
+
+        assert_matches!(
+            error,
+            CredentialRequestError::Decryption(JweJsonDecryptionError::JweDecryption(JweDecryptionError::Decryption(
+                _
+            )))
+        );
+    }
+
     #[tokio::test]
     async fn test_process_credential_request_error_proof_type_unsupported() {
         // Replace the proofs with ones of the "jwt" proof type, which the issuer does not support.
