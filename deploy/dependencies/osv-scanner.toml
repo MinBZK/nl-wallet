@@ -6,7 +6,7 @@ reason = "False positive due to our own crate named `jwt`"
 [[IgnoredVulns]]
 id = "RUSTSEC-2023-0071"
 ignoreUntil = 2027-01-01
-reason = "The vulnerability pertains to the use of RSA _private_ keys in the `rsa` crate. We only use this crate to evaluate RSA _public_ keys as found in certificates."
+reason = "`rsa` version 0.9 is a transitive dependency of `jsonwebtoken`. Waiting for `jsonwebtoken` to upgrade."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2025-0141"
