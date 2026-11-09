@@ -41,6 +41,9 @@ impl WalletDatabasePayload {
         let export = decrypter.decrypt_json(
             jwe,
             ExpectedEncryptionAlgorithm::Algorithms(&[ENCRYPTION_ALGORITHM]),
+            // Explicitly allow Deflate compression in the JWE payload of a transferred Wallet database. We can trust
+            // that the Wallet that sends this payload is not a malicious actor sending a zip bomb, as at this point we
+            // know that they hold a PID with the same Recovery Code as us.
             AllowedDecompression::Deflate,
         )?;
 
