@@ -38,6 +38,7 @@ use super::Wallet;
 use super::WalletRegistration;
 use super::issuance::PidAttestationFormat;
 use super::recovery_code::RecoveryCodeError;
+use super::recovery_code::recovery_code_from_preview;
 use crate::account_provider::AccountProviderClient;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::errors::InstructionError;
@@ -267,7 +268,7 @@ where
             pid_config,
         )?;
 
-        self.compare_recovery_code_against_stored(pid_preview, pid_config)
+        self.compare_recovery_code_against_stored(recovery_code_from_preview(pid_preview, pid_config)?, pid_config)
             .await?;
 
         let pid_attestation_type = pid_preview.attestation_type.clone();

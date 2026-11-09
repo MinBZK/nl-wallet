@@ -539,10 +539,9 @@ where
         issuance_session: CID::Issuance,
         pid_purpose: Option<PidIssuancePurpose>,
     ) -> Result<IssuanceContinueResult, IssuanceError> {
-        let preview_attestations = match (pid_purpose, issuance_session.credential_previews()) {
-            (Some(_), None) => return Err(IssuanceError::MissingPidPreviews),
-            (_, None) => None,
-            (pid_purpose, Some(previews)) => {
+        let preview_attestations = match issuance_session.credential_previews() {
+            None => None,
+            Some(previews) => {
                 let previews = previews.collect();
                 let organization = issuance_session.issuer_registration().organization();
 
@@ -580,12 +579,6 @@ where
             .collect();
 
         let config = self.config_repository.get();
-        if pid_purpose.is_some() {
-            let pid_preview = Self::pid_preview(credential_previews.iter().copied(), &config.pid_attributes)?;
-
-            self.compare_recovery_code_against_stored(pid_preview, &config.pid_attributes)
-                .await?;
-        }
 
         let stored = self
             .storage
@@ -704,6 +697,13 @@ where
         self.session = None;
 
         let transfer_session_id = if pid_purpose.is_some() {
+            // Check the recovery code in the issued PID against the one in the stored PID, if any. The issued PID is
+            // not stored yet, so on a mismatch the issued credentials can simply be dropped.
+            let issued_recovery_code =
+                Self::recovery_code_from_credentials(&issued_credentials_with_metadata, &config.pid_attributes)?;
+            self.compare_recovery_code_against_stored(issued_recovery_code, &config.pid_attributes)
+                .await?;
+
             info!("This is a PID issuance session, therefore disclosing recovery code");
             self.disclose_recovery_code(
                 &config.pid_attributes,
@@ -922,6 +922,8 @@ mod tests {
     use std::ops::Add;
     use std::sync::LazyLock;
 
+    use attestation_data::attributes::Attribute;
+    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -944,6 +946,7 @@ mod tests {
     use p256::elliptic_curve::Generate;
     use rstest::rstest;
     use sd_jwt::sd_jwt::DecodedSdJwt;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
@@ -972,6 +975,7 @@ mod tests {
     use crate::storage::WithKeyIdentifier;
     use crate::wallet::state::CancelSessionError;
     use crate::wallet::test::AUTH_URL;
+    use crate::wallet::test::ISSUER_KEY;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_pid_credential_payload;
     use crate::wallet::test::create_example_pid_mdoc;
@@ -980,6 +984,7 @@ mod tests {
     use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::create_preview_from_payload;
     use crate::wallet::test::create_wp_result;
+    use crate::wallet::test::decoded_sd_jwt_from_credential_payload;
     use crate::wallet::test::mock_issuance_session;
 
     #[rstest]
@@ -1733,8 +1738,13 @@ mod tests {
         );
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_prepare_issuance_acceptance_without_previews() {
+    async fn test_prepare_issuance_acceptance_without_previews(
+        #[values(None, Some(PidIssuancePurpose::Enrollment), Some(PidIssuancePurpose::Renewal))] purpose: Option<
+            PidIssuancePurpose,
+        >,
+    ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let mut issuance_session = MockIssuanceSession::new();
@@ -1746,7 +1756,7 @@ mod tests {
             .return_const(IssuerRegistration::new_mock());
 
         let result = wallet
-            .prepare_issuance_acceptance(issuance_session, None)
+            .prepare_issuance_acceptance(issuance_session, purpose)
             .await
             .expect("Could not prepare issuance acceptance");
 
@@ -1755,27 +1765,13 @@ mod tests {
             IssuanceContinueResult::NoPreviews { issuer }
                 if &*issuer == IssuerRegistration::new_mock().organization()
         );
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_prepare_issuance_acceptance_error_missing_pid_previews(
-        #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
-    ) {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        let mut issuance_session = MockIssuanceSession::new();
-        issuance_session
-            .expect_credential_previews()
-            .return_const(MockIssuanceSessionCredentialPreviews::none());
-
-        let error = wallet
-            .prepare_issuance_acceptance(issuance_session, Some(purpose))
-            .await
-            .expect_err("preparing PID issuance acceptance without previews should not succeed");
-
-        assert_matches!(error, IssuanceError::MissingPidPreviews);
-        assert!(wallet.session.is_none());
+        assert_eq!(
+            wallet.session.as_ref().and_then(|session| match session {
+                Session::Issuance(session) => session.pid_purpose(),
+                _ => None,
+            }),
+            purpose
+        );
     }
 
     const OFFER_URI: &str =
@@ -2020,6 +2016,12 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .times(1)
+            .returning(|_| Ok(vec![]));
 
         wallet
             .mut_storage()
@@ -2439,8 +2441,89 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::MissingPidSdJwt);
+        assert_matches!(error, IssuanceError::RecoveryCode(RecoveryCodeError::MissingPid));
 
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_incorrect_recovery_code() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Have the mock OpenID4VCI session issue an SD-JWT PID.
+        let (sd_jwt_credential, metadata_documents, _) = sd_jwt_pid();
+        let (pid_issuer, attestations) =
+            mock_issuance_session([(sd_jwt_credential, metadata_documents)], Some(NonZeroU8::MAX));
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Renewal,
+            session_state: SessionState::Issuance {
+                preview_attestations: Some(attestations),
+                protocol_state: pid_issuer,
+            },
+        }));
+
+        // Have the storage contain a PID with a different recovery code than the issued PID.
+        let (mut credential_payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        credential_payload
+            .previewable_payload
+            .attributes
+            .overwrite(["recovery_code"], Attribute::Text("other_recovery_code".to_string()));
+        let metadata = NormalizedTypeMetadata::nl_pid_example();
+        let stored_sd_jwt =
+            decoded_sd_jwt_from_credential_payload(credential_payload, Some(&metadata), &ISSUER_KEY.issuance_key);
+        let stored_copy = StoredAttestationCopy::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            ValidityWindow::new_valid_mock(),
+            WithKeyIdentifier {
+                key_identifier: "key_id".to_string(),
+                data: StoredAttestation::SdJwt(stored_sd_jwt),
+            },
+            StoredAttestationMetadata::TypeMetadata(metadata),
+            None,
+            IssuerRegistration::new_mock(),
+        );
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .times(1)
+            .return_once(|_| Ok(vec![stored_copy]));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        // Accepting PID issuance should result in an error, without the issued credentials being stored (no
+        // expectation for `insert_credentials()`) or the recovery code being disclosed.
+        let error = wallet
+            .accept_issuance(PIN.clone())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. })
+        );
+
+        assert!(wallet.session.is_none());
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());
     }
@@ -2467,6 +2550,12 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .times(1)
+            .returning(|_| Ok(vec![]));
 
         wallet
             .mut_storage()

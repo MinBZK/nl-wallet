@@ -73,7 +73,6 @@ where
     }
 
     /// Find the recovery code in the first SD-JWT PID among the newly issued credentials.
-    #[expect(dead_code, reason = "used in a follow-up commit")]
     pub(super) fn recovery_code_from_credentials<'a>(
         credentials: &'a [CredentialWithMetadata],
         pid_config: &PidAttributesConfiguration,
@@ -95,20 +94,12 @@ where
             .ok_or(RecoveryCodeError::MissingIssuedRecoveryCode)
     }
 
-    /// Check the recovery code in the specified PID preview against the one in storage, if present.
+    /// Check the received recovery code against the one in storage, if present.
     pub(super) async fn compare_recovery_code_against_stored(
         &self,
-        pid_preview: &PreviewableCredentialPayload,
+        received_recovery_code: &str,
         pid_config: &PidAttributesConfiguration,
     ) -> Result<(), RecoveryCodeError> {
-        let received_recovery_code = retrieve_recovery_code_from_pid(
-            &pid_preview.attributes,
-            &pid_config
-                .sd_jwt_recovery_code_path(&pid_preview.attestation_type)
-                .map_err(RecoveryCodeError::PidAttributesConfiguration)?,
-        )
-        .ok_or(RecoveryCodeError::MissingIssuedRecoveryCode)?;
-
         // Fetch the the recovery code of the previously issued PID, return early if this is the first time we are
         // receiving the PID.
         let Some(stored_recovery_code) = self.stored_recovery_code(pid_config).await? else {
@@ -158,7 +149,19 @@ where
     }
 }
 
-#[expect(dead_code, reason = "used in a follow-up commit")]
+/// Find the recovery code in the specified PID preview.
+pub(super) fn recovery_code_from_preview<'a>(
+    pid_preview: &'a PreviewableCredentialPayload,
+    pid_config: &PidAttributesConfiguration,
+) -> Result<&'a str, RecoveryCodeError> {
+    let recovery_code_path = pid_config
+        .sd_jwt_recovery_code_path(&pid_preview.attestation_type)
+        .map_err(RecoveryCodeError::PidAttributesConfiguration)?;
+
+    retrieve_recovery_code_from_pid(&pid_preview.attributes, &recovery_code_path)
+        .ok_or(RecoveryCodeError::MissingIssuedRecoveryCode)
+}
+
 fn retrieve_recovery_code_from_decoded_claims<'a>(
     decoded_claims: &'a ObjectClaims,
     recovery_code_path: &VecNonEmpty<ClaimName>,
