@@ -1,31 +1,31 @@
 # Deploying to PUB
 
-PUB rollouts are complete deployments: bump the version, block old app
-versions, deploy the backend, then build, verify and promote both Android
-and iOS apps.
-
-Feature MRs usually prepare the required DEMO and PUB configuration changes
-alongside ONT, without deploying them to DEMO or PUB. Include those prepared
-changes in the PUB rollout.
+Every PUB rollout also deploys `nl-wallet-secrets` and `nl-wallet-static`
+to PUB. Feature MRs may already have merged changes to secrets and wallet
+configuration without deploying them. The selected `nl-wallet` version can
+depend on those changes, so deploy them before the backend and apps.
 
 ## Deployment checklist
 
-1. **Review prepared configuration.** Identify the PUB changes needed by
-   features since the previous rollout. Include them using
-   [Configuration](#configuration), even if they were merged earlier.
-2. **Bump the version.** Follow
+1. **Prepare backend values and bump the version.** Ensure the required
+   [backend values](#configuration) are merged, then follow
    [Version bump and release notes](#version-bump-and-release-notes).
-3. **Block old app versions.** Follow
-   [Update-policy deployment](#update-policy-deployment) and verify that an
+2. **Deploy PUB secrets and block old app versions.** Deploy `main` from
+   `nl-wallet-secrets` using
+   [Update-policy deployment](#update-policy-deployment). This also applies
+   previously merged PUB configuration and secret changes. Verify that an
    old app is blocked before deploying the backend. PUB users may be unable
    to use the wallet until the replacement builds are available; this
    interruption is accepted for PUB rollouts.
+3. **Deploy PUB static files and wallet configuration.** Deploy `main` from
+   `nl-wallet-static` using [Configuration](#configuration), including
+   publishing the signed wallet configuration. This deploys previously
+   merged changes that the selected `nl-wallet` version may rely on.
+   Wait for these jobs to succeed before deploying the backend or building
+   the apps.
 4. **Deploy the backend.** Run [**`deploy-apps-pub`**][backend]. Wait for its
    child deployments and migrations to succeed.
-5. **Build and upload the apps.** If this rollout changes the signed wallet
-   configuration, publish it first (see
-   [Configuration](#configuration)). Then run
-   [**`build-pub-trigger`**][mobile]. Wait for
+5. **Build and upload the apps.** Run [**`build-pub-trigger`**][mobile]. Wait for
    `deploy-android-app-pub` and `deploy-ios-app-pub` in its child pipeline.
    CI uploads to Google Play **internal testing** and **TestFlight**;
    promotion happens in the store consoles.
@@ -42,8 +42,9 @@ changes in the PUB rollout.
    review and release action to finish, then confirm the PUB audience can
    install both builds and check service health.
 
-Use the **same main pipeline** for both triggers and check their **child
-pipelines**: a green parent does not prove deployment succeeded.
+Use the **same `nl-wallet` main pipeline** for `deploy-apps-pub` and
+`build-pub-trigger`. Check their **child pipelines**: a green parent does
+not prove deployment succeeded.
 
 ## Version bump and release notes
 
@@ -99,17 +100,21 @@ from `nl-wallet-secrets`. Pods restart automatically when required.
 
 ## Configuration
 
-- **ConfigMaps and secrets:** include the prepared PUB changes from
-  `nl-wallet-secrets` when deploying the
-  [update policy](#update-policy-deployment).
+- **ConfigMaps and secrets:** deploy `nl-wallet-secrets` from `main` with
+  `apply-configmaps-pub` and its dependent `apply-secrets-pub` job, as part
+  of [Update-policy deployment](#update-policy-deployment). These jobs apply
+  all PUB configuration and secrets, including previously merged changes.
 - **Backend values:** ensure the prepared PUB changes in
   [deploy-variables][variables] are merged before creating the selected
   pipeline, or regenerate its deployment artifacts.
   The mobile child fetches values again later; keep them compatible.
-- **Signed wallet configuration:** publish the prepared changes to
-  `wallet-config-pub.json` in [nl-wallet-static][static-ci] by running
-  `wallet-config-pub` and the manual `publish-config-pub` before building
-  apps. Use a freshly signed artifact.
+- **Static files:** in a fresh `main` pipeline in
+  [nl-wallet-static][static-ci], run `deploy-pub` and wait for it to finish,
+  then run `publish-assets-pub` to publish the repository's static assets.
+- **Signed wallet configuration:** in the same pipeline, ensure
+  `wallet-config-pub` has succeeded and run the manual `publish-config-pub`
+  to publish the current `wallet-config-pub.json` from `main`. Use its
+  freshly signed artifact. `deploy-pub` alone does not publish this file.
   Existing apps also fetch this configuration. Scheduled `republish-config-pub`
   only renews the live configuration; it does not publish repository changes.
 
