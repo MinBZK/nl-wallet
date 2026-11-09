@@ -9,8 +9,8 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
@@ -244,7 +244,7 @@ pub fn create_preview_from_payload(
         credential_id: "credential_id".to_string().into(),
         config_id,
         format,
-        credential_payload: credential_payload.previewable_payload,
+        credential_payload: credential_payload.contents,
     }
 }
 
@@ -322,7 +322,7 @@ pub fn decoded_sd_jwt_from_credential_payload(
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID, along with the Credential Metadata that describes it.
 pub fn create_example_pid_mdoc(holder_key: &SigningKey) -> (Mdoc, CredentialMetadata) {
-    let preview_payload = PreviewableCredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default());
+    let preview_payload = CredentialContents::nl_pid_mdoc_example(&MockTimeGenerator::default());
     let metadata = nl_pid_mdoc_credential_metadata_example();
 
     let mdoc = mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key, holder_key);
@@ -330,7 +330,7 @@ pub fn create_example_pid_mdoc(holder_key: &SigningKey) -> (Mdoc, CredentialMeta
 }
 
 /// The Credential Metadata describing [`Attributes::nl_pid_mdoc_example()`] /
-/// [`PreviewableCredentialPayload::nl_pid_mdoc_example()`].
+/// [`CredentialContents::nl_pid_mdoc_example()`].
 pub fn nl_pid_mdoc_credential_metadata_example() -> CredentialMetadata {
     CredentialMetadata::new_mdoc_example(
         PID_MDOC_DOCTYPE,
@@ -345,13 +345,13 @@ pub fn nl_pid_mdoc_credential_metadata_example() -> CredentialMetadata {
     )
 }
 
-/// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
+/// Generates a valid [`Mdoc`], based on a [`CredentialContents`] and issuer key.
 pub fn mdoc_from_credential_payload(
-    preview_payload: PreviewableCredentialPayload,
+    preview_payload: CredentialContents,
     issuer_keypair: &KeyPair,
     holder_key: &SigningKey,
 ) -> Mdoc {
-    let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
+    let (issuer_signed, mso) = CredentialPayload::from_contents_unvalidated(
         preview_payload,
         Utc::now(),
         &PublicKeyRef::from(holder_key.verifying_key()),
@@ -829,7 +829,7 @@ fn example_stored_attestation_copy_with_issuer_keypair(
 ) -> StoredAttestationCopy {
     let attestation = match (format, &metadata) {
         (Format::MsoMdoc, StoredAttestationMetadata::CredentialMetadata(_)) => StoredAttestation::MsoMdoc(
-            mdoc_from_credential_payload(credential_payload.previewable_payload, issuer_keypair, holder_key),
+            mdoc_from_credential_payload(credential_payload.contents, issuer_keypair, holder_key),
         ),
         (Format::SdJwt, StoredAttestationMetadata::TypeMetadata(type_metadata)) => StoredAttestation::SdJwt(
             decoded_sd_jwt_from_credential_payload(credential_payload, Some(type_metadata), issuer_keypair),
@@ -900,7 +900,7 @@ pub fn example_pid_address_payload_and_metadata(format: Format) -> (CredentialPa
 }
 
 /// The Credential Metadata describing [`Attributes::nl_pid_address_mdoc_example()`] /
-/// [`PreviewableCredentialPayload::nl_pid_address_mdoc_example()`].
+/// [`CredentialContents::nl_pid_address_mdoc_example()`].
 pub fn nl_pid_address_mdoc_credential_metadata_example() -> CredentialMetadata {
     CredentialMetadata::new_mdoc_example(
         ADDRESS_ATTESTATION_TYPE,

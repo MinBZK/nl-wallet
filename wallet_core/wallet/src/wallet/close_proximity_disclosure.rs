@@ -1577,7 +1577,7 @@ mod tests {
 
         // Create three PID attestations, which differ only in their given name.
         let (mut pid_credential_payload, pid_metadata, _) = example_pid_payload_and_metadata(Format::MsoMdoc);
-        let attributes = &mut pid_credential_payload.previewable_payload.attributes;
+        let attributes = &mut pid_credential_payload.contents.attributes;
         attributes.overwrite([PID_MDOC_DOCTYPE, PID_GIVEN_NAME], Attribute::Text("Jane".to_string()));
         let pid1 = example_stored_attestation_copy(
             Format::MsoMdoc,
@@ -1588,7 +1588,7 @@ mod tests {
 
         let (pid2, _) = example_pid_stored_attestation_copy(Format::MsoMdoc);
 
-        let attributes = &mut pid_credential_payload.previewable_payload.attributes;
+        let attributes = &mut pid_credential_payload.contents.attributes;
         attributes.overwrite([PID_MDOC_DOCTYPE, PID_GIVEN_NAME], Attribute::Text("John".to_string()));
         let pid3 = example_stored_attestation_copy(
             Format::MsoMdoc,

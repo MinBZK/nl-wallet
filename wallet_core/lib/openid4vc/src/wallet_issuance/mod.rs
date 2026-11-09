@@ -15,9 +15,9 @@ use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 
 use attestation_data::attributes::AttributesError;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
 use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_data::metadata::ClaimConstraint;
 use attestation_types::credential_format::Format;
@@ -103,8 +103,8 @@ pub enum WalletIssuanceError {
     #[error("mismatch between issued and previewed credential, issued: {actual:?} , previewed: {expected:?}")]
     #[category(pd)]
     IssuedCredentialMismatch {
-        actual: Box<PreviewableCredentialPayload>,
-        expected: Box<PreviewableCredentialPayload>,
+        actual: Box<CredentialContents>,
+        expected: Box<CredentialContents>,
     },
 
     #[error("mdoc verification failed: {0}")]
@@ -470,7 +470,7 @@ impl AttestationClaims for OfferedCredentialMetadata {
 #[derive(Debug, Clone, Copy)]
 pub struct OfferedCredentialPreview<'a> {
     pub format: Format,
-    pub credential_payload: &'a PreviewableCredentialPayload,
+    pub credential_payload: &'a CredentialContents,
     pub metadata: &'a OfferedCredentialMetadata,
 }
 

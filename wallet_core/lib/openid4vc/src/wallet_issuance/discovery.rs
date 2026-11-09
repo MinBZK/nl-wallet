@@ -809,7 +809,7 @@ mod test {
     use std::collections::HashSet;
     use std::sync::LazyLock;
 
-    use attestation_data::credential_payload::PreviewableCredentialPayload;
+    use attestation_data::credential_payload::CredentialContents;
     use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
     use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
     use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
@@ -1204,7 +1204,7 @@ mod test {
             TypeMetadata::example_with_claim_name(PID_ATTESTATION_TYPE, "family_name"),
         );
 
-        let credential_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
+        let credential_payload = CredentialContents::example_family_name(&MockTimeGenerator::default());
 
         let preview = CredentialPreview {
             credential_id: CREDENTIAL_ID.to_string().into(),

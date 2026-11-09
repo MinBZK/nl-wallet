@@ -2112,7 +2112,7 @@ pub(crate) mod tests {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         let (credential_payload, holder_key) = CredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default());
-        let mdoc = mdoc_from_credential_payload(credential_payload.previewable_payload, &ISSUER_KEY, &holder_key);
+        let mdoc = mdoc_from_credential_payload(credential_payload.contents, &ISSUER_KEY, &holder_key);
         let mdoc = round_trip_mdoc(&mdoc);
 
         let mut credential_metadata = nl_pid_mdoc_credential_metadata_example();
@@ -2968,9 +2968,8 @@ pub(crate) mod tests {
         // Renew just before the original expiry, with a later expiry or no validity bounds.
         let renewal_time = initial_expiration - Days::new(1);
         let (mut payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::new(renewal_time));
-        payload.previewable_payload.not_before = with_optional_fields.then_some(renewal_time.into());
-        payload.previewable_payload.expires =
-            with_optional_fields.then_some((initial_expiration + Days::new(365)).into());
+        payload.contents.not_before = with_optional_fields.then_some(renewal_time.into());
+        payload.contents.expires = with_optional_fields.then_some((initial_expiration + Days::new(365)).into());
         let sd_jwt = decoded_sd_jwt_from_credential_payload(
             payload,
             match &renewed_metadata {
@@ -3377,7 +3376,7 @@ pub(crate) mod tests {
                         revocation_status: None,
                         validity_window: ValidityWindow::new_valid_mock(),
                     },
-                    &payload.previewable_payload.attributes,
+                    &payload.contents.attributes,
                     &EmptyPresentationConfig,
                 )
                 .unwrap()

@@ -5,8 +5,8 @@ use anyhow::Result;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::Attribute;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::registration_certificate::ParsedRegistrationCertificate;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
 use attestation_data::registration_certificate::mock::STATUS_LIST_URI;
@@ -162,12 +162,12 @@ impl<C> Fixture<C> {
         config.account_server.instruction_result_public_keys =
             HashMap::from([(account_key.kid().try_into()?, (*account_key.verifying_key()).into())]);
 
-        let mut preview = PreviewableCredentialPayload::nl_pid_mdoc_example(&TimeGenerator);
+        let mut preview = CredentialContents::nl_pid_mdoc_example(&TimeGenerator);
         preview.attributes.overwrite(
             [PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
             Attribute::Text(EXPECTED_GIVEN_NAME.to_owned()),
         );
-        let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
+        let (issuer_signed, mso) = CredentialPayload::from_contents_unvalidated(
             preview,
             Utc::now(),
             &PublicKeyRef::from(holder_key.verifying_key()),

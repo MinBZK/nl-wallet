@@ -265,7 +265,7 @@ fn verify_issued_credentials<'a>(
             IssuedCredentialCopies::SdJwt(sd_jwts) => {
                 sd_jwts.into_iter().for_each(|sd_jwt_copy| {
                     let payload = CredentialPayload::from_sd_jwt(sd_jwt_copy.sd_jwt).unwrap();
-                    assert_eq!(&payload.previewable_payload, preview.credential_payload);
+                    assert_eq!(&payload.contents, preview.credential_payload);
                 });
             }
         });

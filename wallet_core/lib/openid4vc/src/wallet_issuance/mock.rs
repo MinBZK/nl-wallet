@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::num::NonZeroU8;
 
-use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_types::credential_format::Format;
 use jwt::nonce::Nonce;
 use nonempty_collections::IntoNonEmptyIterator;
@@ -152,7 +152,7 @@ impl AuthorizationSession for MockAuthorizationSession {
 /// Helper type that allows `mockall` to return references from a mocked method. `None` represents a session without
 /// previews.
 pub struct MockIssuanceSessionCredentialPreviews(
-    Option<VecNonEmpty<(Format, PreviewableCredentialPayload, OfferedCredentialMetadata)>>,
+    Option<VecNonEmpty<(Format, CredentialContents, OfferedCredentialMetadata)>>,
 );
 
 impl MockIssuanceSessionCredentialPreviews {

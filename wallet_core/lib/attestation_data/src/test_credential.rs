@@ -46,8 +46,8 @@ use utils::vec_nonempty;
 use crate::attributes::Attribute;
 use crate::attributes::Attributes;
 use crate::attributes::AttributesTraversalBehaviour;
+use crate::credential_payload::CredentialContents;
 use crate::credential_payload::CredentialPayload;
-use crate::credential_payload::PreviewableCredentialPayload;
 use crate::disclosure::DisclosedAttestations;
 use crate::disclosure::DisclosedAttributes;
 
@@ -74,7 +74,7 @@ pub struct TestCredentials(VecNonEmpty<TestCredential>);
 /// * Construct example values, based on the PID and address credential types.
 #[derive(Debug, Clone)]
 pub struct TestCredential {
-    sd_jwt_payload_preview: PreviewableCredentialPayload,
+    sd_jwt_payload_preview: CredentialContents,
     mdoc_doctype: String,
     mdoc_attributes: Attributes,
     #[debug(skip)]
@@ -200,7 +200,7 @@ impl Add for TestCredentials {
 impl TestCredential {
     #[expect(clippy::too_many_arguments, reason = "test constructor")]
     pub fn new<'a>(
-        sd_jwt_payload_preview: PreviewableCredentialPayload,
+        sd_jwt_payload_preview: CredentialContents,
         mdoc_doctype: String,
         mdoc_attributes: Attributes,
         type_metadata_documents: Option<TypeMetadataDocuments>,
@@ -318,8 +318,8 @@ impl TestCredential {
         let holder_key = wscd.create_random_key();
 
         let StatusClaim::StatusList(status) = &self.status;
-        let credential_payload = CredentialPayload::from_previewable_credential_payload(
-            PreviewableCredentialPayload {
+        let credential_payload = CredentialPayload::from_contents(
+            CredentialContents {
                 attestation_type,
                 attributes,
                 ..self.sd_jwt_payload_preview.clone()
@@ -460,7 +460,7 @@ impl TestCredential {
         let (_, type_metadata_documents) = TypeMetadataDocuments::nl_pid_example();
 
         Self::new(
-            PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             PID_MDOC_DOCTYPE.to_owned(),
             Attributes::nl_pid_mdoc_example(),
             Some(type_metadata_documents),
@@ -520,7 +520,7 @@ impl TestCredential {
         let (_, type_metadata_documents) = TypeMetadataDocuments::nl_address_example();
 
         Self::new(
-            PreviewableCredentialPayload::nl_pid_address_example(&MockTimeGenerator::default()),
+            CredentialContents::nl_pid_address_example(&MockTimeGenerator::default()),
             PID_MDOC_DOCTYPE.to_owned(),
             Attributes::nl_pid_address_mdoc_example(),
             Some(type_metadata_documents),

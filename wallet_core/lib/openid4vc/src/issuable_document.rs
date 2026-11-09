@@ -1,6 +1,6 @@
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::credential_kind::CredentialKind;
 use chrono::DateTime;
@@ -65,12 +65,12 @@ impl IssuableDocument {
         Ok(())
     }
 
-    pub fn into_id_and_previewable_credential_payload(
+    pub fn into_id_and_credential_contents(
         self,
         valid_from: DateTime<Utc>,
         valid_until: DateTime<Utc>,
-    ) -> (Uuid, PreviewableCredentialPayload) {
-        let payload = PreviewableCredentialPayload {
+    ) -> (Uuid, CredentialContents) {
+        let payload = CredentialContents {
             attestation_type: self.credential_kind.attestation_type,
             expires: Some(valid_until.into()),
             not_before: Some(valid_from.into()),

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 
-use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_kind::CredentialKindRef;
@@ -861,10 +861,7 @@ fn match_preview_and_stored_attestations<'a>(
         .map(|copy| {
             let attestation_id = copy.attestation_id();
 
-            (
-                attestation_id,
-                (copy.format(), copy.into_previewable_credential_payload()),
-            )
+            (attestation_id, (copy.format(), copy.into_credential_contents()))
         })
         .collect::<HashMap<_, _>>();
 
@@ -909,8 +906,8 @@ fn match_preview_and_stored_attestations<'a>(
 }
 
 fn compare_contents(
-    preview: &PreviewableCredentialPayload,
-    stored_preview: &PreviewableCredentialPayload,
+    preview: &CredentialContents,
+    stored_preview: &CredentialContents,
     time_generator: &impl Generator<DateTime<Utc>>,
 ) -> bool {
     preview.matches_existing(stored_preview, time_generator)
@@ -2471,7 +2468,7 @@ mod tests {
         // Have the storage contain a PID with a different recovery code than the issued PID.
         let (mut credential_payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
         credential_payload
-            .previewable_payload
+            .contents
             .attributes
             .overwrite(["recovery_code"], Attribute::Text("other_recovery_code".to_string()));
         let metadata = NormalizedTypeMetadata::nl_pid_example();

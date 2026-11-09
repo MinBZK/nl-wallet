@@ -1,6 +1,6 @@
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
@@ -57,7 +57,7 @@ where
     pub(super) fn pid_preview<'a>(
         mut previews: impl Iterator<Item = OfferedCredentialPreview<'a>>,
         pid_config: &PidAttributesConfiguration,
-    ) -> Result<&'a PreviewableCredentialPayload, RecoveryCodeError> {
+    ) -> Result<&'a CredentialContents, RecoveryCodeError> {
         // Find the first preview that is in SD-JWT format and has one of the required `vct` values. In theory there
         // could be more credentials in the preview that match, but we assume the caller just needs a single PID
         // preview, so simply ignore any subsequent matches.
@@ -151,7 +151,7 @@ where
 
 /// Find the recovery code in the specified PID preview.
 pub(super) fn recovery_code_from_preview<'a>(
-    pid_preview: &'a PreviewableCredentialPayload,
+    pid_preview: &'a CredentialContents,
     pid_config: &PidAttributesConfiguration,
 ) -> Result<&'a str, RecoveryCodeError> {
     let recovery_code_path = pid_config
