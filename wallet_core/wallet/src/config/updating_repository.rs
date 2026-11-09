@@ -10,7 +10,7 @@ use crypto::kid::VerifyingKeyWithKid;
 use error_category::sentry::classify_mask_and_capture;
 use http_utils::client::TlsPinningConfig;
 use parking_lot::Mutex;
-use rand::Rng;
+use rand::RngExt;
 use tokio::task::JoinHandle;
 use tokio::time;
 use tracing::error;
@@ -54,7 +54,7 @@ fn expired_retry_delay(retry_interval: Duration, failed_attempts: u32) -> Durati
         .saturating_mul(failed_attempts.max(1))
         .min(EXPIRED_RETRY_MAX_INTERVAL);
 
-    let jitter = rand::thread_rng().gen_range(-EXPIRED_RETRY_JITTER..=EXPIRED_RETRY_JITTER);
+    let jitter = rand::rng().random_range(-EXPIRED_RETRY_JITTER..=EXPIRED_RETRY_JITTER);
 
     delay.mul_f64(1.0 + jitter)
 }
@@ -72,7 +72,7 @@ fn valid_config_delay(config: &WalletConfiguration, update_frequency: Duration, 
     // the very same instant. Note that this only ever moves the attempt earlier: doing so is free, as it simply
     // replaces a configuration that is still valid, whereas moving it later would leave a window in which the
     // configuration is expired without any attempt having been made to replace it.
-    let jitter = rand::thread_rng().gen_range(1.0 - EXPIRED_RETRY_JITTER..=1.0);
+    let jitter = rand::rng().random_range(1.0 - EXPIRED_RETRY_JITTER..=1.0);
 
     update_frequency.min(until_expired.mul_f64(jitter))
 }

@@ -42,7 +42,6 @@ use jsonwebtoken::Validation;
 use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::jwk::JwkSet;
 use p256::ecdsa::Signature;
-use rsa::RsaPublicKey;
 use rsa::traits::PublicKeyParts;
 use serde::Deserialize;
 use serde::Deserializer;
@@ -885,9 +884,9 @@ impl From<&PublicKey> for JwtDecodingKey {
 }
 
 impl JwtDecodingKey {
-    fn from_rsa_public_key(key: &RsaPublicKey) -> Self {
-        let n = key.n().to_bytes_be();
-        let e = key.e().to_bytes_be();
+    fn from_rsa_public_key(key: &rsa::PublicKey) -> Self {
+        let n = key.n().to_be_bytes();
+        let e = key.e().to_be_bytes();
         DecodingKey::from_rsa_raw_components(&n, &e).into()
     }
 
@@ -1378,7 +1377,6 @@ mod tests {
     use jsonwebtoken::jwk::JwkSet;
     use p256::ecdsa::SigningKey;
     use p384::pkcs8::EncodePrivateKey;
-    use rsa::RsaPrivateKey;
     use rsa::pkcs1::EncodeRsaPrivateKey;
     use rsa::pkcs8::DecodePrivateKey;
     use rstest::rstest;
@@ -2358,7 +2356,7 @@ mod tests {
     enum PrivateKey {
         P256(p256::ecdsa::SigningKey),
         P384(p384::ecdsa::SigningKey),
-        Rsa(RsaPrivateKey),
+        Rsa(rsa::PrivateKey),
     }
 
     impl PrivateKey {
@@ -2382,12 +2380,12 @@ mod tests {
     #[rstest]
     #[case::ecdsa_p256(PrivateKey::P256(p256::ecdsa::SigningKey::generate()), Algorithm::ES256)]
     #[case::ecdsa_p384(PrivateKey::P384(p384::ecdsa::SigningKey::generate()), Algorithm::ES384)]
-    #[case::rsa2048_rs256(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
-    #[case::rsa3072_rs384(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS384)]
-    #[case::rsa4096_rs512(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS512)]
-    #[case::rsa2048_ps256(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::PS256)]
-    #[case::rsa3072_ps384(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::PS384)]
-    #[case::rsa4096_ps512(PrivateKey::Rsa(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::PS512)]
+    #[case::rsa2048_rs256(PrivateKey::Rsa(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::RS256)]
+    #[case::rsa3072_rs384(PrivateKey::Rsa(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::RS384)]
+    #[case::rsa4096_rs512(PrivateKey::Rsa(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::RS512)]
+    #[case::rsa2048_ps256(PrivateKey::Rsa(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap()), Algorithm::PS256)]
+    #[case::rsa3072_ps384(PrivateKey::Rsa(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap()), Algorithm::PS384)]
+    #[case::rsa4096_ps512(PrivateKey::Rsa(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap()), Algorithm::PS512)]
     fn test_sign_and_verify_with_algorithms(#[case] private_key: PrivateKey, #[case] algorithm: Algorithm) {
         let payload = ToyMessage::default();
 

@@ -6,6 +6,7 @@ use aes_gcm::Key;
 use aes_gcm::KeySizeUser;
 use aes_gcm::Nonce;
 use aes_gcm::aead::Aead;
+use aes_gcm::aead::Generate;
 use derive_more::AsRef;
 use derive_more::From;
 use derive_more::Into;
@@ -17,8 +18,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde::de;
 
-use crate::utils;
-
 const AES_GCM_IV_BYTES_SIZE: usize = 12;
 
 #[derive(Debug, thiserror::Error)]
@@ -28,7 +27,7 @@ pub enum PublicKeyError {
 }
 
 #[nutype(derive(Debug, Clone, AsRef, TryFrom, Into, PartialEq, Eq, Hash, Serialize, Deserialize), validate(predicate = |k| k.size() >= 256))]
-struct RsaMin2048PublicKey(rsa::RsaPublicKey);
+struct RsaMin2048PublicKey(rsa::PublicKey);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PublicKey {
@@ -117,10 +116,10 @@ impl<'a> From<&'a p384::ecdsa::VerifyingKey> for PublicKeyRef<'a> {
     }
 }
 
-impl TryFrom<rsa::RsaPublicKey> for PublicKey {
+impl TryFrom<rsa::PublicKey> for PublicKey {
     type Error = PublicKeyError;
 
-    fn try_from(key: rsa::RsaPublicKey) -> Result<Self, Self::Error> {
+    fn try_from(key: rsa::PublicKey) -> Result<Self, Self::Error> {
         RsaMin2048PublicKey::try_from(key)
             .map_err(PublicKeyError::UnsupportedRsaKeySize)
             .map(Self::RSA)
@@ -179,24 +178,25 @@ impl EncryptionKey for Aes256Gcm {
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
         // Generate a random nonce
-        let nonce_bytes = utils::random_bytes(AES_GCM_IV_BYTES_SIZE);
-        let nonce = Nonce::from_slice(&nonce_bytes); // 96-bits; unique per message
+        let nonce = Nonce::generate(); // 96-bits; unique per message
 
         // Encrypt the provided message
-        let encrypted_msg = <Aes256Gcm as Aead>::encrypt(self, nonce, msg)?;
+        let encrypted_msg = <Aes256Gcm as Aead>::encrypt(self, &nonce, msg)?;
 
         // concatenate nonce with encrypted payload
-        let result = nonce_bytes.into_iter().chain(encrypted_msg).collect();
+        let result = nonce.into_iter().chain(encrypted_msg).collect();
 
         Ok(result)
     }
 
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
         // Re-create the nonce from the first 12 bytes
-        let nonce = Nonce::from_slice(&msg[..AES_GCM_IV_BYTES_SIZE]);
+        // A message that is too short to contain a nonce cannot be valid ciphertext
+        let (nonce, ciphertext) = msg.split_first_chunk::<AES_GCM_IV_BYTES_SIZE>().ok_or(aes_gcm::Error)?;
+        let nonce = Nonce::from(*nonce);
 
         // Decrypt the provided message with the retrieved nonce
-        <Aes256Gcm as Aead>::decrypt(self, nonce, &msg[AES_GCM_IV_BYTES_SIZE..])
+        <Aes256Gcm as Aead>::decrypt(self, &nonce, ciphertext)
     }
 }
 
@@ -247,12 +247,16 @@ pub struct SymmetricKey {
     bytes: Vec<u8>,
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("symmetric key has an invalid length for this cipher")]
+pub struct InvalidKeyLength;
+
 impl SymmetricKey {
-    pub fn key<B>(&self) -> &Key<B>
+    pub fn key<B>(&self) -> Result<&Key<B>, InvalidKeyLength>
     where
         B: KeySizeUser,
     {
-        Key::<B>::from_slice(self.bytes.as_slice())
+        <&Key<B>>::try_from(self.bytes.as_slice()).map_err(|_| InvalidKeyLength)
     }
 }
 
@@ -288,7 +292,6 @@ mod tests {
     use std::hash::Hasher;
 
     use ecdsa::elliptic_curve::Generate;
-    use rsa::RsaPrivateKey;
     use rsa::pkcs8::DecodePrivateKey;
     use rstest::rstest;
 
@@ -305,9 +308,9 @@ mod tests {
     #[rstest]
     #[case::p256(PublicKey::ESP256(*p256::ecdsa::SigningKey::generate().verifying_key()))]
     #[case::p384(PublicKey::ESP384(*p384::ecdsa::SigningKey::generate().verifying_key()))]
-    #[case::rsa2048(PublicKey::try_from(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap().to_public_key()).unwrap())]
-    #[case::rsa3072(PublicKey::try_from(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap().to_public_key()).unwrap())]
-    #[case::rsa4096(PublicKey::try_from(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap().to_public_key()).unwrap())]
+    #[case::rsa2048(PublicKey::try_from(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap().to_public_key()).unwrap())]
+    #[case::rsa3072(PublicKey::try_from(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap().to_public_key()).unwrap())]
+    #[case::rsa4096(PublicKey::try_from(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap().to_public_key()).unwrap())]
     fn hash_eq_contract(#[case] key: PublicKey) {
         assert_eq!(key, key.clone());
         assert_eq!(hash(&key), hash(&key.clone()));
@@ -323,7 +326,7 @@ mod tests {
 
     #[test]
     fn reject_rsa_1024_key() {
-        let rsa_public_key = RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa1024.pem"))
+        let rsa_public_key = rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa1024.pem"))
             .unwrap()
             .to_public_key();
 
@@ -334,14 +337,14 @@ mod tests {
     #[test]
     fn different_rsa_keys_are_not_equal() {
         let rsa2048_key = PublicKey::RSA(
-            RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem"))
+            rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem"))
                 .unwrap()
                 .to_public_key()
                 .try_into()
                 .unwrap(),
         );
         let rsa4096_key = PublicKey::RSA(
-            RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem"))
+            rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem"))
                 .unwrap()
                 .to_public_key()
                 .try_into()

@@ -103,8 +103,8 @@ unused_self = "warn"
 
 [workspace.dependencies]
 accept-language = "3.1.0"
-aes = "0.8.4"
-aes-gcm = { version = "0.10.3", features = ["std", "zeroize"] }
+aes = "0.9.4"
+aes-gcm = { version = "0.11.1", features = ["zeroize"] }
 # android_logger version 0.15.x and above is held back because PlatformLogWriter was made private.
 android_logger = { version = "0.14.1", default-features = false }
 anyhow = "1.0.100"
@@ -133,18 +133,17 @@ ciborium = "0.2.2"
 clap = "4.5.53"
 clio = "0.3.5"
 # cmac version 0.8.x and above is held back because it moved to cipher 0.5, which would fork "aes" and "ctr".
-cmac = { version = "0.7.2", features = ["std"] }
+cmac = "0.8.0"
 config = { version = "0.15.19", default-features = false }
 const-decoder = "0.4.0"
 cookie = "0.18.1"
 coset = { version = "0.4.2", features = ["std"] }
 cryptoki = "0.12.0"
 cryptoki-sys = "0.5.0"
-crypto-common = "0.1.7"
 cstr = "0.2.12"
 csv = "1.4.0"
 ctor = "0.6.3"
-ctr = "0.9.2"
+ctr = "0.10.1"
 dashmap = "6.1.0"
 data-url = "0.3.2"
 der = { version = "0.8.2", features = ["std"] }
@@ -161,7 +160,7 @@ hex-literal = "1.1.0"
 http = "1.4.0"
 http-cache-reqwest = { version = "0.16.0", default-features = false }
 httpmock = { version = "0.8.3", default-features = false, features = ["headers", "https"] }
-hmac = { version = "0.12.1", features = ["std"] }
+hmac = "0.13.0"
 image = { version = "0.25.10", default-features = false, features = ["rayon"] }
 indexmap = "2.12.1"
 int-enum = "1.2.0"
@@ -202,11 +201,8 @@ proc-macro2 = "1.0.103"
 quick-xml = "0.41.0"
 quote = "1.0.42"
 r2d2-cryptoki = "0.5.0"
-getrandom = "0.4"
-# rand 0.9.x or higher is held back by rsa
-rand = "0.8.5"
-# rand_core 0.10.x or higher is held back by rand (and therefore by rsa)
-rand_core = "0.9.5"
+rand = "0.10.3"
+rand_core = "0.10.1"
 # rasn 0.27.x or higher is held back, as OctetString in those versions does not implement Serialize.
 rasn = { version = "0.26.6", features = ["std"] }
 rcgen = { version = "0.14.5", default-features = false }
@@ -215,7 +211,7 @@ reqwest = { version = "0.12.26", default-features = false, features = ["json", "
 reqwest-middleware = { version = "0.4.2", default-features = false }
 ring = { version = "0.17.14", features = ["std"] }
 rpassword = "7.4.0"
-rsa = { version = "0.9.10", default-features = false, features = ["std", "u64_digit"] }
+rsa = { version = "0.10.0", default-features = false, features = ["std"] }
 rstest = "0.28.0"
 # held back by sea-orm / sqlx via libsqlite3-sys
 rusqlite = "0.32.1"
@@ -240,8 +236,8 @@ serde_valid = "2.0.0"
 serde_with = "3.16.1"
 serial_test = "3.2.0"
 subtle = "2.6.0"
-sha2 = "0.10.9"
-spki = { version = "0.7.3", features = ["std"] }
+sha2 = "0.11.1"
+spki = { version = "0.8.1", features = ["std"] }
 ssri = "9.2.0"
 strfmt = "0.2.5"
 strum = "0.28.0"

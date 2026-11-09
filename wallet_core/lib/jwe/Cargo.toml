@@ -30,7 +30,7 @@ itertools.workspace = true
 josekit.workspace = true
 jwk-simple.workspace = true
 
-rsa = { workspace = true, optional = true }
+rsa = { workspace = true, optional = true, features = ["encoding"] }
 
 [target.'cfg(any(target_env = "musl", target_os = "android", target_os = "ios"))'.dependencies]
 # When compiling for "musl", Android or iOS, make sure that the "vendored" feature of "josekit" is enabled, which in
