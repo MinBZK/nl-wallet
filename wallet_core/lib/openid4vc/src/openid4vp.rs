@@ -940,7 +940,8 @@ impl VpAuthorizationResponse {
         decrypter.decrypt_json(
             jwe,
             ExpectedEncryptionAlgorithm::Algorithms(RESPONSE_ENCRYPTION_ALGORITHMS),
-            AllowedDecompression::Deflate,
+            // Disallow Deflate compression in order to prevent zip bombs in the received payload.
+            AllowedDecompression::None,
         )
     }
 
