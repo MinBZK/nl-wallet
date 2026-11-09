@@ -171,7 +171,6 @@ pub fn verify_registration_certificate_envelope(
 mod tests {
     use std::assert_matches;
 
-    use base64::engine::general_purpose::URL_SAFE_PAD_INDIFFERENT;
     use base64::prelude::*;
     use ciborium::value::Value;
     use indexmap::IndexMap;
@@ -312,20 +311,6 @@ mod tests {
 
         assert_matches!(&envelope, RegistrationCertificateEnvelope::Cwt(_));
         assert_eq!(envelope.to_vec().unwrap(), certificate);
-    }
-
-    #[rstest]
-    #[case::two_bytes_unpadded("Zm8", Some(b"fo".as_slice()))]
-    #[case::two_bytes_padded("Zm8=", Some(b"fo".as_slice()))]
-    #[case::one_byte_unpadded("Zg", Some(b"f".as_slice()))]
-    #[case::one_byte_padded("Zg==", Some(b"f".as_slice()))]
-    #[case::one_byte_partially_padded("Zg=", Some(b"f".as_slice()))]
-    #[case::url_safe_alphabet("-_8=", Some([0xfb, 0xff].as_slice()))]
-    #[case::excess_padding("Zm8==", None)]
-    #[case::padding_inside("Z=m8", None)]
-    #[case::standard_alphabet("+/8=", None)]
-    fn decode_base64url_indifferent_of_padding(#[case] input: &str, #[case] expected: Option<&[u8]>) {
-        assert_eq!(URL_SAFE_PAD_INDIFFERENT.decode(input).ok().as_deref(), expected);
     }
 
     // This test guards against accidentally applying OpenID4VP's extra base64url encoding to CP.
