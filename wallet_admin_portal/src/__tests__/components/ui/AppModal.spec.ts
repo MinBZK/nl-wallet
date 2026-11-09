@@ -21,10 +21,6 @@ function mountModal(props: { dismissible?: boolean; size?: 'sm' | 'md' } = {}) {
   })
 }
 
-function pressTab(shiftKey = false) {
-  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey, cancelable: true }))
-}
-
 function mountTrigger(): HTMLButtonElement {
   const trigger = document.createElement('button')
   document.body.appendChild(trigger)
@@ -42,96 +38,96 @@ describe('AppModal', () => {
   it('applies the small size to the dialog', () => {
     const wrapper = mountModal({ size: 'sm' })
 
-    expect(wrapper.get('[role="dialog"]').classes()).toContain('sm')
+    expect(wrapper.get('dialog').classes()).toContain('sm')
   })
 
   it('applies the medium size to the dialog', () => {
     const wrapper = mountModal({ size: 'md' })
 
-    expect(wrapper.get('[role="dialog"]').classes()).toContain('md')
+    expect(wrapper.get('dialog').classes()).toContain('md')
   })
 
   it('names the dialog after the heading it hands a labelId to', () => {
     const wrapper = mountModal()
 
-    const dialog = wrapper.get('[role="dialog"]')
+    const dialog = wrapper.get('dialog')
     expect(dialog.attributes('aria-labelledby')).toBe(wrapper.get('h2').attributes('id'))
     expect(dialog.attributes('aria-labelledby')).toBeTruthy()
   })
 
-  it('moves focus into the dialog on open', () => {
+  it('opens as a native modal on mount', () => {
     const wrapper = mountModal()
 
-    expect(document.activeElement).toBe(wrapper.get('.first').element)
+    expect(wrapper.get('dialog').attributes('open')).toBeDefined()
   })
 
-  it('wraps focus back to the first element when tabbing off the end', () => {
+  it('closes the native dialog on unmount', () => {
     const wrapper = mountModal()
-    const last = wrapper.get('.last').element as HTMLElement
-    last.focus()
+    const dialog = wrapper.get('dialog').element as HTMLDialogElement
 
-    pressTab()
+    wrapper.unmount()
 
-    expect(document.activeElement).toBe(wrapper.get('.first').element)
+    expect(dialog.hasAttribute('open')).toBe(false)
   })
 
-  it('wraps focus to the last element when shift-tabbing off the start', () => {
+  it('emits close when cancelled with Escape', async () => {
     const wrapper = mountModal()
 
-    pressTab(true)
+    await wrapper.get('dialog').trigger('cancel')
 
-    expect(document.activeElement).toBe(wrapper.get('.last').element)
+    expect(wrapper.emitted('close')).toHaveLength(1)
   })
 
-  it('wraps focus to the last element when shift-tabbing from the dialog container itself', () => {
+  it('emits close when the backdrop is clicked', async () => {
     const wrapper = mountModal()
-    // Clicking non-interactive content focuses the tabindex="-1" container.
-    ;(wrapper.get('[role="dialog"]').element as HTMLElement).focus()
 
-    pressTab(true)
+    await wrapper.get('dialog').trigger('click')
 
-    expect(document.activeElement).toBe(wrapper.get('.last').element)
+    expect(wrapper.emitted('close')).toHaveLength(1)
   })
 
-  it('reclaims focus when it lands outside the dialog, e.g. a focused control being disabled', () => {
+  it('does not emit close for clicks on the content', async () => {
     const wrapper = mountModal()
-    const first = wrapper.get('.first').element as HTMLElement
-    // Mirrors a control becoming `disabled`: the browser blurs it to <body>.
-    first.blur()
-    document.body.focus()
-    expect(document.activeElement).toBe(document.body)
 
-    document.body.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    await wrapper.get('.first').trigger('click')
 
-    expect(document.activeElement).toBe(first)
+    expect(wrapper.emitted('close')).toBeUndefined()
   })
 
-  it('holds focus on the dialog when nothing inside is focusable', () => {
-    const wrapper = mount(AppModal, {
-      attachTo: document.body,
-      slots: {
-        default: `
-          <template #default="{ labelId }">
-            <h2 :id="labelId">Dialog title</h2>
-            <button disabled>Eerste</button>
-          </template>
-        `,
-      },
-      global: { stubs: { Teleport: true } },
-    })
-    const dialog = wrapper.get('[role="dialog"]').element
+  it('cannot be dismissed when not dismissible', async () => {
+    const wrapper = mountModal({ dismissible: false })
 
-    expect(document.activeElement).toBe(dialog)
+    await wrapper.get('dialog').trigger('cancel')
+    await wrapper.get('dialog').trigger('click')
 
-    pressTab()
+    expect(wrapper.emitted('close')).toBeUndefined()
+  })
 
-    expect(document.activeElement).toBe(dialog)
+  it('emits close when the browser closes the dialog natively', async () => {
+    const wrapper = mountModal()
+
+    await wrapper.get('dialog').trigger('close')
+
+    expect(wrapper.emitted('close')).toHaveLength(1)
+  })
+
+  it('reopens the dialog when the browser closes it natively while not dismissible', async () => {
+    const wrapper = mountModal({ dismissible: false })
+    const dialog = wrapper.get('dialog').element as HTMLDialogElement
+
+    dialog.close()
+    await wrapper.get('dialog').trigger('close')
+
+    expect(wrapper.emitted('close')).toBeUndefined()
+    expect(dialog.hasAttribute('open')).toBe(true)
   })
 
   it('restores focus to the previously focused element on close', () => {
     const trigger = mountTrigger()
 
     const wrapper = mountModal()
+    // jsdom's showModal() doesn't move focus, so simulate the browser focusing the dialog content.
+    ;(wrapper.get('.first').element as HTMLElement).focus()
     expect(document.activeElement).not.toBe(trigger)
 
     wrapper.unmount()

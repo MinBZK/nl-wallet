@@ -15,9 +15,7 @@ describe('WalletNotActiveModal', () => {
 
     const title = wrapper.get('h2')
     expect(title.text()).toBe('Deze wallet is niet actief')
-    expect(wrapper.get('[role="dialog"]').attributes('aria-labelledby')).toBe(
-      title.attributes('id'),
-    )
+    expect(wrapper.get('dialog').attributes('aria-labelledby')).toBe(title.attributes('id'))
     expect(wrapper.text()).toContain('Deze wallet is ingetrokken.')
     expect(wrapper.text()).toContain('Kies een andere wallet.')
   })

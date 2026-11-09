@@ -4,6 +4,7 @@
       <th
         v-for="column in columns"
         :key="column.label"
+        scope="col"
         :style="column.width ? { width: column.width } : undefined"
       >
         {{ column.label }}

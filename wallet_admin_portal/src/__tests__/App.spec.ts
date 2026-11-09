@@ -37,14 +37,15 @@ describe('App', () => {
     expect(wrapper.text()).toContain('Openstaande taken')
   })
 
-  it('renders the open tasks view with its pagination footer', async () => {
+  it('renders the open tasks view without a footer', async () => {
     const wrapper = await mountAt('/tasks')
     expect(wrapper.text()).toContain('Openstaande taken')
-    expect(wrapper.get('#page-footer-target').text()).toContain('Pagina')
+    expect(wrapper.get('#page-footer-target').element.childNodes.length).toBe(0)
   })
 
-  it('renders the task history view', async () => {
+  it('renders the task history view without a footer', async () => {
     const wrapper = await mountAt('/history')
     expect(wrapper.text()).toContain('Taakgeschiedenis')
+    expect(wrapper.get('#page-footer-target').element.childNodes.length).toBe(0)
   })
 })
