@@ -7,7 +7,13 @@ group = "nl.ictu.edi.wallet.uiautomation"
 version = "1.0-SNAPSHOT"
 
 repositories {
-    mavenCentral()
+    if (System.getenv("CI") == "true") {
+        maven {
+            url = uri("${System.getenv("NEXUS_URL")}/repository/maven-central/")
+        }
+    } else {
+        mavenCentral()
+    }
 }
 
 kotlin {

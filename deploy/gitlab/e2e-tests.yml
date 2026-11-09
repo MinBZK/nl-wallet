@@ -2,8 +2,6 @@ automation-compile-check:
   stage: test
   needs: []
   rules: !reference [.merge-request, rules]
-  # TODO PVW-6502 Use Nexus for Maven dependencies
-  allow_failure: true
   script:
     - java -version
     - cd uiautomation
