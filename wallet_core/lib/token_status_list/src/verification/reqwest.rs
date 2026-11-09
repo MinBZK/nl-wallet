@@ -4,10 +4,9 @@ use reqwest::ClientBuilder;
 use url::Url;
 
 use crate::status_list_jwt::StatusListJwt;
+use crate::status_list_token::StatusListFormat;
 use crate::verification::client::StatusListClient;
 use crate::verification::client::StatusListClientError;
-
-const STATUS_LIST_JWT_ACCEPT: &str = "application/statuslist+jwt";
 
 #[derive(Debug, Clone, AsRef)]
 pub struct HttpStatusListClient(reqwest::Client);
@@ -25,7 +24,7 @@ impl StatusListClient for HttpStatusListClient {
         let response = self
             .as_ref()
             .get(url)
-            .header(header::ACCEPT, STATUS_LIST_JWT_ACCEPT)
+            .header(header::ACCEPT, StatusListFormat::Jwt.media_type())
             .send()
             .await?;
 

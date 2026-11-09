@@ -18,6 +18,25 @@ pub enum StatusListToken {
     Cwt(Box<StatusListCwt>),
 }
 
+/// The formats of a Status List Token, identified by their media type.
+///
+/// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-8.2>
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::IntoStaticStr)]
+#[strum(ascii_case_insensitive)]
+pub enum StatusListFormat {
+    #[strum(serialize = "application/statuslist+jwt")]
+    Jwt,
+    #[strum(serialize = "application/statuslist+cwt")]
+    Cwt,
+}
+
+impl StatusListFormat {
+    /// The media type of a Status List Token in this format, as used in the `Accept` and `Content-Type` headers.
+    pub fn media_type(self) -> &'static str {
+        self.into()
+    }
+}
+
 impl StatusListToken {
     /// Build the claims of a Status List Token, which can then be signed in either format using
     /// [`StatusListJwt::sign`] or [`StatusListCwt::sign`].

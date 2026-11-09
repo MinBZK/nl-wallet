@@ -20,13 +20,10 @@ use axum::response::Response;
 use axum::routing::get;
 use etag::EntityTag;
 use http::Method;
-use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
 use jwt::UnverifiedJwt;
-use mediatype::Name;
-use strum::EnumIter;
-use strum::IntoEnumIterator;
 use token_status_list::status_list_jwt::StatusListJwt;
+use token_status_list::status_list_token::StatusListFormat;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
@@ -35,47 +32,14 @@ use crate::ExternalId;
 use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
 
-const STATUSLIST_JWT_MEDIA_TYPE: MediaType = MediaType::new(
-    mediatype::names::APPLICATION,
-    Name::new_unchecked("statuslist"),
-    Some(Name::new_unchecked("jwt")),
-);
-const STATUSLIST_JWT_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("application/statuslist+jwt");
-
-const STATUSLIST_CWT_MEDIA_TYPE: MediaType = MediaType::new(
-    mediatype::names::APPLICATION,
-    Name::new_unchecked("statuslist"),
-    Some(Name::new_unchecked("cwt")),
-);
-const STATUSLIST_CWT_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("application/statuslist+cwt");
-
-/// The formats in which a Status List Token can be served, if no preference is given the enum variant order decides.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
-enum StatusListFormat {
-    Jwt,
-    Cwt,
+fn content_type(format: StatusListFormat) -> HeaderValue {
+    HeaderValue::from_static(format.media_type())
 }
 
-impl StatusListFormat {
-    fn media_type(self) -> MediaType<'static> {
-        match self {
-            Self::Jwt => STATUSLIST_JWT_MEDIA_TYPE,
-            Self::Cwt => STATUSLIST_CWT_MEDIA_TYPE,
-        }
-    }
-
-    fn content_type(self) -> HeaderValue {
-        match self {
-            Self::Jwt => STATUSLIST_JWT_CONTENT_TYPE,
-            Self::Cwt => STATUSLIST_CWT_CONTENT_TYPE,
-        }
-    }
-
-    fn path(self, publish_dir: &PublishDir, id: &ExternalId) -> PathBuf {
-        match self {
-            Self::Jwt => publish_dir.jwt_path(id),
-            Self::Cwt => publish_dir.cwt_path(id),
-        }
+fn token_path(publish_dir: &PublishDir, format: StatusListFormat, id: &ExternalId) -> PathBuf {
+    match format {
+        StatusListFormat::Jwt => publish_dir.jwt_path(id),
+        StatusListFormat::Cwt => publish_dir.cwt_path(id),
     }
 }
 
@@ -210,7 +174,7 @@ async fn serve_status_list(
 ) -> Result<Response, StatusCode> {
     let format = requested_format(headers.get(header::ACCEPT))?;
 
-    let path = format.path(&state.publish_dir, &id);
+    let path = token_path(&state.publish_dir, format, &id);
     let bytes = tokio::fs::read(&path).await.map_err(|err| map_io_error(&path, &err))?;
 
     let etag = EntityTag::from_data(&bytes);
@@ -221,7 +185,7 @@ async fn serve_status_list(
     };
 
     let response_headers = [
-        (header::CONTENT_TYPE, format.content_type()),
+        (header::CONTENT_TYPE, content_type(format)),
         (header::CACHE_CONTROL, state.cache_control),
         // Unwrap is safe since etag is ASCII
         (header::ETAG, HeaderValue::from_str(&etag.to_string()).unwrap()),
@@ -243,7 +207,7 @@ pub fn http_response_for_status_list_jwt(
     }
 
     let response_headers = [
-        (header::CONTENT_TYPE, STATUSLIST_JWT_CONTENT_TYPE),
+        (header::CONTENT_TYPE, content_type(StatusListFormat::Jwt)),
         (header::CACHE_CONTROL, cache_control_header_for_ttl(ttl)),
     ];
     let body = UnverifiedJwt::from(status_list_jwt).into_serialization();
@@ -264,7 +228,7 @@ fn ascii_header<'a>(header: &'a HeaderValue, name: &str) -> Result<&'a str, Stat
 fn requested_format(header: Option<&HeaderValue>) -> Result<StatusListFormat, StatusCode> {
     match find_content_type_from_accept(
         header,
-        |media_type| StatusListFormat::iter().find(|format| format.media_type() == media_type),
+        |media_type| media_type.to_string().parse().ok(),
         StatusListFormat::Jwt,
     ) {
         Ok(Some(format)) => Ok(format),
@@ -374,13 +338,6 @@ mod tests {
     fn non_ascii_header() {
         let header = HeaderValue::from_bytes(&[0x80]).unwrap();
         assert_matches!(ascii_header(&header, "test"), Err(StatusCode::BAD_REQUEST));
-    }
-
-    #[test]
-    fn content_type_matches_media_type() {
-        for format in StatusListFormat::iter() {
-            assert_eq!(format.content_type(), format.media_type().to_string().as_str());
-        }
     }
 
     #[test]

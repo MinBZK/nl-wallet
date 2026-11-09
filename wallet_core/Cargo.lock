@@ -9186,7 +9186,6 @@ dependencies = [
  "itertools 0.14.0",
  "jwt",
  "measure",
- "mediatype",
  "metrics",
  "nutype",
  "p256 0.14.0",
