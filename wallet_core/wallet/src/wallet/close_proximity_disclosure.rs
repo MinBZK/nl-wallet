@@ -1038,7 +1038,7 @@ mod tests {
     use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
-    use attestation_types::credential_kind::CredentialKind;
+    use attestation_types::credential_kind::CredentialKindRef;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
@@ -1601,7 +1601,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .withf(move |credential_kinds, _| {
-                *credential_kinds == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_MDOC_DOCTYPE.to_owned())])
+                *credential_kinds == HashSet::from([CredentialKindRef::new(Format::MsoMdoc, PID_MDOC_DOCTYPE)])
             })
             .once()
             .return_once(move |_, _| {

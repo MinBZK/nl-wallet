@@ -4,6 +4,7 @@ use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKindRef;
 use crypto::x509::KeyIdentifier;
 use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
@@ -223,6 +224,11 @@ impl StoredAttestationCopy {
 
     pub fn attestation_type(&self) -> &str {
         self.attestation.data.attestation_type()
+    }
+
+    /// The combination of the format and the attestation type of this attestation.
+    pub fn credential_kind(&self) -> CredentialKindRef<'_> {
+        CredentialKindRef::new(self.format(), self.attestation_type())
     }
 
     pub fn into_attributes(self) -> Attributes {

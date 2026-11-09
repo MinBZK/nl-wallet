@@ -14,6 +14,7 @@ use std::io;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::organization::Organization;
 use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
 #[cfg(any(test, feature = "test"))]
@@ -184,25 +185,27 @@ pub trait Storage: Send {
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
     async fn has_any_attestations(&self) -> StorageResult<bool>;
+    #[cfg_attr(test, mockall::concretize)]
     async fn has_any_attestations_with_credential_kinds(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: &HashSet<CredentialKindRef<'_>>,
     ) -> StorageResult<bool>;
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     /// Returns a single attestation copy for each stored attestation whose attestation type and format match one of the
-    /// requested [`CredentialKind`] instances. Attestations that merely extend one of the requested attestation types
-    /// are not returned.
+    /// requested [`CredentialKindRef`] instances. Attestations that merely extend one of the requested attestation
+    /// types are not returned.
+    #[cfg_attr(test, mockall::concretize)]
     async fn fetch_unique_attestations_by_credential_kinds(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: &HashSet<CredentialKindRef<'_>>,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     /// Returns a single attestation copy eligible for disclosure for each stored attestation whose attestation type
-    /// and format match one of the requested [`CredentialKind`] instances. Copies must be within their validity window
-    /// and must not have a corrupted revocation status. Revoked copies are included so the relying party can evaluate
-    /// their status.
+    /// and format match one of the requested [`CredentialKindRef`] instances. Copies must be within their validity
+    /// window and must not have a corrupted revocation status. Revoked copies are included so the relying party can
+    /// evaluate their status.
     ///
     /// In addition to the attestations of the requested attestation types themselves, the returned attestation copies
     /// include those of which the type metadata extends one of the requested attestation types. Note that this can only
@@ -210,7 +213,7 @@ pub trait Storage: Send {
     #[cfg_attr(test, mockall::concretize)]
     async fn fetch_valid_unique_attestations_by_credential_kinds<T>(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: &HashSet<CredentialKindRef<'_>>,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>
     where

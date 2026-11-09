@@ -5,7 +5,7 @@ use std::sync::Arc;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
-use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::x509::CertificateParseError;
@@ -575,7 +575,7 @@ where
     ) -> Result<VecNonEmpty<AttestationPresentation>, IssuanceError> {
         let preview_attestation_types_and_formats = credential_previews
             .iter()
-            .map(|preview| CredentialKind::new(preview.format, preview.credential_payload.attestation_type.clone()))
+            .map(|preview| CredentialKindRef::new(preview.format, &preview.credential_payload.attestation_type))
             .collect();
 
         let config = self.config_repository.get();
@@ -860,9 +860,11 @@ fn match_preview_and_stored_attestations<'a>(
         .into_iter()
         .map(|copy| {
             let attestation_id = copy.attestation_id();
-            let format = copy.format();
 
-            (attestation_id, (format, copy.into_previewable_credential_payload()))
+            (
+                attestation_id,
+                (copy.format(), copy.into_previewable_credential_payload()),
+            )
         })
         .collect::<HashMap<_, _>>();
 
@@ -884,11 +886,11 @@ fn match_preview_and_stored_attestations<'a>(
                             // If this is PID issuance, and the two cards are both PIDs, then they match.
                             // If not, fall back to contents comparison.
                             |pid_config| {
-                                let both_pid = pid_config.contains_credential_kind(
-                                    preview.format,
-                                    preview.credential_payload.attestation_type.as_str(),
-                                ) && pid_config
-                                    .contains_credential_kind(*format, stored_preview.attestation_type.as_str());
+                                let both_pid = pid_config.contains_credential_kind(preview.credential_kind())
+                                    && pid_config.contains_credential_kind(CredentialKindRef::new(
+                                        *format,
+                                        stored_preview.attestation_type.as_str(),
+                                    ));
                                 both_pid || compare_contents(preview.credential_payload, stored_preview, time_generator)
                             },
                         )
@@ -985,6 +987,7 @@ mod tests {
     use crate::wallet::test::create_preview_from_payload;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::decoded_sd_jwt_from_credential_payload;
+    use crate::wallet::test::eq_credential_kinds;
     use crate::wallet::test::mock_issuance_session;
 
     #[rstest]
@@ -1015,12 +1018,13 @@ mod tests {
 
         // PID issuance considers a PID in either format, so all of the configured PID credential kinds
         // should be requested from storage.
-        let expected_credential_kinds = wallet.config_repository.get().pid_attributes.credential_kinds();
+        let expected_credential_kinds =
+            eq_credential_kinds(&wallet.config_repository.get().pid_attributes.credential_kinds());
 
         wallet
             .mut_storage()
             .expect_has_any_attestations_with_credential_kinds()
-            .withf(move |credential_kinds| *credential_kinds == expected_credential_kinds)
+            .withf(expected_credential_kinds)
             .return_once(move |_| Ok(pid_present));
         wallet
             .mut_storage()
@@ -1700,8 +1704,8 @@ mod tests {
         );
 
         let expected_types_and_formats = HashSet::from([
-            CredentialKind::new(Format::SdJwt, "sd_jwt_attestation_type".to_string()),
-            CredentialKind::new(Format::MsoMdoc, "mdoc_attestation_type".to_string()),
+            CredentialKindRef::new(Format::SdJwt, "sd_jwt_attestation_type"),
+            CredentialKindRef::new(Format::MsoMdoc, "mdoc_attestation_type"),
         ]);
 
         wallet

@@ -22,6 +22,7 @@ use attestation_data::metadata::AttestationClaims;
 use attestation_data::metadata::ClaimConstraint;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
 use coset::iana;
@@ -471,6 +472,13 @@ pub struct OfferedCredentialPreview<'a> {
     pub format: Format,
     pub credential_payload: &'a PreviewableCredentialPayload,
     pub metadata: &'a OfferedCredentialMetadata,
+}
+
+impl OfferedCredentialPreview<'_> {
+    /// The combination of the format and the attestation type of the offered credential.
+    pub fn credential_kind(&self) -> CredentialKindRef<'_> {
+        CredentialKindRef::new(self.format, self.credential_payload.attestation_type.as_ref())
+    }
 }
 
 /// Allows selection of specific credential kinds (i.e. combinations of format and attestation type) at the start of

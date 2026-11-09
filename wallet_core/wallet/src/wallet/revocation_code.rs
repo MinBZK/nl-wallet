@@ -128,6 +128,7 @@ mod test {
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_wp_result;
+    use super::super::test::eq_credential_kinds;
     use super::RevocationCodeError;
     use crate::Pin;
     use crate::account_provider::AccountProviderError;
@@ -146,12 +147,13 @@ mod test {
 
         // Retrieving the revocation code is blocked by a PID in either format, so all of the configured
         // PID credential kinds should be requested from storage.
-        let expected_credential_kinds = wallet.config_repository.get().pid_attributes.credential_kinds();
+        let expected_credential_kinds =
+            eq_credential_kinds(&wallet.config_repository.get().pid_attributes.credential_kinds());
 
         wallet
             .mut_storage()
             .expect_has_any_attestations_with_credential_kinds()
-            .withf(move |credential_kinds| *credential_kinds == expected_credential_kinds)
+            .withf(expected_credential_kinds)
             .return_once(|_| Ok(false));
 
         let _ = wallet

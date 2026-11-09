@@ -3,8 +3,7 @@ use std::num::NonZeroU8;
 use std::sync::Arc;
 
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
@@ -170,9 +169,9 @@ where
         info!("Fetching issuer metadata to discover authorization server");
         let credential_kinds = config
             .pid_attributes
-            .sd_jwt
-            .keys()
-            .map(|vct| CredentialKind::new(Format::SdJwt, vct.clone()))
+            .sd_jwt_credential_kinds()
+            .into_iter()
+            .map(CredentialKindRef::into_owned)
             .collect();
         let authorization_session = self
             .issuance_discovery
@@ -558,6 +557,7 @@ mod tests {
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_wp_result;
+    use crate::wallet::test::eq_credential_kinds;
     use crate::wallet::test::mock_issuance_session;
     use crate::wallet::test::nl_pid_mdoc_credential_metadata_example;
 
@@ -594,13 +594,14 @@ mod tests {
 
         // PIN recovery requires a PID in the SD-JWT format, so only the SD-JWT PID credential kinds
         // should be requested from storage.
-        let expected_credential_kinds = wallet.config_repository.get().pid_attributes.sd_jwt_credential_kinds();
+        let expected_credential_kinds =
+            eq_credential_kinds(&wallet.config_repository.get().pid_attributes.sd_jwt_credential_kinds());
 
         wallet
             .mut_storage()
             .expect_has_any_attestations_with_credential_kinds()
             .once()
-            .withf(move |credential_kinds| *credential_kinds == expected_credential_kinds)
+            .withf(expected_credential_kinds)
             .return_once(|_| Ok(true));
         wallet
             .mut_storage()

@@ -1,4 +1,5 @@
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKindRef;
 use crypto::x509::BorrowingCertificate;
 use mdoc::holder::Mdoc;
 use nonempty_collections::NEEither;
@@ -44,6 +45,11 @@ pub struct CredentialWithMetadata {
 }
 
 impl CredentialWithMetadata {
+    /// The combination of the format of the issued copies and the attestation type of this credential.
+    pub fn credential_kind(&self) -> CredentialKindRef<'_> {
+        CredentialKindRef::new(self.copies.format(), &self.attestation_type)
+    }
+
     #[expect(clippy::too_many_arguments, reason = "constructor method")]
     pub fn new(
         copies: IssuedCredentialCopies,

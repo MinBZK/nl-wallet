@@ -6,7 +6,7 @@ use std::time::Duration;
 use attestation_data::disclosure_type::DisclosureTypeConfig;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::keys::AsPublicKeyRef;
@@ -206,27 +206,27 @@ pub enum PidAttributesConfigurationError {
 }
 
 impl PidAttributesConfiguration {
-    /// The [`CredentialKind`]s of all configured PID attestations, in both the mdoc and the SD-JWT format.
-    pub fn credential_kinds(&self) -> HashSet<CredentialKind> {
+    /// The [`CredentialKindRef`]s of all configured PID attestations, in both the mdoc and the SD-JWT format.
+    pub fn credential_kinds(&self) -> HashSet<CredentialKindRef<'_>> {
         self.mso_mdoc
             .keys()
-            .map(|doc_type| CredentialKind::new(Format::MsoMdoc, doc_type.clone()))
+            .map(|doc_type| CredentialKindRef::new(Format::MsoMdoc, doc_type))
             .chain(self.sd_jwt_credential_kinds())
             .collect()
     }
 
-    /// The [`CredentialKind`]s of the configured PID attestations in the SD-JWT format.
-    pub fn sd_jwt_credential_kinds(&self) -> HashSet<CredentialKind> {
+    /// The [`CredentialKindRef`]s of the configured PID attestations in the SD-JWT format.
+    pub fn sd_jwt_credential_kinds(&self) -> HashSet<CredentialKindRef<'_>> {
         self.sd_jwt
             .keys()
-            .map(|vct| CredentialKind::new(Format::SdJwt, vct.clone()))
+            .map(|vct| CredentialKindRef::new(Format::SdJwt, vct))
             .collect()
     }
 
-    pub fn contains_credential_kind(&self, format: Format, attestation_type: &str) -> bool {
-        match format {
-            Format::MsoMdoc => self.mso_mdoc.contains_key(attestation_type),
-            Format::SdJwt => self.sd_jwt.contains_key(attestation_type),
+    pub fn contains_credential_kind(&self, credential_kind: CredentialKindRef<'_>) -> bool {
+        match credential_kind.format {
+            Format::MsoMdoc => self.mso_mdoc.contains_key(credential_kind.attestation_type),
+            Format::SdJwt => self.sd_jwt.contains_key(credential_kind.attestation_type),
         }
     }
 
