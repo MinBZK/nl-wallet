@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 
@@ -863,7 +863,7 @@ fn match_preview_and_stored_attestations<'a>(
 
             (attestation_id, (copy.format(), copy.into_credential_contents()))
         })
-        .collect::<HashMap<_, _>>();
+        .collect::<BTreeMap<_, _>>();
 
     // Find the first matching stored preview based on the ordering of `stored_credential_payloads`.
     credential_previews
@@ -951,6 +951,8 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_nonempty;
+    use uuid::NoContext;
+    use uuid::Timestamp;
     use uuid::Uuid;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
@@ -2724,6 +2726,66 @@ mod tests {
         );
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(identities, vec![Some(attestation_id)]);
+    }
+
+    /// When several stored attestations match, the oldest one according to its UUIDv7 attestation id is matched first,
+    /// regardless of the order in which the stored attestations are provided.
+    #[test]
+    fn test_match_preview_and_stored_attestations_oldest_first() {
+        let ca = Ca::generate_mock();
+        let issuer_key_pair = ca.generate_issuer_mock().unwrap();
+
+        let time_generator = MockTimeGenerator::default();
+
+        let (payload, metadata) = create_example_pid_credential_payload(&time_generator, Format::SdJwt);
+        let OfferedCredentialMetadata::TypeMetadata {
+            normalized: type_metadata,
+            ..
+        } = metadata
+        else {
+            panic!("an SD-JWT should be described by Type Metadata");
+        };
+        let sd_jwt = payload
+            .into_signed_sd_jwt(Some(&type_metadata), &issuer_key_pair)
+            .now_or_never()
+            .unwrap()
+            .unwrap();
+        let sd_jwt = DecodedSdJwt::try_from(sd_jwt.into_verified()).unwrap();
+
+        let stored_copy = |attestation_id: Uuid| {
+            StoredAttestationCopy::new(
+                attestation_id,
+                Uuid::new_v4(),
+                ValidityWindow::new_valid_mock(),
+                WithKeyIdentifier {
+                    key_identifier: "sd_jwt_key_identifier".to_string(),
+                    data: StoredAttestation::SdJwt(sd_jwt.clone()),
+                },
+                StoredAttestationMetadata::TypeMetadata(type_metadata.clone()),
+                None,
+                IssuerRegistration::new_mock(),
+            )
+        };
+
+        let oldest_id = Uuid::new_v7(Timestamp::from_unix(NoContext, 1, 0));
+        let newest_id = Uuid::new_v7(Timestamp::from_unix(NoContext, 2, 0));
+
+        // Provide the newest attestation first, so that matching in the order of the input fails this test.
+        let stored = vec![stored_copy(newest_id), stored_copy(oldest_id)];
+
+        // Two identical previews each renew a different stored attestation, the first one the oldest.
+        let previews = vec_nonempty![
+            create_example_pid_preview_data(&time_generator, Format::SdJwt),
+            create_example_pid_preview_data(&time_generator, Format::SdJwt),
+        ];
+        let result = match_preview_and_stored_attestations(
+            previews.nonempty_iter().map(offered_credential_preview),
+            stored,
+            &time_generator,
+            None,
+        );
+        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
+        assert_eq!(identities, vec![Some(oldest_id), Some(newest_id)]);
     }
 
     #[tokio::test]
