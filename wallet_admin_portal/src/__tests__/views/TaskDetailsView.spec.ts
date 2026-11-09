@@ -77,10 +77,10 @@ describe('TaskDetailsView', () => {
 
     const wrapper = await mountAt(baseDetail.id)
 
-    expect(wrapper.find('[role="status"]').exists()).toBe(true)
+    expect(wrapper.find('output').exists()).toBe(true)
 
     resolveTask(baseDetail)
-    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(false))
+    await vi.waitFor(() => expect(wrapper.find('output').exists()).toBe(false))
   })
 
   it('shows the error state when the task cannot be fetched', async () => {

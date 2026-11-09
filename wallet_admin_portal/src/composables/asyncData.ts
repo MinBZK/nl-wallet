@@ -12,7 +12,7 @@ export function useAsyncData<T>(fetcher: () => Promise<T>) {
     try {
       data.value = await fetcher()
     } catch (err) {
-      console.error(err)
+      reportError(err)
       data.value = null
       error.value = true
     } finally {

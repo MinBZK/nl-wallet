@@ -41,10 +41,10 @@ describe('OpenTasksView', () => {
 
     const wrapper = await mountView()
 
-    expect(wrapper.find('[role="status"]').exists()).toBe(true)
+    expect(wrapper.find('output').exists()).toBe(true)
 
     resolveTasks([])
-    await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(false))
+    await vi.waitFor(() => expect(wrapper.find('output').exists()).toBe(false))
   })
 
   it('renders the fetched open tasks in the table once loaded', async () => {

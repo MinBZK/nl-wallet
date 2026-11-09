@@ -210,11 +210,11 @@ describe('SelectWalletsStep', () => {
     await search(wrapper, REVOKED_WALLET.id)
 
     expect(wrapper.text()).toContain(REVOKED_WALLET.id)
-    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.find('dialog').exists()).toBe(false)
 
     await buttonByText(wrapper, 'Voeg toe aan de lijst')!.trigger('click')
 
-    expect(wrapper.get('[role="dialog"]').text()).toContain('Deze wallet is niet actief')
+    expect(wrapper.get('dialog').text()).toContain('Deze wallet is niet actief')
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
   })
 
@@ -226,7 +226,7 @@ describe('SelectWalletsStep', () => {
 
     await buttonByText(wrapper, 'Begrepen')!.trigger('click')
 
-    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.find('dialog').exists()).toBe(false)
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
     expect(wrapper.text()).toContain('Wallet gevonden')
     expect(wrapper.get<HTMLInputElement>('input[type="text"]').element.value).toBe(
@@ -240,7 +240,7 @@ describe('SelectWalletsStep', () => {
 
     await buttonByText(wrapper, 'Voeg toe aan de lijst')!.trigger('click')
 
-    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.find('dialog').exists()).toBe(false)
   })
 
   it('does not add a wallet that is already in the list', async () => {

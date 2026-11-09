@@ -1,5 +1,5 @@
 <template>
-  <div class="table-wrap" role="region" aria-label="Taken" tabindex="0">
+  <section class="table-wrap" aria-label="Taken" tabindex="0">
     <div class="table-inner">
       <table class="tasks-table">
         <TasksTableHeader :columns="variant === 'history' ? HISTORY_COLUMNS : OPEN_COLUMNS" />
@@ -29,7 +29,7 @@
       </table>
       <EmptyState v-if="!tasks.length" :title="emptyTitle" :description="emptyDescription" />
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -72,9 +72,10 @@ const HISTORY_COLUMNS = [
 
 <style scoped>
 .table-wrap {
+  box-sizing: border-box;
+  height: 100%;
   padding: 1.5rem;
   overflow: auto;
-  flex: 1;
 }
 
 .table-inner {

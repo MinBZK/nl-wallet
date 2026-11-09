@@ -30,7 +30,7 @@ describe('useAsyncData', () => {
   })
 
   it('flags an error when the fetcher rejects', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(globalThis, 'reportError').mockImplementation(() => {})
     const { data, loading, error } = mountWith(() => Promise.reject(new Error('nope')))
 
     await flushPromises()
@@ -41,7 +41,7 @@ describe('useAsyncData', () => {
   })
 
   it('drops previously loaded data when a later load fails, so we never show stale data', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(globalThis, 'reportError').mockImplementation(() => {})
     const fetcher = vi
       .fn<() => Promise<string[]>>()
       .mockResolvedValueOnce(['a'])
@@ -57,7 +57,7 @@ describe('useAsyncData', () => {
   })
 
   it('clears the error and reloads when load is called again', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(globalThis, 'reportError').mockImplementation(() => {})
     const fetcher = vi
       .fn<() => Promise<string[]>>()
       .mockRejectedValueOnce(new Error('nope'))

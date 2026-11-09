@@ -56,6 +56,11 @@ const { loggedInUser } = useAuth()
   overflow: hidden;
 }
 
+/* No page footer (e.g. pagination) teleported in: let the content use the footer row too. */
+.area-content:has(+ footer:empty) {
+  grid-row: 2 / 4;
+}
+
 .area-main > footer {
   grid-row: 3;
 }

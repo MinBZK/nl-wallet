@@ -106,7 +106,7 @@ describe('TasksTable', () => {
     const region = wrapper.get('.table-wrap')
 
     expect(region.attributes('tabindex')).toBe('0')
-    expect(region.attributes('role')).toBe('region')
+    expect(region.element.tagName).toBe('SECTION')
     expect(region.attributes('aria-label')).toBeTruthy()
   })
 })

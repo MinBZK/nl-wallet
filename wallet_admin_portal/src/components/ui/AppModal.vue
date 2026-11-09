@@ -1,27 +1,23 @@
 <template>
   <Teleport to="body">
-    <div class="overlay" @click.self="dismiss">
-      <div
-        ref="dialog"
-        class="dialog"
-        :class="size"
-        role="dialog"
-        aria-modal="true"
-        :aria-labelledby="labelId"
-        tabindex="-1"
-      >
-        <!-- Exposes labelId to the slot for the caller's heading. -->
-        <slot :label-id="labelId" />
-      </div>
-    </div>
+    <!-- Native modal: the browser provides the backdrop, focus trap, inert background and Escape handling. -->
+    <dialog
+      ref="dialog"
+      class="dialog"
+      :class="size"
+      :aria-labelledby="labelId"
+      @cancel.prevent="dismiss"
+      @close="onNativeClose"
+      @click.self="dismiss"
+    >
+      <!-- Exposes labelId to the slot for the caller's heading. -->
+      <slot :label-id="labelId" />
+    </dialog>
   </Teleport>
 </template>
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, useId, useTemplateRef } from 'vue'
-
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 const props = withDefaults(
   defineProps<{
@@ -40,96 +36,64 @@ const emit = defineEmits<{
 }>()
 
 const labelId = useId()
-const dialog = useTemplateRef<HTMLElement>('dialog')
+const dialog = useTemplateRef<HTMLDialogElement>('dialog')
 // Captured during setup, before any child mounts and can move focus.
 const previouslyFocused =
   document.activeElement instanceof HTMLElement ? document.activeElement : null
 
+// Escape (cancel event) and backdrop clicks both land here; the parent decides whether to unmount.
 function dismiss() {
   if (props.dismissible) {
     emit('close')
   }
 }
 
-function focusableElements(): HTMLElement[] {
-  return Array.from(dialog.value?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])
-}
+// Set before our own close() on unmount, so the resulting close event is ignored.
+let unmounting = false
 
-function regainFocus() {
-  ;(focusableElements()[0] ?? dialog.value)?.focus()
-}
-
-// Pulls focus back in if it ends up outside, e.g. a focused button being disabled blurs to <body>.
-function reclaimFocus() {
-  if (dialog.value && !dialog.value.contains(document.activeElement)) {
-    regainFocus()
-  }
-}
-
-function trapTab(event: KeyboardEvent) {
-  const elements = focusableElements()
-  const first = elements[0]
-  const last = elements[elements.length - 1]
-  if (!first || !last) {
-    // All controls disabled: hold focus in place.
-    event.preventDefault()
-    return
-  }
-
-  const active = document.activeElement
-  if (!event.shiftKey && active === last) {
-    event.preventDefault()
-    first.focus()
-  } else if (event.shiftKey && (active === first || active === dialog.value)) {
-    // dialog.value: the tabindex="-1" container, reachable by clicking non-interactive content.
-    event.preventDefault()
-    last.focus()
-  }
-}
-
-function handleKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    dismiss()
-  } else if (event.key === 'Tab') {
-    trapTab(event)
+// Chrome lets a repeated Escape close the dialog even when cancel was prevented.
+// Keep the native state in sync with the parent: dismiss if allowed, otherwise reopen.
+function onNativeClose() {
+  if (unmounting) return
+  if (props.dismissible) {
+    emit('close')
+  } else {
+    dialog.value?.showModal()
   }
 }
 
 onMounted(() => {
-  document.addEventListener('keydown', handleKeydown)
-  document.addEventListener('focusin', reclaimFocus)
+  dialog.value?.showModal()
   document.body.style.overflow = 'hidden'
-  regainFocus()
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('keydown', handleKeydown)
-  document.removeEventListener('focusin', reclaimFocus)
+  unmounting = true
+  dialog.value?.close()
   document.body.style.overflow = ''
   previouslyFocused?.focus()
 })
 </script>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(21, 42, 98, 0.2);
-  padding: 1.5rem;
-  z-index: 1000;
-}
-
 .dialog {
+  /* Reset the browser <dialog> defaults. */
+  padding: 0;
+  border: 0;
+  color: inherit;
+
   width: 28.8125rem;
-  max-width: 100%;
-  max-height: 100%;
+  /* Keep a 1.5rem gutter around the dialog, replacing the UA max-size. */
+  max-width: calc(100% - 3rem);
+  max-height: calc(100% - 3rem);
   overflow-y: auto;
   background: var(--color-background);
   border-radius: 6px;
   box-shadow: 0 1px 15px rgba(0, 0, 0, 0.05);
+}
+
+.dialog::backdrop {
+  background: rgba(21, 42, 98, 0.2);
 }
 
 .dialog.sm {
