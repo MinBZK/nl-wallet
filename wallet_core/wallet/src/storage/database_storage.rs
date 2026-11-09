@@ -863,10 +863,21 @@ where
             issuance_event_attestations.push(issuance_event_attestation);
 
             attestation::Entity::update_many()
-                .col_expr(
-                    attestation::Column::IssuerRegistration,
-                    Expr::value(serde_json::to_value(credential.issuer_registration)?),
-                )
+                .set(attestation::ActiveModel {
+                    issuer_registration: Set(serde_json::to_value(credential.issuer_registration)?),
+                    expiration: Set(credential.expiration.map(Into::into)),
+                    not_before: Set(credential.not_before.map(Into::into)),
+                    extended_types: Set(ExtendedTypesModel::new(credential.extended_attestation_types)),
+                    metadata: Set(match credential.metadata {
+                        IssuedCredentialMetadata::TypeMetadata { verified, .. } => {
+                            AttestationMetadataModel::TypeMetadata(verified)
+                        }
+                        IssuedCredentialMetadata::CredentialMetadata(credential_metadata) => {
+                            AttestationMetadataModel::CredentialMetadata(credential_metadata)
+                        }
+                    }),
+                    ..Default::default()
+                })
                 .filter(attestation::Column::Id.eq(attestation_id))
                 .exec(&transaction)
                 .await?;
@@ -1522,6 +1533,7 @@ pub(crate) mod tests {
     use itertools::Itertools;
     use mdoc::IdentifierListInfo;
     use mdoc::holder::Mdoc;
+    use openid4vc::metadata::issuer_metadata::CredentialMetadata;
     use openid4vc::metadata::issuer_metadata::Logo;
     use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
     use openid4vc::wallet_issuance::credential::SdJwtCopy;
@@ -1534,6 +1546,8 @@ pub(crate) mod tests {
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use serde::Deserialize;
     use serde::Serialize;
@@ -1547,6 +1561,7 @@ pub(crate) mod tests {
     use crate::attestation::AttestationValidity;
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::storage::data::RegistrationData;
+    use crate::wallet::test::decoded_sd_jwt_from_credential_payload;
     use crate::wallet::test::mdoc_from_credential_payload;
     use crate::wallet::test::nl_pid_mdoc_credential_metadata_example;
 
@@ -2813,8 +2828,12 @@ pub(crate) mod tests {
         assert!(fetched.is_empty());
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_insert_and_update_attestations() {
+    async fn test_insert_and_update_attestations(
+        #[values(true, false)] with_type_metadata: bool,
+        #[values(true, false)] with_validity: bool,
+    ) {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         let state = storage.state().await.unwrap();
@@ -2843,6 +2862,9 @@ pub(crate) mod tests {
         ]);
 
         let attestation_type = sd_jwt.sd_jwt().claims().vct.clone();
+        let initial_expiration: DateTime<Utc> = sd_jwt.sd_jwt().claims().exp.unwrap().into();
+        let initial_metadata = NormalizedTypeMetadata::nl_pid_example();
+        let initial_extended_types = initial_metadata.extended_vcts().map(str::to_string).collect();
 
         let attestations = storage
             .fetch_unique_attestations()
@@ -2862,10 +2884,10 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies.clone(),
-                        attestation_type,
+                        attestation_type.clone(),
                         sd_jwt.sd_jwt().claims().exp,
                         sd_jwt.sd_jwt().claims().nbf,
-                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
+                        initial_metadata.extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         initial_issuer_registration.clone(),
                     ),
@@ -2896,12 +2918,49 @@ pub(crate) mod tests {
         let fetched_events = storage.fetch_wallet_events().await.unwrap();
         assert_eq!(fetched_events.len(), 1);
 
-        // Create new issued_copies that will be updated
-        let holder_key = SigningKey::generate();
-        let sd_jwt = DecodedSdJwt::try_from(
-            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKeyRef::from(holder_key.verifying_key())).into_verified(),
-        )
-        .unwrap();
+        let (renewed_metadata, expected_metadata, renewed_extended_types) = if with_type_metadata {
+            let (vct, integrity, documents) = TypeMetadataDocuments::new_metadata_chain(vec_nonempty![
+                TypeMetadata::empty_example_with_attestation_type("urn:example:renewed:parent:1"),
+                TypeMetadata::example_with_claim_name(&attestation_type, "family_name"),
+            ])
+            .unwrap();
+            let (normalized, documents) = documents.into_normalized(&vct).unwrap();
+            let extended_types = normalized.extended_vcts().map(str::to_string).collect::<Vec<_>>();
+            let expected_metadata = StoredAttestationMetadata::TypeMetadata(normalized.clone());
+            (
+                IssuedCredentialMetadata::TypeMetadata {
+                    normalized,
+                    verified: documents.into_verified(integrity).unwrap(),
+                },
+                expected_metadata,
+                extended_types,
+            )
+        } else {
+            let metadata = CredentialMetadata::from(&initial_metadata);
+            (
+                IssuedCredentialMetadata::CredentialMetadata(metadata.clone()),
+                StoredAttestationMetadata::CredentialMetadata(metadata),
+                Vec::new(),
+            )
+        };
+
+        // Renew just before the original expiry, with a later expiry or no validity bounds.
+        let renewal_time = initial_expiration - Days::new(1);
+        let (mut payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::new(renewal_time));
+        payload.previewable_payload.not_before = with_validity.then_some(renewal_time.into());
+        payload.previewable_payload.expires = with_validity.then_some((initial_expiration + Days::new(365)).into());
+        let sd_jwt = decoded_sd_jwt_from_credential_payload(
+            payload,
+            match &renewed_metadata {
+                IssuedCredentialMetadata::TypeMetadata { normalized, .. } => Some(normalized),
+                IssuedCredentialMetadata::CredentialMetadata(_) => None,
+            },
+            &ISSUER_KEY,
+        );
+        let expected_validity = ValidityWindow {
+            valid_from: sd_jwt.sd_jwt().claims().nbf.map(Into::into),
+            valid_until: sd_jwt.sd_jwt().claims().exp.map(Into::into),
+        };
 
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![
             SdJwtCopy {
@@ -2927,15 +2986,15 @@ pub(crate) mod tests {
         // Update sd_jwt
         storage
             .update_credentials(
-                Utc::now(),
+                renewal_time,
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        "urn:eudi:pid:nl:1".to_string(),
-                        None,
-                        None,
-                        Vec::<String>::new(),
-                        IssuedCredentialMetadata::nl_pid_example(),
+                        attestation_type.clone(),
+                        sd_jwt.sd_jwt().claims().exp,
+                        sd_jwt.sd_jwt().claims().nbf,
+                        renewed_extended_types.clone(),
+                        renewed_metadata,
                         renewed_issuer_registration.clone(),
                     ),
                     attestation_presentation,
@@ -2953,6 +3012,13 @@ pub(crate) mod tests {
         assert_eq!(attestations.len(), 1);
 
         let updated_attestation_copy = attestations.first().unwrap();
+        assert_eq!(updated_attestation_copy.validity_window, expected_validity);
+        assert_ne!(
+            updated_attestation_copy.validity_window,
+            inserted_attestation_copy.validity_window
+        );
+        assert_eq!(updated_attestation_copy.metadata, expected_metadata);
+        assert_ne!(updated_attestation_copy.metadata, inserted_attestation_copy.metadata);
         assert_eq!(
             serde_json::to_value(&updated_attestation_copy.issuer_registration).unwrap(),
             serde_json::to_value(&renewed_issuer_registration).unwrap(),
@@ -2974,6 +3040,43 @@ pub(crate) mod tests {
             updated_attestation_copy.attestation_copy_id
         );
         assert_ne!(inserted_attestation, updated_attestation);
+
+        // The renewed card must still be available for disclosure after its original expiry.
+        let kinds = credential_kinds(&HashSet::from([attestation_type]), Format::SdJwt);
+        let after_original_expiry = MockTimeGenerator::new(initial_expiration + Days::new(1));
+        let fetched = storage
+            .fetch_valid_unique_attestations_by_credential_kinds(&kinds, after_original_expiry.clone())
+            .await
+            .unwrap();
+        assert_eq!(fetched.len(), 1);
+        assert_eq!(fetched[0].attestation_id, inserted_attestation_copy.attestation_id);
+
+        // Matching uses the renewed extended types, including clearing them for fallback metadata.
+        for (extended_types, expected_count) in [
+            (initial_extended_types, 0),
+            (
+                renewed_extended_types.into_iter().collect(),
+                usize::from(with_type_metadata),
+            ),
+        ] {
+            let fetched = storage
+                .fetch_valid_unique_attestations_by_credential_kinds(
+                    &credential_kinds(&extended_types, Format::SdJwt),
+                    after_original_expiry.clone(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(fetched.len(), expected_count);
+        }
+
+        // The renewed validity bounds must still prevent premature or expired disclosure.
+        for outside_validity in [renewal_time - Days::new(1), initial_expiration + Days::new(365)] {
+            let fetched = storage
+                .fetch_valid_unique_attestations_by_credential_kinds(&kinds, MockTimeGenerator::new(outside_validity))
+                .await
+                .unwrap();
+            assert_eq!(fetched.len(), usize::from(!with_validity));
+        }
 
         // Incrementing the usage_count of the attestation ensures a new copy is returned next time unique attestations
         // are queried
