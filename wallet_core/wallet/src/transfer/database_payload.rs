@@ -23,8 +23,8 @@ impl WalletDatabasePayload {
     pub fn encrypt(&self, public_key: JwePublicKey) -> Result<String, JweJsonEncryptionError> {
         let Self(export) = self;
 
-        let encryper = JweEncrypter::from(public_key);
-        let jwe = encryper.encrypt_json(
+        let encrypter = JweEncrypter::from(public_key);
+        let jwe = encrypter.encrypt_json(
             export,
             ENCRYPTION_ALGORITHM,
             None,
