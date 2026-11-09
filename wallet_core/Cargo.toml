@@ -44,6 +44,7 @@ members = [
     "update_policy/server",
     "wallet",
     "wallet/configuration",
+    "wallet/device_integration_tests",
     "wallet/entity",
     "wallet/migrations",
     "wallet/platform_support",

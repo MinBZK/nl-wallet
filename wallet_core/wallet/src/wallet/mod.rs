@@ -24,7 +24,11 @@ mod state;
 mod transfer;
 mod uri;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "hardware_integration_test"))]
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "The hardware scenarios use a subset of the shared test helpers")
+)]
 pub(crate) mod test;
 
 use std::marker::PhantomData;
@@ -101,10 +105,11 @@ use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
 use crate::wallet::notifications::DirectNotificationsCallback;
 use crate::wallet::pin_recovery::PinRecoverySession;
 
-type KeyHolderType = cfg_select! {
-    feature = "fake_attestation" => platform_support::attested_key::mock::PersistentMockAttestedKeyHolder,
-    _ => platform_support::attested_key::hardware::HardwareAttestedKeyHolder,
-};
+type KeyHolderType =
+    cfg_select! {
+        feature = "fake_attestation" => platform_support::attested_key::mock::PersistentMockAttestedKeyHolder,
+        _ => platform_support::attested_key::hardware::HardwareAttestedKeyHolder,
+    };
 
 #[derive(Debug, Default)]
 enum WalletRegistration<A, G> {

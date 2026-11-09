@@ -24,18 +24,15 @@ use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureCl
 use rstest::rstest;
 use serial_test::serial;
 use tokio::sync::mpsc;
+use wallet::hardware_test::RegistrationCertificateCase;
 use wallet::hardware_test::ResponseArtifact;
+use wallet::hardware_test::Scenario;
 use wallet::hardware_test::Verification;
 use wallet::hardware_test::run_disclosure;
-use wallet::hardware_test::run_disclosure_with_jwt;
-use wallet::hardware_test::run_registration_certificate_rejection;
 use wallet::hardware_test::verify_response;
 
 /// Runs the same public wallet API and real signatures as the device tests, replacing only BLE.
-async fn round_trip(
-    rejection: Option<RegistrationCertificateCase>,
-    jwt_registration_certificate: bool,
-) -> (Verification, ResponseArtifact) {
+async fn round_trip(scenario: Scenario) -> (Verification, ResponseArtifact) {
     let (updates, receiver) = mpsc::channel(128);
     let start = MockCloseProximityDisclosureClient::start_qr_handover_context();
     start.expect().once().return_once(|| {
@@ -70,7 +67,7 @@ async fn round_trip(
     let expected_ready = Arc::clone(&expected);
     let reader_ready = move |ready: wallet::hardware_test::ReaderReady| {
         let device_request = hex::decode(ready.device_request_hex).unwrap();
-        if jwt_registration_certificate {
+        if matches!(scenario, Scenario::JwtDisclosure) {
             let request: DeviceRequest = cbor_deserialize(device_request.as_slice()).unwrap();
             let doc_request = request.doc_requests.iter().next().unwrap();
             assert!(
@@ -92,16 +89,9 @@ async fn round_trip(
             .unwrap();
         *expected_ready.lock() = Some(ready.wallet_verification);
     };
-    match rejection {
-        Some(case) => {
-            run_registration_certificate_rejection::<MockCloseProximityDisclosureClient>(case, reader_ready).await
-        }
-        None if jwt_registration_certificate => {
-            run_disclosure_with_jwt::<MockCloseProximityDisclosureClient>(reader_ready).await
-        }
-        None => run_disclosure::<MockCloseProximityDisclosureClient>(reader_ready).await,
-    }
-    .expect("wallet scenario should produce its expected outcome and clean up");
+    run_disclosure::<MockCloseProximityDisclosureClient>(scenario, reader_ready)
+        .await
+        .expect("wallet scenario should produce its expected outcome and clean up");
 
     let expected = expected.lock().take().unwrap();
     let expected_json = serde_json::to_value(&expected).unwrap();
@@ -115,7 +105,7 @@ async fn round_trip(
 #[tokio::test]
 #[serial(MockCloseProximityDisclosureClient)]
 async fn signed_disclosure_round_trip_and_verifier_rejections() {
-    let (expected, mut received) = round_trip(None, false).await;
+    let (expected, mut received) = round_trip(Scenario::CwtDisclosure).await;
     let expected_json = serde_json::to_value(&expected).unwrap();
     verify_response(&expected, &received)
         .await
@@ -187,7 +177,7 @@ async fn signed_disclosure_round_trip_and_verifier_rejections() {
 #[tokio::test]
 #[serial(MockCloseProximityDisclosureClient)]
 async fn registration_certificate_rejection(#[case] case: RegistrationCertificateCase) {
-    let (expected, mut received) = round_trip(Some(case), false).await;
+    let (expected, mut received) = round_trip(Scenario::Rejection(case)).await;
     verify_response(&expected, &received).await.unwrap();
 
     let mut response: DeviceResponse =
@@ -206,7 +196,7 @@ async fn registration_certificate_rejection(#[case] case: RegistrationCertificat
 #[tokio::test]
 #[serial(MockCloseProximityDisclosureClient)]
 async fn rejection_verifier_rejects_disclosed_documents() {
-    let (expected, mut received) = round_trip(None, false).await;
+    let (expected, mut received) = round_trip(Scenario::CwtDisclosure).await;
     let mut expected = serde_json::to_value(expected).unwrap();
     expected["expected_error_status"] = serde_json::json!(10);
     let expected: Verification = serde_json::from_value(expected).unwrap();
@@ -234,7 +224,7 @@ async fn rejection_verifier_rejects_disclosed_documents() {
 #[tokio::test]
 #[serial(MockCloseProximityDisclosureClient)]
 async fn jwt_registration_certificate_disclosure_round_trip() {
-    let (expected, received) = round_trip(None, true).await;
+    let (expected, received) = round_trip(Scenario::JwtDisclosure).await;
     verify_response(&expected, &received).await.unwrap();
 }
 
@@ -249,9 +239,10 @@ async fn transport_failure_preserves_error_and_cleans_up() {
     });
     let stop = MockCloseProximityDisclosureClient::stop_ble_server_context();
     stop.expect().once().returning(|| Ok(()));
-    let error = run_disclosure::<MockCloseProximityDisclosureClient>(|_| panic!("reader must not start"))
-        .await
-        .unwrap_err();
+    let error = run_disclosure::<MockCloseProximityDisclosureClient>(Scenario::CwtDisclosure, |_| {
+        panic!("reader must not start")
+    })
+    .await
+    .unwrap_err();
     assert!(format!("{error:#}").contains("synthetic BLE start failure"));
 }
-use wallet::hardware_test::RegistrationCertificateCase;

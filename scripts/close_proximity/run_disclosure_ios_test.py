@@ -92,7 +92,7 @@ class Runner:
         # Build before starting the device: compilation must not consume the BLE connection timeout.
         completed = subprocess.run(
             [
-                "cargo", "build",
+                "cargo", "build", "--locked",
                 "--manifest-path", str(self.repo_root / "wallet_core/Cargo.toml"),
                 "-p", "wallet",
                 "--features", "hardware_integration_test",
@@ -116,26 +116,41 @@ class Runner:
             raise RuntimeError("Cargo did not produce the wallet response verifier")
 
     def run(self, command: list[str]) -> int:
+        try:
+            return self._run(command)
+        except BaseException:
+            self._stopping = True
+            try:
+                if self.test_process is not None:
+                    self._stop_process_group(self.test_process)
+            finally:
+                if self.helper_process is not None:
+                    self._stop_process_group(self.helper_process)
+            raise
+        finally:
+            self.artifacts.cleanup()
+
+    def _run(self, command: list[str]) -> int:
         self._prepare_wallet_verifier()
         command = self._with_auto_destination(command)
         master_fd, slave_fd = os.openpty()
         try:
-            self.test_process = subprocess.Popen(
-                command,
-                cwd=self.repo_root,
-                stdin=slave_fd,
-                stdout=slave_fd,
-                stderr=slave_fd,
-            )
-        finally:
-            os.close(slave_fd)
+            try:
+                self.test_process = subprocess.Popen(
+                    command,
+                    cwd=self.repo_root,
+                    stdin=slave_fd,
+                    stdout=slave_fd,
+                    stderr=slave_fd,
+                    start_new_session=True,
+                )
+            finally:
+                os.close(slave_fd)
 
-        signal.signal(signal.SIGINT, self._handle_signal)
-        signal.signal(signal.SIGTERM, self._handle_signal)
+            signal.signal(signal.SIGINT, self._handle_signal)
+            signal.signal(signal.SIGTERM, self._handle_signal)
 
-        buffer = ""
-
-        try:
+            buffer = ""
             while True:
                 self._poll_helper()
                 self._maybe_start_helper(buffer)
@@ -162,7 +177,6 @@ class Runner:
 
         test_exit_code = self.test_process.wait() if self.test_process else 1
         helper_exit_code = self._finish_helper()
-        self.artifacts.cleanup()
 
         if test_exit_code != 0:
             return test_exit_code
@@ -174,27 +188,28 @@ class Runner:
         return 0
 
     def _maybe_start_helper(self, buffer: str) -> None:
-        payload_text = next(
-            (match.group(1) for match in self.qr_pattern.finditer(buffer)
-             if match.group(1) not in self.seen_payloads),
-            None,
-        )
-        if payload_text is None:
+        # Even an exited helper owns its result until _poll_helper() records it.
+        if self.helper_process is not None:
             return
 
-        if self.helper_process and self.helper_process.poll() is None:
+        for match in self.qr_pattern.finditer(buffer):
+            payload_text = match.group(1)
+            if payload_text in self.seen_payloads:
+                continue
+            self.seen_payloads.add(payload_text)
+
+            try:
+                payload = json.loads(payload_text)
+            except json.JSONDecodeError:
+                continue
+
+            qr_code = payload.get("qr")
+            if not isinstance(qr_code, str) or not qr_code:
+                continue
+            break
+        else:
             return
 
-        try:
-            payload = json.loads(payload_text)
-        except json.JSONDecodeError:
-            return
-
-        qr_code = payload.get("qr")
-        if not isinstance(qr_code, str) or not qr_code:
-            return
-
-        self.seen_payloads.add(payload_text)
         helper_command = [
             "swift",
             "scripts/close_proximity/disclosure_mac_reader.swift",
@@ -261,6 +276,7 @@ class Runner:
             cwd=self.repo_root,
             stdout=sys.stderr.buffer,
             stderr=sys.stderr.buffer,
+            start_new_session=True,
         )
 
     def _poll_helper(self) -> None:
@@ -309,26 +325,34 @@ class Runner:
         try:
             helper_exit_code = self.helper_process.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            self.helper_process.terminate()
-            try:
-                helper_exit_code = self.helper_process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.helper_process.kill()
-                helper_exit_code = self.helper_process.wait()
+            helper_exit_code = self._stop_process_group(self.helper_process)
 
         self._record_helper_result(helper_exit_code)
         self.helper_process = None
         return self.helper_exit_code
+
+    @staticmethod
+    def _stop_process_group(process: subprocess.Popen[bytes]) -> int:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+        # A shell may exit before its descendants, including xcodebuild, have stopped.
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        return process.wait()
 
     def _handle_signal(self, signum: int, _frame) -> None:
         if self._stopping:
             return
 
         self._stopping = True
-        if self.test_process and self.test_process.poll() is None:
-            self.test_process.terminate()
-        if self.helper_process and self.helper_process.poll() is None:
-            self.helper_process.terminate()
         raise SystemExit(128 + signum)
 
     def _with_auto_destination(self, command: list[str]) -> list[str]:

@@ -376,8 +376,9 @@ Before running these tests:
 `accept_disclosure` APIs in the existing XCTest host app, without Flutter. It uses the real native
 BLE bridge and the Mac Swift reader. The Rust scenario is in `wallet/src/wallet/hardware_test/` and
 is compiled only with `wallet/hardware_integration_test`. The Xcode integration-test bundle links
-the `device_integration_tests` static-library example, which includes both `wallet` and
-`platform_support`; the production app does not link this test entry point.
+the dedicated `wallet/device_integration_tests` static-library crate, which includes both `wallet` and
+`platform_support` without pulling in their development dependencies. The production app does not link
+this test entry point.
 
 Run from the repository root, with an unlocked iPhone connected and Bluetooth permissions granted:
 

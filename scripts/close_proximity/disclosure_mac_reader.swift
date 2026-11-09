@@ -36,7 +36,7 @@ private struct SessionEstablishedData {
 }
 
 private struct DeviceResponseHandling {
-    var responseFile: String? = nil
+    let responseFile: String?
     let expectedPlaintext: Data?
     let shouldPrintPlaintextHex: Bool
     let encodedSessionTranscript: Data

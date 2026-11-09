@@ -631,7 +631,7 @@ platform :ios do
         FileUtils.rm_f(log_file)
 
         begin
-          sh("scripts/close_proximity/run_disclosure_ios_test.py", "--",
+          sh("scripts/close_proximity/run_disclosure_ios_test.py", "--require-wallet-test", "--",
              "/bin/bash", "-c",
              "set -o pipefail; xcodebuild test " \
              "-project wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj " \
