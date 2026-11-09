@@ -17,9 +17,10 @@ use url::Url;
 use utils::generator::Generator;
 
 use crate::status_list::StatusType;
-use crate::status_list_jwt::StatusListJwt;
-use crate::status_list_jwt::verification::StatusListJwtVerificationError;
+use crate::status_list_token::StatusListFormat;
+use crate::status_list_token::StatusListToken;
 use crate::status_list_token::StatusListTokenClaims;
+use crate::status_list_token::verification::StatusListTokenVerificationError;
 use crate::verification::client::StatusListClient;
 use crate::verification::client::StatusListClientError;
 
@@ -38,7 +39,7 @@ pub enum StatusListVerificationError {
     Networking(#[from] Arc<StatusListClientError>),
 
     #[error("status list token verification error: {0}")]
-    Verification(#[from] Arc<StatusListJwtVerificationError>),
+    Verification(#[from] Arc<StatusListTokenVerificationError>),
 }
 
 #[derive(Debug, Clone)]
@@ -49,7 +50,7 @@ struct CacheValidity {
 
 #[derive(Debug, Clone)]
 struct CachedToken {
-    token: StatusListJwt,
+    token: StatusListToken,
     fetched_at: Instant,
     // Only use verified claims to determine retention. A failed verification uses the shorter error TTL.
     cache_validity: Option<CacheValidity>,
@@ -172,7 +173,11 @@ where
             let cached = self
                 .cache
                 .get_with(url.clone(), async {
-                    let token = self.client.fetch(url.clone()).await.map_err(Arc::new)?;
+                    let token = self
+                        .client
+                        .fetch(url.clone(), StatusListFormat::Jwt)
+                        .await
+                        .map_err(Arc::new)?;
                     let fetched_at = Instant::now();
                     let claims = token.parse_and_verify(issuer_trust_anchors, &url, time);
                     let cache_validity = claims.as_ref().ok().map(|claims| CacheValidity {
@@ -261,7 +266,10 @@ mod test {
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 
-    use crate::status_list_jwt::mock::create_status_list_jwt;
+    use crate::status_list_jwt::mock::mock_status_list_jwt;
+    use crate::status_list_token::StatusListFormat;
+    use crate::status_list_token::StatusListToken;
+    use crate::status_list_token::StatusListTokenParseError;
     use crate::verification::client::StatusListClientError;
     use crate::verification::client::mock::MockStatusListClient;
     use crate::verification::client::mock::StatusListClientStub;
@@ -367,9 +375,11 @@ mod test {
 
         // Undetermined when retrieving the status list fails
         let mut client = MockStatusListClient::new();
-        client
-            .expect_fetch()
-            .returning(|_| Err(StatusListClientError::JwtParsing(JwtParseError::MissingKid)));
+        client.expect_fetch().returning(|_, _| {
+            Err(StatusListClientError::Parse(StatusListTokenParseError::Jwt(
+                JwtParseError::MissingKid,
+            )))
+        });
         let verifier = RevocationVerifier::new(
             Arc::new(client),
             10,
@@ -398,7 +408,7 @@ mod test {
         let ca = Ca::generate_mock();
         let other_ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
-        let (_, _, token) = create_status_list_jwt(&keypair, None, None).now_or_never().unwrap();
+        let (_, _, token) = mock_status_list_jwt(&keypair, None, None).now_or_never().unwrap();
         let mut cases = [
             (
                 TrustAnchors::try_from(vec![ca.certificate().to_vec(), other_ca.certificate().to_vec()]).unwrap(),
@@ -419,9 +429,9 @@ mod test {
         let mut client = MockStatusListClient::new();
         client
             .expect_fetch()
-            .with(eq(uri.clone()))
+            .with(eq(uri.clone()), eq(StatusListFormat::Jwt))
             .times(1)
-            .returning(move |_| Ok(token.clone()));
+            .returning(move |_, _| Ok(token.clone().into()));
         let verifier = RevocationVerifier::new(
             Arc::new(client),
             10,
@@ -458,16 +468,16 @@ mod test {
                 },
             )
             .unwrap();
-        let (_, _, token) = create_status_list_jwt(&keypair, token_expiry.then_some(expires.timestamp()), None)
+        let (_, _, token) = mock_status_list_jwt(&keypair, token_expiry.then_some(expires.timestamp()), None)
             .now_or_never()
             .unwrap();
         let uri: Url = "https://example.com/statuslists/1".parse().unwrap();
         let mut client = MockStatusListClient::new();
         client
             .expect_fetch()
-            .with(eq(uri.clone()))
+            .with(eq(uri.clone()), eq(StatusListFormat::Jwt))
             .times(1)
-            .returning(move |_| Ok(token.clone()));
+            .returning(move |_, _| Ok(token.clone().into()));
         let verifier = RevocationVerifier::new(
             Arc::new(client),
             10,
@@ -501,9 +511,13 @@ mod test {
         let mut client = MockStatusListClient::new();
         client
             .expect_fetch()
-            .with(eq(uri.clone()))
+            .with(eq(uri.clone()), eq(StatusListFormat::Jwt))
             .times(1)
-            .returning(|_| Err(StatusListClientError::JwtParsing(JwtParseError::MissingKid)));
+            .returning(|_, _| {
+                Err(StatusListClientError::Parse(StatusListTokenParseError::Jwt(
+                    JwtParseError::MissingKid,
+                )))
+            });
         let time = MockTimeGenerator::default();
         let verifier = RevocationVerifier::new(Arc::new(client), 10, TEN_MINUTES, TEN_MINUTES, time.clone());
         let status_claim = StatusList(StatusListClaim { uri, idx: 1 });
@@ -521,14 +535,14 @@ mod test {
     fn test_honor_token_ttl_after_untrusted_fetch() {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
-        let (_, _, token) = create_status_list_jwt(&keypair, None, Some(0)).now_or_never().unwrap();
+        let (_, _, token) = mock_status_list_jwt(&keypair, None, Some(0)).now_or_never().unwrap();
         let uri: Url = "https://example.com/statuslists/1".parse().unwrap();
         let mut client = MockStatusListClient::new();
         client
             .expect_fetch()
-            .with(eq(uri.clone()))
+            .with(eq(uri.clone()), eq(StatusListFormat::Jwt))
             .times(3)
-            .returning(move |_| Ok(token.clone()));
+            .returning(move |_, _| Ok(token.clone().into()));
         let time = MockTimeGenerator::default();
         let verifier = RevocationVerifier::new(Arc::new(client), 10, TEN_MINUTES, TEN_MINUTES, time.clone());
         let status_claim = StatusList(StatusListClaim { uri, idx: 1 });
@@ -549,7 +563,7 @@ mod test {
     fn cached_result(exp: Option<DateTime<Utc>>, ttl: Option<Duration>) -> (Url, CachedResult) {
         let url: Url = "http://localhost".parse().unwrap();
         let cached_result = Ok(CachedToken {
-            token: "header.payload.signature".parse().unwrap(),
+            token: StatusListToken::Jwt("header.payload.signature".parse().unwrap()),
             fetched_at: Instant::now(),
             cache_validity: Some(CacheValidity { exp, ttl }),
         });
@@ -610,9 +624,11 @@ mod test {
     }
 
     #[rstest]
-    #[case::fetch_error(Err(Arc::new(StatusListClientError::JwtParsing(JwtParseError::MissingKid))))]
+    #[case::fetch_error(Err(Arc::new(StatusListClientError::Parse(StatusListTokenParseError::Jwt(
+        JwtParseError::MissingKid
+    )))))]
     #[case::verification_error(Ok(CachedToken {
-        token: "header.payload.signature".parse().unwrap(),
+        token: StatusListToken::Jwt("header.payload.signature".parse().unwrap()),
         fetched_at: Instant::now(),
         cache_validity: None,
     }))]

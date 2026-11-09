@@ -9773,6 +9773,8 @@ dependencies = [
  "futures",
  "hex",
  "http",
+ "http_utils",
+ "httpmock",
  "jwt",
  "mdoc_derive",
  "mockall",

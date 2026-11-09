@@ -1,20 +1,24 @@
-use jwt::error::JwtParseError;
 use url::Url;
 
-use crate::status_list_jwt::StatusListJwt;
+use crate::status_list_token::StatusListFormat;
+use crate::status_list_token::StatusListToken;
+use crate::status_list_token::StatusListTokenParseError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListClientError {
     #[error("networking error: {0}")]
     Networking(#[from] reqwest::Error),
 
-    #[error("jwt parsing error: {0}")]
-    JwtParsing(#[from] JwtParseError),
+    #[error("status list response has unexpected content type: {0}")]
+    UnexpectedContentType(String),
+
+    #[error("could not parse status list response: {0}")]
+    Parse(#[source] StatusListTokenParseError),
 }
 
 #[trait_variant::make(Send)]
 pub trait StatusListClient {
-    async fn fetch(&self, url: Url) -> Result<StatusListJwt, StatusListClientError>;
+    async fn fetch(&self, url: Url, format: StatusListFormat) -> Result<StatusListToken, StatusListClientError>;
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -32,8 +36,10 @@ pub mod mock {
     use utils::generator::TimeGenerator;
 
     use crate::status_list::StatusList;
+    use crate::status_list_cwt::StatusListCwt;
     use crate::status_list_jwt::StatusListJwt;
-    use crate::status_list_jwt::mock::create_status_list_jwt;
+    use crate::status_list_jwt::mock::mock_status_list_jwt;
+    use crate::status_list_token::StatusListFormat;
     use crate::status_list_token::StatusListToken;
     use crate::verification::client::StatusListClient;
     use crate::verification::client::StatusListClientError;
@@ -42,7 +48,7 @@ pub mod mock {
         pub StatusListClient {}
 
         impl StatusListClient for StatusListClient {
-            async fn fetch(&self, url: Url) -> Result<StatusListJwt, StatusListClientError>;
+            async fn fetch(&self, url: Url, format: StatusListFormat) -> Result<StatusListToken, StatusListClientError>;
         }
     }
 
@@ -53,11 +59,11 @@ pub mod mock {
     where
         S: EcdsaKeySend + Sync,
     {
-        async fn fetch(&self, _url: Url) -> Result<StatusListJwt, StatusListClientError> {
+        async fn fetch(&self, _url: Url, _format: StatusListFormat) -> Result<StatusListToken, StatusListClientError> {
             let (_, _, status_list_token) =
-                create_status_list_jwt(&self.0, Some(Utc::now().add(Days::new(1)).timestamp()), None).await;
+                mock_status_list_jwt(&self.0, Some(Utc::now().add(Days::new(1)).timestamp()), None).await;
 
-            Ok(status_list_token)
+            Ok(status_list_token.into())
         }
     }
 
@@ -72,7 +78,7 @@ pub mod mock {
     where
         S: EcdsaKeySend + Sync,
     {
-        async fn fetch(&self, url: Url) -> Result<StatusListJwt, StatusListClientError> {
+        async fn fetch(&self, url: Url, format: StatusListFormat) -> Result<StatusListToken, StatusListClientError> {
             let url_vct = url
                 .as_str()
                 .rsplit("/")
@@ -85,14 +91,13 @@ pub mod mock {
                 .find(|(vct, _)| vct.replace(':', "-") == url_vct)
                 .expect("could not find keypair for url for signing status list token");
 
-            let status_list_token = StatusListJwt::sign(
-                StatusListToken::builder(url, StatusList::new(10).pack())
-                    .ttl(Some(Duration::from_secs(3600)))
-                    .build(&TimeGenerator),
-                keypair,
-            )
-            .await
-            .unwrap();
+            let claims = StatusListToken::builder(url, StatusList::new(10).pack())
+                .ttl(Some(Duration::from_secs(3600)))
+                .build(&TimeGenerator);
+            let status_list_token = match format {
+                StatusListFormat::Jwt => StatusListJwt::sign(claims, keypair).await.unwrap().into(),
+                StatusListFormat::Cwt => StatusListCwt::sign(claims, keypair).await.unwrap().into(),
+            };
 
             Ok(status_list_token)
         }

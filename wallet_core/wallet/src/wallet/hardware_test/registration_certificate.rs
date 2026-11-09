@@ -23,6 +23,7 @@ use serde_json::json;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_jwt::StatusListJwt;
+use token_status_list::status_list_token::StatusListTokenParseError;
 use token_status_list::verification::client::StatusListClientError;
 
 use crate::errors::DisclosureError;
@@ -117,9 +118,9 @@ impl RegistrationCertificateCase {
                 Ok(authority.sign_status_list(list))
             }
             // Simulate retrieval returning an unusable status-list token, without network dependencies.
-            Self::StatusUnavailable => Err(StatusListClientError::JwtParsing(
+            Self::StatusUnavailable => Err(StatusListClientError::Parse(StatusListTokenParseError::Jwt(
                 JwtParseError::UnexpectedNumberOfParts(0),
-            )),
+            ))),
             Self::UntrustedStatusList => Ok(MockRegistrationCertificateAuthority::new().status_list_client.0),
             _ => Ok(authority.status_list_client.0.clone()),
         }

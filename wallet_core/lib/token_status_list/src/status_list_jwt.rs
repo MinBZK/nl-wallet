@@ -164,7 +164,7 @@ pub mod mock {
     use crate::status_list_token::StatusListToken;
     use crate::status_list_token::StatusListTokenClaims;
 
-    pub async fn create_status_list_jwt<S>(
+    pub async fn mock_status_list_jwt<S>(
         keypair: &KeyPair<S>,
         exp: Option<i64>,
         ttl: Option<i64>,
@@ -220,7 +220,7 @@ mod test {
     use jwt::error::JwtX5cVerifyError;
     use utils::generator::mock::MockTimeGenerator;
 
-    use crate::status_list_jwt::mock::create_status_list_jwt;
+    use crate::status_list_jwt::mock::mock_status_list_jwt;
     use crate::status_list_jwt::verification::StatusListJwtVerificationError;
     use crate::status_list_token::verification::StatusListTokenClaimsVerificationError;
 
@@ -233,7 +233,7 @@ mod test {
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
 
         let (expected_header, expected_claims, signed) =
-            create_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
+            mock_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
 
         let verified = signed
             .0
@@ -255,7 +255,7 @@ mod test {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
 
-        let (_, expected_claims, signed) = create_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
+        let (_, expected_claims, signed) = mock_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
 
         let err = signed
             .parse_and_verify(
@@ -307,7 +307,7 @@ mod test {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_mock().unwrap();
 
-        let (_, expected_claims, signed) = create_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
+        let (_, expected_claims, signed) = mock_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
 
         signed
             .parse_and_verify(

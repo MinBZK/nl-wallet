@@ -43,6 +43,11 @@ impl StatusListCwt {
         let cose = TypedCose::sign_with_typ_and_certificate(&claims, keypair).await?;
         Ok(Self(Required(cose)))
     }
+
+    /// Parse a tagged `COSE_Sign1` structure, without verifying it.
+    pub fn from_slice(bytes: &[u8]) -> Result<Self, ciborium::de::Error<std::io::Error>> {
+        ciborium::from_reader(bytes)
+    }
 }
 
 /// [`StatusListTokenClaims`] encoded as a CWT Claims Set, using the claim keys from the IANA "CBOR Web Token (CWT)

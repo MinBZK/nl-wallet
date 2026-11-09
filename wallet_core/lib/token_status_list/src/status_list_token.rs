@@ -1,7 +1,10 @@
+use std::str;
+use std::str::Utf8Error;
 use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use jwt::error::JwtParseError;
 use url::Url;
 use utils::generator::Generator;
 
@@ -16,6 +19,48 @@ use crate::status_list_jwt::StatusListJwt;
 pub enum StatusListToken {
     Jwt(StatusListJwt),
     Cwt(Box<StatusListCwt>),
+}
+
+impl StatusListToken {
+    /// Parse a Status List Token in the given format, without verifying it.
+    pub fn from_bytes_as(format: StatusListFormat, bytes: &[u8]) -> Result<Self, StatusListTokenParseError> {
+        let token = match format {
+            StatusListFormat::Jwt => str::from_utf8(bytes)
+                .map_err(StatusListTokenParseError::JwtEncoding)?
+                .parse::<StatusListJwt>()
+                .map_err(StatusListTokenParseError::Jwt)?
+                .into(),
+            StatusListFormat::Cwt => StatusListCwt::from_slice(bytes)
+                .map_err(StatusListTokenParseError::Cwt)?
+                .into(),
+        };
+
+        Ok(token)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum StatusListTokenParseError {
+    #[error("status list token JWT is not valid UTF-8: {0}")]
+    JwtEncoding(#[source] Utf8Error),
+
+    #[error("could not parse status list token JWT: {0}")]
+    Jwt(#[source] JwtParseError),
+
+    #[error("could not parse status list token CWT: {0}")]
+    Cwt(#[source] ciborium::de::Error<std::io::Error>),
+}
+
+impl From<StatusListJwt> for StatusListToken {
+    fn from(jwt: StatusListJwt) -> Self {
+        Self::Jwt(jwt)
+    }
+}
+
+impl From<StatusListCwt> for StatusListToken {
+    fn from(cwt: StatusListCwt) -> Self {
+        Self::Cwt(Box::new(cwt))
+    }
 }
 
 /// The formats of a Status List Token, identified by their media type.
@@ -108,9 +153,13 @@ pub mod verification {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use crypto::trust_anchor::TrustAnchors;
     use url::Url;
     use utils::generator::Generator;
 
+    use crate::status_list_cwt::verification::StatusListCwtVerificationError;
+    use crate::status_list_jwt::verification::StatusListJwtVerificationError;
+    use crate::status_list_token::StatusListToken;
     use crate::status_list_token::StatusListTokenClaims;
 
     const EXP_LEEWAY: Duration = Duration::seconds(60);
@@ -145,5 +194,69 @@ pub mod verification {
 
             Ok(())
         }
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    pub enum StatusListTokenVerificationError {
+        #[error(transparent)]
+        Jwt(StatusListJwtVerificationError),
+
+        #[error(transparent)]
+        Cwt(StatusListCwtVerificationError),
+    }
+
+    impl StatusListToken {
+        pub fn parse_and_verify(
+            &self,
+            trust_anchors: &TrustAnchors,
+            url: &Url,
+            time: &impl Generator<DateTime<Utc>>,
+        ) -> Result<StatusListTokenClaims, StatusListTokenVerificationError> {
+            match self {
+                Self::Jwt(jwt) => jwt
+                    .parse_and_verify(trust_anchors, url, time)
+                    .map_err(StatusListTokenVerificationError::Jwt),
+                Self::Cwt(cwt) => cwt
+                    .parse_and_verify(trust_anchors, url, time)
+                    .map_err(StatusListTokenVerificationError::Cwt),
+            }
+        }
+    }
+}
+
+#[cfg(all(test, feature = "verification"))]
+mod verification_test {
+    use crypto::server_keys::generate::Ca;
+    use rstest::rstest;
+    use utils::generator::mock::MockTimeGenerator;
+
+    use crate::status_list_cwt::mock::mock_status_list_cwt;
+    use crate::status_list_jwt::mock::mock_status_list_jwt;
+    use crate::status_list_token::StatusListFormat;
+    use crate::status_list_token::StatusListToken;
+
+    #[rstest]
+    #[case::jwt(StatusListFormat::Jwt)]
+    #[case::cwt(StatusListFormat::Cwt)]
+    #[tokio::test]
+    async fn test_status_list_token_parse_and_verify(#[case] format: StatusListFormat) {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_status_list_mock().unwrap();
+        let (sub, token): (_, StatusListToken) = match format {
+            StatusListFormat::Jwt => {
+                let (_, claims, jwt) = mock_status_list_jwt(&keypair, None, None).await;
+                (claims.sub, jwt.into())
+            }
+            StatusListFormat::Cwt => {
+                let (cwt, claims) = mock_status_list_cwt(&keypair, None).await;
+                (claims.sub, cwt.into())
+            }
+        };
+
+        let claims = token
+            .parse_and_verify(&ca.to_trust_anchors(), &sub, &MockTimeGenerator::default())
+            .unwrap();
+
+        assert_eq!(claims.sub, sub);
     }
 }
