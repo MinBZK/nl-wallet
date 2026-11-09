@@ -2760,7 +2760,6 @@ mod tests {
         );
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_malformed_token() {
         let (issuer, _trust_anchors, _access_token, dpop, _holder_public_keys, credential_request) =
@@ -2781,7 +2780,6 @@ mod tests {
         assert_matches!(error, CredentialRequestError::MalformedToken);
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unknown_session() {
         let (issuer, _trust_anchors, _access_token, dpop, _holder_public_keys, credential_request) =
@@ -2804,7 +2802,6 @@ mod tests {
         );
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unauthorized() {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
@@ -2821,7 +2818,6 @@ mod tests {
         assert_matches!(error, CredentialRequestError::Unauthorized);
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_dpop_invalid() {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
@@ -2843,7 +2839,6 @@ mod tests {
         );
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_invalid_attestation_proof() {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
@@ -2907,7 +2902,6 @@ mod tests {
         );
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_missing_proof_nonce() {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
@@ -2926,7 +2920,6 @@ mod tests {
         assert_matches!(error, CredentialRequestError::MissingProofNonce);
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_invalid_nonce() {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
@@ -2945,7 +2938,6 @@ mod tests {
         assert_matches!(error, CredentialRequestError::InvalidNonce);
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_too_many_copies_requested() {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
@@ -2964,7 +2956,6 @@ mod tests {
         assert_matches!(error, CredentialRequestError::TooManyCopiesRequested(copy_count) if copy_count.get() == 5);
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_unknown_credential_id() {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
@@ -2983,7 +2974,6 @@ mod tests {
         assert_matches!(error, CredentialRequestError::UnknownCredentialIdentifier(_));
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_credential_configuration_id_not_allowed() {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
@@ -3002,7 +2992,6 @@ mod tests {
         assert_matches!(error, CredentialRequestError::CredentialConfigurationIdNotAllowed);
     }
 
-    #[rstest]
     #[tokio::test]
     async fn test_process_credential_request_error_missing_credential_configuration() {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
