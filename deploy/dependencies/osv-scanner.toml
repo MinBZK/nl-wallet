@@ -27,3 +27,18 @@ reason = "The unmaintained `paste` crate is only used by two transitive dependen
 id = "RUSTSEC-2026-0374"
 ignoreUntil = 2026-12-01
 reason = "`basic-toml` is only used by `askama`, which has removed this dependency upstream. However, a new version has not yet been released."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0387"
+ignoreUntil = 2027-01-01
+reason = "`crypto-bigint` version 0.5.5 and `p256` and `p384` version 0.13 are transitive dependencies of `jsonwebtoken`. Waiting for `jsonwebtoken` to upgrade."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0440"
+ignoreUntil = 2027-01-01
+reason = "`astral-tokio-tar` is an unmaintained transitive dependency of `testcontainers`, which is only used in tests. Waiting for `testcontainers` to upgrade."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0459"
+ignoreUntil = 2027-01-01
+reason = "The fixed `libsqlite3-sys` version 0.39 conflicts with dependencies of `sqlx`, which is already fix upstream. However, a new version has not yet been released."
