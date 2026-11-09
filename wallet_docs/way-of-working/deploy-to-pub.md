@@ -123,4 +123,4 @@ Implementation checked 6 November 2026.
 [variables]: SSSS/wallet/deploy-variables/-/tree/main/pub
 [static-ci]: SSSS/wallet/nl-wallet-static/-/blob/d1d315aaec3aee0909ed37a85e3586d49f4418fc/.gitlab-ci.yml
 [policy-ci]: SSSS/wallet/nl-wallet-secrets/-/blob/a4ea0d675c538f8c06f5a7b916b8cba39c80b151/.gitlab-ci.yml
-[database-version]: SSSS/wallet/nl-wallet/-/blob/1e47b7061b84a59b32d076036f51472e0a3c1226/wallet_core/lib/utils/src/built_info.rs#L40
+[database-version]: SSSS/wallet/nl-wallet/-/blob/1e47b7061b84a59b32d076036f51472e0a3c1226/wallet_core/lib/utils/src/built_info.rs
