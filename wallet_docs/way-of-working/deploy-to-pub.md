@@ -1,36 +1,39 @@
 # Deploying to PUB
 
-PUB rollouts are complete deployments: bump the version, deploy the backend,
-then build, verify and promote both Android and iOS apps.
+PUB rollouts are complete deployments: bump the version, block old app
+versions, deploy the backend, then build, verify and promote both Android
+and iOS apps.
 
 ## Deployment checklist
 
 1. **Bump the version.** Follow
    [Version bump and release notes](#version-bump-and-release-notes).
-2. **Deploy the backend.** Run [**`deploy-apps-pub`**][backend]. Wait for its
+2. **Block old app versions.** Follow
+   [Update-policy deployment](#update-policy-deployment) and verify that an
+   old app is blocked before deploying the backend. PUB users may be unable
+   to use the wallet until the replacement builds are available; this
+   interruption is accepted for PUB rollouts.
+3. **Deploy the backend.** Run [**`deploy-apps-pub`**][backend]. Wait for its
    child deployments and migrations to succeed.
-3. **Build and upload the apps.** If this rollout changes the signed wallet
+4. **Build and upload the apps.** If this rollout changes the signed wallet
    configuration, publish it first (see
    [Configuration, when needed](#configuration-when-needed)). Then run
    [**`build-pub-trigger`**][mobile]. Wait for
    `deploy-android-app-pub` and `deploy-ios-app-pub` in its child pipeline.
    CI uploads to Google Play **internal testing** and **TestFlight**;
    promotion happens in the store consoles.
-4. **Verify before promotion.** Install both uploaded builds on physical
+5. **Verify before promotion.** Install both uploaded builds on physical
    devices. Check version, build number and PUB environment; test registration,
    issuance, disclosure and changed functionality. Test updating an existing
    installation: release builds currently use a [database per Git commit][database-version],
    so a different commit starts a fresh wallet (PVW-4707).
    Record the tested build numbers and results.
-5. **Promote those exact builds.** Open **NL Wallet (pub)** in both store
+6. **Promote those exact builds.** Open **NL Wallet (pub)** in both store
    consoles. In Google Play, promote Android from internal testing to the
    **Public Demo** closed testing track. In TestFlight, add the iOS build to
    the **Public Demo** external testing group. Wait for any required store
    review and release action to finish, then confirm the PUB audience can
    install both builds and check service health.
-6. **Require an update, if needed.** After the replacements are available,
-   follow [Update-policy deployment](#update-policy-deployment), including
-   the checks with an old and new app.
 
 Use the **same main pipeline** for both triggers and check their **child
 pipelines**: a green parent does not prove deployment succeeded.
@@ -50,6 +53,7 @@ pipelines**: a green parent does not prove deployment succeeded.
 4. **Select the deployment pipeline.** Wait for the merged commit's `main`
    pipeline to pass. Use that same pipeline for `deploy-apps-pub` and
    `build-pub-trigger` in the deployment checklist.
+5. **Change the version in Jira.**
 
 Example: `0.7.1-dev` → `0.7.2-dev`, with `v0.7.1.md` → `v0.7.2.md` and heading
 `# v0.7.2 (dev)`. The existing docs index picks up the renamed file.
@@ -66,9 +70,10 @@ A version change after verification requires rebuilding and testing again.
    automatically triggered **`apply-secrets-pub`** to succeed. Then have the
    PUB operator restart `update-policy-server` and wait for it to be healthy:
    these jobs do not restart it, and the [policy loads at startup][policy-server].
-3. **Check the result.** Fully restart an old and a new app to bypass the
-   one-hour policy cache. The old app must require an update and open the
-   correct update destination; the new app must remain usable.
+3. **Check the result.** Fully restart an old app to bypass the one-hour
+   policy cache. Before deploying the backend, verify that it requires an
+   update and opens the correct update destination. During app verification,
+   fully restart each new build and confirm that it remains usable.
 
 Update policy compares the core's numeric version, ignoring `-dev` and build
 numbers. For example, block versions below `0.7.2` with:
