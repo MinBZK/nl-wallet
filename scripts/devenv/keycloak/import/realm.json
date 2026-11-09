@@ -44,16 +44,16 @@
   },
   "users": [
     {
-      "username": "administrator",
-      "email": "administrator@example.com",
-      "firstName": "Ad",
-      "lastName": "Ministrator",
+      "username": "operator1",
+      "email": "operator1@example.com",
+      "firstName": "Oper",
+      "lastName": "Ator 1",
       "enabled": true,
       "emailVerified": false,
       "credentials": [
         {
           "type": "password",
-          "value": "administrator",
+          "value": "operator1",
           "temporary": false
         }
       ],
@@ -64,16 +64,36 @@
       ]
     },
     {
-      "username": "manager",
-      "email": "manager@example.com",
-      "firstName": "Ma",
-      "lastName": "Nager",
+      "username": "operator2",
+      "email": "operator2@example.com",
+      "firstName": "Oper",
+      "lastName": "Ator 2",
       "enabled": true,
       "emailVerified": false,
       "credentials": [
         {
           "type": "password",
-          "value": "manager",
+          "value": "operator2",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "privilege_revoke_wallet",
+        "privilege_block_user",
+        "privilege_unblock_user"
+      ]
+    },
+    {
+      "username": "teamlead1",
+      "email": "teamlead1@example.com",
+      "firstName": "Team",
+      "lastName": "Lead 1",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "teamlead1",
           "temporary": false
         }
       ],
@@ -82,16 +102,52 @@
       ]
     },
     {
-      "username": "destroyer",
-      "email": "destroyer@example.com",
-      "firstName": "De",
-      "lastName": "Stroyer",
+      "username": "teamlead2",
+      "email": "teamlead2@example.com",
+      "firstName": "Team",
+      "lastName": "Lead 2",
       "enabled": true,
       "emailVerified": false,
       "credentials": [
         {
           "type": "password",
-          "value": "destroyer",
+          "value": "teamlead2",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "privilege_show_all_tasks"
+      ]
+    },
+    {
+      "username": "superuser1",
+      "email": "superuser1@example.com",
+      "firstName": "Super",
+      "lastName": "User 1",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "superuser1",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "privilege_revoke_solution"
+      ]
+    },
+    {
+      "username": "superuser2",
+      "email": "superuser2@example.com",
+      "firstName": "Super",
+      "lastName": "User 2",
+      "enabled": true,
+      "emailVerified": false,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "superuser2",
           "temporary": false
         }
       ],
