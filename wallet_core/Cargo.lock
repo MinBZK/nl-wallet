@@ -3491,7 +3491,7 @@ dependencies = [
  "base64 0.22.1",
  "gcloud-metadata",
  "home",
- "jsonwebtoken",
+ "jsonwebtoken 10.4.0",
  "reqwest",
  "serde",
  "serde_json",
@@ -4747,7 +4747,32 @@ dependencies = [
 [[package]]
 name = "jsonwebtoken"
 version = "10.4.0"
-source = "git+https://github.com/Keats/jsonwebtoken.git?rev=a89c743d222aee5ae1c21d3c3197dabdf25f7f77#a89c743d222aee5ae1c21d3c3197dabdf25f7f77"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eba32bfb4ffdeaca3e34431072faf01745c9b26d25504aa7a6cf5684334fc4fc"
+dependencies = [
+ "base64 0.22.1",
+ "ed25519-dalek 2.2.0",
+ "getrandom 0.2.16",
+ "hmac 0.12.1",
+ "js-sys",
+ "p256 0.13.2",
+ "p384 0.13.1",
+ "pem",
+ "rand 0.8.6",
+ "rsa 0.9.10",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "signature 2.2.0",
+ "simple_asn1",
+ "zeroize",
+]
+
+[[package]]
+name = "jsonwebtoken"
+version = "11.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e75fe14a82d81e5f5af639997db37d8b96045938a7ac6ab18cdbe1c7467e05e1"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek 2.2.0",
@@ -4822,7 +4847,7 @@ dependencies = [
  "http_utils",
  "httpmock",
  "itertools 0.14.0",
- "jsonwebtoken",
+ "jsonwebtoken 11.1.0",
  "p256 0.14.0",
  "p384 0.14.0",
  "rand 0.10.3",
@@ -5143,7 +5168,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
- "jsonwebtoken",
+ "jsonwebtoken 11.1.0",
  "mdoc_derive",
  "nom 8.0.0",
  "nutype",
@@ -5639,7 +5664,7 @@ dependencies = [
  "httpmock",
  "indexmap 2.12.1",
  "josekit",
- "jsonwebtoken",
+ "jsonwebtoken 11.1.0",
  "jwe",
  "jwk-simple",
  "jwt",
@@ -5888,7 +5913,7 @@ dependencies = [
  "httpmock",
  "indexmap 2.12.1",
  "itertools 0.14.0",
- "jsonwebtoken",
+ "jsonwebtoken 11.1.0",
  "jwe",
  "jwk-simple",
  "jwt",
@@ -6510,7 +6535,7 @@ dependencies = [
  "issuer_common",
  "itertools 0.14.0",
  "josekit",
- "jsonwebtoken",
+ "jsonwebtoken 11.1.0",
  "jwe",
  "jwk-simple",
  "jwt",
@@ -7946,7 +7971,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
- "jsonwebtoken",
+ "jsonwebtoken 11.1.0",
  "jwt",
  "nutype",
  "p256 0.14.0",
@@ -9540,7 +9565,7 @@ dependencies = [
  "issuance_server",
  "issuer_common",
  "itertools 0.14.0",
- "jsonwebtoken",
+ "jsonwebtoken 11.1.0",
  "jwt",
  "oauth",
  "openid4vc",
@@ -11035,7 +11060,7 @@ dependencies = [
  "httpmock",
  "indexmap 2.12.1",
  "itertools 0.14.0",
- "jsonwebtoken",
+ "jsonwebtoken 11.1.0",
  "jwt",
  "mockall",
  "nutype",

@@ -936,10 +936,11 @@ pub struct InvalidNumberOfAlgorithmFamiliesError(Vec<AlgorithmFamily>);
 
 impl JwtValidation {
     pub fn default_with_algorithms(algorithms: impl Into<Vec<Algorithm>>) -> Self {
-        let mut validation = Validation::default();
-        validation.algorithms = algorithms.into();
-        validation.required_spec_claims = Default::default(); // remove "exp" from required claims
-        Self(validation)
+        Self(Validation {
+            algorithms: algorithms.into(),
+            required_spec_claims: Default::default(), // remove "exp" from required claims
+            ..Default::default()
+        })
     }
 
     /// Since `jsonwebtoken` only supports one algorithm family at a time, this converts a `JwtValidation` into a valid

@@ -167,7 +167,7 @@ int-enum = "1.2.0"
 itertools = "0.14.0"
 jni = "0.21.1"
 josekit = "0.10.3"
-jsonwebtoken = { version = "10.4.0", default-features = false, features = ["rust_crypto"] }
+jsonwebtoken = { version = "11.1.0", default-features = false, features = ["rust_crypto"] }
 jwk-simple = "0.2.0"
 language-tags = "0.3.2"
 libc = "0.2.178"
@@ -275,7 +275,3 @@ xxhash-rust = "0.8.15"
 yoke = "0.8.1"
 zstd = "0.14.3"
 zeroize = "1.9.0"
-
-[patch.crates-io]
-# Pin on newer version due to https://github.com/Keats/jsonwebtoken/issues/510
-jsonwebtoken = { git = "https://github.com/Keats/jsonwebtoken.git", rev = "a89c743d222aee5ae1c21d3c3197dabdf25f7f77" }
