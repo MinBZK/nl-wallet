@@ -153,6 +153,7 @@ where
             .decrypt_string(
                 &body,
                 ExpectedEncryptionAlgorithm::Algorithms(decryption.expected_enc_algs),
+                // Allow Deflate compression, as we trust nl-rdo-max to not send us zip bombs.
                 AllowedDecompression::Deflate,
             )
             .map_err(UserInfoError::JweDecryption)?
