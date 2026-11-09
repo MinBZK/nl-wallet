@@ -100,8 +100,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
             emit(IssuanceAuthenticateWithIssuer(authUrl: authUrl));
           case StartIssuancePreAuthorizedOffer():
             emit(IssuanceReviewCards.init(cards: result.previews));
-          case StartIssuanceNoPreviews(:final organization):
-            _emitConfirmIssuer(organization, emit);
+          case StartIssuanceNoPreviews(:final issuer):
+            _emitConfirmIssuer(issuer, emit);
         }
       },
     );
@@ -297,8 +297,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         switch (result) {
           case ContinueIssuancePreviews(:final previews):
             emit(IssuanceReviewCards.init(cards: previews));
-          case ContinueIssuanceNoPreviews(:final organization):
-            _emitConfirmIssuer(organization, emit);
+          case ContinueIssuanceNoPreviews(:final issuer):
+            _emitConfirmIssuer(issuer, emit);
         }
       },
       onError: (error) => _handleApplicationError(error, emit),

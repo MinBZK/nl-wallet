@@ -255,20 +255,20 @@ pub struct IssuanceResult {
 pub enum IssuanceStartResult {
     AuthorizationUrl(Url),
     Previews(VecNonEmpty<AttestationPresentation>),
-    NoPreviews { organization: Box<Organization> },
+    NoPreviews { issuer: Box<Organization> },
 }
 
 #[derive(Debug)]
 pub enum IssuanceContinueResult {
     Previews(VecNonEmpty<AttestationPresentation>),
-    NoPreviews { organization: Box<Organization> },
+    NoPreviews { issuer: Box<Organization> },
 }
 
 impl From<IssuanceContinueResult> for IssuanceStartResult {
     fn from(value: IssuanceContinueResult) -> Self {
         match value {
             IssuanceContinueResult::Previews(attestations) => Self::Previews(attestations),
-            IssuanceContinueResult::NoPreviews { organization } => Self::NoPreviews { organization },
+            IssuanceContinueResult::NoPreviews { issuer } => Self::NoPreviews { issuer },
         }
     }
 }
@@ -554,7 +554,7 @@ where
         let result = match preview_attestations.clone() {
             Some(attestations) => IssuanceContinueResult::Previews(attestations),
             None => IssuanceContinueResult::NoPreviews {
-                organization: Box::new(issuance_session.issuer_registration().organization().clone()),
+                issuer: Box::new(issuance_session.issuer_registration().organization().clone()),
             },
         };
 
@@ -1759,8 +1759,8 @@ mod tests {
 
         assert_matches!(
             result,
-            IssuanceContinueResult::NoPreviews { organization }
-                if &*organization == IssuerRegistration::new_mock().organization()
+            IssuanceContinueResult::NoPreviews { issuer }
+                if &*issuer == IssuerRegistration::new_mock().organization()
         );
     }
 

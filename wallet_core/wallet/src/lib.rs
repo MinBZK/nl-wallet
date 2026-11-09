@@ -46,6 +46,7 @@ pub use crate::wallet::AttributesNotAvailable;
 pub use crate::wallet::BlockedReason;
 pub use crate::wallet::CloseProximityDisclosureUpdate;
 pub use crate::wallet::DisclosureAttestationOptions;
+pub use crate::wallet::DisclosureBasedIssuanceResult;
 pub use crate::wallet::DisclosureProposalPresentation;
 pub use crate::wallet::DisclosureUriSource;
 pub use crate::wallet::InvocationUri;

@@ -1,3 +1,5 @@
+use std::assert_matches;
+
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_types::claim_path::ClaimPath;
@@ -19,6 +21,7 @@ use tests_integration::common::*;
 use utils::vec_nonempty;
 use wallet::AttributeValue;
 use wallet::DisclosureAttestationOptions;
+use wallet::DisclosureBasedIssuanceResult;
 use wallet::DisclosureUriSource;
 use wallet::Pin;
 use wallet::openid4vc::SessionType;
@@ -244,7 +247,73 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
         .await
         .unwrap();
 
-    // If the issuer has no attestations to issue, we receive an empty vec and no error.
-    let attestations = wallet.continue_disclosure_based_issuance(&[0], pin).await.unwrap();
-    assert!(attestations.is_empty());
+    let result = wallet.continue_disclosure_based_issuance(&[0], pin).await.unwrap();
+    assert_matches!(result, DisclosureBasedIssuanceResult::NoIssuableAttestations);
+}
+
+/// Disclosure based issuance against an issuance server configured without the Credential Preview Endpoint.
+///
+/// The wallet receives no previews, only the issuer organization, and stores the issued degrees after acceptance.
+#[rstest]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm)]
+async fn test_disclosure_based_issuance_without_previews(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
+    let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
+    let pin: Pin = "112233".into();
+
+    let (mut issuance_server_settings, issuable_documents, di_trust_anchor, di_tls_config) =
+        issuance_server_settings(db_setup.issuance_server_url());
+    issuance_server_settings.issuer_settings.credential_preview_endpoint = false;
+
+    let (mut wallet, _, issuance_urls) = setup_wallet_and_env(
+        &db_setup,
+        &hsm_setup,
+        &tempdir,
+        WalletDeviceVendor::Apple,
+        update_policy_server_settings(),
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), None),
+        (
+            issuance_server_settings,
+            issuable_documents,
+            di_trust_anchor,
+            di_tls_config,
+        ),
+    )
+    .await;
+
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_pid_issuance(wallet, pin.clone()).await;
+
+    let _proposal = wallet
+        .start_disclosure(
+            &universal_link(
+                issuance_urls.issuance_server.public.as_base_url(),
+                &issuance_urls.degree_client_ids,
+                format,
+            ),
+            DisclosureUriSource::Link,
+        )
+        .await
+        .unwrap();
+
+    let DisclosureBasedIssuanceResult::NoPreviews { issuer } = wallet
+        .continue_disclosure_based_issuance(&[0], pin.clone())
+        .await
+        .unwrap()
+    else {
+        panic!("expected no previews");
+    };
+
+    wallet.accept_issuance(pin).await.unwrap();
+
+    let attestations = wallet_attestations(&mut wallet).await;
+    let degrees = attestations
+        .iter()
+        .filter(|attestation| attestation.attestation_type == "com.example.degree")
+        .collect_vec();
+    assert_eq!(degrees.len(), 2);
+    assert!(degrees.iter().all(|degree| degree.issuer == issuer));
 }

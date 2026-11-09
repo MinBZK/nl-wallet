@@ -6,6 +6,7 @@
 import '../frb_generated.dart';
 import 'attestation.dart';
 import 'image.dart';
+import 'issuance.dart';
 import 'localize.dart';
 import 'organization.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
@@ -14,15 +15,15 @@ import 'revocation.dart';
 part 'instruction.freezed.dart';
 
 @freezed
-sealed class DisclosureBasedIssuanceResult with _$DisclosureBasedIssuanceResult {
-  const DisclosureBasedIssuanceResult._();
+sealed class DisclosureBasedIssuanceInstructionResult with _$DisclosureBasedIssuanceInstructionResult {
+  const DisclosureBasedIssuanceInstructionResult._();
 
-  const factory DisclosureBasedIssuanceResult.ok(
-    List<AttestationPresentation> field0,
-  ) = DisclosureBasedIssuanceResult_Ok;
-  const factory DisclosureBasedIssuanceResult.instructionError({
+  const factory DisclosureBasedIssuanceInstructionResult.ok(
+    DisclosureBasedIssuanceResult field0,
+  ) = DisclosureBasedIssuanceInstructionResult_Ok;
+  const factory DisclosureBasedIssuanceInstructionResult.instructionError({
     required WalletInstructionError error,
-  }) = DisclosureBasedIssuanceResult_InstructionError;
+  }) = DisclosureBasedIssuanceInstructionResult_InstructionError;
 }
 
 @freezed

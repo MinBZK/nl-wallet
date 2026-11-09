@@ -22,7 +22,7 @@ use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::CloseProximityDisclosureFlutterUpdate;
 use crate::models::disclosure::StartDisclosureResult;
-use crate::models::instruction::DisclosureBasedIssuanceResult;
+use crate::models::instruction::DisclosureBasedIssuanceInstructionResult;
 use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::RevocationCodeResult;
 use crate::models::instruction::WalletInstructionResult;
@@ -505,7 +505,7 @@ pub async fn accept_disclosure(selected_indices: Vec<u16>, pin: String) -> anyho
 pub async fn continue_disclosure_based_issuance(
     selected_indices: Vec<u16>,
     pin: String,
-) -> anyhow::Result<DisclosureBasedIssuanceResult> {
+) -> anyhow::Result<DisclosureBasedIssuanceInstructionResult> {
     let selected_indices = selected_indices.into_iter().map(usize::from).collect_vec();
 
     let mut wallet = wallet().write().await;

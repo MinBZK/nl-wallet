@@ -278,16 +278,20 @@ class WalletCoreMock implements WalletCoreApi {
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream() => _eventLog.logStream;
 
   @override
-  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
+  Future<DisclosureBasedIssuanceInstructionResult> crateApiFullContinueDisclosureBasedIssuance({
     required List<int> selectedIndices,
     required String pin,
   }) async {
     assert(_issuanceManager.hasActiveIssuanceSession, 'invalid state');
     final attestations = await _issuanceManager.discloseForIssuance(pin);
     try {
-      return DisclosureBasedIssuanceResult.ok(attestations);
+      return DisclosureBasedIssuanceInstructionResult.ok(
+        attestations.isEmpty
+            ? const DisclosureBasedIssuanceResult.noIssuableAttestations()
+            : DisclosureBasedIssuanceResult.previews(attestations),
+      );
     } on WalletInstructionError catch (error) {
-      return DisclosureBasedIssuanceResult.instructionError(error: error);
+      return DisclosureBasedIssuanceInstructionResult.instructionError(error: error);
     } catch (ex) {
       rethrow;
     }
