@@ -32,6 +32,7 @@ use futures::future::try_join_all;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::AllowedDecompression;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
@@ -939,6 +940,7 @@ impl VpAuthorizationResponse {
         decrypter.decrypt_json(
             jwe,
             ExpectedEncryptionAlgorithm::Algorithms(RESPONSE_ENCRYPTION_ALGORITHMS),
+            AllowedDecompression::Deflate,
         )
     }
 

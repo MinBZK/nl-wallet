@@ -5,6 +5,7 @@ use attestation_types::credential_format::Format;
 use derive_more::Constructor;
 use jwe::algorithm::CompressionAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::AllowedDecompression;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::encryption::JweEncrypter;
@@ -67,7 +68,7 @@ impl CredentialRequest {
     }
 
     pub fn decrypt(jwe: &str, decrypter: &JweDecrypter) -> Result<Self, JweJsonDecryptionError> {
-        decrypter.decrypt_json(jwe, ExpectedEncryptionAlgorithm::Any)
+        decrypter.decrypt_json(jwe, ExpectedEncryptionAlgorithm::Any, AllowedDecompression::Deflate)
     }
 
     pub fn encrypt(

@@ -1,5 +1,6 @@
 use http_utils::reqwest::HttpClient;
 use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::AllowedDecompression;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::error::JweStringDecryptionError;
@@ -152,6 +153,7 @@ where
             .decrypt_string(
                 &body,
                 ExpectedEncryptionAlgorithm::Algorithms(decryption.expected_enc_algs),
+                AllowedDecompression::Deflate,
             )
             .map_err(UserInfoError::JweDecryption)?
     } else {
