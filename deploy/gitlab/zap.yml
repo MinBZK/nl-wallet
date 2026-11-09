@@ -107,7 +107,8 @@ zap-scan-admin-portal:
     - .env-k8s
   before_script:
     - !reference [.zap-scan-base, before_script]
-    - export AP_OPERATOR_PASSWORD="$(kubectl get secret nl-wallet-keycloak-passwords  --output=jsonpath='{.data.administrator}' | base64 --decode)"
+    - export ADMIN_USERNAME="operator1"
+    - export ADMIN_PASSWORD="$(kubectl get secret nl-wallet-keycloak-passwords  --output=jsonpath="{.data.$ADMIN_USERNAME}" | base64 --decode)"
   script:
     - !reference [.run-zap-scan, script]
   variables:
