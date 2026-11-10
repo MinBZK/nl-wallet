@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use attestation_data::attributes::Attributes;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
@@ -9,8 +10,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
-use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
-use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use sd_jwt::claims::ObjectClaims;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -73,45 +72,34 @@ impl AttestationPresentation {
         )
     }
 
-    /// Creates an [`AttestationPresentation`] from the first copy of an issued credential.
-    pub(crate) fn create_from_issued(
+    /// Creates an [`AttestationPresentation`] from the contents of a credential, taking its validity from those
+    /// contents. These are available both for a credential preview and for an issued credential.
+    pub(crate) fn create_from_contents(
         identity: AttestationIdentity,
-        credential: &CredentialWithMetadata,
+        format: Format,
+        contents: &CredentialContents,
+        metadata: impl AttestationDisplay,
         issuer_organization: Box<Organization>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
         let validity = AttestationValidity {
             revocation_status: None,
             validity_window: ValidityWindow {
-                valid_from: credential.contents.not_before.map(Into::into),
-                valid_until: credential.contents.expires.map(Into::into),
+                valid_from: contents.not_before.map(Into::into),
+                valid_until: contents.expires.map(Into::into),
             },
         };
 
-        match &credential.copies {
-            IssuedCredentialCopies::Mdoc(copies) => Self::create_from_mdoc(
-                identity,
-                credential.contents.attestation_type.clone(),
-                credential.metadata.clone(),
-                issuer_organization,
-                validity,
-                copies.first().mdoc.issuer_signed().clone().into_entries_by_namespace(),
-                config,
-            ),
-            IssuedCredentialCopies::SdJwt(copies) => {
-                let claims = copies.first().sd_jwt.decoded_claims().clone();
-
-                Self::create_from_sd_jwt_claims(
-                    identity,
-                    credential.contents.attestation_type.clone(),
-                    credential.metadata.clone(),
-                    issuer_organization,
-                    validity,
-                    claims,
-                    config,
-                )
-            }
-        }
+        Self::create_from_attributes(
+            identity,
+            format,
+            contents.attestation_type.clone(),
+            metadata,
+            issuer_organization,
+            validity,
+            &contents.attributes,
+            config,
+        )
     }
 
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.
