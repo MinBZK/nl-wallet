@@ -289,13 +289,17 @@ generate a CA with a legal person subject.</p></li>
 extension with the URL(s) at which the issuing CA certificate is served.</p></li>
 <li><p>All end-entity certificates get a Subject Key Identifier, computed as
 required by ISO/IEC 18013-5 (SHA-1 hash of the public key).</p></li>
-<li><p>Issuer, PID issuer, WIA and Key Attestation certificates get a certificate
-policy, for now the provisional OID
-<code class="docutils literal notranslate"><span class="pre">2.25.150580842064059311066423755779195795505</span></code>.</p></li>
+<li><p>Issuer, PID issuer, WIA, Key Attestation and WRPAC certificates, as well
+as WRPRC signing certificates, get a certificate policy, for now the
+provisional OID <code class="docutils literal notranslate"><span class="pre">2.25.150580842064059311066423755779195795505</span></code>.</p></li>
 <li><p>PID issuer certificates get a QcType statement with <code class="docutils literal notranslate"><span class="pre">id-etsi-qct-pid</span></code>, and
 WIA and Key Attestation certificates one with <code class="docutils literal notranslate"><span class="pre">id-etsi-qct-wal</span></code>.</p></li>
-<li><p>WIA, Key Attestation and status list signing certificates get the
-<code class="docutils literal notranslate"><span class="pre">digitalSignature</span></code> key usage.</p></li>
+<li><p>WIA, Key Attestation, WRPAC and status list signing certificates get the
+<code class="docutils literal notranslate"><span class="pre">digitalSignature</span></code> key usage. WRPRC signing certificates get
+<code class="docutils literal notranslate"><span class="pre">contentCommitment</span></code> (<code class="docutils literal notranslate"><span class="pre">nonRepudiation</span></code>). These key usages are critical.</p></li>
+<li><p>WRPACs get the non-critical ISO/IEC 18013-5 reader authentication
+extended key usage (<code class="docutils literal notranslate"><span class="pre">mdlReaderAuth</span></code>, <code class="docutils literal notranslate"><span class="pre">1.0.18013.5.1.6</span></code>). WRPRC signing
+certificates have no extended key usage.</p></li>
 <li><p>All certificates get a random serial number. Previously, the serial number
 was derived from the public key, so a certificate reissued for the same
 key had the same serial number.</p></li>
