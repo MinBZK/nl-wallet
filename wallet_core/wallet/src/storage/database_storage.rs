@@ -33,7 +33,6 @@ use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
-use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
 use openid4vc::wallet_issuance::credential::MdocCopy;
 use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use platform_support::hw_keystore::PlatformEncryptionKey;
@@ -783,14 +782,7 @@ where
                         expiration: Set(expiration.map(Into::into)),
                         not_before: Set(not_before.map(Into::into)),
                         extended_types: Set(ExtendedTypesModel::new(extended_attestation_types)),
-                        metadata: Set(match metadata {
-                            IssuedCredentialMetadata::TypeMetadata { verified, .. } => {
-                                AttestationMetadataModel::TypeMetadata(verified)
-                            }
-                            IssuedCredentialMetadata::CredentialMetadata(credential_metadata) => {
-                                AttestationMetadataModel::CredentialMetadata(credential_metadata)
-                            }
-                        }),
+                        metadata: Set(metadata.into()),
                     };
 
                     let copy_models = create_attestation_copy_models(attestation_id, copies)?;
@@ -868,14 +860,7 @@ where
                     expiration: Set(credential.expiration.map(Into::into)),
                     not_before: Set(credential.not_before.map(Into::into)),
                     extended_types: Set(ExtendedTypesModel::new(credential.extended_attestation_types)),
-                    metadata: Set(match credential.metadata {
-                        IssuedCredentialMetadata::TypeMetadata { verified, .. } => {
-                            AttestationMetadataModel::TypeMetadata(verified)
-                        }
-                        IssuedCredentialMetadata::CredentialMetadata(credential_metadata) => {
-                            AttestationMetadataModel::CredentialMetadata(credential_metadata)
-                        }
-                    }),
+                    metadata: Set(credential.metadata.into()),
                     ..Default::default()
                 })
                 .filter(attestation::Column::Id.eq(attestation_id))
@@ -1536,6 +1521,7 @@ pub(crate) mod tests {
     use openid4vc::metadata::issuer_metadata::CredentialMetadata;
     use openid4vc::metadata::issuer_metadata::Logo;
     use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+    use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
     use openid4vc::wallet_issuance::credential::SdJwtCopy;
     use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use p256::ecdsa::SigningKey;
@@ -2829,10 +2815,10 @@ pub(crate) mod tests {
     }
 
     #[rstest]
-    #[case::renew_with_type_metadata(true, true)]
-    #[case::clear_optional_fields_with_fallback_metadata(false, false)]
+    #[case::renew_with_type_metadata(true)]
+    #[case::clear_optional_fields_with_fallback_metadata(false)]
     #[tokio::test]
-    async fn test_insert_and_update_attestations(#[case] with_type_metadata: bool, #[case] with_validity: bool) {
+    async fn test_insert_and_update_attestations(#[case] with_optional_fields: bool) {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         let state = storage.state().await.unwrap();
@@ -2918,7 +2904,7 @@ pub(crate) mod tests {
         assert_eq!(fetched_events.len(), 1);
 
         let renewed_parent_type = "urn:example:renewed:parent:1";
-        let (renewed_metadata, expected_metadata, renewed_extended_types) = if with_type_metadata {
+        let (renewed_metadata, expected_metadata, renewed_extended_types) = if with_optional_fields {
             let (vct, integrity, documents) = TypeMetadataDocuments::new_metadata_chain(vec_nonempty![
                 TypeMetadata::empty_example_with_attestation_type(renewed_parent_type),
                 TypeMetadata::example_with_claim_name(&attestation_type, "family_name"),
@@ -2947,8 +2933,9 @@ pub(crate) mod tests {
         // Renew just before the original expiry, with a later expiry or no validity bounds.
         let renewal_time = initial_expiration - Days::new(1);
         let (mut payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::new(renewal_time));
-        payload.previewable_payload.not_before = with_validity.then_some(renewal_time.into());
-        payload.previewable_payload.expires = with_validity.then_some((initial_expiration + Days::new(365)).into());
+        payload.previewable_payload.not_before = with_optional_fields.then_some(renewal_time.into());
+        payload.previewable_payload.expires =
+            with_optional_fields.then_some((initial_expiration + Days::new(365)).into());
         let sd_jwt = decoded_sd_jwt_from_credential_payload(
             payload,
             match &renewed_metadata {
@@ -3050,7 +3037,7 @@ pub(crate) mod tests {
             (initial_extended_types, 0),
             (
                 HashSet::from([renewed_parent_type.to_string()]),
-                usize::from(with_type_metadata),
+                usize::from(with_optional_fields),
             ),
         ] {
             let fetched = storage
