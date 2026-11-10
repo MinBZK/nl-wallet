@@ -5,6 +5,7 @@ use std::sync::Arc;
 use attestation_data::credential_payload::CredentialContents;
 use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
+use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
@@ -588,9 +589,7 @@ where
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
-        // For every preview, try to find the first matching stored attestation to determine its database identity. If
-        // there are more candidates, the algorithm matches the first one based on the ascending order of the Uuidv7 of
-        // the list of stored attestations. This means the oldest attestation is matched first.
+        // For every preview, find the stored attestation it renews, if any, to determine its database identity.
         let previews_metadata_and_identity = match_preview_and_stored_attestations(
             credential_previews.into_nonempty_iter(),
             stored,
@@ -850,13 +849,22 @@ where
     }
 }
 
-fn match_preview_and_stored_attestations<'a>(
-    credential_previews: impl NonEmptyIterator<Item = OfferedCredentialPreview<'a>>,
+/// Returns a function that determines which of the `stored_attestations` would be renewed for an incoming credential.
+///
+/// An incoming credential renews a stored attestation of the same format if either:
+/// - their contents match according to [`CredentialContents::matches_existing`], or
+/// - `pid_config` is provided and contains the credential kinds of both, regardless of their contents. This is how a
+///   PID renews a stored PID, even when its attestation type differs. `pid_config` should only be provided for PID
+///   issuance.
+///
+/// Of the matching stored attestations, the oldest one according to its UUIDv7 attestation id is chosen. Each stored
+/// attestation is renewed by at most one incoming credential.
+fn renewal_matcher(
     stored_attestations: Vec<StoredAttestationCopy>,
-    time_generator: &impl Generator<DateTime<Utc>>,
     pid_config: Option<&PidAttributesConfiguration>,
-) -> VecNonEmpty<(OfferedCredentialPreview<'a>, Option<Uuid>)> {
-    let mut stored_credential_payloads = stored_attestations
+    time_generator: &impl Generator<DateTime<Utc>>,
+) -> impl FnMut(Format, &CredentialContents) -> Option<Uuid> {
+    let mut stored_contents_by_id = stored_attestations
         .into_iter()
         .map(|copy| {
             let attestation_id = copy.attestation_id();
@@ -865,52 +873,47 @@ fn match_preview_and_stored_attestations<'a>(
         })
         .collect::<BTreeMap<_, _>>();
 
-    // Find the first matching stored preview based on the ordering of `stored_credential_payloads`.
-    credential_previews
-        .map(|preview| {
-            let identity = stored_credential_payloads
-                .iter()
-                .find_map(|(id, (format, stored_preview))| {
-                    // The new credential is not a renewal of an existing credential if their formats differ.
-                    if *format != preview.format {
-                        return None;
-                    }
+    move |format, contents| {
+        let id = stored_contents_by_id
+            .iter()
+            .find_map(|(id, (stored_format, stored_contents))| {
+                // The new credential is not a renewal of an existing credential if their formats differ.
+                if *stored_format != format {
+                    return None;
+                }
 
-                    pid_config
-                        .map_or_else(
-                            // If this is not PID issuance, then the two cards match if their contents are identical.
-                            || compare_contents(preview.credential_payload, stored_preview, time_generator),
-                            // If this is PID issuance, and the two cards are both PIDs, then they match.
-                            // If not, fall back to contents comparison.
-                            |pid_config| {
-                                let both_pid = pid_config.contains_credential_kind(preview.credential_kind())
-                                    && pid_config.contains_credential_kind(CredentialKindRef::new(
-                                        *format,
-                                        stored_preview.attestation_type.as_str(),
-                                    ));
-                                both_pid || compare_contents(preview.credential_payload, stored_preview, time_generator)
-                            },
-                        )
-                        .then_some(*id)
+                let both_pid = pid_config.is_some_and(|pid_config| {
+                    pid_config.contains_credential_kind(CredentialKindRef::new(format, &contents.attestation_type))
+                        && pid_config.contains_credential_kind(CredentialKindRef::new(
+                            *stored_format,
+                            &stored_contents.attestation_type,
+                        ))
                 });
 
-            // Remove the stored credential from being considered in future iterations, as a single credential cannot be
-            // renewed by multiple incoming credentials.
-            if let Some(identity) = identity {
-                stored_credential_payloads.remove(&identity);
-            }
+                (both_pid || contents.matches_existing(stored_contents, time_generator)).then_some(*id)
+            })?;
 
+        // Remove the stored attestation from being considered for later incoming credentials, as a single attestation
+        // cannot be renewed by multiple incoming credentials.
+        stored_contents_by_id.remove(&id);
+
+        Some(id)
+    }
+}
+
+fn match_preview_and_stored_attestations<'a>(
+    credential_previews: impl NonEmptyIterator<Item = OfferedCredentialPreview<'a>>,
+    stored_attestations: Vec<StoredAttestationCopy>,
+    time_generator: &impl Generator<DateTime<Utc>>,
+    pid_config: Option<&PidAttributesConfiguration>,
+) -> VecNonEmpty<(OfferedCredentialPreview<'a>, Option<Uuid>)> {
+    let mut matcher = renewal_matcher(stored_attestations, pid_config, time_generator);
+    credential_previews
+        .map(|preview| {
+            let identity = matcher(preview.format, preview.credential_payload);
             (preview, identity)
         })
         .collect()
-}
-
-fn compare_contents(
-    preview: &CredentialContents,
-    stored_preview: &CredentialContents,
-    time_generator: &impl Generator<DateTime<Utc>>,
-) -> bool {
-    preview.matches_existing(stored_preview, time_generator)
 }
 
 #[cfg(test)]
