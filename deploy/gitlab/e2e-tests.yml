@@ -154,12 +154,16 @@ automation-tests-load-device-config:
   tags:
     - macos-devices
   hooks:
-    # The first session on a real iPhone sometimes fails with "port #8100 is occupied", left behind by a previous
-    # job. Log which process holds the port, so it can be cleaned up at its source.
+    # A WebDriverAgent left running in the iOS simulator by a previous job holds port 8100, so the first session on
+    # a real iPhone fails with "port #8100 is occupied". Log every process on the port and stop leftover WDAs.
     pre_get_sources_script:
       - |
         for pid in $(lsof -ti tcp:8100 -sTCP:LISTEN); do
-          echo "Leftover process on port 8100: $(ps -o pid=,ppid=,user=,etime=,command= -p "$pid")"
+          process=$(ps -o pid=,ppid=,user=,etime=,command= -p "$pid")
+          echo "Leftover process on port 8100: $process"
+          case "$process" in
+            *WebDriverAgentRunner*) kill "$pid" && echo "Stopped leftover WebDriverAgent $pid" ;;
+          esac
         done
   variables:
     ENABLE_A11Y_CAPTURES: "true"

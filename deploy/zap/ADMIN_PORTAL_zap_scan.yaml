@@ -26,8 +26,8 @@ env:
     users:
     - name: "admin"
       credentials:
-        username: "administrator"
-        password: "${AP_OPERATOR_PASSWORD}"
+        username: "${ADMIN_USERNAME}"
+        password: "${ADMIN_PASSWORD}"
     technology:
       exclude: []
   parameters:
