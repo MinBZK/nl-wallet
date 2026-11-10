@@ -1,11 +1,12 @@
-import { Privilege } from '@/types/privilege.ts'
-
-/** Each task action requires the user to hold the corresponding {@link Privilege}. */
+/**
+ * Each task action requires the user to hold the privilege with the same value, see
+ * `Privilege`; a unit test keeps the two in sync.
+ */
 export enum TaskActionType {
-  RevokeWallet = Privilege.RevokeWallet,
-  BlockUser = Privilege.BlockUser,
-  UnblockUser = Privilege.UnblockUser,
-  RevokeSolution = Privilege.RevokeSolution,
+  RevokeWallet = 'revoke_wallet',
+  BlockUser = 'block_user',
+  UnblockUser = 'unblock_user',
+  RevokeSolution = 'revoke_solution',
 }
 
 /** Copy shown for a {@link TaskActionType} throughout the create-task wizard. */

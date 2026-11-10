@@ -116,7 +116,9 @@ void _setupMockitoDummies() {
       requestPurpose: [],
     ),
   );
-  provideDummy<core.DisclosureBasedIssuanceResult>(const core.DisclosureBasedIssuanceResult_Ok([]));
+  provideDummy<core.DisclosureBasedIssuanceInstructionResult>(
+    const core.DisclosureBasedIssuanceInstructionResult_Ok(core.DisclosureBasedIssuanceResult_NoIssuableAttestations()),
+  );
 
   // Issuance-related dummies
   provideDummy<domain.StartIssuanceResult>(

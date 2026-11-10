@@ -2,6 +2,9 @@ import router from '@/router'
 
 const BASE_PATH = '/admin-portal'
 
+export const HTTP_UNAUTHORIZED = 401
+export const HTTP_NOT_FOUND = 404
+
 /** Thrown on a non-OK response, carrying the HTTP [status] so callers can handle specific codes. */
 export class HttpError extends Error {
   constructor(
@@ -16,7 +19,7 @@ export class HttpError extends Error {
 /** Thrown on 401 response, after redirecting to `/login`. */
 export class UnauthorizedError extends HttpError {
   constructor() {
-    super(401, 'Unauthorized')
+    super(HTTP_UNAUTHORIZED, 'Unauthorized')
     this.name = 'UnauthorizedError'
   }
 }
@@ -25,7 +28,7 @@ export class UnauthorizedError extends HttpError {
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE_PATH}${path}`, init)
 
-  if (response.status === 401) {
+  if (response.status === HTTP_UNAUTHORIZED) {
     router.push('/login')
     throw new UnauthorizedError()
   }

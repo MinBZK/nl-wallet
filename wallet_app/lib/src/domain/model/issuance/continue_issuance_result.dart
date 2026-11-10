@@ -13,6 +13,6 @@ sealed class ContinueIssuanceResult with _$ContinueIssuanceResult {
 
   /// The issuer does not provide previews, so the cards can only be shown once they are issued.
   const factory ContinueIssuanceResult.noPreviews({
-    required Organization organization,
+    required Organization issuer,
   }) = ContinueIssuanceNoPreviews;
 }

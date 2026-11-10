@@ -33,7 +33,7 @@ void main() {
 
     test('Success: returns the issuer when repo succeeds without previews', () async {
       const sampleUri = 'https://example.org';
-      final sampleResult = ContinueIssuanceNoPreviews(organization: WalletMockData.organization);
+      final sampleResult = ContinueIssuanceNoPreviews(issuer: WalletMockData.organization);
       when(mockRepo.continueIssuance(sampleUri)).thenAnswer((_) async => sampleResult);
 
       final result = await usecase.invoke(sampleUri);

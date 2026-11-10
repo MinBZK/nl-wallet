@@ -7,7 +7,7 @@ describe('LoadingState', () => {
     const wrapper = mount(LoadingState)
 
     expect(wrapper.text()).toBe('Even geduld. De gegevens worden nu opgehaald')
-    expect(wrapper.find('[role="status"]').exists()).toBe(true)
+    expect(wrapper.find('output').exists()).toBe(true)
   })
 
   it('renders custom text when provided', () => {

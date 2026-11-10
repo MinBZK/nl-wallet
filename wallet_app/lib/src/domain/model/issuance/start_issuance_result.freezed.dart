@@ -129,12 +129,12 @@ return missingAttributes(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String authUrl)?  authorizationRequired,TResult Function( List<WalletCard> previews)?  preAuthorizedOffer,TResult Function( Organization organization)?  noPreviews,TResult Function( Organization relyingParty,  LocalizedText requestPurpose,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests)?  readyToDisclose,TResult Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)?  missingAttributes,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String authUrl)?  authorizationRequired,TResult Function( List<WalletCard> previews)?  preAuthorizedOffer,TResult Function( Organization issuer)?  noPreviews,TResult Function( Organization relyingParty,  LocalizedText requestPurpose,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests)?  readyToDisclose,TResult Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)?  missingAttributes,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case StartIssuanceAuthorizationRequired() when authorizationRequired != null:
 return authorizationRequired(_that.authUrl);case StartIssuancePreAuthorizedOffer() when preAuthorizedOffer != null:
 return preAuthorizedOffer(_that.previews);case StartIssuanceNoPreviews() when noPreviews != null:
-return noPreviews(_that.organization);case StartIssuanceReadyToDisclose() when readyToDisclose != null:
+return noPreviews(_that.issuer);case StartIssuanceReadyToDisclose() when readyToDisclose != null:
 return readyToDisclose(_that.relyingParty,_that.requestPurpose,_that.sessionType,_that.cardRequests);case StartIssuanceMissingAttributes() when missingAttributes != null:
 return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttributes);case _:
   return orElse();
@@ -154,12 +154,12 @@ return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttri
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String authUrl)  authorizationRequired,required TResult Function( List<WalletCard> previews)  preAuthorizedOffer,required TResult Function( Organization organization)  noPreviews,required TResult Function( Organization relyingParty,  LocalizedText requestPurpose,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests)  readyToDisclose,required TResult Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)  missingAttributes,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String authUrl)  authorizationRequired,required TResult Function( List<WalletCard> previews)  preAuthorizedOffer,required TResult Function( Organization issuer)  noPreviews,required TResult Function( Organization relyingParty,  LocalizedText requestPurpose,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests)  readyToDisclose,required TResult Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)  missingAttributes,}) {final _that = this;
 switch (_that) {
 case StartIssuanceAuthorizationRequired():
 return authorizationRequired(_that.authUrl);case StartIssuancePreAuthorizedOffer():
 return preAuthorizedOffer(_that.previews);case StartIssuanceNoPreviews():
-return noPreviews(_that.organization);case StartIssuanceReadyToDisclose():
+return noPreviews(_that.issuer);case StartIssuanceReadyToDisclose():
 return readyToDisclose(_that.relyingParty,_that.requestPurpose,_that.sessionType,_that.cardRequests);case StartIssuanceMissingAttributes():
 return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttributes);}
 }
@@ -175,12 +175,12 @@ return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttri
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String authUrl)?  authorizationRequired,TResult? Function( List<WalletCard> previews)?  preAuthorizedOffer,TResult? Function( Organization organization)?  noPreviews,TResult? Function( Organization relyingParty,  LocalizedText requestPurpose,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests)?  readyToDisclose,TResult? Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)?  missingAttributes,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String authUrl)?  authorizationRequired,TResult? Function( List<WalletCard> previews)?  preAuthorizedOffer,TResult? Function( Organization issuer)?  noPreviews,TResult? Function( Organization relyingParty,  LocalizedText requestPurpose,  DisclosureSessionType sessionType,  List<DiscloseCardRequest> cardRequests)?  readyToDisclose,TResult? Function( Organization relyingParty,  DisclosureSessionType sessionType,  List<MissingAttribute> missingAttributes)?  missingAttributes,}) {final _that = this;
 switch (_that) {
 case StartIssuanceAuthorizationRequired() when authorizationRequired != null:
 return authorizationRequired(_that.authUrl);case StartIssuancePreAuthorizedOffer() when preAuthorizedOffer != null:
 return preAuthorizedOffer(_that.previews);case StartIssuanceNoPreviews() when noPreviews != null:
-return noPreviews(_that.organization);case StartIssuanceReadyToDisclose() when readyToDisclose != null:
+return noPreviews(_that.issuer);case StartIssuanceReadyToDisclose() when readyToDisclose != null:
 return readyToDisclose(_that.relyingParty,_that.requestPurpose,_that.sessionType,_that.cardRequests);case StartIssuanceMissingAttributes() when missingAttributes != null:
 return missingAttributes(_that.relyingParty,_that.sessionType,_that.missingAttributes);case _:
   return null;
@@ -336,10 +336,10 @@ as List<WalletCard>,
 
 
 class StartIssuanceNoPreviews extends StartIssuanceResult {
-  const StartIssuanceNoPreviews({required this.organization}): super._();
+  const StartIssuanceNoPreviews({required this.issuer}): super._();
   
 
- final  Organization organization;
+ final  Organization issuer;
 
 /// Create a copy of StartIssuanceResult
 /// with the given fields replaced by the non-null parameter values.
@@ -351,18 +351,18 @@ $StartIssuanceNoPreviewsCopyWith<StartIssuanceNoPreviews> get copyWith => _$Star
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceNoPreviews&&(identical(other.organization, organization) || other.organization == organization));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is StartIssuanceNoPreviews&&(identical(other.issuer, issuer) || other.issuer == issuer));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,organization);
+    return Object.hash(runtimeType,issuer);
 }
 
 @override
 String toString() {
-    return 'StartIssuanceResult.noPreviews(organization: $organization)';
+    return 'StartIssuanceResult.noPreviews(issuer: $issuer)';
 }
 
 
@@ -373,11 +373,11 @@ abstract mixin class $StartIssuanceNoPreviewsCopyWith<$Res> implements $StartIss
   factory $StartIssuanceNoPreviewsCopyWith(StartIssuanceNoPreviews value, $Res Function(StartIssuanceNoPreviews) _then) = _$StartIssuanceNoPreviewsCopyWithImpl;
 @useResult
 $Res call({
- Organization organization
+ Organization issuer
 });
 
 
-$OrganizationCopyWith<$Res> get organization;
+$OrganizationCopyWith<$Res> get issuer;
 
 }
 /// @nodoc
@@ -390,9 +390,9 @@ class _$StartIssuanceNoPreviewsCopyWithImpl<$Res>
 
 /// Create a copy of StartIssuanceResult
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? organization = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? issuer = null,}) {
   return _then(StartIssuanceNoPreviews(
-organization: null == organization ? _self.organization : organization // ignore: cast_nullable_to_non_nullable
+issuer: null == issuer ? _self.issuer : issuer // ignore: cast_nullable_to_non_nullable
 as Organization,
   ));
 }
@@ -401,10 +401,10 @@ as Organization,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$OrganizationCopyWith<$Res> get organization {
+$OrganizationCopyWith<$Res> get issuer {
   
-  return $OrganizationCopyWith<$Res>(_self.organization, (value) {
-    return _then(_self.copyWith(organization: value));
+  return $OrganizationCopyWith<$Res>(_self.issuer, (value) {
+    return _then(_self.copyWith(issuer: value));
   });
 }
 }

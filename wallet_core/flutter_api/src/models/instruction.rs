@@ -10,7 +10,7 @@ use wallet::errors::RevocationCodeError;
 use wallet::errors::TransferError;
 use wallet::errors::WalletUnlockError;
 
-use super::attestation::AttestationPresentation;
+use crate::models::issuance::DisclosureBasedIssuanceResult;
 
 pub enum WalletInstructionResult {
     Ok,
@@ -27,8 +27,8 @@ pub enum RevocationCodeResult {
     InstructionError { error: WalletInstructionError },
 }
 
-pub enum DisclosureBasedIssuanceResult {
-    Ok(Vec<AttestationPresentation>),
+pub enum DisclosureBasedIssuanceInstructionResult {
+    Ok(DisclosureBasedIssuanceResult),
     InstructionError { error: WalletInstructionError },
 }
 
@@ -209,27 +209,25 @@ impl TryFrom<Result<(), ChangePinError>> for WalletInstructionResult {
 ///    the nested [`InstructionError`].
 /// 3. In any other cases, this is an unexpected and/or generic error and the [`DisclosureBasedIssuanceError`] will be
 ///    returned unchanged.
-impl TryFrom<Result<Vec<wallet::AttestationPresentation>, DisclosureBasedIssuanceError>>
-    for DisclosureBasedIssuanceResult
+impl TryFrom<Result<wallet::DisclosureBasedIssuanceResult, DisclosureBasedIssuanceError>>
+    for DisclosureBasedIssuanceInstructionResult
 {
     type Error = DisclosureBasedIssuanceError;
 
     fn try_from(
-        value: Result<Vec<wallet::AttestationPresentation>, DisclosureBasedIssuanceError>,
+        value: Result<wallet::DisclosureBasedIssuanceResult, DisclosureBasedIssuanceError>,
     ) -> Result<Self, Self::Error> {
         match value {
-            Ok(attestations) => Ok(Self::Ok(
-                attestations.into_iter().map(AttestationPresentation::from).collect(),
-            )),
+            Ok(result) => Ok(Self::Ok(result.into())),
             Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::Instruction(instruction_error))) => {
-                Ok(DisclosureBasedIssuanceResult::InstructionError {
+                Ok(DisclosureBasedIssuanceInstructionResult::InstructionError {
                     error: instruction_error.try_into().map_err(|error| {
                         DisclosureBasedIssuanceError::Disclosure(DisclosureError::Instruction(error))
                     })?,
                 })
             }
             Err(DisclosureBasedIssuanceError::Issuance(IssuanceError::Instruction(instruction_error))) => {
-                Ok(DisclosureBasedIssuanceResult::InstructionError {
+                Ok(DisclosureBasedIssuanceInstructionResult::InstructionError {
                     error: instruction_error
                         .try_into()
                         .map_err(|error| DisclosureBasedIssuanceError::Issuance(IssuanceError::Instruction(error)))?,

@@ -309,8 +309,9 @@ Below you can find the deeplinks that can be used to trigger the supported mock
 scenarios. On Android, the scenarios can be triggered from the command line by
 using `adb shell am start -a android.intent.action.VIEW -d "{deeplink}"`. On
 iOS, the scenarios are triggered with the command
-`xcrun simctl openurl booted '{deeplink}'`. Note that the deeplinks only work on
-debug builds. For **mock** production builds you can generate a QR code from the
+`xcrun simctl openurl booted '{deeplink}'`. Note that the `walletdebuginteraction`
+scheme is only registered by builds without a `UL_HOSTNAME`, such as mock builds.
+For **mock** production builds you can generate a QR code from the
 content and scan these using the app. Pre-generated QR codes are also available,
 and can be found [here](../demo/qrs.md).
 

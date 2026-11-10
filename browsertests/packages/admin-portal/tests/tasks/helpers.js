@@ -26,10 +26,19 @@ export function mockTaskBackend() {
     history: (task, user) => task.status !== "created" && task.createdBy === user.displayName,
   }
 
+  const asSeenBy = (user, task) => ({ ...task, isOwnTask: task.createdBy === user.displayName })
+
   return async function attach(page, user) {
     await page.route(/\/admin-portal\/tasks\?view=/, (route) => {
       const view = new URL(route.request().url()).searchParams.get("view")
-      return route.fulfill({ json: tasks.filter((task) => views[view](task, user)) })
+      return route.fulfill({
+        json: tasks.filter((task) => views[view](task, user)).map((task) => asSeenBy(user, task)),
+      })
+    })
+    await page.route("**/admin-portal/tasks/*", (route) => {
+      const task = tasks.find(({ taskId }) => route.request().url().endsWith(taskId))
+      const visible = task && Object.values(views).some((inView) => inView(task, user))
+      return visible ? route.fulfill({ json: asSeenBy(user, task) }) : route.fulfill({ status: 404, json: {} })
     })
     await page.route("**/admin-portal/tasks", (route) => {
       const { taskType, taskReason } = route.request().postDataJSON()
@@ -41,12 +50,12 @@ export function mockTaskBackend() {
         createdBy: user.displayName,
       })
       tasks.push(task)
-      return route.fulfill({ status: 201, json: task })
+      return route.fulfill({ status: 201, json: asSeenBy(user, task) })
     })
     await page.route("**/admin-portal/tasks/*/withdraw", (route) => {
       const task = tasks.find(({ taskId }) => route.request().url().includes(taskId))
       Object.assign(task, { status: "withdrawn", withdrawnAt: new Date().toISOString() })
-      return route.fulfill({ json: task })
+      return route.fulfill({ json: asSeenBy(user, task) })
     })
   }
 }
@@ -67,13 +76,14 @@ export function aTask(overrides = {}) {
     taskReason: "Reden van een collega",
     createdAt: "2026-01-15T10:00:00Z",
     createdBy: "Co Llega",
+    isOwnTask: false,
     ...overrides,
   }
 }
 
 /** A task created by the operator, who is the logged in user in most tests. */
 export function ownTask(overrides = {}) {
-  return aTask({ createdBy: USERS.operator.displayName, ...overrides })
+  return aTask({ createdBy: USERS.operator.displayName, isOwnTask: true, ...overrides })
 }
 
 // No test user can review another test user's task, and approving a real task executes it, so reviewing runs against
@@ -82,6 +92,12 @@ export async function mockTaskLists(page, lists) {
   await page.route(/\/admin-portal\/tasks\?view=/, (route) => {
     const view = new URL(route.request().url()).searchParams.get("view")
     return route.fulfill({ json: lists[view] ?? [] })
+  })
+  await page.route("**/admin-portal/tasks/*", (route) => {
+    const task = Object.values(lists)
+      .flat()
+      .find(({ taskId }) => route.request().url().endsWith(taskId))
+    return task ? route.fulfill({ json: task }) : route.fulfill({ status: 404, json: {} })
   })
 }
 

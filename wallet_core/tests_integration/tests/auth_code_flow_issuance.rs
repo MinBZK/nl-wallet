@@ -219,7 +219,7 @@ async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
     };
 
     let redirect_uri = fake_consent_auth(authorization_url).await;
-    let IssuanceContinueResult::NoPreviews { organization } = wallet
+    let IssuanceContinueResult::NoPreviews { issuer } = wallet
         .continue_issuance(redirect_uri)
         .await
         .expect("should continue issuance after consent")
@@ -234,7 +234,7 @@ async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
         .iter()
         .find(|attestation| attestation.attestation_type == "com.example.insurance")
         .expect("the issued insurance attestation should be present in the wallet");
-    assert_eq!(attestation.issuer, organization);
+    assert_eq!(attestation.issuer, issuer);
 }
 
 /// Full wallet-driven issuance for the loyalty card use case, which uses [`UsecaseKind::Immediate`]:

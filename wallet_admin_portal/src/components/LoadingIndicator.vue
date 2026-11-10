@@ -1,6 +1,6 @@
 <template>
   <div class="loading-indicator">
-    <div class="spinner" role="status" aria-label="Laden" />
+    <output class="spinner" aria-label="Laden" />
   </div>
 </template>
 
@@ -16,6 +16,7 @@
 }
 
 .spinner {
+  display: block;
   width: 100%;
   height: 100%;
   border: 4px solid transparent;

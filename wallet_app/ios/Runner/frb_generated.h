@@ -261,6 +261,29 @@ typedef struct wire_cst_attestation_presentation {
   struct wire_cst_list_attestation_attribute *attributes;
 } wire_cst_attestation_presentation;
 
+typedef struct wire_cst_list_attestation_presentation {
+  struct wire_cst_attestation_presentation *ptr;
+  int32_t len;
+} wire_cst_list_attestation_presentation;
+
+typedef struct wire_cst_DisclosureBasedIssuanceResult_Previews {
+  struct wire_cst_list_attestation_presentation *field0;
+} wire_cst_DisclosureBasedIssuanceResult_Previews;
+
+typedef struct wire_cst_DisclosureBasedIssuanceResult_NoPreviews {
+  struct wire_cst_organization *issuer;
+} wire_cst_DisclosureBasedIssuanceResult_NoPreviews;
+
+typedef union DisclosureBasedIssuanceResultKind {
+  struct wire_cst_DisclosureBasedIssuanceResult_Previews Previews;
+  struct wire_cst_DisclosureBasedIssuanceResult_NoPreviews NoPreviews;
+} DisclosureBasedIssuanceResultKind;
+
+typedef struct wire_cst_disclosure_based_issuance_result {
+  int32_t tag;
+  union DisclosureBasedIssuanceResultKind kind;
+} wire_cst_disclosure_based_issuance_result;
+
 typedef struct wire_cst_flutter_maintenance_window {
   struct wire_cst_list_prim_u_8_strict *start;
   struct wire_cst_list_prim_u_8_strict *end;
@@ -361,11 +384,6 @@ typedef struct wire_cst_list_app_notification {
   struct wire_cst_app_notification *ptr;
   int32_t len;
 } wire_cst_list_app_notification;
-
-typedef struct wire_cst_list_attestation_presentation {
-  struct wire_cst_attestation_presentation *ptr;
-  int32_t len;
-} wire_cst_list_attestation_presentation;
 
 typedef struct wire_cst_disclosure_options {
   struct wire_cst_list_attestation_presentation *field0;
@@ -480,23 +498,23 @@ typedef struct wire_cst_close_proximity_disclosure_flutter_update {
   union CloseProximityDisclosureFlutterUpdateKind kind;
 } wire_cst_close_proximity_disclosure_flutter_update;
 
-typedef struct wire_cst_DisclosureBasedIssuanceResult_Ok {
-  struct wire_cst_list_attestation_presentation *field0;
-} wire_cst_DisclosureBasedIssuanceResult_Ok;
+typedef struct wire_cst_DisclosureBasedIssuanceInstructionResult_Ok {
+  struct wire_cst_disclosure_based_issuance_result *field0;
+} wire_cst_DisclosureBasedIssuanceInstructionResult_Ok;
 
-typedef struct wire_cst_DisclosureBasedIssuanceResult_InstructionError {
+typedef struct wire_cst_DisclosureBasedIssuanceInstructionResult_InstructionError {
   struct wire_cst_wallet_instruction_error *error;
-} wire_cst_DisclosureBasedIssuanceResult_InstructionError;
+} wire_cst_DisclosureBasedIssuanceInstructionResult_InstructionError;
 
-typedef union DisclosureBasedIssuanceResultKind {
-  struct wire_cst_DisclosureBasedIssuanceResult_Ok Ok;
-  struct wire_cst_DisclosureBasedIssuanceResult_InstructionError InstructionError;
-} DisclosureBasedIssuanceResultKind;
+typedef union DisclosureBasedIssuanceInstructionResultKind {
+  struct wire_cst_DisclosureBasedIssuanceInstructionResult_Ok Ok;
+  struct wire_cst_DisclosureBasedIssuanceInstructionResult_InstructionError InstructionError;
+} DisclosureBasedIssuanceInstructionResultKind;
 
-typedef struct wire_cst_disclosure_based_issuance_result {
+typedef struct wire_cst_disclosure_based_issuance_instruction_result {
   int32_t tag;
-  union DisclosureBasedIssuanceResultKind kind;
-} wire_cst_disclosure_based_issuance_result;
+  union DisclosureBasedIssuanceInstructionResultKind kind;
+} wire_cst_disclosure_based_issuance_instruction_result;
 
 typedef struct wire_cst_flutter_configuration {
   uint16_t inactive_warning_timeout;
@@ -527,7 +545,7 @@ typedef struct wire_cst_IssuanceContinueResult_Previews {
 } wire_cst_IssuanceContinueResult_Previews;
 
 typedef struct wire_cst_IssuanceContinueResult_NoPreviews {
-  struct wire_cst_organization *organization;
+  struct wire_cst_organization *issuer;
 } wire_cst_IssuanceContinueResult_NoPreviews;
 
 typedef union IssuanceContinueResultKind {
@@ -549,7 +567,7 @@ typedef struct wire_cst_IssuanceStartResult_Previews {
 } wire_cst_IssuanceStartResult_Previews;
 
 typedef struct wire_cst_IssuanceStartResult_NoPreviews {
-  struct wire_cst_organization *organization;
+  struct wire_cst_organization *issuer;
 } wire_cst_IssuanceStartResult_NoPreviews;
 
 typedef union IssuanceStartResultKind {
@@ -824,6 +842,8 @@ struct wire_cst_attestation_presentation *frbgen_wallet_core_cst_new_box_autoadd
 
 bool *frbgen_wallet_core_cst_new_box_autoadd_bool(bool value);
 
+struct wire_cst_disclosure_based_issuance_result *frbgen_wallet_core_cst_new_box_autoadd_disclosure_based_issuance_result(void);
+
 struct wire_cst_flutter_maintenance_window *frbgen_wallet_core_cst_new_box_autoadd_flutter_maintenance_window(void);
 
 struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
@@ -880,6 +900,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_attribute_value);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_bool);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_disclosure_based_issuance_result);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_flutter_maintenance_window);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata);

@@ -8,10 +8,6 @@
     empty-title="Geen openstaande taken gevonden"
     empty-description="Controleer je zoekcriteria. Pas je filters aan en probeer het opnieuw."
   />
-
-  <Teleport defer to="#page-footer-target">
-    <PaginationBar />
-  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -20,7 +16,6 @@ import { useAsyncData } from '@/composables/asyncData.ts'
 import TasksTable from '@/components/tasks/TasksTable.vue'
 import LoadingState from '@/components/LoadingState.vue'
 import PageErrorState from '@/components/ui/PageErrorState.vue'
-import PaginationBar from '@/components/ui/PaginationBar.vue'
 
 const { data: tasks, loading, error, load } = useAsyncData(fetchOpenTasks)
 </script>

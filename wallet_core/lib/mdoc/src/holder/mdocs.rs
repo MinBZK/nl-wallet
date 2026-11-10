@@ -22,6 +22,8 @@ pub struct Mdoc {
     mso: MobileSecurityObject,
 
     issuer_signed: IssuerSigned,
+
+    issuer_certificate_chain: VecNonEmpty<BorrowingCertificate>,
 }
 
 impl Mdoc {
@@ -41,7 +43,15 @@ impl Mdoc {
             supported_algorithms,
         )?;
 
-        let mdoc = Mdoc { mso, issuer_signed };
+        // TODO (PVW-4132): the x5chain is already parsed in `IssuerSigned::verify` and
+        // `IssuerAuth::verify_against_trust_anchors`, so we shouldn't need to parse it again here.
+        let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain()?;
+
+        let mdoc = Mdoc {
+            mso,
+            issuer_signed,
+            issuer_certificate_chain,
+        };
 
         Ok(mdoc)
     }
@@ -50,7 +60,13 @@ impl Mdoc {
     pub fn dangerous_parse_unverified(issuer_signed: IssuerSigned) -> Result<Self, CoseError> {
         let TaggedBytes(mso) = issuer_signed.issuer_auth.dangerous_parse_unverified()?;
 
-        let mdoc = Self { mso, issuer_signed };
+        let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain()?;
+
+        let mdoc = Self {
+            mso,
+            issuer_signed,
+            issuer_certificate_chain,
+        };
 
         Ok(mdoc)
     }
@@ -68,13 +84,13 @@ impl Mdoc {
     }
 
     pub fn into_components(self) -> (MobileSecurityObject, IssuerSigned) {
-        let Self { mso, issuer_signed } = self;
+        let Self { mso, issuer_signed, .. } = self;
 
         (mso, issuer_signed)
     }
 
-    pub fn issuer_certificate_chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
-        self.issuer_signed.issuer_auth.x5chain()
+    pub fn issuer_certificate_chain(&self) -> &VecNonEmpty<BorrowingCertificate> {
+        &self.issuer_certificate_chain
     }
 }
 
@@ -105,7 +121,13 @@ mod test {
 
     impl Mdoc {
         pub fn new_unverified(mso: MobileSecurityObject, issuer_signed: IssuerSigned) -> Self {
-            Self { mso, issuer_signed }
+            let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain().unwrap();
+
+            Self {
+                mso,
+                issuer_signed,
+                issuer_certificate_chain,
+            }
         }
 
         pub async fn new_unverified_from_data(

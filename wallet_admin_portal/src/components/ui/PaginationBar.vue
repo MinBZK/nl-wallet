@@ -11,15 +11,15 @@
     </div>
 
     <div class="pages">
-      <button class="nav">
+      <button type="button" class="nav">
         <img src="@/assets/icons/chevron_backward.svg" alt="Previous page" />
       </button>
-      <button class="page active">1</button>
-      <button class="page">2</button>
-      <button class="page">3</button>
+      <button type="button" class="page active">1</button>
+      <button type="button" class="page">2</button>
+      <button type="button" class="page">3</button>
       <span class="ellipsis">…</span>
-      <button class="page">12</button>
-      <button class="nav">
+      <button type="button" class="page">12</button>
+      <button type="button" class="nav">
         <img src="@/assets/icons/chevron_forward.svg" alt="Next page" />
       </button>
     </div>

@@ -101,6 +101,7 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use verification_server::settings::VerifierSettings;
 use wallet::AttestationPresentation;
+use wallet::DisclosureBasedIssuanceResult;
 use wallet::PidIssuancePurpose;
 use wallet::Pin;
 use wallet::Wallet;
@@ -1558,7 +1559,7 @@ pub async fn do_degree_issuance(
     issuance_server_url: &IssuerIdentifier,
     client_ids: &DegreeClientIds,
     format: Format,
-) -> Vec<AttestationPresentation> {
+) -> VecNonEmpty<AttestationPresentation> {
     let _proposal = wallet
         .start_disclosure(
             &universal_link(issuance_server_url.as_base_url(), client_ids, format),
@@ -1567,14 +1568,18 @@ pub async fn do_degree_issuance(
         .await
         .unwrap();
 
-    let attestation_previews = wallet
+    let result = wallet
         .continue_disclosure_based_issuance(&[0], pin.clone())
         .await
         .unwrap();
 
+    let DisclosureBasedIssuanceResult::Previews(attestations) = result else {
+        panic!("expected attestation previews");
+    };
+
     wallet.accept_issuance(pin).await.unwrap();
 
-    attestation_previews
+    attestations
 }
 
 pub fn universal_link(issuance_server_url: &BaseUrl, client_ids: &DegreeClientIds, format: Format) -> Url {

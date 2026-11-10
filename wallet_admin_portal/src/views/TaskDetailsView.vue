@@ -142,7 +142,7 @@ async function runAction(action: () => Promise<unknown>, modal: Ref<boolean>) {
     modal.value = false
     goBackOrHome()
   } catch (error) {
-    console.error(error)
+    reportError(error)
     actionFailed.value = true
   } finally {
     submitting.value = false

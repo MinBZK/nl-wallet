@@ -58,16 +58,16 @@ describe('WithdrawTaskModal', () => {
   it('cannot be dismissed while the action is in flight', async () => {
     const wrapper = mountModal({ busy: true })
 
-    await wrapper.get('.overlay').trigger('click')
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await wrapper.get('dialog').trigger('click')
+    await wrapper.get('dialog').trigger('cancel')
 
     expect(wrapper.emitted('close')).toBeUndefined()
   })
 
-  it('can be dismissed with the escape key when idle', async () => {
+  it('can be dismissed via the cancel event when idle', async () => {
     const wrapper = mountModal()
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await wrapper.get('dialog').trigger('cancel')
 
     expect(wrapper.emitted('close')).toHaveLength(1)
   })

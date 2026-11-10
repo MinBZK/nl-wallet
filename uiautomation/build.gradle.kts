@@ -7,7 +7,13 @@ group = "nl.ictu.edi.wallet.uiautomation"
 version = "1.0-SNAPSHOT"
 
 repositories {
-    mavenCentral()
+    if (System.getenv("CI") == "true") {
+        maven {
+            url = uri("${System.getenv("NEXUS_URL")}/repository/maven-central/")
+        }
+    } else {
+        mavenCentral()
+    }
 }
 
 kotlin {
@@ -32,7 +38,7 @@ dependencies {
 
     implementation(platform("io.qameta.allure:allure-bom:2.29.1"))
     implementation("io.qameta.allure:allure-junit5")
-    implementation("org.json:json:20250517")
+    implementation("org.json:json:20260719")
     implementation("org.tomlj:tomlj:1.1.1")
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.google.zxing:javase:3.5.3")
