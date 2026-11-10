@@ -947,6 +947,8 @@ mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
     use attestation_types::pid_constants::pid_attestation_type;
     use chrono::Duration;
     use crypto::server_keys::generate::Ca;
@@ -1007,6 +1009,8 @@ mod tests {
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::decoded_sd_jwt_from_credential_payload;
     use crate::wallet::test::eq_credential_kinds;
+    use crate::wallet::test::example_pid_payload_and_metadata;
+    use crate::wallet::test::example_stored_attestation_copy;
     use crate::wallet::test::mock_issuance_session;
 
     #[rstest]
@@ -2234,6 +2238,163 @@ mod tests {
         assert_eq!(*inserted_attestations.lock(), expected_attestations);
     }
 
+    /// Without previews, the issued credentials are matched against the stored attestations after issuance. An issued
+    /// credential that renews a stored attestation updates it, the others are inserted as new attestations.
+    #[rstest]
+    // During PID issuance, an issued PID renews the stored PID of the same format, even when their contents differ.
+    #[case::pid_renewal(
+        Some(PidIssuancePurpose::Renewal), &[Format::SdJwt, Format::MsoMdoc], true, &[Format::SdJwt, Format::MsoMdoc]
+    )]
+    // Outside of PID issuance, an issued credential renews a stored attestation with the same contents...
+    #[case::identical_contents(None, &[Format::SdJwt], false, &[Format::SdJwt])]
+    // ...but not one with different contents.
+    #[case::different_contents(None, &[Format::SdJwt], true, &[])]
+    #[tokio::test]
+    async fn test_accept_issuance_without_previews_renewal(
+        #[case] purpose: Option<PidIssuancePurpose>,
+        #[case] stored_formats: &[Format],
+        #[case] different_contents: bool,
+        #[case] expected_renewed_formats: &[Format],
+    ) {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Have the mock OpenID4VCI session issue the PID in both formats, without previews.
+        let (sd_jwt, sd_jwt_issued_metadata, _) = sd_jwt_pid();
+        let (mdoc, mdoc_issued_metadata, _) = mdoc_pid();
+        let (issuance_session, _) = mock_issuance_session(
+            [(sd_jwt, sd_jwt_issued_metadata), (mdoc, mdoc_issued_metadata)],
+            Some(NonZeroU8::MAX),
+        );
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
+            purpose,
+            SessionState::Issuance {
+                preview_attestations: None,
+                protocol_state: issuance_session,
+            },
+        )));
+
+        // Have the storage contain a PID in each of `stored_formats`, optionally with a different given name than the
+        // issued PID. The recovery code is the same, so that renewing the PID succeeds.
+        let stored = stored_formats
+            .iter()
+            .map(|&format| {
+                let (mut credential_payload, metadata, holder_key) = example_pid_payload_and_metadata(format);
+
+                if different_contents {
+                    let given_name_path = match format {
+                        Format::MsoMdoc => vec![PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
+                        Format::SdJwt => vec![PID_GIVEN_NAME],
+                    };
+                    credential_payload
+                        .contents
+                        .attributes
+                        .overwrite(given_name_path, Attribute::Text("Other Name".to_string()));
+                }
+
+                example_stored_attestation_copy(format, credential_payload, metadata, &holder_key)
+            })
+            .collect_vec();
+        let stored_ids = stored
+            .iter()
+            .map(|copy| (copy.format(), copy.attestation_id()))
+            .collect::<HashMap<_, _>>();
+
+        // Like the actual storage, only return the stored attestations of the requested credential kinds.
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .returning(move |credential_kinds| {
+                Ok(stored
+                    .iter()
+                    .filter(|copy| credential_kinds.contains(&copy.credential_kind()))
+                    .cloned()
+                    .collect())
+            });
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        if purpose.is_some() {
+            setup_mock_recovery_code_instructions(&mut wallet);
+        }
+
+        let updated_credentials = Arc::new(parking_lot::Mutex::new(Vec::new()));
+        wallet.mut_storage().expect_update_credentials().returning({
+            let updated_credentials = Arc::clone(&updated_credentials);
+            move |_, credentials| {
+                updated_credentials.lock().extend(credentials);
+                Ok(())
+            }
+        });
+
+        let inserted_credentials = Arc::new(parking_lot::Mutex::new(Vec::new()));
+        wallet.mut_storage().expect_insert_credentials().returning({
+            let inserted_credentials = Arc::clone(&inserted_credentials);
+            move |_, credentials| {
+                inserted_credentials.lock().extend(credentials);
+                Ok(())
+            }
+        });
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .returning(|| Ok(vec![]));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(|| Ok(vec![]));
+
+        wallet
+            .accept_issuance(PIN.clone())
+            .await
+            .expect("accepting issuance without previews should succeed");
+
+        // Every credential should be paired with the attestation presentation of the same format, which carries the
+        // identity of the stored attestation it renews, if any.
+        let identities_by_format = |credentials: &[(CredentialWithMetadata, AttestationPresentation)]| {
+            credentials
+                .iter()
+                .map(|(credential, attestation)| {
+                    assert_eq!(credential.copies.format(), attestation.format);
+
+                    (attestation.format, attestation.identity)
+                })
+                .collect::<HashMap<_, _>>()
+        };
+
+        let expected_updated = expected_renewed_formats
+            .iter()
+            .map(|format| (*format, AttestationIdentity::Fixed { id: stored_ids[format] }))
+            .collect::<HashMap<_, _>>();
+        let expected_inserted = [Format::SdJwt, Format::MsoMdoc]
+            .into_iter()
+            .filter(|format| !expected_renewed_formats.contains(format))
+            .map(|format| (format, AttestationIdentity::Ephemeral))
+            .collect::<HashMap<_, _>>();
+
+        assert_eq!(identities_by_format(&updated_credentials.lock()), expected_updated);
+        assert_eq!(identities_by_format(&inserted_credentials.lock()), expected_inserted);
+    }
+
     #[tokio::test]
     async fn test_accept_pid_issuance_unregistered() {
         // Prepare an unregistered wallet.
@@ -2482,19 +2643,20 @@ mod tests {
         assert!(!wallet.is_locked());
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_accept_pid_issuance_error_incorrect_recovery_code() {
+    async fn test_accept_pid_issuance_error_incorrect_recovery_code(#[values(true, false)] with_previews: bool) {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Have the mock OpenID4VCI session issue an SD-JWT PID.
+        // Have the mock OpenID4VCI session issue an SD-JWT PID, with or without previews.
         let (sd_jwt_credential, metadata_documents, _) = sd_jwt_pid();
         let (pid_issuer, attestations) =
             mock_issuance_session([(sd_jwt_credential, metadata_documents)], Some(NonZeroU8::MAX));
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Renewal,
             session_state: SessionState::Issuance {
-                preview_attestations: Some(attestations),
+                preview_attestations: with_previews.then_some(attestations),
                 protocol_state: pid_issuer,
             },
         }));
@@ -2526,6 +2688,8 @@ mod tests {
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
 
+        // The stored PID is only looked up to compare its recovery code. Without previews, the recovery code should be
+        // compared before the stored attestations to renew are looked up.
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
@@ -2622,6 +2786,88 @@ mod tests {
 
         assert_matches!(error, IssuanceError::AttestationStorage(_));
 
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_without_previews_error_attestation_query() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Have the mock OpenID4VCI session issue the PID in both formats, without previews.
+        let (sd_jwt, sd_jwt_issued_metadata, _) = sd_jwt_pid();
+        let (mdoc, mdoc_issued_metadata, _) = mdoc_pid();
+        let (pid_issuer, _) = mock_issuance_session(
+            [(sd_jwt, sd_jwt_issued_metadata), (mdoc, mdoc_issued_metadata)],
+            Some(NonZeroU8::MAX),
+        );
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: None,
+                protocol_state: pid_issuer,
+            },
+        }));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+
+        // Looking up the stored PID to compare its recovery code succeeds, as there is none.
+        let config = wallet.config_repository.get();
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .withf(eq_credential_kinds(&config.pid_attributes.sd_jwt_credential_kinds()))
+            .times(1)
+            .return_once(|_| Ok(vec![]));
+
+        // Have the storage return an error when looking up the stored attestations that the issued credentials renew.
+        let issued_credential_kinds = HashSet::from([
+            CredentialKindRef::new(Format::SdJwt, pid_attestation_type(Format::SdJwt)),
+            CredentialKindRef::new(Format::MsoMdoc, pid_attestation_type(Format::MsoMdoc)),
+        ]);
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .withf(eq_credential_kinds(&issued_credential_kinds))
+            .times(1)
+            .return_once(|_| Err(StorageError::AlreadyOpened));
+
+        // The recovery code should not be disclosed to the Wallet Provider, which would require an instruction
+        // challenge, and nothing should be stored.
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .never();
+        wallet.mut_storage().expect_insert_data::<TransferData>().never();
+        wallet.mut_storage().expect_update_credentials().never();
+        wallet.mut_storage().expect_insert_credentials().never();
+
+        let error = wallet
+            .accept_issuance(PIN.clone())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(error, IssuanceError::AttestationQuery(_));
+
+        assert!(wallet.session.is_none());
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());
     }
