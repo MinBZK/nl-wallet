@@ -629,6 +629,49 @@ where
         Ok(attestations)
     }
 
+    /// Creates an [`AttestationPresentation`] for every issued credential, in the same order. Its identity is that of
+    /// the stored attestation the credential renews, if any.
+    async fn process_issued_credentials(
+        &self,
+        credentials: &[CredentialWithMetadata],
+        organization: &Organization,
+        pid_purpose: Option<PidIssuancePurpose>,
+        pid_config: &PidAttributesConfiguration,
+    ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
+        let issued_credential_kinds = credentials
+            .iter()
+            .map(|credential| credential.credential_kind())
+            .collect();
+
+        let stored = self
+            .storage
+            .read()
+            .await
+            .fetch_unique_attestations_by_credential_kinds(&issued_credential_kinds)
+            .await
+            .map_err(IssuanceError::AttestationQuery)?;
+
+        let mut matcher = renewal_matcher(stored, pid_purpose.is_some().then_some(pid_config), &TimeGenerator);
+
+        credentials
+            .iter()
+            .map(|credential| {
+                let identity = matcher(credential.copies.format(), &credential.contents);
+
+                AttestationPresentation::create_from_issued(
+                    identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
+                    credential,
+                    Box::new(organization.clone()),
+                    pid_config,
+                )
+                .map_err(|error| IssuanceError::Attestation {
+                    organization: Box::new(organization.clone()),
+                    error,
+                })
+            })
+            .collect()
+    }
+
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn accept_issuance(&mut self, pin: Pin) -> Result<IssuanceResult, IssuanceError>
@@ -695,14 +738,32 @@ where
         info!("Issuance succeeded; removing issuance session state");
         self.session = None;
 
-        let transfer_session_id = if pid_purpose.is_some() {
+        if pid_purpose.is_some() {
             // Check the recovery code in the issued PID against the one in the stored PID, if any. The issued PID is
             // not stored yet, so on a mismatch the issued credentials can simply be dropped.
             let issued_recovery_code =
                 Self::recovery_code_from_credentials(&issued_credentials_with_metadata, &config.pid_attributes)?;
             self.compare_recovery_code_against_stored(issued_recovery_code, &config.pid_attributes)
                 .await?;
+        }
 
+        let attestations = match preview_attestations {
+            Some(preview_attestations) => preview_attestations.into_inner(),
+            None => {
+                self.process_issued_credentials(
+                    &issued_credentials_with_metadata,
+                    &organization,
+                    pid_purpose,
+                    &config.pid_attributes,
+                )
+                .await?
+            }
+        };
+
+        // The Wallet Provider acts on the disclosed recovery code, so disclose it only after every fallible operations
+        // that do not have side effects. It does have to precede storing the credentials, as the Wallet Provider only
+        // unblocks the keys of the issued PID upon disclosure.
+        let transfer_session_id = if pid_purpose.is_some() {
             info!("This is a PID issuance session, therefore disclosing recovery code");
             self.disclose_recovery_code(
                 &config.pid_attributes,
@@ -728,37 +789,13 @@ where
                 .map_err(IssuanceError::TransferDataStorage)?;
         }
 
-        let (existing, new): (Vec<_>, Vec<_>) = match preview_attestations {
-            // `IssuanceSession::accept_issuance` returns the credentials in the same order as the previews, from which
-            // `preview_attestations` were created, so they can be paired by position.
-            Some(preview_attestations) => issued_credentials_with_metadata
-                .into_iter()
-                .zip_eq(preview_attestations)
-                .partition(|(_, preview)| matches!(preview.identity, AttestationIdentity::Fixed { .. })),
-            // Without previews, there is no stored attestation identity to match against, so every credential is
-            // stored as a new attestation.
-            // TODO (PVW-6251): Determine renewal against the issued credentials.
-            None => {
-                let new = issued_credentials_with_metadata
-                    .into_iter()
-                    .map(|credential| {
-                        let attestation = AttestationPresentation::create_from_issued(
-                            &credential,
-                            Box::new(organization.clone()),
-                            &config.pid_attributes,
-                        )
-                        .map_err(|error| IssuanceError::Attestation {
-                            organization: Box::new(organization.clone()),
-                            error,
-                        })?;
-
-                        Ok((credential, attestation))
-                    })
-                    .collect::<Result<_, IssuanceError>>()?;
-
-                (vec![], new)
-            }
-        };
+        // The attestations can be paired with the credentials by position. `IssuanceSession::accept_issuance` returns
+        // the credentials in the same order as the previews from which `preview_attestations` were created, and
+        // `process_issued_credentials` keeps the order of the credentials.
+        let (existing, new): (Vec<_>, Vec<_>) = issued_credentials_with_metadata
+            .into_iter()
+            .zip_eq(attestations)
+            .partition(|(_, attestation)| matches!(attestation.identity, AttestationIdentity::Fixed { .. }));
 
         info!("Attestations accepted, storing credentials in database");
         if !existing.is_empty() {
@@ -882,6 +919,8 @@ fn renewal_matcher(
                     return None;
                 }
 
+                // TODO (PVW-6517): The callers only look up stored attestations of the incoming credential kinds, so a
+                //                  stored PID of another attestation type is never renewed.
                 let both_pid = pid_config.is_some_and(|pid_config| {
                     pid_config.contains_credential_kind(CredentialKindRef::new(format, &contents.attestation_type))
                         && pid_config.contains_credential_kind(CredentialKindRef::new(
@@ -2163,7 +2202,19 @@ mod tests {
             .expect_upsert_data::<InstructionData>()
             .returning(|_| Ok(()));
 
-        // Without previews, every issued credential should be stored as a new attestation.
+        // Without previews, the stored attestations to renew are looked up by the kinds of the issued credentials.
+        let expected_credential_kinds = HashSet::from([
+            CredentialKindRef::new(Format::SdJwt, pid_attestation_type(Format::SdJwt)),
+            CredentialKindRef::new(Format::MsoMdoc, pid_attestation_type(Format::MsoMdoc)),
+        ]);
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .withf(eq_credential_kinds(&expected_credential_kinds))
+            .times(1)
+            .return_once(|_| Ok(vec![]));
+
+        // As there are no stored attestations, every issued credential should be stored as a new attestation.
         let inserted_attestations = Arc::new(parking_lot::Mutex::new(Vec::new()));
         wallet.mut_storage().expect_insert_credentials().times(1).returning({
             let inserted_attestations = Arc::clone(&inserted_attestations);

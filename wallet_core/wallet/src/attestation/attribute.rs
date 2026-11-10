@@ -75,6 +75,7 @@ impl AttestationPresentation {
 
     /// Creates an [`AttestationPresentation`] from the first copy of an issued credential.
     pub(crate) fn create_from_issued(
+        identity: AttestationIdentity,
         credential: &CredentialWithMetadata,
         issuer_organization: Box<Organization>,
         config: &impl AttestationPresentationConfig,
@@ -87,10 +88,9 @@ impl AttestationPresentation {
             },
         };
 
-        // TODO (PVW-6251): determine attestation identity to support renewal
         match &credential.copies {
             IssuedCredentialCopies::Mdoc(copies) => Self::create_from_mdoc(
-                AttestationIdentity::Ephemeral,
+                identity,
                 credential.contents.attestation_type.clone(),
                 credential.metadata.clone(),
                 issuer_organization,
@@ -102,7 +102,7 @@ impl AttestationPresentation {
                 let claims = copies.first().sd_jwt.decoded_claims().clone();
 
                 Self::create_from_sd_jwt_claims(
-                    AttestationIdentity::Ephemeral,
+                    identity,
                     credential.contents.attestation_type.clone(),
                     credential.metadata.clone(),
                     issuer_organization,
