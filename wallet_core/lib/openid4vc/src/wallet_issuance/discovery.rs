@@ -823,6 +823,7 @@ mod test {
     use chrono::DateTime;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
+    use crypto::x509::BorrowingCertificate;
     use crypto::x509::crl::CertificateCrlVerificationError;
     use crypto::x509::crl::mock::MockCertificateCrlVerifier;
     use crypto::x509::crl::mock::MockCrlFetcher;
@@ -929,6 +930,57 @@ mod test {
         }
     }
 
+    fn mock_issuer_registration_certificate(
+        access_certificate: &BorrowingCertificate,
+        scenario: RegistrationCertificateScenario,
+    ) -> MockRegistrationCertificate {
+        let authorized_formats: &[Format] = match scenario {
+            RegistrationCertificateScenario::EmptyProvidesAttestations => &[],
+            RegistrationCertificateScenario::MdocOnly => &[Format::MsoMdoc],
+            RegistrationCertificateScenario::SdJwtOnly => &[Format::SdJwt],
+            _ => &[Format::MsoMdoc, Format::SdJwt],
+        };
+        let mut payload = issuer_registration_certificate_payload(
+            access_certificate,
+            authorized_formats
+                .iter()
+                .map(|format| CredentialKind::new(*format, PID_ATTESTATION_TYPE.to_string())),
+        );
+        match scenario {
+            RegistrationCertificateScenario::WrongSubject => payload.0["sub"] = json!("another-issuer"),
+            RegistrationCertificateScenario::Expired => {
+                payload.0["iat"] = json!(12345678);
+                payload.0["exp"] = json!(12345679);
+            }
+            RegistrationCertificateScenario::InvalidPayload => payload.0["country"] = json!("N"),
+            RegistrationCertificateScenario::MissingProvidesAttestations => {
+                payload.0.as_object_mut().unwrap().remove("provides_attestations");
+            }
+            _ => {}
+        }
+        let authority = MockRegistrationCertificateAuthority::new_with_status(
+            if matches!(scenario, RegistrationCertificateScenario::Revoked) {
+                StatusType::Invalid
+            } else {
+                StatusType::Valid
+            },
+        );
+        let certificate = if matches!(scenario, RegistrationCertificateScenario::Cwt) {
+            authority.sign_cwt(&payload)
+        } else {
+            authority.sign_jwt(&payload)
+        };
+        MockRegistrationCertificate {
+            certificate,
+            trust_anchors: authority.trust_anchors,
+            status_list_client: if matches!(scenario, RegistrationCertificateScenario::UntrustedStatusList) {
+                MockRegistrationCertificateAuthority::new().status_list_client
+            } else {
+                authority.status_list_client
+            },
+        }
+    }
+
     async fn httpmock_issuer_add_metadata<'a>(
         server: &MockServer,
         options: IssuerMetadataOptions<'_>,
@@ -1011,57 +1063,8 @@ mod test {
             issuer_metadata_json["credential_preview_endpoint"] = json!(server.url("/issuance/credential_preview"));
         }
 
-        let authorized_formats: &[Format] = match options.registration_certificate {
-            RegistrationCertificateScenario::EmptyProvidesAttestations => &[],
-            RegistrationCertificateScenario::MdocOnly => &[Format::MsoMdoc],
-            RegistrationCertificateScenario::SdJwtOnly => &[Format::SdJwt],
-            _ => &[Format::MsoMdoc, Format::SdJwt],
-        };
-        let mut payload = issuer_registration_certificate_payload(
-            wrpac_keypair.certificate(),
-            authorized_formats
-                .iter()
-                .map(|format| CredentialKind::new(*format, PID_ATTESTATION_TYPE.to_string())),
-        );
-        match options.registration_certificate {
-            RegistrationCertificateScenario::WrongSubject => payload.0["sub"] = json!("another-issuer"),
-            RegistrationCertificateScenario::Expired => {
-                payload.0["iat"] = json!(12345678);
-                payload.0["exp"] = json!(12345679);
-            }
-            RegistrationCertificateScenario::InvalidPayload => payload.0["country"] = json!("N"),
-            RegistrationCertificateScenario::MissingProvidesAttestations => {
-                payload.0.as_object_mut().unwrap().remove("provides_attestations");
-            }
-            _ => {}
-        }
-        let authority = MockRegistrationCertificateAuthority::new_with_status(
-            if matches!(
-                options.registration_certificate,
-                RegistrationCertificateScenario::Revoked
-            ) {
-                StatusType::Invalid
-            } else {
-                StatusType::Valid
-            },
-        );
-        let certificate = if matches!(options.registration_certificate, RegistrationCertificateScenario::Cwt) {
-            authority.sign_cwt(&payload)
-        } else {
-            authority.sign_jwt(&payload)
-        };
-        let registration_certificate = MockRegistrationCertificate {
-            certificate,
-            trust_anchors: authority.trust_anchors,
-            status_list_client: if matches!(
-                options.registration_certificate,
-                RegistrationCertificateScenario::UntrustedStatusList
-            ) {
-                MockRegistrationCertificateAuthority::new().status_list_client
-            } else {
-                authority.status_list_client
-            },
-        };
+        let registration_certificate =
+            mock_issuer_registration_certificate(wrpac_keypair.certificate(), options.registration_certificate);
         let mut issuer_metadata: IssuerMetadata = serde_json::from_value(issuer_metadata_json).unwrap();
         let issuer_info = IssuerInfo::RegistrationCertificate {
             data: RegistrationCertificateEnvelope::from_slice(registration_certificate.certificate.as_slice()).unwrap(),
