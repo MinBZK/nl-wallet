@@ -1,12 +1,14 @@
 use std::error::Error;
 use std::hash::Hash;
 
+use aes_gcm::AeadCore;
 use aes_gcm::Aes256Gcm;
 use aes_gcm::Key;
 use aes_gcm::KeySizeUser;
-use aes_gcm::Nonce;
 use aes_gcm::aead::Aead;
 use aes_gcm::aead::Generate;
+use aes_gcm::aead::Nonce;
+use aes_gcm::aead::array::typenum::Unsigned;
 use derive_more::AsRef;
 use derive_more::From;
 use derive_more::Into;
@@ -17,8 +19,6 @@ use rsa::traits::PublicKeyParts;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de;
-
-const AES_GCM_IV_BYTES_SIZE: usize = 12;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PublicKeyError {
@@ -177,8 +177,8 @@ impl EncryptionKey for Aes256Gcm {
     type Error = aes_gcm::Error;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
-        // Generate a random nonce
-        let nonce = Nonce::generate(); // 96-bits; unique per message
+        // Generate a random 96-bit nonce, unique per message
+        let nonce = Nonce::<Aes256Gcm>::generate();
 
         // Encrypt the provided message
         let encrypted_msg = <Aes256Gcm as Aead>::encrypt(self, &nonce, msg)?;
@@ -190,10 +190,13 @@ impl EncryptionKey for Aes256Gcm {
     }
 
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
-        // Re-create the nonce from the first 12 bytes
+        // Same size as the nonce generated in `encrypt()`
+        const NONCE_SIZE: usize = <Aes256Gcm as AeadCore>::NonceSize::USIZE;
+
+        // Re-create the nonce from the first `NONCE_SIZE` bytes
         // A message that is too short to contain a nonce cannot be valid ciphertext
-        let (nonce, ciphertext) = msg.split_first_chunk::<AES_GCM_IV_BYTES_SIZE>().ok_or(aes_gcm::Error)?;
-        let nonce = Nonce::from(*nonce);
+        let (nonce, ciphertext) = msg.split_first_chunk::<NONCE_SIZE>().ok_or(aes_gcm::Error)?;
+        let nonce = Nonce::<Aes256Gcm>::from(*nonce);
 
         // Decrypt the provided message with the retrieved nonce
         <Aes256Gcm as Aead>::decrypt(self, &nonce, ciphertext)
