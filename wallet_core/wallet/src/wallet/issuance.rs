@@ -568,6 +568,8 @@ where
         Ok(result)
     }
 
+    /// Creates an [`AttestationPresentation`] for every credential preview, in the same order. Its identity is that of
+    /// the stored attestation the offered credential would renew, if any.
     async fn process_previews(
         &mut self,
         credential_previews: VecNonEmpty<OfferedCredentialPreview<'_>>,
@@ -589,18 +591,19 @@ where
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
-        // For every preview, find the stored attestation it renews, if any, to determine its database identity.
-        let previews_metadata_and_identity = match_preview_and_stored_attestations(
-            credential_previews.into_nonempty_iter(),
+        let mut matcher = renewal_matcher(
             stored,
-            &TimeGenerator,
             pid_purpose.is_some().then_some(&config.pid_attributes),
+            &TimeGenerator,
         );
 
         info!("successfully received token and previews from issuer");
-        let attestations = previews_metadata_and_identity
+        let attestations = credential_previews
             .into_nonempty_iter()
-            .map(|(preview_data, identity)| {
+            .map(|preview_data| {
+                // Find the stored attestation this preview renews, if any, to determine its database identity.
+                let identity = matcher(preview_data.format, preview_data.credential_payload);
+
                 let attestation = AttestationPresentation::create_from_attributes(
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
                     preview_data.format,
@@ -940,21 +943,6 @@ fn renewal_matcher(
     }
 }
 
-fn match_preview_and_stored_attestations<'a>(
-    credential_previews: impl NonEmptyIterator<Item = OfferedCredentialPreview<'a>>,
-    stored_attestations: Vec<StoredAttestationCopy>,
-    time_generator: &impl Generator<DateTime<Utc>>,
-    pid_config: Option<&PidAttributesConfiguration>,
-) -> VecNonEmpty<(OfferedCredentialPreview<'a>, Option<Uuid>)> {
-    let mut matcher = renewal_matcher(stored_attestations, pid_config, time_generator);
-    credential_previews
-        .map(|preview| {
-            let identity = matcher(preview.format, preview.credential_payload);
-            (preview, identity)
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -972,7 +960,6 @@ mod tests {
     use chrono::Duration;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
-    use itertools::multiunzip;
     use mockall::predicate::*;
     use openid4vc::token::CredentialPreview;
     use openid4vc::wallet_issuance::IssuanceFlow;
@@ -2648,18 +2635,8 @@ mod tests {
         assert!(!wallet.is_locked());
     }
 
-    fn offered_credential_preview(
-        (preview, metadata): &(CredentialPreview, OfferedCredentialMetadata),
-    ) -> OfferedCredentialPreview<'_> {
-        OfferedCredentialPreview {
-            format: preview.format,
-            credential_payload: &preview.credential_payload,
-            metadata,
-        }
-    }
-
     #[test]
-    fn test_match_preview_and_stored_attestations() {
+    fn test_renewal_matcher() {
         let ca = Ca::generate_mock();
         let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
@@ -2694,67 +2671,39 @@ mod tests {
         );
 
         // When the attestation already exists in the database, we expect the identity to be known.
-        let previews = vec_nonempty![create_example_pid_preview_data(&time_generator, Format::SdJwt)];
-        let result = match_preview_and_stored_attestations(
-            previews.nonempty_iter().map(offered_credential_preview),
-            vec![stored.clone()],
-            &time_generator,
-            None,
+        let (preview, _) = create_example_pid_preview_data(&time_generator, Format::SdJwt);
+        let mut matcher = renewal_matcher(vec![stored.clone()], None, &time_generator);
+        assert_eq!(
+            matcher(preview.format, &preview.credential_payload),
+            Some(attestation_id)
         );
-        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(identities, vec![Some(attestation_id)]);
 
         // When the existing attestation has a different format, the identity is None.
-        let previews = vec_nonempty![create_example_pid_preview_data(&time_generator, Format::MsoMdoc)];
-        let result = match_preview_and_stored_attestations(
-            previews.nonempty_iter().map(offered_credential_preview),
-            vec![stored.clone()],
-            &time_generator,
-            None,
-        );
-        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(identities, vec![None]);
+        let (preview, _) = create_example_pid_preview_data(&time_generator, Format::MsoMdoc);
+        let mut matcher = renewal_matcher(vec![stored.clone()], None, &time_generator);
+        assert_eq!(matcher(preview.format, &preview.credential_payload), None);
 
-        // When the preview contains the same attestation twice, we expect only the first identity to be known.
-        let previews = vec_nonempty![
-            create_example_pid_preview_data(&time_generator, Format::SdJwt),
-            create_example_pid_preview_data(&time_generator, Format::SdJwt),
-        ];
-        let result = match_preview_and_stored_attestations(
-            previews.nonempty_iter().map(offered_credential_preview),
-            vec![stored.clone()],
-            &time_generator,
-            None,
+        // When the same attestation is offered twice, we expect only the first identity to be known.
+        let (preview, _) = create_example_pid_preview_data(&time_generator, Format::SdJwt);
+        let mut matcher = renewal_matcher(vec![stored.clone()], None, &time_generator);
+        assert_eq!(
+            matcher(preview.format, &preview.credential_payload),
+            Some(attestation_id)
         );
-        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(identities, vec![Some(attestation_id), None]);
+        assert_eq!(matcher(preview.format, &preview.credential_payload), None);
 
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
         // as a new attestation and the identity is None.
-        let (mut preview, normalized_metadata) = create_example_pid_preview_data(&time_generator, Format::SdJwt);
+        let (mut preview, _) = create_example_pid_preview_data(&time_generator, Format::SdJwt);
         preview.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
-        let previews = vec_nonempty![(preview, normalized_metadata)];
-        let result = match_preview_and_stored_attestations(
-            previews.nonempty_iter().map(offered_credential_preview),
-            vec![stored.clone()],
-            &time_generator,
-            None,
-        );
-        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(identities, vec![None]);
+        let mut matcher = renewal_matcher(vec![stored.clone()], None, &time_generator);
+        assert_eq!(matcher(preview.format, &preview.credential_payload), None);
 
         // When the attestation doesn't exists in the database, the identity is None.
-        let (mut preview, normalized_metadata) = create_example_pid_preview_data(&time_generator, Format::SdJwt);
+        let (mut preview, _) = create_example_pid_preview_data(&time_generator, Format::SdJwt);
         preview.credential_payload.attestation_type = String::from("att_type_1");
-        let previews = vec_nonempty![(preview, normalized_metadata)];
-        let result = match_preview_and_stored_attestations(
-            previews.nonempty_iter().map(offered_credential_preview),
-            vec![stored.clone()],
-            &time_generator,
-            None,
-        );
-        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(identities, vec![None]);
+        let mut matcher = renewal_matcher(vec![stored.clone()], None, &time_generator);
+        assert_eq!(matcher(preview.format, &preview.credential_payload), None);
 
         // If the attestation is the PID, then its identity should match the identity of a stored PID
         // even when that wouldn't be the case for non-PID attestations.
@@ -2769,23 +2718,19 @@ mod tests {
                 ("att_type_1".to_string(), paths),
             ]),
         };
-        let (mut preview, normalized_metadata) = create_example_pid_preview_data(&time_generator, Format::SdJwt);
+        let (mut preview, _) = create_example_pid_preview_data(&time_generator, Format::SdJwt);
         preview.credential_payload.attestation_type = String::from("att_type_1");
-        let previews = vec_nonempty![(preview, normalized_metadata)];
-        let result = match_preview_and_stored_attestations(
-            previews.nonempty_iter().map(offered_credential_preview),
-            vec![stored],
-            &time_generator,
-            Some(&pid_config),
+        let mut matcher = renewal_matcher(vec![stored], Some(&pid_config), &time_generator);
+        assert_eq!(
+            matcher(preview.format, &preview.credential_payload),
+            Some(attestation_id)
         );
-        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(identities, vec![Some(attestation_id)]);
     }
 
     /// When several stored attestations match, the oldest one according to its UUIDv7 attestation id is matched first,
     /// regardless of the order in which the stored attestations are provided.
     #[test]
-    fn test_match_preview_and_stored_attestations_oldest_first() {
+    fn test_renewal_matcher_oldest_first() {
         let ca = Ca::generate_mock();
         let issuer_key_pair = ca.generate_issuer_mock().unwrap();
 
@@ -2827,19 +2772,11 @@ mod tests {
         // Provide the newest attestation first, so that matching in the order of the input fails this test.
         let stored = vec![stored_copy(newest_id), stored_copy(oldest_id)];
 
-        // Two identical previews each renew a different stored attestation, the first one the oldest.
-        let previews = vec_nonempty![
-            create_example_pid_preview_data(&time_generator, Format::SdJwt),
-            create_example_pid_preview_data(&time_generator, Format::SdJwt),
-        ];
-        let result = match_preview_and_stored_attestations(
-            previews.nonempty_iter().map(offered_credential_preview),
-            stored,
-            &time_generator,
-            None,
-        );
-        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
-        assert_eq!(identities, vec![Some(oldest_id), Some(newest_id)]);
+        // The same attestation offered twice renews a different stored attestation each time, the oldest one first.
+        let (preview, _) = create_example_pid_preview_data(&time_generator, Format::SdJwt);
+        let mut matcher = renewal_matcher(stored, None, &time_generator);
+        assert_eq!(matcher(preview.format, &preview.credential_payload), Some(oldest_id));
+        assert_eq!(matcher(preview.format, &preview.credential_payload), Some(newest_id));
     }
 
     #[tokio::test]
