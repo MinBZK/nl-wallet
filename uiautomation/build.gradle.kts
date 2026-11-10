@@ -38,7 +38,7 @@ dependencies {
 
     implementation(platform("io.qameta.allure:allure-bom:2.29.1"))
     implementation("io.qameta.allure:allure-junit5")
-    implementation("org.json:json:20250517")
+    implementation("org.json:json:20260719")
     implementation("org.tomlj:tomlj:1.1.1")
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.google.zxing:javase:3.5.3")
@@ -73,6 +73,8 @@ tasks.register<Test>("testAllAndroids") {
 }
 
 tasks.withType<Test>().configureEach {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
     jvmArgs("--add-modules=java.instrument")
     val testConfigMap = mapOf(
         "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",

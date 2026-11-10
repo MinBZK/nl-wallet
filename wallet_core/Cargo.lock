@@ -10689,6 +10689,7 @@ dependencies = [
  "predicates",
  "rand_core 0.9.5",
  "rcgen 0.14.5",
+ "rstest",
  "serde",
  "serde_json",
  "time",

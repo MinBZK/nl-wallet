@@ -23,8 +23,8 @@ use crypto::keys::PublicKey;
 use crypto::keys::WithVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateExtendedKeyUsage;
 use crypto::x509::CertificateProfile;
-use crypto::x509::CertificateUsage;
 use crypto::x509::CertificateVerifyError;
 use crypto::x509::DistinguishedName;
 use crypto::x509::crl::CertificateCrlVerificationError;
@@ -182,8 +182,12 @@ fn signs_and_verifies_with_certificate() {
 
     assert_eq!(cose.x5chain().unwrap().first(), key_pair.certificate());
     assert_eq!(
-        cose.verify_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),)
-            .unwrap(),
+        cose.verify_against_trust_anchors(
+            &ca.to_trust_anchors(),
+            &TimeGenerator,
+            Some(CertificateExtendedKeyUsage::Mdl),
+        )
+        .unwrap(),
         ToyMessage::default()
     );
 }
@@ -285,8 +289,12 @@ async fn verifies_trust_anchor_in_x5chain() {
         .unwrap();
 
     assert_eq!(
-        cose.verify_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl))
-            .unwrap(),
+        cose.verify_against_trust_anchors(
+            &ca.to_trust_anchors(),
+            &TimeGenerator,
+            Some(CertificateExtendedKeyUsage::Mdl)
+        )
+        .unwrap(),
         ToyMessage::default()
     );
     assert_eq!(
@@ -442,8 +450,12 @@ async fn verifies_certificate_chain_with_intermediate(#[case] include_root: bool
         .unwrap();
 
     assert_eq!(
-        cose.verify_against_trust_anchors(&root_ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),)
-            .unwrap(),
+        cose.verify_against_trust_anchors(
+            &root_ca.to_trust_anchors(),
+            &TimeGenerator,
+            Some(CertificateExtendedKeyUsage::Mdl),
+        )
+        .unwrap(),
         ToyMessage::default()
     );
 }
@@ -470,7 +482,11 @@ async fn rejects_missing_intermediate_certificate() {
         .unwrap();
 
     assert_matches!(
-        cose.verify_against_trust_anchors(&root_ca.to_trust_anchors(), &TimeGenerator, Some(CertificateUsage::Mdl),),
+        cose.verify_against_trust_anchors(
+            &root_ca.to_trust_anchors(),
+            &TimeGenerator,
+            Some(CertificateExtendedKeyUsage::Mdl),
+        ),
         Err(CoseError::CertificateVerify(_))
     );
 }
