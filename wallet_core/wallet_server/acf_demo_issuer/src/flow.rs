@@ -174,6 +174,8 @@ fn issuable_documents(
     usecase: &Usecase,
     requested_credential_kinds: &HashSet<CredentialKind>,
 ) -> Result<VecNonEmpty<IssuableDocument>, Error> {
+    let mut rng = rand::rng();
+
     usecase
         .documents
         .iter()
@@ -183,7 +185,7 @@ fn issuable_documents(
                 credential_kind,
                 attributes,
             } = template.clone();
-            let attributes = substitute_placeholders(attributes, &mut rand::rng());
+            let attributes = substitute_placeholders(attributes, &mut rng);
             IssuableDocument::try_new_with_random_id(credential_kind, attributes).expect("attributes cannot be empty")
         })
         .collect_vec()
