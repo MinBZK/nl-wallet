@@ -2801,7 +2801,7 @@ mod tests {
     /// - Avoiding use of a compression algorithm.
     /// - Using the Deflate compression algorithm.
     #[derive(Debug, Clone, Copy)]
-    enum RequestEncryptionScenario {
+    enum RequestEncryptionCompression {
         WithoutCompression,
         WithDeflateCompression,
     }
@@ -2812,7 +2812,7 @@ mod tests {
         credential_previews: Vec<CredentialPreview>,
         metadata: HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         batch_size: NonZeroU8,
-        credential_request_encrypter: Option<(JweEncrypter, RequestEncryptionScenario)>,
+        credential_request_encrypter: Option<(JweEncrypter, RequestEncryptionCompression)>,
         has_nonce_endpoint: bool,
         has_previews: bool,
     ) -> IssuanceState {
@@ -2827,10 +2827,10 @@ mod tests {
         }
 
         let credential_request_encrypter =
-            credential_request_encrypter.map(|(encrypter, scenario)| CredentialRequestEncrypter {
+            credential_request_encrypter.map(|(encrypter, compression)| CredentialRequestEncrypter {
                 encrypter,
                 encryption_algorithm: EncryptionAlgorithm::A128Gcm,
-                compression: matches!(scenario, RequestEncryptionScenario::WithDeflateCompression)
+                compression: matches!(compression, RequestEncryptionCompression::WithDeflateCompression)
                     .then_some(CompressionAlgorithm::Deflate),
             });
 
@@ -2896,7 +2896,7 @@ mod tests {
         issuer_key: KeyPair,
         #[debug(skip)]
         issuer_ca: Arc<Ca>,
-        credential_request_decrypter: Option<(JweDecrypter, RequestEncryptionScenario)>,
+        credential_request_decrypter: Option<(JweDecrypter, RequestEncryptionCompression)>,
         metadata_integrity: Integrity,
         /// mdoc attributes, namespaced (namespace, element).
         mdoc_previewable_payload: PreviewableCredentialPayload,
@@ -2929,10 +2929,10 @@ mod tests {
         pub fn new(
             formats_by_credential_id: HashMap<CredentialId, Format>,
             sd_jwt_uses_credential_metadata: SdJwtMetadataUsage,
-            use_credential_request_encryption: Option<RequestEncryptionScenario>,
+            use_credential_request_encryption: Option<RequestEncryptionCompression>,
         ) -> (
             Self,
-            Option<(JweEncrypter, RequestEncryptionScenario)>,
+            Option<(JweEncrypter, RequestEncryptionCompression)>,
             Vec<CredentialPreview>,
             HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         ) {
@@ -2960,10 +2960,10 @@ mod tests {
             mdoc_previewable_payload: PreviewableCredentialPayload,
             sd_jwt_previewable_payload: PreviewableCredentialPayload,
             sd_jwt_metadata_usage: SdJwtMetadataUsage,
-            use_credential_request_encryption: Option<RequestEncryptionScenario>,
+            use_credential_request_encryption: Option<RequestEncryptionCompression>,
         ) -> (
             Self,
-            Option<(JweEncrypter, RequestEncryptionScenario)>,
+            Option<(JweEncrypter, RequestEncryptionCompression)>,
             Vec<CredentialPreview>,
             HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         ) {
@@ -2973,12 +2973,12 @@ mod tests {
             let issuer_key = ca.generate_pid_issuer_mock().unwrap();
 
             let (credential_request_encrypter, credential_request_decrypter) = use_credential_request_encryption
-                .map(|scenario| {
+                .map(|compression| {
                     let secret_key = JweEcdhSecretKey::new_random(Some("key".to_string()), EcdhAlgorithm::EcdhEsA128kw);
                     let encrypter = secret_key.to_jwe_public_key().into();
                     let decrypter = JweDecrypter::from_ecdh_secret_key(&secret_key);
 
-                    ((encrypter, scenario), (decrypter, scenario))
+                    ((encrypter, compression), (decrypter, compression))
                 })
                 .unzip();
 
@@ -3051,9 +3051,9 @@ mod tests {
         pub fn response_from_request<'a>(&self, request: &CredentialRequestBody<'a>) -> CredentialResponse {
             let credential_request = match (request, &self.credential_request_decrypter) {
                 (CredentialRequestBody::Plain(request), None) => Cow::Borrowed(*request),
-                (CredentialRequestBody::Encrypted(jwe), Some((decrypter, scenario))) => {
+                (CredentialRequestBody::Encrypted(jwe), Some((decrypter, compression))) => {
                     // Glean that the Credential Request JWE is either compressed or uncompressed from the presence or
-                    // absence of its `zip` header, then compare that against the encryption configured scenario.
+                    // absence of its `zip` header, then compare that against the encryption configured compression.
                     let has_compression = serde_json::from_slice::<serde_json::Value>(
                         &BASE64_URL_SAFE_NO_PAD.decode(jwe.split_once('.').unwrap().0).unwrap(),
                     )
@@ -3062,13 +3062,13 @@ mod tests {
                     .unwrap()
                     .contains_key("zip");
 
-                    let allowed_decompression = match scenario {
-                        RequestEncryptionScenario::WithoutCompression => {
+                    let allowed_decompression = match compression {
+                        RequestEncryptionCompression::WithoutCompression => {
                             assert!(!has_compression);
 
                             AllowedDecompression::None
                         }
-                        RequestEncryptionScenario::WithDeflateCompression => {
+                        RequestEncryptionCompression::WithDeflateCompression => {
                             assert!(has_compression);
 
                             AllowedDecompression::Deflate
@@ -3277,11 +3277,11 @@ mod tests {
             /// no_encryption
             None,
             /// encryption_without_compression
-            Some(RequestEncryptionScenario::WithoutCompression),
+            Some(RequestEncryptionCompression::WithoutCompression),
             /// encryption_with_deflate_compression
-            Some(RequestEncryptionScenario::WithDeflateCompression)
+            Some(RequestEncryptionCompression::WithDeflateCompression)
         )]
-        use_credential_request_encryption: Option<RequestEncryptionScenario>,
+        use_credential_request_encryption: Option<RequestEncryptionCompression>,
         #[values(
             TestNonceEndpoint::Absent,
             TestNonceEndpoint::Present,
@@ -3392,11 +3392,11 @@ mod tests {
             /// no_encryption
             None,
             /// encryption_without_compression
-            Some(RequestEncryptionScenario::WithoutCompression),
+            Some(RequestEncryptionCompression::WithoutCompression),
             /// encryption_with_deflate_compression
-            Some(RequestEncryptionScenario::WithDeflateCompression)
+            Some(RequestEncryptionCompression::WithDeflateCompression)
         )]
-        use_credential_request_encryption: Option<RequestEncryptionScenario>,
+        use_credential_request_encryption: Option<RequestEncryptionCompression>,
     ) {
         let (signer, encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id".to_owned().into(), Format::MsoMdoc)]),
@@ -3468,11 +3468,11 @@ mod tests {
             /// no_encryption
             None,
             /// encryption_without_compression
-            Some(RequestEncryptionScenario::WithoutCompression),
+            Some(RequestEncryptionCompression::WithoutCompression),
             /// encryption_with_deflate_compression
-            Some(RequestEncryptionScenario::WithDeflateCompression)
+            Some(RequestEncryptionCompression::WithDeflateCompression)
         )]
-        use_credential_request_encryption: Option<RequestEncryptionScenario>,
+        use_credential_request_encryption: Option<RequestEncryptionCompression>,
     ) {
         let (signer, encrypter, previews, metadata) = MockCredentialSigner::new(
             HashMap::from([("credential_id".to_string().into(), Format::SdJwt)]),
