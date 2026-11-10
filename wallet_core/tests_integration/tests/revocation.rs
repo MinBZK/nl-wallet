@@ -31,7 +31,7 @@ async fn test_revocation_pid_ok() {
 
     assert_revokeable(&mut wallet, PID_NL_SD_JWT_VCT, issuance_urls.pid_issuer.internal).await;
 
-    // Revoked attestations remain available for disclosure with their revocation status.
+    // Revoked attestations remain available for disclosure.
     let proposal = wallet
         .start_disclosure(
             &universal_link(

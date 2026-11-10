@@ -2335,15 +2335,15 @@ pub(crate) mod tests {
     }
 
     #[rstest]
-    #[case::unchecked(None, 2)]
-    #[case::valid(Some(RevocationStatus::Valid), 2)]
-    #[case::undetermined(Some(RevocationStatus::Undetermined), 2)]
-    #[case::revoked(Some(RevocationStatus::Revoked), 2)]
-    #[case::corrupted(Some(RevocationStatus::Corrupted), 0)]
+    #[case::unchecked(None, true)]
+    #[case::valid(Some(RevocationStatus::Valid), true)]
+    #[case::undetermined(Some(RevocationStatus::Undetermined), true)]
+    #[case::revoked(Some(RevocationStatus::Revoked), true)]
+    #[case::corrupted(Some(RevocationStatus::Corrupted), false)]
     #[tokio::test]
     async fn test_fetch_valid_unique_attestations_revocation_status(
         #[case] status: Option<RevocationStatus>,
-        #[case] expected_count: usize,
+        #[case] should_be_returned: bool,
     ) {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
         let (mdoc_doc_type, sd_jwt_vct) = insert_pid_in_both_formats(&mut storage).await;
@@ -2370,8 +2370,8 @@ pub(crate) mod tests {
             .await
             .unwrap();
 
-        assert_eq!(fetched.len(), expected_count);
-        // Disclosure eligibility must not change the status shown to the user.
+        assert_eq!(fetched.len(), if should_be_returned { 2 } else { 0 });
+        // Check that fetching the attestation did not change the revocation status.
         assert!(fetched.iter().all(|copy| copy.revocation_status == status));
     }
 
