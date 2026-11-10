@@ -40,12 +40,12 @@ describe('App', () => {
   it('renders the open tasks view without a footer', async () => {
     const wrapper = await mountAt('/tasks')
     expect(wrapper.text()).toContain('Openstaande taken')
-    expect(wrapper.get('#page-footer-target').element.childNodes.length).toBe(0)
+    expect(wrapper.get('#page-footer-target').element.childNodes).toHaveLength(0)
   })
 
   it('renders the task history view without a footer', async () => {
     const wrapper = await mountAt('/history')
     expect(wrapper.text()).toContain('Taakgeschiedenis')
-    expect(wrapper.get('#page-footer-target').element.childNodes.length).toBe(0)
+    expect(wrapper.get('#page-footer-target').element.childNodes).toHaveLength(0)
   })
 })

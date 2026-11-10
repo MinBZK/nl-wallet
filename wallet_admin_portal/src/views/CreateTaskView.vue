@@ -116,22 +116,19 @@ const pageTitle = computed(() => (action.value ? `Maak taak aan: ${action.value.
 
 /** The part of the wizard's data that depends on the task type. */
 const taskDraft = computed((): TaskDraft => {
-  switch (type.value) {
-    case TaskActionType.RevokeWallet: {
-      const walletIds = selectedWallets.value.map((wallet) => wallet.id)
-      return {
-        payload: { taskType: TaskActionType.RevokeWallet, taskParameters: { walletIds } },
-        introStepError:
-          walletIds.length === 0
-            ? 'Om verder te gaan, moet je minimaal één wallet toevoegen aan de lijst.'
-            : null,
-      }
+  if (type.value === TaskActionType.RevokeWallet) {
+    const walletIds = selectedWallets.value.map((wallet) => wallet.id)
+    return {
+      payload: { taskType: TaskActionType.RevokeWallet, taskParameters: { walletIds } },
+      introStepError:
+        walletIds.length === 0
+          ? 'Om verder te gaan, moet je minimaal één wallet toevoegen aan de lijst.'
+          : null,
     }
-    default:
-      return {
-        payload: { taskType: type.value, taskParameters: {} },
-        introStepError: null,
-      }
+  }
+  return {
+    payload: { taskType: type.value, taskParameters: {} },
+    introStepError: null,
   }
 })
 
