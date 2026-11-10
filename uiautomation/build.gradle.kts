@@ -67,6 +67,8 @@ tasks.register<Test>("testAllAndroids") {
 }
 
 tasks.withType<Test>().configureEach {
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
     jvmArgs("--add-modules=java.instrument")
     val testConfigMap = mapOf(
         "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",
