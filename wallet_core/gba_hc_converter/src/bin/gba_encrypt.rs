@@ -47,8 +47,8 @@ async fn main() -> Result<()> {
     };
 
     encrypt_bytes_to_dir(
-        preloaded_settings.encryption_key.key::<Aes256Gcm>(),
-        preloaded_settings.hmac_key.key::<HmacSha256>(),
+        preloaded_settings.encryption_key.key::<Aes256Gcm>()?,
+        preloaded_settings.hmac_key.key::<HmacSha256>()?,
         &bytes,
         base_path.as_ref(),
         &cli.basename,

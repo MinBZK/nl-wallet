@@ -43,6 +43,7 @@ const { loggedInUser } = useAuth()
 }
 
 .area-main {
+  grid-template-columns: minmax(0, 1fr);
   border-left: 1px solid var(--color-border);
 }
 

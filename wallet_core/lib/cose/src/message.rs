@@ -12,8 +12,6 @@ use derive_more::AsMut;
 use derive_more::AsRef;
 use p256::ecdsa::signature::Verifier as _;
 use ring::hmac;
-use rsa::RsaPublicKey;
-use rsa::signature::Verifier as _;
 use serde::de::DeserializeOwned;
 
 use crate::error::CoseError;
@@ -109,7 +107,7 @@ impl Cose for CoseSign1 {
     }
 }
 
-fn verify_rsa_pkcs1v15<D>(data: &[u8], signature: &[u8], public_key: RsaPublicKey) -> Result<(), CoseError>
+fn verify_rsa_pkcs1v15<D>(data: &[u8], signature: &[u8], public_key: rsa::PublicKey) -> Result<(), CoseError>
 where
     D: sha2::Digest + rsa::pkcs8::AssociatedOid,
 {
@@ -121,7 +119,7 @@ where
         .map_err(CoseError::RsaPkcs1v15SignatureVerificationFailed)
 }
 
-fn verify_rsa_pss<D>(data: &[u8], signature: &[u8], public_key: RsaPublicKey) -> Result<(), CoseError>
+fn verify_rsa_pss<D>(data: &[u8], signature: &[u8], public_key: rsa::PublicKey) -> Result<(), CoseError>
 where
     D: sha2::digest::Digest + sha2::digest::FixedOutputReset,
 {

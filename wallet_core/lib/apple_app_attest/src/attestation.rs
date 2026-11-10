@@ -269,7 +269,7 @@ pub mod mock {
     use p256::pkcs8::DecodePrivateKey;
     use passkey_types::ctap2::AttestedCredentialData;
     use passkey_types::ctap2::AuthenticatorData;
-    use rand::RngCore;
+    use rand::Rng;
     use rcgen::BasicConstraints;
     use rcgen::CertificateParams;
     use rcgen::CustomExtension;
@@ -446,7 +446,7 @@ pub mod mock {
 
             // Generate random receipt data, as this is not validated.
             let mut receipt = vec![0u8; 32];
-            rand::thread_rng().fill_bytes(&mut receipt);
+            rand::rng().fill_bytes(&mut receipt);
 
             // Combine all of the above elements into an `Attestation` struct
             // and return it together with the private key.

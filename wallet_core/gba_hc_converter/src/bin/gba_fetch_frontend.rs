@@ -234,8 +234,16 @@ async fn fetch(
         .ok_or(anyhow!("No GBA-V results found for the supplied BSN"))?;
 
     encrypt_bytes_to_dir(
-        state.preloaded_settings.encryption_key.key::<Aes256Gcm>(),
-        state.preloaded_settings.hmac_key.key::<HmacSha256>(),
+        state
+            .preloaded_settings
+            .encryption_key
+            .key::<Aes256Gcm>()
+            .map_err(|err| anyhow!(err))?,
+        state
+            .preloaded_settings
+            .hmac_key
+            .key::<HmacSha256>()
+            .map_err(|err| anyhow!(err))?,
         xml.as_bytes(),
         path,
         bsn.as_ref(),

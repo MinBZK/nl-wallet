@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use derive_more::Debug;
 use derive_more::From;
-use rand::Rng;
-use rand::distributions::Alphanumeric;
-use rand::distributions::DistString;
+use rand::RngExt;
+use rand::distr::Alphanumeric;
+use rand::distr::SampleString;
 use ring::error::Unspecified as UnspecifiedRingError;
 use ring::hkdf;
 use sha2::Digest;
@@ -13,16 +13,16 @@ use zeroize::ZeroizeOnDrop;
 
 pub fn random_bytes(len: usize) -> Vec<u8> {
     let mut output = vec![0u8; len];
-    rand::thread_rng().fill(&mut output[..]);
+    rand::rng().fill(&mut output[..]);
     output
 }
 
 pub fn random_duration(max: Duration) -> Duration {
-    Duration::from_secs_f64(rand::thread_rng().gen_range(0.0..max.as_secs_f64()))
+    Duration::from_secs_f64(rand::rng().random_range(0.0..max.as_secs_f64()))
 }
 
 pub fn random_string(len: usize) -> String {
-    Alphanumeric.sample_string(&mut rand::thread_rng(), len)
+    Alphanumeric.sample_string(&mut rand::rng(), len)
 }
 
 pub fn sha256_into_vec(bts: &[u8]) -> Vec<u8> {

@@ -203,8 +203,7 @@ mod rsa {
     use jwk_simple::Key;
     use jwk_simple::KeyParams;
     use jwk_simple::KeyUse;
-    use rsa::BigUint;
-    use rsa::RsaPrivateKey;
+    use rsa::BoxedUint;
     use rsa::pkcs1::EncodeRsaPrivateKey;
 
     use super::JweDecrypter;
@@ -215,7 +214,7 @@ mod rsa {
     #[derive(Debug, Clone, Constructor)]
     pub struct JweRsaPrivateKey {
         id: Option<String>,
-        key: RsaPrivateKey,
+        key: rsa::PrivateKey,
         algorithm: RsaAlgorithm,
     }
 
@@ -254,23 +253,23 @@ mod rsa {
                 return Err(RsaPrivateJwkError::MultiPrimeUnsupported);
             }
 
-            let modulus = BigUint::from_bytes_be(rsa_params.n.as_bytes());
-            let public_exp = BigUint::from_bytes_be(rsa_params.e.as_bytes());
-            let private_exp = BigUint::from_bytes_be(
+            let modulus = BoxedUint::from_be_slice_vartime(rsa_params.n.as_bytes());
+            let public_exp = BoxedUint::from_be_slice_vartime(rsa_params.e.as_bytes());
+            let private_exp = BoxedUint::from_be_slice_vartime(
                 rsa_params
                     .d
                     .as_ref()
                     .ok_or(RsaPrivateJwkError::MissingPrivateExponent)?
                     .as_bytes(),
             );
-            let first_prime = BigUint::from_bytes_be(
+            let first_prime = BoxedUint::from_be_slice_vartime(
                 rsa_params
                     .p
                     .as_ref()
                     .ok_or(RsaPrivateJwkError::MissingFirstPrime)?
                     .as_bytes(),
             );
-            let second_prime = BigUint::from_bytes_be(
+            let second_prime = BoxedUint::from_be_slice_vartime(
                 rsa_params
                     .q
                     .as_ref()
@@ -281,7 +280,7 @@ mod rsa {
             let id = jwk.kid().map(str::to_string);
 
             let private_key =
-                RsaPrivateKey::from_components(modulus, public_exp, private_exp, vec![first_prime, second_prime])
+                rsa::PrivateKey::from_components(modulus, public_exp, private_exp, vec![first_prime, second_prime])
                     .map_err(RsaPrivateJwkError::InvalidRsa)?;
 
             Ok(Self::new(id, private_key, jwe_algorithm))
@@ -289,7 +288,7 @@ mod rsa {
     }
 
     impl JweDecrypter {
-        fn new_rsa(id: Option<String>, private_key: &RsaPrivateKey, algorithm: RsaAlgorithm) -> Self {
+        fn new_rsa(id: Option<String>, private_key: &rsa::PrivateKey, algorithm: RsaAlgorithm) -> Self {
             let der = private_key
                 .to_pkcs1_der()
                 .expect("a RSA private key should always encode to DER");

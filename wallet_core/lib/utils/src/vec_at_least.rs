@@ -11,7 +11,7 @@ use nonempty_collections::FromNonEmptyIterator;
 pub use nonempty_collections::IntoNonEmptyIterator;
 use nonempty_collections::Singleton;
 pub use nonempty_collections::iter::NonEmptyIterator;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -147,7 +147,7 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
     /// random number generator. A return value is guaranteed.
     pub fn choose(&self) -> &T {
         self.0
-            .choose(&mut rand::thread_rng())
+            .choose(&mut rand::rng())
             .expect("inner Vec should never be empty")
     }
 

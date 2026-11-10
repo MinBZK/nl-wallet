@@ -1384,11 +1384,7 @@ mod tests {
 
             let attribute = &presentation.attributes[0];
 
-            let expected_key: Vec<&str> = match requested_format {
-                Format::MsoMdoc => vec![PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
-                Format::SdJwt => vec![PID_GIVEN_NAME],
-            };
-            assert!(attribute.key.iter().eq(expected_key));
+            assert!(attribute.key.iter().eq(given_name_path.iter().copied()));
             assert_matches!(
                 &attribute.value, AttributeValue::Text(given_name) if given_name == expected_name
             );

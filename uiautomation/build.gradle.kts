@@ -7,7 +7,7 @@ group = "nl.ictu.edi.wallet.uiautomation"
 version = "1.0-SNAPSHOT"
 
 repositories {
-    if (System.getenv("CI") == "true") {
+    if (System.getenv("CI") == "true" && System.getenv("CI_JOB_TAGS") == "[]") {
         maven {
             url = uri("${System.getenv("NEXUS_URL")}/repository/maven-central/")
         }

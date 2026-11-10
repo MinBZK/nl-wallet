@@ -12,7 +12,7 @@ pub use jsonwebtoken::jwk::AlgorithmParameters;
 use jsonwebtoken::jwk::EllipticCurve;
 pub use jsonwebtoken::jwk::Jwk;
 pub use jsonwebtoken::jwk::JwkSet;
-use rsa::BigUint;
+use rsa::BoxedUint;
 use rsa::traits::PublicKeyParts;
 
 use crate::error::JwkConversionError;
@@ -67,11 +67,11 @@ where
     ))
 }
 
-fn jwk_alg_from_rsa(value: &rsa::RsaPublicKey) -> jwk::AlgorithmParameters {
+fn jwk_alg_from_rsa(value: &rsa::PublicKey) -> jwk::AlgorithmParameters {
     jwk::AlgorithmParameters::RSA(jwk::RSAKeyParameters {
         key_type: jwk::RSAKeyType::RSA,
-        n: BASE64_URL_SAFE_NO_PAD.encode(value.n().to_bytes_be()),
-        e: BASE64_URL_SAFE_NO_PAD.encode(value.e().to_bytes_be()),
+        n: BASE64_URL_SAFE_NO_PAD.encode(value.n().to_be_bytes()),
+        e: BASE64_URL_SAFE_NO_PAD.encode(value.e().to_be_bytes()),
     })
 }
 
@@ -113,10 +113,13 @@ fn rsa_jwk_to_public_key(params: &jwk::RSAKeyParameters) -> Result<PublicKey, Jw
     let n = base64url_decode(&params.n)?;
     let e = base64url_decode(&params.e)?;
 
-    rsa::RsaPublicKey::new(BigUint::from_bytes_be(&n), BigUint::from_bytes_be(&e))
-        .map_err(JwkConversionError::InvalidRsaKey)?
-        .try_into()
-        .map_err(JwkConversionError::UnsupportedJwkRsaKeySize)
+    rsa::PublicKey::new(
+        BoxedUint::from_be_slice_vartime(&n),
+        BoxedUint::from_be_slice_vartime(&e),
+    )
+    .map_err(JwkConversionError::InvalidRsaKey)?
+    .try_into()
+    .map_err(JwkConversionError::UnsupportedJwkRsaKeySize)
 }
 
 fn base64url_decode(s: &str) -> Result<Vec<u8>, JwkConversionError> {
