@@ -1,6 +1,6 @@
 ARG HARBOR_REGISTRY
 
-FROM ${HARBOR_REGISTRY}/docker-hub-proxy/nginxinc/nginx-unprivileged:alpine
+FROM ${HARBOR_REGISTRY}/docker-hub-proxy/nginx/nginx-unprivileged:1.31.8-alpine3.24@sha256:26277f4923331a5ecda9096c0e378de65a30a5037129a8036c3ef5d9feee833d
 
 USER root
 # The [10-listen-on-ipv6-by-default.sh]
