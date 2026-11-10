@@ -32,6 +32,7 @@ use futures::future::try_join_all;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::AllowedDecompression;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
@@ -935,10 +936,12 @@ impl VpAuthorizationResponse {
     fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<VpAuthorizationResponse, JweJsonDecryptionError> {
         let decrypter = JweDecrypter::from_ecdh_secret_key(secret_key);
 
-        // Accept only the encryption algorithms anounced in the client metadata.
+        // Accept only the encryption algorithms announced in the client metadata.
         decrypter.decrypt_json(
             jwe,
             ExpectedEncryptionAlgorithm::Algorithms(RESPONSE_ENCRYPTION_ALGORITHMS),
+            // Disallow Deflate compression in order to prevent zip bombs in the received payload.
+            AllowedDecompression::None,
         )
     }
 
