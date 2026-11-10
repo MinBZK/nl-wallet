@@ -331,7 +331,7 @@ mod tests {
     use std::marker::PhantomData;
 
     use crypto::examples::Examples;
-    use crypto::x509::CertificateUsage;
+    use crypto::x509::CertificateExtendedKeyUsage;
     use p256::ecdsa::VerifyingKey;
     use rstest::rstest;
 
@@ -348,7 +348,7 @@ mod tests {
             .verify_against_trust_anchors(
                 &Examples::iaca_trust_anchors(),
                 &IsoCertTimeGenerator,
-                Some(CertificateUsage::Mdl),
+                Some(CertificateExtendedKeyUsage::Mdl),
             )
             .unwrap()
             .0

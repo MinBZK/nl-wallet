@@ -3,6 +3,7 @@ use derive_more::Constructor;
 use derive_more::Into;
 use jwe::algorithm::CompressionAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::AllowedDecompression;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
@@ -22,8 +23,8 @@ impl WalletDatabasePayload {
     pub fn encrypt(&self, public_key: JwePublicKey) -> Result<String, JweJsonEncryptionError> {
         let Self(export) = self;
 
-        let encryper = JweEncrypter::from(public_key);
-        let jwe = encryper.encrypt_json(
+        let encrypter = JweEncrypter::from(public_key);
+        let jwe = encrypter.encrypt_json(
             export,
             ENCRYPTION_ALGORITHM,
             None,
@@ -37,7 +38,14 @@ impl WalletDatabasePayload {
     pub fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<Self, JweJsonDecryptionError> {
         let decrypter = JweDecrypter::from_ecdh_secret_key(secret_key);
 
-        let export = decrypter.decrypt_json(jwe, ExpectedEncryptionAlgorithm::Algorithms(&[ENCRYPTION_ALGORITHM]))?;
+        let export = decrypter.decrypt_json(
+            jwe,
+            ExpectedEncryptionAlgorithm::Algorithms(&[ENCRYPTION_ALGORITHM]),
+            // Explicitly allow Deflate compression in the JWE payload of a transferred Wallet database. We can trust
+            // that the Wallet that sends this payload is not a malicious actor sending a zip bomb, as at this point we
+            // know that they hold a PID with the same Recovery Code as us.
+            AllowedDecompression::Deflate,
+        )?;
 
         Ok(Self(export))
     }

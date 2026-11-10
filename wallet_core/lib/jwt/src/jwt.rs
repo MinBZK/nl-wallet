@@ -20,7 +20,7 @@ use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -296,7 +296,7 @@ where
         &self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
         let certificates = self.extract_x5c_certificates()?;
@@ -320,7 +320,7 @@ where
         trust_anchors: &TrustAnchors,
         crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
         validation: JwtValidation,
     ) -> Result<(HeaderWithX5c<H>, T), JwtX5cVerifyError> {
         let certificates = self.extract_x5c_certificates()?;
@@ -342,7 +342,7 @@ where
         self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
         validation: JwtValidation,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) =
@@ -360,7 +360,7 @@ where
         trust_anchors: &TrustAnchors,
         crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
         validation: JwtValidation,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cVerifyError> {
         let (header, payload) = self

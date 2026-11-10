@@ -16,8 +16,8 @@ use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateExtendedKeyUsage;
 use crypto::x509::CertificateParseError;
-use crypto::x509::CertificateUsage;
 use crypto::x509::CertificateVerifyError;
 use crypto::x509::DistinguishedNameError;
 use dcql::Query;
@@ -231,7 +231,7 @@ pub trait ServerSettings: Sized {
 pub fn verify_key_pairs(
     key_pairs: &[(&str, &KeyPair)],
     trust_anchors: &TrustAnchors,
-    usage: Option<CertificateUsage>,
+    usage: Option<CertificateExtendedKeyUsage>,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), CertificateVerificationError> {
     if trust_anchors.is_empty() {

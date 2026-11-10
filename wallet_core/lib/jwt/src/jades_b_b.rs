@@ -3,7 +3,7 @@ use chrono::Utc;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use jsonwebtoken::Header;
 use serde::Deserialize;
 use serde::Serialize;
@@ -117,7 +117,7 @@ impl<T: DeserializeOwned + JwtTyp> UnverifiedJwt<T, JadesbbHeader> {
         &self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
     ) -> Result<(JadesbbHeader, T), JwtX5cVerifyError> {
         self.parse_and_verify_against_trust_anchors(
             trust_anchors,

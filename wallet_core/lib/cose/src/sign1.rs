@@ -16,7 +16,7 @@ use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use crypto::x509::crl::CertificateCrlVerificationError;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -173,7 +173,7 @@ impl<T> TypedCose<CoseSign1, T> {
         &self,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
     ) -> Result<T, CoseError>
     where
         T: DeserializeOwned,
@@ -193,7 +193,7 @@ impl<T> TypedCose<CoseSign1, T> {
         trust_anchors: &TrustAnchors,
         crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
     ) -> Result<T, CoseError>
     where
         T: DeserializeOwned,
@@ -219,7 +219,7 @@ impl<T> TypedCose<CoseSign1, T> {
         x5chain: &VecNonEmpty<BorrowingCertificate>,
         trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
     ) -> Result<T, CoseError>
     where
         T: DeserializeOwned,
@@ -237,7 +237,7 @@ impl<T> TypedCose<CoseSign1, T> {
         trust_anchors: &TrustAnchors,
         crl_verifier: &CertificateCrlVerifier<impl CrlFetcher>,
         time: &impl Generator<DateTime<Utc>>,
-        certificate_usage: Option<CertificateUsage>,
+        certificate_usage: Option<CertificateExtendedKeyUsage>,
     ) -> Result<T, CoseError>
     where
         T: DeserializeOwned,

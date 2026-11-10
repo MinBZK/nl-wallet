@@ -16,7 +16,7 @@ use crypto::keys::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use derive_more::AsRef;
 use derive_more::Display;
 use indexmap::IndexMap;
@@ -176,7 +176,7 @@ impl UnverifiedSdJwt {
         let issuer_signed = self.issuer_signed.into_verified_against_trust_anchors(
             trust_anchors,
             time,
-            Some(CertificateUsage::Mdl),
+            Some(CertificateExtendedKeyUsage::Mdl),
             SD_JWT_VALIDATION.to_owned().into(),
         )?;
 
@@ -571,7 +571,7 @@ impl UnverifiedSdJwtPresentation {
         let issuer_signed = self.sd_jwt.issuer_signed.into_verified_against_trust_anchors(
             trust_anchors,
             time,
-            Some(CertificateUsage::Mdl),
+            Some(CertificateExtendedKeyUsage::Mdl),
             SD_JWT_VALIDATION.to_owned().into(),
         )?;
 

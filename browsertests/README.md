@@ -74,19 +74,19 @@ REVOCATION_PORTAL_URL="" pnpm run test:local
 Needs the base URL plus a password per test user, because every test signs in
 through KeyCloak:
 
-| Env var                 | Value                                            |
-| ----------------------- | ------------------------------------------------ |
-| `ADMIN_PORTAL_URL`      | Base URL of the portal                           |
-| `AP_OPERATOR_PASSWORD`  | Password of the `administrator` user (Beheerder) |
-| `AP_TEAMLEAD_PASSWORD`  | Password of the `manager` user (Teamleider)      |
-| `AP_SUPERUSER_PASSWORD` | Password of the `destroyer` user (Superuser)     |
+| Env var                  | Value                                         |
+| ------------------------ | --------------------------------------------- |
+| `ADMIN_PORTAL_URL`       | Base URL of the portal                        |
+| `AP_OPERATOR1_PASSWORD`  | Password of the `operator1` user (Beheerder)  |
+| `AP_TEAMLEAD1_PASSWORD`  | Password of the `teamlead1` user (Teamleider) |
+| `AP_SUPERUSER1_PASSWORD` | Password of the `superuser1` user (Superuser) |
 
 ```bash
 cd packages/admin-portal
 ADMIN_PORTAL_URL="http://localhost:5173" \
-  AP_OPERATOR_PASSWORD="administrator" \
-  AP_TEAMLEAD_PASSWORD="manager" \
-  AP_SUPERUSER_PASSWORD="destroyer" \
+  AP_OPERATOR1_PASSWORD="operator1" \
+  AP_TEAMLEAD1_PASSWORD="teamlead1" \
+  AP_SUPERUSER1_PASSWORD="superuser1" \
   pnpm run test:local
 ```
 

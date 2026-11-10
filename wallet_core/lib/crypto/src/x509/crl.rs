@@ -25,7 +25,7 @@ use x509_parser::revocation_list::CertificateRevocationList;
 
 use crate::trust_anchor::TrustAnchors;
 use crate::x509::BorrowingCertificate;
-use crate::x509::CertificateUsage;
+use crate::x509::CertificateExtendedKeyUsage;
 use crate::x509::CertificateVerifyError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -322,7 +322,7 @@ where
         &self,
         chain: &[BorrowingCertificate],
         trust_anchors: &TrustAnchors,
-        usage: Option<CertificateUsage>,
+        usage: Option<CertificateExtendedKeyUsage>,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<(), CertificateCrlVerificationError> {
         let (leaf, intermediate_certs) = chain.split_first().ok_or(CertificateCrlVerificationError::EmptyChain)?;

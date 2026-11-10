@@ -93,11 +93,14 @@ Privileges are plain realm roles and appear in the access token as `realm_access
 
 A couple of test users, password equals username.
 
-| User           | Password        | Privileges                                                                   |
-| --------------- | --------------- | --------------------------------------------------------------------------- |
-| `administrator` | `administrator` | `privilege_revoke_wallet`, `privilege_block_user`, `privilege_unblock_user` |
-| `manager`       | `manager`       | `privilege_show_all_tasks`                                                  |
-| `destroyer`     | `destroyer`     | `privilege_revoke_solution`                                                 |
+| User         | Password     | Privileges                                                                  |
+| -------------| -------------| --------------------------------------------------------------------------- |
+| `operator1`  | `operator1`  | `privilege_revoke_wallet`, `privilege_block_user`, `privilege_unblock_user` |
+| `operator2`  | `operator2`  | `privilege_revoke_wallet`, `privilege_block_user`, `privilege_unblock_user` |
+| `teamlead1`  | `teamlead1`  | `privilege_show_all_tasks`                                                  |
+| `teamlead2`  | `teamlead2`  | `privilege_show_all_tasks`                                                  |
+| `superuser1` | `superuser1` | `privilege_revoke_solution`                                                 |
+| `superuser2` | `superuser2` | `privilege_revoke_solution`                                                 |
 
 ### Client
 

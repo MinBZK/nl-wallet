@@ -9,7 +9,7 @@ use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use chrono::Days;
 use crypto::p256_der::DerSecretKey;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
@@ -596,7 +596,7 @@ impl IssuerSettings {
             .map(|(typ, attestation)| (typ.as_ref(), &attestation.signing.keypair))
             .collect();
 
-        verify_key_pairs(&key_pairs, trust_anchors, Some(CertificateUsage::Mdl), &time)?;
+        verify_key_pairs(&key_pairs, trust_anchors, Some(CertificateExtendedKeyUsage::Mdl), &time)?;
 
         let key_pairs: Vec<(&str, &KeyPair)> = self
             .credential_configurations
@@ -608,7 +608,7 @@ impl IssuerSettings {
         verify_key_pairs(
             &key_pairs,
             trust_anchors,
-            Some(CertificateUsage::StatusListSigning),
+            Some(CertificateExtendedKeyUsage::StatusListSigning),
             &time,
         )?;
 

@@ -1,9 +1,12 @@
+use std::sync::LazyLock;
+
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::FromStr;
 use itertools::Itertools;
+use josekit::jwe::JweContext;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use p256::SecretKey;
 use p256::elliptic_curve::Generate;
@@ -16,12 +19,20 @@ use serde::de::DeserializeOwned;
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 
+use crate::algorithm::CompressionAlgorithm;
 use crate::algorithm::EcdhAlgorithm;
 use crate::algorithm::EncryptionAlgorithm;
 use crate::encryption::JwePublicKey;
 use crate::error::JweDecryptionError;
 use crate::error::JweJsonDecryptionError;
 use crate::error::JweStringDecryptionError;
+
+static NO_DEFLATE_JWE_CONTEXT: LazyLock<JweContext> = LazyLock::new(|| {
+    let mut context = JweContext::new();
+    context.remove_compression(&CompressionAlgorithm::Deflate.to_string());
+
+    context
+});
 
 #[derive(Debug, Clone, From, AsRef, Display, FromStr)]
 #[display(
@@ -93,6 +104,12 @@ pub enum ExpectedEncryptionAlgorithm<'a> {
     Algorithms(&'a [EncryptionAlgorithm]),
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum AllowedDecompression {
+    None,
+    Deflate,
+}
+
 impl JweDecrypter {
     fn new_ecdh(id: Option<String>, secret_key: &SecretKey, algorithm: EcdhAlgorithm) -> Self {
         let der = secret_key
@@ -125,9 +142,13 @@ impl JweDecrypter {
         &self,
         jwe: &str,
         expected_algorithm: ExpectedEncryptionAlgorithm,
+        allowed_decompression: AllowedDecompression,
     ) -> Result<Vec<u8>, JweDecryptionError> {
-        let (payload, header) =
-            josekit::jwe::deserialize_compact(jwe, self.decrypter.as_ref()).map_err(JweDecryptionError::Decryption)?;
+        let (payload, header) = match allowed_decompression {
+            AllowedDecompression::Deflate => josekit::jwe::deserialize_compact(jwe, self.decrypter.as_ref()),
+            AllowedDecompression::None => NO_DEFLATE_JWE_CONTEXT.deserialize_compact(jwe, self.decrypter.as_ref()),
+        }
+        .map_err(JweDecryptionError::Decryption)?;
 
         if let ExpectedEncryptionAlgorithm::Algorithms(algorithms) = expected_algorithm {
             let enc = header
@@ -149,11 +170,12 @@ impl JweDecrypter {
         &self,
         jwe: &str,
         expected_algorithm: ExpectedEncryptionAlgorithm,
+        allowed_decompression: AllowedDecompression,
     ) -> Result<T, JweJsonDecryptionError>
     where
         T: DeserializeOwned,
     {
-        let payload = self.decrypt(jwe, expected_algorithm)?;
+        let payload = self.decrypt(jwe, expected_algorithm, allowed_decompression)?;
 
         let data = serde_json::from_slice(&payload).map_err(JweJsonDecryptionError::Deserialization)?;
 
@@ -164,8 +186,9 @@ impl JweDecrypter {
         &self,
         jwe: &str,
         expected_algorithm: ExpectedEncryptionAlgorithm,
+        allowed_decompression: AllowedDecompression,
     ) -> Result<String, JweStringDecryptionError> {
-        let payload = self.decrypt(jwe, expected_algorithm)?;
+        let payload = self.decrypt(jwe, expected_algorithm, allowed_decompression)?;
 
         let data = String::from_utf8(payload).map_err(JweStringDecryptionError::InvalidUtf8)?;
 
@@ -343,8 +366,10 @@ mod tests {
     use jwk_simple::KeyParams;
     use jwk_simple::jwk::Key;
     use p256::SecretKey;
+    use rstest::rstest;
     use serde_json::json;
 
+    use super::AllowedDecompression;
     use super::ExpectedEncryptionAlgorithm;
     use super::JweDecrypter;
     use super::JweEcdhSecretKey;
@@ -390,8 +415,11 @@ mod tests {
         SecretKey::from_slice(params.d.as_ref().unwrap().as_bytes()).unwrap()
     }
 
-    #[test]
-    fn test_jwe_decrypter() {
+    #[rstest]
+    fn test_jwe_decrypter(
+        #[values(AllowedDecompression::None, AllowedDecompression::Deflate)]
+        allowed_decompression: AllowedDecompression,
+    ) {
         let jwk = serde_json::from_value::<Key>(example_jwk()).unwrap();
 
         let id = jwk.kid().map(str::to_string);
@@ -402,13 +430,13 @@ mod tests {
         let decrypter = JweDecrypter::from_ecdh_secret_key(&key);
 
         let data = decrypter
-            .decrypt_json::<serde_json::Value>(EXAMPLE_JWE, ExpectedEncryptionAlgorithm::Any)
+            .decrypt_json::<serde_json::Value>(EXAMPLE_JWE, ExpectedEncryptionAlgorithm::Any, allowed_decompression)
             .expect("decrypting example JWE as JSON should succeed");
 
         assert_eq!(data, example_jwe_contents());
 
         let _ = decrypter
-            .decrypt_string(EXAMPLE_JWE, ExpectedEncryptionAlgorithm::Any)
+            .decrypt_string(EXAMPLE_JWE, ExpectedEncryptionAlgorithm::Any, allowed_decompression)
             .expect("decrypting example JWE as string should succeed");
     }
 }

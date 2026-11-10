@@ -5,7 +5,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::keys::AsPublicKeyRef;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use derive_more::Constructor;
 use jwt::DEFAULT_VALIDATION;
 use jwt::JwtDecodingKey;
@@ -174,7 +174,7 @@ impl WiaDisclosure {
             .parse_and_verify_against_trust_anchors(
                 trust_anchors,
                 &TimeGenerator,
-                Some(CertificateUsage::Wia),
+                Some(CertificateExtendedKeyUsage::Wia),
                 WIA_JWT_VALIDATION.to_owned(),
             )
             .map_err(|error| match error {

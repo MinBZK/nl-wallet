@@ -6,7 +6,7 @@ use chrono::Utc;
 use coset::iana;
 use crypto::keys::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use crypto::x509::KeyIdentifier;
 use error_category::ErrorCategory;
 use futures::future::try_join_all;
@@ -260,9 +260,11 @@ impl IssuerSigned {
         if !algorithms.contains(&algorithm) {
             Err(VerificationError::UnsupportedIssuerAlgorithm(algorithm))?;
         }
-        let TaggedBytes(mso) =
-            self.issuer_auth
-                .verify_against_trust_anchors(trust_anchors, time, Some(CertificateUsage::Mdl))?;
+        let TaggedBytes(mso) = self.issuer_auth.verify_against_trust_anchors(
+            trust_anchors,
+            time,
+            Some(CertificateExtendedKeyUsage::Mdl),
+        )?;
 
         mso.validity_info
             .verify_is_valid_at(time.generate(), validity)
