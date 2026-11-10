@@ -206,12 +206,12 @@ function retryTaskCreation() {
 <style scoped>
 .wizard-content {
   display: flex;
-  flex: 1;
   flex-direction: column;
   align-items: safe center;
   gap: 1.5rem;
-  min-height: 0;
-  padding: 1.5rem 1.5rem 0;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 1.5rem;
   overflow: auto;
 }
 
