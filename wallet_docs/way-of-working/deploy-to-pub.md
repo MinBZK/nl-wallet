@@ -14,8 +14,9 @@ depend on them.
    [nl-wallet-secrets steps](#deploy-secrets-and-block-old-apps).
 3. **Deploy static files and wallet configuration.** Complete the
    [nl-wallet-static steps](#deploy-static-files-and-wallet-configuration).
-4. **Deploy the backend.** Run [**`deploy-apps-pub`**][backend]. Wait for its
-   child deployments and migrations to succeed.
+4. **Deploy the backend.** Check whether the database changes require a
+   [database reset](#database-resets), then run [**`deploy-apps-pub`**][backend].
+   Wait for its child deployments and migrations to succeed.
 5. **Build and upload the apps.** Run [**`build-pub-trigger`**][mobile]. Wait for
    `deploy-android-app-pub` and `deploy-ios-app-pub` in its child pipeline.
    CI uploads to Google Play **internal testing** and **TestFlight**;
@@ -124,10 +125,28 @@ Existing apps also fetch the published wallet configuration. The scheduled
 `republish-config-pub` job only renews the configuration already live on PUB;
 it does not publish changes from the repository.
 
+## Database resets
+
+Normal schema migrations run automatically during backend deployment. If
+this rollout requires a fresh database, reset only the affected databases
+after old apps have been blocked. Use the matching manual
+[`run-<service>-reset-pub` job][database-reset-jobs] in the `deploy-apps-pub`
+child pipeline, for example `run-wallet-provider-reset-pub`. A reset deletes
+the database's data and reapplies migrations.
+
+The reset uses the currently deployed CronJob. Check that its migration
+image matches the intended schema. Wait for the Kubernetes Job to complete
+and check service health before continuing: a successful CI job only
+confirms that the reset was started.
+
+The separate `reset-pub` job wipes the broader environment and requires
+redeployment.
+
 Implementation checked 6 November 2026.
 
 [version-helper]: SSSS/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/scripts/version.sh
 [backend]: SSSS/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/deploy/gitlab/deploy-services.yml
+[database-reset-jobs]: SSSS/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/deploy/gitlab-templates/deploy-template.yml
 [mobile]: SSSS/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/deploy/gitlab/build-app-triggers.yml
 [policy-config]: SSSS/wallet/nl-wallet-secrets/-/blob/a4ea0d675c538f8c06f5a7b916b8cba39c80b151/configmaps/pub/nl-wallet-update-policy-server.yaml
 [policy-server]: SSSS/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/wallet_core/update_policy/server/README.md
