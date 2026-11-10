@@ -140,6 +140,7 @@ pub mod verification {
             url: &Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<StatusListTokenClaims, StatusListCwtVerificationError> {
+            // TODO Add a generic CWT `exp` check at the cose level, as required by the spec. (PVW-6512)
             let claims = self
                 .0
                 .0
