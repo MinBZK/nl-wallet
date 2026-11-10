@@ -203,8 +203,6 @@ fn u256_to_u384(x: U256) -> U384 {
 #[cfg(test)]
 mod tests {
     use futures::FutureExt;
-    use getrandom::SysRng;
-    use getrandom::rand_core::UnwrapErr;
     use p256::ecdsa::signature::Verifier;
     use p256::elliptic_curve::bigint::ArrayEncoding;
     use p256::elliptic_curve::bigint::RandomMod;
@@ -217,7 +215,7 @@ mod tests {
         // If x < NistP256::ORDER - 1, then bytes_to_ecdsa_privkey_bytes() applied to the bytes of x
         // should return x + 1.
         let x: U256 = U256::random_mod_vartime(
-            &mut UnwrapErr(SysRng),
+            &mut rand::rng(),
             &NonZero::new((Wrapping(NistP256::ORDER.get()) - Wrapping(U256::from(2u8))).0).unwrap(),
         );
         let scalar_bytes = bytes_to_ecdsa_privkey_bytes(u256_to_u384(x).to_be_byte_array().to_vec().into());

@@ -6,7 +6,7 @@ reason = "False positive due to our own crate named `jwt`"
 [[IgnoredVulns]]
 id = "RUSTSEC-2023-0071"
 ignoreUntil = 2027-01-01
-reason = "The vulnerability pertains to the use of RSA _private_ keys in the `rsa` crate. We only use this crate to evaluate RSA _public_ keys as found in certificates."
+reason = "`rsa` version 0.9 is a transitive dependency of `jsonwebtoken`. Waiting for `jsonwebtoken` to upgrade."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2025-0141"
@@ -26,4 +26,19 @@ reason = "The unmaintained `paste` crate is only used by two transitive dependen
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0374"
 ignoreUntil = 2026-12-01
-reason = "`basic-toml` is only used by `askama`, which has removed this dependency upstream. However, a new version has not yet been released."
+reason = "`basic-toml` is only used by `askama`'s `config` feature, which we disable. `uniffi_bindgen` still enables it, and `askama` has not yet released a version without this dependency."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0387"
+ignoreUntil = 2027-01-01
+reason = "`crypto-bigint` version 0.5.5 and `p256` and `p384` version 0.13 are transitive dependencies of `jsonwebtoken`. Waiting for `jsonwebtoken` to upgrade."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0440"
+ignoreUntil = 2027-01-01
+reason = "`astral-tokio-tar` is an unmaintained transitive dependency of `testcontainers`, which is only used in tests. Waiting for `testcontainers` to upgrade."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0459"
+ignoreUntil = 2027-01-01
+reason = "The fixed `libsqlite3-sys` version 0.39 conflicts with dependencies of `sqlx`, which is already fix upstream. However, a new version has not yet been released."

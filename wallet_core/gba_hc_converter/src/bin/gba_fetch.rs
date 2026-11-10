@@ -44,8 +44,8 @@ async fn main() -> Result<()> {
         .ok_or(anyhow!("No GBA-V results found for the supplied BSN"))?;
 
     encrypt_bytes_to_dir(
-        preloaded_settings.encryption_key.key::<Aes256Gcm>(),
-        preloaded_settings.hmac_key.key::<HmacSha256>(),
+        preloaded_settings.encryption_key.key::<Aes256Gcm>()?,
+        preloaded_settings.hmac_key.key::<HmacSha256>()?,
         xml.as_bytes(),
         base_path.as_ref(),
         bsn.as_ref(),

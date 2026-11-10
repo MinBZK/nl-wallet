@@ -32,7 +32,6 @@ use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use futures::future::FutureExt;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
-use rsa::RsaPrivateKey;
 use rsa::pkcs8::DecodePrivateKey;
 use rsa::signature::RandomizedSigner as _;
 use rsa::signature::SignatureEncoding as _;
@@ -552,11 +551,11 @@ fn typed_cose_verifies_all_es384(#[case] algorithm: iana::Algorithm) {
 }
 
 #[rstest]
-#[case::rsa2048(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap(), PhantomData::<sha2::Sha256>, iana::Algorithm::RS256)]
-#[case::rsa3072(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap(), PhantomData::<sha2::Sha384>, iana::Algorithm::RS384)]
-#[case::rsa4096(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap(), PhantomData::<sha2::Sha512>, iana::Algorithm::RS512)]
+#[case::rsa2048(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap(), PhantomData::<sha2::Sha256>, iana::Algorithm::RS256)]
+#[case::rsa3072(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap(), PhantomData::<sha2::Sha384>, iana::Algorithm::RS384)]
+#[case::rsa4096(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap(), PhantomData::<sha2::Sha512>, iana::Algorithm::RS512)]
 fn typed_cose_verifies_all_rsa_pkcs1v15<D: sha2::Digest + rsa::pkcs8::AssociatedOid>(
-    #[case] private_key: RsaPrivateKey,
+    #[case] private_key: rsa::PrivateKey,
     #[case] _digest: PhantomData<D>,
     #[case] algorithm: iana::Algorithm,
 ) {
@@ -570,19 +569,19 @@ fn typed_cose_verifies_all_rsa_pkcs1v15<D: sha2::Digest + rsa::pkcs8::Associated
 }
 
 #[rstest]
-#[case::rsa2048(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap(), PhantomData::<sha2::Sha256>, iana::Algorithm::PS256)]
-#[case::rsa3072(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap(), PhantomData::<sha2::Sha384>, iana::Algorithm::PS384)]
-#[case::rsa4096(RsaPrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap(), PhantomData::<sha2::Sha512>, iana::Algorithm::PS512)]
+#[case::rsa2048(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa2048.pem")).unwrap(), PhantomData::<sha2::Sha256>, iana::Algorithm::PS256)]
+#[case::rsa3072(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa3072.pem")).unwrap(), PhantomData::<sha2::Sha384>, iana::Algorithm::PS384)]
+#[case::rsa4096(rsa::PrivateKey::from_pkcs8_pem(include_str!("../test/rsa4096.pem")).unwrap(), PhantomData::<sha2::Sha512>, iana::Algorithm::PS512)]
 fn typed_cose_verifies_all_rsa_pss<D: sha2::digest::Digest + sha2::digest::FixedOutputReset>(
-    #[case] private_key: RsaPrivateKey,
+    #[case] private_key: rsa::PrivateKey,
     #[case] _digest: PhantomData<D>,
     #[case] algorithm: iana::Algorithm,
 ) {
     let public_key = private_key.to_public_key();
-    let signing_key = rsa::pss::BlindedSigningKey::<D>::new(private_key);
+    let signing_key = rsa::pss::SigningKey::<D>::new(private_key);
     let message = ToyMessage::default();
     let cose = sign_cose(&message, algorithm, |data| {
-        signing_key.sign_with_rng(&mut rand::thread_rng(), &data).to_vec()
+        signing_key.sign_with_rng(&mut rand::rng(), &data).to_vec()
     });
 
     let public_key = PublicKey::RSA(public_key.try_into().unwrap());

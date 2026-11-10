@@ -15,7 +15,7 @@ use async_trait::async_trait;
 use bollard::Docker;
 use bollard::errors::Error as BollardError;
 use bollard::query_parameters::RemoveContainerOptionsBuilder;
-use rand::Rng;
+use rand::RngExt;
 use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::sqlx::ConnectOptions;
@@ -407,7 +407,7 @@ async fn find_free_set_of_databases(connection: &mut AsyncDropPgConnection) -> u
     };
 
     tokio::time::timeout(Duration::from_secs(3), async {
-        let mut n = rand::thread_rng().gen_range(1..=max_parallel);
+        let mut n = rand::rng().random_range(1..=max_parallel);
         let mut interval = tokio::time::interval(Duration::from_millis(100));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {

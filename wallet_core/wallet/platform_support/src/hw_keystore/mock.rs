@@ -4,8 +4,8 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use aes_gcm::Aes256Gcm;
+use aes_gcm::Key;
 use aes_gcm::aead::KeyInit;
-use aes_gcm::aead::OsRng;
 use crypto::keys::EcdsaKey;
 use crypto::keys::EncryptionKey;
 use crypto::keys::SecureEcdsaKey;
@@ -117,7 +117,7 @@ impl MockHardwareEncryptionKey {
     pub fn new_random(identifier: String) -> Self {
         Self {
             identifier,
-            cipher: Arc::new(Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng))),
+            cipher: Arc::new(Aes256Gcm::new(&Key::<Aes256Gcm>::generate())),
         }
     }
 
@@ -161,7 +161,7 @@ impl StoredByIdentifier for MockHardwareEncryptionKey {
         // Otherwise, increment the reference count or create a new random cipher
         // and insert it into the static hashmap.
         let cipher = maybe_cipher.map(Arc::clone).unwrap_or_else(|| {
-            let encryption_cipher = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)).into();
+            let encryption_cipher = Aes256Gcm::new(&Key::<Aes256Gcm>::generate()).into();
 
             encryption_ciphers.insert(identifier.to_string(), Arc::clone(&encryption_cipher));
 

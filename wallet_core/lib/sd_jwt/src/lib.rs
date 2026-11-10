@@ -75,7 +75,6 @@
 //! # use p256::ecdsa::SigningKey;
 //! # use p256::ecdsa::VerifyingKey;
 //! # use p256::elliptic_curve::Generate;
-//! # use rand::rngs::OsRng;
 //! # use crypto::trust_anchor::BorrowingTrustAnchor;
 //! # use sd_jwt::builder::SdJwtBuilder;
 //! # use sd_jwt::claims::ClaimName;

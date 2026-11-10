@@ -41,8 +41,7 @@ use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
 use pacf_issuance_server::offer::OfferRequest;
 use pacf_issuance_server::offer::OfferResponse;
-use rand::RngCore;
-use rand::rngs::OsRng;
+use rand::Rng;
 use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
@@ -349,7 +348,7 @@ async fn pre_authorized_usecase(
         .map(|doc| {
             let (credential_kind, attributes) = doc.clone().into();
 
-            let attributes = substitute_placeholders(attributes, &mut OsRng);
+            let attributes = substitute_placeholders(attributes, &mut rand::rng());
 
             IssuableDocument::try_new_with_random_id(credential_kind, attributes)
                 .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
@@ -441,7 +440,7 @@ async fn attestation(
 /// [`Attribute::Object`]) and replaces template placeholders in text values:
 /// - `{{INSERT_RANDOM_VALUE}}` with a random string of 10 digits;
 /// - `{{INSERT_CURRENT_YEAR}}` with the current calendar year.
-fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> Attributes {
+fn substitute_placeholders(attributes: Attributes, rng: &mut impl Rng) -> Attributes {
     attributes
         .into_inner()
         .into_iter()
@@ -453,7 +452,7 @@ fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> At
         .into()
 }
 
-fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut impl RngCore) {
+fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut impl Rng) {
     match attribute {
         Attribute::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
             let n: u64 = rng.next_u64() % 10_000_000_000;

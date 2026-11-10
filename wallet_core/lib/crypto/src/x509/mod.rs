@@ -11,8 +11,7 @@ use derive_more::Debug;
 use error_category::ErrorCategory;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use rsa::BigUint;
-use rsa::RsaPublicKey;
+use rsa::BoxedUint;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use rustls_pki_types::pem::PemObject;
@@ -423,9 +422,9 @@ fn public_key_from_certificate(x509_cert: &X509Certificate<'_>) -> Result<Public
         .map_err(CertificateParseError::X509Error)?
     {
         x509_parser::public_key::PublicKey::RSA(public_key) => {
-            let modulus = BigUint::from_bytes_be(public_key.modulus);
-            let exponent = BigUint::from_bytes_be(public_key.exponent);
-            let public_key = RsaPublicKey::new(modulus, exponent).map_err(CertificateParseError::RsaError)?;
+            let modulus = BoxedUint::from_be_slice_vartime(public_key.modulus);
+            let exponent = BoxedUint::from_be_slice_vartime(public_key.exponent);
+            let public_key = rsa::PublicKey::new(modulus, exponent).map_err(CertificateParseError::RsaError)?;
             PublicKey::try_from(public_key).map_err(CertificateParseError::UnsupportedRsaKeySize)
         }
 

@@ -52,8 +52,7 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::server_state::SessionStore;
 use openid4vc::store::Consumed;
 use openid4vc::store::Store;
-use rand::RngCore;
-use rand::rngs::OsRng;
+use rand::Rng;
 use serde::Deserialize;
 use server_utils::store::StoreConnection;
 use strum::IntoEnumIterator;
@@ -175,6 +174,8 @@ fn issuable_documents(
     usecase: &Usecase,
     requested_credential_kinds: &HashSet<CredentialKind>,
 ) -> Result<VecNonEmpty<IssuableDocument>, Error> {
+    let mut rng = rand::rng();
+
     usecase
         .documents
         .iter()
@@ -184,7 +185,7 @@ fn issuable_documents(
                 credential_kind,
                 attributes,
             } = template.clone();
-            let attributes = substitute_placeholders(attributes, &mut OsRng);
+            let attributes = substitute_placeholders(attributes, &mut rng);
             IssuableDocument::try_new_with_random_id(credential_kind, attributes).expect("attributes cannot be empty")
         })
         .collect_vec()
@@ -199,7 +200,7 @@ fn issuable_documents(
 /// Intentionally duplicated from `demo_issuer` rather than shared: the placeholder convention is
 /// demo-specific and not worth lifting into a common crate. Unlike `demo_issuer`, this variant only
 /// needs `{{INSERT_RANDOM_VALUE}}` (no acf usecase uses `{{INSERT_CURRENT_YEAR}}`).
-fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> Attributes {
+fn substitute_placeholders(attributes: Attributes, rng: &mut impl Rng) -> Attributes {
     let mut inner = attributes.into_inner();
     for attribute in inner.values_mut() {
         substitute_placeholders_in_attribute(attribute, rng);
@@ -207,7 +208,7 @@ fn substitute_placeholders(attributes: Attributes, rng: &mut impl RngCore) -> At
     inner.into()
 }
 
-fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut impl RngCore) {
+fn substitute_placeholders_in_attribute(attribute: &mut Attribute, rng: &mut impl Rng) {
     match attribute {
         Attribute::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
             let n: u64 = rng.next_u64() % 10_000_000_000;

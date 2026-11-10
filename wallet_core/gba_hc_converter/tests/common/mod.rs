@@ -3,8 +3,8 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use aes_gcm::Aes256Gcm;
-use aes_gcm::KeyInit;
-use aes_gcm::aead::OsRng;
+use aes_gcm::Key;
+use aes_gcm::aead::Generate;
 use crypto::keys::SymmetricKey;
 use gba_hc_converter::gba::encryption::HmacSha256;
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
@@ -22,8 +22,8 @@ pub async fn read_file(name: &str) -> String {
 }
 
 pub async fn encrypt_xmls() -> (SymmetricKey, SymmetricKey, TempDir) {
-    let encryption_key = SymmetricKey::from(Aes256Gcm::generate_key(OsRng).to_vec());
-    let hmac_key = SymmetricKey::from(HmacSha256::generate_key(OsRng).to_vec());
+    let encryption_key = SymmetricKey::from(Key::<Aes256Gcm>::generate().to_vec());
+    let hmac_key = SymmetricKey::from(Key::<HmacSha256>::generate().to_vec());
 
     let temp_path = tempfile::tempdir().unwrap();
 
@@ -36,8 +36,8 @@ pub async fn encrypt_xmls() -> (SymmetricKey, SymmetricKey, TempDir) {
             let content = tokio::fs::read(file).await.unwrap();
 
             encrypt_bytes_to_dir(
-                encryption_key.key::<Aes256Gcm>(),
-                hmac_key.key::<HmacSha256>(),
+                encryption_key.key::<Aes256Gcm>().unwrap(),
+                hmac_key.key::<HmacSha256>().unwrap(),
                 &content,
                 temp_path.path(),
                 &filename,
