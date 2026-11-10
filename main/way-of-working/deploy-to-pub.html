@@ -1,0 +1,384 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deploying to PUB &mdash; NL Wallet 0.7.2-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=dfe61b34" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ae22e3c7"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Merge Requests" href="merge-requests.html" />
+    <link rel="prev" title="Definition of Ready" href="definition-of-ready.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/use-cases.html">Relevant Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/close-proximity-disclosure.html">Disclosure with ISO 18013-5 (close proximity)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-provider-instruction.html">Wallet Provider instructions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC10.1_DeleteWalletUsingRevocationCode.html">Use Case 10.1 Revoke the wallet using the revocation code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.1_SecureTheAppWithPinAndBiometrics.html">Use Case 2.1 Secure the app with PIN and biometrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.1_AppOverview.html">Use Case 7.1 App overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.10_DetermineWalletStatus.html">Partial Flow 2.10 Determine wallet status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.9 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/notifications.html">Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/crash-reporting.html">Crash Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/keycloak-setup.html">Keycloak Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/pid-issuer-architecture.html">PID Issuer architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Deploying to PUB</a></li>
+<li class="toctree-l1"><a class="reference internal" href="merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.1.html">v0.4.1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.5.0.html">v0.5.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.6.0.html">v0.6.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.7.2.html">v0.7.2 (dev)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Deploying to PUB</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/way-of-working/deploy-to-pub.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="deploying-to-pub">
+<h1>Deploying to PUB<a class="headerlink" href="#deploying-to-pub" title="Link to this heading"></a></h1>
+<p>A PUB rollout deploys the backend and apps from <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code>, plus the PUB
+configuration from <code class="docutils literal notranslate"><span class="pre">nl-wallet-secrets</span></code> and <code class="docutils literal notranslate"><span class="pre">nl-wallet-static</span></code>. Deploy all
+three repositories: changes to secrets or wallet configuration may already
+be merged without being live on PUB, and the new <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> version may
+depend on them.</p>
+<section id="deployment-checklist">
+<h2>Deployment checklist<a class="headerlink" href="#deployment-checklist" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Bump the version and select a pipeline.</strong> Follow
+<a class="reference internal" href="#version-bump-and-release-notes">Version bump and release notes</a>.</p></li>
+<li><p><strong>Deploy secrets and block old apps.</strong> Complete the
+<a class="reference internal" href="#deploy-secrets-and-block-old-apps">nl-wallet-secrets steps</a>.</p></li>
+<li><p><strong>Deploy static files and wallet configuration.</strong> Complete the
+<a class="reference internal" href="#deploy-static-files-and-wallet-configuration">nl-wallet-static steps</a>.</p></li>
+<li><p><strong>Deploy the backend.</strong> Check whether the database changes require a
+<a class="reference internal" href="#database-resets">database reset</a>, then run <a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/deploy/gitlab/deploy-services.yml"><strong><code class="docutils literal notranslate"><span class="pre">deploy-apps-pub</span></code></strong></a>.
+Wait for its child deployments and migrations to succeed.</p></li>
+<li><p><strong>Build and upload the apps.</strong> Run <a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/deploy/gitlab/build-app-triggers.yml"><strong><code class="docutils literal notranslate"><span class="pre">build-pub-trigger</span></code></strong></a>. Wait for
+<code class="docutils literal notranslate"><span class="pre">deploy-android-app-pub</span></code> and <code class="docutils literal notranslate"><span class="pre">deploy-ios-app-pub</span></code> in its child pipeline.
+CI uploads to Google Play <strong>internal testing</strong> and <strong>TestFlight</strong>;
+promotion happens in the store consoles.</p></li>
+<li><p><strong>Verify before promotion.</strong> Install both uploaded builds on physical
+devices. Check version, build number and PUB environment, and confirm
+that neither build is blocked by the update policy. Test registration,
+issuance, disclosure and changed functionality. Test updating an
+existing installation: release builds currently use a
+<a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/nl-wallet/-/blob/1e47b7061b84a59b32d076036f51472e0a3c1226/wallet_core/lib/utils/src/built_info.rs">database per Git commit</a>, so a different commit starts
+a fresh wallet (PVW-4707).
+Record the tested build numbers and results.</p></li>
+<li><p><strong>Promote those exact builds.</strong> Open <strong>NL Wallet (pub)</strong> in both store
+consoles. In Google Play, promote Android from internal testing to the
+<strong>Public Demo</strong> closed testing track. In TestFlight, add the iOS build to
+the <strong>Public Demo</strong> external testing group. Wait for any required store
+review and release action to finish, then confirm the PUB audience can
+install both builds and check service health.</p></li>
+</ol>
+<p>Use the <strong>same <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> main pipeline</strong> for <code class="docutils literal notranslate"><span class="pre">deploy-apps-pub</span></code> and
+<code class="docutils literal notranslate"><span class="pre">build-pub-trigger</span></code>. Check their <strong>child pipelines</strong>: a green parent does
+not prove deployment succeeded.</p>
+</section>
+<section id="version-bump-and-release-notes">
+<h2>Version bump and release notes<a class="headerlink" href="#version-bump-and-release-notes" title="Link to this heading"></a></h2>
+<p>The version MR below creates a new <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code> main pipeline. It copies the
+latest merged PUB backend settings from <a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/deploy-variables/-/tree/main/pub">deploy-variables</a>.
+The backend deployment uses that copy; <code class="docutils literal notranslate"><span class="pre">deploy-variables</span></code> has no separate
+deployment job. The app build reads the settings again, so leave them
+unchanged until the rollout is complete.</p>
+<ol class="arabic simple">
+<li><p><strong>Create the version MR.</strong> In <code class="docutils literal notranslate"><span class="pre">nl-wallet</span></code>, choose a numeric <code class="docutils literal notranslate"><span class="pre">X.Y.Z</span></code> above
+versions already on PUB. Keep <code class="docutils literal notranslate"><span class="pre">-dev</span></code> for development builds and run
+<a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/scripts/version.sh">the version helper</a>: <code class="docutils literal notranslate"><span class="pre">scripts/version.sh</span> <span class="pre">-s</span> <span class="pre">vX.Y.Z-dev</span></code>.
+Include all component version changes in the MR, targeting <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p></li>
+<li><p><strong>Update release notes in the same MR.</strong> Rename the ongoing development
+draft to <code class="docutils literal notranslate"><span class="pre">wallet_docs/release-notes/vX.Y.Z.md</span></code>, change its heading to
+<code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">vX.Y.Z</span> <span class="pre">(dev)</span></code> and preserve its contents. After a formal release, start
+a new draft instead. The helper does not update release notes.</p></li>
+<li><p><strong>Review and merge.</strong> Confirm the component versions match and the release
+notes are included. Merge into <code class="docutils literal notranslate"><span class="pre">main</span></code> once the MR checks pass.</p></li>
+<li><p><strong>Select the deployment pipeline.</strong> Wait for the merged commit’s <code class="docutils literal notranslate"><span class="pre">main</span></code>
+pipeline to pass. Use that same pipeline for <code class="docutils literal notranslate"><span class="pre">deploy-apps-pub</span></code> and
+<code class="docutils literal notranslate"><span class="pre">build-pub-trigger</span></code> in the deployment checklist.</p></li>
+<li><p><strong>Change the version in Jira.</strong></p></li>
+</ol>
+<p>Example: <code class="docutils literal notranslate"><span class="pre">0.7.1-dev</span></code> → <code class="docutils literal notranslate"><span class="pre">0.7.2-dev</span></code>, with <code class="docutils literal notranslate"><span class="pre">v0.7.1.md</span></code> → <code class="docutils literal notranslate"><span class="pre">v0.7.2.md</span></code> and heading
+<code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">v0.7.2</span> <span class="pre">(dev)</span></code>. The existing docs index picks up the renamed file.</p>
+<p>A version change after verification requires rebuilding and testing again.</p>
+</section>
+<section id="deploy-secrets-and-block-old-apps">
+<h2>Deploy secrets and block old apps<a class="headerlink" href="#deploy-secrets-and-block-old-apps" title="Link to this heading"></a></h2>
+<p>Work in <code class="docutils literal notranslate"><span class="pre">nl-wallet-secrets</span></code>. The PUB jobs below deploy all PUB ConfigMaps
+and secrets, including changes merged for earlier features. They also
+deploy the update policy that blocks old app versions.</p>
+<ol class="arabic simple">
+<li><p><strong>Set the minimum app version.</strong> Create an MR that updates
+<a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/nl-wallet-secrets/-/blob/a4ea0d675c538f8c06f5a7b916b8cba39c80b151/configmaps/pub/nl-wallet-update-policy-server.yaml"><code class="docutils literal notranslate"><span class="pre">configmaps/pub/nl-wallet-update-policy-server.yaml</span></code></a>
+to block versions below the chosen minimum. Target <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p></li>
+<li><p><strong>Deploy the ConfigMaps and secrets.</strong> Merge the MR and open its resulting
+<code class="docutils literal notranslate"><span class="pre">main</span></code> pipeline. Trigger <a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/nl-wallet-secrets/-/blob/a4ea0d675c538f8c06f5a7b916b8cba39c80b151/.gitlab-ci.yml"><strong><code class="docutils literal notranslate"><span class="pre">apply-configmaps-pub</span></code></strong></a> and wait
+for it to succeed. The dependent <strong><code class="docutils literal notranslate"><span class="pre">apply-secrets-pub</span></code></strong> job runs
+automatically; wait for that job to succeed too.</p></li>
+<li><p><strong>Wait for the policy server.</strong> Policy changes automatically restart
+<code class="docutils literal notranslate"><span class="pre">update-policy-server</span></code>. Wait for the rollout to finish and confirm that
+the server is healthy. The server
+<a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/wallet_core/update_policy/server/README.md">loads its policy at startup</a>.</p></li>
+<li><p><strong>Check an old app.</strong> Force quit and reopen it to clear its one-hour
+policy cache. Confirm that it requires an update and that its update
+button opens the correct update destination. Complete this check before
+deploying the backend.</p></li>
+</ol>
+<p>PUB users with blocked versions cannot use the wallet until the replacement
+builds are available. This interruption is accepted for PUB rollouts.</p>
+<p>Update policy compares the core’s numeric version, ignoring <code class="docutils literal notranslate"><span class="pre">-dev</span></code> and build
+numbers. For example, block versions below <code class="docutils literal notranslate"><span class="pre">0.7.2</span></code> with:</p>
+<div class="highlight-toml notranslate"><div class="highlight"><pre><span></span><span class="k">[update_policy]</span>
+<span class="s2">&quot;&lt;0.7.2&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Block&quot;</span>
+</pre></div>
+</div>
+<p>Review existing rules too, so none blocks the new version.</p>
+<p>Affected pods restart automatically when required.
+<code class="docutils literal notranslate"><span class="pre">deploy-apps-pub</span></code> does not run these configuration jobs.</p>
+</section>
+<section id="deploy-static-files-and-wallet-configuration">
+<h2>Deploy static files and wallet configuration<a class="headerlink" href="#deploy-static-files-and-wallet-configuration" title="Link to this heading"></a></h2>
+<p>Work in <a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/nl-wallet-static/-/blob/d1d315aaec3aee0909ed37a85e3586d49f4418fc/.gitlab-ci.yml">nl-wallet-static</a>. Use the same fresh <code class="docutils literal notranslate"><span class="pre">main</span></code> pipeline
+for all steps below, so they publish the latest merged files and wallet
+configuration.</p>
+<ol class="arabic simple">
+<li><p><strong>Deploy the static service.</strong> Run <code class="docutils literal notranslate"><span class="pre">deploy-pub</span></code> and wait for it to succeed.</p></li>
+<li><p><strong>Publish the static files.</strong> Run <code class="docutils literal notranslate"><span class="pre">publish-assets-pub</span></code> and wait for it to
+succeed.</p></li>
+<li><p><strong>Publish the wallet configuration.</strong> Check that <code class="docutils literal notranslate"><span class="pre">wallet-config-pub</span></code>
+has succeeded. It signs the repository’s <code class="docutils literal notranslate"><span class="pre">wallet-config-pub.json</span></code>.
+Run the manual <code class="docutils literal notranslate"><span class="pre">publish-config-pub</span></code> job to publish that signed
+configuration, and wait for it to succeed.</p></li>
+</ol>
+<p>Complete these steps before deploying the backend or building the apps.
+Existing apps also fetch the published wallet configuration. The scheduled
+<code class="docutils literal notranslate"><span class="pre">republish-config-pub</span></code> job only renews the configuration already live on PUB;
+it does not publish changes from the repository.</p>
+</section>
+<section id="database-resets">
+<h2>Database resets<a class="headerlink" href="#database-resets" title="Link to this heading"></a></h2>
+<p>Normal schema migrations run automatically during backend deployment. If
+this rollout requires a fresh database, reset only the affected databases
+after old apps have been blocked. Use the matching manual
+<a class="reference external" href="https://gitlab.cicd.s15m.nl/logius/wallet/nl-wallet/-/blob/9e3f1833300bfa5584fc50c861eefd5fac06584b/deploy/gitlab-templates/deploy-template.yml"><code class="docutils literal notranslate"><span class="pre">run-&lt;service&gt;-reset-pub</span></code> job</a> in the <code class="docutils literal notranslate"><span class="pre">deploy-apps-pub</span></code>
+child pipeline, for example <code class="docutils literal notranslate"><span class="pre">run-wallet-provider-reset-pub</span></code>. A reset deletes
+the database’s data and reapplies migrations.</p>
+<p>The reset uses the currently deployed CronJob. Check that its migration
+image matches the intended schema. Wait for the Kubernetes Job to complete
+and check service health before continuing: a successful CI job only
+confirms that the reset was started.</p>
+<p>The separate <code class="docutils literal notranslate"><span class="pre">reset-pub</span></code> job wipes the broader environment and requires
+redeployment.</p>
+<p>Implementation checked 6 November 2026.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="definition-of-ready.html" class="btn btn-neutral float-left" title="Definition of Ready" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merge-requests.html" class="btn btn-neutral float-right" title="Merge Requests" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="deploy-to-pub.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>
