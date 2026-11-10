@@ -1,0 +1,28 @@
+test-ios-wallet-device:
+  extends: [.automation-tests-macos-devices, .install-ios-signing]
+  stage: test
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-load-device-config
+      artifacts: true
+  rules: !reference [.default-or-merge-request, rules]
+  before_script:
+    - !reference [.install-ios-signing, before_script]
+  script:
+    - bundle exec fastlane ios test_wallet_device
+  after_script:
+    - deploy/bin/store-artifact.sh fastlane/test_output/wallet-device.junit
+      qt/quality-time/junit-results/wallet-ios-device.xml
+  artifacts:
+    name: wallet-ios-device
+    when: always
+    paths:
+      - fastlane/test_output/wallet-device.junit
+      - fastlane/test_output/wallet-device.log
+      - fastlane/test_output/WalletDevice.xcresult
+    reports:
+      junit: fastlane/test_output/wallet-device.junit
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    IOS_DEVICE_UDID: "${IOS_2_UDID}"
