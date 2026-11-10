@@ -275,6 +275,7 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::validity::ValidityWindow;
+    use attestation_types::credential_format::Format;
     use attestation_types::status_claim::StatusClaim;
     use attestation_types::status_claim::StatusListClaim;
     use crypto::server_keys::generate::Ca;
@@ -326,9 +327,10 @@ mod tests {
         let revocation_id_2 = Uuid::new_v4();
 
         let test_revocation_info = vec![
-            RevocationInfo::new(revocation_id_1, StatusClaim::new_mock()),
+            RevocationInfo::new(revocation_id_1, Format::SdJwt, StatusClaim::new_mock()),
             RevocationInfo::new(
                 revocation_id_2,
+                Format::SdJwt,
                 StatusClaim::StatusList(StatusListClaim {
                     idx: 3,
                     uri: "https://example.com/statuslists/1".parse().unwrap(),

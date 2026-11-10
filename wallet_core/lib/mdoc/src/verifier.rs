@@ -14,6 +14,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::SecretKey;
 use p256::ecdsa::VerifyingKey;
+use token_status_list::status_list_token::StatusListFormat;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -409,7 +410,12 @@ impl Document {
         let revocation_status = match &mso.status {
             Some(MdocStatus::StatusList(status_list_claim)) => {
                 let revocation_status = revocation_verifier
-                    .verify(trust_anchors, StatusClaim::StatusList(status_list_claim.clone()), time)
+                    .verify(
+                        trust_anchors,
+                        StatusClaim::StatusList(status_list_claim.clone()),
+                        StatusListFormat::Cwt,
+                        time,
+                    )
                     .await;
                 Some(revocation_status)
             }

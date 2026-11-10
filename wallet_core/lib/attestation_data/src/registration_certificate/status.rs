@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use serde::Deserialize;
+use token_status_list::status_list_token::StatusListFormat;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -80,6 +81,7 @@ impl BoundRegistrationCertificate {
             .verify(
                 registration_certificate_trust_anchors,
                 StatusClaim::StatusList(self.payload().status.clone()),
+                StatusListFormat::Jwt,
                 time,
             )
             .await;

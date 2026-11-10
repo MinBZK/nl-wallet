@@ -1189,8 +1189,8 @@ where
         let query = attestation_copy::Entity::find()
             .inner_join(attestation::Entity)
             .select_only()
-            .column(attestation_copy::Column::Id)
-            .column_as(attestation::Column::Id, "attestation_id")
+            .column_as(attestation_copy::Column::Id, "attestation_copy_id")
+            .column(attestation::Column::AttestationFormat)
             .column(attestation_copy::Column::StatusListUrl)
             .column(attestation_copy::Column::StatusListIndex)
             .filter(
@@ -1213,7 +1213,7 @@ where
                             .or(attestation::Column::Expiration.gt(now)),
                     ),
             )
-            .into_partial_model::<revocation_info::RevocationInfo>();
+            .into_model::<revocation_info::RevocationInfo>();
 
         let result = query.all(connection).await?;
 
@@ -3449,6 +3449,7 @@ pub(crate) mod tests {
 
         let revocation_info = revocation_info.first().unwrap();
         assert_eq!(StatusClaim::new_mock(), revocation_info.status_claim);
+        assert_eq!(Format::SdJwt, revocation_info.format);
 
         assert_eq!(
             None,

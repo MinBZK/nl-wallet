@@ -48,6 +48,12 @@ struct CacheValidity {
     ttl: Option<Duration>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct CacheKey {
+    url: Url,
+    format: StatusListFormat,
+}
+
 #[derive(Debug, Clone)]
 struct CachedToken {
     token: StatusListToken,
@@ -74,7 +80,7 @@ struct TokenExpiry<G> {
 
 #[derive(Debug)]
 pub struct RevocationVerifier<C> {
-    cache: Cache<Url, CachedResult>,
+    cache: Cache<CacheKey, CachedResult>,
     client: Arc<C>,
 }
 
@@ -128,11 +134,14 @@ where
         &self,
         issuer_trust_anchors: &TrustAnchors,
         status_claim: StatusClaim,
+        format: StatusListFormat,
         time: &impl Generator<DateTime<Utc>>,
     ) -> RevocationStatus {
         let StatusClaim::StatusList(StatusListClaim { uri, idx }) = status_claim;
 
-        let result = self.fetch_status_list_claims(uri, issuer_trust_anchors, time).await;
+        let result = self
+            .fetch_status_list_claims(uri, format, issuer_trust_anchors, time)
+            .await;
 
         match result {
             Ok(claims) => {
@@ -165,21 +174,20 @@ where
     async fn fetch_status_list_claims(
         &self,
         url: Url,
+        format: StatusListFormat,
         issuer_trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusListTokenClaims, StatusListVerificationError> {
+        let key = CacheKey { url, format };
+
         loop {
             let mut verified_claims = None;
             let cached = self
                 .cache
-                .get_with(url.clone(), async {
-                    let token = self
-                        .client
-                        .fetch(url.clone(), StatusListFormat::Jwt)
-                        .await
-                        .map_err(Arc::new)?;
+                .get_with(key.clone(), async {
+                    let token = self.client.fetch(key.url.clone(), key.format).await.map_err(Arc::new)?;
                     let fetched_at = Instant::now();
-                    let claims = token.parse_and_verify(issuer_trust_anchors, &url, time);
+                    let claims = token.parse_and_verify(issuer_trust_anchors, &key.url, time);
                     let cache_validity = claims.as_ref().ok().map(|claims| CacheValidity {
                         exp: claims.exp,
                         ttl: claims.ttl,
@@ -201,7 +209,7 @@ where
             }
             let claims = cached
                 .token
-                .parse_and_verify(issuer_trust_anchors, &url, time)
+                .parse_and_verify(issuer_trust_anchors, &key.url, time)
                 .map_err(Arc::new)?;
 
             // An earlier caller may not have trusted this token, leaving its TTL unknown when it was cached.
@@ -209,7 +217,7 @@ where
             if claims.ttl.is_some_and(|ttl| cached.fetched_at.elapsed() >= ttl)
                 || claims.exp.is_some_and(|exp| exp <= time.generate())
             {
-                self.cache.invalidate(&url).await;
+                self.cache.invalidate(&key).await;
                 continue;
             }
 
@@ -266,6 +274,7 @@ mod test {
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 
+    use crate::status_list_cwt::mock::mock_status_list_cwt;
     use crate::status_list_jwt::mock::mock_status_list_jwt;
     use crate::status_list_token::StatusListFormat;
     use crate::status_list_token::StatusListToken;
@@ -297,6 +306,7 @@ mod test {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
                 }),
+                StatusListFormat::Jwt,
                 &MockTimeGenerator::default(),
             )
             .now_or_never()
@@ -311,6 +321,7 @@ mod test {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 3,
                 }),
+                StatusListFormat::Jwt,
                 &MockTimeGenerator::default(),
             )
             .now_or_never()
@@ -325,6 +336,7 @@ mod test {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: u32::MAX,
                 }),
+                StatusListFormat::Jwt,
                 &MockTimeGenerator::default(),
             )
             .now_or_never()
@@ -339,6 +351,7 @@ mod test {
                     uri: "https://different_uri".parse().unwrap(),
                     idx: 1,
                 }),
+                StatusListFormat::Jwt,
                 &MockTimeGenerator::default(),
             )
             .now_or_never()
@@ -353,6 +366,7 @@ mod test {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
                 }),
+                StatusListFormat::Jwt,
                 &MockTimeGenerator::default(),
             )
             .now_or_never()
@@ -367,6 +381,7 @@ mod test {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
                 }),
+                StatusListFormat::Jwt,
                 &MockTimeGenerator::new(Utc::now().add(Days::new(2))),
             )
             .now_or_never()
@@ -394,11 +409,61 @@ mod test {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
                     idx: 1,
                 }),
+                StatusListFormat::Jwt,
                 &MockTimeGenerator::default(),
             )
             .now_or_never()
             .unwrap();
         assert_eq!(RevocationStatus::Undetermined, status);
+    }
+
+    #[test]
+    fn test_cache_status_list_per_format() {
+        let ca = Ca::generate_mock();
+        let keypair = ca.generate_issuer_status_list_mock().unwrap();
+        let (_, _, jwt) = mock_status_list_jwt(&keypair, None, None).now_or_never().unwrap();
+        let (cwt, _) = mock_status_list_cwt(&keypair, None).now_or_never().unwrap();
+
+        let uri: Url = "https://example.com/statuslists/1".parse().unwrap();
+        let mut client = MockStatusListClient::new();
+        client
+            .expect_fetch()
+            .with(eq(uri.clone()), eq(StatusListFormat::Jwt))
+            .times(1)
+            .returning(move |_, _| Ok(jwt.clone().into()));
+        client
+            .expect_fetch()
+            .with(eq(uri.clone()), eq(StatusListFormat::Cwt))
+            .times(1)
+            .returning(move |_, _| Ok(cwt.clone().into()));
+        let verifier = RevocationVerifier::new(
+            Arc::new(client),
+            10,
+            TEN_MINUTES,
+            TEN_MINUTES,
+            MockTimeGenerator::default(),
+        );
+
+        for format in [
+            StatusListFormat::Cwt,
+            StatusListFormat::Jwt,
+            StatusListFormat::Cwt,
+            StatusListFormat::Jwt,
+        ] {
+            let status = verifier
+                .verify(
+                    &ca.to_trust_anchors(),
+                    StatusList(StatusListClaim {
+                        uri: uri.clone(),
+                        idx: 1,
+                    }),
+                    format,
+                    &MockTimeGenerator::default(),
+                )
+                .now_or_never()
+                .unwrap();
+            assert_eq!(RevocationStatus::Valid, status);
+        }
     }
 
     #[rstest]
@@ -445,7 +510,7 @@ mod test {
         // Every trust-anchor set shares the fetched token, but no caller reuses a verification result.
         for (trust_anchors, expected) in cases.iter().chain(&cases) {
             let status = verifier
-                .verify(trust_anchors, status_claim.clone(), &time)
+                .verify(trust_anchors, status_claim.clone(), StatusListFormat::Jwt, &time)
                 .now_or_never()
                 .unwrap();
             assert_eq!(*expected, status);
@@ -497,6 +562,7 @@ mod test {
                 .verify(
                     &ca.to_trust_anchors(),
                     status_claim.clone(),
+                    StatusListFormat::Jwt,
                     &MockTimeGenerator::new(time),
                 )
                 .now_or_never()
@@ -524,7 +590,7 @@ mod test {
 
         for trust_anchors in [TrustAnchors::empty(), Ca::generate_mock().to_trust_anchors()] {
             let status = verifier
-                .verify(&trust_anchors, status_claim.clone(), &time)
+                .verify(&trust_anchors, status_claim.clone(), StatusListFormat::Jwt, &time)
                 .now_or_never()
                 .unwrap();
             assert_eq!(RevocationStatus::Undetermined, status);
@@ -553,7 +619,7 @@ mod test {
             (ca.to_trust_anchors(), RevocationStatus::Valid),
         ] {
             let status = verifier
-                .verify(&trust_anchors, status_claim.clone(), &time)
+                .verify(&trust_anchors, status_claim.clone(), StatusListFormat::Jwt, &time)
                 .now_or_never()
                 .unwrap();
             assert_eq!(expected, status);

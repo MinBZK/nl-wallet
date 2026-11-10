@@ -2,6 +2,7 @@ use std::str;
 use std::str::Utf8Error;
 use std::time::Duration;
 
+use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Utc;
 use jwt::error::JwtParseError;
@@ -66,7 +67,7 @@ impl From<StatusListCwt> for StatusListToken {
 /// The formats of a Status List Token, identified by their media type.
 ///
 /// <https://www.ietf.org/archive/id/draft-ietf-oauth-status-list-21.html#section-8.2>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::IntoStaticStr)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumString, strum::IntoStaticStr)]
 #[strum(ascii_case_insensitive)]
 pub enum StatusListFormat {
     #[strum(serialize = "application/statuslist+jwt")]
@@ -76,6 +77,13 @@ pub enum StatusListFormat {
 }
 
 impl StatusListFormat {
+    pub fn for_credential_format(format: Format) -> Self {
+        match format {
+            Format::MsoMdoc => Self::Cwt,
+            Format::SdJwt => Self::Jwt,
+        }
+    }
+
     /// The media type of a Status List Token in this format, as used in the `Accept` and `Content-Type` headers.
     pub fn media_type(self) -> &'static str {
         self.into()
