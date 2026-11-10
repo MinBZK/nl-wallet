@@ -72,6 +72,8 @@ internal fun transportFailureShouldReportClosedUpdate(exception: Exception): Boo
 class CloseProximityDisclosureBridge(
     val context: Context,
     private val testingPeripheralServerModeUuid: UUID? = null,
+    private val transportFactory: MdocTransportFactory = MdocTransportFactory.Default,
+    private val bridgeScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : RustCloseProximityDisclosureBridge {
     private class StopObservingTransportState : CancellationException()
 
@@ -97,6 +99,8 @@ class CloseProximityDisclosureBridge(
         val encodedDeviceEngagement: ByteArray,
     ) {
         private val sessionMutex = Mutex()
+        // Assigned while holding lifecycleMutex, before a stop or replacement can access the session.
+        var connectionJob: Job? = null
         private var readJob: Job? = null
         private var transport: MdocTransport? = null
         private var sessionEncryption: SessionEncryption? = null
@@ -153,7 +157,6 @@ class CloseProximityDisclosureBridge(
         }
     }
 
-    private val bridgeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     // UniFFI/Rust can reach these suspend bridge methods from unrelated coroutines. Serialize
     // start/stop transitions so rapid start/stop/start calls are deterministic.
     private val lifecycleMutex = Mutex()
@@ -217,7 +220,7 @@ class CloseProximityDisclosureBridge(
     ): List<MdocTransport> =
         listOf<MdocConnectionMethod>(connectionMethod).advertise(
             role = MdocRole.MDOC,
-            transportFactory = MdocTransportFactory.Default,
+            transportFactory = transportFactory,
             options = MdocTransportOptions(),
         )
 
@@ -238,10 +241,15 @@ class CloseProximityDisclosureBridge(
     }
 
     private fun waitForConnectionInBackground(session: ActiveSession) {
-        bridgeScope.launch {
+        session.connectionJob = bridgeScope.launch {
             try {
-                val transport = session.transports.waitForConnection(eSenderKey = session.eDeviceKey.publicKey)
+                val transport = session.transports.waitForConnection(
+                    eSenderKey = session.eDeviceKey.publicKey,
+                    coroutineScope = this,
+                )
                 handleConnectedTransport(session = session, transport = transport)
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 finishSessionOnDisconnectOrFail(session = session, exception = exception)
             }
@@ -389,6 +397,9 @@ class CloseProximityDisclosureBridge(
             activeSession?.also { activeSession = null }
         } ?: return
 
+        // Multipaz's default connection scope outlives the caller. Own and cancel its open()
+        // and state-watcher jobs before close(), which otherwise races open()'s transport mutex.
+        session.connectionJob?.cancelAndJoin()
         session.cancelReadJobAndJoin()
         closeSessionTransports(session)
         runCatching { session.channel.sendUpdate(update = CloseProximityDisclosureUpdate.Closed) }
