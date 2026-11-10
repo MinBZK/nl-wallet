@@ -1,12 +1,9 @@
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
-use attestation_data::credential_payload::CredentialContents;
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-use openid4vc::wallet_issuance::OfferedCredentialPreview;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -54,24 +51,6 @@ where
     CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
-    pub(super) fn pid_preview<'a>(
-        mut previews: impl Iterator<Item = OfferedCredentialPreview<'a>>,
-        pid_config: &PidAttributesConfiguration,
-    ) -> Result<&'a CredentialContents, RecoveryCodeError> {
-        // Find the first preview that is in SD-JWT format and has one of the required `vct` values. In theory there
-        // could be more credentials in the preview that match, but we assume the caller just needs a single PID
-        // preview, so simply ignore any subsequent matches.
-        previews
-            .find(|preview| {
-                preview.format == Format::SdJwt
-                    && pid_config
-                        .sd_jwt
-                        .contains_key(&preview.credential_payload.attestation_type)
-            })
-            .map(|preview| preview.credential_payload)
-            .ok_or(RecoveryCodeError::MissingPid)
-    }
-
     /// Find the recovery code in the first SD-JWT PID among the newly issued credentials.
     pub(super) fn recovery_code_from_credentials<'a>(
         credentials: &'a [CredentialWithMetadata],
@@ -147,19 +126,6 @@ where
 
         Ok(code)
     }
-}
-
-/// Find the recovery code in the specified PID preview.
-pub(super) fn recovery_code_from_preview<'a>(
-    pid_preview: &'a CredentialContents,
-    pid_config: &PidAttributesConfiguration,
-) -> Result<&'a str, RecoveryCodeError> {
-    let recovery_code_path = pid_config
-        .sd_jwt_recovery_code_path(&pid_preview.attestation_type)
-        .map_err(RecoveryCodeError::PidAttributesConfiguration)?;
-
-    retrieve_recovery_code_from_pid(&pid_preview.attributes, &recovery_code_path)
-        .ok_or(RecoveryCodeError::MissingIssuedRecoveryCode)
 }
 
 fn retrieve_recovery_code_from_decoded_claims<'a>(

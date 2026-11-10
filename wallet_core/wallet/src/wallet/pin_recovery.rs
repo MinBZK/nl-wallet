@@ -2,7 +2,6 @@ use std::fmt::Debug;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 
-use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_kind::CredentialKindRef;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -24,7 +23,6 @@ use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use url::Url;
 use utils::generator::TimeGenerator;
-use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
@@ -37,7 +35,6 @@ use super::Wallet;
 use super::WalletRegistration;
 use super::issuance::PidAttestationFormat;
 use super::recovery_code::RecoveryCodeError;
-use super::recovery_code::recovery_code_from_preview;
 use crate::account_provider::AccountProviderClient;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::errors::InstructionError;
@@ -107,14 +104,8 @@ pub enum PinRecoveryError {
 
 #[derive(Debug)]
 pub enum PinRecoverySession<AS, IS> {
-    OAuth {
-        authorization_session: AS,
-    },
-    Issuance {
-        recovery_code_path: VecNonEmpty<ClaimPath>,
-        pid_attestation_type: String,
-        issuance_session: IS,
-    },
+    OAuth { authorization_session: AS },
+    Issuance { issuance_session: IS },
 }
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
@@ -242,7 +233,6 @@ where
 
         let config = self.config_repository.get();
 
-        // Fetch issuance previews
         let issuance_session = authorization_session
             .start_issuance(
                 &redirect_uri,
@@ -254,30 +244,10 @@ where
                 e => PinRecoveryError::Issuance(IssuanceError::IssuanceSession(e)),
             })?;
 
-        info!("successfully received token and previews from issuer");
+        info!("successfully received token from issuer");
 
-        // Check the recovery code in the received PID against the one in the stored PID, as otherwise
-        // the WP will reject our PIN recovery instructions.
-        let pid_config = &config.pid_attributes;
-        let pid_preview = Self::pid_preview(
-            issuance_session
-                .credential_previews()
-                .ok_or(PinRecoveryError::Issuance(IssuanceError::MissingPidPreviews))?
-                .into_iter(),
-            pid_config,
-        )?;
-
-        self.compare_recovery_code_against_stored(recovery_code_from_preview(pid_preview, pid_config)?, pid_config)
-            .await?;
-
-        let pid_attestation_type = pid_preview.attestation_type.clone();
-        let recovery_code_path = pid_config.sd_jwt_recovery_code_path(&pid_attestation_type)?;
-
-        self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
-            recovery_code_path,
-            pid_attestation_type,
-            issuance_session,
-        }));
+        self.session
+            .replace(Session::PinRecovery(PinRecoverySession::Issuance { issuance_session }));
 
         // After this function is done, the user is asked to choose their new PIN.
         // Therefore, regardless of the state of `self.lock` the app is effectively accessible to whoever holds the
@@ -334,11 +304,7 @@ where
             return Err(PinRecoveryError::SessionState);
         }
 
-        let Some(Session::PinRecovery(PinRecoverySession::Issuance {
-            recovery_code_path,
-            pid_attestation_type,
-            mut issuance_session,
-        })) = self.session.take()
+        let Some(Session::PinRecovery(PinRecoverySession::Issuance { mut issuance_session })) = self.session.take()
         else {
             return Err(PinRecoveryError::SessionState);
         };
@@ -401,6 +367,39 @@ where
             _ => issuance_result?,
         };
 
+        // Check the recovery code in the received PID against the one in the stored PID, as otherwise both wallets will
+        // be revoked.
+        let issued_recovery_code = Self::recovery_code_from_credentials(&issuance_result, &config.pid_attributes)?;
+        self.compare_recovery_code_against_stored(issued_recovery_code, &config.pid_attributes)
+            .await?;
+
+        // Disclose the recovery code of the first SD-JWT PID, which is the one checked above. Prepare this disclosure
+        // before storing anything, as it can fail.
+        let (pid_attestation_type, pid) = issuance_result
+            .into_iter()
+            .filter(|credential| {
+                config
+                    .pid_attributes
+                    .contains_credential_kind(credential.credential_kind())
+            })
+            .find_map(|credential| match credential.copies {
+                IssuedCredentialCopies::Mdoc(_) => None,
+                IssuedCredentialCopies::SdJwt(copies) => {
+                    Some((credential.contents.attestation_type, copies.into_first().sd_jwt))
+                }
+            })
+            .ok_or(IssuanceError::MissingPidSdJwt)?;
+
+        let recovery_code_path = config.pid_attributes.sd_jwt_recovery_code_path(&pid_attestation_type)?;
+
+        let recovery_code_disclosure = pid
+            .into_sd_jwt()
+            .into_presentation_builder()
+            .disclose(&recovery_code_path)
+            .map_err(IssuanceError::RecoveryCodeDisclosure)?
+            .finish()
+            .into();
+
         // Store the new wallet certificate and the new salt.
 
         let new_wallet_certificate = pin_recovery_wscd
@@ -420,24 +419,6 @@ where
             attested_key: Arc::clone(&attested_key),
             data: registration_data.clone(),
         };
-
-        // Get an SD-JWT copy out of the PID we just received.
-        let pid = issuance_result
-            .into_iter()
-            .filter(|attestation| attestation.contents.attestation_type == pid_attestation_type)
-            .find_map(|attestation| match attestation.copies {
-                IssuedCredentialCopies::Mdoc(_) => None,
-                IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.into_first().sd_jwt),
-            })
-            .expect("the presence of an SD-JWT PID credential is guaranteed by continue_pin_recovery()");
-
-        let recovery_code_disclosure = pid
-            .into_sd_jwt()
-            .into_presentation_builder()
-            .disclose(&recovery_code_path)
-            .expect("the presence of the recovery code within the PID is guaranteed by continue_pin_recovery()")
-            .finish()
-            .into();
 
         // Finish PIN recovery by sending the second WP instruction.
 
@@ -504,11 +485,13 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
+    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
@@ -522,6 +505,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
+    use sd_jwt::sd_jwt::DecodedSdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
@@ -551,12 +535,13 @@ mod tests {
     use crate::wallet::Session;
     use crate::wallet::recovery_code::RecoveryCodeError;
     use crate::wallet::test::AUTH_URL;
+    use crate::wallet::test::ISSUER_KEY;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_mdoc;
-    use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_wp_result;
+    use crate::wallet::test::decoded_sd_jwt_from_credential_payload;
     use crate::wallet::test::eq_credential_kinds;
     use crate::wallet::test::mock_issuance_session;
     use crate::wallet::test::nl_pid_mdoc_credential_metadata_example;
@@ -624,20 +609,11 @@ mod tests {
 
         let redirect_uri = Url::parse(AUTH_URL).unwrap();
 
+        // The PID is only checked when completing PIN recovery, so the issuance session is not used yet.
         let mut authorization_session = MockAuthorizationSession::new();
-        authorization_session.expect_start_issuance_sync().return_once(|| {
-            let mut client = MockIssuanceSession::new();
-            let (preview, normalized_metadata) =
-                create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
-
-            client
-                .expect_credential_previews()
-                .once()
-                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
-            client.expect_issuer().return_const(IssuerRegistration::new_mock());
-
-            Ok(client)
-        });
+        authorization_session
+            .expect_start_issuance_sync()
+            .return_once(|| Ok(MockIssuanceSession::new()));
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
@@ -647,26 +623,12 @@ mod tests {
             .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
             .return_once(|| Ok(()));
 
-        wallet
-            .mut_storage()
-            .expect_fetch_unique_attestations_by_credential_kinds()
-            .once()
-            .returning(|_| {
-                Ok(vec![StoredAttestationCopy::new(
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    ValidityWindow::new_valid_mock(),
-                    WithKeyIdentifier {
-                        key_identifier: "key".to_string(),
-                        data: StoredAttestation::SdJwt(create_example_pid_sd_jwt().0),
-                    },
-                    StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
-                    None,
-                    IssuerRegistration::new_mock(),
-                )])
-            });
-
         wallet.continue_pin_recovery(redirect_uri).await.unwrap();
+
+        assert_matches!(
+            wallet.session,
+            Some(Session::PinRecovery(PinRecoverySession::Issuance { .. }))
+        );
     }
 
     #[tokio::test]
@@ -745,6 +707,8 @@ mod tests {
             .expect_delete_data::<PinRecoveryData>()
             .once()
             .returning(|| Ok(()));
+
+        setup_stored_sd_jwt_pid(&mut wallet);
 
         // Setup the issuance session
         setup_issuance_session(&mut wallet, true);
@@ -869,118 +833,6 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    pub async fn continue_pin_recovery_received_no_recovery_code() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        let redirect_uri = Url::parse(AUTH_URL).unwrap();
-
-        let mut authorization_session = MockAuthorizationSession::new();
-        authorization_session.expect_start_issuance_sync().return_once(|| {
-            let mut client = MockIssuanceSession::new();
-
-            // Remove the recovery code attribute from the preview
-            let (mut preview, normalized_metadata) =
-                create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
-            preview
-                .credential_payload
-                .attributes
-                .prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
-
-            client
-                .expect_credential_previews()
-                .once()
-                .return_const(vec_nonempty![(preview, normalized_metadata)].into());
-            client.expect_issuer().return_const(IssuerRegistration::new_mock());
-
-            Ok(client)
-        });
-
-        wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
-            authorization_session,
-        }));
-        wallet
-            .mut_storage()
-            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
-            .return_once(|| Ok(()));
-
-        let err = wallet.continue_pin_recovery(redirect_uri).await.unwrap_err();
-
-        assert_matches!(
-            err,
-            PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingIssuedRecoveryCode)
-        );
-    }
-
-    #[tokio::test]
-    pub async fn continue_pin_recovery_received_wrong_recovery_code() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        let redirect_uri = Url::parse(AUTH_URL).unwrap();
-
-        let mut authorization_session = MockAuthorizationSession::new();
-        authorization_session
-            .expect_start_issuance_sync()
-            .once()
-            .return_once(|| {
-                let mut client = MockIssuanceSession::new();
-
-                // Change the recovery code attribute from the preview
-                let (mut preview, normalized_metadata) =
-                    create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
-
-                let attributes = &mut preview.credential_payload.attributes;
-                attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
-                attributes
-                    .insert(
-                        &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
-                        Attribute::Text("wrong recovery code".to_string()),
-                    )
-                    .unwrap();
-
-                client
-                    .expect_credential_previews()
-                    .once()
-                    .return_const(vec_nonempty![(preview, normalized_metadata)].into());
-
-                Ok(client)
-            });
-
-        wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
-            authorization_session,
-        }));
-        wallet
-            .mut_storage()
-            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
-            .return_once(|| Ok(()));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_unique_attestations_by_credential_kinds()
-            .once()
-            .returning(|_| {
-                Ok(vec![StoredAttestationCopy::new(
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    ValidityWindow::new_valid_mock(),
-                    WithKeyIdentifier {
-                        key_identifier: "key".to_string(),
-                        data: StoredAttestation::SdJwt(create_example_pid_sd_jwt().0),
-                    },
-                    StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
-                    None,
-                    IssuerRegistration::new_mock(),
-                )])
-            });
-
-        let err = wallet.continue_pin_recovery(redirect_uri).await.unwrap_err();
-
-        assert_matches!(
-            err,
-            PinRecoveryError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. })
-        );
-    }
-
     // Failing unit tests for complete_pin_recovery()
 
     #[tokio::test]
@@ -1026,8 +878,126 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn complete_pin_recovery_received_no_recovery_code() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Have the issued PID contain only the family name, so that it lacks a recovery code.
+        let (mut credential_payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        credential_payload
+            .contents
+            .attributes
+            .prune(&[vec_nonempty![ClaimPath::SelectByKey(PID_FAMILY_NAME.to_string())]]);
+        setup_rejected_pid(&mut wallet, issued_sd_jwt_pid(credential_payload));
+
+        let err = wallet
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingIssuedRecoveryCode)
+        );
+    }
+
+    #[tokio::test]
+    async fn complete_pin_recovery_received_wrong_recovery_code() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Have the issued PID contain a different recovery code than the stored PID.
+        let (mut credential_payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        credential_payload
+            .contents
+            .attributes
+            .overwrite([PID_RECOVERY_CODE], Attribute::Text("wrong recovery code".to_string()));
+        setup_rejected_pid(&mut wallet, issued_sd_jwt_pid(credential_payload));
+
+        setup_stored_sd_jwt_pid(&mut wallet);
+
+        let err = wallet
+            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            PinRecoveryError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. })
+        );
+    }
+
+    fn issued_sd_jwt_pid(credential_payload: CredentialPayload) -> DecodedSdJwt {
+        decoded_sd_jwt_from_credential_payload(
+            credential_payload,
+            Some(&NormalizedTypeMetadata::nl_pid_example()),
+            &ISSUER_KEY.issuance_key,
+        )
+    }
+
+    /// Have the storage contain the example SD-JWT PID, whose recovery code is compared against that of the issued PID.
+    fn setup_stored_sd_jwt_pid(wallet: &mut TestWalletMockStorage) {
+        let pid_credential_kinds =
+            eq_credential_kinds(&wallet.config_repository.get().pid_attributes.sd_jwt_credential_kinds());
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .withf(pid_credential_kinds)
+            .once()
+            .return_once(|_| {
+                Ok(vec![StoredAttestationCopy::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    ValidityWindow::new_valid_mock(),
+                    WithKeyIdentifier {
+                        key_identifier: "key".to_string(),
+                        data: StoredAttestation::SdJwt(create_example_pid_sd_jwt().0),
+                    },
+                    StoredAttestationMetadata::TypeMetadata(NormalizedTypeMetadata::nl_pid_example()),
+                    None,
+                    IssuerRegistration::new_mock(),
+                )])
+            });
+    }
+
+    /// Set up a PIN recovery session in which `sd_jwt` is issued as the PID, which should be rejected after the
+    /// `StartPinRecovery` instruction. The [`PinRecoveryData`] stored before that should be kept, so that PIN recovery
+    /// has to be completed, while the new registration data should not be stored and the recovery code should not be
+    /// disclosed to the Wallet Provider.
+    fn setup_rejected_pid(wallet: &mut TestWalletMockStorage, sd_jwt: DecodedSdJwt) {
+        wallet
+            .mut_storage()
+            .expect_upsert_data()
+            .once()
+            .returning(|_: &PinRecoveryData| Ok(()));
+
+        // Constructing an instruction client check if the PIN is being changed.
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .once()
+            .returning(|| Ok(None));
+
+        wallet.mut_storage().expect_upsert_data::<RegistrationData>().never();
+        wallet.mut_storage().expect_delete_data::<PinRecoveryData>().never();
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
+            .expect_instruction_challenge()
+            .never();
+
+        setup_issuance_session_with_sd_jwt_pid(wallet, sd_jwt, true);
+    }
+
     fn setup_issuance_session(wallet: &mut TestWalletMockStorage, expect_accept_issuance: bool) {
-        let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
+        setup_issuance_session_with_sd_jwt_pid(wallet, create_example_pid_sd_jwt().0, expect_accept_issuance);
+    }
+
+    /// Set up a PIN recovery session in which the PID is issued as an mdoc and as `sd_jwt`, in that order.
+    fn setup_issuance_session_with_sd_jwt_pid(
+        wallet: &mut TestWalletMockStorage,
+        sd_jwt: DecodedSdJwt,
+        expect_accept_issuance: bool,
+    ) {
         let (mdoc, _metadata) = create_example_pid_mdoc(&SigningKey::generate());
 
         let (pid_issuer, _) = mock_issuance_session(
@@ -1042,7 +1012,7 @@ mod tests {
                 (
                     WithKeyIdentifier {
                         key_identifier: "key_id".to_string(),
-                        data: StoredAttestation::SdJwt(sd_jwt.clone()),
+                        data: StoredAttestation::SdJwt(sd_jwt),
                     },
                     IssuedCredentialMetadata::nl_pid_example(),
                 ),
@@ -1051,8 +1021,6 @@ mod tests {
         );
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
-            recovery_code_path: vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
-            pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
             issuance_session: pid_issuer,
         }));
     }
