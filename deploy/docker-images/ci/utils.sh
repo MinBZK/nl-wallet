@@ -23,8 +23,8 @@ sed -i -E '/^Defaults\s+(env_reset|mail_badpass|secure_path)/d' /etc/sudoers
 
 # yq
 # Download from: https://github.com/mikefarah/yq/releases/
-wget --no-hsts -q -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.52.4/yq_linux_amd64
-echo "0c4d965ea944b64b8fddaf7f27779ee3034e5693263786506ccd1c120f184e8c  /usr/local/bin/yq" | sha256sum -c
+wget --no-hsts -q -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.54.3/yq_linux_amd64
+echo "129534601871538efe0ba4c5e62a34fb1d5f469bcb975c4fddeb467d82974973  /usr/local/bin/yq" | sha256sum -c
 chmod +x /usr/local/bin/yq
 
 # Minio
@@ -41,8 +41,8 @@ chmod +x /usr/local/bin/kubectl
 
 # Helm
 # Download from: https://github.com/helm/helm/releases
-wget --no-hsts -q -O helm.tar.gz https://get.helm.sh/helm-v3.20.1-linux-amd64.tar.gz
-echo "0165ee4a2db012cc657381001e593e981f42aa5707acdd50658326790c9d0dc3  helm.tar.gz" | sha256sum -c
+wget --no-hsts -q -O helm.tar.gz https://get.helm.sh/helm-v3.22.1-linux-amd64.tar.gz
+echo "896cf63684a42a723d61c980369d6e588330927deb13676ca0d85006dd6da0ea  helm.tar.gz" | sha256sum -c
 tar -xf helm.tar.gz --no-same-owner linux-amd64/helm
 mv linux-amd64/helm /usr/local/bin/
 rmdir linux-amd64
@@ -50,8 +50,8 @@ rm helm.tar.gz
 
 # GitHub CLI
 # Download from: https://github.com/cli/cli/releases
-wget --no-hsts -q -O gh.tar.gz https://github.com/cli/cli/releases/download/v2.88.1/gh_2.88.1_linux_amd64.tar.gz
-echo "36352a993b97e9758793cdb87f9ba674bd6d88c914488e122be78a1962203803  gh.tar.gz" | sha256sum -c
+wget --no-hsts -q -O gh.tar.gz https://github.com/cli/cli/releases/download/v2.103.3/gh_2.103.3_linux_amd64.tar.gz
+echo "4c806978ffce1cec70853302a56d70ac6da4f19bae7adca4e1a8ab00633dd91d  gh.tar.gz" | sha256sum -c
 tar -xf gh.tar.gz --exclude 'LICENSE' --exclude 'share'
 mv gh_*/bin/gh /usr/local/bin/
 rm -rf gh_* gh.tar.gz
@@ -59,7 +59,7 @@ gh config set telemetry disabled
 
 # GitLab CLI
 # Download from: https://gitlab.com/gitlab-org/cli/-/releases
-wget --no-hsts -q -O glab.deb https://gitlab.com/gitlab-org/cli/-/releases/v1.91.0/downloads/glab_1.91.0_linux_amd64.deb
-echo "8b02efce7e5ac77c371a5dd81cc577f209610ec92149de0f691f2daa774fb3a4  glab.deb" | sha256sum -c
+wget --no-hsts -q -O glab.deb https://gitlab.com/gitlab-org/cli/-/releases/v1.130.0/downloads/glab_1.130.0_linux_amd64.deb
+echo "caf19cb4a842da7dbe4ecf146929f44e037fc733ab3f11945a1a48798497ed51  glab.deb" | sha256sum -c
 dpkg -i glab.deb
 rm glab.deb
