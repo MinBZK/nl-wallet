@@ -77,12 +77,12 @@ class CoreCloseProximityDisconnectedError extends CoreError {
   const CoreCloseProximityDisconnectedError(super.description, {super.data});
 }
 
-class CoreWrongDigidError extends CoreError {
-  const CoreWrongDigidError(super.description, {super.data});
+class CoreWrongIdentityError extends CoreError {
+  const CoreWrongIdentityError(super.description, {super.data});
 }
 
-class CoreDeniedDigidError extends CoreError {
-  const CoreDeniedDigidError(super.description, {super.data});
+class CoreDeniedPidIssuanceError extends CoreError {
+  const CoreDeniedPidIssuanceError(super.description, {super.data});
 }
 
 class CoreRelyingPartyError extends CoreError {

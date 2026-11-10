@@ -185,34 +185,34 @@ void main() {
       });
     });
 
-    group('WrongDigidError', () {
+    group('WrongIdentityError', () {
       test('props match', () {
         expect(
-          WrongDigidError(sourceError: sourceError),
-          WrongDigidError(sourceError: sourceError),
+          WrongIdentityError(sourceError: sourceError),
+          WrongIdentityError(sourceError: sourceError),
         );
       });
 
       test('props do not match', () {
         expect(
-          WrongDigidError(sourceError: sourceError),
-          isNot(WrongDigidError(sourceError: sourceError2)),
+          WrongIdentityError(sourceError: sourceError),
+          isNot(WrongIdentityError(sourceError: sourceError2)),
         );
       });
     });
 
-    group('DeniedDigidError', () {
+    group('DeniedPidIssuanceError', () {
       test('props match', () {
         expect(
-          DeniedDigidError(sourceError: sourceError),
-          DeniedDigidError(sourceError: sourceError),
+          DeniedPidIssuanceError(sourceError: sourceError),
+          DeniedPidIssuanceError(sourceError: sourceError),
         );
       });
 
       test('props do not match', () {
         expect(
-          DeniedDigidError(sourceError: sourceError),
-          isNot(DeniedDigidError(sourceError: sourceError2)),
+          DeniedPidIssuanceError(sourceError: sourceError),
+          isNot(DeniedPidIssuanceError(sourceError: sourceError2)),
         );
       });
     });

@@ -1,0 +1,277 @@
+[
+  {
+    "bsn": "900253010",
+    "family_name": "von Deutekom",
+    "family_name_birth": "von Deutekom",
+    "given_name": "Bertje",
+    "birth_date": "1992-05-08",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Utrecht"
+    },
+    "nationalities": "QU",
+    "address": {
+      "country": "NL",
+      "city": "Utrecht",
+      "postal_code": "2925CL",
+      "street": "Pluim-es",
+      "house_number": "31"
+    },
+    "sex": "female"
+  },
+  {
+    "bsn": "900253022",
+    "family_name": " Waarde",
+    "family_name_birth": " Waarde",
+    "given_name": "Willem",
+    "birth_date": "1994-09-30",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Maastricht"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Nijmegen",
+      "postal_code": "8862DD",
+      "street": "Plataan",
+      "house_number": "39"
+    },
+    "sex": "male"
+  },
+  {
+    "bsn": "900253034",
+    "family_name": "de Goede",
+    "family_name_birth": "de Goede",
+    "given_name": "Marcello",
+    "birth_date": "2003-07-09",
+    "birth_place": {
+      "country": "NL"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Utrecht",
+      "postal_code": "2925CL",
+      "street": "Plataan",
+      "house_number": "39"
+    },
+    "sex": "male"
+  },
+  {
+    "bsn": "900253046",
+    "family_name": "van der Oever",
+    "family_name_birth": "van der Oever",
+    "given_name": "Caroline",
+    "birth_date": "2009-05-29",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Rotterdam"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Rotterdam",
+      "postal_code": "2561EG",
+      "street": "Evenaar",
+      "house_number": "9"
+    },
+    "sex": "female"
+  },
+  {
+    "bsn": "900253058",
+    "family_name": " Wesseling",
+    "family_name_birth": " Wesseling",
+    "given_name": "Suzanne",
+    "birth_date": "1978-02-25",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Rotterdam"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Den Haag",
+      "postal_code": "3067DA",
+      "street": "Zonnebloem",
+      "house_number": "140"
+    },
+    "sex": "female"
+  },
+  {
+    "bsn": "900265425",
+    "family_name": "van der Moes",
+    "family_name_birth": "van der Moes",
+    "given_name": "Widolf",
+    "birth_date": "1987-04-01",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Oude Pekela"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Toetsoog",
+      "postal_code": "2596TW",
+      "street": "Colensostraat",
+      "house_number": "61e"
+    },
+    "sex": "male"
+  },
+  {
+    "bsn": "900265437",
+    "family_name": "over 't Wiel",
+    "family_name_birth": "over 't Wiel",
+    "given_name": "Koos",
+    "birth_date": "1977-04-04",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Enschede"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Rotterdam",
+      "postal_code": "3061CL",
+      "street": "Zonegge",
+      "house_number": "555A"
+    },
+    "sex": "male"
+  },
+  {
+    "bsn": "900265449",
+    "family_name": " Żywiałowska",
+    "family_name_birth": " Żywiałowska",
+    "given_name": "Circe",
+    "birth_date": "1946-09-12",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Utrecht"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Amsterdam",
+      "postal_code": "1079WZ",
+      "street": "Stadhoudersweg",
+      "house_number": "10"
+    },
+    "sex": "female"
+  },
+  {
+    "bsn": "900265450",
+    "family_name": "du Leclercq",
+    "family_name_birth": "du Leclercq",
+    "given_name": "Christine",
+    "birth_date": "1993-10-08",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Ravenstein"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Voorschoten",
+      "postal_code": "2252EB",
+      "street": "Jasmijn",
+      "house_number": "4"
+    },
+    "sex": "female"
+  },
+  {
+    "bsn": "900265462",
+    "family_name": "uijt de Fruitplukker",
+    "family_name_birth": "uijt de Fruitplukker",
+    "given_name": "Lennert",
+    "birth_date": "1975-07-07",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Hellevoetsluis"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Hellevoetsluis",
+      "postal_code": "3224TT",
+      "street": "Lavendelweg",
+      "house_number": "75"
+    },
+    "sex": "male"
+  },
+  {
+    "bsn": "950269049",
+    "family_name": "test-90021182",
+    "family_name_birth": "test-90021182",
+    "given_name": "Jolien",
+    "birth_date": "1979-06-21",
+    "birth_place": {
+      "country": "NL"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Den Haag",
+      "postal_code": "2563AE",
+      "street": "Laan van Meerdervoort",
+      "house_number": "300"
+    }
+  },
+  {
+    "bsn": "950273089",
+    "family_name": "test-90021561",
+    "family_name_birth": "test-90021561",
+    "given_name": "Jeroen",
+    "birth_date": "1985-03-12",
+    "birth_place": {
+      "country": "NL"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Utrecht",
+      "postal_code": "3511AX",
+      "street": "Oudegracht",
+      "house_number": "120"
+    }
+  },
+  {
+    "bsn": "999991772",
+    "family_name": "Jansen",
+    "family_name_birth": "Jansen",
+    "given_name": "Frouke",
+    "birth_date": "2000-03-24",
+    "birth_place": {
+      "country": "NL"
+    },
+    "nationalities": [
+      "NL",
+      "BE"
+    ],
+    "address": {
+      "country": "NL",
+      "city": "Utrecht",
+      "postal_code": "3528BG",
+      "street": "Groenewoudsedijk",
+      "house_number": "51"
+    },
+    "sex": "female"
+  },
+  {
+    "bsn": "999991905",
+    "family_name": "Strijps",
+    "family_name_birth": "Strijps",
+    "given_name": "Linda",
+    "birth_date": "1988-10-16",
+    "birth_place": {
+      "country": "NL"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Amsterdam",
+      "postal_code": "1103SK",
+      "street": "Glitterstraat",
+      "house_number": "301"
+    }
+  }
+]

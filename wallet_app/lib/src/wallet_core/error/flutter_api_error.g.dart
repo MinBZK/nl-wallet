@@ -32,8 +32,8 @@ const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.closeProximityDisconnected: 'CloseProximityDisconnected',
   FlutterApiErrorType.issuer: 'Issuer',
   FlutterApiErrorType.verifier: 'Verifier',
-  FlutterApiErrorType.wrongDigid: 'WrongDigid',
-  FlutterApiErrorType.deniedDigid: 'DeniedDigid',
+  FlutterApiErrorType.wrongIdentity: 'WrongIdentity',
+  FlutterApiErrorType.deniedPidIssuance: 'DeniedPidIssuance',
   FlutterApiErrorType.revoked: 'Revoked',
   FlutterApiErrorType.preAuthorizedCodeExpired: 'PreAuthorizedCodeExpired',
 };

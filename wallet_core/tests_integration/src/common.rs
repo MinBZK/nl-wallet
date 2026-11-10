@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::io;
 use std::net::IpAddr;
 use std::path::Path;
 use std::path::PathBuf;
@@ -35,7 +34,6 @@ use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::mock::MockCrlFetcher;
 use ctor::ctor;
 use db_test::DbSetup;
-use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
 use hsm::test::HsmSetup;
 use http_utils::client::TlsPinningConfig;
@@ -66,18 +64,14 @@ use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use pacf_issuance_server::settings::PacfIssuanceServerSettings;
-use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
-use pid_issuer::pid::brp::client::BrpClient;
-use pid_issuer::pid::digid::DigidClient;
-use pid_issuer::pid::mock::MockBrpClient;
-use pid_issuer::pid::mock::MockDigidClient;
+use pid_issuer::pid::auth_code_flow::LoginAuthorizationCodeFlow;
+use pid_issuer::pid::login_page::LoginPage;
+use pid_issuer::pid::mock::MOCK_PERSON;
 use pid_issuer::pid::rulebook::country_code::IsoCountryCode;
 use pid_issuer::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use reqwest::Certificate;
-use reqwest::header;
-use reqwest::redirect::Policy;
 use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring;
 use sea_orm::DatabaseConnection;
@@ -131,6 +125,7 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
 use wscd::mock::MOCK_WALLET_CLIENT_ID;
 
+use crate::fake_auth::fake_pid_auth;
 use crate::logging::init_logging;
 use crate::utils::read_file;
 use crate::utils::remove_path;
@@ -390,33 +385,7 @@ pub async fn setup_env(
 
     let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm.clone())).await;
 
-    let recovery_code_secret_key =
-        SecretKeyVariant::from_settings(pid_issuer_settings.recovery_code.clone(), Some(hsm.clone()))
-            .expect("could not initialize recovery code secret key");
-
-    let issuer_metadata = PidIssuerMetadata {
-        issuing_country: IsoCountryCode::Netherlands,
-        issuing_authority: "Test Issuing Authority".to_owned(),
-    };
-
-    let pid_issuer_url = start_pid_issuer_server(pid_issuer_settings, Some(hsm), |public_url| {
-        // The production `UpstreamOidcAuthorizationCodeFlow` (state bridge, callback handler, BRP
-        // attribute mapping, recovery-code HMAC) with only its two external boundaries mocked:
-        // `MockDigidClient` redirects the user-agent straight back to the issuer's own
-        // `/digid/callback` and returns a fixed BSN, and `MockBrpClient` serves a bundled
-        // haal-centraal person fixture.
-
-        UpstreamOidcAuthorizationCodeFlow::new(
-            MockBrpClient::default(),
-            MockDigidClient::default(),
-            recovery_code_secret_key,
-            issuer_metadata,
-            StoreConnection::Memory,
-            public_url.as_base_url(),
-            "mock-digid-client".to_string(),
-        )
-    })
-    .await;
+    let pid_issuer_url = start_pid_issuer_server(pid_issuer_settings, Some(hsm)).await;
 
     let issuer_data = IssuerData {
         issuance_server: issuance_server_url,
@@ -1319,16 +1288,7 @@ pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings) -
     }
 }
 
-pub async fn start_pid_issuer_server<B, O, F>(
-    mut pid_settings: PidIssuerSettings,
-    hsm: Option<Pkcs11Hsm>,
-    flow_builder: F,
-) -> IssuerUrl
-where
-    B: BrpClient + Send + Sync + 'static,
-    O: DigidClient + Send + Sync + 'static,
-    F: FnOnce(&IssuerIdentifier) -> UpstreamOidcAuthorizationCodeFlow<B, O>,
-{
+pub async fn start_pid_issuer_server(mut pid_settings: PidIssuerSettings, hsm: Option<Pkcs11Hsm>) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);
@@ -1345,7 +1305,24 @@ where
         .status_lists
         .serve;
 
-    let flow = flow_builder(&public_url);
+    let recovery_code_secret_key = SecretKeyVariant::from_settings(pid_settings.recovery_code.clone(), hsm.clone())
+        .expect("could not initialize recovery code secret key");
+
+    let issuer_metadata = PidIssuerMetadata {
+        issuing_country: IsoCountryCode::Netherlands,
+        issuing_authority: "Test Issuing Authority".to_owned(),
+    };
+
+    let login_page = LoginPage::new([], true, "");
+    let login_url = public_url.as_base_url().join(login_page.path());
+
+    let flow = LoginAuthorizationCodeFlow::new(
+        recovery_code_secret_key,
+        issuer_metadata,
+        StoreConnection::Memory,
+        login_url,
+        MOCK_PERSON.clone().into(),
+    );
 
     let (issuer, _, _, server_settings) = pid_settings
         .authorizing_issuer_settings
@@ -1364,7 +1341,7 @@ where
                 server_settings,
                 serve_status_lists,
                 [],
-                None,
+                login_page,
             )
             .await
             {
@@ -1458,35 +1435,6 @@ pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: Option<VecNonEmpt
     .unwrap_or_else(|e| panic!("Server not up: {base_url}: {e}"));
 }
 
-pub fn gba_hc_converter_settings() -> GbaSettings {
-    // We cannot use a random port here, since the BRP proxy needs to connect to the converter on a set port.
-    let mut settings = GbaSettings::new().expect("Could not read settings");
-    settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
-    settings
-}
-
-pub async fn start_gba_hc_converter(settings: GbaSettings) {
-    let base_url = local_http_base_url(settings.port);
-
-    tokio::spawn(async {
-        if let Err(error) = gba_hc_converter::app::serve_from_settings(settings).await {
-            if let Some(io_error) = error.downcast_ref::<io::Error>()
-                && io_error.kind() == io::ErrorKind::AddrInUse
-            {
-                tracing::warn!(
-                    "TCP address/port for gba_hc_converter is already in use, assuming you started it yourself, \
-                     continuing..."
-                );
-                return;
-            }
-            tracing::error!("Could not start gba_hc_converter: {error:?}");
-            process::exit(1);
-        }
-    });
-
-    wait_for_server(base_url, None).await;
-}
-
 pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: Pin) -> WalletWithStorage {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
@@ -1501,38 +1449,6 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: Pin) -> 
     assert!(wallet.register(pin).await.is_err());
 
     wallet
-}
-
-/// Act as the user's browser for the in-process pid_issuer: follow the redirect chain starting at
-/// `/authorize` (`/authorize` → `/digid/callback` → wallet redirect, since the mocked DigiD
-/// client sends the user-agent straight back to the issuer's own callback) for as long as it
-/// stays on the issuer's origin, returning the first off-origin redirect URL, which is the wallet-facing
-/// redirect with the issuer-generated `code` and the wallet's original `state`.
-pub async fn follow_authorization_redirects(authorization_url: Url) -> Url {
-    let http_client = default_reqwest_client_builder()
-        .redirect(Policy::none())
-        .build()
-        .unwrap();
-
-    let issuer_origin = authorization_url.origin();
-    let mut url = authorization_url;
-
-    loop {
-        let response = http_client.get(url).send().await.unwrap();
-        let location: Url = response
-            .headers()
-            .get(header::LOCATION)
-            .expect("response should be a redirect carrying a Location header")
-            .to_str()
-            .unwrap()
-            .parse()
-            .unwrap();
-
-        if location.origin() != issuer_origin {
-            return location;
-        }
-        url = location;
-    }
 }
 
 pub async fn do_pid_issuance(wallet: WalletWithStorage, pin: Pin) -> WalletWithStorage {
@@ -1553,7 +1469,7 @@ pub async fn do_pid_issuance_with_purpose(
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = follow_authorization_redirects(redirect_uri).await;
+    let redirect_url = fake_pid_auth(redirect_uri, MOCK_PERSON.bsn.clone()).await;
 
     let _attestations = wallet
         .continue_issuance(redirect_url)
@@ -1572,7 +1488,7 @@ pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: Pin) -> Wal
         .await
         .expect("Could not create pin recovery redirect URI");
 
-    let redirect_url = follow_authorization_redirects(redirect_uri).await;
+    let redirect_url = fake_pid_auth(redirect_uri, MOCK_PERSON.bsn.clone()).await;
 
     wallet
         .continue_pin_recovery(redirect_url)

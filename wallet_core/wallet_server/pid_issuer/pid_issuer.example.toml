@@ -5,7 +5,6 @@ public_url = 'http://localhost:8001/'
 
 # OAuth client_id(s) that the wallet is allowed to use when sending a PAR request to this server.
 # Must match the client_id configured in the wallet's pid_issuance settings.
-# Distinct from [digid] client_id, which is used when forwarding authorization to the upstream IdP.
 wallet_client_ids = [""]
 
 # Exact-match allowlist of redirect_uri values the wallet may use in a PAR. Must equal the wallet's
@@ -37,6 +36,9 @@ registration_certificate = "<base64url-encoded WRPRC>"
 issuing_country = "NL"
 issuing_authority = "Example Issuing Authority"
 
+# Path to the Person attributes
+person_attributes_path = "persons.json"
+
 [storage]
 url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
 
@@ -62,21 +64,6 @@ max_session_lifetime_in_sec = 900
 # Minimally 32 bytes. Generate with e.g. `openssl rand 32 | xxd -p -c64`
 secret_key = "fb34c5a3e40a818197ed866e4a38dafcf2158bd1fda2cbe1ff22e40e77b4f4f9"
 secret_key_type = "software"                                                    # or `hsm`
-
-[digid]
-bsn_privkey = ""
-# OAuth client_id used when forwarding authorization to DigiD (nl-rdo-max). Must be registered in
-# DigiD's clients.json. Different from wallet_client_ids above.
-client_id = ""
-
-[digid.client_settings]
-# This is the base URL for the DigiD OIDC discovery host.
-oidc_identifier = "https://localhost:8006"
-# The TLS pinning trust anchors used for any OIDC HTTP request made, including
-# those sent to URLs that are the result of discovery. Note that these could be
-# on a different host than the base_url above, although this is likely to be
-# the same host in practice.
-trust_anchors = [""]
 
 # Configuration fields for credential_configurations (only the metadata field is described here)
 # * credential_metadata: Path to a JSON file containing the Credential Metadata

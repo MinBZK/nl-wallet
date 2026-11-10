@@ -60,6 +60,3 @@ build/android
 
 # Fastlane resign
 _floatsignTemp/
-
-# DigiD connector checkout from devenv
-/nl-rdo-max

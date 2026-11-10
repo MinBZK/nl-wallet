@@ -141,23 +141,12 @@ database:
 ##
 batchSize: 4
 
-## @section DigiD parameters
-## Parameters for the DigiD configuration
-## @param digidClientId Client ID for the DigiD service
-## @param digidBaseUrl Base URL for the DigiD service
-##
-digidClientId:
-digidBaseUrl:
-
-## @section Mock DigiD login
-## When non-empty, the pid_issuer serves its own mock DigiD login page (a grid of these identities)
-## instead of redirecting to nl-rdo-max's. Maps each BSN to a display name; each BSN must resolve in
-## the BRP proxy's dataset.
-## @param mockSubjects [object] Selectable mock identities, as a `bsn: name` map
-## @param mockCustomBsn Whether the mock DigiD login has a custom bsn option
-mockSubjects: {}
-##  "999991772": "Frouke Jansen"
-mockCustomBsn: false
+## @section Login page
+## Parameters for the Login page
+## @param loginSubjects [array] Selectable mock identities, if empty all persons are used
+## @param loginCustomBsn Whether the login page has a custom bsn option
+loginSubjects: []
+loginCustomBsn: false
 
 ## @section Wallet redirect uris
 ## Exact-match allowlist of `redirect_uri` values the wallet may use in a Pushed Authorization Request.

@@ -96,7 +96,7 @@ ai-security-scan-full:
   variables:
     TRIAGE: "false"
     SCAN_TARGET: "wallet_core"
-    SCAN_EXCLUDES: "--exclude target --exclude tests_integration --exclude demo --exclude gba_hc_converter --exclude wallet_server/pid_issuer"
+    SCAN_EXCLUDES: "--exclude target --exclude tests_integration --exclude demo --exclude wallet_server/pid_issuer"
   script:
     - claude -p "/vuln-scan ../../../${SCAN_TARGET} ${SCAN_EXCLUDES} --no-score" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --append-system-prompt "$NONINTERACTIVE"
     - mv ../../../${SCAN_TARGET}/VULN-FINDINGS.* ./ 2>/dev/null || true

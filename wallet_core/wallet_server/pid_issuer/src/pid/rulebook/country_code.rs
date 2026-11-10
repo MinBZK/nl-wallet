@@ -605,6 +605,12 @@ impl From<RulebookCountryCode> for Attribute {
     }
 }
 
+impl From<IsoCountryCode> for RulebookCountryCode {
+    fn from(value: IsoCountryCode) -> Self {
+        RulebookCountryCode::Iso(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;

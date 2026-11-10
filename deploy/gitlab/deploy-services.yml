@@ -71,12 +71,6 @@ create-deployment-pub:
       artifacts: false
     - job: build-pid-issuer-migrations-image
       artifacts: false
-    - job: build-gba-hc-converter-image
-      artifacts: false
-    - job: build-gba-fetch-image
-      artifacts: false
-    - job: build-gba-fetch-frontend-image
-      artifacts: false
     - job: build-revocation-portal-image
       artifacts: false
     - job: build-admin-portal-image

@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
     <title>{{ trans.title }}</title>
-    <link rel="stylesheet" href="mock-login/css/language_selector.css" />
-    <link rel="stylesheet" href="mock-login/mock_login.css" />
-    <script src="mock-login/language.js" defer></script>
-    <script src="mock-login/mock_login.js" defer></script>
+    <link rel="stylesheet" href="login/css/language_selector.css" />
+    <link rel="stylesheet" href="login/login.css" />
+    <script src="login/language.js" defer></script>
+    <script src="login/login.js" defer></script>
   </head>
   <body>
     <aside class="lang-bar">
@@ -15,7 +15,7 @@
         <label tabindex="0" role="navigation" for="lang_toggle">{{ lang|upper }}</label>
         <input tabindex="-1" id="lang_toggle" type="checkbox" aria-hidden="true" />
         <form class="lang-modal" method="GET">
-          <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
+          <input type="hidden" name="state" value="{{ state }}" />
           {% for (option, name) in language_options %}
           <button tabindex="0" type="submit" name="lang" value="{{ option }}" {% if *option == lang %}disabled{% endif %}>{{ name }}</button>
           {% endfor %}
@@ -40,8 +40,7 @@
       <h2 class="list-heading">{{ trans.list_heading }}</h2>
       <div class="grid">
         {% for subject in subjects %}
-        <form class="card" method="post" action="mock-login/select">
-          <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
+        <form class="card" method="post">
           <input type="hidden" name="bsn" value="{{ subject.bsn }}" />
           <button type="submit">
             <span class="card-text">
@@ -64,8 +63,7 @@
         {% endfor %}
 
         {% if custom_bsn %}
-        <form class="card-custom" method="post" action="mock-login/select">
-          <input type="hidden" name="authorize_url" value="{{ authorize_url }}" />
+        <form class="card-custom" method="post">
           <label class="name" for="custom-bsn">{{ trans.custom_heading }}</label>
           <div>
             <input

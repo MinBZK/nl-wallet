@@ -202,9 +202,9 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
     await _cancelPinRecoveryUsecase.invoke(); // Always attempt to cancel the session, then render the specific error
 
     switch (error) {
-      case WrongDigidError():
+      case WrongIdentityError():
         emit(const RecoverPinDigidMismatch());
-      case DeniedDigidError():
+      case DeniedPidIssuanceError():
         emit(const RecoverPinDigidLoginCancelled());
       case RedirectUriError():
         if ([RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError)) {

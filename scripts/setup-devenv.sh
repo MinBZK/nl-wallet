@@ -2,7 +2,6 @@
 # This script generates configuration files, keys and certificates for a local development environment for the Wallet.
 # It will configure the following applications:
 #
-# - nl-rdo-max (digid-connector)
 # - wallet_provider
 # - wallet
 # - pid_issuer, verification_server and issuance_server
@@ -17,12 +16,11 @@
 # - openssl: needed to generate keys and certificates
 # - jq: needed to parse JSON
 # - standard unix tools like: grep, sed, tr, ...
-# - docker: with compose v2 and buildx 0.19 or newer, to run the digid-connector
+# - docker: with compose v2 and buildx
 # - softhsm2-util: software implementation of a hardware security module (HSM). See https://github.com/opendnssec/SoftHSMv2.
 # - p11tool: utility that is part of the gnutls package. The Homebrew package is 'gnutls'. On Debian/Ubuntu, it is 'gnutls-bin'.
 # - nodejs: JavaScript runtime environment for building frontend library
 # - envsubst: Environment variables substitution
-# - make: used for building nl-rdo-max (digid-connector)
 #
 # MacOS specific instructions
 # This script needs GNU sed. this can be installed by
@@ -58,13 +56,13 @@ fi
 
 # Use gsed on macOS, sed on others
 is_macos && SED="gsed" || SED="sed"
-have cargo jq tr xxd openssl p11tool softhsm2-util envsubst make "${SED}"
+have cargo jq tr xxd openssl p11tool softhsm2-util envsubst "${SED}"
 
 # Check if openssl is "real" OpenSSL
 check_openssl
 
-# Only check for docker if we configure rdo-max or keycloak
-if [[ -z "${SKIP_DIGID_CONNECTOR:-}" || -z "${SKIP_KEYCLOAK:-}" ]]; then
+# Only check for docker if we configure keycloak
+if [[ -z "${SKIP_KEYCLOAK:-}" ]]; then
     have docker
 fi
 
@@ -84,7 +82,6 @@ then
     echo -e "${INFO}Saving initial environment variables${NC}"
     echo -e \
 "#!/usr/bin/env bash
-# export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH}
 # export DB_HOST=${DB_HOST}
 # export DB_PORT=${DB_PORT}
 # export DB_USERNAME=${DB_USERNAME}
@@ -127,92 +124,6 @@ USE_SINGLE_CA=0 generate_or_reuse_root_ca "${TARGET_DIR}/bad_ca" "Bad Example CA
 if [[ "${USE_SINGLE_CA}" == 1 && -n ${USE_SINGLE_CA_PATH} ]]; then
     echo -e "${SECTION}Configuring a single CA for shared usage ${NC}"
     generate_or_reuse_root_ca "${USE_SINGLE_CA_PATH}" "Local Dev CA"
-fi
-
-########################################################################
-# Configure digid-connector
-########################################################################
-
-if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
-  echo -e "${SECTION}Configure and start digid-connector${NC}"
-
-  # Check for existing nl-rdo-max, re-use if existing, clone if not.
-  if [[ -d "${DIGID_CONNECTOR_PATH}" ]]; then
-    echo -e "${INFO}Using existing nl-rdo-max repository, discarding changes and making sure we're at the requested version tag/branch${NC}"
-
-    # Git fetch first, so we have the latest available.
-    git -C "${DIGID_CONNECTOR_PATH}" fetch
-
-    # Git switch to target branch forcibly, discarding any tracked changes.
-    git -C "${DIGID_CONNECTOR_PATH}" checkout -f "${DIGID_CONNECTOR_VERSION}"
-
-  else
-    # Do a fresh git clone to DIGID_CONNECTOR_PATH.
-    echo -e "${INFO}Cloning nl-rdo-max repository: ${DIGID_CONNECTOR_PATH}${NC}"
-    git clone -b "${DIGID_CONNECTOR_VERSION}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
-  fi
-
-  # Enter nl-rdo-max git repository.
-  cd "${DIGID_CONNECTOR_PATH}"
-
-  # Brings v4.0.3 up to dockerfile-stage-fixes branch.
-  # Commits: v4.0.3 (c2b5915), main (70d1e46), current (d72ee52), fixes (8165875).
-  echo -e "${INFO}Applying nl-rdo-max patches to ${DIGID_CONNECTOR_PATH} (${DIGID_CONNECTOR_VERSION})"
-  apply_patches_once "${DIGID_CONNECTOR_PATH}" \
-    "${DEVENV}/digid-connector/from-v403-to-main.patch" \
-    "${DEVENV}/digid-connector/from-main-to-current.patch" \
-    "${DEVENV}/digid-connector/from-current-to-fixes.patch" \
-    2> /dev/null
-
-  # Don't use the rijksoverheid ui-theme.
-  echo -e "${INFO}Uninstalling rijksoverheid ui-theme"
-  npm uninstall @minvws/nl-rdo-rijksoverheid-ui-theme
-
-  # Make sure we use our single ca if USE_SINGLE_CA is set. This works because setup-secrets.sh, which is indirectly
-  # called by make setup-remote later, will not replace a previously existing set of ca certificate files.
-  if [[ "${USE_SINGLE_CA}" == 1 && -n "${USE_SINGLE_CA_PATH}" && -f "${USE_SINGLE_CA_PATH}/ca.crt.pem" ]]; then
-    echo -e "${INFO}Using single CA for digid-connector${NC}"
-    mkdir -p "${DIGID_CONNECTOR_PATH}/secrets"
-    cp -f "${USE_SINGLE_CA_PATH}/ca.crt.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt"
-    cp -f "${USE_SINGLE_CA_PATH}/ca.key.pem" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
-  fi
-
-  # Create an RDO max container.
-  make setup-remote
-  npm run build
-
-  # Create our config files (overwrites defaults created in make targets).
-  render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
-  render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
-  render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
-
-  generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
-  openssl x509 -in "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
-      -outform der -out "${DIGID_CONNECTOR_PATH}/secrets/cacert.der"
-
-  DIGID_CA_CRT=$(< "${DIGID_CONNECTOR_PATH}/secrets/cacert.der" ${BASE64})
-  export DIGID_CA_CRT
-
-  # Generate JWK from private RSA key of test_client.
-  CLIENT_PRIVKEY_JWK=$(docker compose run --rm "${DIGID_CONNECTOR_APPNAME}" make --silent create-jwk)
-
-  # Remove the 'kid' json field, because the digid-connector does not send a JWE 'kid' header claim, which is required
-  # if `kid` field is specified.
-  BSN_PRIVKEY=$(echo "${CLIENT_PRIVKEY_JWK}" | jq -c 'del(.kid)')
-  export BSN_PRIVKEY
-else
-    # DIGID_CA_CRT must end up in the wallet configuration, so we generate it here in the target directory
-    echo -e "${SECTION}Generating digid-connector root ca for the wallet configuration${NC}"
-    mkdir -p "${TARGET_DIR}/digid"
-
-    generate_or_reuse_root_ca "${TARGET_DIR}/digid" "rdo-max"
-
-    DIGID_CA_CRT=$(< "${TARGET_DIR}/digid/ca.crt.der" ${BASE64})
-    export DIGID_CA_CRT
-
-    # Set a fake RSA private key so that parsing the settings succeeds.
-    # shellcheck disable=SC2089 # JSON string, quotes are intentional.
-    export BSN_PRIVKEY='{"kty":"RSA","n":"","e":"","d":"","p":"","q":"","dp":"","dq":"","qi":""}'
 fi
 
 ########################################################################
@@ -946,19 +857,6 @@ export REVOCATION_PORTAL_CSRF_COOKIE_SALT
 
 render_template "${DEVENV}/revocation_portal.toml.template" "${REVOCATION_PORTAL_DIR}/revocation_portal.toml"
 
-
-########################################################################
-# Configure gba-hc-converter
-########################################################################
-
-echo
-echo -e "${SECTION}Configure gba-hc-converter${NC}"
-
-render_template "${DEVENV}/gba_hc_converter.toml.template" "${BASE_DIR}/wallet_core/gba_hc_converter/gba_hc_converter.toml"
-render_template "${DEVENV}/gba_hc_converter.toml.template" "${BASE_DIR}/wallet_core/tests_integration/gba_hc_converter.toml"
-
-rm -rf "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses"
-encrypt_gba_v_responses
 
 ########################################################################
 # Configure wallet
