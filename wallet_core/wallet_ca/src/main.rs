@@ -19,8 +19,8 @@ use cose::wrprc_cwt::SignedWrprcCwt;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate;
 use crypto::x509::CertificateConfiguration;
+use crypto::x509::CertificateExtendedKeyUsage;
 use crypto::x509::CertificateProfile;
-use crypto::x509::CertificateUsage;
 use crypto::x509::DistinguishedName;
 use http_utils::urls::HttpsUri;
 use jwt::SignedJwt;
@@ -380,17 +380,18 @@ impl Command {
         san_uris: Vec<HttpsUri>,
     ) -> CertificateConfiguration {
         let profile = match cert_type {
-            CertType::Issuer => Some(CertificateProfile::Issuer),
-            CertType::PidIssuer => Some(CertificateProfile::PidIssuer),
-            CertType::Tsl => Some(CertificateProfile::StatusListSigning),
-            CertType::Wia => Some(CertificateProfile::Wia),
-            CertType::KeyAttestation => Some(CertificateProfile::KeyAttestation),
-            CertType::Wrpac | CertType::Wrprc => None,
+            CertType::Issuer => CertificateProfile::Issuer,
+            CertType::PidIssuer => CertificateProfile::PidIssuer,
+            CertType::Tsl => CertificateProfile::StatusListSigning,
+            CertType::Wia => CertificateProfile::Wia,
+            CertType::KeyAttestation => CertificateProfile::KeyAttestation,
+            CertType::Wrpac => CertificateProfile::Wrpac,
+            CertType::Wrprc => CertificateProfile::Wrprc,
         };
         let subject_alt_names = san_uris.into_iter().map(Into::into).collect();
 
         CertificateConfiguration {
-            profile,
+            profile: Some(profile),
             crl_distribution_points,
             ca_issuers,
             subject_alt_names,
@@ -545,9 +546,10 @@ impl Command {
                 if signing_key_pair.certificate().x509_certificate().is_ca() {
                     anyhow::bail!("status list signing certificate must be an end-entity certificate");
                 }
-                let usage = CertificateUsage::from_certificate(signing_key_pair.certificate().x509_certificate())
-                    .context("status list signing certificate must have Status List Signing usage")?;
-                if usage != CertificateUsage::StatusListSigning {
+                let usage =
+                    CertificateExtendedKeyUsage::from_certificate(signing_key_pair.certificate().x509_certificate())
+                        .context("status list signing certificate must have Status List Signing usage")?;
+                if usage != CertificateExtendedKeyUsage::StatusListSigning {
                     anyhow::bail!("status list signing certificate must have Status List Signing usage");
                 }
 

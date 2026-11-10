@@ -9,7 +9,7 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::PublicKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::TrustAnchors;
-use crypto::x509::CertificateUsage;
+use crypto::x509::CertificateExtendedKeyUsage;
 use derive_more::AsRef;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
@@ -230,7 +230,7 @@ impl KeyAttestation {
             .parse_and_verify_against_trust_anchors(
                 trust_anchors,
                 time,
-                Some(CertificateUsage::KeyAttestation),
+                Some(CertificateExtendedKeyUsage::KeyAttestation),
                 ES256_JWT_VALIDATION.clone(),
             )
             .map_err(KeyAttestationVerificationError::InvalidJwt)?;

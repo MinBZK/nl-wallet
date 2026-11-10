@@ -71,8 +71,8 @@ pub use key_identifier::KeyIdentifier;
 pub use profile::CertificateProfile;
 #[cfg(any(test, feature = "generate"))]
 pub use san::SubjectAltNameUri;
-pub use usage::CertificateUsage;
-pub use usage::CertificateUsageError;
+pub use usage::CertificateExtendedKeyUsage;
+pub use usage::CertificateExtendedKeyUsageError;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
 pub enum CertificateVerifyError {
@@ -213,7 +213,7 @@ impl BorrowingCertificate {
     /// in `intermediate_certs` are ignored.
     pub fn verify(
         &self,
-        usage: Option<CertificateUsage>,
+        usage: Option<CertificateExtendedKeyUsage>,
         intermediate_certs: &[BorrowingCertificate],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
@@ -224,7 +224,7 @@ impl BorrowingCertificate {
 
     fn verify_with_crls<'a>(
         &self,
-        usage: Option<CertificateUsage>,
+        usage: Option<CertificateExtendedKeyUsage>,
         intermediate_certs: impl IntoIterator<Item = &'a BorrowingCertificate, IntoIter: Clone>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
@@ -237,7 +237,7 @@ impl BorrowingCertificate {
     /// Verify the certificate and retain only the intermediates used in the verified path.
     fn verify_inner<'a>(
         &self,
-        usage: Option<CertificateUsage>,
+        usage: Option<CertificateExtendedKeyUsage>,
         intermediate_certs: impl IntoIterator<Item = &'a BorrowingCertificate, IntoIter: Clone>,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &TrustAnchors,
@@ -609,7 +609,9 @@ mod tests {
     #[case::status_list(Some(CertificateProfile::StatusListSigning), Some(0b0000_0001))]
     #[case::wia(Some(CertificateProfile::Wia), Some(0b0000_0001))]
     #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some(0b0000_0001))]
-    #[case::without_eku(None, None)]
+    #[case::wrpac(Some(CertificateProfile::Wrpac), Some(0b0000_0001))]
+    #[case::wrprc(Some(CertificateProfile::Wrprc), Some(0b0000_0010))]
+    #[case::without_profile(None, None)]
     fn generated_leaf_key_usage(#[case] profile: Option<CertificateProfile>, #[case] expected_flags: Option<u16>) {
         let ca = Ca::generate_mock();
         let key_pair = ca
@@ -623,14 +625,52 @@ mod tests {
             .unwrap();
         let key_usage = key_pair.certificate().x509_certificate().key_usage().unwrap();
 
-        // ISO/IEC 18013-5:2021, Table B.3 (mdoc signers) and ETSI EN 319 412-2, section 4.3.2 (status list and WIA
-        // signers) require a critical digitalSignature; leaves without extended key usage get no key usage.
+        // Key Usage is determined by the certificate's purpose, independently of Extended Key Usage.
+        // WRPRC signers use contentCommitment; the other profiles use digitalSignature.
         assert_eq!(
             key_usage.as_ref().map(|extension| extension.value.flags),
             expected_flags
         );
         if let Some(key_usage) = key_usage {
             assert!(key_usage.critical);
+        }
+    }
+
+    #[rstest]
+    #[case::pid_issuer(Some(CertificateProfile::PidIssuer), Some(("1.0.18013.5.1.2", false)))]
+    #[case::issuer(Some(CertificateProfile::Issuer), Some(("1.0.18013.5.1.2", false)))]
+    #[case::wrpac(Some(CertificateProfile::Wrpac), Some(("1.0.18013.5.1.6", false)))]
+    #[case::wrprc(Some(CertificateProfile::Wrprc), None)]
+    #[case::status_list(Some(CertificateProfile::StatusListSigning), Some(("1.3.6.1.5.5.7.3.127", false)))]
+    #[case::wia(Some(CertificateProfile::Wia), Some(("1.3.6.1.5.5.7.3.128", false)))]
+    #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some(("1.3.6.1.5.5.7.3.129", false)))]
+    #[case::without_profile(None, None)]
+    fn generated_leaf_extended_key_usage(
+        #[case] profile: Option<CertificateProfile>,
+        #[case] expected: Option<(&str, bool)>,
+    ) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("signer"),
+                CertificateConfiguration {
+                    profile,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let certificate = key_pair.certificate().x509_certificate();
+        let eku = certificate.extended_key_usage().unwrap();
+        match expected {
+            Some((oid, critical)) => {
+                let eku = eku.expect("profile must generate Extended Key Usage");
+                assert_eq!(eku.critical, critical);
+                assert_eq!(
+                    eku.value.other.iter().map(ToString::to_string).collect::<Vec<_>>(),
+                    [oid]
+                );
+            }
+            None => assert!(eku.is_none()),
         }
     }
 
@@ -642,6 +682,8 @@ mod tests {
             Some(CertificateProfile::StatusListSigning),
             Some(CertificateProfile::Wia),
             Some(CertificateProfile::KeyAttestation),
+            Some(CertificateProfile::Wrpac),
+            Some(CertificateProfile::Wrprc),
             None
         )]
         profile: Option<CertificateProfile>,
@@ -687,7 +729,7 @@ mod tests {
 
         certificate
             .verify(
-                profile.map(CertificateProfile::usage),
+                profile.and_then(CertificateProfile::extended_key_usage),
                 &[],
                 &TimeGenerator,
                 &ca.to_trust_anchors(),
@@ -731,12 +773,20 @@ mod tests {
         Some("2.25.150580842064059311066423755779195795505")
     )]
     #[case::status_list(Some(CertificateProfile::StatusListSigning), None)]
+    #[case::wrpac(
+        Some(CertificateProfile::Wrpac),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
+    #[case::wrprc(
+        Some(CertificateProfile::Wrprc),
+        Some("2.25.150580842064059311066423755779195795505")
+    )]
     #[case::wia(Some(CertificateProfile::Wia), Some("2.25.150580842064059311066423755779195795505"))]
     #[case::key_attestation(
         Some(CertificateProfile::KeyAttestation),
         Some("2.25.150580842064059311066423755779195795505")
     )]
-    #[case::without_eku(None, None)]
+    #[case::without_profile(None, None)]
     fn generated_leaf_certificate_policies(
         #[case] profile: Option<CertificateProfile>,
         #[case] expected: Option<&str>,
@@ -778,7 +828,7 @@ mod tests {
         key_pair
             .certificate()
             .verify(
-                profile.map(CertificateProfile::usage),
+                profile.and_then(CertificateProfile::extended_key_usage),
                 &[],
                 &TimeGenerator,
                 &ca.to_trust_anchors(),
@@ -863,9 +913,11 @@ mod tests {
     #[case::pid_issuer(Some(CertificateProfile::PidIssuer), Some("0.4.0.194126.1.1"))]
     #[case::issuer(Some(CertificateProfile::Issuer), None)]
     #[case::status_list(Some(CertificateProfile::StatusListSigning), None)]
+    #[case::wrpac(Some(CertificateProfile::Wrpac), None)]
+    #[case::wrprc(Some(CertificateProfile::Wrprc), None)]
     #[case::wia(Some(CertificateProfile::Wia), Some("0.4.0.194126.1.2"))]
     #[case::key_attestation(Some(CertificateProfile::KeyAttestation), Some("0.4.0.194126.1.2"))]
-    #[case::without_eku(None, None)]
+    #[case::without_profile(None, None)]
     fn generated_leaf_qc_statements(
         #[case] profile: Option<CertificateProfile>,
         #[case] expected_qc_type: Option<&str>,
@@ -908,7 +960,7 @@ mod tests {
         key_pair
             .certificate()
             .verify(
-                profile.map(CertificateProfile::usage),
+                profile.and_then(CertificateProfile::extended_key_usage),
                 &[],
                 &TimeGenerator,
                 &ca.to_trust_anchors(),
@@ -936,14 +988,19 @@ mod tests {
         // Test verify with correct usage
         key_pair
             .certificate()
-            .verify(Some(CertificateUsage::Wia), &[], &TimeGenerator, &ca.to_trust_anchors())
+            .verify(
+                Some(CertificateExtendedKeyUsage::Wia),
+                &[],
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+            )
             .expect("Expected verify to succeed");
 
         // Test verify with different usage
         key_pair
             .certificate()
             .verify(
-                Some(CertificateUsage::StatusListSigning),
+                Some(CertificateExtendedKeyUsage::StatusListSigning),
                 &[],
                 &TimeGenerator,
                 &ca.to_trust_anchors(),

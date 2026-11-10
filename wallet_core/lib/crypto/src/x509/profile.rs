@@ -1,6 +1,6 @@
 use der::oid::ObjectIdentifier;
 
-use super::CertificateUsage;
+use super::CertificateExtendedKeyUsage;
 
 /// The DER encoded content of the certificate policies extension (RFC 5280, section 4.2.1.4) of NL Wallet
 /// certificates, which contains a single policy without qualifiers:
@@ -29,30 +29,36 @@ const ID_ETSI_QCT_PID: ObjectIdentifier = ObjectIdentifier::new_unwrap("0.4.0.19
 /// The QcType of wallet provider certificates, id-etsi-qct-wal (ETSI TS 119 412-6, Annex A).
 const ID_ETSI_QCT_WAL: ObjectIdentifier = ObjectIdentifier::new_unwrap("0.4.0.194126.1.2");
 
-/// The profile of a generated end-entity certificate, which determines its [`CertificateUsage`] and other extensions
-/// that depend on its purpose.
+/// The profile of a generated end-entity certificate, which determines its [`CertificateExtendedKeyUsage`] and other
+/// extensions that depend on its purpose.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CertificateProfile {
     /// PID issuer certificate.
     PidIssuer,
     /// Issuer certificate for attestations other than PID.
     Issuer,
+    /// Wallet relying party access certificate for authentication.
+    Wrpac,
+    /// End-entity certificate for signing wallet relying party registration certificates.
+    Wrprc,
     StatusListSigning,
     Wia,
     KeyAttestation,
 }
 
 impl CertificateProfile {
-    /// The extended key usage of the certificate.
-    pub fn usage(self) -> CertificateUsage {
+    /// The extended key usage of the certificate, if the profile specifies one.
+    pub fn extended_key_usage(self) -> Option<CertificateExtendedKeyUsage> {
         match self {
             // Both issuer profiles map to the mdoc issuer extended key usage of ISO/IEC 18013-5, also for SD-JWT
             // signing: issuers sign both formats with the same certificate, and SD-JWT defines no extended key usage of
             // its own.
-            Self::PidIssuer | Self::Issuer => CertificateUsage::Mdl,
-            Self::StatusListSigning => CertificateUsage::StatusListSigning,
-            Self::Wia => CertificateUsage::Wia,
-            Self::KeyAttestation => CertificateUsage::KeyAttestation,
+            Self::PidIssuer | Self::Issuer => Some(CertificateExtendedKeyUsage::Mdl),
+            Self::StatusListSigning => Some(CertificateExtendedKeyUsage::StatusListSigning),
+            Self::Wia => Some(CertificateExtendedKeyUsage::Wia),
+            Self::KeyAttestation => Some(CertificateExtendedKeyUsage::KeyAttestation),
+            Self::Wrpac => Some(CertificateExtendedKeyUsage::MdlReader),
+            Self::Wrprc => None,
         }
     }
 
@@ -62,9 +68,13 @@ impl CertificateProfile {
             // This issuer profile is also used for SD-JWT signing.
             Self::PidIssuer | Self::Issuer => vec![rcgen::KeyUsagePurpose::DigitalSignature],
             // ETSI EN 319 412-2, section 4.3.2 requires a key usage; type C is digitalSignature only.
-            Self::StatusListSigning | Self::Wia | Self::KeyAttestation => {
+            Self::Wrpac | Self::StatusListSigning | Self::Wia | Self::KeyAttestation => {
                 vec![rcgen::KeyUsagePurpose::DigitalSignature]
             }
+            // ETSI TS 119 475, section 5.2.1 requires an advanced signature/seal for WRPRCs.
+            // ETSI EN 319 412-2, section 4.3.2 and EN 319 412-3, section 4.3.1 recommend type A:
+            // nonRepudiation, also named contentCommitment.
+            Self::Wrprc => vec![rcgen::KeyUsagePurpose::ContentCommitment],
         }
     }
 
@@ -74,9 +84,16 @@ impl CertificateProfile {
     /// provider certificates through ETSI TS 119 412-6, PID-4.1-01, to wallet provider certificates through WAL-5.1-01
     /// and to other attestation provider certificates through EAA-6.1-02, as ETSI EN 319 412-3 builds on
     /// ETSI EN 319 412-2.
+    ///
+    /// ETSI TS 119 411-8, GEN-6.6.1-03 also requires a policy identifier in WRPACs and permits a provider-assigned OID.
+    ///
+    /// WRPRC signing certificates are modeled on ETSI EN 319 412-3, which inherits the policy requirement through
+    /// LEG-4.1-1. They reuse the temporary NL Wallet policy.
     pub fn certificate_policies(self) -> Option<&'static [u8]> {
         match self {
-            Self::PidIssuer | Self::Issuer | Self::Wia | Self::KeyAttestation => Some(NL_WALLET_CERTIFICATE_POLICIES),
+            Self::PidIssuer | Self::Issuer | Self::Wrpac | Self::Wrprc | Self::Wia | Self::KeyAttestation => {
+                Some(NL_WALLET_CERTIFICATE_POLICIES)
+            }
             Self::StatusListSigning => None,
         }
     }
@@ -90,7 +107,7 @@ impl CertificateProfile {
         match self {
             Self::PidIssuer => Some(ID_ETSI_QCT_PID),
             Self::Wia | Self::KeyAttestation => Some(ID_ETSI_QCT_WAL),
-            Self::Issuer | Self::StatusListSigning => None,
+            Self::Issuer | Self::Wrpac | Self::Wrprc | Self::StatusListSigning => None,
         }
     }
 }
