@@ -325,6 +325,7 @@ impl FlutterApiErrorFields for IssuanceError {
 
             IssuanceError::Attestation { .. } | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
 
+            // TODO PVW-6518: Properly split this error into PID error or generic issuance error
             IssuanceError::AuthorizationDenied => FlutterApiErrorType::DeniedPidIssuance,
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongIdentity
