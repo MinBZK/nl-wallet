@@ -503,18 +503,40 @@ impl<T: Clone + Debug> Debug for RepeatN<T> {
     }
 }
 
+/// Like [`futures::future::try_join_all`], but for a non-empty collection of futures, so that the result is
+/// non-empty as well. The outputs are in the same order as the futures.
+pub async fn try_join_all<I, F, T, E>(futures: I) -> Result<VecNonEmpty<T>, E>
+where
+    I: IntoNonEmptyIterator<Item = F>,
+    F: Future<Output = Result<T, E>>,
+{
+    let (first, rest) = futures.into_nonempty_iter().next();
+    let (first, rest) = futures::future::try_join(first, futures::future::try_join_all(rest)).await?;
+
+    let mut outputs = VecNonEmpty::singleton(first);
+    outputs.extend(rest);
+
+    Ok(outputs)
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
     use std::collections::HashSet;
+    use std::future::pending;
+    use std::future::ready;
     use std::num::NonZeroUsize;
     use std::panic;
     use std::rc::Rc;
+    use std::time::Duration;
 
     use nonempty_collections::IntoNonEmptyIterator;
     use nonempty_collections::NonEmptyIterator;
     use rstest::rstest;
     use serde_json::json;
+    use tokio::time::Instant;
+    use tokio::time::sleep;
+    use tokio::time::timeout;
 
     use super::VecAtLeastN;
     use super::VecAtLeastTwo;
@@ -522,6 +544,7 @@ mod tests {
     use super::VecNonEmpty;
     use super::VecNonEmptyUnique;
     use super::repeat_n;
+    use super::try_join_all;
 
     #[test]
     #[should_panic]
@@ -721,5 +744,59 @@ mod tests {
 
         assert_eq!(repeated.len(), 3);
         assert_eq!(clone_count.get(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_try_join_all_single_future() {
+        let outputs = try_join_all(vec_nonempty![ready(Ok::<_, ()>(42))]).await;
+
+        assert_eq!(outputs, Ok(vec_nonempty![42]));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn test_try_join_all_keeps_order_and_runs_concurrently() {
+        let start = Instant::now();
+
+        // The first future finishes last and the last future finishes first.
+        let outputs = try_join_all(
+            vec_nonempty![30, 20, 10]
+                .into_nonempty_iter()
+                .map(|delay_ms| async move {
+                    sleep(Duration::from_millis(delay_ms)).await;
+
+                    Ok::<_, ()>(delay_ms)
+                }),
+        )
+        .await;
+
+        assert_eq!(outputs, Ok(vec_nonempty![30, 20, 10]));
+
+        // The futures ran concurrently, so joining them took as long as the slowest one.
+        assert_eq!(start.elapsed(), Duration::from_millis(30));
+    }
+
+    #[rstest]
+    #[case::first_fails(0)]
+    #[case::middle_fails(1)]
+    #[case::last_fails(2)]
+    #[tokio::test(start_paused = true)]
+    async fn test_try_join_all_error(#[case] failing_index: usize, #[values(true, false)] others_complete: bool) {
+        let result = timeout(
+            Duration::from_secs(1),
+            try_join_all(vec_nonempty![0, 1, 2].into_nonempty_iter().map(|index| async move {
+                if index == failing_index {
+                    Err(index)
+                } else if others_complete {
+                    Ok(index)
+                } else {
+                    // If the other futures never complete, the error has to short-circuit the join.
+                    pending().await
+                }
+            })),
+        )
+        .await
+        .expect("try_join_all should return as soon as a future fails");
+
+        assert_eq!(result, Err(failing_index));
     }
 }
