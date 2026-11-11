@@ -761,7 +761,7 @@ Generate/update localisation files (to compile/run the project successfully):
 [2]:
     https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas
 [3]:
-    https://www.figma.com/design/s5DSPdF98khzzQChZF44X5/20261008_Release_UI_NLWallet?node-id=58603-6&t=htp0ozYvzo6MhnUO-1
+    https://www.figma.com/design/AOGbxTqJMZzMA7JUIsIkOL/20261111_Release_UI_NLWallet?node-id=59602-6
 [4]: https://github.com/MinBZK/nl-wallet/
 [5]: https://edi.pleio.nl/
 [6]: mailto:edi@minbzk.nl?subject=Feedback%20or%20ideas
