@@ -15,7 +15,6 @@ use openid4vc::wallet_issuance::IssuanceDiscoveryParameters;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
-use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use p256::ecdsa::VerifyingKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
@@ -369,36 +368,9 @@ where
 
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise both wallets will
         // be revoked.
-        let issued_recovery_code = Self::recovery_code_from_credentials(&issuance_result, &config.pid_attributes)?;
-        self.compare_recovery_code_against_stored(issued_recovery_code, &config.pid_attributes)
+        let recovery_code_disclosure = self
+            .checked_recovery_code_disclosure(&issuance_result, &config.pid_attributes)
             .await?;
-
-        // Disclose the recovery code of the first SD-JWT PID, which is the one checked above. Prepare this disclosure
-        // before storing anything, as it can fail.
-        let (pid_attestation_type, pid) = issuance_result
-            .into_iter()
-            .filter(|credential| {
-                config
-                    .pid_attributes
-                    .contains_credential_kind(credential.credential_kind())
-            })
-            .find_map(|credential| match credential.copies {
-                IssuedCredentialCopies::Mdoc(_) => None,
-                IssuedCredentialCopies::SdJwt(copies) => {
-                    Some((credential.contents.attestation_type, copies.into_first().sd_jwt))
-                }
-            })
-            .ok_or(IssuanceError::MissingPidSdJwt)?;
-
-        let recovery_code_path = config.pid_attributes.sd_jwt_recovery_code_path(&pid_attestation_type)?;
-
-        let recovery_code_disclosure = pid
-            .into_sd_jwt()
-            .into_presentation_builder()
-            .disclose(&recovery_code_path)
-            .map_err(IssuanceError::RecoveryCodeDisclosure)?
-            .finish()
-            .into();
 
         // Store the new wallet certificate and the new salt.
 
@@ -437,7 +409,7 @@ where
             )),
         )
         .send(DiscloseRecoveryCodePinRecovery {
-            recovery_code_disclosure,
+            recovery_code_disclosure: recovery_code_disclosure.into(),
         })
         .await;
 

@@ -27,8 +27,6 @@ use openid4vc::wallet_issuance::OfferedCredentialPreview;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
-use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
-use openid4vc::wallet_issuance::credential::SdJwtCopy;
 use p256::ecdsa::signature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -76,6 +74,7 @@ use crate::transfer::TransferSessionId;
 use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::notifications::NotificationsError;
+use crate::wallet::recovery_code::CheckedRecoveryCodeDisclosure;
 use crate::wallet::recovery_code::RecoveryCodeError;
 use crate::wallet::state::CheckPreconditionsError;
 
@@ -732,15 +731,6 @@ where
         info!("Issuance succeeded; removing issuance session state");
         self.session = None;
 
-        if pid_purpose.is_some() {
-            // Check the recovery code in the issued PID against the one in the stored PID, if any. The issued PID is
-            // not stored yet, so on a mismatch the issued credentials can simply be dropped.
-            let issued_recovery_code =
-                Self::recovery_code_from_credentials(&issued_credentials_with_metadata, &config.pid_attributes)?;
-            self.compare_recovery_code_against_stored(issued_recovery_code, &config.pid_attributes)
-                .await?;
-        }
-
         let attestations = match preview_attestations {
             Some(preview_attestations) => preview_attestations.into_inner(),
             None => {
@@ -754,19 +744,20 @@ where
             }
         };
 
-        // The Wallet Provider acts on the disclosed recovery code, so disclose it only after every fallible operations
-        // that do not have side effects. It does have to precede storing the credentials, as the Wallet Provider only
-        // unblocks the keys of the issued PID upon disclosure.
+        // The Wallet Provider acts on the disclosed recovery code, so disclose it only after every fallible operation
+        // that does not have side effects has run. It does have to precede storing the credentials, as the Wallet
+        // Provider only unblocks the keys of the issued PID upon disclosure.
         let transfer_session_id = if pid_purpose.is_some() {
-            info!("This is a PID issuance session, therefore disclosing recovery code");
-            self.disclose_recovery_code(
-                &config.pid_attributes,
-                &remote_instruction_client,
-                &issued_credentials_with_metadata,
-            )
-            .await?
-            // If we're doing PID renewal as opposed to enrolling, we don't want to transfer.
-            .filter(|_| pid_purpose == Some(PidIssuancePurpose::Enrollment))
+            // Check the recovery code in the issued PID against the one in the stored PID, if any. The issued PID is
+            // not stored yet, so on a mismatch the issued credentials can simply be dropped.
+            let recovery_code_disclosure = self
+                .checked_recovery_code_disclosure(&issued_credentials_with_metadata, &config.pid_attributes)
+                .await?;
+
+            self.disclose_recovery_code(recovery_code_disclosure, &remote_instruction_client)
+                .await?
+                // If we're doing PID renewal as opposed to enrolling, we don't want to transfer.
+                .filter(|_| pid_purpose == Some(PidIssuancePurpose::Enrollment))
         } else {
             None
         };
@@ -838,36 +829,13 @@ where
         }
     }
 
-    /// Finds the PID SD JWT, creates a disclosure of just the recovery code, and sends it to the remote instruction
-    /// endpoint of the Wallet Provider.
+    /// Sends the disclosure of the recovery code to the remote instruction endpoint of the Wallet Provider. Returns the
+    /// ID of the transfer session that the Wallet Provider created, if any.
     async fn disclose_recovery_code<AK: AppleAttestedKey, GK: GoogleAttestedKey>(
         &mut self,
-        pid_attributes: &PidAttributesConfiguration,
+        recovery_code_disclosure: CheckedRecoveryCodeDisclosure,
         instruction_client: &InstructionClient<S, AK, GK, APC>,
-        issued_credentials_with_metadata: &[CredentialWithMetadata],
     ) -> Result<Option<TransferSessionId>, IssuanceError> {
-        let (pid, pid_paths) = issued_credentials_with_metadata
-            .iter()
-            .find_map(|cred| {
-                let pid_paths = pid_attributes.sd_jwt.get(&cred.contents.attestation_type)?;
-
-                let SdJwtCopy { sd_jwt, .. } = match &cred.copies {
-                    IssuedCredentialCopies::Mdoc(_) => None,
-                    IssuedCredentialCopies::SdJwt(sd_jwts) => Some(sd_jwts.first()),
-                }?;
-
-                Some((sd_jwt, pid_paths))
-            })
-            .ok_or(IssuanceError::MissingPidSdJwt)?;
-
-        let recovery_code_disclosure = pid
-            .sd_jwt()
-            .clone()
-            .into_presentation_builder()
-            .disclose(&pid_paths.recovery_code_claim_path())
-            .map_err(IssuanceError::RecoveryCodeDisclosure)?
-            .finish();
-
         let result = instruction_client
             .send(DiscloseRecoveryCode {
                 recovery_code_disclosure: recovery_code_disclosure.into(),
@@ -2688,13 +2656,13 @@ mod tests {
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
 
-        // The stored PID is only looked up to compare its recovery code. Without previews, the recovery code should be
-        // compared before the stored attestations to renew are looked up.
+        // The stored PID is looked up to compare its recovery code. Without previews, it is also looked up before that,
+        // to determine which stored attestations the issued credentials renew.
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .times(1)
-            .return_once(|_| Ok(vec![stored_copy]));
+            .times(if with_previews { 1 } else { 2 })
+            .returning(move |_| Ok(vec![stored_copy.clone()]));
 
         wallet
             .mut_storage()
@@ -2829,16 +2797,8 @@ mod tests {
             .expect_upsert_data::<InstructionData>()
             .returning(|_| Ok(()));
 
-        // Looking up the stored PID to compare its recovery code succeeds, as there is none.
-        let config = wallet.config_repository.get();
-        wallet
-            .mut_storage()
-            .expect_fetch_unique_attestations_by_credential_kinds()
-            .withf(eq_credential_kinds(&config.pid_attributes.sd_jwt_credential_kinds()))
-            .times(1)
-            .return_once(|_| Ok(vec![]));
-
         // Have the storage return an error when looking up the stored attestations that the issued credentials renew.
+        // As this happens before the recovery code is compared, the stored PID is not looked up for that.
         let issued_credential_kinds = HashSet::from([
             CredentialKindRef::new(Format::SdJwt, pid_attestation_type(Format::SdJwt)),
             CredentialKindRef::new(Format::MsoMdoc, pid_attestation_type(Format::MsoMdoc)),

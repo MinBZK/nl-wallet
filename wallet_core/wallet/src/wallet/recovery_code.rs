@@ -10,6 +10,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::claims::ClaimName;
 use sd_jwt::claims::ClaimValue;
 use sd_jwt::claims::ObjectClaims;
+use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
@@ -33,6 +34,10 @@ pub enum RecoveryCodeError {
     #[category(pd)]
     IncorrectRecoveryCode { expected: String, received: String },
 
+    #[error("could not add recovery code disclosure: {0}")]
+    #[category(pd)]
+    RecoveryCodeDisclosure(#[source] sd_jwt::error::ClaimError),
+
     #[error("could not query attestations in database: {0}")]
     AttestationQuery(#[source] StorageError),
 
@@ -44,6 +49,11 @@ pub enum RecoveryCodeError {
     PidAttributesConfiguration(#[source] PidAttributesConfigurationError),
 }
 
+/// A disclosure of just the recovery code of the issued PID, whose recovery code matches that of the stored PID, if
+/// any.
+#[derive(derive_more::Into)]
+pub(super) struct CheckedRecoveryCodeDisclosure(UnverifiedSdJwt);
+
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     S: Storage,
@@ -51,11 +61,13 @@ where
     CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
-    /// Find the recovery code in the first SD-JWT PID among the newly issued credentials.
-    pub(super) fn recovery_code_from_credentials<'a>(
-        credentials: &'a [CredentialWithMetadata],
+    /// Find the recovery code in the first SD-JWT PID among the issued credentials, check it against the recovery code
+    /// of the stored PID, if any, and create a disclosure of just that claim for the Wallet Provider.
+    pub(super) async fn checked_recovery_code_disclosure(
+        &self,
+        credentials: &[CredentialWithMetadata],
         pid_config: &PidAttributesConfiguration,
-    ) -> Result<&'a str, RecoveryCodeError> {
+    ) -> Result<CheckedRecoveryCodeDisclosure, RecoveryCodeError> {
         // Since the recovery code is the same in all copies, just find the first credential that is in SD-JWT format
         // and has one of the required `vct` values.
         let (pid_claims, sd_jwt) = credentials
@@ -69,12 +81,27 @@ where
             })
             .ok_or(RecoveryCodeError::MissingPid)?;
 
-        retrieve_recovery_code_from_decoded_claims(sd_jwt.decoded_claims(), &pid_claims.recovery_code_path)
-            .ok_or(RecoveryCodeError::MissingIssuedRecoveryCode)
+        let recovery_code =
+            retrieve_recovery_code_from_decoded_claims(sd_jwt.decoded_claims(), &pid_claims.recovery_code_path)
+                .ok_or(RecoveryCodeError::MissingIssuedRecoveryCode)?;
+
+        self.compare_recovery_code_against_stored(recovery_code, pid_config)
+            .await?;
+
+        let disclosure = sd_jwt
+            .clone()
+            .into_sd_jwt()
+            .into_presentation_builder()
+            .disclose(&pid_claims.recovery_code_claim_path())
+            .map_err(RecoveryCodeError::RecoveryCodeDisclosure)?
+            .finish()
+            .into();
+
+        Ok(CheckedRecoveryCodeDisclosure(disclosure))
     }
 
     /// Check the received recovery code against the one in storage, if present.
-    pub(super) async fn compare_recovery_code_against_stored(
+    async fn compare_recovery_code_against_stored(
         &self,
         received_recovery_code: &str,
         pid_config: &PidAttributesConfiguration,
