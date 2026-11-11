@@ -262,6 +262,20 @@ platform :android do
     end
   end
 
+  desc "Run the Rust wallet integration tests on a physically connected Android device"
+  lane :test_wallet_device do
+    serial = ENV["ANDROID_SERIAL"]
+    UI.user_error!("No ANDROID_SERIAL set") if serial.blank?
+
+    Dir.chdir("..") do
+      sh({ "ANDROID_NDK_TARGETS" => "arm64-v8a" },
+         "scripts/close_proximity/run_disclosure_android_test.py",
+         "--serial", serial, "--require-wallet-test", "--",
+         "wallet_app/android/gradlew", "--no-daemon",
+         "-p", "wallet_app/android/wallet-integration-tests", ":connectedDebugAndroidTest")
+    end
+  end
+
   desc "Upload Android app to BrowserStack"
   lane :browserstack do |options|
     file = options[:file]

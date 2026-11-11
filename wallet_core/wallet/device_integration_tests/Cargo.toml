@@ -12,7 +12,7 @@ production-root = false
 workspace = true
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "cdylib"]
 doctest = false
 
 [dependencies]

@@ -373,11 +373,12 @@ These are mostly enforced by the linter as well.
 
 ### Testing
 
-#### Native wallet integration tests on iOS
+#### Native wallet integration tests
 
-The `Wallet Integration Tests` scheme in `ios/Runner.xcodeproj` runs the Rust
-wallet disclosure scenarios over real BLE in the existing native test host.
-See [the device test instructions](ios/Wallet%20Integration%20Tests/README.md)
+The `Wallet Integration Tests` scheme in `ios/Runner.xcodeproj` and the
+`android/wallet-integration-tests` module run the same Rust wallet disclosure
+scenarios over real BLE in native test hosts.
+See [the device test instructions](../wallet_core/wallet/device_integration_tests/README.md)
 for setup, test selection, and CI reporting.
 
 #### Unit tests

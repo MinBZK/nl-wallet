@@ -1,4 +1,4 @@
-//! Test-only wallet disclosure scenarios shared by the iOS XCTest harness and host verification.
+//! Test-only wallet disclosure scenarios shared by the iOS and Android harnesses and host verification.
 //! The transport is real on the device; registration, credentials and provider services are fixtures.
 
 mod fixture;

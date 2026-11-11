@@ -370,12 +370,13 @@ Before running these tests:
 
 ## Running the suites in CI
 
-### Rust wallet disclosure on an iPhone
+### Rust wallet disclosure on iOS and Android
 
-The wallet disclosure and registration-certificate scenarios belong to the `Wallet Integration Tests`
-target in the wallet app's Xcode project. They reuse this project's native host app and BLE bridge.
-See [the wallet device test instructions](../../../wallet_app/ios/Wallet%20Integration%20Tests/README.md)
-for the scenarios, fixtures, local commands, and CI job.
+The wallet disclosure and registration-certificate scenarios belong to the wallet app's
+`Wallet Integration Tests` Xcode target and `android/wallet-integration-tests` Gradle module.
+They reuse the native BLE bridges here; iOS also reuses this project's native host app.
+See [the wallet device test instructions](../device_integration_tests/README.md)
+for the shared scenarios, fixtures, local commands, and CI jobs.
 
 ### Device suites
 
@@ -389,6 +390,7 @@ the devices.
 | -------------------------------------- | --------------------------------------------------------------- |
 | `test-ios-platform-support-device`     | PlatformSupport’s `LocalRealDevice` test plan                    |
 | `test-ios-wallet-device`               | the wallet project’s `LocalRealDevice` test plan                 |
+| `test-android-wallet-device`           | the wallet project's 19 Rust scenarios and native adapter checks |
 | `test-android-platform-support-device` | `createDebugAndroidTestCoverageReport`, every instrumented test |
 
 All use the close-proximity wrapper scripts without a test filter. The Mac mini

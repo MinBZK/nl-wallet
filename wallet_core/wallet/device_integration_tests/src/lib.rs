@@ -11,7 +11,7 @@ use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient
 use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
 use wallet::hardware_test::Scenario;
 
-/// Run off the iOS main thread. The callback receives a borrowed string, valid only during the call.
+/// Run off the platform's main thread. The callback receives a borrowed string, valid only during the call.
 /// Return null on success, otherwise an owned error to release with `wallet_device_test_free_error`.
 #[unsafe(no_mangle)]
 pub extern "C" fn wallet_close_proximity_disclosure_test(reader_ready: extern "C" fn(*const c_char)) -> *mut c_char {
