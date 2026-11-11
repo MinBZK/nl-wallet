@@ -162,23 +162,11 @@ pub enum IssuanceError {
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateParseError),
 
-    #[error("PID attestation in SD JWT format is missing")]
-    #[category(critical)]
-    MissingPidSdJwt,
-
-    #[error("could not add recovery code disclosure: {0}")]
-    #[category(pd)]
-    RecoveryCodeDisclosure(sd_jwt::error::ClaimError),
-
     #[error("error storing transfer data in database: {0}")]
     TransferDataStorage(#[source] StorageError),
 
     #[error("recovery code error: {0}")]
     RecoveryCode(#[from] RecoveryCodeError),
-
-    #[error("issuance session contains no pid previews")]
-    #[category(critical)]
-    MissingPidPreviews,
 }
 
 #[derive(Debug)]
