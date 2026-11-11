@@ -24,7 +24,6 @@ use url::Url;
 use utils::generator::TimeGenerator;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
-use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::IssuanceError;
@@ -69,19 +68,19 @@ pub enum PinRecoveryError {
     SessionState,
 
     #[error("error during PID issuance: {0}")]
-    Issuance(#[from] IssuanceError),
+    Issuance(#[source] IssuanceError),
 
     #[error("the new PIN does not adhere to requirements: {0}")]
     #[category(expected)]
-    PinValidation(#[from] PinValidationError),
+    PinValidation(#[source] PinValidationError),
 
     #[error("error computing PIN public key: {0}")]
     // This error cannot actually occur, as deriving the verifying key from the PIN should never fail.
     #[category(impossible)]
-    PinKey(#[from] PinKeyError),
+    PinKey(#[source] PinKeyError),
 
     #[error("storage error: {0}")]
-    Storage(#[from] StorageError),
+    Storage(#[source] StorageError),
 
     #[error("failed to disclose recovery code to WP: {0}")]
     DiscloseRecoveryCode(#[source] InstructionError),
@@ -95,10 +94,7 @@ pub enum PinRecoveryError {
     NoPidPresent,
 
     #[error("recovery code error: {0}")]
-    RecoveryCode(#[from] RecoveryCodeError),
-
-    #[error("PID configuration error: {0}")]
-    PidAttributesConfiguration(#[from] PidAttributesConfigurationError),
+    RecoveryCode(#[source] RecoveryCodeError),
 }
 
 #[derive(Debug)]
@@ -135,7 +131,8 @@ where
 
         let has_pid = self
             .has_pid(&config.pid_attributes, PidAttestationFormat::SdJwt)
-            .await?;
+            .await
+            .map_err(PinRecoveryError::Storage)?;
 
         if !has_pid {
             return Err(PinRecoveryError::NoPidPresent);
@@ -177,7 +174,8 @@ where
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
             )
             .await
-            .map_err(IssuanceError::IssuanceSession)?;
+            .map_err(IssuanceError::IssuanceSession)
+            .map_err(PinRecoveryError::Issuance)?;
 
         info!("PIN recovery OAuth URL generated");
         let auth_url = authorization_session.auth_url().clone();
@@ -187,7 +185,8 @@ where
             .upsert_data(&PersistedPinRecoverySessionData {
                 authorization_session: authorization_session.persist(),
             })
-            .await?;
+            .await
+            .map_err(PinRecoveryError::Storage)?;
         self.session.replace(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
@@ -223,7 +222,8 @@ where
             .write()
             .await
             .delete_data::<PersistedPinRecoverySessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
-            .await?;
+            .await
+            .map_err(PinRecoveryError::Storage)?;
 
         let Some(Session::PinRecovery(PinRecoverySession::OAuth { authorization_session })) = self.session.take()
         else {
@@ -308,7 +308,7 @@ where
             return Err(PinRecoveryError::SessionState);
         };
 
-        validate_pin(&new_pin)?;
+        validate_pin(&new_pin).map_err(PinRecoveryError::PinValidation)?;
 
         // All sanity checks are done, we proceed with recovery.
 
@@ -317,7 +317,8 @@ where
             pin: &new_pin,
             salt: &new_pin_salt,
         }
-        .verifying_key()?;
+        .verifying_key()
+        .map_err(PinRecoveryError::PinKey)?;
 
         let registration_data = RegistrationData {
             pin_salt: new_pin_salt.clone(),
@@ -338,14 +339,20 @@ where
                 ),
             )
             .await
-            .map_err(IssuanceError::from)?;
+            .map_err(IssuanceError::ChangePin)
+            .map_err(PinRecoveryError::Issuance)?;
 
         let pin_recovery_wscd = pin_recovery_wscd_factory(instruction_client, pin_pubkey);
 
         // Accept issuance to obtain only the SD-JWT PID. This sends the `StartPinRecovery` instruction to the WP.
         // `accept_issuance()` below is the point of no return. If the app is killed between there and completion,
         // PIN recovery will have to start again from the start.
-        self.storage.write().await.upsert_data(&PinRecoveryData).await?;
+        self.storage
+            .write()
+            .await
+            .upsert_data(&PinRecoveryData)
+            .await
+            .map_err(PinRecoveryError::Storage)?;
 
         // Since all we need is to extract the recovery code, request just a single copy of the SD-JWT PID credential.
         let issuance_result = issuance_session
@@ -361,16 +368,17 @@ where
         let issuance_result = match issuance_result {
             Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
                 self.handle_wallet_revocation(data).await;
-                Err(error)?
+                Err(PinRecoveryError::Issuance(error))?
             }
-            _ => issuance_result?,
+            _ => issuance_result.map_err(PinRecoveryError::Issuance)?,
         };
 
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise both wallets will
         // be revoked.
         let recovery_code_disclosure = self
             .checked_recovery_code_disclosure(&issuance_result, &config.pid_attributes)
-            .await?;
+            .await
+            .map_err(PinRecoveryError::RecoveryCode)?;
 
         // Store the new wallet certificate and the new salt.
 
@@ -385,7 +393,12 @@ where
             pin_salt: new_pin_salt,
             ..registration_data.clone()
         };
-        self.storage.write().await.upsert_data(&registration_data).await?;
+        self.storage
+            .write()
+            .await
+            .upsert_data(&registration_data)
+            .await
+            .map_err(PinRecoveryError::Storage)?;
 
         self.registration = WalletRegistration::Registered {
             attested_key: Arc::clone(&attested_key),
@@ -417,7 +430,12 @@ where
             .await
             .map_err(PinRecoveryError::DiscloseRecoveryCode)?;
 
-        self.storage.write().await.delete_data::<PinRecoveryData>().await?;
+        self.storage
+            .write()
+            .await
+            .delete_data::<PinRecoveryData>()
+            .await
+            .map_err(PinRecoveryError::Storage)?;
 
         Ok(())
     }
@@ -442,7 +460,8 @@ where
             .write()
             .await
             .delete_data::<PersistedPinRecoverySessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
-            .await?;
+            .await
+            .map_err(PinRecoveryError::Storage)?;
 
         Ok(())
     }
