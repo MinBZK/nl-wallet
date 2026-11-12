@@ -1,9 +1,19 @@
 use attestation_data::attributes::Attribute;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::de::Error;
+use serde::de::Visitor;
 use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
+use utils::vec_at_least::Singleton;
+use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
 /// ISO 3166-1 alpha-2 country codes, covering every code currently assigned by the standard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, strum::EnumString, DeserializeFromStr)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, strum::EnumString, DeserializeFromStr, SerializeDisplay,
+)]
 pub enum IsoCountryCode {
     #[strum(serialize = "AD")]
     Andorra,
@@ -509,7 +519,8 @@ pub enum IsoCountryCode {
 ///
 /// `Other` is added for territories with no official ISO 3166-1 code (currently only "XK" for Kosovo), not something
 /// the Rulebook defines.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum RulebookNationality {
     Iso(IsoCountryCode),
     Other(String),
@@ -523,6 +534,12 @@ impl From<RulebookNationality> for Attribute {
         };
 
         Attribute::Text(text)
+    }
+}
+
+impl From<IsoCountryCode> for RulebookNationality {
+    fn from(value: IsoCountryCode) -> Self {
+        RulebookNationality::Iso(value)
     }
 }
 
@@ -541,6 +558,71 @@ pub enum RulebookNationalities {
     Known(VecNonEmptyUnique<RulebookNationality>),
 }
 
+impl<'de> Deserialize<'de> for RulebookNationalities {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct RulebookVisitor;
+
+        impl<'de> Visitor<'de> for RulebookVisitor {
+            type Value = RulebookNationalities;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a string representing a country code or an array with multiple country codes")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match v {
+                    "QU" => Ok(RulebookNationalities::Unknown),
+                    "QS" => Ok(RulebookNationalities::Stateless),
+                    _ => Ok(RulebookNationalities::Known(VecNonEmptyUnique::singleton(
+                        RulebookNationality::deserialize(serde::de::value::StrDeserializer::<E>::new(v))?,
+                    ))),
+                }
+            }
+
+            fn visit_seq<A>(self, mut v: A) -> Result<RulebookNationalities, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                let mut items = Vec::with_capacity(v.size_hint().unwrap_or_default());
+                while let Some(item) = v.next_element::<RulebookNationality>()? {
+                    items.push(item);
+                }
+                items
+                    .try_into()
+                    .map(RulebookNationalities::Known)
+                    .map_err(|_| A::Error::custom("at least one known nationality should be given"))
+            }
+        }
+
+        deserializer.deserialize_any(RulebookVisitor)
+    }
+}
+
+impl Serialize for RulebookNationalities {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            RulebookNationalities::Unknown => serializer.serialize_str("QU"),
+            RulebookNationalities::Stateless => serializer.serialize_str("QS"),
+            RulebookNationalities::Known(nationalities) => {
+                if nationalities.len().get() == 1 {
+                    nationalities.first().serialize(serializer)
+                } else {
+                    nationalities.serialize(serializer)
+                }
+            }
+        }
+    }
+}
+
 impl From<RulebookNationalities> for Attribute {
     fn from(value: RulebookNationalities) -> Attribute {
         let values = match value {
@@ -550,6 +632,12 @@ impl From<RulebookNationalities> for Attribute {
         };
 
         Attribute::Array(values)
+    }
+}
+
+impl From<VecNonEmpty<RulebookNationality>> for RulebookNationalities {
+    fn from(value: VecNonEmpty<RulebookNationality>) -> Self {
+        RulebookNationalities::Known(value.into())
     }
 }
 
@@ -565,7 +653,8 @@ impl From<RulebookNationalities> for Attribute {
 ///
 /// `Other` is added for territories with no official ISO 3166-1 code (currently only "XK" for Kosovo), not something
 /// the Rulebook defines. There is no equivalent variant for "unknown".
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum RulebookCountryCode {
     Iso(IsoCountryCode),
     Other(String),
@@ -579,5 +668,57 @@ impl From<RulebookCountryCode> for Attribute {
         };
 
         Attribute::Text(text)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use serde_json::json;
+    use serde_json::value::Value;
+    use utils::vec_nonempty;
+
+    use super::IsoCountryCode;
+    use super::RulebookNationalities;
+    use crate::pid::rulebook::country_code::RulebookNationality;
+
+    #[rstest]
+    #[case(RulebookNationalities::Unknown, "QU")]
+    #[case(RulebookNationalities::Stateless, "QS")]
+    fn test_serde_rulebook_specific(#[case] nationalities: RulebookNationalities, #[case] expected: &str) {
+        let serialized = serde_json::to_value(nationalities.clone()).unwrap();
+        assert_eq!(json!(expected), serialized);
+        assert_eq!(nationalities, serde_json::from_value(serialized.clone()).unwrap());
+    }
+
+    #[test]
+    fn test_serde_known_single() {
+        let nationalities: RulebookNationalities = vec_nonempty![IsoCountryCode::Netherlands.into()].into();
+        let serialized = serde_json::to_value(nationalities.clone()).unwrap();
+        assert_eq!(json!("NL"), serialized);
+        assert_eq!(nationalities, serde_json::from_value(serialized.clone()).unwrap());
+        assert_eq!(
+            nationalities,
+            serde_json::from_value(Value::Array(vec![serialized])).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_serde_known_multiple() {
+        let nationalities: RulebookNationalities =
+            vec_nonempty![IsoCountryCode::Belgium.into(), RulebookNationality::Other("XX".into())].into();
+        let serialized = serde_json::to_value(nationalities.clone()).unwrap();
+        assert_eq!(json!(["BE", "XX"]), serialized);
+        assert_eq!(nationalities, serde_json::from_value(serialized.clone()).unwrap());
+    }
+
+    #[test]
+    fn test_deserialize_invalid_type() {
+        let error = serde_json::from_value::<RulebookNationalities>(Value::Null).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "invalid type: null, expected a string representing a country code or an array with multiple country codes"
+        );
     }
 }
