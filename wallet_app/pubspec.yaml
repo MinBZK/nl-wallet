@@ -1,6 +1,6 @@
 name: wallet
 description: EDI - NL Public Reference Wallet
-version: 0.7.2
+version: 0.8.0-dev
 resolution: workspace
 
 # Prevent accidental publishing to pub.dev.
