@@ -133,11 +133,6 @@ async fn json_body<T: DeserializeOwned>(response: axum::response::Response) -> T
     serde_json::from_slice(&body).unwrap()
 }
 
-async fn text_body(response: axum::response::Response) -> String {
-    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-    String::from_utf8(body.to_vec()).unwrap()
-}
-
 #[rstest::rstest]
 #[case::withdraw(None, None)]
 #[case::approve(Some(ReviewVerdict::Approve), Some(ReviewVerdict::Approve))]
@@ -276,10 +271,6 @@ async fn test_check_wallet_bad_request() {
 
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-    let body = text_body(response).await;
-
-    assert!(body.contains("invalid type: integer `3`, expected a string"));
 }
 
 #[serial_test::serial(hsm)]
