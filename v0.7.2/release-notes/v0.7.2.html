@@ -1,0 +1,474 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>v0.7.2 &mdash; NL Wallet 0.7.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=dfe61b34" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6dfdf7c3"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="v0.6.0" href="v0.6.0.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/use-cases.html">Relevant Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/close-proximity-disclosure.html">Disclosure with ISO 18013-5 (close proximity)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-provider-instruction.html">Wallet Provider instructions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC10.1_DeleteWalletUsingRevocationCode.html">Use Case 10.1 Revoke the wallet using the revocation code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.1_SecureTheAppWithPinAndBiometrics.html">Use Case 2.1 Secure the app with PIN and biometrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.1_AppOverview.html">Use Case 7.1 App overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.10_DetermineWalletStatus.html">Partial Flow 2.10 Determine wallet status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.9 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/notifications.html">Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development/authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/crash-reporting.html">Crash Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/keycloak-setup.html">Keycloak Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/pid-issuer-architecture.html">PID Issuer architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/deploy-to-pub.html">Deploying to PUB</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="v0.4.0.html">v0.4.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="v0.4.1.html">v0.4.1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="v0.5.0.html">v0.5.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="v0.6.0.html">v0.6.0</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">v0.7.2</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">v0.7.2</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/release-notes/v0.7.2.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="v0-7-2">
+<h1>v0.7.2<a class="headerlink" href="#v0-7-2" title="Link to this heading"></a></h1>
+<section id="upgrading">
+<h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">wia_trust_anchors</span></code> configuration parameter of all services that issue
+credentials has been renamed to <code class="docutils literal notranslate"><span class="pre">wptl_trust_anchors</span></code>. Additionally, the
+<code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code> configuration has had parameters added, among which are the
+Key Attestation private key and certificate. This certificate should validate
+under one of the <code class="docutils literal notranslate"><span class="pre">wptl_trust_anchors</span></code>, just like the WIA certificate does.
+Note that the trust anchor under which these certificates are issued need not
+be the same for the same Wallet Provider.</p></li>
+<li><p>The PID, as issued by the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, was updated to match the EUDI PID
+Rulebook. Some mdoc attribute identifiers now differ from their previous
+names: <code class="docutils literal notranslate"><span class="pre">birthdate</span></code> is now <code class="docutils literal notranslate"><span class="pre">birth_date</span></code>, <code class="docutils literal notranslate"><span class="pre">nationalities</span></code> is now <code class="docutils literal notranslate"><span class="pre">nationality</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">street_address</span></code>, <code class="docutils literal notranslate"><span class="pre">postal_code</span></code>, <code class="docutils literal notranslate"><span class="pre">locality</span></code>, and <code class="docutils literal notranslate"><span class="pre">country</span></code> are now
+<code class="docutils literal notranslate"><span class="pre">resident_street</span></code>, <code class="docutils literal notranslate"><span class="pre">resident_postal_code</span></code>, <code class="docutils literal notranslate"><span class="pre">resident_city</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">resident_country</span></code> respectively. <code class="docutils literal notranslate"><span class="pre">house_number</span></code> is included as part of
+<code class="docutils literal notranslate"><span class="pre">resident_street</span></code>. <code class="docutils literal notranslate"><span class="pre">place_of_birth</span></code> is now an object with <code class="docutils literal notranslate"><span class="pre">country</span></code> and
+<code class="docutils literal notranslate"><span class="pre">locality</span></code> properties. The mdoc <code class="docutils literal notranslate"><span class="pre">doctype</span></code> identifier was changed to match the
+EUDI PID Rulebook. The attribute <code class="docutils literal notranslate"><span class="pre">age_over_18</span></code> has been removed.
+<code class="docutils literal notranslate"><span class="pre">issuing_country</span></code>, <code class="docutils literal notranslate"><span class="pre">issuing_authority</span></code> and <code class="docutils literal notranslate"><span class="pre">sex</span></code> are added as new attributes.
+<code class="docutils literal notranslate"><span class="pre">birthdate</span></code> is now encoded as a <code class="docutils literal notranslate"><span class="pre">full-date</span></code> (CBOR tag 1004). The
+<code class="docutils literal notranslate"><span class="pre">issuing_country</span></code> and <code class="docutils literal notranslate"><span class="pre">issuing_authority</span></code> must be configured in the PID issuer
+settings. The NL-specific mdoc attributes <code class="docutils literal notranslate"><span class="pre">bsn</span></code> and <code class="docutils literal notranslate"><span class="pre">recovery_code</span></code> have moved
+to the domestic <code class="docutils literal notranslate"><span class="pre">eu.europa.ec.eudi.pid.nl.1</span></code> namespace, as required for
+attributes not defined in the Rulebook. The <code class="docutils literal notranslate"><span class="pre">pid_attributes</span></code> paths in the
+wallet configuration and any Relying Party requests or registration
+certificates for these attributes must be updated accordingly.</p></li>
+<li><p>As part of OpenID4VCI Key Attestations, the Wallet Provider now serves a
+Status List Token for its Key Storage. In order to facilitate this, it has had
+the following parameters added to its configuration:</p>
+<ul>
+<li><p>The main section of the configuration has a <code class="docutils literal notranslate"><span class="pre">public_url</span></code> parameter, which
+should contain the URL at which the Wallet Provider is publicly reachable.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">key_storage_status_list</span></code> section has the combination of
+<code class="docutils literal notranslate"><span class="pre">key_identifier</span></code> and <code class="docutils literal notranslate"><span class="pre">key_certificate</span></code>, where the latter should contain
+the public key corresponding to the private in the HSM to which the former
+parameter points.</p></li>
+<li><p>Also present in the <code class="docutils literal notranslate"><span class="pre">key_storage_status_list</span></code> are the optional
+<code class="docutils literal notranslate"><span class="pre">expiry_in_hours</span></code> and <code class="docutils literal notranslate"><span class="pre">tracking_validity_in_days</span></code> parameters, both of
+which dictate expiration periods as included in the Key Storage Status
+List Token.</p></li>
+</ul>
+</li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_client_ids</span></code> setting has been removed from the verification server
+configuration. It was used to verify the issuer of the Proof of Association
+(PoA), which has been removed.</p></li>
+<li><p>Credential Rquest encryption is implemented in both the Wallet and Issuer and
+is mandatory for all issuing services. These have all had the
+<code class="docutils literal notranslate"><span class="pre">credential_request_encryption_key</span></code> setting added to their configurations,
+which should contain a Base64-encoded P-256 ECDH secret key in PKCS 8 format.</p></li>
+<li><p>The iOS wallet app now needs the numeric App Store id of the app to link to
+its App Store page from the update screens. It is passed to the Flutter build
+as <code class="docutils literal notranslate"><span class="pre">--dart-define=APP_STORE_ID=&lt;id&gt;</span></code>. The Fastlane <code class="docutils literal notranslate"><span class="pre">ios</span> <span class="pre">build</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ios</span> <span class="pre">build_simulator</span></code> lanes read it from the <code class="docutils literal notranslate"><span class="pre">APP_STORE_ID</span></code> environment
+variable and fail when it is not set, so every iOS build pipeline must now
+provide it. Android builds do not need it. When the app was installed through
+TestFlight, the update screens open TestFlight instead.</p></li>
+<li><p>The Fastlane <code class="docutils literal notranslate"><span class="pre">build</span></code> lanes accept a new <code class="docutils literal notranslate"><span class="pre">show_error_details</span></code> option (Dart
+define <code class="docutils literal notranslate"><span class="pre">SHOW_ERROR_DETAILS</span></code>, default <code class="docutils literal notranslate"><span class="pre">false</span></code>), which makes the wallet app show
+technical error details in the error details sheet.</p></li>
+<li><p>The organization identifier in the subject of X.509 certificates is now read
+and written using the X.520 <code class="docutils literal notranslate"><span class="pre">organizationIdentifier</span></code> attribute type
+(<code class="docutils literal notranslate"><span class="pre">2.5.4.97</span></code>), as required by ETSI EN 319 412-3, instead of <code class="docutils literal notranslate"><span class="pre">1.3.6.1.1.15</span></code>.
+Certificates that have the old OID are no longer recognized as belonging to a
+legal person: the services refuse to start with them, and the wallet rejects
+WRPACs that use it. Reissue these certificates with the current <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code>.</p></li>
+</ul>
+</section>
+<section id="new-features">
+<h2>New features<a class="headerlink" href="#new-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Issuers have a new optional setting <code class="docutils literal notranslate"><span class="pre">credential_preview_endpoint</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">true</span></code>). When set to <code class="docutils literal notranslate"><span class="pre">false</span></code>, the issuer does not serve the non-standard
+Credential Preview Endpoint, behaving like a standard OpenID4VCI issuer. This
+is intended for testing the wallet against such issuers.</p></li>
+<li><p>Wallet supports X509 certificates with ES384 and RSA (min 2048) keys.</p></li>
+<li><p>Wallet supports CWT certificates with ES384 and RSA (min 2048) keys.</p></li>
+<li><p>The issuance server now also publish their status lists in CWT format, as
+required for mdoc credentials by the draft second edition of ISO 18013-5. When
+serving a status list, the format is chosen based on the <code class="docutils literal notranslate"><span class="pre">Accept</span></code> header of
+the request (<code class="docutils literal notranslate"><span class="pre">application/statuslist+jwt</span></code> or <code class="docutils literal notranslate"><span class="pre">application/statuslist+cwt</span></code>).</p></li>
+<li><p>Wallet now requires the Wallet Configuration to have a key identifier (<code class="docutils literal notranslate"><span class="pre">kid</span></code>).
+The <code class="docutils literal notranslate"><span class="pre">kid</span></code> is used as the path component on the configured base url when
+downloading the Wallet Configuration.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">wallet_ca</span></code> utility generates certificates that follow the ETSI
+certificate profiles for notification on the EU Lists of Trusted Entities
+(ETSI EN 319 412-2/-3 and TS 119 412-6):</p>
+<ul>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">ca</span></code> command accepts <code class="docutils literal notranslate"><span class="pre">--organization-name</span></code> and <code class="docutils literal notranslate"><span class="pre">--organization-id</span></code>, to
+generate a CA with a legal person subject.</p></li>
+<li><p>The new certificate type <code class="docutils literal notranslate"><span class="pre">pid-issuer</span></code> is meant for PID issuers. The
+<code class="docutils literal notranslate"><span class="pre">issuer</span></code> type is now meant for issuers of other attestations.</p></li>
+<li><p>The new <code class="docutils literal notranslate"><span class="pre">--ca-issuer</span></code> option adds an Authority Information Access
+extension with the URL(s) at which the issuing CA certificate is served.</p></li>
+<li><p>All end-entity certificates get a Subject Key Identifier, computed as
+required by ISO/IEC 18013-5 (SHA-1 hash of the public key).</p></li>
+<li><p>Issuer, PID issuer, WIA, Key Attestation and WRPAC certificates, as well
+as WRPRC signing certificates, get a certificate policy, for now the
+provisional OID <code class="docutils literal notranslate"><span class="pre">2.25.150580842064059311066423755779195795505</span></code>.</p></li>
+<li><p>PID issuer certificates get a QcType statement with <code class="docutils literal notranslate"><span class="pre">id-etsi-qct-pid</span></code>, and
+WIA and Key Attestation certificates one with <code class="docutils literal notranslate"><span class="pre">id-etsi-qct-wal</span></code>.</p></li>
+<li><p>WIA, Key Attestation, WRPAC and status list signing certificates get the
+<code class="docutils literal notranslate"><span class="pre">digitalSignature</span></code> key usage. WRPRC signing certificates get
+<code class="docutils literal notranslate"><span class="pre">contentCommitment</span></code> (<code class="docutils literal notranslate"><span class="pre">nonRepudiation</span></code>). These key usages are critical.</p></li>
+<li><p>WRPACs get the non-critical ISO/IEC 18013-5 reader authentication
+extended key usage (<code class="docutils literal notranslate"><span class="pre">mdlReaderAuth</span></code>, <code class="docutils literal notranslate"><span class="pre">1.0.18013.5.1.6</span></code>). WRPRC signing
+certificates have no extended key usage.</p></li>
+<li><p>All certificates get a random serial number. Previously, the serial number
+was derived from the public key, so a certificate reissued for the same
+key had the same serial number.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">countryName</span></code> and <code class="docutils literal notranslate"><span class="pre">serialNumber</span></code> subject attributes are encoded as a
+<code class="docutils literal notranslate"><span class="pre">PrintableString</span></code>, as required by RFC 5280.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="interoperability-improvements">
+<h2>Interoperability improvements<a class="headerlink" href="#interoperability-improvements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">attestation</span></code> proof type has been implemented according to OpenID4VCI,
+HAIP and TS3. Both the Issuer and the WSCD have switched to this proof type
+instead of <code class="docutils literal notranslate"><span class="pre">jwt</span></code>. NB: The <code class="docutils literal notranslate"><span class="pre">jwt</span></code> proof type has not yet been updated to conform
+to OpenID4VCI 1.0 and its implementation is now effectively dead code.</p></li>
+<li><p>The wallet now also accepts a registration certificate in JWT format that is
+included in <code class="docutils literal notranslate"><span class="pre">verifier_info</span></code> or <code class="docutils literal notranslate"><span class="pre">issuer_info</span></code> as a compact JWT, without the
+additional base64url encoding required by ETSI TS 119 472-2.</p></li>
+<li><p>The wallet now also accepts a registration certificate in <code class="docutils literal notranslate"><span class="pre">verifier_info</span></code> or
+<code class="docutils literal notranslate"><span class="pre">issuer_info</span></code> whose base64url encoding includes padding.</p></li>
+<li><p>The wallet parses registration certificates (WRPRCs) more leniently, so that
+it accepts those of the EUDI reference implementation and registrar:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">srv_description</span></code> may also be a single array of multi-language strings,
+instead of the array of arrays of ETSI TS 119 475 Annex B.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> is no longer required, as ETSI TS 119 475 does not list it among the
+payload attributes. It was not used.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">status</span></code> may also have the nested Token Status List shape
+(<code class="docutils literal notranslate"><span class="pre">{&quot;status_list&quot;:</span> <span class="pre">{&quot;idx&quot;:</span> <span class="pre">0,</span> <span class="pre">&quot;uri&quot;:</span> <span class="pre">&quot;...&quot;}}</span></code>) used by the Annex C example,
+or an integer <code class="docutils literal notranslate"><span class="pre">idx</span></code>, besides the shape with a numeric string <code class="docutils literal notranslate"><span class="pre">idx</span></code>
+prescribed by GEN-6.2.6.1-04.</p></li>
+</ul>
+</li>
+<li><p>Certificate chains (the <code class="docutils literal notranslate"><span class="pre">x5c</span></code> header of a JWT or the <code class="docutils literal notranslate"><span class="pre">x5chain</span></code> header of a
+COSE object) that wrongly include a configured trust anchor are no longer
+rejected. The trust anchor is ignored when building the certificate path. As
+required by HAIP, certificate chains should not include it.</p></li>
+<li><p>The wallet no longer requires the signing certificate of a Status List Token
+to have the status list signing extended key usage, nor to have the same
+subject as the signer of the attestation or WRPRC that refers to it. Neither
+the Token Status List draft nor ETSI TS 119 475 requires this, and the EUDI
+reference implementation signs its WRPRC status lists with a different
+certificate. The signing certificate is still verified against the trust
+anchors. For the same reason, issuers no longer refuse to start when the
+status list signing certificate of a credential configuration has a different
+subject than its attestation signing certificate.</p></li>
+<li><p>The wallet now expects <code class="docutils literal notranslate"><span class="pre">credential_request_encryption.jwks</span></code> in the issuer
+metadata to be a JSON Web Key Set object with a <code class="docutils literal notranslate"><span class="pre">keys</span></code> member, as required by
+OpenID4VCI 1.0 (referring to RFC 7591), instead of a bare array of keys as in
+the non-normative example of OpenID4VCI. Previously, the wallet could not
+fetch the metadata of issuers that publish this field, such as the EUDI
+testbed issuer.</p></li>
+<li><p>The PID, as issued by the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, was updated to match the EUDI PID
+Rulebook. Note that <code class="docutils literal notranslate"><span class="pre">portrait</span></code>, even though being mandatory, is not included
+at all because the BRP does not provide it. <code class="docutils literal notranslate"><span class="pre">place_of_birth</span></code> is also not
+marked as mandatory because our implementation cannot handle that yet.</p></li>
+<li><p>The JPEG 2000 image format, which may be included in the mDL, is now
+supported.</p></li>
+<li><p>The wallet now supports disclosure requests that ask for credentials in
+different formats (mdoc and SD-JWT) in the same DCQL query. Previously, the
+wallet aborted the session when receiving such a request.</p></li>
+<li><p>The wallet now accepts SD-JWT claim paths in a DCQL query that end with
+<code class="docutils literal notranslate"><span class="pre">null</span></code>, such as <code class="docutils literal notranslate"><span class="pre">[&quot;nationalities&quot;,</span> <span class="pre">null]</span></code> as requested by the EUDI reference
+verifier, and discloses the whole array. This is an interim solution: array
+elements that an issuer made selectively disclosable separately are not
+disclosed. A <code class="docutils literal notranslate"><span class="pre">null</span></code> elsewhere in the path, array indices and <code class="docutils literal notranslate"><span class="pre">null</span></code> in mdoc
+claim paths are still rejected.</p></li>
+<li><p>The wallet now supports issuance by OpenID4VCI issuers that do not offer the
+non-standard Credential Preview Endpoint. In that case the app asks the user
+whether to receive the cards from the issuing organization and then asks for
+the PIN, without showing the cards first. PID issuance and disclosure based
+issuance still require previews. Known limitations: issued cards are always
+added as new cards, also when they renew an existing card, and the copies of
+an issued credential are not yet checked for consistency with each other.</p></li>
+</ul>
+</section>
+<section id="bug-fixes">
+<h2>Bug fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The wallet accepts wallet configurations fetched from the configuration server
+again. Since v0.6.0, it required the <code class="docutils literal notranslate"><span class="pre">typ</span></code> header of the configuration JWT to
+be exactly <code class="docutils literal notranslate"><span class="pre">JWT</span></code>, while the configuration is signed with <code class="docutils literal notranslate"><span class="pre">jwt</span></code>. The <code class="docutils literal notranslate"><span class="pre">typ</span></code>
+header of all JWTs is now compared case-insensitively, as required by
+RFC 7515.</p></li>
+<li><p>The wallet now only stores the <code class="docutils literal notranslate"><span class="pre">ETag</span></code> of a wallet configuration after
+accepting it. Previously, a rejected configuration was considered unmodified
+on every subsequent fetch, so it was never evaluated again.</p></li>
+<li><p>The wallet app no longer gets stuck on the splash screen when the wallet
+configuration contains a maintenance window. The maintenance screen now also
+shows the window in local time instead of UTC.</p></li>
+</ul>
+</section>
+<section id="wallet-app-improvements">
+<h2>Wallet app improvements<a class="headerlink" href="#wallet-app-improvements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Update to Flutter 3.47.8.</p></li>
+<li><p>The error details sheet (“Show details” on error screens) can now show
+technical error details (error type, description and data).</p></li>
+<li><p>Errors that occur while fetching the wallet configuration are now reported to
+Sentry. Networking errors and HTTP error responses are excluded, because they
+are expected on mobile devices. Previously, these errors were only logged.</p></li>
+</ul>
+</section>
+<section id="admin-portal-improvements">
+<h2>Admin portal improvements<a class="headerlink" href="#admin-portal-improvements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">admin-portal</span></code> now uses the task management API of the Wallet Provider, so
+that administrators can create, withdraw and review tasks. The task lists show
+open tasks, the user’s own open tasks and the task history, and a new details
+page shows a task and its review and execution result.</p></li>
+<li><p>Tasks to revoke wallets can now be created: administrators search for wallets
+by Wallet ID and add them to a list. Wallets that are already revoked can not
+be added. Tasks to (de)block users or revoke the wallet solution are not
+supported yet.</p></li>
+<li><p>Users without the required privileges now see a dedicated forbidden page.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">admin-portal</span></code> Helm chart has a new optional <code class="docutils literal notranslate"><span class="pre">environment</span></code> setting. Its
+value is shown in the sidebar and on the login page, and is hidden when empty.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="v0.6.0.html" class="btn btn-neutral float-left" title="v0.6.0" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.7.2
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="v0.7.2.html">v0.7.2</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../main/release-notes/v0.7.2.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

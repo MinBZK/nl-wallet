@@ -1,0 +1,207 @@
+# v0.7.2
+
+## Upgrading
+
+- The `wia_trust_anchors` configuration parameter of all services that issue
+  credentials has been renamed to `wptl_trust_anchors`. Additionally, the
+  `wallet_provider` configuration has had parameters added, among which are the
+  Key Attestation private key and certificate. This certificate should validate
+  under one of the `wptl_trust_anchors`, just like the WIA certificate does.
+  Note that the trust anchor under which these certificates are issued need not
+  be the same for the same Wallet Provider.
+- The PID, as issued by the `pid_issuer`, was updated to match the EUDI PID
+  Rulebook. Some mdoc attribute identifiers now differ from their previous
+  names: `birthdate` is now `birth_date`, `nationalities` is now `nationality`,
+  and `street_address`, `postal_code`, `locality`, and `country` are now
+  `resident_street`, `resident_postal_code`, `resident_city`, and
+  `resident_country` respectively. `house_number` is included as part of
+  `resident_street`. `place_of_birth` is now an object with `country` and
+  `locality` properties. The mdoc `doctype` identifier was changed to match the
+  EUDI PID Rulebook. The attribute `age_over_18` has been removed.
+  `issuing_country`, `issuing_authority` and `sex` are added as new attributes.
+  `birthdate` is now encoded as a `full-date` (CBOR tag 1004). The
+  `issuing_country` and `issuing_authority` must be configured in the PID issuer
+  settings. The NL-specific mdoc attributes `bsn` and `recovery_code` have moved
+  to the domestic `eu.europa.ec.eudi.pid.nl.1` namespace, as required for
+  attributes not defined in the Rulebook. The `pid_attributes` paths in the
+  wallet configuration and any Relying Party requests or registration
+  certificates for these attributes must be updated accordingly.
+- As part of OpenID4VCI Key Attestations, the Wallet Provider now serves a
+  Status List Token for its Key Storage. In order to facilitate this, it has had
+  the following parameters added to its configuration:
+    - The main section of the configuration has a `public_url` parameter, which
+      should contain the URL at which the Wallet Provider is publicly reachable.
+    - The `key_storage_status_list` section has the combination of
+      `key_identifier` and `key_certificate`, where the latter should contain
+      the public key corresponding to the private in the HSM to which the former
+      parameter points.
+    - Also present in the `key_storage_status_list` are the optional
+      `expiry_in_hours` and `tracking_validity_in_days` parameters, both of
+      which dictate expiration periods as included in the Key Storage Status
+      List Token.
+- The `wallet_client_ids` setting has been removed from the verification server
+  configuration. It was used to verify the issuer of the Proof of Association
+  (PoA), which has been removed.
+- Credential Rquest encryption is implemented in both the Wallet and Issuer and
+  is mandatory for all issuing services. These have all had the
+  `credential_request_encryption_key` setting added to their configurations,
+  which should contain a Base64-encoded P-256 ECDH secret key in PKCS 8 format.
+- The iOS wallet app now needs the numeric App Store id of the app to link to
+  its App Store page from the update screens. It is passed to the Flutter build
+  as `--dart-define=APP_STORE_ID=<id>`. The Fastlane `ios build` and
+  `ios build_simulator` lanes read it from the `APP_STORE_ID` environment
+  variable and fail when it is not set, so every iOS build pipeline must now
+  provide it. Android builds do not need it. When the app was installed through
+  TestFlight, the update screens open TestFlight instead.
+- The Fastlane `build` lanes accept a new `show_error_details` option (Dart
+  define `SHOW_ERROR_DETAILS`, default `false`), which makes the wallet app show
+  technical error details in the error details sheet.
+- The organization identifier in the subject of X.509 certificates is now read
+  and written using the X.520 `organizationIdentifier` attribute type
+  (`2.5.4.97`), as required by ETSI EN 319 412-3, instead of `1.3.6.1.1.15`.
+  Certificates that have the old OID are no longer recognized as belonging to a
+  legal person: the services refuse to start with them, and the wallet rejects
+  WRPACs that use it. Reissue these certificates with the current `wallet_ca`.
+
+## New features
+
+- Issuers have a new optional setting `credential_preview_endpoint` (default
+  `true`). When set to `false`, the issuer does not serve the non-standard
+  Credential Preview Endpoint, behaving like a standard OpenID4VCI issuer. This
+  is intended for testing the wallet against such issuers.
+- Wallet supports X509 certificates with ES384 and RSA (min 2048) keys.
+- Wallet supports CWT certificates with ES384 and RSA (min 2048) keys.
+- The issuance server now also publish their status lists in CWT format, as
+  required for mdoc credentials by the draft second edition of ISO 18013-5. When
+  serving a status list, the format is chosen based on the `Accept` header of
+  the request (`application/statuslist+jwt` or `application/statuslist+cwt`).
+- Wallet now requires the Wallet Configuration to have a key identifier (`kid`).
+  The `kid` is used as the path component on the configured base url when
+  downloading the Wallet Configuration.
+- The `wallet_ca` utility generates certificates that follow the ETSI
+  certificate profiles for notification on the EU Lists of Trusted Entities
+  (ETSI EN 319 412-2/-3 and TS 119 412-6):
+    - The `ca` command accepts `--organization-name` and `--organization-id`, to
+      generate a CA with a legal person subject.
+    - The new certificate type `pid-issuer` is meant for PID issuers. The
+      `issuer` type is now meant for issuers of other attestations.
+    - The new `--ca-issuer` option adds an Authority Information Access
+      extension with the URL(s) at which the issuing CA certificate is served.
+    - All end-entity certificates get a Subject Key Identifier, computed as
+      required by ISO/IEC 18013-5 (SHA-1 hash of the public key).
+    - Issuer, PID issuer, WIA, Key Attestation and WRPAC certificates, as well
+      as WRPRC signing certificates, get a certificate policy, for now the
+      provisional OID `2.25.150580842064059311066423755779195795505`.
+    - PID issuer certificates get a QcType statement with `id-etsi-qct-pid`, and
+      WIA and Key Attestation certificates one with `id-etsi-qct-wal`.
+    - WIA, Key Attestation, WRPAC and status list signing certificates get the
+      `digitalSignature` key usage. WRPRC signing certificates get
+      `contentCommitment` (`nonRepudiation`). These key usages are critical.
+    - WRPACs get the non-critical ISO/IEC 18013-5 reader authentication
+      extended key usage (`mdlReaderAuth`, `1.0.18013.5.1.6`). WRPRC signing
+      certificates have no extended key usage.
+    - All certificates get a random serial number. Previously, the serial number
+      was derived from the public key, so a certificate reissued for the same
+      key had the same serial number.
+    - The `countryName` and `serialNumber` subject attributes are encoded as a
+      `PrintableString`, as required by RFC 5280.
+
+## Interoperability improvements
+
+- The `attestation` proof type has been implemented according to OpenID4VCI,
+  HAIP and TS3. Both the Issuer and the WSCD have switched to this proof type
+  instead of `jwt`. NB: The `jwt` proof type has not yet been updated to conform
+  to OpenID4VCI 1.0 and its implementation is now effectively dead code.
+- The wallet now also accepts a registration certificate in JWT format that is
+  included in `verifier_info` or `issuer_info` as a compact JWT, without the
+  additional base64url encoding required by ETSI TS 119 472-2.
+- The wallet now also accepts a registration certificate in `verifier_info` or
+  `issuer_info` whose base64url encoding includes padding.
+- The wallet parses registration certificates (WRPRCs) more leniently, so that
+  it accepts those of the EUDI reference implementation and registrar:
+    - `srv_description` may also be a single array of multi-language strings,
+      instead of the array of arrays of ETSI TS 119 475 Annex B.
+    - `id` is no longer required, as ETSI TS 119 475 does not list it among the
+      payload attributes. It was not used.
+    - `status` may also have the nested Token Status List shape
+      (`{"status_list": {"idx": 0, "uri": "..."}}`) used by the Annex C example,
+      or an integer `idx`, besides the shape with a numeric string `idx`
+      prescribed by GEN-6.2.6.1-04.
+- Certificate chains (the `x5c` header of a JWT or the `x5chain` header of a
+  COSE object) that wrongly include a configured trust anchor are no longer
+  rejected. The trust anchor is ignored when building the certificate path. As
+  required by HAIP, certificate chains should not include it.
+- The wallet no longer requires the signing certificate of a Status List Token
+  to have the status list signing extended key usage, nor to have the same
+  subject as the signer of the attestation or WRPRC that refers to it. Neither
+  the Token Status List draft nor ETSI TS 119 475 requires this, and the EUDI
+  reference implementation signs its WRPRC status lists with a different
+  certificate. The signing certificate is still verified against the trust
+  anchors. For the same reason, issuers no longer refuse to start when the
+  status list signing certificate of a credential configuration has a different
+  subject than its attestation signing certificate.
+- The wallet now expects `credential_request_encryption.jwks` in the issuer
+  metadata to be a JSON Web Key Set object with a `keys` member, as required by
+  OpenID4VCI 1.0 (referring to RFC 7591), instead of a bare array of keys as in
+  the non-normative example of OpenID4VCI. Previously, the wallet could not
+  fetch the metadata of issuers that publish this field, such as the EUDI
+  testbed issuer.
+- The PID, as issued by the `pid_issuer`, was updated to match the EUDI PID
+  Rulebook. Note that `portrait`, even though being mandatory, is not included
+  at all because the BRP does not provide it. `place_of_birth` is also not
+  marked as mandatory because our implementation cannot handle that yet.
+- The JPEG 2000 image format, which may be included in the mDL, is now
+  supported.
+- The wallet now supports disclosure requests that ask for credentials in
+  different formats (mdoc and SD-JWT) in the same DCQL query. Previously, the
+  wallet aborted the session when receiving such a request.
+- The wallet now accepts SD-JWT claim paths in a DCQL query that end with
+  `null`, such as `["nationalities", null]` as requested by the EUDI reference
+  verifier, and discloses the whole array. This is an interim solution: array
+  elements that an issuer made selectively disclosable separately are not
+  disclosed. A `null` elsewhere in the path, array indices and `null` in mdoc
+  claim paths are still rejected.
+- The wallet now supports issuance by OpenID4VCI issuers that do not offer the
+  non-standard Credential Preview Endpoint. In that case the app asks the user
+  whether to receive the cards from the issuing organization and then asks for
+  the PIN, without showing the cards first. PID issuance and disclosure based
+  issuance still require previews. Known limitations: issued cards are always
+  added as new cards, also when they renew an existing card, and the copies of
+  an issued credential are not yet checked for consistency with each other.
+
+## Bug fixes
+
+- The wallet accepts wallet configurations fetched from the configuration server
+  again. Since v0.6.0, it required the `typ` header of the configuration JWT to
+  be exactly `JWT`, while the configuration is signed with `jwt`. The `typ`
+  header of all JWTs is now compared case-insensitively, as required by
+  RFC 7515.
+- The wallet now only stores the `ETag` of a wallet configuration after
+  accepting it. Previously, a rejected configuration was considered unmodified
+  on every subsequent fetch, so it was never evaluated again.
+- The wallet app no longer gets stuck on the splash screen when the wallet
+  configuration contains a maintenance window. The maintenance screen now also
+  shows the window in local time instead of UTC.
+
+## Wallet app improvements
+
+- Update to Flutter 3.47.8.
+- The error details sheet ("Show details" on error screens) can now show
+  technical error details (error type, description and data).
+- Errors that occur while fetching the wallet configuration are now reported to
+  Sentry. Networking errors and HTTP error responses are excluded, because they
+  are expected on mobile devices. Previously, these errors were only logged.
+
+## Admin portal improvements
+
+- The `admin-portal` now uses the task management API of the Wallet Provider, so
+  that administrators can create, withdraw and review tasks. The task lists show
+  open tasks, the user's own open tasks and the task history, and a new details
+  page shows a task and its review and execution result.
+- Tasks to revoke wallets can now be created: administrators search for wallets
+  by Wallet ID and add them to a list. Wallets that are already revoked can not
+  be added. Tasks to (de)block users or revoke the wallet solution are not
+  supported yet.
+- Users without the required privileges now see a dedicated forbidden page.
+- The `admin-portal` Helm chart has a new optional `environment` setting. Its
+  value is shown in the sidebar and on the login page, and is hidden when empty.

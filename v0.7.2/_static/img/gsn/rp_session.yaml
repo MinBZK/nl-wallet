@@ -1,0 +1,44 @@
+module:
+  name: rp_session_attribute
+
+G_EstablishAttributeCorrectnessAtLoAHigh:
+  text: RP establishes that the attribute is a factually correct statement about the user at LoA High.
+  supportedBy: [S_DecomposeAttributeVerification]
+
+S_DecomposeAttributeVerification:
+  text: Decompose into issuer trust, cryptographic integrity, verifier validations, replay attack prevention
+  supportedBy:
+    - G_TrustPidIssuer
+    - G_VerifyPidCryptographicIntegrity
+    - Sn_CheckAttributePolicyCompliance
+    - Sn_PreventReplayAndImpersonation
+    - Sn_CheckAttributeStatus
+
+G_TrustPidIssuer:
+  text: RP trusts the PID issuer to (1) issue only to wallets that implement Sole Control, (2) issue only attributes that it has checked to be factually correct, (3) issue the PID at LoA High
+  supportedBy: [G_SoleControl, G_IssuePidAtLoAHigh]
+  inContextOf: [C_SoleControlIsRequired]
+
+C_SoleControlIsRequired:
+  text: Sole control by the user is necessary for factual correctness and to prevent unauthorized use.
+
+G_VerifyPidCryptographicIntegrity:
+  text: RP enforces that the attribute is contained in a PID that originates from a trusted issuer and maintains cryptographic integrity.
+  supportedBy:
+    - Sn_VerifyIssuerCertificate
+    - Sn_VerifyIssuerSignature
+
+Sn_VerifyIssuerCertificate:
+  text: RP parses the issuer certificate from the attestation and verifies it against its trusted CA store of PID issuers
+
+Sn_VerifyIssuerSignature:
+  text: RP verifies the issuer signature over the attributes using the PID issuer public key from its certificate
+
+Sn_CheckAttributePolicyCompliance:
+  text: RP checks that the attribute satisfies policy requirements (PID doctype or VCT, required claims, no over-disclosure)
+
+Sn_CheckAttributeStatus:
+  text: RP confirms that the attribute has not expired and is not revoked using the issuer status endpoint
+
+Sn_PreventReplayAndImpersonation:
+  text: RP verifies that the presenting wallet is the wallet the attribute was issued to using a liveness challenge-response mechanism (OpenID4VP or ISO 18013-5)
