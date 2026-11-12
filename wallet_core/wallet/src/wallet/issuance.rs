@@ -614,13 +614,13 @@ where
     /// the stored attestation the credential renews, if any.
     async fn process_issued_credentials(
         &mut self,
-        credentials: &[CredentialWithMetadata],
+        credentials: &VecNonEmpty<CredentialWithMetadata>,
         organization: &Organization,
         pid_purpose: Option<PidIssuancePurpose>,
         pid_config: &PidAttributesConfiguration,
-    ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
+    ) -> Result<VecNonEmpty<AttestationPresentation>, IssuanceError> {
         let issued_credential_kinds = credentials
-            .iter()
+            .nonempty_iter()
             .map(|credential| credential.credential_kind().into_owned())
             .collect();
 
@@ -635,7 +635,7 @@ where
         let mut matcher = renewal_matcher(stored, pid_purpose.is_some().then_some(pid_config), &TimeGenerator);
 
         credentials
-            .iter()
+            .nonempty_iter()
             .map(|credential| {
                 // Find the stored attestation this credential renews, if any, to determine its database identity.
                 let identity = matcher(credential.copies.format(), &credential.contents);
@@ -723,7 +723,7 @@ where
         self.session = None;
 
         let attestation_presentations = match preview_attestations {
-            Some(preview_attestations) => preview_attestations.into_inner(),
+            Some(preview_attestations) => preview_attestations,
             None => {
                 self.process_issued_credentials(
                     &issued_credentials_with_metadata,

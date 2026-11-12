@@ -244,14 +244,14 @@ async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) 
 }
 
 fn verify_issued_credentials<'a>(
-    issued_creds: Vec<CredentialWithMetadata>,
+    issued_creds: VecNonEmpty<CredentialWithMetadata>,
     credential_previews: impl NonEmptyIterator<Item = OfferedCredentialPreview<'a>>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
-    assert_eq!(issued_creds.len(), expected_attestations);
+    assert_eq!(issued_creds.len().get(), expected_attestations);
     assert_eq!(
-        match &issued_creds.first().unwrap().copies {
+        match &issued_creds.first().copies {
             IssuedCredentialCopies::Mdoc(mdocs) => mdocs.len().get(),
             IssuedCredentialCopies::SdJwt(sd_jwts) => sd_jwts.len().get(),
         },

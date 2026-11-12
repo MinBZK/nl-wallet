@@ -16,7 +16,6 @@ use crypto::keys::PublicKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
 use futures::TryFutureExt;
-use futures::future::try_join_all;
 use futures::try_join;
 use http::HeaderValue;
 use http::header;
@@ -31,6 +30,7 @@ use jwt::nonce::Nonce;
 use mdoc::MIN_ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
+use nonempty_collections::NEEither;
 use nonempty_collections::NEMap;
 use nonempty_collections::NESet;
 use oauth::dpop::DPOP_HEADER_NAME;
@@ -61,9 +61,11 @@ use ssri::Integrity;
 use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::try_join_all;
 use wscd::issuance::IssuanceKeyResult;
 use wscd::issuance::IssuanceWscd;
 use wscd::payload::key_attestation::KeyAttestationVerificationResult;
@@ -708,16 +710,18 @@ impl OfferedCredentials {
     }
 
     /// Iterate over the offered credentials and optional previews.
-    fn iter(&self) -> impl Iterator<Item = (&OfferedCredential, Option<&CredentialContents>)> {
+    fn nonempty_iter(&self) -> impl NonEmptyIterator<Item = (&OfferedCredential, Option<&CredentialContents>)> {
         match self {
-            OfferedCredentials::WithPreviews(creds) => Either::Left(
+            OfferedCredentials::WithPreviews(creds) => NEEither::Left(
                 creds
-                    .iter()
+                    .nonempty_iter()
                     .map(|(offered_credential, preview)| (offered_credential, Some(preview))),
             ),
-            OfferedCredentials::WithoutPreviews(creds) => {
-                Either::Right(creds.iter().map(|offered_credential| (offered_credential, None)))
-            }
+            OfferedCredentials::WithoutPreviews(creds) => NEEither::Right(
+                creds
+                    .nonempty_iter()
+                    .map(|offered_credential| (offered_credential, None)),
+            ),
         }
     }
 }
@@ -1000,7 +1004,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         }
 
         // Fetch type metadata documents from URIs, then normalize the chain of documents.
-        let metadata_per_config_id = try_join_all(uris_and_vcts_with_configs.into_iter().map(
+        let metadata_per_config_id = futures::future::try_join_all(uris_and_vcts_with_configs.into_iter().map(
             async |(uri, vct, config_ids)| -> Result<_, WalletIssuanceError> {
                 let documents = message_client.request_type_metadata(uri.as_url().clone()).await?;
 
@@ -1210,7 +1214,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         trust_anchors: AcceptIssuanceTrustAnchors<'a>,
         wscd: &W,
         time: &G,
-    ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
+    ) -> Result<VecNonEmpty<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd,
         G: Generator<DateTime<Utc>>,
@@ -1221,9 +1225,9 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         // Determine the proof nonce and DPoP nonce for each credential. If the nonce endpoint is defined in the
         // metadata, call it for each credential in parallel in order to retrieve a proof nonce to be used in the Proof
         // of Possession of the holder key.
-        let credential_count = self.session_state.offered_credentials.len().get();
-        let (proof_nonces, dpop_nonces): (Vec<_>, Vec<_>) =
-            try_join_all((0..credential_count).map(async |_| -> Result<_, WalletIssuanceError> {
+        let credential_count = self.session_state.offered_credentials.len();
+        let (proof_nonces, dpop_nonces): (VecNonEmpty<_>, VecNonEmpty<_>) = try_join_all(
+            vec_at_least::repeat_n((), credential_count).map(async |_| -> Result<_, WalletIssuanceError> {
                 let (proof_nonce, dpop_nonce) = match self.session_state.issuer_endpoints.nonce_endpoint.as_ref() {
                     None => {
                         // There is no nonce endpoint available, so use the DPoP nonce from the Token Response, if
@@ -1245,20 +1249,18 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 };
 
                 Ok((proof_nonce, dpop_nonce))
-            }))
-            .await?
-            .into_iter()
-            .unzip();
+            }),
+        )
+        .await?
+        .into_nonempty_iter()
+        .unzip();
 
         // Have the WSCD generate sets of as many private keys and proofs as the number of credential copies for each
         // individual credential.
         let key_counts_and_nonces: VecNonEmpty<_> = proof_nonces
-            .into_iter()
+            .into_nonempty_iter()
             .map(|proof_nonce| (copy_count, proof_nonce))
-            .collect_vec()
-            .try_into()
-            .expect("credential_count is non-zero, which guarantees that proof_nonces is non-empty");
-        let credential_count = key_counts_and_nonces.len();
+            .collect();
         let key_results = wscd
             .perform_issuance(key_counts_and_nonces)
             .await
@@ -1276,9 +1278,9 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         let credentials = try_join_all(
             self.session_state
                 .offered_credentials
-                .iter()
-                .zip_eq(key_results)
-                .zip_eq(dpop_nonces)
+                .nonempty_iter()
+                .zip(key_results)
+                .zip(dpop_nonces)
                 .map(|(((offered_credential, preview), key_result), dpop_nonce)| {
                     self.fetch_credential(offered_credential, preview, key_result, dpop_nonce, trust_anchors, time)
                 }),
@@ -2338,7 +2340,13 @@ mod tests {
         )
         .expect("starting issuance session should succeed");
 
-        let Ok((offered_credential, _preview)) = session.session_state.offered_credentials.iter().exactly_one() else {
+        let Ok((offered_credential, _preview)) = session
+            .session_state
+            .offered_credentials
+            .nonempty_iter()
+            .into_iter()
+            .exactly_one()
+        else {
             panic!("issuance session should contain exactly one offered credential")
         };
         assert_eq!(offered_credential.config_id, config_id);
@@ -3360,7 +3368,7 @@ mod tests {
             .unwrap()
             .expect("accepting issuance should succeed");
 
-        assert_eq!(credentials.len(), credential_count);
+        assert_eq!(credentials.len().get(), credential_count);
 
         let expected_copy_count = std::cmp::min(batch_size, max_copy_count).into();
         for credential in &credentials {

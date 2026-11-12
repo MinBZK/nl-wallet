@@ -590,7 +590,7 @@ pub trait IssuanceSession {
         trust_anchors: AcceptIssuanceTrustAnchors<'a>,
         wscd: &W,
         time: &G,
-    ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
+    ) -> Result<VecNonEmpty<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd,
         G: Generator<DateTime<Utc>>;

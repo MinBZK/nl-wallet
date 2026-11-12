@@ -63,7 +63,7 @@ where
     /// the Wallet Provider revoke all wallets of both persons.
     pub(super) async fn checked_recovery_code_disclosure(
         &self,
-        credentials: &[CredentialWithMetadata],
+        credentials: &VecNonEmpty<CredentialWithMetadata>,
         pid_config: &PidAttributesConfiguration,
     ) -> Result<CheckedRecoveryCodeDisclosure, RecoveryCodeError> {
         // Since the recovery code is the same in all copies, just find the first credential that is in SD-JWT format
