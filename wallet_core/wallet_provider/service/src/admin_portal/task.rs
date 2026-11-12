@@ -198,7 +198,9 @@ where
             TaskPayload::RevokeWallet(revoke_wallet_parameters) => {
                 verify_revoke_wallet_parameters(revoke_wallet_parameters, user_state).await?;
             }
-            TaskPayload::BlockUser {} => todo!("PVW-6176"),
+            // Recovery codes are not required to exist, a wallet may not have been created yet. The parameters are
+            // validated by their type.
+            TaskPayload::BlockUser(_) => {}
             TaskPayload::UnblockUser {} => todo!("PVW-6177"),
             TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         }
@@ -396,7 +398,9 @@ where
                     Err(error) => (false, error.to_string()),
                 }
             }
-            TaskPayload::BlockUser {} => todo!("PVW-6176"),
+            TaskPayload::BlockUser(_block_user_parameters) => {
+                todo!("PVW-6176")
+            }
             TaskPayload::UnblockUser {} => todo!("PVW-6177"),
             TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         };

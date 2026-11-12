@@ -9,6 +9,8 @@ use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmptyUnique;
 use uuid::Uuid;
 
+use crate::model::wallet_user::RecoveryCode;
+
 use super::wallet_user::WalletId;
 
 /// Administrator action that can be proposed and reviewed in the admin_portal, together with its parameters.
@@ -24,7 +26,7 @@ use super::wallet_user::WalletId;
 )]
 pub enum TaskPayload {
     RevokeWallet(RevokeWalletParameters),
-    BlockUser {},      // TODO PVW-6176
+    BlockUser(BlockUserParameters),
     UnblockUser {},    // TODO PVW-6177
     RevokeSolution {}, // TODO PVW-6178
 }
@@ -37,7 +39,8 @@ impl TaskPayload {
     pub fn parameters_json(&self) -> Result<JsonValue, serde_json::Error> {
         match self {
             Self::RevokeWallet(parameters) => serde_json::to_value(parameters),
-            Self::BlockUser {} | Self::UnblockUser {} | Self::RevokeSolution {} => Ok(JsonValue::Object(Map::new())),
+            Self::BlockUser(parameters) => serde_json::to_value(parameters),
+            Self::UnblockUser {} | Self::RevokeSolution {} => Ok(JsonValue::Object(Map::new())),
         }
     }
 
@@ -58,6 +61,15 @@ impl TaskPayload {
 pub struct RevokeWalletParameters {
     #[serde_as(as = "Vec<_>")]
     pub wallet_ids: VecNonEmptyUnique<WalletId>,
+}
+
+/// Parameters of a [`TaskType::BlockUser`] task: the recovery_codes to revoke, at least one, without duplicates.
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BlockUserParameters {
+    #[serde_as(as = "Vec<_>")]
+    pub recovery_codes: VecNonEmptyUnique<RecoveryCode>,
 }
 
 /// The lifecycle status of an [`AdminTask`].

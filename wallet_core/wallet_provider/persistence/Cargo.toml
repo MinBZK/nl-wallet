@@ -108,3 +108,5 @@ db_test = { path = "../../lib/db_test", optional = true }
 [dev-dependencies]
 rstest.workspace = true
 serde_json.workspace = true
+
+utils.path = "../../lib/utils"
