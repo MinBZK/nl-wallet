@@ -9,7 +9,7 @@ use derive_more::Index;
 use itertools::Itertools;
 use nonempty_collections::FromNonEmptyIterator;
 pub use nonempty_collections::IntoNonEmptyIterator;
-use nonempty_collections::Singleton;
+pub use nonempty_collections::Singleton;
 pub use nonempty_collections::iter::NonEmptyIterator;
 use rand::seq::IndexedRandom;
 use serde::Deserialize;
@@ -422,6 +422,16 @@ impl<T> Singleton for VecNonEmpty<T> {
 
     fn singleton(item: Self::Item) -> Self {
         vec_nonempty![item]
+    }
+}
+
+// A type that can be instantiated via a single item
+// <https://docs.rs/nonempty-collections/1.1.0/nonempty_collections/trait.Singleton.html>
+impl<T> Singleton for VecNonEmptyUnique<T> {
+    type Item = T;
+
+    fn singleton(item: Self::Item) -> Self {
+        VecNonEmptyUnique::new(vec![item]).unwrap_or_else(|_| panic!("singleton should never fail"))
     }
 }
 
