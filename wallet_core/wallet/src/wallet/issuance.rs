@@ -271,6 +271,16 @@ pub enum PidAttestationFormat {
     Either,
 }
 
+/// The credentials received by [`Wallet::receive_credentials`], containing everything needed to process and store them.
+struct ReceivedCredentials<IC> {
+    credentials: VecNonEmpty<CredentialWithMetadata>,
+    preview_attestations: Option<VecNonEmpty<AttestationPresentation>>,
+    organization: Organization,
+    pid_purpose: Option<PidIssuancePurpose>,
+    config: Arc<WalletConfiguration>,
+    instruction_client: IC,
+}
+
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     S: Storage,
@@ -664,14 +674,70 @@ where
     {
         info!("Accepting issuance");
 
+        let ReceivedCredentials {
+            credentials,
+            preview_attestations,
+            organization,
+            pid_purpose,
+            config,
+            instruction_client,
+        } = self.receive_credentials(pin).await?;
+
+        let attestation_presentations = match preview_attestations {
+            Some(preview_attestations) => preview_attestations,
+            None => {
+                self.process_issued_credentials(&credentials, &organization, pid_purpose, &config.pid_attributes)
+                    .await?
+            }
+        };
+
+        // The Wallet Provider acts on the disclosed recovery code, so disclose it only after every fallible operation
+        // that does not have side effects has run. It does have to precede storing the credentials, as the Wallet
+        // Provider only unblocks the keys of the issued PID upon disclosure.
+        let transfer_session_id = if pid_purpose.is_some() {
+            // Check the recovery code in the issued PID against the one in the stored PID, if any. The issued PID is
+            // not stored yet, so on a mismatch the issued credentials can simply be dropped.
+            let recovery_code_disclosure = self
+                .checked_recovery_code_disclosure(&credentials, &config.pid_attributes)
+                .await?;
+
+            self.disclose_recovery_code(recovery_code_disclosure, &instruction_client)
+                .await?
+                // If we're doing PID renewal as opposed to enrolling, we don't want to transfer.
+                .filter(|_| pid_purpose == Some(PidIssuancePurpose::Enrollment))
+        } else {
+            None
+        };
+
+        // The attestations can be paired with the credentials by position. `IssuanceSession::accept_issuance` returns
+        // the credentials in the same order as the previews from which `preview_attestations` were created, and
+        // `process_issued_credentials` keeps the order of the credentials.
+        self.finalize_issuance(
+            credentials.into_iter().zip_eq(attestation_presentations),
+            transfer_session_id,
+        )
+        .await?;
+
+        Ok(IssuanceResult { transfer_session_id })
+    }
+
+    /// Accepts the issuance session using the PIN and receives the issued credentials, after which the issuance session
+    /// is removed. On an error the session is kept, unless the wallet is reset.
+    async fn receive_credentials(
+        &mut self,
+        pin: Pin,
+    ) -> Result<ReceivedCredentials<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>>, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
-        let remote_instruction_client = self
+        let instruction_client = self
             .prepare_remote_instruction_client(pin, (attested_key, registration_data, Arc::clone(&config)))
             .await?;
 
-        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction_client.clone());
+        let remote_wscd = RemoteEcdsaWscd::new(instruction_client.clone());
 
         info!("Checking if there is an active issuance session");
         let Some(Session::Issuance(issuance_session)) = &mut self.session else {
@@ -722,55 +788,38 @@ where
         info!("Issuance succeeded; removing issuance session state");
         self.session = None;
 
-        let attestation_presentations = match preview_attestations {
-            Some(preview_attestations) => preview_attestations,
-            None => {
-                self.process_issued_credentials(
-                    &issued_credentials_with_metadata,
-                    &organization,
-                    pid_purpose,
-                    &config.pid_attributes,
-                )
-                .await?
-            }
-        };
+        Ok(ReceivedCredentials {
+            credentials: issued_credentials_with_metadata,
+            preview_attestations,
+            organization,
+            pid_purpose,
+            config,
+            instruction_client,
+        })
+    }
 
-        // The Wallet Provider acts on the disclosed recovery code, so disclose it only after every fallible operation
-        // that does not have side effects has run. It does have to precede storing the credentials, as the Wallet
-        // Provider only unblocks the keys of the issued PID upon disclosure.
-        let transfer_session_id = if pid_purpose.is_some() {
-            // Check the recovery code in the issued PID against the one in the stored PID, if any. The issued PID is
-            // not stored yet, so on a mismatch the issued credentials can simply be dropped.
-            let recovery_code_disclosure = self
-                .checked_recovery_code_disclosure(&issued_credentials_with_metadata, &config.pid_attributes)
-                .await?;
-
-            self.disclose_recovery_code(recovery_code_disclosure, &remote_instruction_client)
-                .await?
-                // If we're doing PID renewal as opposed to enrolling, we don't want to transfer.
-                .filter(|_| pid_purpose == Some(PidIssuancePurpose::Enrollment))
-        } else {
-            None
-        };
-
-        if let Some(transfer_session_id) = transfer_session_id.as_ref() {
+    /// Stores the transfer session ID, if any, and the issued credentials together with their attestations, then emits
+    /// the updated attestations, notifications and recent history. A credential whose attestation has a fixed identity
+    /// replaces the stored attestation with that identity, any other credential is stored as a new attestation.
+    async fn finalize_issuance(
+        &mut self,
+        credentials_and_attestations: impl IntoIterator<Item = (CredentialWithMetadata, AttestationPresentation)>,
+        transfer_session_id: Option<TransferSessionId>,
+    ) -> Result<(), IssuanceError> {
+        if let Some(transfer_session_id) = transfer_session_id {
             self.storage
                 .write()
                 .await
                 .insert_data(&TransferData {
-                    transfer_session_id: *transfer_session_id,
+                    transfer_session_id,
                     key_data: None,
                 })
                 .await
                 .map_err(IssuanceError::TransferDataStorage)?;
         }
 
-        // The attestation presentations can be paired with the issued credentials by position.
-        // `IssuanceSession::accept_issuance` returns the credentials in the same order as the previews from which
-        // `preview_attestations` were created, and `process_issued_credentials` keeps the order of the credentials.
-        let (existing, new): (Vec<_>, Vec<_>) = issued_credentials_with_metadata
+        let (existing, new): (Vec<_>, Vec<_>) = credentials_and_attestations
             .into_iter()
-            .zip_eq(attestation_presentations)
             .partition(|(_, presentation)| matches!(presentation.identity, AttestationIdentity::Fixed { .. }));
 
         info!("Attestations accepted, storing credentials in database");
@@ -795,7 +844,7 @@ where
         self.emit_notifications().await?;
         self.emit_recent_history().await?;
 
-        Ok(IssuanceResult { transfer_session_id })
+        Ok(())
     }
 
     pub(super) fn handle_accept_issuance_error(
