@@ -31,14 +31,14 @@
   "pid_attributes": {
     "mso_mdoc": {
       "com.example.nl.pid.1": {
-        "login": ["com.example.nl.pid.1", "bsn"],
-        "recovery_code": ["com.example.nl.pid.1", "recovery_code"]
+        "login": { "namespace": "com.example.nl.pid.1", "element_name": "bsn" },
+        "recovery_code": { "namespace": "com.example.nl.pid.1", "element_name": "recovery_code" }
       }
     },
     "sd_jwt": {
       "urn:example:pid:nl:1": {
-        "login": ["bsn"],
-        "recovery_code": ["recovery_code"]
+        "login": "bsn",
+        "recovery_code": "recovery_code"
       }
     }
   },

@@ -20,12 +20,13 @@ use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use p256::ecdsa::VerifyingKey;
 use platform_support::attested_key::AttestedKeyHolder;
+use sd_jwt::claims::ClaimName;
 use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use url::Url;
 use utils::generator::TimeGenerator;
-use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
@@ -111,7 +112,7 @@ pub enum PinRecoverySession<AS, IS> {
         authorization_session: AS,
     },
     Issuance {
-        recovery_code_path: VecNonEmpty<ClaimPath>,
+        recovery_code_claim: ClaimName,
         pid_attestation_type: String,
         issuance_session: IS,
     },
@@ -271,10 +272,10 @@ where
             .await?;
 
         let pid_attestation_type = pid_preview.attestation_type.clone();
-        let recovery_code_path = pid_config.recovery_code_path(&pid_attestation_type)?;
+        let recovery_code_claim = pid_config.recovery_code_claim(&pid_attestation_type)?.clone();
 
         self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
-            recovery_code_path,
+            recovery_code_claim,
             pid_attestation_type,
             issuance_session,
         }));
@@ -335,7 +336,7 @@ where
         }
 
         let Some(Session::PinRecovery(PinRecoverySession::Issuance {
-            recovery_code_path,
+            recovery_code_claim,
             pid_attestation_type,
             mut issuance_session,
         })) = self.session.take()
@@ -434,7 +435,7 @@ where
         let recovery_code_disclosure = pid
             .into_sd_jwt()
             .into_presentation_builder()
-            .disclose(&recovery_code_path)
+            .disclose(&vec_nonempty![ClaimPath::SelectByKey(recovery_code_claim.into_inner())])
             .expect("the presence of the recovery code within the PID is guaranteed by continue_pin_recovery()")
             .finish()
             .into();
@@ -1050,7 +1051,7 @@ mod tests {
         );
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
-            recovery_code_path: vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
+            recovery_code_claim: PID_RECOVERY_CODE.parse().unwrap(),
             pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
             issuance_session: pid_issuer,
         }));
