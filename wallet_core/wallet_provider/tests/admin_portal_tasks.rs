@@ -19,10 +19,12 @@ use axum::http::StatusCode;
 use axum::http::header;
 use chrono::Utc;
 use serde::de::DeserializeOwned;
+use serde_json::json;
 use tower::ServiceExt;
 use utils::vec_nonempty;
 use uuid::Uuid;
 use wallet_provider::admin_portal;
+use wallet_provider::admin_portal::CheckWalletRequest;
 use wallet_provider::admin_portal::CheckWalletResponse;
 use wallet_provider::admin_portal::CreateTaskRequest;
 use wallet_provider::admin_portal::ReviewTaskRequest;
@@ -236,10 +238,13 @@ async fn test_check_wallet_succeeds() {
     let wallet_id = seed_wallet(&repositories).await;
 
     let request = Request::builder()
-        .method("GET")
-        .uri(format!("/wallets/{wallet_id}"))
+        .method("POST")
+        .uri("/wallets/check")
         .header(header::COOKIE, cookie)
-        .body(Body::empty())
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(
+            serde_json::to_string(&CheckWalletRequest { wallet_id }).unwrap(),
+        ))
         .unwrap();
 
     let response = app.oneshot(request).await.unwrap();
@@ -247,6 +252,25 @@ async fn test_check_wallet_succeeds() {
 
     let body: CheckWalletResponse = json_body(response).await;
     assert_eq!(body.status, WalletRevocationState::Revokable);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_check_wallet_bad_request() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+
+    let request = Request::builder()
+        .method("POST")
+        .uri("/wallets/check")
+        .header(header::COOKIE, cookie)
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(json!({ "walletId": 3 }).to_string()))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
 #[serial_test::serial(hsm)]
