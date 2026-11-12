@@ -4,6 +4,7 @@ use serde::Serialize;
 use token_status_list::status_list_service::StatusListService;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::admin_task::TaskType;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserState;
 use wallet_provider_domain::repository::Committable;
@@ -44,7 +45,73 @@ pub enum GetWalletRevocationStateError {
     Storage(#[source] PersistenceError),
 }
 
+/// Number of wallets associated with a recovery code, split by whether they are still active.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RecoveryCodeWalletCounts {
+    pub active: usize,
+    pub inactive: usize,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum GetRecoveryCodeWalletCountsError {
+    #[error("missing privilege for task type {0}")]
+    MissingPrivilege(TaskType),
+    #[error("recovery code not found")]
+    NotFound,
+    #[error("persistence error: {0}")]
+    Storage(#[source] PersistenceError),
+}
+
 impl<R, T, U> AdminPortalService<R, T, U> {
+    /// Counts the wallets associated with the recovery code, for `block_user` tasks. A wallet is active unless it
+    /// is revoked or transferred, consistent with the check in
+    /// [`wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code`].
+    pub async fn get_recovery_code_wallet_counts<TX, UR, F, H>(
+        &self,
+        recovery_code: &RecoveryCode,
+        user: &LoggedInUser,
+        user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
+    ) -> Result<RecoveryCodeWalletCounts, GetRecoveryCodeWalletCountsError>
+    where
+        TX: Committable,
+        UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
+    {
+        if !user.is_authorized_to(&TaskType::BlockUser) {
+            return Err(GetRecoveryCodeWalletCountsError::MissingPrivilege(TaskType::BlockUser));
+        }
+
+        let transaction = user_state
+            .repositories
+            .begin_transaction()
+            .await
+            .map_err(GetRecoveryCodeWalletCountsError::Storage)?;
+
+        let states = user_state
+            .repositories
+            .find_wallet_user_states_by_recovery_code(&transaction, recovery_code)
+            .await
+            .map_err(GetRecoveryCodeWalletCountsError::Storage)?;
+
+        transaction
+            .commit()
+            .await
+            .map_err(GetRecoveryCodeWalletCountsError::Storage)?;
+
+        if states.is_empty() {
+            return Err(GetRecoveryCodeWalletCountsError::NotFound);
+        }
+
+        let active = states
+            .iter()
+            .filter(|state| !matches!(state, WalletUserState::Revoked | WalletUserState::Transferred))
+            .count();
+
+        Ok(RecoveryCodeWalletCounts {
+            active,
+            inactive: states.len() - active,
+        })
+    }
+
     pub async fn get_wallet_revocation_state<TX, UR, F, H>(
         &self,
         wallet_id: &WalletId,
@@ -220,5 +287,68 @@ mod tests {
             .await;
 
         assert_matches!(result, Err(GetWalletRevocationStateError::NotFound(id)) if id == wallet_id);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn recovery_code_counts_split_active_and_inactive_wallets() {
+        let recovery_code = RecoveryCode::from("recovery-code".to_string());
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_wallet_user_states_by_recovery_code()
+            .times(1)
+            .return_once(|_, _| {
+                Ok(vec![
+                    WalletUserState::Active,
+                    WalletUserState::Blocked,
+                    WalletUserState::Revoked,
+                    WalletUserState::Transferred,
+                ])
+            });
+        let user_state = user_state(
+            wallet_user_repo,
+            StubWalletFlags::default(),
+            setup_hsm().await,
+            Kid::try_from("0").unwrap(),
+            TrustAnchors::empty(),
+            mock_status_list_service(),
+        );
+
+        let result = service()
+            .get_recovery_code_wallet_counts(&recovery_code, &user("user-1", &[TaskType::BlockUser]), &user_state)
+            .await;
+
+        assert_matches!(result, Ok(counts) if counts == RecoveryCodeWalletCounts { active: 2, inactive: 2 });
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn recovery_code_counts_report_not_found_without_wallets() {
+        let recovery_code = RecoveryCode::from("recovery-code".to_string());
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_wallet_user_states_by_recovery_code()
+            .times(1)
+            .return_once(|_, _| Ok(vec![]));
+        let user_state = user_state(
+            wallet_user_repo,
+            StubWalletFlags::default(),
+            setup_hsm().await,
+            Kid::try_from("0").unwrap(),
+            TrustAnchors::empty(),
+            mock_status_list_service(),
+        );
+
+        let result = service()
+            .get_recovery_code_wallet_counts(&recovery_code, &user("user-1", &[TaskType::BlockUser]), &user_state)
+            .await;
+
+        assert_matches!(result, Err(GetRecoveryCodeWalletCountsError::NotFound));
     }
 }

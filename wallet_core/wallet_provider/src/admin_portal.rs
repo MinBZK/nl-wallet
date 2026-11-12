@@ -35,6 +35,7 @@ use wallet_provider_domain::model::admin_task::AdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::admin_portal::AdminPortalConfig;
@@ -48,7 +49,9 @@ use wallet_provider_service::admin_portal::task::RetrieveTaskError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
+use wallet_provider_service::admin_portal::wallet_lookup::GetRecoveryCodeWalletCountsError;
 use wallet_provider_service::admin_portal::wallet_lookup::GetWalletRevocationStateError;
+use wallet_provider_service::admin_portal::wallet_lookup::RecoveryCodeWalletCounts;
 use wallet_provider_service::admin_portal::wallet_lookup::WalletRevocationState;
 
 use crate::router_state::ProductionUserState;
@@ -112,6 +115,24 @@ impl IntoResponse for WalletApiError {
             Self::Check(GetWalletRevocationStateError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
             Self::Check(GetWalletRevocationStateError::NotFound(_)) => StatusCode::NOT_FOUND,
             Self::Check(GetWalletRevocationStateError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+        status.into_response()
+    }
+}
+
+/// Failure of the `/recovery-codes` endpoint, mapped to the matching HTTP status code.
+#[derive(Debug)]
+enum RecoveryCodeApiError {
+    Count(GetRecoveryCodeWalletCountsError),
+}
+
+impl IntoResponse for RecoveryCodeApiError {
+    fn into_response(self) -> Response {
+        warn!("recovery code endpoint failed: {self:?}");
+        let status = match self {
+            Self::Count(GetRecoveryCodeWalletCountsError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
+            Self::Count(GetRecoveryCodeWalletCountsError::NotFound) => StatusCode::NOT_FOUND,
+            Self::Count(GetRecoveryCodeWalletCountsError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         status.into_response()
     }
@@ -181,6 +202,7 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
                 .route("/{task_id}/review", post(review_task)),
         )
         .route("/wallets/check", post(check_wallet))
+        .route("/recovery-codes/{recovery_code}", get(check_recovery_code))
         .with_state(state)
 }
 
@@ -529,6 +551,37 @@ async fn check_wallet(
     Ok(Json(CheckWalletResponse { status }))
 }
 
+#[derive(Debug, Clone, Copy, Serialize)]
+#[cfg_attr(feature = "web_test", derive(Deserialize))]
+#[serde(rename_all = "camelCase")]
+pub struct CheckRecoveryCodeResponse {
+    pub active_wallet_count: usize,
+    pub inactive_wallet_count: usize,
+}
+
+impl From<RecoveryCodeWalletCounts> for CheckRecoveryCodeResponse {
+    fn from(counts: RecoveryCodeWalletCounts) -> Self {
+        Self {
+            active_wallet_count: counts.active,
+            inactive_wallet_count: counts.inactive,
+        }
+    }
+}
+
+async fn check_recovery_code(
+    State(state): State<Arc<AdminPortalState>>,
+    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    Path(recovery_code): Path<RecoveryCode>,
+) -> Result<Json<CheckRecoveryCodeResponse>, RecoveryCodeApiError> {
+    let counts = state
+        .service
+        .get_recovery_code_wallet_counts(&recovery_code, &user, &state.user_state)
+        .await
+        .map_err(RecoveryCodeApiError::Count)?;
+
+    Ok(Json(counts.into()))
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
@@ -688,6 +741,23 @@ mod tests {
         StatusCode::INTERNAL_SERVER_ERROR
     )]
     fn wallet_api_error_status_codes(#[case] error: WalletApiError, #[case] status: StatusCode) {
+        assert_eq!(error.into_response().status(), status);
+    }
+
+    #[rstest]
+    #[case::missing_privilege(
+        RecoveryCodeApiError::Count(GetRecoveryCodeWalletCountsError::MissingPrivilege(TaskType::BlockUser)),
+        StatusCode::FORBIDDEN
+    )]
+    #[case::not_found(
+        RecoveryCodeApiError::Count(GetRecoveryCodeWalletCountsError::NotFound),
+        StatusCode::NOT_FOUND
+    )]
+    #[case::storage(
+        RecoveryCodeApiError::Count(GetRecoveryCodeWalletCountsError::Storage(storage_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    fn recovery_code_api_error_status_codes(#[case] error: RecoveryCodeApiError, #[case] status: StatusCode) {
         assert_eq!(error.into_response().status(), status);
     }
 }
