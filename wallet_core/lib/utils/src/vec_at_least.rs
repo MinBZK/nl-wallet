@@ -484,6 +484,46 @@ where
     }
 }
 
+pub mod one_or_many {
+    use std::fmt::Display;
+
+    use serde::Deserialize;
+    use serde::Deserializer;
+    use serde::Serialize;
+    use serde::Serializer;
+    use serde_with::DeserializeAs;
+    use serde_with::OneOrMany;
+    use serde_with::Same;
+    use serde_with::SerializeAs;
+
+    use super::VecAtLeastN;
+
+    pub fn deserialize<'de, D, T, const N: usize, const UNIQUE: bool>(
+        deserializer: D,
+    ) -> Result<VecAtLeastN<T, N, UNIQUE>, D::Error>
+    where
+        D: Deserializer<'de>,
+        T: Deserialize<'de>,
+        VecAtLeastN<T, N, UNIQUE>: TryFrom<Vec<T>>,
+        <VecAtLeastN<T, N, UNIQUE> as TryFrom<Vec<T>>>::Error: Display,
+    {
+        let items: Vec<T> = OneOrMany::<Same>::deserialize_as(deserializer)?;
+
+        items.try_into().map_err(serde::de::Error::custom)
+    }
+
+    pub fn serialize<S, T, const N: usize, const UNIQUE: bool>(
+        items: &VecAtLeastN<T, N, UNIQUE>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: Serialize,
+    {
+        OneOrMany::<Same>::serialize_as(items.as_slice(), serializer)
+    }
+}
+
 #[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
 pub struct RepeatN<T: Clone> {
     inner: std::iter::RepeatN<T>,
@@ -550,6 +590,7 @@ mod tests {
     use nonempty_collections::IntoNonEmptyIterator;
     use nonempty_collections::NonEmptyIterator;
     use rstest::rstest;
+    use serde_json::Value;
     use serde_json::json;
     use tokio::time::Instant;
     use tokio::time::sleep;
@@ -831,5 +872,33 @@ mod tests {
         .expect("try_join_all should return as soon as a future fails");
 
         assert_eq!(result, Err(failing_index));
+    }
+
+    #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(transparent)]
+    struct TestOneOrMany(#[serde(with = "super::one_or_many")] VecNonEmpty<i32>);
+
+    #[test]
+    fn test_serde_one_or_many_with_one() {
+        let items = TestOneOrMany(vec_nonempty![1]);
+        let serialized = serde_json::to_value(&items).unwrap();
+        assert_eq!(json!(1), serialized);
+
+        let deserialized = serde_json::from_value(serialized.clone()).unwrap();
+        assert_eq!(items, deserialized);
+
+        // Test same for multiple items
+        let deserialized = serde_json::from_value(Value::Array(vec![serialized])).unwrap();
+        assert_eq!(items, deserialized);
+    }
+
+    #[test]
+    fn test_serde_one_or_many_with_many() {
+        let items = TestOneOrMany(vec_nonempty![1, 2, 3]);
+        let serialized = serde_json::to_value(&items).unwrap();
+        assert_eq!(json!([1, 2, 3]), serialized);
+
+        let deserialized = serde_json::from_value(serialized).unwrap();
+        assert_eq!(items, deserialized);
     }
 }
