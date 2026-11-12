@@ -125,6 +125,7 @@ impl IntoResponse for WalletApiError {
 /// Failure of the `/recovery-codes` endpoint, mapped to the matching HTTP status code.
 #[derive(Debug)]
 enum RecoveryCodeApiError {
+    InvalidRequest(JsonRejection),
     Count(GetRecoveryCodeWalletCountsError),
 }
 
@@ -132,6 +133,7 @@ impl IntoResponse for RecoveryCodeApiError {
     fn into_response(self) -> Response {
         warn!("recovery code endpoint failed: {self:?}");
         let status = match self {
+            Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
             Self::Count(GetRecoveryCodeWalletCountsError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
             Self::Count(GetRecoveryCodeWalletCountsError::NotFound) => StatusCode::NOT_FOUND,
             Self::Count(
@@ -206,7 +208,7 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
                 .route("/{task_id}/review", post(review_task)),
         )
         .route("/wallets/check", post(check_wallet))
-        .route("/recovery-codes/{recovery_code}", get(check_recovery_code))
+        .route("/recovery-codes/check", post(check_recovery_code))
         .with_state(state)
 }
 
@@ -572,14 +574,22 @@ impl From<RecoveryCodeWalletCounts> for CheckRecoveryCodeResponse {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "web_test", derive(Serialize))]
+#[serde(rename_all = "camelCase")]
+pub struct CheckRecoveryCodeRequest {
+    pub recovery_code: RecoveryCode,
+}
+
 async fn check_recovery_code(
     State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
-    Path(recovery_code): Path<RecoveryCode>,
+    request: Result<Json<CheckRecoveryCodeRequest>, JsonRejection>,
 ) -> Result<Json<CheckRecoveryCodeResponse>, RecoveryCodeApiError> {
+    let Json(request) = request.map_err(RecoveryCodeApiError::InvalidRequest)?;
     let counts = state
         .service
-        .get_recovery_code_wallet_counts(&recovery_code, &user, &state.user_state, &state.audit_log)
+        .get_recovery_code_wallet_counts(&request.recovery_code, &user, &state.user_state, &state.audit_log)
         .await
         .map_err(RecoveryCodeApiError::Count)?;
 
@@ -992,6 +1002,7 @@ mod http_tests {
     #[case::withdraw("POST", "/tasks/00000000-0000-0000-0000-000000000000/withdraw")]
     #[case::review("POST", "/tasks/00000000-0000-0000-0000-000000000000/review")]
     #[case::check_wallet("POST", "/wallets/check")]
+    #[case::check_recovery_code("POST", "/recovery-codes/check")]
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn admin_portal_routes_require_authentication(#[case] method: &str, #[case] uri: &str) {
@@ -1053,6 +1064,23 @@ mod http_tests {
     fn session_cookie_header(jar: &CookieJar) -> String {
         let cookie = jar.get(SESSION_ID_COOKIE).unwrap();
         format!("{}={}", cookie.name(), cookie.value())
+    }
+
+    #[rstest::rstest]
+    #[case::invalid_body(json!({}), StatusCode::BAD_REQUEST)]
+    #[case::unknown_code(
+        json!({"recoveryCode": "54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"}),
+        StatusCode::NOT_FOUND
+    )]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn check_recovery_code_route_rejects_request(#[case] body: Value, #[case] status: StatusCode) {
+        let (state, jar) = setup_state_with_user_roles(vec!["privilege_block_user".to_string()]).await;
+
+        let request = post_json_request("/recovery-codes/check", &session_cookie_header(&jar), &body);
+        let response = router(Arc::clone(&state)).oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), status);
     }
 
     #[serial_test::serial(hsm)]

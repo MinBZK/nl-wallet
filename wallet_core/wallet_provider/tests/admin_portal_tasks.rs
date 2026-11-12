@@ -8,6 +8,7 @@
 //! Although E2E browser tests also cover these flows, these tests provide shorter iteration times, but don't include
 //! the frontend.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -23,7 +24,10 @@ use serde_json::json;
 use tower::ServiceExt;
 use utils::vec_nonempty;
 use uuid::Uuid;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_provider::admin_portal;
+use wallet_provider::admin_portal::CheckRecoveryCodeRequest;
+use wallet_provider::admin_portal::CheckRecoveryCodeResponse;
 use wallet_provider::admin_portal::CheckWalletRequest;
 use wallet_provider::admin_portal::CheckWalletResponse;
 use wallet_provider::admin_portal::CreateTaskRequest;
@@ -41,10 +45,12 @@ use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
+use wallet_provider_domain::repository::WalletUserRepository;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
@@ -92,6 +98,44 @@ async fn seed_session(repositories: &Repositories, user: &TestUser, privileges: 
         .expect("should insert session");
 
     format!("sid={session_id}")
+}
+
+/// Returns a recovery code that is unique within the test, so that tests do not share wallets.
+fn new_recovery_code() -> String {
+    format!("recovery-code-{}", Uuid::new_v4())
+}
+
+/// Inserts a wallet user with a unique wallet id and `recovery_code`, and returns that wallet id.
+async fn seed_wallet_with_recovery_code(repositories: &Repositories, recovery_code: &str) -> WalletId {
+    let wallet_id = seed_wallet(repositories).await;
+    let transaction = repositories.begin_transaction().await.unwrap();
+    repositories
+        .store_recovery_code(&transaction, &wallet_id, RecoveryCode::from(recovery_code.to_string()))
+        .await
+        .unwrap();
+    transaction.commit().await.unwrap();
+    wallet_id
+}
+
+/// Revokes the wallet with `wallet_id`, as an admin would.
+async fn revoke_wallet(repositories: &Repositories, wallet_id: &WalletId) {
+    let transaction = repositories.begin_transaction().await.unwrap();
+    let wallet_user_ids = repositories
+        .find_wallet_user_id_by_wallet_ids(&transaction, &HashSet::from([wallet_id.clone()]))
+        .await
+        .unwrap()
+        .into_values()
+        .collect();
+    repositories
+        .revoke_wallet_users(
+            &transaction,
+            wallet_user_ids,
+            RevocationReason::AdminRequest,
+            Utc::now(),
+        )
+        .await
+        .unwrap();
+    transaction.commit().await.unwrap();
 }
 
 fn revoke_wallet_payload() -> TaskPayload {
@@ -272,6 +316,33 @@ async fn test_check_wallet_bad_request() {
 
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_check_recovery_code_counts_active_and_inactive_wallets() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let cookie = seed_session(&repositories, &alice, &[TaskType::BlockUser]).await;
+    let recovery_code = new_recovery_code();
+    seed_wallet_with_recovery_code(&repositories, &recovery_code).await;
+    let revoked_wallet = seed_wallet_with_recovery_code(&repositories, &recovery_code).await;
+    revoke_wallet(&repositories, &revoked_wallet).await;
+
+    let request = post_json_request(
+        "/recovery-codes/check",
+        &cookie,
+        &CheckRecoveryCodeRequest {
+            recovery_code: RecoveryCode::from(recovery_code),
+        },
+    );
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: CheckRecoveryCodeResponse = json_body(response).await;
+    assert_eq!(body.active_wallet_count, 1);
+    assert_eq!(body.inactive_wallet_count, 1);
 }
 
 #[serial_test::serial(hsm)]
