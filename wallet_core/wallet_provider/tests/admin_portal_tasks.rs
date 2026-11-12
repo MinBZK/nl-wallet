@@ -31,6 +31,7 @@ use wallet_provider::admin_portal::CheckRecoveryCodeResponse;
 use wallet_provider::admin_portal::CheckWalletRequest;
 use wallet_provider::admin_portal::CheckWalletResponse;
 use wallet_provider::admin_portal::CreateTaskRequest;
+use wallet_provider::admin_portal::RecoveryCodeStatus;
 use wallet_provider::admin_portal::ReviewTaskRequest;
 use wallet_provider::admin_portal::TaskResponse;
 use wallet_provider::admin_portal::WithdrawTaskRequest;
@@ -353,8 +354,33 @@ async fn test_check_recovery_code_counts_active_and_inactive_wallets() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let body: CheckRecoveryCodeResponse = json_body(response).await;
+    assert_eq!(body.status, RecoveryCodeStatus::Active);
     assert_eq!(body.active_wallet_count, 1);
     assert_eq!(body.inactive_wallet_count, 1);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_check_recovery_code_unknown_returns_unknown_status() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let cookie = seed_session(&repositories, &alice, &[TaskType::BlockUser]).await;
+
+    let request = post_json_request(
+        "/recovery-codes/check",
+        &cookie,
+        &CheckRecoveryCodeRequest {
+            recovery_code: RecoveryCode::from(new_recovery_code()),
+        },
+    );
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: CheckRecoveryCodeResponse = json_body(response).await;
+    assert_eq!(body.status, RecoveryCodeStatus::Unknown);
+    assert_eq!(body.active_wallet_count, 0);
+    assert_eq!(body.inactive_wallet_count, 0);
 }
 
 #[serial_test::serial(hsm)]
@@ -423,6 +449,7 @@ async fn test_block_user_task_approval_revokes_wallet() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let body: CheckRecoveryCodeResponse = json_body(response).await;
+    assert_eq!(body.status, RecoveryCodeStatus::Inactive);
     assert_eq!(body.active_wallet_count, 0);
     assert_eq!(body.inactive_wallet_count, 1);
 }

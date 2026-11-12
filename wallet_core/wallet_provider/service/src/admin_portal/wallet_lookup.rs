@@ -58,80 +58,91 @@ impl FromAuditLogError for GetWalletRevocationStateError {
     }
 }
 
-/// Number of wallets associated with a recovery code, split by whether they are still active.
+/// Number of wallets associated with a recovery code, split by whether they are still active, and whether the
+/// recovery code is denied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RecoveryCodeWalletCounts {
+pub struct RecoveryCodeSummary {
     pub active: usize,
     pub inactive: usize,
+    pub is_denied: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum GetRecoveryCodeWalletCountsError {
+pub enum GetRecoveryCodeSummaryError {
     #[error("missing privilege for task type {0}")]
     MissingPrivilege(TaskType),
-    #[error("recovery code not found")]
-    NotFound,
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
     #[error("error while auditing: {0}")]
     AuditLog(#[source] Box<dyn Error + Send + Sync>),
 }
 
-impl FromAuditLogError for GetRecoveryCodeWalletCountsError {
+impl FromAuditLogError for GetRecoveryCodeSummaryError {
     fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
         Self::AuditLog(audit_log_error)
     }
 }
 
 impl<R, T, U> AdminPortalService<R, T, U> {
-    /// Counts the wallets associated with the recovery code, for `block_user` tasks. A wallet is active unless it
-    /// is revoked or transferred, consistent with the check in `has_multiple_active_accounts_by_recovery_code` in the
-    /// persistence layer.
+    /// Summarizes a recovery code for `block_user` tasks: the number of active and inactive wallets associated with
+    /// it, and whether it is denied.
+    ///
+    /// A wallet is active unless it is revoked or transferred, consistent with the check in
+    /// `has_multiple_active_accounts_by_recovery_code` in the persistence layer. A recovery code without wallets and
+    /// without a denial record yields zero counts and `is_denied: false`; it is not an error.
+    ///
+    /// Requires the `BlockUser` task privilege, otherwise returns `MissingPrivilege`. The wallet states and the denial
+    /// flag are read in one transaction. Returns `Storage` when a persistence call fails. The call is audited as
+    /// `get_recovery_code_summary`.
     #[audited]
-    pub async fn get_recovery_code_wallet_counts<TX, UR, F, H>(
+    pub async fn get_recovery_code_summary<TX, UR, F, H>(
         &self,
         #[audit] recovery_code: &RecoveryCode,
         #[audit_user] user: &LoggedInUser,
         user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
         #[auditor] audit_log: &impl AuditLog,
-    ) -> Result<RecoveryCodeWalletCounts, GetRecoveryCodeWalletCountsError>
+    ) -> Result<RecoveryCodeSummary, GetRecoveryCodeSummaryError>
     where
         TX: Committable,
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
         if !user.is_authorized_to(&TaskType::BlockUser) {
-            return Err(GetRecoveryCodeWalletCountsError::MissingPrivilege(TaskType::BlockUser));
+            return Err(GetRecoveryCodeSummaryError::MissingPrivilege(TaskType::BlockUser));
         }
 
         let transaction = user_state
             .repositories
             .begin_transaction()
             .await
-            .map_err(GetRecoveryCodeWalletCountsError::Storage)?;
+            .map_err(GetRecoveryCodeSummaryError::Storage)?;
 
         let states = user_state
             .repositories
             .find_wallet_user_states_by_recovery_code(&transaction, recovery_code)
             .await
-            .map_err(GetRecoveryCodeWalletCountsError::Storage)?;
+            .map_err(GetRecoveryCodeSummaryError::Storage)?;
+
+        let is_denied = user_state
+            .repositories
+            .find_recovery_code_is_denied(&transaction, recovery_code)
+            .await
+            .map_err(GetRecoveryCodeSummaryError::Storage)?
+            .unwrap_or(false);
 
         transaction
             .commit()
             .await
-            .map_err(GetRecoveryCodeWalletCountsError::Storage)?;
-
-        if states.is_empty() {
-            return Err(GetRecoveryCodeWalletCountsError::NotFound);
-        }
+            .map_err(GetRecoveryCodeSummaryError::Storage)?;
 
         let active = states
             .iter()
             .filter(|state| !matches!(state, WalletUserState::Revoked | WalletUserState::Transferred))
             .count();
 
-        Ok(RecoveryCodeWalletCounts {
+        Ok(RecoveryCodeSummary {
             active,
             inactive: states.len() - active,
+            is_denied,
         })
     }
 
@@ -314,34 +325,41 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn recovery_code_counts_reject_missing_privilege(
+    async fn recovery_code_summary_reject_missing_privilege(
         recovery_code: RecoveryCode,
         revoke_wallet_user: LoggedInUser,
     ) {
         let user_state = lookup_user_state(MockTransactionalWalletUserRepository::new()).await;
 
         let result = service()
-            .get_recovery_code_wallet_counts(&recovery_code, &revoke_wallet_user, &user_state, &MockAuditLog)
+            .get_recovery_code_summary(&recovery_code, &revoke_wallet_user, &user_state, &MockAuditLog)
             .await;
 
         assert_matches!(
             result,
-            Err(GetRecoveryCodeWalletCountsError::MissingPrivilege(TaskType::BlockUser))
+            Err(GetRecoveryCodeSummaryError::MissingPrivilege(TaskType::BlockUser))
         );
     }
 
     #[rstest]
     #[case::counts(
         vec![WalletUserState::Active, WalletUserState::Blocked, WalletUserState::Revoked, WalletUserState::Transferred],
-        Some(RecoveryCodeWalletCounts { active: 2, inactive: 2 })
+        None,
+        RecoveryCodeSummary { active: 2, inactive: 2, is_denied: false }
     )]
-    #[case::not_found(vec![], None)]
+    #[case::unknown(vec![], None, RecoveryCodeSummary { active: 0, inactive: 0, is_denied: false })]
+    #[case::denied(
+        vec![WalletUserState::Revoked],
+        Some(true),
+        RecoveryCodeSummary { active: 0, inactive: 1, is_denied: true }
+    )]
     #[tokio::test]
-    async fn recovery_code_counts_return_lookup_result(
+    async fn recovery_code_summary_return_lookup_result(
         recovery_code: RecoveryCode,
         block_user: LoggedInUser,
         #[case] states: Vec<WalletUserState>,
-        #[case] expected: Option<RecoveryCodeWalletCounts>,
+        #[case] is_denied: Option<bool>,
+        #[case] expected: RecoveryCodeSummary,
     ) {
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
@@ -351,15 +369,16 @@ mod tests {
             .expect_find_wallet_user_states_by_recovery_code()
             .times(1)
             .return_once(move |_, _| Ok(states));
+        wallet_user_repo
+            .expect_find_recovery_code_is_denied()
+            .times(1)
+            .return_once(move |_, _| Ok(is_denied));
         let user_state = lookup_user_state(wallet_user_repo).await;
 
         let result = service()
-            .get_recovery_code_wallet_counts(&recovery_code, &block_user, &user_state, &MockAuditLog)
+            .get_recovery_code_summary(&recovery_code, &block_user, &user_state, &MockAuditLog)
             .await;
 
-        match expected {
-            Some(expected) => assert_matches!(result, Ok(counts) if counts == expected),
-            None => assert_matches!(result, Err(GetRecoveryCodeWalletCountsError::NotFound)),
-        }
+        assert_matches!(result, Ok(summary) if summary == expected);
     }
 }

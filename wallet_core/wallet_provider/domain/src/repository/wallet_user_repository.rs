@@ -288,6 +288,13 @@ pub trait WalletUserRepository {
         recovery_code: RecoveryCode,
     ) -> Result<bool>;
 
+    /// Returns whether the recovery code is denied, or `None` when the recovery code has no record.
+    async fn find_recovery_code_is_denied(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &RecoveryCode,
+    ) -> Result<Option<bool>>;
+
     async fn list_denied_recovery_codes(&self, transaction: &Self::TransactionType) -> Result<Vec<RecoveryCode>>;
 
     async fn allow_recovery_code(
@@ -691,6 +698,14 @@ pub mod mock {
             _recovery_code: RecoveryCode,
         ) -> Result<bool> {
             Ok(false)
+        }
+
+        async fn find_recovery_code_is_denied(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &RecoveryCode,
+        ) -> Result<Option<bool>> {
+            Ok(None)
         }
 
         async fn list_denied_recovery_codes(&self, _transaction: &Self::TransactionType) -> Result<Vec<RecoveryCode>> {

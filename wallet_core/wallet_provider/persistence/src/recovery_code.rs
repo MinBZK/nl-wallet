@@ -97,6 +97,23 @@ where
     Ok(result.is_denied)
 }
 
+/// Returns whether the recovery code is denied, without locking or writing. Returns `None` when the recovery code has
+/// no record.
+pub async fn find_is_denied<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<Option<bool>, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    recovery_code::Entity::find()
+        .select_only()
+        .select_column(recovery_code::Column::IsDenied)
+        .filter(recovery_code::Column::RecoveryCode.eq(recovery_code.as_ref()))
+        .into_tuple::<bool>()
+        .one(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)
+}
+
 pub async fn set_allowed<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<bool, PersistenceError>
 where
     S: ConnectionTrait,

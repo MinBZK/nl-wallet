@@ -49,9 +49,9 @@ use wallet_provider_service::admin_portal::task::RetrieveTaskError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
-use wallet_provider_service::admin_portal::wallet_lookup::GetRecoveryCodeWalletCountsError;
+use wallet_provider_service::admin_portal::wallet_lookup::GetRecoveryCodeSummaryError;
 use wallet_provider_service::admin_portal::wallet_lookup::GetWalletRevocationStateError;
-use wallet_provider_service::admin_portal::wallet_lookup::RecoveryCodeWalletCounts;
+use wallet_provider_service::admin_portal::wallet_lookup::RecoveryCodeSummary;
 use wallet_provider_service::admin_portal::wallet_lookup::WalletRevocationState;
 
 use crate::router_state::ProductionUserState;
@@ -126,7 +126,7 @@ impl IntoResponse for WalletApiError {
 #[derive(Debug)]
 enum RecoveryCodeApiError {
     InvalidRequest(JsonRejection),
-    Count(GetRecoveryCodeWalletCountsError),
+    Summary(GetRecoveryCodeSummaryError),
 }
 
 impl IntoResponse for RecoveryCodeApiError {
@@ -134,11 +134,10 @@ impl IntoResponse for RecoveryCodeApiError {
         warn!("recovery code endpoint failed: {self:?}");
         let status = match self {
             Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
-            Self::Count(GetRecoveryCodeWalletCountsError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
-            Self::Count(GetRecoveryCodeWalletCountsError::NotFound) => StatusCode::NOT_FOUND,
-            Self::Count(
-                GetRecoveryCodeWalletCountsError::Storage(_) | GetRecoveryCodeWalletCountsError::AuditLog(_),
-            ) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Summary(GetRecoveryCodeSummaryError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
+            Self::Summary(GetRecoveryCodeSummaryError::Storage(_) | GetRecoveryCodeSummaryError::AuditLog(_)) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         };
         status.into_response()
     }
@@ -557,19 +556,41 @@ async fn check_wallet(
     Ok(Json(CheckWalletResponse { status }))
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "web_test", derive(Deserialize))]
+#[serde(rename_all = "camelCase")]
+pub enum RecoveryCodeStatus {
+    // wallets exist, and the recovery_code is NOT denied
+    Active,
+    // the recovery_code is denied
+    Inactive,
+    // no wallets exist for the recovery_code, and it is NOT denied
+    Unknown,
+}
+
 #[derive(Debug, Clone, Copy, Serialize)]
 #[cfg_attr(feature = "web_test", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub struct CheckRecoveryCodeResponse {
+    pub status: RecoveryCodeStatus,
     pub active_wallet_count: usize,
     pub inactive_wallet_count: usize,
 }
 
-impl From<RecoveryCodeWalletCounts> for CheckRecoveryCodeResponse {
-    fn from(counts: RecoveryCodeWalletCounts) -> Self {
+impl From<RecoveryCodeSummary> for CheckRecoveryCodeResponse {
+    fn from(summary: RecoveryCodeSummary) -> Self {
+        let status = if summary.is_denied {
+            RecoveryCodeStatus::Inactive
+        } else if summary.active + summary.inactive > 0 {
+            RecoveryCodeStatus::Active
+        } else {
+            RecoveryCodeStatus::Unknown
+        };
+
         Self {
-            active_wallet_count: counts.active,
-            inactive_wallet_count: counts.inactive,
+            status,
+            active_wallet_count: summary.active,
+            inactive_wallet_count: summary.inactive,
         }
     }
 }
@@ -587,13 +608,13 @@ async fn check_recovery_code(
     request: Result<Json<CheckRecoveryCodeRequest>, JsonRejection>,
 ) -> Result<Json<CheckRecoveryCodeResponse>, RecoveryCodeApiError> {
     let Json(request) = request.map_err(RecoveryCodeApiError::InvalidRequest)?;
-    let counts = state
+    let summary = state
         .service
-        .get_recovery_code_wallet_counts(&request.recovery_code, &user, &state.user_state, &state.audit_log)
+        .get_recovery_code_summary(&request.recovery_code, &user, &state.user_state, &state.audit_log)
         .await
-        .map_err(RecoveryCodeApiError::Count)?;
+        .map_err(RecoveryCodeApiError::Summary)?;
 
-    Ok(Json(counts.into()))
+    Ok(Json(summary.into()))
 }
 
 #[cfg(test)]
@@ -760,15 +781,11 @@ mod tests {
 
     #[rstest]
     #[case::missing_privilege(
-        RecoveryCodeApiError::Count(GetRecoveryCodeWalletCountsError::MissingPrivilege(TaskType::BlockUser)),
+        RecoveryCodeApiError::Summary(GetRecoveryCodeSummaryError::MissingPrivilege(TaskType::BlockUser)),
         StatusCode::FORBIDDEN
     )]
-    #[case::not_found(
-        RecoveryCodeApiError::Count(GetRecoveryCodeWalletCountsError::NotFound),
-        StatusCode::NOT_FOUND
-    )]
     #[case::storage(
-        RecoveryCodeApiError::Count(GetRecoveryCodeWalletCountsError::Storage(storage_error())),
+        RecoveryCodeApiError::Summary(GetRecoveryCodeSummaryError::Storage(storage_error())),
         StatusCode::INTERNAL_SERVER_ERROR
     )]
     fn recovery_code_api_error_status_codes(#[case] error: RecoveryCodeApiError, #[case] status: StatusCode) {
@@ -1068,9 +1085,9 @@ mod http_tests {
 
     #[rstest::rstest]
     #[case::invalid_body(json!({}), StatusCode::BAD_REQUEST)]
-    #[case::unknown_code(
+    #[case::unknown_code_returns_ok(
         json!({"recoveryCode": "54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"}),
-        StatusCode::NOT_FOUND
+        StatusCode::OK
     )]
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

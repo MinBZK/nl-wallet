@@ -84,6 +84,30 @@ async fn test_recovery_code_is_denied() {
     assert!(!other.recovery_code_is_denied);
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_find_recovery_code_is_denied() {
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
+
+    let recovery_code: RecoveryCode = random_string(64).into();
+
+    // unknown recovery code has no record, and does not create one
+    let result = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
+    assert_eq!(result, None);
+    let result = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
+    assert_eq!(result, None);
+
+    // a recovery code that is not denied has a record with `is_denied` false
+    recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
+    let result = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
+    assert_eq!(result, Some(false));
+
+    // denied recovery code
+    recovery_code::insert(&db, recovery_code.clone()).await.unwrap();
+    let result = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
+    assert_eq!(result, Some(true));
+}
+
 /// This test attempts to expose a race condition / non-repeatable read:
 /// - One task begins a transaction and reads whether a recovery code is denied twice within the same transaction, with
 ///   a sleep in between reads.
