@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent / '_ext'))
 author = 'NL Wallet'
 project = author
 copyright = f"2025, {author}"
-version = '0.7.2'
+version = '0.8.0-dev'
 release = version
 
 # -- General configuration ---------------------------------------------------
