@@ -18,7 +18,9 @@ use serde::Serialize;
 use serde::Serializer;
 use serde::de;
 use serde_with::DeserializeAs;
+use serde_with::OneOrMany;
 use serde_with::SerializeAs;
+use serde_with::formats::Format;
 
 #[derive(Debug, thiserror::Error)]
 #[error("{kind}")]
@@ -484,43 +486,31 @@ where
     }
 }
 
-pub mod one_or_many {
-    use std::fmt::Display;
-
-    use serde::Deserialize;
-    use serde::Deserializer;
-    use serde::Serialize;
-    use serde::Serializer;
-    use serde_with::DeserializeAs;
-    use serde_with::OneOrMany;
-    use serde_with::Same;
-    use serde_with::SerializeAs;
-
-    use super::VecAtLeastN;
-
-    pub fn deserialize<'de, D, T, const N: usize, const UNIQUE: bool>(
-        deserializer: D,
-    ) -> Result<VecAtLeastN<T, N, UNIQUE>, D::Error>
-    where
-        D: Deserializer<'de>,
-        T: Deserialize<'de>,
-        VecAtLeastN<T, N, UNIQUE>: TryFrom<Vec<T>>,
-        <VecAtLeastN<T, N, UNIQUE> as TryFrom<Vec<T>>>::Error: Display,
-    {
-        let items: Vec<T> = OneOrMany::<Same>::deserialize_as(deserializer)?;
-
-        items.try_into().map_err(serde::de::Error::custom)
-    }
-
-    pub fn serialize<S, T, const N: usize, const UNIQUE: bool>(
-        items: &VecAtLeastN<T, N, UNIQUE>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+impl<T, U, F, const N: usize, const UNIQUE: bool> SerializeAs<VecAtLeastN<T, N, UNIQUE>> for OneOrMany<U, F>
+where
+    F: Format,
+    Self: SerializeAs<Vec<T>>,
+{
+    fn serialize_as<S>(source: &VecAtLeastN<T, N, UNIQUE>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
-        T: Serialize,
     {
-        OneOrMany::<Same>::serialize_as(items.as_slice(), serializer)
+        <Self as SerializeAs<Vec<T>>>::serialize_as(&source.0, serializer)
+    }
+}
+
+impl<'de, T, U, F, const N: usize, const UNIQUE: bool> DeserializeAs<'de, VecAtLeastN<T, N, UNIQUE>> for OneOrMany<U, F>
+where
+    F: Format,
+    Self: DeserializeAs<'de, Vec<T>>,
+    VecAtLeastN<T, N, UNIQUE>: TryFrom<Vec<T>, Error = VecAtLeastNError<T>>,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<VecAtLeastN<T, N, UNIQUE>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let vec: Vec<T> = <Self as DeserializeAs<'de, Vec<T>>>::deserialize_as(deserializer)?;
+        vec.try_into().map_err(de::Error::custom)
     }
 }
 
@@ -592,6 +582,8 @@ mod tests {
     use rstest::rstest;
     use serde_json::Value;
     use serde_json::json;
+    use serde_with::OneOrMany;
+    use serde_with::serde_as;
     use tokio::time::Instant;
     use tokio::time::sleep;
     use tokio::time::timeout;
@@ -874,9 +866,10 @@ mod tests {
         assert_eq!(result, Err(failing_index));
     }
 
+    #[serde_as]
     #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
     #[serde(transparent)]
-    struct TestOneOrMany(#[serde(with = "super::one_or_many")] VecNonEmpty<i32>);
+    struct TestOneOrMany(#[serde_as(as = "OneOrMany<_>")] VecNonEmpty<i32>);
 
     #[test]
     fn test_serde_one_or_many_with_one() {

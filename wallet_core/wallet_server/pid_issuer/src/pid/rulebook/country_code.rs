@@ -2,7 +2,9 @@ use attestation_data::attributes::Attribute;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
+use serde_with::OneOrMany;
 use serde_with::SerializeDisplay;
+use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
@@ -547,6 +549,7 @@ impl From<IsoCountryCode> for RulebookNationality {
 ///
 /// The encoded array is never empty, never mixes `QU` and `QS` with known countries, and never contains the same
 /// country twice.
+#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum RulebookNationalities {
     #[serde(rename = "QU")]
@@ -554,7 +557,7 @@ pub enum RulebookNationalities {
     #[serde(rename = "QS")]
     Stateless,
     #[serde(untagged)]
-    Known(#[serde(with = "utils::vec_at_least::one_or_many")] VecNonEmptyUnique<RulebookNationality>),
+    Known(#[serde_as(as = "OneOrMany<_>")] VecNonEmptyUnique<RulebookNationality>),
 }
 
 impl From<RulebookNationalities> for Attribute {
