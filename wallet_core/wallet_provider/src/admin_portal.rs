@@ -114,7 +114,9 @@ impl IntoResponse for WalletApiError {
             Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
             Self::Check(GetWalletRevocationStateError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
             Self::Check(GetWalletRevocationStateError::NotFound(_)) => StatusCode::NOT_FOUND,
-            Self::Check(GetWalletRevocationStateError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Check(GetWalletRevocationStateError::Storage(_) | GetWalletRevocationStateError::AuditLog(_)) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         };
         status.into_response()
     }
@@ -132,7 +134,9 @@ impl IntoResponse for RecoveryCodeApiError {
         let status = match self {
             Self::Count(GetRecoveryCodeWalletCountsError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
             Self::Count(GetRecoveryCodeWalletCountsError::NotFound) => StatusCode::NOT_FOUND,
-            Self::Count(GetRecoveryCodeWalletCountsError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Count(
+                GetRecoveryCodeWalletCountsError::Storage(_) | GetRecoveryCodeWalletCountsError::AuditLog(_),
+            ) => StatusCode::INTERNAL_SERVER_ERROR,
         };
         status.into_response()
     }
@@ -544,7 +548,7 @@ async fn check_wallet(
 
     let status = state
         .service
-        .get_wallet_revocation_state(&request.wallet_id, &user, &state.user_state)
+        .get_wallet_revocation_state(&request.wallet_id, &user, &state.user_state, &state.audit_log)
         .await
         .map_err(WalletApiError::Check)?;
 
@@ -575,7 +579,7 @@ async fn check_recovery_code(
 ) -> Result<Json<CheckRecoveryCodeResponse>, RecoveryCodeApiError> {
     let counts = state
         .service
-        .get_recovery_code_wallet_counts(&recovery_code, &user, &state.user_state)
+        .get_recovery_code_wallet_counts(&recovery_code, &user, &state.user_state, &state.audit_log)
         .await
         .map_err(RecoveryCodeApiError::Count)?;
 

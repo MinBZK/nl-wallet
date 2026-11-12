@@ -1,3 +1,8 @@
+use std::error::Error;
+
+use audit_log::audited;
+use audit_log::model::AuditLog;
+use audit_log::model::FromAuditLogError;
 use crypto::keys::SecureEcdsaKey;
 use serde::Deserialize;
 use serde::Serialize;
@@ -43,6 +48,14 @@ pub enum GetWalletRevocationStateError {
     NotFound(WalletId),
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
+    #[error("error while auditing: {0}")]
+    AuditLog(#[source] Box<dyn Error + Send + Sync>),
+}
+
+impl FromAuditLogError for GetWalletRevocationStateError {
+    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
+        Self::AuditLog(audit_log_error)
+    }
 }
 
 /// Number of wallets associated with a recovery code, split by whether they are still active.
@@ -60,17 +73,27 @@ pub enum GetRecoveryCodeWalletCountsError {
     NotFound,
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
+    #[error("error while auditing: {0}")]
+    AuditLog(#[source] Box<dyn Error + Send + Sync>),
+}
+
+impl FromAuditLogError for GetRecoveryCodeWalletCountsError {
+    fn from_audit_log_error(audit_log_error: Box<dyn Error + Send + Sync>) -> Self {
+        Self::AuditLog(audit_log_error)
+    }
 }
 
 impl<R, T, U> AdminPortalService<R, T, U> {
     /// Counts the wallets associated with the recovery code, for `block_user` tasks. A wallet is active unless it
-    /// is revoked or transferred, consistent with the check in
-    /// [`wallet_provider_persistence::wallet_user::has_multiple_active_accounts_by_recovery_code`].
+    /// is revoked or transferred, consistent with the check in `has_multiple_active_accounts_by_recovery_code` in the
+    /// persistence layer.
+    #[audited]
     pub async fn get_recovery_code_wallet_counts<TX, UR, F, H>(
         &self,
-        recovery_code: &RecoveryCode,
-        user: &LoggedInUser,
+        #[audit] recovery_code: &RecoveryCode,
+        #[audit_user] user: &LoggedInUser,
         user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
+        #[auditor] audit_log: &impl AuditLog,
     ) -> Result<RecoveryCodeWalletCounts, GetRecoveryCodeWalletCountsError>
     where
         TX: Committable,
@@ -112,11 +135,13 @@ impl<R, T, U> AdminPortalService<R, T, U> {
         })
     }
 
+    #[audited]
     pub async fn get_wallet_revocation_state<TX, UR, F, H>(
         &self,
-        wallet_id: &WalletId,
-        user: &LoggedInUser,
+        #[audit] wallet_id: &WalletId,
+        #[audit_user] user: &LoggedInUser,
         user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
+        #[auditor] audit_log: &impl AuditLog,
     ) -> Result<WalletRevocationState, GetWalletRevocationStateError>
     where
         TX: Committable,
@@ -155,6 +180,7 @@ impl<R, T, U> AdminPortalService<R, T, U> {
 mod tests {
     use std::assert_matches;
 
+    use audit_log::model::mock::MockAuditLog;
     use crypto::kid::Kid;
     use crypto::trust_anchor::TrustAnchors;
     use rstest::fixture;
@@ -219,7 +245,7 @@ mod tests {
         );
 
         let result = service()
-            .get_wallet_revocation_state(&wallet_id, &unprivileged_user, &user_state)
+            .get_wallet_revocation_state(&wallet_id, &unprivileged_user, &user_state, &MockAuditLog)
             .await;
 
         assert_matches!(
@@ -253,7 +279,7 @@ mod tests {
         );
 
         let result = service()
-            .get_wallet_revocation_state(&wallet_id, &privileged_user, &user_state)
+            .get_wallet_revocation_state(&wallet_id, &privileged_user, &user_state, &MockAuditLog)
             .await;
 
         assert_matches!(result, Ok(found_state) if found_state == WalletRevocationState::Revokable);
@@ -283,7 +309,7 @@ mod tests {
         );
 
         let result = service()
-            .get_wallet_revocation_state(&wallet_id, &privileged_user, &user_state)
+            .get_wallet_revocation_state(&wallet_id, &privileged_user, &user_state, &MockAuditLog)
             .await;
 
         assert_matches!(result, Err(GetWalletRevocationStateError::NotFound(id)) if id == wallet_id);
@@ -318,7 +344,12 @@ mod tests {
         );
 
         let result = service()
-            .get_recovery_code_wallet_counts(&recovery_code, &user("user-1", &[TaskType::BlockUser]), &user_state)
+            .get_recovery_code_wallet_counts(
+                &recovery_code,
+                &user("user-1", &[TaskType::BlockUser]),
+                &user_state,
+                &MockAuditLog,
+            )
             .await;
 
         assert_matches!(result, Ok(counts) if counts == RecoveryCodeWalletCounts { active: 2, inactive: 2 });
@@ -346,7 +377,12 @@ mod tests {
         );
 
         let result = service()
-            .get_recovery_code_wallet_counts(&recovery_code, &user("user-1", &[TaskType::BlockUser]), &user_state)
+            .get_recovery_code_wallet_counts(
+                &recovery_code,
+                &user("user-1", &[TaskType::BlockUser]),
+                &user_state,
+                &MockAuditLog,
+            )
             .await;
 
         assert_matches!(result, Err(GetRecoveryCodeWalletCountsError::NotFound));
