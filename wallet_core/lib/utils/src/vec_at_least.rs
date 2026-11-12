@@ -505,18 +505,25 @@ impl<T: Clone + Debug> Debug for RepeatN<T> {
 
 /// Like [`futures::future::try_join_all`], but for a non-empty collection of futures, so that the result is
 /// non-empty as well. The outputs are in the same order as the futures.
-pub async fn try_join_all<I, F, T, E>(futures: I) -> Result<VecNonEmpty<T>, E>
+///
+/// Like [`futures::future::try_join_all`], this consumes the iterator before returning, so that the returned future
+/// does not contain it. The returned future is therefore `Send` if the futures are, even if the iterator is not.
+pub fn try_join_all<I, F, T, E>(futures: I) -> impl Future<Output = Result<VecNonEmpty<T>, E>>
 where
     I: IntoNonEmptyIterator<Item = F>,
     F: Future<Output = Result<T, E>>,
 {
     let (first, rest) = futures.into_nonempty_iter().next();
-    let (first, rest) = futures::future::try_join(first, futures::future::try_join_all(rest)).await?;
+    let joined = futures::future::try_join(first, futures::future::try_join_all(rest));
 
-    let mut outputs = VecNonEmpty::singleton(first);
-    outputs.extend(rest);
+    async move {
+        let (first, rest) = joined.await?;
 
-    Ok(outputs)
+        let mut outputs = VecNonEmpty::singleton(first);
+        outputs.extend(rest);
+
+        Ok(outputs)
+    }
 }
 
 #[cfg(test)]
@@ -751,6 +758,22 @@ mod tests {
         let outputs = try_join_all(vec_nonempty![ready(Ok::<_, ()>(42))]).await;
 
         assert_eq!(outputs, Ok(vec_nonempty![42]));
+    }
+
+    #[tokio::test]
+    async fn test_try_join_all_send_with_non_send_iterator() {
+        fn assert_send<T: Send>(_: &T) {}
+
+        // The closure captures an `Rc`, so the iterator is not `Send`, but the futures it creates are.
+        let offset = Rc::new(10);
+        let joined = try_join_all(
+            vec_nonempty![1, 2]
+                .into_nonempty_iter()
+                .map(move |value| ready(Ok::<_, ()>(value + *offset))),
+        );
+
+        assert_send(&joined);
+        assert_eq!(joined.await, Ok(vec_nonempty![11, 12]));
     }
 
     #[tokio::test(start_paused = true)]
