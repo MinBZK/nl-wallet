@@ -1,12 +1,8 @@
 use attestation_data::attributes::Attribute;
 use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
-use serde::de::Error;
-use serde::de::Visitor;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
-use utils::vec_at_least::Singleton;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
@@ -551,76 +547,14 @@ impl From<IsoCountryCode> for RulebookNationality {
 ///
 /// The encoded array is never empty, never mixes `QU` and `QS` with known countries, and never contains the same
 /// country twice.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum RulebookNationalities {
+    #[serde(rename = "QU")]
     Unknown,
+    #[serde(rename = "QS")]
     Stateless,
-    Known(VecNonEmptyUnique<RulebookNationality>),
-}
-
-impl<'de> Deserialize<'de> for RulebookNationalities {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct RulebookVisitor;
-
-        impl<'de> Visitor<'de> for RulebookVisitor {
-            type Value = RulebookNationalities;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a string representing a country code or an array with multiple country codes")
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                match v {
-                    "QU" => Ok(RulebookNationalities::Unknown),
-                    "QS" => Ok(RulebookNationalities::Stateless),
-                    _ => Ok(RulebookNationalities::Known(VecNonEmptyUnique::singleton(
-                        RulebookNationality::deserialize(serde::de::value::StrDeserializer::<E>::new(v))?,
-                    ))),
-                }
-            }
-
-            fn visit_seq<A>(self, mut v: A) -> Result<RulebookNationalities, A::Error>
-            where
-                A: serde::de::SeqAccess<'de>,
-            {
-                let mut items = Vec::with_capacity(v.size_hint().unwrap_or_default());
-                while let Some(item) = v.next_element::<RulebookNationality>()? {
-                    items.push(item);
-                }
-                items
-                    .try_into()
-                    .map(RulebookNationalities::Known)
-                    .map_err(|_| A::Error::custom("at least one known nationality should be given"))
-            }
-        }
-
-        deserializer.deserialize_any(RulebookVisitor)
-    }
-}
-
-impl Serialize for RulebookNationalities {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            RulebookNationalities::Unknown => serializer.serialize_str("QU"),
-            RulebookNationalities::Stateless => serializer.serialize_str("QS"),
-            RulebookNationalities::Known(nationalities) => {
-                if nationalities.len().get() == 1 {
-                    nationalities.first().serialize(serializer)
-                } else {
-                    nationalities.serialize(serializer)
-                }
-            }
-        }
-    }
+    #[serde(untagged)]
+    Known(#[serde(with = "utils::vec_at_least::one_or_many")] VecNonEmptyUnique<RulebookNationality>),
 }
 
 impl From<RulebookNationalities> for Attribute {
@@ -718,7 +652,7 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
-            "invalid type: null, expected a string representing a country code or an array with multiple country codes"
+            "data did not match any variant of untagged enum RulebookNationalities"
         );
     }
 }
