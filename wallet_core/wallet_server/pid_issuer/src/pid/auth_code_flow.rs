@@ -114,11 +114,9 @@ struct LoginForm {
 /// Concrete [`AuthorizationCodeFlow`] for the pid_issuer.
 ///
 /// Owns:
-/// - the state-bridge store linking the issuer-generated `bridge_key` (sent to the upstream as `state`) to the wallet's
-///   original `redirect_uri`, `state`, PKCE challenge and our upstream PKCE verifier;
+/// - the state-bridge store linking the issuer-generated `bridge_key` (sent to the upstream as `state`)
 /// - the recovery-code HMAC key;
-/// - the issuer's own callback URL, used both as the upstream `redirect_uri` and as the `redirect_uri` parameter of the
-///   upstream `/token` exchange.
+/// - the issuer's own login URL.
 pub struct LoginAuthorizationCodeFlow {
     recovery_code_secret_key: SecretKeyVariant,
     issuer_metadata: PidIssuerMetadata,
@@ -261,10 +259,11 @@ impl AuthorizationCodeFlow for LoginAuthorizationCodeFlow {
     }
 }
 
-/// Login submit handle that fetches the chosen BSN from the in-memory store and hands them to the
-/// `openid4vc` layer's [`AuthorizingIssuer::complete_authorization`] which generates the
-/// issuer-side authorization code and writes the `AuthCodeIssued` session. Errors surface to the
-/// wallet as an OAuth error redirect, since the wallet's redirect_uri is known by then.
+/// Issuer that incorporates a login submit handle that fetches the chosen BSN from the in-memory
+/// store and hands them to the `openid4vc` layer's [`AuthorizingIssuer::complete_authorization`]
+/// which generates the issuer-side authorization code and writes the `AuthCodeIssued` session.
+/// Errors surface to the wallet as an OAuth error redirect, since the wallet's redirect_uri is
+/// known by then.
 type LoginAuthorizingIssuer<K, L, S, N, PAS> = Arc<AuthorizingIssuer<K, L, S, N, PAS, LoginAuthorizationCodeFlow>>;
 
 /// Create a [`Router`] that handles the login select on the given path.

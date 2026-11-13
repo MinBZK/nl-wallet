@@ -34,7 +34,7 @@ pub async fn setup_auth_redirect(authorization_url: Url) -> (Client, Url) {
     (client, redirect_url)
 }
 
-/// Drive the acf pid issuer's login flow the way a browser would: follow the wallet's authorize URL
+/// Drive the pid issuer's login ACF flow the way a browser would: follow the wallet's authorize URL
 /// to the login page, submit bsn, and return the wallet-facing redirect (carrying the
 /// issuer-minted code + the wallet's `state`) that [`Wallet::continue_issuance`] expects.
 pub async fn fake_pid_auth(authorization_url: Url, bsn: String) -> Url {
