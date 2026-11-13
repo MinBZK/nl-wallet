@@ -149,7 +149,7 @@ ctr = "0.10.1"
 dashmap = "6.1.0"
 data-url = "0.3.2"
 der = { version = "0.8.2", features = ["std"] }
-derive_more = "2.1.0"
+derive_more = "2.1.1"
 dotenvy = "0.15.7"
 ecdsa = "0.17.0"
 etag = "4.0.0"
@@ -274,3 +274,7 @@ xxhash-rust = "0.8.15"
 yoke = "0.8.1"
 zstd = "0.14.3"
 zeroize = "1.9.0"
+
+[patch.crates-io]
+# Pin on newer version due to https://github.com/JelteF/derive_more/pull/560
+derive_more = { git = "https://github.com/akundaz/derive_more.git", rev = "51b7c9e0d8eba6fb58a7ddaa669a32c6dd8bb11f" }
