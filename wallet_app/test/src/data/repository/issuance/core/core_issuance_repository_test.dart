@@ -43,9 +43,9 @@ void main() {
     });
   });
 
-  group('acceptIssuedCards', () {
+  group('commitIssuedCards', () {
     test('call is forwarded to wallet core', () async {
-      await repository.acceptIssuedCards();
+      await repository.commitIssuedCards();
 
       verify(mockTypedWalletCore.commitIssuedCredentials()).called(1);
     });

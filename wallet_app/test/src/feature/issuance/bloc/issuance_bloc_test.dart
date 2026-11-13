@@ -27,17 +27,17 @@ void main() {
   final MockStartIssuanceUseCase startIssuanceUseCase = MockStartIssuanceUseCase();
   final MockCancelSessionUseCase cancelSessionUseCase = MockCancelSessionUseCase();
   final MockContinueIssuanceUseCase continueIssuanceUseCase = MockContinueIssuanceUseCase();
-  final MockAcceptIssuedCardsUseCase acceptIssuedCardsUseCase = MockAcceptIssuedCardsUseCase();
+  final MockCommitIssuedCardsUseCase commitIssuedCardsUseCase = MockCommitIssuedCardsUseCase();
 
   setUp(() {
-    reset(acceptIssuedCardsUseCase);
+    reset(commitIssuedCardsUseCase);
   });
 
   IssuanceBloc createBloc({bool isRefreshFlow = false}) => IssuanceBloc(
     startIssuanceUseCase,
     continueIssuanceUseCase,
     cancelSessionUseCase,
-    acceptIssuedCardsUseCase,
+    commitIssuedCardsUseCase,
   );
 
   blocTest(
@@ -191,7 +191,7 @@ void main() {
       when(startIssuanceUseCase.invoke(any, type: anyNamed('type'))).thenAnswer(
         (_) async => Result.success(StartIssuanceNoPreviews(issuer: WalletMockData.organization)),
       );
-      when(acceptIssuedCardsUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
+      when(commitIssuedCardsUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionStarted('https://example.org'));
@@ -210,7 +210,7 @@ void main() {
       isA<IssuanceLoadInProgress>(),
       IssuanceCompleted(addedCards: [WalletMockData.card]),
     ],
-    verify: (_) => verify(acceptIssuedCardsUseCase.invoke()).called(1),
+    verify: (_) => verify(commitIssuedCardsUseCase.invoke()).called(1),
   );
 
   blocTest(
@@ -220,7 +220,7 @@ void main() {
       when(continueIssuanceUseCase.invoke(any)).thenAnswer(
         (_) async => Result.success(ContinueIssuanceNoPreviews(issuer: WalletMockData.organization)),
       );
-      when(acceptIssuedCardsUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
+      when(commitIssuedCardsUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
     },
     act: (bloc) async {
       bloc.add(const IssuanceSessionContinued('https://example.org/callback'));
@@ -271,7 +271,7 @@ void main() {
       when(continueIssuanceUseCase.invoke(any)).thenAnswer(
         (_) async => Result.success(ContinueIssuanceNoPreviews(issuer: WalletMockData.organization)),
       );
-      when(acceptIssuedCardsUseCase.invoke()).thenAnswer(
+      when(commitIssuedCardsUseCase.invoke()).thenAnswer(
         (_) async => const Result.error(GenericError('', sourceError: 'test')),
       );
       when(cancelSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
@@ -307,7 +307,7 @@ void main() {
     },
     skip: 4,
     expect: () => [isA<IssuanceStopped>()],
-    verify: (_) => verifyNever(acceptIssuedCardsUseCase.invoke()),
+    verify: (_) => verifyNever(commitIssuedCardsUseCase.invoke()),
   );
 
   blocTest(

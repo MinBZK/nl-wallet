@@ -124,5 +124,5 @@ class CoreIssuanceRepository implements IssuanceRepository {
   }
 
   @override
-  Future<void> acceptIssuedCards() => _walletCore.commitIssuedCredentials();
+  Future<void> commitIssuedCards() => _walletCore.commitIssuedCredentials();
 }

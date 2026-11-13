@@ -65,7 +65,7 @@ import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_use
 import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
-import 'package:wallet/src/domain/usecase/issuance/accept_issued_cards_usecase.dart';
+import 'package:wallet/src/domain/usecase/issuance/commit_issued_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/issue_cards_for_review_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
@@ -193,7 +193,6 @@ export 'wallet_mocks.mocks.dart';
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<AcceptDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<AcceptIssuanceUseCase>()])
-@GenerateNiceMocks([MockSpec<AcceptIssuedCardsUseCase>()])
 @GenerateNiceMocks([MockSpec<AcceptOfferedPidUseCase>()])
 @GenerateNiceMocks([MockSpec<AcceptSignAgreementUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelSessionUseCase>()])
@@ -205,6 +204,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CheckNavigationPrerequisitesUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckPermissionUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckPinUseCase>()])
+@GenerateNiceMocks([MockSpec<CommitIssuedCardsUseCase>()])
 @GenerateNiceMocks([MockSpec<CompletePinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<ConfirmWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<ContinueIssuanceUseCase>()])
@@ -353,7 +353,6 @@ class Mocks {
     // Use cases
     sl.registerFactory<AcceptDisclosureUseCase>(MockAcceptDisclosureUseCase.new);
     sl.registerFactory<AcceptIssuanceUseCase>(MockAcceptIssuanceUseCase.new);
-    sl.registerFactory<AcceptIssuedCardsUseCase>(MockAcceptIssuedCardsUseCase.new);
     sl.registerFactory<AcceptOfferedPidUseCase>(MockAcceptOfferedPidUseCase.new);
     sl.registerFactory<AcceptSignAgreementUseCase>(MockAcceptSignAgreementUseCase.new);
     sl.registerFactory<CancelSessionUseCase>(MockCancelSessionUseCase.new);
@@ -365,6 +364,7 @@ class Mocks {
     sl.registerFactory<CheckNavigationPrerequisitesUseCase>(MockCheckNavigationPrerequisitesUseCase.new);
     sl.registerFactory<CheckPermissionUseCase>(MockCheckPermissionUseCase.new);
     sl.registerFactory<CheckPinUseCase>(MockCheckPinUseCase.new);
+    sl.registerFactory<CommitIssuedCardsUseCase>(MockCommitIssuedCardsUseCase.new);
     sl.registerFactory<CompletePinRecoveryUseCase>(MockCompletePinRecoveryUseCase.new);
     sl.registerFactory<ConfirmWalletTransferUseCase>(MockConfirmWalletTransferUseCase.new);
     sl.registerFactory<ContinueIssuanceUseCase>(MockContinueIssuanceUseCase.new);

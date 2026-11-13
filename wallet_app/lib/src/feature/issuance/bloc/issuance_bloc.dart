@@ -15,7 +15,7 @@ import '../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/result/application_error.dart';
-import '../../../domain/usecase/issuance/accept_issued_cards_usecase.dart';
+import '../../../domain/usecase/issuance/commit_issued_cards_usecase.dart';
 import '../../../domain/usecase/issuance/continue_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../../../domain/usecase/session/cancel_session_usecase.dart';
@@ -30,7 +30,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   final StartIssuanceUseCase _startIssuanceUseCase;
   final ContinueIssuanceUseCase _continueIssuanceUseCase;
   final CancelSessionUseCase _cancelSessionUseCase;
-  final AcceptIssuedCardsUseCase _acceptIssuedCardsUseCase;
+  final CommitIssuedCardsUseCase _commitIssuedCardsUseCase;
 
   StartIssuanceResult? _startIssuanceResult;
 
@@ -51,7 +51,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     this._startIssuanceUseCase,
     this._continueIssuanceUseCase,
     this._cancelSessionUseCase,
-    this._acceptIssuedCardsUseCase,
+    this._commitIssuedCardsUseCase,
   ) : super(const IssuanceInitial()) {
     on<IssuanceSessionStarted>(_onSessionStarted);
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
@@ -252,7 +252,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     if (state == null) throw StateError('Bloc in invalid state: ${this.state}');
 
     emit(IssuanceLoadInProgress(state.stepperProgress));
-    final result = await _acceptIssuedCardsUseCase.invoke();
+    final result = await _commitIssuedCardsUseCase.invoke();
     await result.process(
       onSuccess: (_) => emit(IssuanceCompleted(addedCards: state.cards)),
       onError: (error) => _handleApplicationError(error, emit),

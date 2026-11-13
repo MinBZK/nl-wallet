@@ -1,33 +1,33 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
-import 'package:wallet/src/domain/usecase/issuance/accept_issued_cards_usecase.dart';
-import 'package:wallet/src/domain/usecase/issuance/impl/accept_issued_cards_usecase_impl.dart';
+import 'package:wallet/src/domain/usecase/issuance/commit_issued_cards_usecase.dart';
+import 'package:wallet/src/domain/usecase/issuance/impl/commit_issued_cards_usecase_impl.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
 
 void main() {
   final repository = MockIssuanceRepository();
-  late AcceptIssuedCardsUseCase usecase;
+  late CommitIssuedCardsUseCase usecase;
 
   setUp(() {
     reset(repository);
-    usecase = AcceptIssuedCardsUseCaseImpl(repository);
+    usecase = CommitIssuedCardsUseCaseImpl(repository);
   });
 
-  test('invoke calls acceptIssuedCards and returns success', () async {
-    when(repository.acceptIssuedCards()).thenAnswer((_) async {});
+  test('invoke calls commitIssuedCards and returns success', () async {
+    when(repository.commitIssuedCards()).thenAnswer((_) async {});
 
     final result = await usecase.invoke();
 
-    verify(repository.acceptIssuedCards());
+    verify(repository.commitIssuedCards());
     expect(result.hasError, isFalse);
   });
 
-  test('invoke returns error when acceptIssuedCards throws an exception', () async {
+  test('invoke returns error when commitIssuedCards throws an exception', () async {
     final exception = Exception('Test exception');
-    when(repository.acceptIssuedCards()).thenThrow(exception);
+    when(repository.commitIssuedCards()).thenThrow(exception);
 
     final result = await usecase.invoke();
 
@@ -37,7 +37,7 @@ void main() {
   });
 
   test('invoke handles CoreError by mapping to appropriate ApplicationError', () async {
-    when(repository.acceptIssuedCards()).thenThrow(const CoreExpiredSessionError('test error', canRetry: false));
+    when(repository.commitIssuedCards()).thenThrow(const CoreExpiredSessionError('test error', canRetry: false));
 
     final result = await usecase.invoke();
 

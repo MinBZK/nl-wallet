@@ -24,7 +24,7 @@ import 'package:local_auth_windows/local_auth_windows.dart' as _i63;
 import 'package:mobile_scanner/mobile_scanner.dart' as _i100;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i11;
-import 'package:permission_handler/permission_handler.dart' as _i90;
+import 'package:permission_handler/permission_handler.dart' as _i89;
 import 'package:timezone/timezone.dart' as _i59;
 import 'package:video_player/src/closed_caption_file.dart' as _i13;
 import 'package:video_player/video_player.dart' as _i6;
@@ -112,29 +112,29 @@ import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_use
 import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart' as _i108;
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart' as _i109;
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart' as _i78;
-import 'package:wallet/src/domain/usecase/issuance/accept_issued_cards_usecase.dart' as _i79;
+import 'package:wallet/src/domain/usecase/issuance/commit_issued_cards_usecase.dart' as _i91;
 import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart' as _i94;
 import 'package:wallet/src/domain/usecase/issuance/issue_cards_for_review_usecase.dart' as _i129;
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart' as _i172;
 import 'package:wallet/src/domain/usecase/maintenance/observe_maintenance_state_usecase.dart' as _i140;
-import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i88;
+import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i87;
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i155;
 import 'package:wallet/src/domain/usecase/notification/observe_dashboard_notifications_usecase.dart' as _i138;
 import 'package:wallet/src/domain/usecase/notification/observe_os_notifications_usecase.dart' as _i142;
 import 'package:wallet/src/domain/usecase/notification/observe_push_notifications_setting_usecase.dart' as _i144;
 import 'package:wallet/src/domain/usecase/notification/set_direct_os_notification_callback_usecase.dart' as _i163;
 import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart' as _i164;
-import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart' as _i89;
+import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart' as _i88;
 import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart' as _i160;
-import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i80;
-import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart' as _i86;
+import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i79;
+import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart' as _i85;
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart' as _i95;
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart' as _i112;
 import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart' as _i113;
-import 'package:wallet/src/domain/usecase/pin/cancel_pin_recovery_usecase.dart' as _i83;
-import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart' as _i85;
-import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart' as _i87;
-import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart' as _i91;
+import 'package:wallet/src/domain/usecase/pin/cancel_pin_recovery_usecase.dart' as _i82;
+import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart' as _i84;
+import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart' as _i86;
+import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart' as _i90;
 import 'package:wallet/src/domain/usecase/pin/complete_pin_recovery_usecase.dart' as _i92;
 import 'package:wallet/src/domain/usecase/pin/continue_pin_recovery_usecase.dart' as _i96;
 import 'package:wallet/src/domain/usecase/pin/create_pin_recovery_url_usecase.dart' as _i97;
@@ -145,14 +145,14 @@ import 'package:wallet/src/domain/usecase/revocation/get_registration_revocation
 import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_saved_usecase.dart' as _i115;
 import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_usecase.dart' as _i116;
 import 'package:wallet/src/domain/usecase/revocation/set_revocation_code_saved_usecase.dart' as _i165;
-import 'package:wallet/src/domain/usecase/session/cancel_session_usecase.dart' as _i82;
-import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart' as _i81;
+import 'package:wallet/src/domain/usecase/session/cancel_session_usecase.dart' as _i81;
+import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart' as _i80;
 import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart' as _i157;
 import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart' as _i174;
 import 'package:wallet/src/domain/usecase/tour/fetch_tour_videos_usecase.dart' as _i104;
 import 'package:wallet/src/domain/usecase/tour/observe_show_tour_banner_usecase.dart' as _i146;
 import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart' as _i177;
-import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart' as _i84;
+import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart' as _i83;
 import 'package:wallet/src/domain/usecase/transfer/confirm_wallet_transfer_usecase.dart' as _i93;
 import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart' as _i127;
 import 'package:wallet/src/domain/usecase/transfer/observe_transfer_session_state_usecase.dart' as _i147;
@@ -1781,8 +1781,8 @@ class MockIssuanceRepository extends _i1.Mock implements _i25.IssuanceRepository
   ) as _i9.Future<List<_i7.WalletCard>>);
 
   @override
-  _i9.Future<void> acceptIssuedCards() => (super.noSuchMethod(
-    Invocation.method(#acceptIssuedCards, []),
+  _i9.Future<void> commitIssuedCards() => (super.noSuchMethod(
+    Invocation.method(#commitIssuedCards, []),
     returnValue: _i9.Future<void>.value(),
     returnValueForMissingStub: _i9.Future<void>.value(),
   ) as _i9.Future<void>);
@@ -5047,46 +5047,10 @@ class MockAcceptIssuanceUseCase extends _i1.Mock implements _i78.AcceptIssuanceU
   ) as _i9.Future<_i77.Result<T>>);
 }
 
-/// A class which mocks [AcceptIssuedCardsUseCase].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockAcceptIssuedCardsUseCase extends _i1.Mock implements _i79.AcceptIssuedCardsUseCase {
-  @override
-  _i9.Future<_i77.Result<void>> invoke() => (super.noSuchMethod(
-    Invocation.method(#invoke, []),
-    returnValue: _i9.Future<_i77.Result<void>>.value(
-      _i11.dummyValue<_i77.Result<void>>(this, Invocation.method(#invoke, [])),
-    ),
-    returnValueForMissingStub: _i9.Future<_i77.Result<void>>.value(
-      _i11.dummyValue<_i77.Result<void>>(this, Invocation.method(#invoke, [])),
-    ),
-  ) as _i9.Future<_i77.Result<void>>);
-
-  @override
-  _i9.Future<_i77.Result<T>> tryCatch<T>(
-    _i9.Future<T> Function()? future,
-    String? errorDescription,
-  ) => (super.noSuchMethod(
-    Invocation.method(#tryCatch, [future, errorDescription]),
-    returnValue: _i9.Future<_i77.Result<T>>.value(
-      _i11.dummyValue<_i77.Result<T>>(
-        this,
-        Invocation.method(#tryCatch, [future, errorDescription]),
-      ),
-    ),
-    returnValueForMissingStub: _i9.Future<_i77.Result<T>>.value(
-      _i11.dummyValue<_i77.Result<T>>(
-        this,
-        Invocation.method(#tryCatch, [future, errorDescription]),
-      ),
-    ),
-  ) as _i9.Future<_i77.Result<T>>);
-}
-
 /// A class which mocks [AcceptOfferedPidUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i80.AcceptOfferedPidUseCase {
+class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i79.AcceptOfferedPidUseCase {
   @override
   _i9.Future<_i77.Result<_i31.TransferState>> invoke(String? pin) => (super.noSuchMethod(
     Invocation.method(#invoke, [pin]),
@@ -5128,7 +5092,7 @@ class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i80.AcceptOffered
 /// A class which mocks [AcceptSignAgreementUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAcceptSignAgreementUseCase extends _i1.Mock implements _i81.AcceptSignAgreementUseCase {
+class MockAcceptSignAgreementUseCase extends _i1.Mock implements _i80.AcceptSignAgreementUseCase {
   @override
   _i9.Future<_i77.Result<String?>> invoke(String? pin) => (super.noSuchMethod(
     Invocation.method(#invoke, [pin]),
@@ -5170,7 +5134,7 @@ class MockAcceptSignAgreementUseCase extends _i1.Mock implements _i81.AcceptSign
 /// A class which mocks [CancelSessionUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCancelSessionUseCase extends _i1.Mock implements _i82.CancelSessionUseCase {
+class MockCancelSessionUseCase extends _i1.Mock implements _i81.CancelSessionUseCase {
   @override
   _i9.Future<_i77.Result<String?>> invoke() => (super.noSuchMethod(
     Invocation.method(#invoke, []),
@@ -5212,7 +5176,7 @@ class MockCancelSessionUseCase extends _i1.Mock implements _i82.CancelSessionUse
 /// A class which mocks [CancelPinRecoveryUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCancelPinRecoveryUseCase extends _i1.Mock implements _i83.CancelPinRecoveryUseCase {
+class MockCancelPinRecoveryUseCase extends _i1.Mock implements _i82.CancelPinRecoveryUseCase {
   @override
   _i9.Future<_i77.Result<void>> invoke() => (super.noSuchMethod(
     Invocation.method(#invoke, []),
@@ -5248,7 +5212,7 @@ class MockCancelPinRecoveryUseCase extends _i1.Mock implements _i83.CancelPinRec
 /// A class which mocks [CancelWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCancelWalletTransferUseCase extends _i1.Mock implements _i84.CancelWalletTransferUseCase {
+class MockCancelWalletTransferUseCase extends _i1.Mock implements _i83.CancelWalletTransferUseCase {
   @override
   _i9.Future<_i77.Result<void>> invoke() => (super.noSuchMethod(
     Invocation.method(#invoke, []),
@@ -5284,7 +5248,7 @@ class MockCancelWalletTransferUseCase extends _i1.Mock implements _i84.CancelWal
 /// A class which mocks [ChangePinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockChangePinUseCase extends _i1.Mock implements _i85.ChangePinUseCase {
+class MockChangePinUseCase extends _i1.Mock implements _i84.ChangePinUseCase {
   @override
   _i9.Future<_i77.Result<void>> invoke(String? oldPin, String? newPin) => (super.noSuchMethod(
     Invocation.method(#invoke, [oldPin, newPin]),
@@ -5326,7 +5290,7 @@ class MockChangePinUseCase extends _i1.Mock implements _i85.ChangePinUseCase {
 /// A class which mocks [CheckIsPidUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckIsPidUseCase extends _i1.Mock implements _i86.CheckIsPidUseCase {
+class MockCheckIsPidUseCase extends _i1.Mock implements _i85.CheckIsPidUseCase {
   @override
   _i9.Future<_i77.Result<bool>> invoke(_i7.WalletCard? card) => (super.noSuchMethod(
     Invocation.method(#invoke, [card]),
@@ -5368,7 +5332,7 @@ class MockCheckIsPidUseCase extends _i1.Mock implements _i86.CheckIsPidUseCase {
 /// A class which mocks [CheckIsValidPinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckIsValidPinUseCase extends _i1.Mock implements _i87.CheckIsValidPinUseCase {
+class MockCheckIsValidPinUseCase extends _i1.Mock implements _i86.CheckIsValidPinUseCase {
   @override
   _i9.Future<_i77.Result<void>> invoke(String? pin) => (super.noSuchMethod(
     Invocation.method(#invoke, [pin]),
@@ -5410,7 +5374,7 @@ class MockCheckIsValidPinUseCase extends _i1.Mock implements _i87.CheckIsValidPi
 /// A class which mocks [CheckNavigationPrerequisitesUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i88.CheckNavigationPrerequisitesUseCase {
+class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i87.CheckNavigationPrerequisitesUseCase {
   @override
   _i9.Future<bool> invoke(List<_i66.NavigationPrerequisite>? prerequisites) => (super.noSuchMethod(
     Invocation.method(#invoke, [prerequisites]),
@@ -5442,10 +5406,10 @@ class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i88.C
 /// A class which mocks [CheckPermissionUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckPermissionUseCase extends _i1.Mock implements _i89.CheckPermissionUseCase {
+class MockCheckPermissionUseCase extends _i1.Mock implements _i88.CheckPermissionUseCase {
   @override
   _i9.Future<_i10.PermissionCheckResult> invoke(
-    List<_i90.Permission>? permissions,
+    List<_i89.Permission>? permissions,
   ) => (super.noSuchMethod(
     Invocation.method(#invoke, [permissions]),
     returnValue: _i9.Future<_i10.PermissionCheckResult>.value(
@@ -5486,7 +5450,7 @@ class MockCheckPermissionUseCase extends _i1.Mock implements _i89.CheckPermissio
 /// A class which mocks [CheckPinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckPinUseCase extends _i1.Mock implements _i91.CheckPinUseCase {
+class MockCheckPinUseCase extends _i1.Mock implements _i90.CheckPinUseCase {
   @override
   _i9.Future<_i77.Result<dynamic>> invoke(String? pin) => (super.noSuchMethod(
     Invocation.method(#invoke, [pin]),
@@ -5503,6 +5467,42 @@ class MockCheckPinUseCase extends _i1.Mock implements _i91.CheckPinUseCase {
       ),
     ),
   ) as _i9.Future<_i77.Result<dynamic>>);
+
+  @override
+  _i9.Future<_i77.Result<T>> tryCatch<T>(
+    _i9.Future<T> Function()? future,
+    String? errorDescription,
+  ) => (super.noSuchMethod(
+    Invocation.method(#tryCatch, [future, errorDescription]),
+    returnValue: _i9.Future<_i77.Result<T>>.value(
+      _i11.dummyValue<_i77.Result<T>>(
+        this,
+        Invocation.method(#tryCatch, [future, errorDescription]),
+      ),
+    ),
+    returnValueForMissingStub: _i9.Future<_i77.Result<T>>.value(
+      _i11.dummyValue<_i77.Result<T>>(
+        this,
+        Invocation.method(#tryCatch, [future, errorDescription]),
+      ),
+    ),
+  ) as _i9.Future<_i77.Result<T>>);
+}
+
+/// A class which mocks [CommitIssuedCardsUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCommitIssuedCardsUseCase extends _i1.Mock implements _i91.CommitIssuedCardsUseCase {
+  @override
+  _i9.Future<_i77.Result<void>> invoke() => (super.noSuchMethod(
+    Invocation.method(#invoke, []),
+    returnValue: _i9.Future<_i77.Result<void>>.value(
+      _i11.dummyValue<_i77.Result<void>>(this, Invocation.method(#invoke, [])),
+    ),
+    returnValueForMissingStub: _i9.Future<_i77.Result<void>>.value(
+      _i11.dummyValue<_i77.Result<void>>(this, Invocation.method(#invoke, [])),
+    ),
+  ) as _i9.Future<_i77.Result<void>>);
 
   @override
   _i9.Future<_i77.Result<T>> tryCatch<T>(
@@ -7708,7 +7708,7 @@ class MockRequestBiometricsUseCase extends _i1.Mock implements _i158.RequestBiom
 class MockRequestPermissionUseCase extends _i1.Mock implements _i160.RequestPermissionUseCase {
   @override
   _i9.Future<_i10.PermissionCheckResult> invoke(
-    List<_i90.Permission>? permissions,
+    List<_i89.Permission>? permissions,
   ) => (super.noSuchMethod(
     Invocation.method(#invoke, [permissions]),
     returnValue: _i9.Future<_i10.PermissionCheckResult>.value(

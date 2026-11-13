@@ -16,9 +16,9 @@ abstract class IssuanceRepository {
   Future<void> acceptIssuance(String pin, Iterable<WalletCard> cards);
 
   /// Requests the cards from an issuer that does not provide previews, returns them for review.
-  /// The cards are not added to the wallet until [acceptIssuedCards] is called.
+  /// The cards are not added to the wallet until [commitIssuedCards] is called.
   Future<List<WalletCard>> issueCardsForReview(String pin);
 
   /// Adds the cards returned by [issueCardsForReview] to the wallet.
-  Future<void> acceptIssuedCards();
+  Future<void> commitIssuedCards();
 }
