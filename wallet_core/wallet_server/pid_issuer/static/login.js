@@ -26,13 +26,16 @@
     sum -= Number.parseInt(bsn[8])
     return sum % 11 === 0
   }
-  document.getElementById("custom-bsn").addEventListener("change", function () {
-    if (checkBsn(this.value) === false) {
-      // Only set custom validity when the BSN consists of 9 digits but is incorrect
-      // Let the browser's constraint validation handle the other cases
-      this.setCustomValidity(this.dataset.invalidBsn)
-    } else {
-      this.setCustomValidity("")
-    }
-  })
+  const customBsn = document.getElementById("custom-bsn")
+  if (customBsn) {
+    customBsn.addEventListener("change", function () {
+      if (checkBsn(this.value) === false) {
+        // Only set custom validity when the BSN consists of 9 digits but is incorrect
+        // Let the browser's constraint validation handle the other cases
+        this.setCustomValidity(this.dataset.invalidBsn)
+      } else {
+        this.setCustomValidity("")
+      }
+    })
+  }
 })()
