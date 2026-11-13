@@ -5,7 +5,7 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::signature::Signer;
 use p256::pkcs8::DecodePrivateKey;
-use rand::Rng;
+use rand::RngExt;
 use rcgen::BasicConstraints;
 use rcgen::CertificateParams;
 use rcgen::CustomExtension;
@@ -17,7 +17,6 @@ use rcgen::KeyPair;
 use rcgen::PKCS_ECDSA_P256_SHA256;
 use rcgen::PKCS_RSA_SHA256;
 use rcgen::RsaKeySize;
-use rsa::RsaPublicKey;
 use rsa::pkcs1::DecodeRsaPublicKey;
 use x509_cert::certificate::Certificate;
 use x509_cert::der::Any;
@@ -37,7 +36,7 @@ use crate::attestation_extension::key_description::KeyDescription;
 pub struct MockCaChain {
     certificates_der: Vec<Vec<u8>>,
     pub serial_numbers: Vec<u64>,
-    pub root_public_key: RsaPublicKey,
+    pub root_public_key: rsa::PublicKey,
     pub last_issuer: Arc<Issuer<'static, KeyPair>>,
 }
 
@@ -45,7 +44,7 @@ impl MockCaChain {
     /// Generate a chain of CAs, with the requested number of intermediates.
     /// If no intermediates are requested, only a root CA is generated.
     pub fn generate(intermediate_count: u8) -> Self {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // Start with an iterator that runs backwards from `intermediate_count` down to and including 0.
         let certificates_serials_and_issuers = (0..=intermediate_count)
@@ -63,7 +62,7 @@ impl MockCaChain {
                         KeyPair::generate_rsa_for(&PKCS_RSA_SHA256, RsaKeySize::_2048).unwrap()
                     };
 
-                    let serial_number = rng.r#gen::<u64>();
+                    let serial_number: u64 = rng.random();
 
                     let mut params = CertificateParams::default();
                     params.serial_number = Some(serial_number.into());
@@ -95,7 +94,7 @@ impl MockCaChain {
 
         // Extract and decode the public key of the root CA.
         let (_, _, root_issuer) = certificates_serials_and_issuers.first().unwrap();
-        let root_public_key = RsaPublicKey::from_pkcs1_der(root_issuer.key().public_key_raw()).unwrap();
+        let root_public_key = rsa::PublicKey::from_pkcs1_der(root_issuer.key().public_key_raw()).unwrap();
 
         // Save the generated certificate and key pair of the lowest level CA (which may be the root or an
         // intermediate), so that we can generate leaf certificates. We keep the `Arc` to be able to clone it.
@@ -234,7 +233,7 @@ mod tests {
     use std::time::SystemTime;
     use std::time::UNIX_EPOCH;
 
-    use rsa::BigUint;
+    use rsa::BoxedUint;
     use rsa::traits::PublicKeyParts;
     use rstest::rstest;
     use rustls_pki_types::CertificateDer;
@@ -302,11 +301,11 @@ mod tests {
 
         if let PublicKey::RSA(rsa_public_key) = root_public_key {
             assert_eq!(
-                BigUint::from_bytes_be(rsa_public_key.modulus),
-                *mock_ca_chain.root_public_key.n()
+                BoxedUint::from_be_slice_vartime(rsa_public_key.modulus),
+                **mock_ca_chain.root_public_key.n()
             );
             assert_eq!(
-                BigUint::from_bytes_be(rsa_public_key.exponent),
+                BoxedUint::from_be_slice_vartime(rsa_public_key.exponent),
                 *mock_ca_chain.root_public_key.e()
             );
         } else {

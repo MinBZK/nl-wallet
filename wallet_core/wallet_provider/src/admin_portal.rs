@@ -97,16 +97,18 @@ impl IntoResponse for TaskApiError {
     }
 }
 
-/// Failure of a `/wallets` endpoint, mapped to the matching HTTP status code.
+/// Failure of a `/wallets/check` endpoint, mapped to the matching HTTP status code.
 #[derive(Debug)]
 enum WalletApiError {
     Check(GetWalletRevocationStateError),
+    InvalidRequest(JsonRejection),
 }
 
 impl IntoResponse for WalletApiError {
     fn into_response(self) -> Response {
         warn!("wallet endpoint failed: {self:?}");
         let status = match self {
+            Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
             Self::Check(GetWalletRevocationStateError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
             Self::Check(GetWalletRevocationStateError::NotFound(_)) => StatusCode::NOT_FOUND,
             Self::Check(GetWalletRevocationStateError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -178,7 +180,7 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
                 .route("/{task_id}/withdraw", post(withdraw_task))
                 .route("/{task_id}/review", post(review_task)),
         )
-        .route("/wallets/{wallet_id}", get(check_wallet))
+        .route("/wallets/check", post(check_wallet))
         .with_state(state)
 }
 
@@ -497,6 +499,13 @@ async fn list_tasks(
     ))
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "web_test", derive(Serialize))]
+#[serde(rename_all = "camelCase")]
+pub struct CheckWalletRequest {
+    pub wallet_id: WalletId,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(feature = "web_test", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
@@ -507,11 +516,13 @@ pub struct CheckWalletResponse {
 async fn check_wallet(
     State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
-    Path(wallet_id): Path<WalletId>,
+    request: Result<Json<CheckWalletRequest>, JsonRejection>,
 ) -> Result<Json<CheckWalletResponse>, WalletApiError> {
+    let Json(request) = request.map_err(WalletApiError::InvalidRequest)?;
+
     let status = state
         .service
-        .get_wallet_revocation_state(&wallet_id, &user, &state.user_state)
+        .get_wallet_revocation_state(&request.wallet_id, &user, &state.user_state)
         .await
         .map_err(WalletApiError::Check)?;
 
@@ -901,7 +912,7 @@ mod http_tests {
     #[case::list("GET", "/tasks?view=open")]
     #[case::withdraw("POST", "/tasks/00000000-0000-0000-0000-000000000000/withdraw")]
     #[case::review("POST", "/tasks/00000000-0000-0000-0000-000000000000/review")]
-    #[case::check_wallet("GET", "/wallets/wallet-1")]
+    #[case::check_wallet("POST", "/wallets/check")]
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn admin_portal_routes_require_authentication(#[case] method: &str, #[case] uri: &str) {
@@ -961,7 +972,9 @@ mod http_tests {
                 display_name: "Alice".to_owned(),
                 privileges,
             }),
-            Path(WalletId::from(wallet_id.to_string())),
+            Ok(Json(CheckWalletRequest {
+                wallet_id: WalletId::from(wallet_id.to_string()),
+            })),
         )
         .await
         .into_response()

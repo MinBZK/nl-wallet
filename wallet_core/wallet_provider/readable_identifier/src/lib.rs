@@ -2,8 +2,7 @@ use std::str::FromStr;
 
 use derive_more::Display;
 use derive_more::Into;
-use rand::distributions::Distribution;
-use rand::distributions::Uniform;
+use rand::RngExt;
 use serde::Serialize;
 
 const CROCKFORD_ALPHABET: &[u8] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -32,11 +31,10 @@ pub struct ReadableIdentifier<const LEN: usize>(String);
 impl<const LEN: usize> ReadableIdentifier<LEN> {
     pub fn new_random() -> Self {
         // Generate LEN usize values from 0 to 32.
-        let distribution = Uniform::from(0..32);
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let identifier_string = (0..LEN)
-            .map(|_| char::from(CROCKFORD_ALPHABET[distribution.sample(&mut rng)]))
+            .map(|_| char::from(CROCKFORD_ALPHABET[rng.random_range(0..32)]))
             .collect();
 
         Self(identifier_string)

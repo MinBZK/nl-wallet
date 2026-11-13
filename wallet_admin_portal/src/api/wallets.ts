@@ -1,6 +1,6 @@
 import type { Wallet } from '@/types/wallet.ts'
 import type { WalletResponse } from '@/types/wallet-response.ts'
-import { HTTP_NOT_FOUND, HttpError, request } from '@/api/request.ts'
+import { HTTP_NOT_FOUND, HttpError, postJson } from '@/api/request.ts'
 
 /**
  * Looks up a wallet by its ID.
@@ -9,7 +9,7 @@ import { HTTP_NOT_FOUND, HttpError, request } from '@/api/request.ts'
  */
 export async function findWallet(id: string): Promise<Wallet | null> {
   try {
-    const response = await request<WalletResponse>(`/wallets/${encodeURIComponent(id)}`)
+    const response = await postJson<WalletResponse>('/wallets/check', { walletId: id })
     return { id, status: response.status }
   } catch (error) {
     if (error instanceof HttpError && error.status === HTTP_NOT_FOUND) return null

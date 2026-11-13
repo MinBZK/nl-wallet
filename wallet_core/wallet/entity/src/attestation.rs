@@ -3,6 +3,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
 use openid4vc::metadata::issuer_metadata::CredentialMetadata;
+use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use sea_orm::FromJsonQueryResult;
 use sea_orm::entity::prelude::*;
@@ -68,6 +69,17 @@ pub struct ExtendedTypesModel {
 pub enum AttestationMetadataModel {
     TypeMetadata(VerifiedTypeMetadataDocuments),
     CredentialMetadata(CredentialMetadata),
+}
+
+impl From<IssuedCredentialMetadata> for AttestationMetadataModel {
+    fn from(metadata: IssuedCredentialMetadata) -> Self {
+        match metadata {
+            IssuedCredentialMetadata::TypeMetadata { verified, .. } => Self::TypeMetadata(verified),
+            IssuedCredentialMetadata::CredentialMetadata(credential_metadata) => {
+                Self::CredentialMetadata(credential_metadata)
+            }
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

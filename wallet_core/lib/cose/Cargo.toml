@@ -16,7 +16,7 @@ indexmap.workspace = true
 p256.workspace = true
 p384.workspace = true
 ring.workspace = true
-rsa = { workspace = true, features = ["sha2"] }
+rsa = { workspace = true, features = ["pkcs1v15"] }
 sha2.workspace = true
 serde = { workspace = true, features = ["derive"] }
 strum = { workspace = true, features = ["derive"] }
@@ -31,7 +31,7 @@ hex-literal.workspace = true
 futures.workspace = true
 rand.workspace = true
 rand_core.workspace = true
-rsa = { workspace = true, features = ["sha2", "pem"] }
+rsa.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 

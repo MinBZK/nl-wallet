@@ -326,7 +326,7 @@ fn encrypt_session_data(key: &KeyBytes, iv: [u8; 12], plaintext: &[u8]) -> Resul
     let cipher =
         Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
     cipher
-        .encrypt(Nonce::from_slice(&iv), plaintext)
+        .encrypt(&Nonce::from(iv), plaintext)
         .map_err(|_| SessionEncryptionError::EncryptionFailed)
 }
 
@@ -334,7 +334,7 @@ fn decrypt_session_data(key: &KeyBytes, iv: [u8; 12], ciphertext: &[u8]) -> Resu
     let cipher =
         Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| SessionEncryptionError::InvalidSessionKeyLength)?;
     cipher
-        .decrypt(Nonce::from_slice(&iv), ciphertext)
+        .decrypt(&Nonce::from(iv), ciphertext)
         .map_err(|_| SessionEncryptionError::DecryptionFailed)
 }
 

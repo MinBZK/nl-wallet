@@ -15,6 +15,7 @@ mock_time = ["dep:parking_lot"]
 [dependencies]
 chrono = { workspace = true, features = ["now", "serde"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "index", "into", "into_iterator"] }
+futures.workspace = true
 itertools.workspace = true
 nonempty-collections.workspace = true
 nutype = { workspace = true, features = ["serde"] }

@@ -670,7 +670,7 @@ where
         // Create new list items
         let indices = tokio::task::spawn_blocking(move || {
             let mut indices = (0..list_size).collect::<Vec<_>>();
-            indices.shuffle(&mut rand::thread_rng());
+            indices.shuffle(&mut rand::rng());
             indices
         })
         .await?;

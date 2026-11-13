@@ -141,8 +141,8 @@ where
 {
     async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error> {
         let decrypted = decrypt_bytes_from_dir(
-            self.decryption_key.key::<Aes256Gcm>(),
-            self.hmac_key.key::<HmacSha256>(),
+            self.decryption_key.key::<Aes256Gcm>().map_err(Error::InvalidKey)?,
+            self.hmac_key.key::<HmacSha256>().map_err(Error::InvalidKey)?,
             &self.base_path,
             bsn.as_ref(),
         )

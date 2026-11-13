@@ -1,6 +1,6 @@
 name: wallet
 description: EDI - NL Public Reference Wallet
-version: 0.7.2-dev
+version: 0.8.0-dev
 resolution: workspace
 
 # Prevent accidental publishing to pub.dev.
@@ -27,7 +27,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_bloc: ^9.1.1
-  flutter_local_notifications: ^22.0.1
+  flutter_local_notifications: ^22.3.2
   flutter_localizations:
     sdk: flutter
   flutter_markdown_plus: ^1.0.7

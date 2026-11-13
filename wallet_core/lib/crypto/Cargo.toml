@@ -78,7 +78,7 @@ ecdsa.workspace = true
 hex-literal.workspace = true
 httpmock.workspace = true
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs", "pem"] }
-rsa = { workspace = true, features = ["pem"] }
+rsa.workspace = true
 rstest.workspace = true
 time.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }

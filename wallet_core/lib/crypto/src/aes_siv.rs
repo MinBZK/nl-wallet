@@ -620,6 +620,7 @@ mod tests {
     use aes::cipher::KeyIvInit;
     use aes::cipher::StreamCipher;
     use cmac::Cmac;
+    use cmac::KeyInit;
     use cmac::Mac;
     use ctr::Ctr128BE;
     use hex_literal::hex;
@@ -671,9 +672,7 @@ mod tests {
             let mut cipher = Ctr128BE::<Aes256>::new(key.into(), &counter_block.into());
             let input = input.as_ref();
             let mut output = vec![0; input.len()];
-            cipher
-                .apply_keystream_b2b(input, output.as_mut_slice())
-                .expect("buffers are the same length");
+            cipher.apply_keystream_b2b(input, output.as_mut_slice());
 
             Ok(output)
         }

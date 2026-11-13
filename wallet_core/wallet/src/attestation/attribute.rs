@@ -178,7 +178,7 @@ impl AttestationPresentation {
         let attributes = match config.filtered_attribute(format, &attestation_type) {
             Some(filtered_key) => attributes
                 .into_iter()
-                .filter(|attr| attr.key.iter().ne(filtered_key))
+                .filter(|attr| attr.key.iter().map(String::as_str).ne(filtered_key.clone()))
                 .collect(),
             None => attributes,
         };

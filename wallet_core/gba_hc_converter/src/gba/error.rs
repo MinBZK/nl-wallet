@@ -1,5 +1,6 @@
 use std::string::FromUtf8Error;
 
+use crypto::keys::InvalidKeyLength;
 use hex::FromHexError;
 
 use crate::gba::data::GbaResult;
@@ -28,6 +29,10 @@ pub enum Error {
     GbaErrorResponse(GbaResult),
     #[error("Error decoding data: {0}")]
     Decoding(#[from] FromUtf8Error),
+    #[error("Invalid key: {0}")]
+    InvalidKey(#[source] InvalidKeyLength),
+    #[error("Invalid nonce")]
+    InvalidNonce,
     #[error("Error decrypting data: {0}")]
     Decrypting(#[from] aes_gcm::aead::Error),
     #[error("Error decoding data: {0}")]

@@ -14,12 +14,19 @@ afterEach(() => {
 })
 
 describe('wallets api', () => {
-  it('looks up the wallet by its encoded ID and returns a revokable wallet', async () => {
+  it('posts the wallet ID and returns a revokable wallet', async () => {
     const fetchMock = stubFetch(200, { status: 'revokable' })
 
     const wallet = await findWallet('a/b c')
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('/admin-portal/wallets/a%2Fb%20c')
+    expect(fetchMock.mock.calls[0]).toEqual([
+      '/admin-portal/wallets/check',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletId: 'a/b c' }),
+      },
+    ])
     expect(wallet).toEqual({ id: 'a/b c', status: 'revokable' })
   })
 

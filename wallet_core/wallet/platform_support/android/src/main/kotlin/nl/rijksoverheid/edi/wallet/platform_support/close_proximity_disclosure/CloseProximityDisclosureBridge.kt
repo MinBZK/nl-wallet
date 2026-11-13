@@ -544,21 +544,7 @@ class CloseProximityDisclosureBridge(
             return currentContext
         }
 
-        val newContext =
-            try {
-                createReaderSessionContext(
-                    eDeviceKey = session.eDeviceKey,
-                    encodedDeviceEngagement = session.encodedDeviceEngagement,
-                    message = message,
-                )
-            } catch (exception: Exception) {
-                val status = sessionEstablishmentFailureStatus(exception)
-                if (status != null) {
-                    failSessionWithStatus(session, transport, status, exception)
-                    return null
-                }
-                throw exception
-            }
+        val newContext = createReaderSessionContextOrFail(session, transport, message) ?: return null
         session.setSessionEncryption(
             sessionEncryption = newContext.sessionEncryption,
             encodedSessionTranscript = newContext.encodedSessionTranscript,
@@ -570,6 +556,27 @@ class CloseProximityDisclosureBridge(
         }
         return newContext
     }
+
+    private suspend fun createReaderSessionContextOrFail(
+        session: ActiveSession,
+        transport: MdocTransport,
+        message: ByteArray,
+    ): ReaderSessionContext? =
+        try {
+            createReaderSessionContext(
+                eDeviceKey = session.eDeviceKey,
+                encodedDeviceEngagement = session.encodedDeviceEngagement,
+                message = message,
+            )
+        } catch (exception: Exception) {
+            val status = sessionEstablishmentFailureStatus(exception)
+            if (status != null) {
+                failSessionWithStatus(session, transport, status, exception)
+                null
+            } else {
+                throw exception
+            }
+        }
 
     private suspend fun handleReaderMessage(
         session: ActiveSession,
@@ -588,6 +595,15 @@ class CloseProximityDisclosureBridge(
                 }
                 throw exception
             }
+        return handleDecryptedReaderMessage(session, readerSessionContext, deviceRequest, status)
+    }
+
+    private suspend fun handleDecryptedReaderMessage(
+        session: ActiveSession,
+        readerSessionContext: ReaderSessionContext,
+        deviceRequest: ByteArray?,
+        status: Long?,
+    ): Boolean {
         requireReaderMessageContent(deviceRequest = deviceRequest, status = status)
         if (deviceRequest != null) {
             sendSessionEstablishedUpdate(

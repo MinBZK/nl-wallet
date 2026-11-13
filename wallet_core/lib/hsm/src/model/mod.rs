@@ -33,6 +33,7 @@ pub mod mock {
     use crypto::utils::random_bytes;
     use dashmap::DashMap;
     use hmac::Hmac;
+    use hmac::KeyInit;
     use hmac::Mac;
     use hmac::digest::MacError;
     use p256::ecdsa::Signature;
@@ -41,7 +42,6 @@ pub mod mock {
     use p256::ecdsa::signature::Signer;
     use p256::ecdsa::signature::hazmat::RandomizedPrehashSigner;
     use p256::elliptic_curve::Generate;
-    use p256::elliptic_curve::common::getrandom;
     use sha2::Sha256;
 
     use crate::model::Hsm;
@@ -274,7 +274,7 @@ pub mod mock {
             data: [u8; 32],
         ) -> Result<Signature, HsmError> {
             let key = SigningKey::from_slice(wrapped_key.wrapped_private_key()).unwrap();
-            let signature = key.sign_prehash_with_rng(&mut getrandom::SysRng, data.as_slice())?;
+            let signature = key.sign_prehash_with_rng(&mut rand::rng(), data.as_slice())?;
             Ok(signature)
         }
     }

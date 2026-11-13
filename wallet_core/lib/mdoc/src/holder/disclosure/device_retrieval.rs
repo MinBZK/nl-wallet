@@ -3,6 +3,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateExtendedKeyUsage;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
 use utils::generator::Generator;
@@ -52,7 +53,7 @@ impl DocRequest {
 
                 // Perform verification and return the `Certificate`.
                 let cose = reader_auth.clone_with_payload(serialization::cbor_serialize(&reader_auth_payload)?);
-                cose.verify_against_trust_anchors(trust_anchors, time, None)?;
+                cose.verify_against_trust_anchors(trust_anchors, time, Some(CertificateExtendedKeyUsage::MdlReader))?;
                 let cert = cose.x5chain()?.into_first();
 
                 Ok(cert)
@@ -73,8 +74,13 @@ impl DocRequest {
         let reader_auth_payload = TaggedBytes(CborSeq(reader_auth_payload));
         let cose = reader_auth.clone_with_payload(serialization::cbor_serialize(&reader_auth_payload)?);
 
-        cose.verify_against_trust_anchors_with_crl(trust_anchors, crl_verifier, time, None)
-            .await?;
+        cose.verify_against_trust_anchors_with_crl(
+            trust_anchors,
+            crl_verifier,
+            time,
+            Some(CertificateExtendedKeyUsage::MdlReader),
+        )
+        .await?;
         Ok(cose.x5chain()?.into_first())
     }
 }
@@ -146,8 +152,13 @@ mod tests {
     use std::assert_matches;
 
     use crypto::server_keys::generate::Ca;
+    use crypto::x509::CertificateConfiguration;
+    use crypto::x509::CertificateProfile;
+    use crypto::x509::DistinguishedName;
     use crypto::x509::crl::CertificateCrlVerificationError;
+    use crypto::x509::crl::mock::MOCK_CRL_DISTRIBUTION_POINT;
     use crypto::x509::crl::mock::MockCertificateCrlVerifier;
+    use rstest::rstest;
     use utils::generator::TimeGenerator;
 
     use super::*;
@@ -193,10 +204,22 @@ mod tests {
         assert!(no_certificate.is_none());
     }
 
+    #[rstest]
+    #[case::without_eku(None)]
+    #[case::noncritical_reader_eku(Some(CertificateProfile::Wrpac))]
     #[tokio::test]
-    async fn test_doc_request_verify_with_crl() {
+    async fn test_doc_request_verify_with_crl(#[case] profile: Option<CertificateProfile>) {
         let ca = Ca::generate_wrpac_mock_ca().unwrap();
-        let key_pair = ca.generate_wrpac_verifier_mock_with_crl().unwrap();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("reader"),
+                CertificateConfiguration {
+                    profile,
+                    crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
+                    ..Default::default()
+                },
+            )
+            .unwrap();
         let trust_anchors = ca.to_trust_anchors();
         let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
         let session_transcript = SessionTranscript::new_mock();
@@ -220,6 +243,40 @@ mod tests {
             .expect_err("Verifying DeviceRequest should have resulted in an error");
 
         assert_matches!(error, Error::MissingReaderAuthentication);
+    }
+
+    #[tokio::test]
+    async fn test_doc_request_verify_with_crl_rejects_unrelated_eku() {
+        let ca = Ca::generate_wrpac_mock_ca().unwrap();
+        let key_pair = ca
+            .generate_key_pair(
+                DistinguishedName::create_mock("reader"),
+                CertificateConfiguration {
+                    profile: Some(CertificateProfile::Issuer),
+                    crl_distribution_points: vec![MOCK_CRL_DISTRIBUTION_POINT.clone()],
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let crl_verifier = MockCertificateCrlVerifier::new_for_ca(&ca);
+        let session_transcript = SessionTranscript::new_mock();
+        let doc_request = create_doc_request(ItemsRequest::new_example(), &session_transcript, &key_pair).await;
+
+        let error = doc_request
+            .verify(&session_transcript, &TimeGenerator, &ca.to_trust_anchors())
+            .expect_err("reader authentication must reject an unrelated EKU");
+        assert_matches!(error, Error::Cose(cose::CoseError::CertificateVerify(_)));
+
+        let error = doc_request
+            .verify_with_crl(
+                &session_transcript,
+                &TimeGenerator,
+                &ca.to_trust_anchors(),
+                &crl_verifier,
+            )
+            .await
+            .expect_err("reader authentication must reject an unrelated EKU");
+        assert_matches!(error, Error::Cose(cose::CoseError::CertificateVerify(_)));
     }
 
     #[tokio::test]

@@ -11,9 +11,9 @@ rm ./setup.sh
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     nodejs=24.22.1-1nodesource1
 
+# Refresh npm's bundled dependencies independently of the Node.js release.
+npm install --global npm@11.21.1 pnpm@12.17.0
+
 npm --version
 node --version
-
-npm install --global pnpm@12.12.1
-
 pnpm --version

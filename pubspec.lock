@@ -447,26 +447,26 @@ packages:
     dependency: transitive
     description:
       name: flutter_local_notifications
-      sha256: a0d7141f14cabcee42967470a858dfc99dd6cfb70d3cab404bacfcafa9e84e70
+      sha256: fd5fc8966a8b34337ac182dc394f3506139b69d8138d4e9e174a13d6468adcd4
       url: "https://pub.dev"
     source: hosted
-    version: "22.0.1"
+    version: "22.3.3"
   flutter_local_notifications_linux:
     dependency: transitive
     description:
       name: flutter_local_notifications_linux
-      sha256: "9ca97e63776f29ab1b955725c09999fc2c150523269db150c39274f2a43c5a8b"
+      sha256: "3b89a4bf095fa5f8a99beeabf982c5bd506c3ad25e7b9e61da945e994dc5b615"
       url: "https://pub.dev"
     source: hosted
-    version: "8.0.1"
+    version: "8.0.2"
   flutter_local_notifications_platform_interface:
     dependency: transitive
     description:
       name: flutter_local_notifications_platform_interface
-      sha256: ff0013eae795e8dc8fad4a8992a209e64d3ba2fbd8bf5e43c36bf448f95bd814
+      sha256: "43c3761d916c9bd3d5c7ebbc44d82f4990329840c0c5d62ad5260cc1b5d399bd"
       url: "https://pub.dev"
     source: hosted
-    version: "12.0.0"
+    version: "12.2.0"
   flutter_local_notifications_web:
     dependency: transitive
     description:
@@ -984,10 +984,10 @@ packages:
     dependency: transitive
     description:
       name: permission_handler_apple
-      sha256: e20daf680eef1ca62ffe8c8c526b778cc386d50137c77ac71c8ec9c88c13fb9d
+      sha256: "82d31c9b321c45785ccd73bce9c63af17037116193b4000b998a4363059adb6e"
       url: "https://pub.dev"
     source: hosted
-    version: "9.4.9"
+    version: "9.6.5"
   permission_handler_html:
     dependency: transitive
     description:
@@ -1000,10 +1000,10 @@ packages:
     dependency: transitive
     description:
       name: permission_handler_platform_interface
-      sha256: eb99b295153abce5d683cac8c02e22faab63e50679b937fa1bf67d58bb282878
+      sha256: ed86a61c190258fdd65de395ea0632822e3415c1faec38eae0c31b479c28a531
       url: "https://pub.dev"
     source: hosted
-    version: "4.3.0"
+    version: "4.4.1"
   permission_handler_windows:
     dependency: transitive
     description:

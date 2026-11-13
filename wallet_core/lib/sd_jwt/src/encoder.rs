@@ -6,7 +6,7 @@
 use attestation_types::claim_path::ClaimPath;
 use base64::prelude::*;
 use crypto::utils::random_bytes;
-use rand::Rng;
+use rand::RngExt;
 use serde_json::Value;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -97,13 +97,13 @@ impl<H: Hasher> SdObjectEncoder<H> {
     }
 
     pub(crate) fn random_digest(hasher: &H, salt_len: usize, array_entry: bool) -> Result<String, EncoderError> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let salt = Self::gen_rand(salt_len);
-        let decoy_value_length = rng.gen_range(20..=100);
+        let decoy_value_length = rng.random_range(20..=100);
         let decoy_claim_name = if array_entry {
             None
         } else {
-            let decoy_claim_name_length = rng.gen_range(4..=10);
+            let decoy_claim_name_length = rng.random_range(4..=10);
             Some(Self::gen_rand(decoy_claim_name_length))
         };
         let decoy_value = Self::gen_rand(decoy_value_length);

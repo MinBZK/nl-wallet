@@ -70,18 +70,14 @@ describe('AppModal', () => {
     expect(dialog.hasAttribute('open')).toBe(false)
   })
 
-  it('emits close when cancelled with Escape', async () => {
+  it.each([
+    ['cancelled with Escape', 'cancel'],
+    ['the backdrop is clicked', 'click'],
+    ['the browser closes the dialog natively', 'close'],
+  ])('emits close when %s', async (_, event) => {
     const wrapper = mountModal()
 
-    await wrapper.get('dialog').trigger('cancel')
-
-    expect(wrapper.emitted('close')).toHaveLength(1)
-  })
-
-  it('emits close when the backdrop is clicked', async () => {
-    const wrapper = mountModal()
-
-    await wrapper.get('dialog').trigger('click')
+    await wrapper.get('dialog').trigger(event)
 
     expect(wrapper.emitted('close')).toHaveLength(1)
   })
@@ -101,14 +97,6 @@ describe('AppModal', () => {
     await wrapper.get('dialog').trigger('click')
 
     expect(wrapper.emitted('close')).toBeUndefined()
-  })
-
-  it('emits close when the browser closes the dialog natively', async () => {
-    const wrapper = mountModal()
-
-    await wrapper.get('dialog').trigger('close')
-
-    expect(wrapper.emitted('close')).toHaveLength(1)
   })
 
   it('reopens the dialog when the browser closes it natively while not dismissible', async () => {
