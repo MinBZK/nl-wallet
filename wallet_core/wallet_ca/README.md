@@ -38,6 +38,10 @@ authentication purpose `mdlReaderAuth` (`1.0.18013.5.1.6`). The EKU is
 non-critical following ETSI EN 319 412-2, section 4.3.10. The WRPRC signing
 profile adds no extended key usage. The same profiles apply to `cert-pub`.
 
+For proximity reader authentication, the wallet accepts `mdlReaderAuth` as
+either critical or non-critical, and also accepts certificates without an
+extended key usage. An EKU containing only unrelated purposes is rejected.
+
 Then sign an authored JSON payload. The command validates the payload and
 checks that its `sub` matches the subject identifier in the supplied WRPAC
 before signing it:
