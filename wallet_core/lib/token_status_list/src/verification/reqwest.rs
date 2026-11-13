@@ -31,10 +31,18 @@ impl StatusListClient for HttpStatusListClient {
         url: Url,
         request_format: StatusListFormat,
     ) -> Result<StatusListToken, StatusListClientError> {
+        // Accept either format, the requested format is listed first.
+        let other_format = match request_format {
+            StatusListFormat::Jwt => StatusListFormat::Cwt,
+            StatusListFormat::Cwt => StatusListFormat::Jwt,
+        };
+
+        let accept = format!("{}, {}", request_format.media_type(), other_format.media_type());
+
         let mut response = self
             .as_ref()
             .get(url)
-            .header(header::ACCEPT, request_format.media_type())
+            .header(header::ACCEPT, accept)
             .send()
             .await?
             .error_for_status()?;
@@ -139,6 +147,27 @@ mod tests {
         };
 
         assert_eq!(received, served);
+    }
+
+    #[rstest]
+    #[case::jwt(StatusListFormat::Jwt, "application/statuslist+jwt, application/statuslist+cwt")]
+    #[case::cwt(StatusListFormat::Cwt, "application/statuslist+cwt, application/statuslist+jwt")]
+    #[tokio::test]
+    async fn test_fetch_accepts_both_formats(#[case] requested: StatusListFormat, #[case] accept: &str) {
+        let body = mock_status_list_token_bytes(requested).await;
+        let server = MockServer::start_async().await;
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/statuslists/1").header("accept", accept);
+                then.status(200).body(body);
+            })
+            .await;
+
+        HttpStatusListClient::new(httpmock_reqwest_client_builder())
+            .unwrap()
+            .fetch(server.url("/statuslists/1").parse().unwrap(), requested)
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
