@@ -394,16 +394,6 @@ pub async fn start_issuance_from_offer(offer_uri: String) -> anyhow::Result<Issu
     Ok(issuance_start_result.into())
 }
 
-// TODO remove this function (PVW-5927)
-#[flutter_api_error]
-pub async fn cancel_issuance() -> anyhow::Result<()> {
-    let mut wallet = wallet().write().await;
-
-    wallet.cancel_session().await?;
-
-    Ok(())
-}
-
 #[flutter_api_error]
 pub async fn continue_issuance(uri: String) -> anyhow::Result<IssuanceContinueResult> {
     let url = Url::parse(&uri)?;
@@ -502,16 +492,6 @@ pub async fn continue_close_proximity_disclosure() -> anyhow::Result<StartDisclo
 
 #[flutter_api_error]
 pub async fn cancel_session() -> anyhow::Result<Option<String>> {
-    let mut wallet = wallet().write().await;
-
-    let return_url = wallet.cancel_session().await?.map(String::from);
-
-    Ok(return_url)
-}
-
-// TODO remove this function (PVW-5927)
-#[flutter_api_error]
-pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
     let mut wallet = wallet().write().await;
 
     let return_url = wallet.cancel_session().await?.map(String::from);

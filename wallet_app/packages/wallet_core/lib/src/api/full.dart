@@ -115,8 +115,6 @@ Future<void> cancelPinRecovery() => WalletCore.instance.api.crateApiFullCancelPi
 Future<IssuanceStartResult> startIssuanceFromOffer({required String offerUri}) =>
     WalletCore.instance.api.crateApiFullStartIssuanceFromOffer(offerUri: offerUri);
 
-Future<void> cancelIssuance() => WalletCore.instance.api.crateApiFullCancelIssuance();
-
 Future<IssuanceContinueResult> continueIssuance({required String uri}) =>
     WalletCore.instance.api.crateApiFullContinueIssuance(uri: uri);
 
@@ -149,8 +147,6 @@ Future<StartDisclosureResult> continueCloseProximityDisclosure() =>
     WalletCore.instance.api.crateApiFullContinueCloseProximityDisclosure();
 
 Future<String?> cancelSession() => WalletCore.instance.api.crateApiFullCancelSession();
-
-Future<String?> cancelDisclosure() => WalletCore.instance.api.crateApiFullCancelDisclosure();
 
 Future<AcceptDisclosureResult> acceptDisclosure({required List<int> selectedIndices, required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptDisclosure(selectedIndices: selectedIndices, pin: pin);

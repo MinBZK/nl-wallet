@@ -687,10 +687,6 @@ void frbgen_wallet_core_wire__crate__api__full__accept_issuance(int64_t port_,
 void frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance(int64_t port_,
                                                                     struct wire_cst_list_prim_u_8_strict *pin);
 
-void frbgen_wallet_core_wire__crate__api__full__cancel_disclosure(int64_t port_);
-
-void frbgen_wallet_core_wire__crate__api__full__cancel_issuance(int64_t port_);
-
 void frbgen_wallet_core_wire__crate__api__full__cancel_pin_recovery(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__cancel_session(int64_t port_);
@@ -958,8 +954,6 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_issuance);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__cancel_disclosure);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__cancel_issuance);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__cancel_pin_recovery);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__cancel_session);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__cancel_wallet_transfer);

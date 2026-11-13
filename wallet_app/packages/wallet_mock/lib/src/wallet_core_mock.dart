@@ -67,12 +67,6 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<String?> crateApiFullCancelDisclosure() async {
-    await _disclosureManager.cancelDisclosure();
-    return null;
-  }
-
-  @override
   Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
     required List<int> selectedIndices,
     required String pin,
@@ -126,9 +120,6 @@ class WalletCoreMock implements WalletCoreApi {
         return PidIssuanceResult_InstructionError(error: result.error);
     }
   }
-
-  @override
-  Future<void> crateApiFullCancelIssuance() async => _issuanceManager.cancelIssuance();
 
   @override
   Future<void> crateApiFullClearAttestationsStream() async {

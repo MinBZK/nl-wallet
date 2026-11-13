@@ -82,7 +82,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -1536006699;
+  int get rustContentHash => 1643222595;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -103,10 +103,6 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin});
 
   Future<PidIssuanceResult> crateApiFullAcceptPidIssuance({required String pin});
-
-  Future<String?> crateApiFullCancelDisclosure();
-
-  Future<void> crateApiFullCancelIssuance();
 
   Future<void> crateApiFullCancelPinRecovery();
 
@@ -361,52 +357,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullAcceptPidIssuanceConstMeta => const TaskConstMeta(
     debugName: "accept_pid_issuance",
     argNames: ["pin"],
-  );
-
-  @override
-  Future<String?> crateApiFullCancelDisclosure() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__full__cancel_disclosure(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_opt_String,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullCancelDisclosureConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiFullCancelDisclosureConstMeta => const TaskConstMeta(
-    debugName: "cancel_disclosure",
-    argNames: [],
-  );
-
-  @override
-  Future<void> crateApiFullCancelIssuance() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__full__cancel_issuance(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullCancelIssuanceConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiFullCancelIssuanceConstMeta => const TaskConstMeta(
-    debugName: "cancel_issuance",
-    argNames: [],
   );
 
   @override
