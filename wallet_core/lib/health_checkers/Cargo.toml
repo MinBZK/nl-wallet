@@ -17,8 +17,6 @@ required-features = ["db_test"]
 
 [features]
 db_test = [
-    "dep:db_test",
-    "dep:rstest",
     "sea-orm/runtime-tokio-rustls",
     "tokio/rt-multi-thread",
     "tokio/macros",
@@ -28,10 +26,12 @@ db_test = [
 async-trait.workspace = true
 sea-orm = { workspace = true, features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 
-rstest = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 
 hsm.path = "../hsm"
 http_utils.path = "../http_utils"
 
-db_test = { path = "../db_test", optional = true }
+[dev-dependencies]
+rstest.workspace = true
+
+db_test.path = "../db_test"

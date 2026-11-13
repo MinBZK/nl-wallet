@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-axum = ["axum/json", "utoipa/uuid", "uuid/serde"]
+axum = ["axum/json", "uuid/serde"]
 verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types"]
 mock = ["dep:mockall"]
 
@@ -47,7 +47,6 @@ http = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
-utoipa = { workspace = true, optional = true }
 
 [dev-dependencies]
 dashmap.workspace = true

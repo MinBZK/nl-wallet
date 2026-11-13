@@ -81,6 +81,9 @@ version = "0.8.0-dev"
 edition = "2024"
 rust-version = "1.100"
 
+[workspace.lints.cargo]
+unused_dependencies = "deny"
+
 [workspace.lints.rust]
 async_fn_in_trait = "allow"
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
@@ -169,7 +172,6 @@ josekit = "0.10.3"
 jsonwebtoken = { version = "11.1.0", default-features = false, features = ["rust_crypto"] }
 jwk-simple = "0.2.0"
 language-tags = "0.3.2"
-libc = "0.2.178"
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }
 # The lightningcss crate has a 1.0.0 version as well as an `alpha` label, meaning they don't use the semver
@@ -182,7 +184,6 @@ metrics-exporter-prometheus = { version = "0.18.1", default-features = false, fe
 mime = "0.3.17"
 mockall = "0.14.0"
 moka = "0.12.11"
-nom = "8.0.0"
 nonempty-collections = "1.2.1"
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
@@ -218,7 +219,6 @@ rustix = "1.1.2"
 rustls = { version = "0.23.35", default-features = false, features = ["logging", "std", "ring"] }
 rustls-pki-types = { version = "1.13.1", features = ["std"] }
 rustls-webpki = { version = "0.103.8", features = ["ring"] }
-sanitize-filename = "0.6.0"
 scraper = "0.25.0"
 sea-orm = { version = "1.1.19", default-features = false }
 sea-orm-migration = { version = "1.1.19", default-features = false }
