@@ -190,6 +190,10 @@ pub enum SessionState<AS, IS> {
         preview_attestations: Option<VecNonEmpty<AttestationPresentation>>,
         protocol_state: IS,
     },
+    Received {
+        credentials: VecNonEmpty<(CredentialWithMetadata, AttestationPresentation)>,
+        recovery_code_disclosure: Option<CheckedRecoveryCodeDisclosure>,
+    },
 }
 
 impl<AS, IS> WalletIssuanceSession<AS, IS> {
@@ -269,6 +273,13 @@ pub enum PidIssuancePurpose {
 pub enum PidAttestationFormat {
     SdJwt,
     Either,
+}
+
+/// Whether an issuance session has credential previews.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PreviewMode {
+    WithPreviews,
+    WithoutPreviews,
 }
 
 /// The credentials received by [`Wallet::receive_credentials`], containing everything needed to process and store them.
@@ -666,6 +677,8 @@ where
             .collect()
     }
 
+    /// Accepts an issuance session with previews, which the user has already seen, using the PIN and stores the issued
+    /// credentials. A session without previews is accepted with [`Self::issue_credentials_for_review`] instead.
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn accept_issuance(&mut self, pin: Pin) -> Result<IssuanceResult, IssuanceError>
@@ -677,18 +690,15 @@ where
         let ReceivedCredentials {
             credentials,
             preview_attestations,
-            organization,
+            organization: _,
             pid_purpose,
             config,
             instruction_client,
-        } = self.receive_credentials(pin).await?;
+        } = self.receive_credentials(pin, PreviewMode::WithPreviews).await?;
 
         let attestation_presentations = match preview_attestations {
             Some(preview_attestations) => preview_attestations,
-            None => {
-                self.process_issued_credentials(&credentials, &organization, pid_purpose, &config.pid_attributes)
-                    .await?
-            }
+            None => return Err(IssuanceError::SessionState),
         };
 
         // The Wallet Provider acts on the disclosed recovery code, so disclose it only after every fallible operation
@@ -721,11 +731,161 @@ where
         Ok(IssuanceResult { transfer_session_id })
     }
 
+    /// Accepts an issuance session without previews using the PIN and returns the issued credentials as attestations,
+    /// for the user to review. The issued credentials are kept in the session until they are stored by either
+    /// [`Self::commit_issued_credentials`] or, for a PID, [`Self::commit_issued_pid`]. They are rejected by cancelling
+    /// the session.
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn issue_credentials_for_review(
+        &mut self,
+        pin: Pin,
+    ) -> Result<VecNonEmpty<AttestationPresentation>, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
+        info!("Issuing credentials for review");
+
+        let ReceivedCredentials {
+            credentials,
+            organization,
+            pid_purpose,
+            config,
+            ..
+        } = self.receive_credentials(pin, PreviewMode::WithoutPreviews).await?;
+
+        let recovery_code_disclosure = if pid_purpose.is_some() {
+            // Check the recovery code in the issued PID against the one in the stored PID, if any. The issued PID is
+            // not stored yet, so on a mismatch the issued credentials can simply be dropped. The disclosure is only
+            // sent to the Wallet Provider when the PID is committed.
+            Some(
+                self.checked_recovery_code_disclosure(&credentials, &config.pid_attributes)
+                    .await?,
+            )
+        } else {
+            None
+        };
+
+        let attestations = self
+            .process_issued_credentials(&credentials, &organization, pid_purpose, &config.pid_attributes)
+            .await?;
+
+        info!("Keeping issued credentials in session for review");
+        self.session.replace(Session::Issuance(WalletIssuanceSession::new(
+            pid_purpose,
+            SessionState::Received {
+                credentials: credentials.into_nonempty_iter().zip(attestations.clone()).collect(),
+                recovery_code_disclosure,
+            },
+        )));
+
+        Ok(attestations)
+    }
+
+    /// Stores the credentials issued by [`Self::issue_credentials_for_review`], after the user has reviewed them. This
+    /// is not meant for a PID, which is committed with [`Self::commit_issued_pid`] instead.
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn commit_issued_credentials(&mut self) -> Result<(), IssuanceError> {
+        info!("Committing issued credentials");
+
+        self.check_session_preconditions()?;
+
+        info!("Checking if there are received credentials");
+        match self.session.take() {
+            Some(Session::Issuance(WalletIssuanceSession::Generic {
+                session_state:
+                    SessionState::Received {
+                        credentials,
+                        recovery_code_disclosure: None,
+                    },
+            })) => self.finalize_issuance(credentials, None).await,
+            session => {
+                self.session = session;
+                Err(IssuanceError::SessionState)
+            }
+        }
+    }
+
+    /// Stores the PID issued by [`Self::issue_credentials_for_review`], after the user has reviewed it. Before that,
+    /// its recovery code is disclosed to the Wallet Provider using the PIN, which unblocks the keys of the issued PID.
+    ///
+    /// On an error, the issued PID is kept so that committing it can be retried, e.g. after entering an incorrect PIN.
+    /// It is not kept if the wallet has been revoked or if the PIN times out or gets blocked, which resets the wallet.
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn commit_issued_pid(&mut self, pin: Pin) -> Result<IssuanceResult, IssuanceError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
+        info!("Committing issued PID");
+
+        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
+
+        let instruction_client = self
+            .prepare_remote_instruction_client(pin, (attested_key, registration_data, config))
+            .await?;
+
+        info!("Checking if there is a received PID");
+        let (credentials, recovery_code_disclosure, purpose) = match self.session.take() {
+            Some(Session::Issuance(WalletIssuanceSession::Pid {
+                purpose,
+                session_state:
+                    SessionState::Received {
+                        credentials,
+                        recovery_code_disclosure: Some(recovery_code_disclosure),
+                    },
+            })) => (credentials, recovery_code_disclosure, purpose),
+            session => {
+                self.session = session;
+                return Err(IssuanceError::SessionState);
+            }
+        };
+
+        info!("Disclosing recovery code of the issued PID");
+        let disclosure_result = self
+            .disclose_recovery_code(recovery_code_disclosure.clone(), &instruction_client)
+            .await;
+
+        let transfer_session_id = match disclosure_result {
+            Ok(transfer_session_id) => {
+                // If we're doing PID renewal as opposed to enrolling, we don't want to transfer.
+                transfer_session_id.filter(|_| purpose == PidIssuancePurpose::Enrollment)
+            }
+            // In these cases, the contents of the wallet need to be wiped and the wallet returned to its initial state.
+            Err(error @ IssuanceError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)) => {
+                self.reset_to_initial_state().await;
+                return Err(error);
+            }
+            // The revocation has already been handled by `disclose_recovery_code()`, which may have reset the wallet.
+            Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(_))) => return Err(error),
+            Err(error) => {
+                // Otherwise, keep the received PID, so that committing it can be retried, e.g. after entering an
+                // incorrect PIN. The Wallet Provider accepts the same disclosure again, even if it already processed it
+                // before.
+                self.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+                    purpose,
+                    session_state: SessionState::Received {
+                        credentials,
+                        recovery_code_disclosure: Some(recovery_code_disclosure),
+                    },
+                }));
+                return Err(error);
+            }
+        };
+
+        self.finalize_issuance(credentials, transfer_session_id).await?;
+
+        Ok(IssuanceResult { transfer_session_id })
+    }
+
     /// Accepts the issuance session using the PIN and receives the issued credentials, after which the issuance session
-    /// is removed. On an error the session is kept, unless the wallet is reset.
+    /// is removed. The session is only accepted if it matches `expected_preview_mode`. On an error the session is kept,
+    /// unless the wallet is reset.
     async fn receive_credentials(
         &mut self,
         pin: Pin,
+        expected_preview_mode: PreviewMode,
     ) -> Result<ReceivedCredentials<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>>, IssuanceError>
     where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -753,6 +913,17 @@ where
         else {
             return Err(IssuanceError::SessionState);
         };
+
+        let session_preview_mode = match preview_attestations {
+            Some(_) => PreviewMode::WithPreviews,
+            None => PreviewMode::WithoutPreviews,
+        };
+
+        // Check this before contacting the issuer, so that a session with or without previews that is accepted by the
+        // wrong method is left intact.
+        if session_preview_mode != expected_preview_mode {
+            return Err(IssuanceError::SessionState);
+        }
 
         info!("Signing nonce using Wallet Provider");
 
@@ -2001,7 +2172,6 @@ mod tests {
                 StoredAttestationMetadata,
             ),
         >,
-        #[values(true, false)] with_previews: bool,
     ) {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -2043,7 +2213,7 @@ mod tests {
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
-                preview_attestations: with_previews.then_some(attestations),
+                preview_attestations: Some(attestations),
                 protocol_state: pid_issuer,
             },
         }));
@@ -2059,12 +2229,10 @@ mod tests {
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
 
-        // The stored PID is looked up to compare its recovery code. Without previews, it is also looked up before that,
-        // to determine which stored attestations the issued credentials renew.
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .times(if with_previews { 1 } else { 2 })
+            .times(1)
             .returning(|_| Ok(vec![]));
 
         wallet
@@ -2175,7 +2343,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_accept_issuance_without_previews() {
+    async fn test_issue_credentials_for_review_and_commit() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -2244,13 +2412,10 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(|| Ok(vec![]));
 
-        let result = wallet
-            .accept_issuance(PIN.clone())
+        let attestations = wallet
+            .issue_credentials_for_review(PIN.clone())
             .await
-            .expect("accepting issuance without previews should succeed");
-
-        assert!(result.transfer_session_id.is_none());
-        assert!(wallet.session.is_none());
+            .expect("issuing credentials for review should succeed");
 
         // The attestation presentations are created from the issued credentials, without the PID recovery code.
         let expected_attestations = expected_attestations
@@ -2262,11 +2427,31 @@ mod tests {
                 attestation
             })
             .collect_vec();
+        assert_eq!(attestations.into_inner(), expected_attestations);
+
+        // The issued credentials should be kept in the session for review, without being stored yet.
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Generic {
+                session_state: SessionState::Received {
+                    recovery_code_disclosure: None,
+                    ..
+                },
+            }))
+        );
+        assert!(inserted_attestations.lock().is_empty());
+
+        wallet
+            .commit_issued_credentials()
+            .await
+            .expect("committing the issued credentials should succeed");
+
+        assert!(wallet.session.is_none());
         assert_eq!(*inserted_attestations.lock(), expected_attestations);
     }
 
-    /// Without previews, the issued credentials are matched against the stored attestations after issuance. An issued
-    /// credential that renews a stored attestation updates it, the others are inserted as new attestations.
+    /// Tests that the attestations issued for review contain the identity of the stored attestation they renew, if any,
+    /// and that committing them updates the renewed stored attestations and inserts the others as new attestations.
     #[rstest]
     // During PID issuance, an issued PID renews the stored PID of the same format, even when their contents differ.
     #[case::pid_renewal(
@@ -2277,7 +2462,7 @@ mod tests {
     // ...but not one with different contents.
     #[case::different_contents(None, &[Format::SdJwt], true, &[])]
     #[tokio::test]
-    async fn test_accept_issuance_without_previews_renewal(
+    async fn test_issue_credentials_for_review_renewal(
         #[case] purpose: Option<PidIssuancePurpose>,
         #[case] stored_formats: &[Format],
         #[case] different_contents: bool,
@@ -2392,12 +2577,28 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(|| Ok(vec![]));
 
-        let result = wallet
-            .accept_issuance(PIN.clone())
+        let attestations = wallet
+            .issue_credentials_for_review(PIN.clone())
             .await
-            .expect("accepting issuance without previews should succeed");
+            .expect("issuing credentials for review should succeed");
 
-        assert!(result.transfer_session_id.is_none());
+        // Nothing should be stored before the issued credentials are committed.
+        assert!(updated_credentials.lock().is_empty());
+        assert!(inserted_credentials.lock().is_empty());
+
+        if purpose.is_some() {
+            let result = wallet
+                .commit_issued_pid(PIN.clone())
+                .await
+                .expect("committing the issued PID should succeed");
+
+            assert!(result.transfer_session_id.is_none());
+        } else {
+            wallet
+                .commit_issued_credentials()
+                .await
+                .expect("committing the issued credentials should succeed");
+        }
 
         // Every credential should be paired with the attestation presentation of the same format, which carries the
         // identity of the stored attestation it renews, if any.
@@ -2424,6 +2625,14 @@ mod tests {
 
         assert_eq!(identities_by_format(&updated_credentials.lock()), expected_updated);
         assert_eq!(identities_by_format(&inserted_credentials.lock()), expected_inserted);
+
+        // The attestations for the review should already carry these identities.
+        let reviewed_identities = attestations
+            .iter()
+            .map(|attestation| (attestation.format, attestation.identity))
+            .collect::<HashMap<_, _>>();
+        let expected_identities = expected_updated.into_iter().chain(expected_inserted).collect();
+        assert_eq!(reviewed_identities, expected_identities);
     }
 
     #[tokio::test]
@@ -2642,7 +2851,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_accept_pid_issuance_error_missing_pid_sd_jwt(#[values(true, false)] with_previews: bool) {
+    async fn test_pid_issuance_error_missing_pid_sd_jwt(#[values(true, false)] with_previews: bool) {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -2663,18 +2872,18 @@ mod tests {
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
 
-        // Without previews, the stored attestations are looked up to determine which ones the issued credentials renew.
-        wallet
-            .mut_storage()
-            .expect_fetch_unique_attestations_by_credential_kinds()
-            .times(if with_previews { 0 } else { 1 })
-            .returning(|_| Ok(vec![]));
-
         // Accepting PID issuance should result in an error.
-        let error = wallet
-            .accept_issuance(PIN.clone())
-            .await
-            .expect_err("Accepting PID issuance should have resulted in an error");
+        let error = if with_previews {
+            wallet
+                .accept_issuance(PIN.clone())
+                .await
+                .expect_err("Accepting PID issuance should have resulted in an error")
+        } else {
+            wallet
+                .issue_credentials_for_review(PIN.clone())
+                .await
+                .expect_err("Issuing the PID for review should have resulted in an error")
+        };
 
         assert_matches!(error, IssuanceError::RecoveryCode(RecoveryCodeError::MissingPid));
 
@@ -2684,7 +2893,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_accept_pid_issuance_error_incorrect_recovery_code(#[values(true, false)] with_previews: bool) {
+    async fn test_pid_issuance_error_incorrect_recovery_code(#[values(true, false)] with_previews: bool) {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -2727,12 +2936,11 @@ mod tests {
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
 
-        // The stored PID is looked up to compare its recovery code. Without previews, it is also looked up before that,
-        // to determine which stored attestations the issued credentials renew.
+        // Only the stored PID should be looked up, to compare its recovery code.
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .times(if with_previews { 1 } else { 2 })
+            .times(1)
             .returning(move |_| Ok(vec![stored_copy.clone()]));
 
         wallet
@@ -2749,12 +2957,19 @@ mod tests {
             .expect_upsert_data::<InstructionData>()
             .returning(|_| Ok(()));
 
-        // Accepting PID issuance should result in an error, without the issued credentials being stored (no
-        // expectation for `insert_credentials()`) or the recovery code being disclosed.
-        let error = wallet
-            .accept_issuance(PIN.clone())
-            .await
-            .expect_err("Accepting PID issuance should have resulted in an error");
+        // Accepting PID issuance, or issuing the PID for review, should result in an error, without the issued
+        // credentials being stored (no expectation for `insert_credentials()`) or the recovery code being disclosed.
+        let error = if with_previews {
+            wallet
+                .accept_issuance(PIN.clone())
+                .await
+                .expect_err("Accepting PID issuance should have resulted in an error")
+        } else {
+            wallet
+                .issue_credentials_for_review(PIN.clone())
+                .await
+                .expect_err("Issuing the PID for review should have resulted in an error")
+        };
 
         assert_matches!(
             error,
@@ -2830,7 +3045,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_accept_pid_issuance_without_previews_error_attestation_query() {
+    async fn test_issue_pid_for_review_error_attestation_query() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -2868,8 +3083,8 @@ mod tests {
             .expect_upsert_data::<InstructionData>()
             .returning(|_| Ok(()));
 
-        // Have the storage return an error when looking up the stored attestations that the issued credentials renew.
-        // As this happens before the recovery code is compared, the stored PID is not looked up for that.
+        // Have the storage contain no PID, and return an error when looking up the stored attestations that the issued
+        // credentials renew.
         let issued_credential_kinds = HashSet::from([
             CredentialKind::new(Format::SdJwt, pid_attestation_type(Format::SdJwt).to_string()),
             CredentialKind::new(Format::MsoMdoc, pid_attestation_type(Format::MsoMdoc).to_string()),
@@ -2877,9 +3092,14 @@ mod tests {
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .with(eq(issued_credential_kinds))
-            .times(1)
-            .return_once(|_| Err(StorageError::AlreadyOpened));
+            .times(2)
+            .returning(move |credential_kinds| {
+                if credential_kinds == issued_credential_kinds {
+                    Err(StorageError::AlreadyOpened)
+                } else {
+                    Ok(vec![])
+                }
+            });
 
         // The recovery code should not be disclosed to the Wallet Provider, which would require an instruction
         // challenge, and nothing should be stored.
@@ -2892,9 +3112,9 @@ mod tests {
         wallet.mut_storage().expect_insert_credentials().never();
 
         let error = wallet
-            .accept_issuance(PIN.clone())
+            .issue_credentials_for_review(PIN.clone())
             .await
-            .expect_err("Accepting PID issuance should have resulted in an error");
+            .expect_err("Issuing the PID for review should have resulted in an error");
 
         assert_matches!(error, IssuanceError::AttestationQuery(_));
 

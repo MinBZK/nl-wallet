@@ -204,8 +204,8 @@ async fn test_acf_demo_issuer_wallet_issuance() {
 /// Full wallet driven issuance for the authorization-code flow demo issuer, configured without the Credential Preview
 /// Endpoint.
 ///
-/// The wallet receives no previews, only the issuer organization to show to the user, and stores the issued
-/// insurance attestation as a new attestation after acceptance.
+/// The wallet receives no previews, only the issuer organization to show to the user. The issued insurance attestation
+/// is presented for review, and stored as a new attestation once committed.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
@@ -244,7 +244,20 @@ async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
         panic!("expected no previews");
     };
 
-    wallet.accept_issuance(pin).await.expect("should accept issuance");
+    let reviewed_attestations = wallet
+        .issue_credentials_for_review(pin)
+        .await
+        .expect("should issue credentials for review");
+    let reviewed_attestation = reviewed_attestations
+        .iter()
+        .find(|attestation| attestation.attestation_type == "com.example.insurance")
+        .expect("the issued insurance attestation should be presented for review");
+    assert_eq!(reviewed_attestation.issuer, issuer);
+
+    wallet
+        .commit_issued_credentials()
+        .await
+        .expect("should commit issued credentials");
 
     let attestations = wallet_attestations(&mut wallet).await;
     let attestation = attestations

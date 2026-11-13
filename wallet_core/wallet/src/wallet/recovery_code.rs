@@ -46,7 +46,7 @@ pub enum RecoveryCodeError {
 
 /// A disclosure of just the recovery code of the issued PID, whose recovery code matches that of the stored PID, if
 /// any.
-#[derive(derive_more::Into)]
+#[derive(Debug, Clone, derive_more::Into)]
 pub(super) struct CheckedRecoveryCodeDisclosure(UnverifiedSdJwt);
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
