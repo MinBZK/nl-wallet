@@ -973,6 +973,7 @@ where
                             .is_in([
                                 RevocationStatus::Valid.to_string(),
                                 RevocationStatus::Undetermined.to_string(),
+                                RevocationStatus::Revoked.to_string(),
                             ])
                             .or(attestation_copy::Column::RevocationStatus.is_null()),
                     )
@@ -2332,6 +2333,47 @@ pub(crate) mod tests {
             .expect("Could not insert credentials");
 
         (mdoc_doc_type, sd_jwt_vct)
+    }
+
+    #[rstest]
+    #[case::unchecked(None, true)]
+    #[case::valid(Some(RevocationStatus::Valid), true)]
+    #[case::undetermined(Some(RevocationStatus::Undetermined), true)]
+    #[case::revoked(Some(RevocationStatus::Revoked), true)]
+    #[case::corrupted(Some(RevocationStatus::Corrupted), false)]
+    #[tokio::test]
+    async fn test_fetch_valid_unique_attestations_revocation_status(
+        #[case] status: Option<RevocationStatus>,
+        #[case] should_be_returned: bool,
+    ) {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+        let (mdoc_doc_type, sd_jwt_vct) = insert_pid_in_both_formats(&mut storage).await;
+
+        if let Some(status) = status {
+            let updates = storage
+                .fetch_unique_attestations()
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|copy| (copy.attestation_copy_id(), status))
+                .collect();
+            storage.update_revocation_statuses(updates).await.unwrap();
+        }
+
+        let fetched = storage
+            .fetch_valid_unique_attestations_by_credential_kinds(
+                &HashSet::from([
+                    CredentialKind::new(Format::MsoMdoc, mdoc_doc_type),
+                    CredentialKind::new(Format::SdJwt, sd_jwt_vct),
+                ]),
+                MockTimeGenerator::default(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(fetched.len(), if should_be_returned { 2 } else { 0 });
+        // Check that fetching the attestation did not change the revocation status.
+        assert!(fetched.iter().all(|copy| copy.revocation_status == status));
     }
 
     #[tokio::test]
