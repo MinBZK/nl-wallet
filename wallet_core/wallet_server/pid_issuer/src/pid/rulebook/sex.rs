@@ -1,15 +1,11 @@
 use attestation_data::attributes::Attribute;
 use serde::Deserialize;
-use serde::Serialize;
 use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 
 /// The [ISO/IEC 5218] `sex` codes.
 ///
 /// [ISO/IEC 5218]: https://en.wikipedia.org/wiki/ISO/IEC_5218
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString, DeserializeFromStr, SerializeDisplay,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString, DeserializeFromStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum IsoSex {
     NotKnown = 0,
@@ -22,7 +18,7 @@ pub enum IsoSex {
 ///
 /// [`Self::Iso`] covers the [ISO/IEC 5218] values (see [`IsoSex`]); the remaining variants are Rulebook additions on
 /// top of that standard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RulebookSex {
     Other,
@@ -57,10 +53,8 @@ mod tests {
     #[rstest]
     #[case(RulebookSex::Iso(IsoSex::NotKnown), "notknown")]
     #[case(RulebookSex::Other, "other")]
-    fn test_serde(#[case] sex: RulebookSex, #[case] expected: &str) {
-        let serialized = serde_json::to_value(sex).unwrap();
-        assert_eq!(json!(expected), serialized);
-        assert_eq!(sex, serde_json::from_value(serialized).unwrap());
+    fn test_serde(#[case] sex: RulebookSex, #[case] serialized: &str) {
+        assert_eq!(sex, serde_json::from_value(Value::String(serialized.into())).unwrap());
     }
 
     #[test]

@@ -1,17 +1,13 @@
 use attestation_data::attributes::Attribute;
 use serde::Deserialize;
-use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::OneOrMany;
-use serde_with::SerializeDisplay;
 use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
 /// ISO 3166-1 alpha-2 country codes, covering every code currently assigned by the standard.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, strum::EnumString, DeserializeFromStr, SerializeDisplay,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::Display, strum::EnumString, DeserializeFromStr)]
 pub enum IsoCountryCode {
     #[strum(serialize = "AD")]
     Andorra,
@@ -517,7 +513,7 @@ pub enum IsoCountryCode {
 ///
 /// `Other` is added for territories with no official ISO 3166-1 code (currently only "XK" for Kosovo), not something
 /// the Rulebook defines.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 #[serde(untagged)]
 pub enum RulebookNationality {
     Iso(IsoCountryCode),
@@ -550,7 +546,7 @@ impl From<IsoCountryCode> for RulebookNationality {
 /// The encoded array is never empty, never mixes `QU` and `QS` with known countries, and never contains the same
 /// country twice.
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub enum RulebookNationalities {
     #[serde(rename = "QU")]
     Unknown,
@@ -590,7 +586,7 @@ impl From<VecNonEmpty<RulebookNationality>> for RulebookNationalities {
 ///
 /// `Other` is added for territories with no official ISO 3166-1 code (currently only "XK" for Kosovo), not something
 /// the Rulebook defines. There is no equivalent variant for "unknown".
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(untagged)]
 pub enum RulebookCountryCode {
     Iso(IsoCountryCode),
@@ -617,7 +613,6 @@ impl From<IsoCountryCode> for RulebookCountryCode {
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
-    use serde_json::json;
     use serde_json::value::Value;
     use utils::vec_nonempty;
 
@@ -628,17 +623,17 @@ mod tests {
     #[rstest]
     #[case(RulebookNationalities::Unknown, "QU")]
     #[case(RulebookNationalities::Stateless, "QS")]
-    fn test_serde_rulebook_specific(#[case] nationalities: RulebookNationalities, #[case] expected: &str) {
-        let serialized = serde_json::to_value(nationalities.clone()).unwrap();
-        assert_eq!(json!(expected), serialized);
-        assert_eq!(nationalities, serde_json::from_value(serialized.clone()).unwrap());
+    fn test_serde_rulebook_specific(#[case] nationalities: RulebookNationalities, #[case] serialized: &str) {
+        assert_eq!(
+            nationalities,
+            serde_json::from_value(Value::String(serialized.into())).unwrap()
+        );
     }
 
     #[test]
     fn test_serde_known_single() {
         let nationalities: RulebookNationalities = vec_nonempty![IsoCountryCode::Netherlands.into()].into();
-        let serialized = serde_json::to_value(nationalities.clone()).unwrap();
-        assert_eq!(json!("NL"), serialized);
+        let serialized = Value::String("NL".into());
         assert_eq!(nationalities, serde_json::from_value(serialized.clone()).unwrap());
         assert_eq!(
             nationalities,
@@ -650,9 +645,10 @@ mod tests {
     fn test_serde_known_multiple() {
         let nationalities: RulebookNationalities =
             vec_nonempty![IsoCountryCode::Belgium.into(), RulebookNationality::Other("XX".into())].into();
-        let serialized = serde_json::to_value(nationalities.clone()).unwrap();
-        assert_eq!(json!(["BE", "XX"]), serialized);
-        assert_eq!(nationalities, serde_json::from_value(serialized.clone()).unwrap());
+        assert_eq!(
+            nationalities,
+            serde_json::from_value(Value::Array(vec!["BE".into(), "XX".into()])).unwrap()
+        );
     }
 
     #[test]
