@@ -36,6 +36,31 @@ class WalletDisclosureRunnerTests(unittest.TestCase):
             response.write_text("{}")
         self.runner.pending_verification = (expected, response)
 
+    def test_native_suite_does_not_build_wallet_verifier(self):
+        self.runner.wallet_verifier = None
+        with patch("run_disclosure_ios_test.signal.signal"), patch("disclosure_test_reader.subprocess.run") as build:
+            self.assertEqual(self.runner.run([sys.executable, "-c", "pass"]), 0)
+            build.assert_not_called()
+
+    def test_prebuilt_wallet_verifier_is_validated_without_building(self):
+        self.runner.wallet_verifier = pathlib.Path(self.runner.artifacts.name) / "missing-verifier"
+        with patch("disclosure_test_reader.subprocess.run") as build:
+            with self.assertRaises(FileNotFoundError):
+                self.runner.run([sys.executable, "-c", "pass"])
+            build.assert_not_called()
+        self.assertIsNone(self.runner.test_process)
+
+    def test_required_verifier_build_failure_prevents_test_command_start(self):
+        self.runner.require_wallet_test = True
+        self.runner.wallet_verifier = None
+        with patch(
+            "disclosure_test_reader.subprocess.run", side_effect=subprocess.CalledProcessError(1, "cargo"),
+        ) as build:
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.runner.run([sys.executable, "-c", "pass"])
+            build.assert_called_once()
+        self.assertIsNone(self.runner.test_process)
+
     def test_signed_request_larger_than_old_log_window_launches_reader(self):
         payload = {
             "qr": "test-engagement",
@@ -181,6 +206,21 @@ class WalletDisclosureRunnerTests(unittest.TestCase):
 
     def test_invalid_verification_metadata_stops_test_command_and_cleans_artifacts(self):
         marker = "CLOSE_PROXIMITY_MAC_READER=" + json.dumps({"qr": "test", "wallet_verification": []})
+        command = [sys.executable, "-c", f"import time; print({marker!r}, flush=True); time.sleep(60)"]
+        try:
+            with patch("run_disclosure_ios_test.signal.signal"), patch("run_disclosure_ios_test.sys.stdout"):
+                with self.assertRaisesRegex(RuntimeError, "Wallet disclosure requires verification metadata"):
+                    self.runner.run(command)
+            self.assertIsNotNone(self.runner.test_process.poll())
+            self.assertFalse(pathlib.Path(self.runner.artifacts.name).exists())
+        finally:
+            if self.runner.test_process is not None:
+                self.runner.test_process.kill()
+                self.runner.test_process.wait()
+
+    def test_wallet_marker_without_verifier_fails(self):
+        self.runner.wallet_verifier = None
+        marker = "CLOSE_PROXIMITY_MAC_READER=" + json.dumps({"qr": "test", "wallet_verification": {}})
         command = [sys.executable, "-c", f"import time; print({marker!r}, flush=True); time.sleep(60)"]
         try:
             with patch("run_disclosure_ios_test.signal.signal"), patch("run_disclosure_ios_test.sys.stdout"):

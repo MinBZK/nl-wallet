@@ -38,7 +38,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--wallet-verifier",
         type=pathlib.Path,
-        help="Prebuilt verify_close_proximity_response executable; otherwise build it before starting XCTest.",
+        help="Prebuilt verify_close_proximity_response executable (otherwise built with --require-wallet-test).",
     )
     parser.add_argument(
         "--require-wallet-test",
@@ -83,7 +83,8 @@ class Runner(Reader):
             self.artifacts.cleanup()
 
     def _run(self, command: list[str]) -> int:
-        self._prepare_wallet_verifier()
+        if self.require_wallet_test or self.wallet_verifier is not None:
+            self._prepare_wallet_verifier()
         command = self._with_auto_destination(command)
         master_fd, slave_fd = os.openpty()
         try:

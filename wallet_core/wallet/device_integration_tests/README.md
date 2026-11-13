@@ -67,7 +67,7 @@ phone with Bluetooth enabled, and Bluetooth permission for the terminal running 
 Android also needs USB debugging authorized. Run the suites serially: they share the native bridge
 and the Mac reader.
 
-The wrappers build the host Rust response verifier before starting the device tests. Pass
+With `--require-wallet-test`, the wrappers build the host Rust response verifier before starting the device tests. Pass
 `--wallet-verifier <executable>` to reuse an already built verifier. `--require-wallet-test` fails
 if no wallet response was verified, including when the test selection skips the wallet suite.
 
