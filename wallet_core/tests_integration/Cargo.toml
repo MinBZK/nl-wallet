@@ -263,7 +263,6 @@ performance_test = [
 [dependencies]
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
-base64 = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
@@ -275,9 +274,7 @@ p256 = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
-ring = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
-rustls-pki-types = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 semver = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
