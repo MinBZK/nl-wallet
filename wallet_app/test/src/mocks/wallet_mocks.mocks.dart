@@ -2840,6 +2840,13 @@ class MockFlutterLocalNotificationsPlugin extends _i1.Mock implements _i57.Flutt
   ) as _i9.Future<List<_i57.PendingNotificationRequest>>);
 
   @override
+  _i9.Future<bool?> openAppNotificationSettings() => (super.noSuchMethod(
+    Invocation.method(#openAppNotificationSettings, []),
+    returnValue: _i9.Future<bool?>.value(),
+    returnValueForMissingStub: _i9.Future<bool?>.value(),
+  ) as _i9.Future<bool?>);
+
+  @override
   _i9.Future<List<_i57.ActiveNotification>> getActiveNotifications() => (super.noSuchMethod(
     Invocation.method(#getActiveNotifications, []),
     returnValue: _i9.Future<List<_i57.ActiveNotification>>.value(
