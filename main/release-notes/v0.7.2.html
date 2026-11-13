@@ -394,6 +394,11 @@ on every subsequent fetch, so it was never evaluated again.</p></li>
 <li><p>The wallet app no longer gets stuck on the splash screen when the wallet
 configuration contains a maintenance window. The maintenance screen now also
 shows the window in local time instead of UTC.</p></li>
+<li><p>The wallet app no longer freezes on iOS 27.2 and later when it checks the
+notification permission shortly after the device has (re)started, on the
+dashboard or in the notification settings.</p></li>
+<li><p>On iOS 27, scheduling local notifications without notification permission no
+longer fails with an error.</p></li>
 </ul>
 </section>
 <section id="wallet-app-improvements">
